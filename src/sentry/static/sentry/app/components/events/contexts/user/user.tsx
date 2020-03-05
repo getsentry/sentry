@@ -16,7 +16,7 @@ type Props = {
 };
 
 type Data = {
-  data?: null | {[key: string]: string};
+  data: {[key: string]: string};
 } & UserType;
 
 const userKnownDataValues = [
@@ -28,13 +28,7 @@ const userKnownDataValues = [
 ];
 
 const User = ({data}: Props) => {
-  if (!defined(data)) {
-    return null;
-  }
-
-  const getKeyValueData = (val: object) => {
-    return Object.keys(val).map(key => [key, val[key]]);
-  };
+  const getKeyValueData = (val: object) => Object.keys(val).map(key => [key, val[key]]);
 
   return (
     <div className="user-widget">

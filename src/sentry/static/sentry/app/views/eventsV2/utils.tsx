@@ -7,7 +7,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, Organization, OrganizationSummary} from 'app/types';
+import {Event, StringMap, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
@@ -221,13 +221,11 @@ export function decodeColumnOrder(
     }
     column.key = col.aggregationField;
 
-    // Aggregations on any field make numbers.
+    // Aggregations can have a strict outputType or they can inherit from their field.
     // Otherwise use the FIELDS data to infer types.
-    if (
-      AGGREGATIONS[column.aggregation] &&
-      AGGREGATIONS[column.aggregation].type === '*'
-    ) {
-      column.type = 'number';
+    const aggregate = AGGREGATIONS[column.aggregation];
+    if (aggregate && aggregate.outputType) {
+      column.type = aggregate.outputType;
     } else if (FIELDS[column.aggregation]) {
       column.type = FIELDS[column.aggregation];
     } else {
@@ -317,17 +315,12 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: data.map(row => {
-      return headings.map(col => {
-        // alias for project doesn't match the table data name
-        if (col === 'project') {
-          col = 'project.name';
-        } else {
-          col = getAggregateAlias(col);
-        }
+    data: data.map(row =>
+      headings.map(col => {
+        col = getAggregateAlias(col);
         return disableMacros(row[col]);
-      });
-    }),
+      })
+    ),
   });
 
   // Need to also manually replace # since encodeURI skips them
@@ -358,55 +351,27 @@ const TRANSFORM_AGGREGATES: {[field: string]: AggregateTransformer} = {
   impact: () => undefined,
 };
 
+/**
+ * Convert an aggregated query into one that does not have aggregates.
+ * Can also apply additions conditions defined in `additionalConditions`
+ * and generate conditions based on the `dataRow` parameter and the current fields
+ * in the `eventView`.
+ */
 export function getExpandedResults(
   eventView: EventView,
-  additionalConditions: {[key: string]: string},
+  additionalConditions: StringMap<string>,
   dataRow?: TableDataRow | Event
 ): EventView {
-  let nextView = eventView.clone();
+  // Find aggregate fields and flag them for updates.
   const fieldsToUpdate: number[] = [];
-  const specialKeys = Object.values(URL_PARAM);
-
-  nextView.fields.forEach((field: FieldType, index: number) => {
+  eventView.fields.forEach((field: FieldType, index: number) => {
     const column = explodeField(field);
-
-    // Mark aggregated fields to be transformed into its un-aggregated form
     if (column.aggregation || AGGREGATE_ALIASES.includes(column.field)) {
       fieldsToUpdate.push(index);
-      return;
-    }
-
-    const dataKey = getAggregateAlias(field.field);
-    // Append the current field as a condition if it exists in the dataRow
-    // Or is a simple key in the event. More complex deeply nested fields are
-    // more challenging to get at as their location in the structure does not
-    // match their name.
-    if (dataRow) {
-      if (dataRow[dataKey]) {
-        const nextValue = String(dataRow[dataKey]).trim();
-
-        switch (column.field) {
-          case 'timestamp':
-            // normalize the "timestamp" field to ensure the payload works
-            additionalConditions[column.field] = getUtcDateString(nextValue);
-            break;
-          default:
-            additionalConditions[column.field] = nextValue;
-        }
-      }
-      // If we have an event, check tags as well.
-      if (dataRow && dataRow.tags && dataRow.tags instanceof Array) {
-        const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
-        if (tagIndex > -1) {
-          const key = specialKeys.includes(column.field)
-            ? `tags[${column.field}]`
-            : column.field;
-          additionalConditions[key] = dataRow.tags[tagIndex].value;
-        }
-      }
     }
   });
 
+  let nextView = eventView.clone();
   const transformedFields = new Set();
   const fieldsToDelete: number[] = [];
 
@@ -473,7 +438,72 @@ export function getExpandedResults(
     nextView = nextView.withDeletedColumn(index, undefined);
   });
 
-  const parsedQuery = tokenizeSearch(nextView.query);
+  nextView.query = generateExpandedConditions(nextView, additionalConditions, dataRow);
+
+  return nextView;
+}
+
+/**
+ * Create additional conditions based on the fields in an EventView
+ * and a datarow/event
+ */
+function generateAdditionalConditions(
+  eventView: EventView,
+  dataRow?: TableDataRow | Event
+): StringMap<string> {
+  const specialKeys = Object.values(URL_PARAM);
+  const conditions: StringMap<string> = {};
+
+  if (!dataRow) {
+    return conditions;
+  }
+
+  eventView.fields.forEach((field: FieldType) => {
+    const column = explodeField(field);
+
+    // Skip aggregate fields
+    if (column.aggregation || AGGREGATE_ALIASES.includes(column.field)) {
+      return;
+    }
+
+    const dataKey = getAggregateAlias(field.field);
+    // Append the current field as a condition if it exists in the dataRow
+    // Or is a simple key in the event. More complex deeply nested fields are
+    // more challenging to get at as their location in the structure does not
+    // match their name.
+    if (dataRow[dataKey]) {
+      const nextValue = String(dataRow[dataKey]).trim();
+
+      switch (column.field) {
+        case 'timestamp':
+          // normalize the "timestamp" field to ensure the payload works
+          conditions[column.field] = getUtcDateString(nextValue);
+          break;
+        default:
+          conditions[column.field] = nextValue;
+      }
+    }
+
+    // If we have an event, check tags as well.
+    if (dataRow.tags && dataRow.tags instanceof Array) {
+      const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
+      if (tagIndex > -1) {
+        const key = specialKeys.includes(column.field)
+          ? `tags[${column.field}]`
+          : column.field;
+        conditions[key] = dataRow.tags[tagIndex].value;
+      }
+    }
+  });
+  return conditions;
+}
+
+function generateExpandedConditions(
+  eventView: EventView,
+  additionalConditions: StringMap<string>,
+  dataRow?: TableDataRow | Event
+): string {
+  const parsedQuery = tokenizeSearch(eventView.query);
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
@@ -484,14 +514,20 @@ export function getExpandedResults(
     }
   }
 
+  const conditions = Object.assign(
+    {},
+    additionalConditions,
+    generateAdditionalConditions(eventView, dataRow)
+  );
+
   // Add additional conditions provided and generated.
-  for (const key in additionalConditions) {
-    if (key === 'project' || key === 'project.id') {
-      nextView.project = [...nextView.project, parseInt(additionalConditions[key], 10)];
+  for (const key in conditions) {
+    if (key === 'project.id') {
+      eventView.project = [...eventView.project, parseInt(additionalConditions[key], 10)];
       continue;
     }
     if (key === 'environment') {
-      nextView.environment = [...nextView.environment, additionalConditions[key]];
+      eventView.environment = [...eventView.environment, additionalConditions[key]];
       continue;
     }
     const column = explodeFieldString(key);
@@ -499,11 +535,14 @@ export function getExpandedResults(
     if (column.aggregation) {
       continue;
     }
-    parsedQuery[key] = [additionalConditions[key]];
+    // Skip project name
+    if (key === 'project' || key === 'project.name') {
+      continue;
+    }
+    parsedQuery[key] = [conditions[key]];
   }
-  nextView.query = stringifyQueryObject(parsedQuery);
 
-  return nextView;
+  return stringifyQueryObject(parsedQuery);
 }
 
 export function getDiscoverLandingUrl(organization: OrganizationSummary): string {

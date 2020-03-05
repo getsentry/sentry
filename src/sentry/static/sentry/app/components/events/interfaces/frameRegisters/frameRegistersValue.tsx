@@ -1,7 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Meta} from 'app/types';
-import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
@@ -26,9 +26,7 @@ class frameRegistersValue extends React.Component<Props, State> {
     this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
   };
 
-  tooltipTitle = () => {
-    return REGISTER_VIEWS[this.state.view];
-  };
+  tooltipTitle = () => REGISTER_VIEWS[this.state.view];
 
   formatValue = () => {
     const value = this.props.value;

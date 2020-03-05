@@ -21,13 +21,12 @@ __all__ = (
 )
 
 import base64
-import contextlib
 import os
 import os.path
 import pytest
 import requests
 import six
-import types
+import inspect
 from sentry.utils.compat import mock
 
 from click.testing import CliRunner
@@ -499,7 +498,7 @@ class TwoFactorAPITestCase(APITestCase):
         response = self.api_enable_org_2fa(organization, user)
         assert response.status_code == status_code
         if err_msg:
-            assert err_msg in response.content
+            assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
         if status_code >= 200 and status_code < 300:
@@ -655,7 +654,7 @@ class PluginTestCase(TestCase):
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
-        if isinstance(self.plugin, (type, types.ClassType)):
+        if inspect.isclass(self.plugin):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
 
@@ -746,7 +745,7 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert "window.opener.postMessage(" in resp.content
+        assert b"window.opener.postMessage(" in resp.content
 
 
 @pytest.mark.snuba
@@ -772,9 +771,7 @@ class SnubaTestCase(BaseTestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
-        with contextlib.nested(
-            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
-        ):
+        with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
             stored_group = stored_event.group
             if stored_group is not None:

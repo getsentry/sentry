@@ -83,9 +83,7 @@ export function loadOrganizationTags(api, orgId, selection) {
       method: 'GET',
       query,
     })
-    .then(tags => {
-      return [...BUILTIN_TAGS, ...tags];
-    });
+    .then(tags => [...BUILTIN_TAGS, ...tags]);
 
   promise.then(
     results => {
@@ -117,9 +115,7 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
       method: 'GET',
       query,
     })
-    .then(tags => {
-      return [...BUILTIN_TAGS, ...tags];
-    });
+    .then(tags => [...BUILTIN_TAGS, ...tags]);
   promise.then(tagFetchSuccess, TagActions.loadTagsError);
 
   return promise;

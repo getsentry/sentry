@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import InstallPromptBanner from 'app/views/organizationDetails/installPromptBanner';
-
 import SentryTypes from 'app/sentryTypes';
 import withProjects from 'app/utils/withProjects';
 

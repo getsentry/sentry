@@ -27,6 +27,20 @@ class PluginSettings extends PluginComponentBase {
     });
   }
 
+  trackPluginEvent = options => {
+    trackIntegrationEvent(
+      {
+        integration: this.props.plugin.id,
+        integration_type: 'plugin',
+        view: 'plugin_details',
+        project_id: this.props.project.id,
+        already_installed: this.state.wasConfiguredOnPageLoad,
+        ...options,
+      },
+      this.props.organization
+    );
+  };
+
   componentDidMount() {
     this.fetchData();
   }
@@ -50,16 +64,10 @@ class PluginSettings extends PluginComponentBase {
     if (!this.state.wasConfiguredOnPageLoad) {
       //Users cannot install plugins like other integrations but we need the events for the funnel
       //we will treat a user saving a plugin that wasn't already configured as an installation event
-      trackIntegrationEvent(
-        {
-          eventKey: 'integrations.installation_start',
-          eventName: 'Integrations: Installation Start',
-          integration: this.props.plugin.id,
-          view: 'plugin_details',
-          project_id: this.props.project.id,
-        },
-        this.props.organization
-      );
+      this.trackPluginEvent({
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+      });
     }
 
     let repo = this.state.formData.repo;
@@ -81,28 +89,16 @@ class PluginSettings extends PluginComponentBase {
           initialData,
           errors: {},
         });
-        trackIntegrationEvent(
-          {
-            eventKey: 'integrations.config_saved',
-            eventName: 'Integrations: Config Saved',
-            integration: this.props.plugin.id,
-            view: 'plugin_details',
-            project_id: this.props.project.id,
-          },
-          this.props.organization
-        );
+        this.trackPluginEvent({
+          eventKey: 'integrations.config_saved',
+          eventName: 'Integrations: Config Saved',
+        });
 
         if (!this.state.wasConfiguredOnPageLoad) {
-          trackIntegrationEvent(
-            {
-              eventKey: 'integrations.installation_complete',
-              eventName: 'Integrations: Installation Complete',
-              integration: this.props.plugin.id,
-              view: 'plugin_details',
-              project_id: this.props.project.id,
-            },
-            this.props.organization
-          );
+          this.trackPluginEvent({
+            eventKey: 'integrations.installation_complete',
+            eventName: 'Integrations: Installation Complete',
+          });
         }
       }),
       error: this.onSaveError.bind(this, error => {
@@ -203,15 +199,15 @@ class PluginSettings extends PluginComponentBase {
               </ul>
             </div>
           )}
-          {this.state.fieldList.map(f => {
-            return this.renderField({
+          {this.state.fieldList.map(f =>
+            this.renderField({
               key: f.name,
               config: f,
               formData: this.state.formData,
               formErrors: this.state.errors,
               onChange: this.changeField.bind(this, f.name),
-            });
-          })}
+            })
+          )}
         </Flex>
       </Form>
     );

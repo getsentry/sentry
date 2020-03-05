@@ -23,6 +23,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
+import {IconAdd} from 'app/icons/iconAdd';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -65,19 +66,34 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    // TODO(jeff): Change key to AlertDefaultExperiment on the real experiment run
-    logExperiment({
-      organization: this.props.organization,
-      key: 'AlertDefaultExperimentTmp',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'exposed',
-    });
-    trackAnalyticsEvent({
+    const {organization} = this.props;
+    const alertDefaultsExperimentVariant =
+      organization.experiments?.AlertDefaultsExperiment;
+    const isInAlertDefaultsExperiment = [
+      '2OptionsV1',
+      '3OptionsV1',
+      'controlV1',
+    ].includes(alertDefaultsExperimentVariant);
+
+    if (isInAlertDefaultsExperiment) {
+      logExperiment({
+        organization,
+        key: 'AlertDefaultsExperiment',
+        unitName: 'org_id',
+        unitId: parseInt(organization.id, 10),
+        param: 'variant',
+      });
+    }
+
+    const analyticsEventOptions = {
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
-    });
+    };
+    if (isInAlertDefaultsExperiment) {
+      analyticsEventOptions.alert_defaults_experiment_variant = alertDefaultsExperimentVariant;
+    }
+    trackAnalyticsEvent(analyticsEventOptions);
   }
 
   renderProjectForm = (
@@ -132,7 +148,7 @@ class CreateProject extends React.Component {
                 borderless
                 data-test-id="create-team"
                 type="button"
-                icon="icon-circle-add"
+                icon={<IconAdd circle />}
                 onClick={() =>
                   openCreateTeamModal({
                     organization,

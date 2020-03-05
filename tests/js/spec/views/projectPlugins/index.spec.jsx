@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import ProjectPlugins from 'app/views/settings/projectPlugins';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 

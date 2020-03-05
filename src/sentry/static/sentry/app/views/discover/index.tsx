@@ -13,14 +13,12 @@ import {GlobalSelection, Organization} from 'app/types';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
-
 import {
   getQueryFromQueryString,
   fetchSavedQuery,
   parseSavedQuery,
   getView,
 } from './utils';
-
 import {DiscoverWrapper} from './styles';
 import {SavedQuery} from './types';
 
@@ -134,9 +132,7 @@ class DiscoverContainer extends React.Component<Props, State> {
 
   private queryBuilder: any;
 
-  loadTags = () => {
-    return this.queryBuilder.load();
-  };
+  loadTags = () => this.queryBuilder.load();
 
   setGlobalSelectionDate(query: ReturnType<typeof getQueryFromQueryString> | null) {
     if (query) {

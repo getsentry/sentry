@@ -47,7 +47,6 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert installation rather than upgrade button
         assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"
 
         provider_element.install_button.click()
 
@@ -62,7 +61,6 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert we see the uninstall option
         assert provider_element.install_button.label == "Uninstall"
-        assert provider_element.install_button.icon_href == "#icon-trash"
 
     def test_uninstall_sentry_app(self):
         # add the installation
@@ -78,7 +76,6 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert we see the uninstall option
         assert provider_element.install_button.label == "Uninstall"
-        assert provider_element.install_button.icon_href == "#icon-trash"
 
         provider_element.install_button.click()
         self.browser.wait_until(org_settings_page.modal_selector)
@@ -92,4 +89,3 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert we see the install option now
         assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"

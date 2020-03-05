@@ -5,7 +5,6 @@ import {ThemeProvider} from 'emotion-theming';
 
 import AlertStore from 'app/stores/alertStore';
 import AlertMessage from 'app/components/alertMessage';
-
 import theme from 'app/utils/theme';
 
 const Alerts = createReactClass({

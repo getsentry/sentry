@@ -245,9 +245,7 @@ class ProjectGeneralSettings extends AsyncView {
     );
   }
 
-  isProjectAdmin = () => {
-    return new Set(this.context.organization.access).has('project:admin');
-  };
+  isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;

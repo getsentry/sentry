@@ -11,6 +11,7 @@ import zipWith from 'lodash/zipWith';
 
 import {OPERATOR} from 'app/views/discover/data';
 import {escapeQuotes} from 'app/components/events/interfaces/utils';
+
 import {getEventsUrlPathFromDiscoverQuery} from './getEventsUrlPathFromDiscoverQuery';
 
 export function getEventsUrlFromDiscoverQueryWithConditions({

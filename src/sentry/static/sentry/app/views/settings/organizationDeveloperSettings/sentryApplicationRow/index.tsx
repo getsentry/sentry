@@ -16,6 +16,7 @@ import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import theme from 'app/utils/theme';
+
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 const INSTALLED = 'Installed';
@@ -235,13 +236,11 @@ const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
-const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
-  return (
-    <Flex alignItems="center">
-      <div {...props}>{t(`${status}`)}</div>
-    </Flex>
-  );
-})`
+const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
+  <Flex alignItems="center">
+    <div {...props}>{t(`${status}`)}</div>
+  </Flex>
+))`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;

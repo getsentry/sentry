@@ -630,6 +630,7 @@ urlpatterns += [
                 url(r"^gitlab/", include("sentry.integrations.gitlab.urls")),
                 url(r"^vsts/", include("sentry.integrations.vsts.urls")),
                 url(r"^bitbucket/", include("sentry.integrations.bitbucket.urls")),
+                url(r"^bitbucket-server/", include("sentry.integrations.bitbucket_server.urls")),
             ]
         ),
     ),

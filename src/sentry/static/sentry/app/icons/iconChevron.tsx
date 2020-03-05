@@ -3,13 +3,16 @@ import React from 'react';
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
 
-export const IconChevron: React.FC<IconProps> = ({
-  color: providedColor = 'currentColor',
-  size: providedSize = 'sm',
-  direction: providedDirection = 'up',
-  circle: providedCircle = false,
-  ...props
-}: IconProps) => {
+export const IconChevron = React.forwardRef(function IconChevron(
+  {
+    color: providedColor = 'currentColor',
+    size: providedSize = 'sm',
+    direction: providedDirection = 'up',
+    circle: providedCircle = false,
+    ...props
+  }: IconProps,
+  ref: React.Ref<SVGSVGElement>
+) {
   const color = providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
   const direction =
@@ -25,6 +28,7 @@ export const IconChevron: React.FC<IconProps> = ({
       width={size}
       transform={`rotate(${direction})`}
       {...props}
+      ref={ref}
     >
       {providedCircle === true ? (
         <g>
@@ -38,4 +42,4 @@ export const IconChevron: React.FC<IconProps> = ({
       )}
     </svg>
   );
-};
+});

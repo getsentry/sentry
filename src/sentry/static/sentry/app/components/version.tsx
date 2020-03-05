@@ -103,23 +103,21 @@ const Version = ({
     );
   };
 
-  const renderTooltipContent = () => {
-    return (
-      <TooltipContent
-        onClick={e => {
-          e.stopPropagation();
-        }}
-      >
-        <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
+  const renderTooltipContent = () => (
+    <TooltipContent
+      onClick={e => {
+        e.stopPropagation();
+      }}
+    >
+      <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
 
-        <Clipboard value={version}>
-          <TooltipClipboardIconWrapper>
-            <IconCopy size="xs" color="white" />
-          </TooltipClipboardIconWrapper>
-        </Clipboard>
-      </TooltipContent>
-    );
-  };
+      <Clipboard value={version}>
+        <TooltipClipboardIconWrapper>
+          <IconCopy size="xs" color="white" />
+        </TooltipClipboardIconWrapper>
+      </Clipboard>
+    </TooltipContent>
+  );
 
   return (
     <Tooltip
@@ -144,6 +142,14 @@ Version.propTypes = {
   truncate: PropTypes.bool,
   className: PropTypes.string,
 };
+
+// TODO(matej): try to wrap version with this when truncate prop is true (in seperate PR)
+// const VersionWrapper = styled('div')`
+//   ${overflowEllipsis};
+//   max-width: 100%;
+//   width: auto;
+//   display: inline-block;
+// `;
 
 const VersionText = styled('span')<{truncate?: boolean}>`
   ${p =>

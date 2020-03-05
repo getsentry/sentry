@@ -1,6 +1,6 @@
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import EventView from 'app/views/eventsV2/eventView';
 import {
@@ -61,7 +61,7 @@ describe('getFieldRenderer', function() {
       createdAt: new Date(2019, 9, 3, 12, 13, 14),
       url: '/example',
       latest_event: 'deadbeef',
-      'project.name': project.slug,
+      project: project.slug,
     };
   });
 
@@ -112,7 +112,7 @@ describe('getFieldRenderer', function() {
   });
 
   it('can render project as an avatar', function() {
-    const renderer = getFieldRenderer('project', {'project.name': 'string'});
+    const renderer = getFieldRenderer('project', {project: 'string'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
@@ -420,11 +420,8 @@ describe('getExpandedResults()', function() {
 
   it('applies project condition to project property', () => {
     const view = new EventView(state);
-    let result = getExpandedResults(view, {project: 1});
-    expect(result.query).toEqual('event.type:error');
-    expect(result.project).toEqual([42, 1]);
 
-    result = getExpandedResults(view, {'project.id': 1});
+    const result = getExpandedResults(view, {'project.id': 1});
     expect(result.query).toEqual('event.type:error');
     expect(result.project).toEqual([42, 1]);
   });

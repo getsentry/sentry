@@ -4,17 +4,16 @@ import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-
 import SentryAppDetailedView from 'app/views/organizationIntegrations/sentryAppDetailedView';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body, method = 'GET']) => {
-    return Client.addMockResponse({
+  mocks.forEach(([url, body, method = 'GET']) =>
+    Client.addMockResponse({
       url,
       body,
       method,
-    });
-  });
+    })
+  );
 };
 
 describe('SentryAppDetailedView', function() {
@@ -127,13 +126,13 @@ describe('SentryAppDetailedView', function() {
         wrapper.update();
         wrapperState = wrapper;
         expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-        expect(wrapper.find('UninstallButton').exists()).toEqual(true);
+        expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
       });
 
       it('uninstalls app', async function() {
-        expect(wrapperState.find('UninstallButton')).toHaveLength(1);
+        expect(wrapperState.find('UninstallAppButton')).toHaveLength(1);
         wrapperState
-          .find('UninstallButton')
+          .find('UninstallAppButton')
           .props()
           .onClickUninstall();
         await tick();
@@ -300,7 +299,7 @@ describe('SentryAppDetailedView', function() {
       expect(createRequest).toHaveBeenCalled();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-      expect(wrapper.find('UninstallButton').exists()).toEqual(true);
+      expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
     });
   });
 

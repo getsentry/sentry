@@ -1,4 +1,5 @@
 import React from 'react';
+
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
@@ -23,18 +24,16 @@ type Props = {
 };
 
 class VisualizationsToggle extends React.Component<Props> {
-  getMenuItem = (opt: Option) => {
-    return (
-      <MenuItem
-        key={opt.id}
-        onSelect={this.props.handleChange}
-        eventKey={opt.id}
-        isActive={opt.id === this.props.visualization}
-      >
-        {opt.name}
-      </MenuItem>
-    );
-  };
+  getMenuItem = (opt: Option) => (
+    <MenuItem
+      key={opt.id}
+      onSelect={this.props.handleChange}
+      eventKey={opt.id}
+      isActive={opt.id === this.props.visualization}
+    >
+      {opt.name}
+    </MenuItem>
+  );
 
   getButtonItems = (opt: Option) => {
     const active = opt.id === this.props.visualization;
@@ -62,15 +61,11 @@ class VisualizationsToggle extends React.Component<Props> {
     return (
       <ResultViewActions>
         <ResultViewButtons>
-          {options.map(opt => {
-            return this.getButtonItems(opt);
-          })}
+          {options.map(opt => this.getButtonItems(opt))}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
           <DropdownLink title={dropdownTitle} className="btn btn-default btn-sm">
-            {options.map(opt => {
-              return this.getMenuItem(opt);
-            })}
+            {options.map(opt => this.getMenuItem(opt))}
           </DropdownLink>
         </ResultViewDropdownButtons>
         {this.getDownloadCsvButton()}

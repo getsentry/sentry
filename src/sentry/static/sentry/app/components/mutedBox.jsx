@@ -51,19 +51,17 @@ export default class MutedBox extends React.PureComponent {
     return t('This issue has been ignored');
   };
 
-  render = () => {
-    return (
-      <BannerContainer priority="default">
-        <BannerSummary>
-          <span className="icon icon-soundoff" style={{color: theme.red}} />
-          <span>
-            {this.renderReason()}&nbsp;&mdash;&nbsp;
-            {t(
-              'You will not be notified of any changes and it will not show up by default in feeds.'
-            )}
-          </span>
-        </BannerSummary>
-      </BannerContainer>
-    );
-  };
+  render = () => (
+    <BannerContainer priority="default">
+      <BannerSummary>
+        <span className="icon icon-soundoff" style={{color: theme.red}} />
+        <span>
+          {this.renderReason()}&nbsp;&mdash;&nbsp;
+          {t(
+            'You will not be notified of any changes and it will not show up by default in feeds.'
+          )}
+        </span>
+      </BannerSummary>
+    </BannerContainer>
+  );
 }

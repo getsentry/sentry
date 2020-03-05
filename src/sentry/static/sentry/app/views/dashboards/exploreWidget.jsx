@@ -6,9 +6,9 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
+import {IconTelescope} from 'app/icons/iconTelescope';
 import InlineSvg from 'app/components/inlineSvg';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
@@ -129,7 +129,7 @@ class ExploreWidget extends React.Component {
             : t('You do not have access to the new Discover. Click to learn more.')
         }
       >
-        <InlineSvg src="icon-telescope" />
+        <IconTelescope size="xs" />
       </ExploreAction>
     );
   }

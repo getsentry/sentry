@@ -10,7 +10,6 @@ import {Panel} from 'app/components/panels';
 import {DataSection, CauseHeader} from 'app/components/events/styles';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-
 import {t} from 'app/locale';
 
 const ExpandButton = styled('button')`
@@ -116,9 +115,9 @@ class EventCause extends React.Component {
           )}
         </CauseHeader>
         <Panel>
-          {commits.slice(0, expanded ? 100 : 1).map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
+          {commits.slice(0, expanded ? 100 : 1).map(commit => (
+            <CommitRow key={commit.id} commit={commit} />
+          ))}
         </Panel>
       </DataSection>
     );

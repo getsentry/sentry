@@ -2,7 +2,6 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
-import {MetricAction} from 'app/types/alerts';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t, tct} from 'app/locale';
 import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
@@ -11,7 +10,13 @@ import ThresholdControl from 'app/views/settings/incidentRules/triggers/threshol
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
-import {AlertRuleThreshold, Trigger, Action, ThresholdControlValue} from '../types';
+import {
+  AlertRuleThreshold,
+  Trigger,
+  Action,
+  MetricActionTemplate,
+  ThresholdControlValue,
+} from '../types';
 import hasThresholdValue from '../utils/hasThresholdValue';
 
 type AlertRuleThresholdKey = {
@@ -118,7 +123,7 @@ type TriggerFormContainerProps = Omit<
   'onChange'
 > & {
   api: Client;
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   organization: Organization;
   currentProject: string;
   projects: Project[];
@@ -138,27 +143,10 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     onChange(triggerIndex, trigger, changeObj);
   };
 
-  handleAddAction = (value: Action['type']) => {
-    const {onChange, trigger, triggerIndex, availableActions} = this.props;
-    const actionConfig =
-      availableActions && availableActions.find(({type}) => type === value);
-    const actions = [
-      ...trigger.actions,
-      {
-        type: value,
-        targetType:
-          actionConfig &&
-          actionConfig.allowedTargetTypes &&
-          actionConfig.allowedTargetTypes.length > 0
-            ? actionConfig.allowedTargetTypes[0]
-            : null,
-        targetIdentifier: '',
-        ...(actionConfig && actionConfig.integrationId !== null
-          ? {integration: actionConfig.integrationId}
-          : {}),
-      } as Action,
-    ];
-    onChange(triggerIndex, {...trigger, actions}, {actions});
+  handleAddAction = (action: Action) => {
+    const {onChange, trigger, triggerIndex} = this.props;
+    const actions = [...trigger.actions, action];
+    onChange(triggerIndex, {...trigger, actions} as Trigger, {actions});
   };
 
   handleChangeActions = (actions: Action[]): void => {

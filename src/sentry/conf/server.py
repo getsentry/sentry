@@ -919,6 +919,8 @@ SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
+# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
+SENTRY_FRONTEND_REQUESTS_DSN = None
 
 # Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
@@ -1434,6 +1436,7 @@ SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket.BitbucketIntegrationProvider",
+    "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.GitHubIntegrationProvider",
     "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
@@ -1772,3 +1775,8 @@ SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
 
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
+
+# Block process_event for this many seconds to wait for a response from
+# symbolicator. If too low, too many events up in the sleep queue. If too high,
+# process_event might backlog and affect events from other platforms.
+SYMBOLICATOR_POLL_TIMEOUT = 4

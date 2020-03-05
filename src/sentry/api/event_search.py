@@ -129,7 +129,7 @@ function_key         = key space? open_paren space? closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[0-9]+(?=\s|$)"
+numeric_value        = ~r"[-]?[0-9\.]+(?=\s|$)"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -321,7 +321,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_raw_search(self, node, children):
         value = node.text.strip(" ")
-
         if not value:
             return None
 
@@ -392,7 +391,7 @@ class SearchVisitor(NodeVisitor):
         operator = operator[0] if not isinstance(operator, Node) else "="
 
         try:
-            search_value = SearchValue(int(search_value.text))
+            search_value = SearchValue(float(search_value.text))
         except ValueError:
             raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
         return AggregateFilter(search_key, operator, search_value)
@@ -558,7 +557,27 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_value(self, node, children):
-        return node.text
+        # A properly quoted value will match the quoted value regex, so any unescaped
+        # quotes are errors.
+        value = node.text
+        idx = value.find('"')
+        if idx == 0:
+            raise InvalidSearchQuery(
+                u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
+            )
+
+        while idx != -1:
+            if value[idx - 1] != "\\":
+                raise InvalidSearchQuery(
+                    u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(
+                        node.text
+                    )
+                )
+
+            value = value[idx + 1 :]
+            idx = value.find('"')
+
+        return node.text.replace('\\"', '"')
 
     def visit_key(self, node, children):
         return node.text
@@ -683,6 +702,10 @@ def convert_search_filter_to_snuba_query(search_filter):
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name == "transaction.status":
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return [["isNull", [name]], search_filter.operator, 1]
+
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(
@@ -839,51 +862,10 @@ def get_filter(query=None, params=None):
 # the UI builder stays in sync.
 FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
-    "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
-    # Long term these will become more complex functions but these are
-    # field aliases.
-    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", None, "apdex"]]},
-    "impact": {
-        "result_type": "number",
-        "aggregations": [
-            [
-                # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
-                # in a format Snuba can parse so query optimizations can be applied.
-                # It has a minimal prefix parser though to bridge the gap between the current state
-                # and when we will have an easier syntax.
-                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
-                None,
-                "impact",
-            ]
-        ],
-    },
-    "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
-    "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
-    "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
-    "error_rate": {
-        "result_type": "number",
-        "aggregations": [
-            ["divide(countIf(notEquals(transaction_status, 0)), count())", None, "error_rate"]
-        ],
-    },
 }
-
-# When adding functions to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
-# the UI builder stays in sync.
-VALID_AGGREGATES = {
-    "count_unique": {"snuba_name": "uniq", "fields": "*"},
-    "count": {"snuba_name": "count", "fields": "*"},
-    "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
-    "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
-    "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
-    "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
-}
-
-AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>.*)\)$")
 
 
 def get_json_meta_type(field, snuba_type):
@@ -895,19 +877,6 @@ def get_json_meta_type(field, snuba_type):
     if field == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
-
-
-def validate_aggregate(field, match):
-    function_name = match.group("function")
-    if function_name not in VALID_AGGREGATES:
-        raise InvalidSearchQuery(u"Unknown aggregate function '{}'".format(field))
-
-    function_data = VALID_AGGREGATES[function_name]
-    column = match.group("column")
-    if column not in function_data["fields"] and function_data["fields"] != "*":
-        raise InvalidSearchQuery(
-            u"Invalid column '{}' in aggregate function '{}'".format(column, function_name)
-        )
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
@@ -928,14 +897,51 @@ class FunctionArg(object):
         return False
 
 
+class CountColumn(FunctionArg):
+    def has_default(self, params):
+        return None
+
+    def normalize(self, value):
+        if value is None:
+            return value
+
+        # If we use an alias inside an aggregate, resolve it here
+        if value in FIELD_ALIASES:
+            value = FIELD_ALIASES[value].get("column_alias", value)
+
+        return value
+
+
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column:
             raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
-        elif snuba_column != "duration":
+        elif snuba_column not in ["time", "timestamp", "duration"]:
             raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
         return snuba_column
+
+
+class NumericColumnNoLookup(NumericColumn):
+    def normalize(self, value):
+        super(NumericColumnNoLookup, self).normalize(value)
+        return value
+
+
+class DurationColumn(FunctionArg):
+    def normalize(self, value):
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+        elif snuba_column != "duration":
+            raise InvalidFunctionArgument(u"{} is not a duration column".format(value))
+        return snuba_column
+
+
+class DurationColumnNoLookup(DurationColumn):
+    def normalize(self, value):
+        super(DurationColumnNoLookup, self).normalize(value)
+        return value
 
 
 class NumberRange(FunctionArg):
@@ -977,7 +983,7 @@ class IntervalDefault(NumberRange):
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
-        "args": [NumericColumn("column"), NumberRange("percentile", 0, 1)],
+        "args": [DurationColumn("column"), NumberRange("percentile", 0, 1)],
         "transform": u"quantile({percentile:.2f})({column})",
     },
     "rps": {
@@ -990,16 +996,79 @@ FUNCTIONS = {
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
     },
+    "last_seen": {"name": "last_seen", "args": [], "aggregate": ["max", "timestamp", "last_seen"]},
+    "latest_event": {
+        "name": "latest_event",
+        "args": [],
+        "aggregate": ["argMax", ["id", "timestamp"], "latest_event"],
+    },
+    "apdex": {
+        "name": "apdex",
+        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex({column}, {satisfaction:g})",
+    },
+    "impact": {
+        "name": "impact",
+        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
+        # in a format Snuba can parse so query optimizations can be applied.
+        # It has a minimal prefix parser though to bridge the gap between the current state
+        # and when we will have an easier syntax.
+        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+    },
+    "error_rate": {
+        "name": "error_rate",
+        "args": [],
+        "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+    },
+    "count_unique": {
+        "name": "count_unique",
+        "args": [CountColumn("column")],
+        "aggregate": ["uniq", u"{column}", None],
+    },
+    # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
+    # for backwards compatibility. Once we've migrated existing queries this should get
+    # changed to accept no parameters.
+    "count": {"name": "count", "args": [CountColumn("column")], "aggregate": ["count", None, None]},
+    "min": {
+        "name": "min",
+        "args": [NumericColumnNoLookup("column")],
+        "aggregate": ["min", u"{column}", None],
+    },
+    "max": {
+        "name": "max",
+        "args": [NumericColumnNoLookup("column")],
+        "aggregate": ["max", u"{column}", None],
+    },
+    "avg": {
+        "name": "avg",
+        "args": [DurationColumnNoLookup("column")],
+        "aggregate": ["avg", u"{column}", None],
+    },
+    "sum": {
+        "name": "sum",
+        "args": [DurationColumnNoLookup("column")],
+        "aggregate": ["sum", u"{column}", None],
+    },
 }
 
 
 def is_function(field):
     function_match = FUNCTION_PATTERN.search(field)
-    if function_match and function_match.group("function") in FUNCTIONS:
+    if function_match:
         return function_match
 
+    return None
 
-def get_function_alias(function_name, columns):
+
+def get_function_alias(field):
+    match = FUNCTION_PATTERN.search(field)
+    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
+    return get_function_alias_with_columns(match.group("function"), columns)
+
+
+def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
@@ -1007,8 +1076,9 @@ def get_function_alias(function_name, columns):
 def resolve_function(field, match=None, params=None):
     if not match:
         match = FUNCTION_PATTERN.search(field)
-        if not match or match.group("function") not in FUNCTIONS:
-            raise InvalidSearchQuery(u"{} is not a valid function".format(field))
+
+    if not match or match.group("function") not in FUNCTIONS:
+        raise InvalidSearchQuery(u"{} is not a valid function".format(field))
 
     function = FUNCTIONS[match.group("function")]
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
@@ -1022,13 +1092,15 @@ def resolve_function(field, match=None, params=None):
         except InvalidFunctionArgument as e:
             raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
 
-        if default:
-            # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns = [six.text_type(default)]
+        # Hacky, but we expect column arguments to be strings so easiest to convert it back
+        if default is not False:
+            columns = [six.text_type(default) if default else default]
             used_default = True
 
     if len(columns) != len(function["args"]):
-        raise InvalidSearchQuery(u"{}: expected {} arguments".format(field, len(function["args"])))
+        raise InvalidSearchQuery(
+            u"{}: expected {:g} arguments".format(field, len(function["args"]))
+        )
 
     arguments = {}
     for column_value, argument in zip(columns, function["args"]):
@@ -1038,18 +1110,36 @@ def resolve_function(field, match=None, params=None):
         except InvalidFunctionArgument as e:
             raise InvalidSearchQuery(u"{}: {} argument invalid: {}".format(field, argument.name, e))
 
-    snuba_string = function["transform"].format(**arguments)
+    if "calculated_args" in function:
+        for calculation in function["calculated_args"]:
+            arguments[calculation["name"]] = calculation["fn"](arguments)
 
-    return (
-        [],
-        [
+    if "transform" in function:
+        snuba_string = function["transform"].format(**arguments)
+        return (
+            [],
             [
-                snuba_string,
-                None,
-                get_function_alias(function["name"], columns if not used_default else []),
-            ]
-        ],
-    )
+                [
+                    snuba_string,
+                    None,
+                    get_function_alias_with_columns(
+                        function["name"], columns if not used_default else []
+                    ),
+                ]
+            ],
+        )
+    elif "aggregate" in function:
+        aggregate = deepcopy(function["aggregate"])
+
+        if isinstance(aggregate[1], six.string_types):
+            aggregate[1] = aggregate[1].format(**arguments)
+
+        if aggregate[2] is None:
+            aggregate[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+
+        return ([], [aggregate])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1065,13 +1155,14 @@ def resolve_orderby(orderby, fields, aggregations):
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
+
         if bare_column in fields:
             validated.append(column)
             continue
 
-        match = AGGREGATE_PATTERN.search(bare_column)
-        if match:
-            bare_column = get_aggregate_alias(match)
+        if is_function(bare_column):
+            bare_column = get_function_alias(bare_column)
+
         found = [agg[2] for agg in aggregations if agg[2] == bare_column]
         if found:
             prefix = "-" if column.startswith("-") else ""
@@ -1101,33 +1192,7 @@ def resolve_field(field, params=None):
         special_field = deepcopy(FIELD_ALIASES[sans_parens])
         return (special_field.get("fields", []), special_field.get("aggregations", []))
 
-    # Basic fields don't require additional validation. They could be tag
-    # names which we have no way of validating at this point.
-    match = AGGREGATE_PATTERN.search(field)
-    if not match:
-        return ([field], None)
-
-    validate_aggregate(field, match)
-
-    if match.group("function") == "count":
-        # count() is a special function that ignores its column arguments.
-        return (None, [["count", None, get_aggregate_alias(match)]])
-
-    # If we use an alias inside an aggregate, resolve it here
-    column = match.group("column")
-    if column in FIELD_ALIASES:
-        column = FIELD_ALIASES[column].get("column_alias", column)
-
-    return (
-        None,
-        [
-            [
-                VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                column,
-                get_aggregate_alias(match),
-            ]
-        ],
-    )
+    return ([field], None)
 
 
 def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
@@ -1138,16 +1203,25 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     groupby that can be merged into the result of get_snuba_query_args()
     to build a more complete snuba query based on event search conventions.
     """
-    # If project.name is requested, get the project.id from Snuba so we
-    # can use this to look up the name in Sentry
-    if "project.name" in fields:
-        fields.remove("project.name")
-        if "project.id" not in fields:
-            fields.append("project.id")
-
     aggregations = []
     columns = []
     groupby = []
+    project_key = ""
+    # Which column to map to project names
+    project_column = "project_id"
+
+    # If project is requested, we need to map ids to their names since snuba only has ids
+    if "project" in fields:
+        fields.remove("project")
+        project_key = "project"
+    # since project.name is more specific, if both are included use project.name instead of project
+    if PROJECT_NAME_ALIAS in fields:
+        fields.remove(PROJECT_NAME_ALIAS)
+        project_key = PROJECT_NAME_ALIAS
+    if project_key:
+        if "project.id" not in fields:
+            fields.append("project.id")
+
     for field in fields:
         column_additions, agg_additions = resolve_field(field, params)
         if column_additions:
@@ -1168,10 +1242,32 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
+            project_column = "project_id"
         if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
-            aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
+            _, aggregates = resolve_function("latest_event()")
+            aggregations.extend(aggregates)
         if aggregations and "project.id" not in columns:
             aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
+            project_column = "projectid"
+        if project_key == "":
+            project_key = PROJECT_NAME_ALIAS
+
+    if project_key:
+        project_ids = snuba_args.get("filter_keys", {}).get("project_id", [])
+        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+        aggregations.append(
+            [
+                u"transform({}, array({}), array({}), '')".format(
+                    project_column,
+                    # Need to use join like this so we don't get a list including Ls which confuses clickhouse
+                    ",".join([six.text_type(project["id"]) for project in projects]),
+                    # Can't just format a list since we'll get u"string" instead of a plain 'string'
+                    ",".join([u"'{}'".format(project["slug"]) for project in projects]),
+                ),
+                None,
+                project_key,
+            ]
+        )
 
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")

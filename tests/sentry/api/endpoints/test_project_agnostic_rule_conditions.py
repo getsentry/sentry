@@ -6,8 +6,8 @@ from mock import patch
 from sentry.testutils import APITestCase
 
 
-class ProjectAgnosticRuleConfigurationsTest(APITestCase):
-    @patch("sentry.experiments.get", return_value=1)
+class ProjectAgnosticRuleConditionsTest(APITestCase):
+    @patch("sentry.experiments.get", return_value="3OptionsV1")
     def test_simple(self, mocked_experiment):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")

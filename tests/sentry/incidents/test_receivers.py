@@ -1,7 +1,16 @@
 from __future__ import absolute_import
-
+from datetime import datetime
+import pytz
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
+from sentry.models import Organization
+from sentry.incidents.models import (
+    IncidentStatus,
+    TriggerStatus,
+    AlertRuleTrigger,
+    Incident,
+    IncidentTrigger,
+)
 
 
 class AddProjectToIncludeAllRulesTest(TestCase):
@@ -28,3 +37,37 @@ class AddProjectToIncludeAllRulesTest(TestCase):
         assert not QuerySubscription.objects.filter(
             project=new_project, alert_rules=alert_rule
         ).exists()
+
+
+class PreSaveIncidentTriggerTest(TestCase):
+    def test_update_date_modified(self):
+        org = Organization.objects.create(name="chris' test org")
+        alert_rule = self.create_alert_rule(include_all_projects=False)
+        alert_rule.query = "event.type:error"
+        trigger = AlertRuleTrigger.objects.create(
+            alert_rule=alert_rule,
+            label="warning",
+            threshold_type=0,
+            alert_threshold=100,
+            resolve_threshold=50,
+        )
+        incident = Incident.objects.create(
+            organization=org,
+            detection_uuid=None,
+            status=IncidentStatus.WARNING.value,
+            type=2,
+            title="a custom incident title",
+            query="event.type:error",
+            aggregation=0,
+            date_started=datetime.utcnow().replace(tzinfo=pytz.utc),
+            date_detected=datetime.utcnow().replace(tzinfo=pytz.utc),
+            alert_rule=alert_rule,
+        )
+        incident_trigger = IncidentTrigger.objects.create(
+            incident=incident, alert_rule_trigger=trigger, status=TriggerStatus.ACTIVE.value
+        )
+        date_modified = incident_trigger.date_modified
+        incident_trigger.status = TriggerStatus.RESOLVED.value
+        incident_trigger.save()
+        incident_trigger.refresh_from_db()
+        assert date_modified < incident_trigger.date_modified

@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import SavedQueryList from 'app/views/discover/sidebar/savedQueryList';
 
 describe('savedQueryList', function() {

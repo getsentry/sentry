@@ -1,7 +1,7 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
@@ -217,6 +217,8 @@ describe('groupEventDetails', () => {
   });
 
   describe('EventCauseEmpty', () => {
+    const proj = TestStubs.Project({firstEvent: '2020-01-01T01:00:00Z'});
+
     it('renders empty state', async function() {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/releases/completion/`,
@@ -232,7 +234,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -262,7 +264,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -287,7 +289,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -313,7 +315,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
-          project={project}
+          project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
           params={{orgId: org.slug, groupId: group.id, eventId: '1'}}
@@ -333,8 +335,8 @@ describe('groupEventDetails', () => {
     let wrapper; // eslint-disable-line
     let componentsRequest;
 
-    const mountWithThemeWrapper = () => {
-      return mountWithTheme(
+    const mountWithThemeWrapper = () =>
+      mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -346,7 +348,6 @@ describe('groupEventDetails', () => {
         />,
         routerContext
       );
-    };
 
     beforeEach(() => {
       const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});

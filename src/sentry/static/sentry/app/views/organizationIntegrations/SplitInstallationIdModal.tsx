@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import Button from 'app/components/button';
 
+import Button from 'app/components/button';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 
@@ -22,10 +22,9 @@ export default class SplitInstallationIdModal extends React.Component<Props> {
     closeModal: PropTypes.func.isRequired,
   };
 
-  onCopy = async () => {
+  onCopy = async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
-    return await navigator.clipboard.writeText(this.props.installationId);
-  };
+    await navigator.clipboard.writeText(this.props.installationId);
 
   handleContinue = () => {
     const delay = 2000;

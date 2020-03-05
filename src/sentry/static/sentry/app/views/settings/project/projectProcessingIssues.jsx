@@ -216,23 +216,19 @@ class ProjectProcessingIssues extends React.Component {
     return body;
   };
 
-  renderLoading = () => {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  };
+  renderLoading = () => (
+    <div className="box">
+      <LoadingIndicator />
+    </div>
+  );
 
-  renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('Good news! There are no processing issues.')}</p>
-        </EmptyStateWarning>
-      </Panel>
-    );
-  };
+  renderEmpty = () => (
+    <Panel>
+      <EmptyStateWarning>
+        <p>{t('Good news! There are no processing issues.')}</p>
+      </EmptyStateWarning>
+    </Panel>
+  );
 
   getProblemDescription = item => {
     const msg = MESSAGES[item.type];
@@ -382,20 +378,18 @@ class ProjectProcessingIssues extends React.Component {
           </div>
           <div className="list-group">
             {processingRow}
-            {this.state.processingIssues.issues.map((item, idx) => {
-              return (
-                <div key={idx} className="list-group-item">
-                  <div className="row row-flex row-center-vertically">
-                    <div className="col-sm-3">{this.renderProblem(item)}</div>
-                    <div className="col-sm-5">{this.renderDetails(item)}</div>
-                    <div className="col-sm-2">{item.numEvents + ''}</div>
-                    <div className="col-sm-2">
-                      <TimeSince date={item.lastSeen} />
-                    </div>
+            {this.state.processingIssues.issues.map((item, idx) => (
+              <div key={idx} className="list-group-item">
+                <div className="row row-flex row-center-vertically">
+                  <div className="col-sm-3">{this.renderProblem(item)}</div>
+                  <div className="col-sm-5">{this.renderDetails(item)}</div>
+                  <div className="col-sm-2">{item.numEvents + ''}</div>
+                  <div className="col-sm-2">
+                    <TimeSince date={item.lastSeen} />
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </div>

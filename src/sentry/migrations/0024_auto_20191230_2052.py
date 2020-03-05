@@ -86,6 +86,8 @@ def backfill_eventstream(apps, schema_editor):
                 is_regression=False,
                 is_new_group_environment=False,
                 primary_hash=primary_hash,
+                received_timestamp=event.data.get("received")
+                or float(event.datetime.strftime("%s")),
                 skip_consume=True,
             )
             processed += 1
@@ -95,6 +97,11 @@ def backfill_eventstream(apps, schema_editor):
                     event, error
                 )
             )
+
+    if processed == 0:
+        raise Exception(
+            "Cannot migrate any event. If this is okay, re-run migrations with SENTRY_SKIP_EVENTS_BACKFILL_FOR_10 environment variable set to skip this step."
+        )
 
     print("Event migration done. Migrated {} of {} events.\n".format(processed, count))
 

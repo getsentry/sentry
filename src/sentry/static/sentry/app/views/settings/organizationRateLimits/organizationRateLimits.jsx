@@ -83,13 +83,13 @@ export default class OrganizationRateLimit extends React.Component {
                     'The maximum number of events to accept across this entire organization.'
                   )}
                   placeholder="e.g. 500"
-                  formatLabel={value => {
-                    return !value
+                  formatLabel={value =>
+                    !value
                       ? t('No Limit')
                       : tct('[number] per hour', {
                           number: value.toLocaleString(),
-                        });
-                  }}
+                        })
+                  }
                 />
               ) : (
                 <Field
@@ -118,15 +118,15 @@ export default class OrganizationRateLimit extends React.Component {
                 step={5}
                 min={50}
                 max={100}
-                formatLabel={value => {
-                  return value !== 100 ? (
+                formatLabel={value =>
+                  value !== 100 ? (
                     `${value}%`
                   ) : (
                     <span
                       dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
                     />
-                  );
-                }}
+                  )
+                }
               />
             </Form>
           </PanelBody>
