@@ -146,6 +146,13 @@ class OrganizationSearchPermission(OrganizationPermission):
     }
 
 
+class OrganizationDataExportPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:read", "event:write", "event:admin"],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 

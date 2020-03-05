@@ -4,6 +4,7 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
+from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
 from sentry.models.exporteddata import ExportStatus
 from sentry.testutils import APITestCase
@@ -31,7 +32,7 @@ class DataExportDetailsTest(APITestCase):
         }
         assert response.data["dateCreated"] == self.data_export.date_added
         assert response.data["query"] == {
-            "type": self.data_export.query_type,
+            "type": ExportQueryType.as_str(self.data_export.query_type),
             "info": self.data_export.query_info,
         }
 

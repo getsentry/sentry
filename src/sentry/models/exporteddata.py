@@ -58,16 +58,15 @@ class ExportedData(Model):
             return ExportStatus.Valid
 
     @property
-    def date_expired_string(self):
-        if self.date_expired is None:
-            return None
-        return self.date_expired.strftime("%-I:%M %p on %B %d, %Y (%Z)")
-
-    @property
     def payload(self):
         payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
+
+    @staticmethod
+    def format_date(date):
+        # Example: 12:21 PM on July 21, 2020 (UTC)
+        return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
     def delete_file(self):
         if self.file:
@@ -78,7 +77,7 @@ class ExportedData(Model):
         super(ExportedData, self).delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
-        self.delete_file()
+        self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
@@ -91,14 +90,13 @@ class ExportedData(Model):
         if self.date_finished is None or self.date_expired is None or self.file is None:
             # TODO(Leander): Implement logging here
             return
+        url = absolute_uri(
+            reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
+        )
         msg = MessageBuilder(
             subject="Your Download is Ready!",
-            context={
-                "url": absolute_uri(
-                    reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
-                ),
-                "expiration": self.date_expired_string,
-            },
+            context={"url": url, "expiration": self.format_date(self.date_expired)},
+            type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
@@ -110,6 +108,7 @@ class ExportedData(Model):
         msg = MessageBuilder(
             subject="Unable to Export Data",
             context={
+                "creation": self.format_date(self.date_added),
                 "error_message": message,
                 "payload": json.dumps(self.payload, indent=2, sort_keys=True),
             },

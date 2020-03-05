@@ -11,7 +11,7 @@ describe('DataExport', function() {
     features: ['data-export'],
   });
   const mockPayload = {
-    queryType: 2,
+    queryType: 'Issues-by-Tag',
     queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
   };
   const mockRouterContext = mockOrganization =>

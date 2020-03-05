@@ -118,7 +118,7 @@ class GroupTagValues extends AsyncComponent<
           </a>
           <DataExport
             payload={{
-              queryType: 2,
+              queryType: 'Issues-by-Tag',
               queryInfo: {
                 project_id: group.project.id,
                 group_id: group.id,

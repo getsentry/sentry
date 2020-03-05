@@ -1,3 +1,6 @@
+Your Download is Ready!
+-----------------------
+
 We've finished assembling your download, check it out by clicking the link below:
 
 {{url|safe}}

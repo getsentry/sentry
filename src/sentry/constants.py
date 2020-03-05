@@ -440,11 +440,9 @@ class ExportQueryType(object):
     DISCOVER_V2 = 0
     BILLING_REPORT = 1
     ISSUE_BY_TAG = 2
-    # Add additional query types here...
-    DISCOVER_V2_STR = "DISCOVER_V2"
-    BILLING_REPORT_STR = "BILLING_REPORT"
-    ISSUE_BY_TAG_STR = "ISSUE_BY_TAG"
-    # Add their corresponding strings (sent from browser) here...
+    DISCOVER_V2_STR = "Discover"
+    BILLING_REPORT_STR = "Billing Report"
+    ISSUE_BY_TAG_STR = "Issues-by-Tag"
 
     @classmethod
     def as_choices(cls):
@@ -455,13 +453,30 @@ class ExportQueryType(object):
         )
 
     @classmethod
-    def as_str(cls, status):
-        if status == cls.DISCOVER_V2:
+    def as_str_choices(cls):
+        return (
+            (cls.DISCOVER_V2_STR, cls.DISCOVER_V2_STR),
+            (cls.BILLING_REPORT_STR, cls.BILLING_REPORT_STR),
+            (cls.ISSUE_BY_TAG_STR, cls.ISSUE_BY_TAG_STR),
+        )
+
+    @classmethod
+    def as_str(cls, integer):
+        if integer == cls.DISCOVER_V2:
             return cls.DISCOVER_V2_STR
-        elif status == cls.BILLING_REPORT:
+        elif integer == cls.BILLING_REPORT:
             return cls.BILLING_REPORT_STR
-        elif status == cls.ISSUE_BY_TAG:
+        elif integer == cls.ISSUE_BY_TAG:
             return cls.ISSUE_BY_TAG_STR
+
+    @classmethod
+    def from_str(cls, string):
+        if string == cls.DISCOVER_V2_STR:
+            return cls.DISCOVER_V2
+        elif string == cls.BILLING_REPORT_STR:
+            return cls.BILLING_REPORT
+        elif string == cls.ISSUE_BY_TAG_STR:
+            return cls.ISSUE_BY_TAG
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

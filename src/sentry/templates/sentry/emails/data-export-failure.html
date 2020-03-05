@@ -5,12 +5,11 @@
 
 {% block main %}
     <h3>Unable to Export Data</h3>
-    <p>We were unable to generate your data export due to an error:</p>
+    <p>The data export you created at {{creation}} has failed.</p>
+    <p>We were unable to generate your report due to an error:</p>
     <code><pre>{{error_message}}</pre></code>
     <p>We received the following payload:</p>
-    <code>
-        <pre>{{payload}}</pre>
-    </code>
+    <code><pre>{{payload}}</pre></code>
     <p><strong>Troubleshooting &amp; References</strong></p>
     <ul>
         <li><a href="https://docs.sentry.io/">Documentation</a></li>

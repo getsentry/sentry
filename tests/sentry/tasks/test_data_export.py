@@ -45,12 +45,14 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             },
         )
         with self.tasks():
-            assemble_download(de1)
+            assemble_download(de1.id)
+        de1 = ExportedData.objects.get(id=de1.id)
         assert de1.date_finished is not None
         assert de1.date_expired is not None
         assert de1.file is not None
         f1 = de1.file
         assert isinstance(f1, File)
+        assert f1.headers == {"Content-Type": "text/csv"}
         raw1 = f1.getfile().read()
         assert raw1 == "value,id,email,username,ip_address,times_seen,last_seen,first_seen\r\n"
         de2 = ExportedData.objects.create(
@@ -64,7 +66,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             },
         )
         with self.tasks():
-            assemble_download(de2)
+            assemble_download(de2.id)
+        de2 = ExportedData.objects.get(id=de2.id)
         # Convert raw csv to list of line-strings
         header, raw1, raw2 = de2.file.getfile().read().strip().split("\r\n")
         assert header == "value,times_seen,last_seen,first_seen"
@@ -82,7 +85,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             query_info={"project_id": -1, "group_id": self.event.group_id, "key": "user"},
         )
         with self.tasks():
-            assemble_download(de1)
+            assemble_download(de1.id)
         error = emailer.call_args[1]["message"]
         assert isinstance(error, DataExportError)
         assert six.text_type(error) == u"Requested project does not exist"
@@ -93,7 +96,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             query_info={"project_id": self.project.id, "group_id": -1, "key": "user"},
         )
         with self.tasks():
-            assemble_download(de2)
+            assemble_download(de2.id)
         error = emailer.call_args[1]["message"]
         assert isinstance(error, DataExportError)
         assert six.text_type(error) == u"Requested issue does not exist"
