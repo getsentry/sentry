@@ -271,7 +271,7 @@ class ReleaseSerializer(Serializer):
                 "name": pr["project__name"],
             }
             if health_data is not None:
-                pr_rv["healthData"] = health_data.get((pr["project__id"], pr["release__version"]))
+                pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
             release_projects[pr["release_id"]].append(pr_rv)
 
         result = {}
@@ -324,6 +324,25 @@ class ReleaseSerializer(Serializer):
                 "buildHash": info["build_hash"],
             }
 
+        def expose_health_data(data):
+            return {
+                "durationP50": data["duration_p50"],
+                "durationP90": data["duration_p90"],
+                "crashFreeUsers": data["crash_free_users"],
+                "crashFreeSessions": data["crash_free_sessions"],
+                "sessionsCrashed": data["sessions_crashed"],
+                "sessionsErrored": data["sessions_errored"],
+                "totalUsers": data["total_users"],
+                "adoption": data["adoption"],
+                "stats": data.get("stats"),
+            }
+
+        def expose_project(project):
+            rv = {"id": project["id"], "slug": project["slug"], "name": project["name"]}
+            if "health_data" in project:
+                rv["healthData"] = expose_health_data(project["health_data"])
+            return rv
+
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
@@ -340,7 +359,7 @@ class ReleaseSerializer(Serializer):
             "deployCount": obj.total_deploys,
             "lastDeploy": attrs.get("last_deploy"),
             "authors": attrs.get("authors", []),
-            "projects": attrs.get("projects", []),
+            "projects": [expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
         }

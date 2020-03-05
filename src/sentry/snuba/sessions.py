@@ -129,6 +129,7 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             "duration_quantiles",
             "users",
             "sessions",
+            "sessions_errored",
             "sessions_crashed",
             "users_crashed",
         ],
@@ -149,6 +150,8 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             ),
             "total_users": x["users"],
             "total_sessions": x["sessions"],
+            "sessions_crashed": x["sessions_crashed"],
+            "sessions_errored": x["sessions_errored"],
             "adoption": x["users"] / total_users * 100 if total_users and x["users"] else None,
         }
         if stats_period:
