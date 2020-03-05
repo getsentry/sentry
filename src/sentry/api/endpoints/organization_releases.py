@@ -196,8 +196,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
         elif sort == "adoption":
+            if not flatten:
+                return Response({"detail": "sorting by adoption requires flattening"}, status=400)
             sort_query = "sentry_release_project.adoption"
         elif sort in ("crash_free_sessions", "crash_free_users"):
+            if not flatten:
+                return Response(
+                    {"detail": "sorting by crash statistics requires flattening"}, status=400
+                )
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
                 data_load_func=lambda offset, limit: get_project_releases_by_stability(
@@ -218,12 +224,22 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if sort_query is not None:
             queryset = queryset.filter(projects__id__in=filter_params["project_id"])
             select_extra["sort"] = sort_query
-            paginator_kwargs["order_by"] = RawSQL("sort", []).desc(nulls_last=True)
+
+            # The hack that makes flattening work is the only one that also needs
+            # the null last sorting (for adoption).  Because the raw sql here
+            # however does not work for the query generated for non flattened
+            # cases we need to fall back to `-sort` here.
+            if not flatten:
+                paginator_kwargs["order_by"] = "-sort"
+            else:
+                paginator_kwargs["order_by"] = RawSQL("sort", []).desc(nulls_last=True)
 
         queryset = queryset.extra(select=select_extra)
         if filter_params["start"] and filter_params["end"]:
             queryset = queryset.extra(
-                where=["%s BETWEEN %%s and %%s" % sort_query],
+                where=[
+                    "COALESCE(sentry_release.date_released, sentry_release.date_added) BETWEEN %s and %s"
+                ],
                 params=[filter_params["start"], filter_params["end"]],
             )
 
