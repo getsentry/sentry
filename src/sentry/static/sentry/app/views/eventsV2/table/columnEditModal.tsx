@@ -56,7 +56,7 @@ class ColumnEditModal extends React.Component<Props, State> {
             <Button priority="default" to={DISCOVER2_DOCS_URL}>
               {t('Read the Docs')}
             </Button>
-            <Button priority="primary" onClick={this.handleApply}>
+            <Button label={t('Apply')} priority="primary" onClick={this.handleApply}>
               {t('Apply')}
             </Button>
           </ButtonBar>

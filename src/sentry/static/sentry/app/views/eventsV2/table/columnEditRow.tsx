@@ -178,10 +178,11 @@ class ColumnEditRow extends React.Component<Props> {
     return (
       <Container className={className}>
         <SelectControl
+          name="field"
           options={Object.values(fieldOptions)}
           components={{
             Option: ({label, value, ...props}) => (
-              <components.Option {...props}>
+              <components.Option label={label} {...props}>
                 <Label>
                   {label}
                   {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
@@ -194,9 +195,10 @@ class ColumnEditRow extends React.Component<Props> {
           onChange={this.handleFieldChange}
         />
         {fieldParameterOptions.length === 0 ? (
-          <SelectControl options={NO_OPTIONS} value="" isDisabled />
+          <SelectControl name="parameter" options={NO_OPTIONS} value="" isDisabled />
         ) : (
           <SelectControl
+            name="parameter"
             placeholder={t('Select (Required)')}
             options={fieldParameterOptions}
             value={fieldParameter}
