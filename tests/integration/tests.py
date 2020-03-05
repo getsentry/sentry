@@ -170,7 +170,7 @@ class RavenIntegrationTest(TransactionTestCase):
         assert group.data["title"] == "foo"
 
 
-class SentryRemoteTest(SnubaTestCase):
+class SentryRemoteTest(TestCase):
     @fixture
     def path(self):
         return reverse("sentry-api-store")

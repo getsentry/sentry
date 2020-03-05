@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 from exam import fixture
+from rest_framework import serializers
 
 from sentry.auth.access import from_user
 from sentry.incidents.endpoints.serializers import (
@@ -12,8 +13,9 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_type,
     string_to_action_target_type,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, InvalidTriggerActionError
+from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import (
+    AlertRule,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     AlertRuleEnvironment,
@@ -215,6 +217,46 @@ class TestAlertRuleSerializer(TestCase):
 
         assert serializer.is_valid(), serializer.errors
 
+    def test_invalid_slack_channel(self):
+        # We had an error where an invalid slack channel was spitting out unclear
+        # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)
+        # says "Name already in use". This test makes sure that is not happening anymore.
+        # We save a rule with an invalid slack, make sure we get back a useful error
+        # and that the rule is not created.
+        base_params = self.valid_params.copy()
+        base_params["name"] = "Aun1qu3n4m3"
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        base_params["triggers"][0]["actions"].append(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": action_target_type_to_string[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "123",
+                "integration": six.text_type(integration.id),
+            }
+        )
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid()
+        with self.assertRaises(serializers.ValidationError):
+            serializer.save()
+
+        # Make sure the rule was not created.
+        assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 0
+
+        # Make sure the action was not created.
+        alert_rule_trigger_actions = list(
+            AlertRuleTriggerAction.objects.filter(integration=integration)
+        )
+        assert len(alert_rule_trigger_actions) == 0
+
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
@@ -407,5 +449,5 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(InvalidTriggerActionError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.save()

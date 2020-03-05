@@ -983,8 +983,8 @@ class IntervalDefault(NumberRange):
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
-        "args": [DurationColumn("column"), NumberRange("percentile", 0, 1)],
-        "transform": u"quantile({percentile:.2f})({column})",
+        "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+        "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
     },
     "rps": {
         "name": "rps",
@@ -1131,6 +1131,7 @@ def resolve_function(field, match=None, params=None):
     elif "aggregate" in function:
         aggregate = deepcopy(function["aggregate"])
 
+        aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], six.string_types):
             aggregate[1] = aggregate[1].format(**arguments)
 
