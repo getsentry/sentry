@@ -228,6 +228,7 @@ const CircleProgressCaption = styled('span')`
 `;
 
 const ChartWrapper = styled('div')`
+  flex: 1;
   margin-right: ${space(2)};
   g > .barchart-rect {
     background: #c6becf;
@@ -243,6 +244,7 @@ const StatsPeriodChanger = styled('div')`
   justify-content: flex-end;
   text-align: right;
   margin-right: ${space(2)};
+  margin-left: ${space(0.5)};
 `;
 
 const StatsPeriod = styled(Link)<{active: boolean}>`
