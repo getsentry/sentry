@@ -40,7 +40,7 @@ export default class DetailsHeader extends React.Component<Props> {
     const {incident, onStatusChange} = this.props;
 
     const isIncidentOpen = incident && isOpen(incident);
-    const statusLabel = incident ? <Status isSmall incident={incident} /> : null;
+    const statusLabel = incident ? <Status incident={incident} /> : null;
 
     return (
       <Access access={['org:write']}>
