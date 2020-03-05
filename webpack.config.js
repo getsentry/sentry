@@ -40,6 +40,7 @@ const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
+const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 
 /**
  * User/tooling configurable enviroment variables
@@ -47,11 +48,7 @@ const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with fork-ts plugin
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
-const SHOULD_HOT_MODULE_RELOAD =
-  DEV_MODE &&
-  SENTRY_BACKEND_PORT &&
-  SENTRY_WEBPACK_PROXY_PORT &&
-  !!env.SENTRY_UI_HOT_RELOAD;
+const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -418,14 +415,16 @@ if (!IS_PRODUCTION) {
 }
 
 // Dev only! Hot module reloading
-if (FORCE_WEBPACK_DEV_SERVER || (SHOULD_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
+if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
-  // Hot reload react components on save
-  // We include the library here as to not break docker/google cloud builds
-  // since we do not install devDeps there.
-  const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-  appConfig.plugins.push(new ReactRefreshWebpackPlugin());
+  if (SHOULD_HOT_MODULE_RELOAD) {
+    // Hot reload react components on save
+    // We include the library here as to not break docker/google cloud builds
+    // since we do not install devDeps there.
+    const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+    appConfig.plugins.push(new ReactRefreshWebpackPlugin());
+  }
 
   appConfig.devServer = {
     headers: {
