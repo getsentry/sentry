@@ -24,8 +24,7 @@ from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
 from sentry.web.helpers import render_to_response
-from sentry.integrations.jira.client import JiraApiClient
-from .client import JiraServer, JiraServerSetupClient
+from .client import JiraServer, JiraServerSetupClient, JiraServerClient
 
 
 logger = logging.getLogger("sentry.integrations.jira_server")
@@ -228,7 +227,7 @@ class JiraServerIntegration(JiraIntegration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return JiraApiClient(
+        return JiraServerClient(
             self.model.metadata["base_url"],
             JiraServer(self.default_identity.data),
             self.model.metadata["verify_ssl"],
