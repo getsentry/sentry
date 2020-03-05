@@ -88,7 +88,7 @@ class CreateProject extends React.Component {
     const analyticsEventOptions = {
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
-      org_id: parseInt(this.props.organization.id, 10),
+      organization_id: parseInt(this.props.organization.id, 10),
     };
     if (isInAlertDefaultsExperiment) {
       analyticsEventOptions.alert_defaults_experiment_variant = alertDefaultsExperimentVariant;
