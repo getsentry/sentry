@@ -21,10 +21,10 @@ type Props = {
 const ReleaseHealth = ({release}: Props) => {
   const {
     adoption,
-    crash_free_users,
-    crash_free_sessions,
-    crashes,
-    errors,
+    crashFreeUsers,
+    crashFreeSessions,
+    sessionsCrashed,
+    sessionsErrored,
   } = release.healthData!;
 
   // TODO(releasesv2): make dynamic once api is finished
@@ -55,11 +55,11 @@ const ReleaseHealth = ({release}: Props) => {
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
-              {defined(crash_free_users) ? (
+              {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <CircleProgress value={crash_free_users} />
+                  <CircleProgress value={crashFreeUsers} />
                   <CircleProgressCaption>
-                    {displayCrashFreePercent(crash_free_users)}
+                    {displayCrashFreePercent(crashFreeUsers)}
                   </CircleProgressCaption>
                 </React.Fragment>
               ) : (
@@ -68,11 +68,11 @@ const ReleaseHealth = ({release}: Props) => {
             </CrashFreeUsersColumn>
 
             <CrashFreeSessionsColumn>
-              {defined(crash_free_sessions) ? (
+              {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <CircleProgress value={crash_free_sessions} />
+                  <CircleProgress value={crashFreeSessions} />
                   <CircleProgressCaption>
-                    {displayCrashFreePercent(crash_free_sessions)}
+                    {displayCrashFreePercent(crashFreeSessions)}
                   </CircleProgressCaption>
                 </React.Fragment>
               ) : (
@@ -81,11 +81,11 @@ const ReleaseHealth = ({release}: Props) => {
             </CrashFreeSessionsColumn>
 
             <CrashesColumn>
-              <Count value={crashes ?? 0} />
+              <Count value={sessionsCrashed ?? 0} />
             </CrashesColumn>
 
             <ErrorsColumn>
-              <Count value={errors ?? 0} />
+              <Count value={sessionsErrored ?? 0} />
             </ErrorsColumn>
           </Layout>
         </StyledPanelItem>

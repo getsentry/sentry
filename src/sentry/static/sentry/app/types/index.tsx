@@ -128,12 +128,12 @@ export type ProjectRelease = {
 };
 
 export type Health = {
-  crash_free_users: number | null;
-  total_users: number;
-  crash_free_sessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+  crashFreeSessions: number | null;
   stats: HealthGraphData;
-  crashes: number;
-  errors: number;
+  sessionsCrashed: number;
+  sessionsErrored: number;
   adoption: number | null;
 };
 export type HealthGraphData = {
