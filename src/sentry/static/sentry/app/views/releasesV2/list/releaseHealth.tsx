@@ -10,10 +10,11 @@ import space from 'app/styles/space';
 import CircleProgress from 'app/components/circularProgressbar';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
-import ProgressBar, {StyledSlider, StyledBar} from 'app/views/releases/list/progressBar'; // TODO(releasesV2): wip
+import theme from 'app/utils/theme';
+import ScoreBar, {Bar} from 'app/components/scoreBar';
 
 import UsersChart from './usersChart';
-import {displayCrashFreePercent} from '../utils';
+import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
 
 type Props = {
   release: ProjectRelease;
@@ -87,7 +88,22 @@ const ReleaseHealth = ({release, location}: Props) => {
             </DailyUsersColumn>
 
             <AdoptionColumn>
-              {defined(adoption) ? <ProgressBar width={adoption} /> : '-'}
+              {defined(adoption) ? (
+                <ScoreBar
+                  score={convertAdoptionToProgress(adoption)}
+                  size={14}
+                  thickness={14}
+                  palette={[
+                    theme.red,
+                    theme.yellowOrange,
+                    theme.yellowOrange,
+                    theme.green,
+                    theme.green,
+                  ]}
+                />
+              ) : (
+                '-'
+              )}
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
@@ -176,6 +192,7 @@ const CenterColumn = styled(Column)`
 const DailyUsersColumn = styled(Column)`
   grid-area: daily-users;
   display: flex;
+  align-items: flex-end;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }
@@ -186,14 +203,8 @@ const AdoptionColumn = styled(Column)`
     display: none;
   }
 
-  ${StyledBar} {
-    background: ${p => p.theme.offWhite2};
-    margin-bottom: 0;
-    height: 8px;
-  }
-
-  ${StyledSlider} {
-    background: ${p => p.theme.green};
+  ${Bar} {
+    margin: 3px;
   }
 `;
 const CrashFreeUsersColumn = styled(CenterColumn)`

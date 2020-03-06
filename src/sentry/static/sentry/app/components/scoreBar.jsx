@@ -71,4 +71,6 @@ const Bar = styled('div')`
   width: ${p => (!p.vertical ? p.thickness : p.size)}px;
   height: ${p => (!p.vertical ? p.size : p.thickness)}px;
 `;
+
+export {Bar};
 export default StyledScoreBar;
