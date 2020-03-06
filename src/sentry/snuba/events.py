@@ -60,7 +60,7 @@ class Columns(Enum):
         "events.device_locale", "device_locale", "device_locale", "device.locale"
     )
     DEVICE_MODEL_ID = Column(
-        "events.device_locale", "device_model_id", "device_model_id", "device.model_id"
+        "events.device_model_id", "device_model_id", "device_model_id", "device.model_id"
     )
     DEVICE_NAME = Column("events.device_name", "device_name", "device_name", "device.name")
     DEVICE_ONLINE = Column(
