@@ -189,8 +189,8 @@ class RedisBuffer(Buffer):
                     frozen_filters = tuple(sorted(filters.items()))
                     key = (frozen_filters, model)
 
-                    stored_columns, stored_extra, stored_exclude_filters = _local_buffers.get(
-                        key, ({}, None)
+                    stored_columns, stored_extra, stored_signal_only = _local_buffers.get(
+                        key, ({}, None, None)
                     )
 
                     for k, v in columns.items():
