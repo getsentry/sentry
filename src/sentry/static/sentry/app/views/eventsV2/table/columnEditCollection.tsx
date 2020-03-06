@@ -107,7 +107,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // later as well.
     functions.forEach(func => {
       fieldOptions[`function:${func}`] = {
-        label: AGGREGATIONS[func].parameters.length ? `${func}(...)` : `${func}()`,
+        label: AGGREGATIONS[func].parameters.length ? `${func}(\u{2026})` : `${func}()`,
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {
@@ -342,6 +342,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             column={col}
             parentIndex={i}
             onChange={this.handleUpdateColumn}
+            takeFocus={i === this.props.columns.length - 1}
           />
           {canDelete ? (
             <IconButton
@@ -441,6 +442,11 @@ const IconButton = styled('button')`
   height: 16px;
   background: transparent;
   outline: none;
+
+  &:focus > svg,
+  &:active > svg {
+    color: ${p => p.theme.purple};
+  }
 `;
 
 const StyledIconAdd = styled(IconAdd)`

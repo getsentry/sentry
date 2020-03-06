@@ -101,7 +101,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('renders unknown fields in field and field parameter controls', function() {
       const funcRow = wrapper.find('ColumnEditRow').first();
       expect(funcRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'count_unique(...)'
+        'count_unique(\u2026)'
       );
       expect(funcRow.find('SelectControl[name="parameter"] SingleValue').text()).toBe(
         'user-defined'
@@ -181,7 +181,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     );
 
     it('restricts column choices', function() {
-      selectByLabel(wrapper, 'avg(...)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'avg(\u2026)', {name: 'field', at: 0, control: true});
 
       openMenu(wrapper, {name: 'parameter', at: 0, control: true});
       const options = wrapper
@@ -200,7 +200,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
 
     it('shows additional inputs for multi-parameter functions', function() {
-      selectByLabel(wrapper, 'apdex(...)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('ColumnEditRow SelectControl[name="parameter"]');

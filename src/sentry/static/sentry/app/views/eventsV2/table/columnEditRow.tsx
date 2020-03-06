@@ -33,6 +33,7 @@ type ParameterDescription =
 
 type Props = {
   className?: string;
+  takeFocus: boolean;
   parentIndex: number;
   column: Column;
   gridColumns: number;
@@ -225,7 +226,7 @@ class ColumnEditRow extends React.Component<Props> {
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const {gridColumns} = this.props;
-    const inputs = parameters.map((descriptor: any) => {
+    const inputs = parameters.map((descriptor: ParameterDescription) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
           <SelectControl
@@ -297,15 +298,24 @@ class ColumnEditRow extends React.Component<Props> {
   }
 
   render() {
-    const {className, gridColumns} = this.props;
+    const {className, takeFocus, gridColumns} = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
-    const parameterInputs = this.renderParameterInputs(parameterDescriptions);
+    const selectProps: React.ComponentProps<SelectControl> = {
+      name: 'field',
+      options: Object.values(fieldOptions),
+      placeholder: t('(Required)'),
+      value: field,
+      onChange: this.handleFieldChange,
+    };
+    if (takeFocus && field === null) {
+      selectProps.autoFocus = true;
+    }
+
     return (
       <Container className={className} gridColumns={gridColumns}>
         <SelectControl
-          name="field"
-          options={Object.values(fieldOptions)}
+          {...selectProps}
           components={{
             Option: ({label, value, ...props}) => (
               <components.Option label={label} {...props}>
@@ -316,11 +326,8 @@ class ColumnEditRow extends React.Component<Props> {
               </components.Option>
             ),
           }}
-          placeholder={t('(Required)')}
-          value={field}
-          onChange={this.handleFieldChange}
         />
-        {parameterInputs}
+        {this.renderParameterInputs(parameterDescriptions)}
       </Container>
     );
   }
