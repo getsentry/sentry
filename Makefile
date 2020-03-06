@@ -93,16 +93,17 @@ build-js-po: node-version-check
 
 build: locale
 
-locale: build-js-po
+merge-locale-catalogs: build-js-po
+	$(PIP) install click babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
+
+locale: merge-locale-catalogs
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-update-transifex: build-js-po
+update-transifex: merge-locale-catalogs
 	$(PIP) install transifex-client
-	cd src/sentry && sentry django makemessages -i static -l en
-	./bin/merge-catalogs en
 	tx push -s
 	tx pull -a
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
