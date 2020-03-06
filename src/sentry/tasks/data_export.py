@@ -27,7 +27,7 @@ class DataExportError(Exception):
 def assemble_download(data_export_id):
     # Extract the ExportedData object
     try:
-        logger.info("dataexport.start", extra={"id": data_export_id})
+        logger.info("dataexport.start", extra={"data_export_id": data_export_id})
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
         return capture_exception(error)
@@ -51,11 +51,11 @@ def assemble_download(data_export_id):
                     )
                     file.putfile(tf, logger=logger)
                     data_export.finalize_upload(file=file)
-                    logger.info("dataexport.end", extra={"id": data_export_id})
+                    logger.info("dataexport.end", extra={"data_export_id": data_export_id})
             except IntegrityError as error:
-                metrics.incr("dataexport.error", instance=error)
+                metrics.incr("dataexport.error", instance=six.text_type(error))
                 logger.error(
-                    six.text_type("dataexport.error: {}").format(error),
+                    "dataexport.error: {}".format(six.text_type(error)),
                     extra={"query": data_export.payload, "org": data_export.organization_id},
                 )
                 raise DataExportError("Failed to save the assembled file")
@@ -64,9 +64,9 @@ def assemble_download(data_export_id):
     except NotImplementedError as error:
         return data_export.email_failure(message=error)
     except BaseException as error:
-        metrics.incr("dataexport.error", instance=error)
+        metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error(
-            six.text_type("dataexport.error: {}").format(error),
+            "dataexport.error: {}".format(six.text_type(error)),
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
         return data_export.email_failure(message="Internal processing failure")
@@ -93,8 +93,8 @@ def process_issue_by_tag(data_export, file, limit=None):
         payload = data_export.query_info
         project = Project.objects.get(id=payload["project_id"])
     except Project.DoesNotExist as error:
-        metrics.incr("dataexport.error", instance=error)
-        logger.error(six.text_type("dataexport.error: {}").format(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError("Requested project does not exist")
 
     # Get the pertaining issue
@@ -103,8 +103,8 @@ def process_issue_by_tag(data_export, file, limit=None):
             payload["group_id"], queryset=Group.objects.filter(project=project)
         )
     except Group.DoesNotExist as error:
-        metrics.incr("dataexport.error", instance=error)
-        logger.error(six.text_type("dataexport.error: {}").format(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError("Requested issue does not exist")
 
     # Get the pertaining key
@@ -183,16 +183,16 @@ def snuba_error_handler():
     try:
         yield
     except snuba.QueryOutsideRetentionError as error:
-        metrics.incr("dataexport.error", instance=error)
-        logger.error(six.text_type("dataexport.error: {}").format(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError("Invalid date range. Please try a more recent date range.")
     except snuba.QueryIllegalTypeOfArgument as error:
-        metrics.incr("dataexport.error", instance=error)
-        logger.error(six.text_type("dataexport.error: {}").format(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
-        metrics.incr("dataexport.error", instance=error)
-        logger.error(six.text_type("dataexport.error: {}").format(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
         message = "Internal error. Please try again."
         if isinstance(
             error,
