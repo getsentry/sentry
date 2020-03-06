@@ -404,13 +404,6 @@ def batching_kafka_options(group):
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
         )(f)
 
-        f = click.option(
-            "--pause-gc/--no-pause-gc",
-            "pause_gc",
-            default=False,
-            help="Disable GC, and run it manually after each batch flush.",
-        )(f)
-
         return f
 
     return inner
