@@ -74,14 +74,14 @@ const colors = {
 
   background: '#fff',
   placeholderBackground: '#f5f5f5',
-};
+} as const;
 
 const warning = {
   backgroundLight: colors.yellowLightest,
   background: colors.yellowDarkest,
   border: colors.yellowDark,
   iconColor: colors.yellowDark,
-};
+} as const;
 
 const alert = {
   muted: {
@@ -115,14 +115,14 @@ const alert = {
   beta: {
     background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
   },
-};
+} as const;
 
 const aliases = {
   textColor: colors.gray5,
   success: colors.green,
   error: colors.red,
   disabled: colors.gray1,
-};
+} as const;
 
 const button = {
   borderRadius: '3px',
@@ -182,7 +182,7 @@ const button = {
     background: colors.white,
     backgroundActive: colors.white,
   },
-};
+} as const;
 
 const theme = {
   breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
@@ -319,7 +319,7 @@ const theme = {
   },
 
   space: [0, 8, 16, 20, 30],
-};
+} as const;
 
 export type Theme = typeof theme;
 
