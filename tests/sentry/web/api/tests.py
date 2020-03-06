@@ -12,7 +12,7 @@ from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey, EventAttachment
-from sentry.signals import event_accepted, event_dropped, event_filtered
+from sentry.signals import event_accepted
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
@@ -593,40 +593,6 @@ class StoreViewTest(TestCase):
 
         assert_mock_called_once_with_partial(
             mock_event_accepted, ip="127.0.0.1", project=self.project, signal=event_accepted
-        )
-
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.app.quotas.is_rate_limited")
-    def test_dropped_signal(self, mock_is_rate_limited):
-        mock_is_rate_limited.is_limited = True
-
-        mock_event_dropped = Mock()
-
-        event_dropped.connect(mock_event_dropped)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 429, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_dropped, ip="127.0.0.1", project=self.project, signal=event_dropped
-        )
-
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.event_manager.EventManager.should_filter")
-    def test_filtered_signal(self, mock_should_filter):
-        mock_should_filter.return_value = (True, "ip-address")
-
-        mock_event_filtered = Mock()
-
-        event_filtered.connect(mock_event_filtered)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 403, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_filtered, ip="127.0.0.1", project=self.project, signal=event_filtered
         )
 
 
