@@ -93,10 +93,11 @@ class ExportedData(Model):
 
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self.file is None:
-            return logger.warning(
+            logger.warning(
                 "Notification email attempted on incomplete dataset",
                 extra={"data_export_id": self.id, "organization_id": self.organization_id},
             )
+            return
         url = absolute_uri(
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
