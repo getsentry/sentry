@@ -172,14 +172,14 @@ class RedisBuffer(Buffer):
         else:
             raise TypeError("invalid type: {}".format(type_))
 
-    def incr(self, model, columns, filters, extra=None, exclude_filters=None):
+    def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
             - Perform an incrby on counters
             - Perform a set (last write wins) on extra
-            - Perform a set (last write wins) on exclude_filters
+            - Set flag for whether or not to create/update the model in the database
         - Add hashmap key to pending flushes
         """
 
@@ -189,7 +189,9 @@ class RedisBuffer(Buffer):
                     frozen_filters = tuple(sorted(filters.items()))
                     key = (frozen_filters, model)
 
-                    stored_columns, stored_extra, stored_exclude_filters = _local_buffers.get(key, ({}, None))
+                    stored_columns, stored_extra, stored_exclude_filters = _local_buffers.get(
+                        key, ({}, None)
+                    )
 
                     for k, v in columns.items():
                         stored_columns[k] = stored_columns.get(k, 0) + v
@@ -197,10 +199,10 @@ class RedisBuffer(Buffer):
                     if extra is not None:
                         stored_extra = extra
 
-                    if exclude_filters is not None:
-                        stored_exclude_filters = exclude_filters
+                    if signal_only is not None:
+                        stored_signal_only = signal_only
 
-                    _local_buffers[key] = stored_columns, stored_extra, stored_exclude_filters
+                    _local_buffers[key] = stored_columns, stored_extra, stored_signal_only
                     return
 
         # TODO(dcramer): longer term we'd rather not have to serialize values
@@ -230,8 +232,8 @@ class RedisBuffer(Buffer):
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
 
-        if isinstance(exclude_filters, set):
-            pipe.hsetnx(key, "ef", json.dumps(list(exclude_filters)))
+        if signal_only is True:
+            pipe.hset(key, "s", "1")
 
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
@@ -328,10 +330,9 @@ class RedisBuffer(Buffer):
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
 
-            exclude_filters_values = set(json.loads(values.pop("ef"))) if "ef" in values else None
-
             incr_values = {}
             extra_values = {}
+            signal_only = None
             for k, v in six.iteritems(values):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
@@ -341,7 +342,9 @@ class RedisBuffer(Buffer):
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(v)
+                elif k == "s":
+                    signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, exclude_filters_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

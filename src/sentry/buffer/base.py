@@ -34,26 +34,32 @@ class Buffer(Service):
 
     __all__ = ("incr", "process", "process_pending", "validate")
 
-    def incr(self, model, columns, filters, extra=None, exclude_filters=None):
+    def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
-        exclude_filters - added to be able to exclude filters by name when determining whether or not to
-        create or update a row for a model in the database. the primary reason for adding this(for now)
-        is to be able to add filters in the call to `buffer_incr_complete` which the receiver can use
-        in addition to the model attributes.
+        signal_only - added to indicate that `process` should only call the complete
+        signal handler with the updated model and skip creates/updates in the database. this
+        is useful in cases where we need to do additional processing before writing to the
+        database and opt to do it in a `buffer_incr_complete` receiver.
         """
         process_incr.apply_async(
-            kwargs={"model": model, "columns": columns, "filters": filters, "extra": extra,
-                    "exclude_filters": exclude_filters}
+            kwargs={
+                "model": model,
+                "columns": columns,
+                "filters": filters,
+                "extra": extra,
+                "signal_only": signal_only,
+            }
         )
 
     def process_pending(self, partition=None):
         return []
 
-    def process(self, model, columns, filters, extra=None, exclude_filters=None):
+    def process(self, model, columns, filters, extra=None, signal_only=None):
         from sentry.models import Group
         from sentry.event_manager import ScoreClause
 
+        created = False
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
@@ -67,10 +73,8 @@ class Buffer(Service):
                 last_seen=update_kwargs["last_seen"],
             )
 
-        model_filters = {k: v for k, v in filters.iteritems() if k not in exclude_filters} \
-            if isinstance(exclude_filters, set) else filters
-
-        _, created = model.objects.create_or_update(values=update_kwargs, **model_filters)
+        if not signal_only:
+            _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,
