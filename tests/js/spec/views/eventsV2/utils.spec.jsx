@@ -38,6 +38,15 @@ describe('getAggregateAlias', function() {
       'count_foo_bar_is-Enterprise_42'
     );
   });
+
+  it('handles 2 arg functions', function() {
+    expect(getAggregateAlias('percentile(transaction.duration,0.81)')).toEqual(
+      'percentile_transaction_duration_0_81'
+    );
+    expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
+      'percentile_transaction_duration_0_11'
+    );
+  });
 });
 
 describe('getFieldRenderer', function() {

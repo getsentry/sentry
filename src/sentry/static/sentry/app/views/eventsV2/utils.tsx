@@ -180,8 +180,9 @@ export function getAggregateAlias(field: string): string {
     return field;
   }
   return field
-    .replace(AGGREGATE_PATTERN, '$1_$2')
+    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
     .replace(/\./g, '_')
+    .replace(/\,/g, '_')
     .replace(/_+$/, '');
 }
 
