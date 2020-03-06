@@ -1168,6 +1168,12 @@ def resolve_orderby(orderby, fields, aggregations):
         if found:
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + bare_column)
+            continue
+
+        if bare_column in FIELD_ALIASES and FIELD_ALIASES[bare_column].get("column_alias"):
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
+            continue
 
     if len(validated) == len(orderby):
         return validated
