@@ -1,6 +1,7 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
+import {t} from 'app/locale';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
@@ -718,6 +719,17 @@ function routes() {
         componentPromise={() =>
           import(
             /* webpackChunkName: "OrganizationGeneralSettings" */ 'app/views/settings/organizationGeneralSettings'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
+        name={t('Security & Privacy')}
+        path="security-and-privacy/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationSecurityAndPrivacy" */ 'app/views/settings/organizationSecurityAndPrivacy/organizationSecurityAndPrivacy'
           )
         }
         component={errorHandler(LazyLoad)}

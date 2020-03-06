@@ -21,6 +21,16 @@ const organizationNavigation: NavigationSection[] = [
         id: 'projects',
       },
       {
+        path: `${pathPrefix}/security-and-privacy/`,
+        title: t('Security & Privacy'),
+        description: t(
+          'View and manage the security and privacy settings of an organization'
+        ),
+        id: 'security-and-privacy',
+        show: ({features}) => features!.has('datascrubbers-v2'),
+        badge: () => 'new',
+      },
+      {
         path: `${pathPrefix}/teams/`,
         title: t('Teams'),
         description: t("Manage an organization's teams"),
