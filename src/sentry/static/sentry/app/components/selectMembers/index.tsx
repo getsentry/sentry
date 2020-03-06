@@ -93,7 +93,7 @@ class SelectMembers extends React.Component<Props, State> {
   };
 
   componentWillUnmount() {
-    this.unlisteners.forEach(unlisten => callIfFunction(unlisten));
+    this.unlisteners.forEach(callIfFunction);
   }
 
   selectRef = React.createRef<typeof SelectControl>();
