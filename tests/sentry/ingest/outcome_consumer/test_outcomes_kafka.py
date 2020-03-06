@@ -5,12 +5,13 @@ import pytest
 import six
 
 from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
-from sentry.signals import event_filtered, event_dropped, event_saved
+from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome
 from django.conf import settings
 from sentry.utils import json
 from sentry.utils.json import prune_empty_keys
+from sentry.utils.data_filters import FilterStatKeys
 
 
 logger = logging.getLogger(__name__)
@@ -38,10 +39,12 @@ def _get_event_id(base_event_id):
 class OutcomeTester(object):
     def __init__(self, kafka_producer, kafka_admin, task_runner):
         self.events_filtered = []
+        self.events_discarded = []
         self.events_dropped = []
         self.events_saved = []
 
         event_filtered.connect(self._event_filtered_receiver)
+        event_discarded.connect(self._event_discarded_receiver)
         event_dropped.connect(self._event_dropped_receiver)
         event_saved.connect(self._event_saved_receiver)
 
@@ -98,6 +101,9 @@ class OutcomeTester(object):
 
     def _event_filtered_receiver(self, **kwargs):
         self.events_filtered.append(kwargs)
+
+    def _event_discarded_receiver(self, **kwargs):
+        self.events_discarded.append(kwargs)
 
     def _event_dropped_receiver(self, **kwargs):
         self.events_dropped.append(kwargs)
@@ -237,3 +243,24 @@ def test_outcome_consumer_handles_accepted_outcomes(outcome_tester):
 
     assert not outcome_tester.events_filtered
     assert len(outcome_tester.events_saved) == 2
+
+
+@pytest.mark.django_db
+def test_outcome_consumer_handles_discarded_outcomes(outcome_tester):
+    for i in six.moves.range(4):
+        if i < 2:
+            reason = "something_else"
+        else:
+            reason = FilterStatKeys.DISCARDED_HASH
+
+        outcome_tester.track_outcome(
+            event_id=_get_event_id(i),
+            outcome=Outcome.FILTERED,
+            reason=reason,
+            remote_addr="127.33.44.{}".format(i),
+        )
+
+    outcome_tester.run(lambda: len(outcome_tester.events_discarded) < 2)
+
+    assert len(outcome_tester.events_filtered) == 2
+    assert len(outcome_tester.events_discarded) == 2
