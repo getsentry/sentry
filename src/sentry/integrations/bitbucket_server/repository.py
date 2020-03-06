@@ -101,7 +101,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "id": c["id"],
                 "repository": repo.name,
                 "author_email": c["author"]["emailAddress"],
-                "author_name": c["author"]["name"],
+                "author_name": c["author"].get("displayName", c["author"]["name"]),
                 "message": c["message"],
                 "timestamp": datetime.fromtimestamp(c["authorTimestamp"] / 1000, timezone.utc),
                 "patch_set": self._get_patchset(client, repo.config["project"], repo.config["repo"], c["id"]),
@@ -112,24 +112,17 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
     def compare_commits(self, repo, start_sha, end_sha):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
-        # use config name because that is kept in sync via webhooks
 
-        if "0" * 40 == start_sha or start_sha is None:
-            try:
-                res = client.get_last_commits(repo.config["project"], repo.config["repo"], 10)
-            except Exception as e:
-                installation.raise_error(e)
+        try:
+            if "0" * 40 == start_sha or start_sha is None:
+                res = client.get_last_commits(repo.config["project"], repo.config["repo"])
             else:
-                return self._format_commits(client, repo, res)
-        else:
-            try:
                 res = client.get_commits(
                     repo.config["project"], repo.config["repo"], start_sha, end_sha
                 )
-            except Exception as e:
-                installation.raise_error(e)
-            else:
-                return self._format_commits(client, repo, res)
+            return self._format_commits(client, repo, res)
+        except Exception as e:
+            installation.raise_error(e)
 
     def repository_external_slug(self, repo):
         return repo.name
@@ -142,7 +135,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         key = u"get_changelist:{}:{}".format(md5_text(project + repo).hexdigest(), sha)
         commit_files = cache.get(key)
         if commit_files is None:
-            commit_files = client.get_changelist(project, repo, sha)
+            commit_files = client.get_commit_filechanges(project, repo, sha)
             cache.set(key, commit_files, 900)
 
         return self._transform_patchset(commit_files)
