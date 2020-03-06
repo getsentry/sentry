@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
 from sentry.tasks.data_export import assemble_download
+from sentry.utils import metrics
 
 
 class ExportedDataSerializer(serializers.Serializer):
@@ -53,9 +54,11 @@ class DataExportEndpoint(OrganizationEndpoint):
             )
             status = 200
             if created:
+                metrics.incr("dataexport.start", tags={"query_type": data["query_type"]})
                 assemble_download.delay(data_export_id=data_export.id)
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
+            metrics.incr("dataexport.invalid", tags={"query_type": data.get("query_type")})
             return Response({"detail": six.text_type(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)

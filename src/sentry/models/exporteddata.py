@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+import logging
 import six
 from enum import Enum
 from datetime import timedelta
@@ -17,7 +18,11 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+
+logger = logging.getLogger(__name__)
+
 
 # Arbitrary, subject to change
 DEFAULT_EXPIRATION = timedelta(weeks=4)
@@ -88,7 +93,10 @@ class ExportedData(Model):
 
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self.file is None:
-            # TODO(Leander): Implement logging here
+            logger.warning(
+                "Notification email attempted on incomplete dataset",
+                extra={"data_export_id": self.id, "organization_id": self.organization_id},
+            )
             return
         url = absolute_uri(
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
@@ -101,6 +109,7 @@ class ExportedData(Model):
             html_template="sentry/emails/data-export-success.html",
         )
         msg.send_async([self.user.email])
+        metrics.incr("dataexport.end", instance="success")
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
@@ -117,6 +126,7 @@ class ExportedData(Model):
             html_template="sentry/emails/data-export-failure.html",
         )
         msg.send_async([self.user.email])
+        metrics.incr("dataexport.end", instance="failure")
         self.delete()
 
     class Meta:
