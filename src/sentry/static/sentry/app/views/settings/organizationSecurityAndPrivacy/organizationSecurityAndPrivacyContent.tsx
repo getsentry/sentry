@@ -11,6 +11,7 @@ import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
+import SentryTypes from 'app/sentryTypes';
 
 type Props = {
   organization: Organization;
@@ -22,7 +23,7 @@ type Props = {
 
 class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
   static contextTypes = {
-    organization: PropTypes.object,
+    organization: SentryTypes.Organization,
     // left router contextType to satisfy the compiler
     router: PropTypes.object,
   };
