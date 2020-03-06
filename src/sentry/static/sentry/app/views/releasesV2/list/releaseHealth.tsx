@@ -44,7 +44,6 @@ const ReleaseHealth = ({release, location}: Props) => {
     },
   ];
 
-  // TODO(releasesv2): make dynamic once api is finished
   return (
     <React.Fragment>
       <StyledPanelHeader>
@@ -204,6 +203,7 @@ const AdoptionColumn = styled(Column)`
   }
 
   ${Bar} {
+    /* TODO(releasesV2): this is wip */
     margin: 3px;
   }
 `;
@@ -242,6 +242,7 @@ const ChartWrapper = styled('div')`
   flex: 1;
   margin-right: ${space(2)};
   g > .barchart-rect {
+    /* TODO(releasesV2): figure out with design these colors */
     background: #c6becf;
     fill: #c6becf;
   }
