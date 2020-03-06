@@ -4,7 +4,7 @@ relay:
   host: 0.0.0.0
   port: 3000
 logging:
-  level: TRACE
+  level: INFO
   enable_backtraces: false
 processing:
   enabled: true
