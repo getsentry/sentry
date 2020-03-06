@@ -122,6 +122,7 @@ const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   position: relative;
+  margin-bottom: ${space(3)};
 
   & h3,
   & h3 a {
@@ -136,8 +137,8 @@ const SectionHeader = styled('div')`
     font-weight: 600;
     line-height: 1.2;
     padding: ${space(0.75)} 0;
+    margin-bottom: 0;
     text-transform: uppercase;
-    margin-bottom: 20px;
   }
 
   & small {
