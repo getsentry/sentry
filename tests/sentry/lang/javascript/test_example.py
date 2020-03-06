@@ -4,10 +4,10 @@ from __future__ import absolute_import
 
 import os
 import json
+import pytest
 import responses
 
-from sentry import eventstore
-from sentry.testutils import TestCase
+from sentry.testutils import TransactionTestCase, SentryStoreHelper
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
@@ -20,7 +20,12 @@ def load_fixture(name):
         return f.read()
 
 
-class ExampleTestCase(TestCase):
+class ExampleTestCase(object):
+    def post_and_retrieve_event(self, data):
+        raise NotImplementedError(
+            "post_and_retrieve_event should be implemented in dervied test class"
+        )
+
     @responses.activate
     def test_sourcemap_expansion(self):
         responses.add(
@@ -61,11 +66,7 @@ class ExampleTestCase(TestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+        event = self.post_and_retrieve_event(data)
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -91,3 +92,8 @@ class ExampleTestCase(TestCase):
         assert frame_list[3].function == "onFailure"
         assert frame_list[3].lineno == 5
         assert frame_list[3].filename == "test.js"
+
+
+@pytest.mark.sentry_store_integration
+class ExampleTestCaseLegacy(SentryStoreHelper, TransactionTestCase, ExampleTestCase):
+    pass
