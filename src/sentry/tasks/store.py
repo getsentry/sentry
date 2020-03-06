@@ -462,7 +462,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    from sentry.event_manager import EventManager
+    from sentry.event_manager import EventManager, HashDiscarded
 
     event_type = "none"
 
@@ -518,6 +518,9 @@ def _do_save_event(
                 event = manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
+
+        except HashDiscarded:
+            pass
 
         finally:
             if cache_key:
