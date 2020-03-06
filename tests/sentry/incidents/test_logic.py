@@ -717,7 +717,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.query_subscriptions.get().subscription_id
-        update_alert_rule(self.alert_rule, query="some new query")
+        with self.tasks():
+            update_alert_rule(self.alert_rule, query="some new query")
         assert old_subscription_id != self.alert_rule.query_subscriptions.get().subscription_id
 
     def test_empty_query(self):
@@ -768,7 +769,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
         updated_projects = [self.project, new_project]
-        update_alert_rule(alert_rule, updated_projects, query=query_update)
+        with self.tasks():
+            update_alert_rule(alert_rule, updated_projects, query=query_update)
         updated_subscriptions = alert_rule.query_subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for sub in updated_subscriptions:
@@ -809,7 +811,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
             == projects
         )
-        update_alert_rule(alert_rule, excluded_projects=[self.project])
+        with self.tasks():
+            update_alert_rule(alert_rule, excluded_projects=[self.project])
         assert [
             sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
         ] == [new_project]
@@ -828,7 +831,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
             == projects
         )
-        update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
+        with self.tasks():
+            update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
         assert [
             sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
         ] == [new_project]

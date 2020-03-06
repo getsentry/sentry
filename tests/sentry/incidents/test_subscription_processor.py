@@ -17,7 +17,6 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -39,7 +38,7 @@ from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
     update_alert_rule_stats,
 )
-from sentry.snuba.models import QueryAggregations, QuerySubscription
+from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map

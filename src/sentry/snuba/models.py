@@ -15,6 +15,12 @@ class QueryAggregations(Enum):
     UNIQUE_USERS = 1
 
 
+query_aggregation_to_snuba = {
+    QueryAggregations.TOTAL: ("count()", "", "count"),
+    QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
+}
+
+
 class QueryDatasets(Enum):
     EVENTS = "events"
 
@@ -35,12 +41,19 @@ class QuerySubscriptionEnvironment(Model):
 class QuerySubscription(Model):
     __core__ = True
 
+    class Status(Enum):
+        ACTIVE = 0
+        CREATING = 1
+        UPDATING = 2
+        DELETING = 3
+
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     environments = models.ManyToManyField(
         "sentry.Environment", through=QuerySubscriptionEnvironment
     )
     type = models.TextField()
-    subscription_id = models.TextField(unique=True)
+    status = models.SmallIntegerField(default=Status.ACTIVE.value)
+    subscription_id = models.TextField(unique=True, null=True)
     dataset = models.TextField()
     query = models.TextField()
     # TODO: Remove this default after we migrate

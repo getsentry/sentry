@@ -12,7 +12,7 @@ from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
-from sentry.snuba.subscriptions import _delete_from_snuba
+from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -161,6 +161,9 @@ class QuerySubscriptionConsumer(object):
                     subscription = QuerySubscription.objects.get_from_cache(
                         subscription_id=contents["subscription_id"]
                     )
+                    if subscription.status != QuerySubscription.Status.ACTIVE.value:
+                        metrics.incr("snuba_query_subscriber.subscription_inactive")
+                        return
             except QuerySubscription.DoesNotExist:
                 metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
                 logger.error(
