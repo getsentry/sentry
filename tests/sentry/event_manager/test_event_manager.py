@@ -1029,6 +1029,19 @@ class EventManagerTest(TestCase):
             mock_event_discarded, project=group.project, sender=EventManager, signal=event_discarded
         )
 
+        def query(model, key, **kwargs):
+            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+
+        # Ensure that we incremented TSDB counts
+        assert query(tsdb.models.organization_total_received, event.project.organization.id) == 2
+        assert query(tsdb.models.project_total_received, event.project.id) == 2
+
+        assert query(tsdb.models.project, event.project.id) == 1
+        assert query(tsdb.models.group, event.group.id) == 1
+
+        assert query(tsdb.models.organization_total_blacklisted, event.project.organization.id) == 1
+        assert query(tsdb.models.project_total_blacklisted, event.project.id) == 1
+
     def test_event_saved_signal(self):
         mock_event_saved = mock.Mock()
         event_saved.connect(mock_event_saved)

@@ -41,6 +41,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
+from sentry.ingest.outcomes_consumer import mark_signal_sent
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
@@ -59,6 +60,7 @@ from sentry.models import (
     GroupResolution,
     GroupStatus,
     Project,
+    ProjectKey,
     Release,
     ReleaseEnvironment,
     ReleaseProject,
@@ -69,6 +71,7 @@ from sentry.models import (
     get_crashreport_key,
 )
 from sentry.plugins.base import plugins
+from sentry import quotas
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
@@ -79,7 +82,8 @@ from sentry.utils.data_filters import (
     is_valid_error_message,
     FilterStatKeys,
 )
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, to_datetime
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
@@ -423,7 +427,7 @@ class EventManager(object):
         return self._data
 
     @metrics.wraps("event_manager.save")
-    def save(self, project_id, raw=False, assume_normalized=False, cache_key=None):
+    def save(self, project_id, raw=False, assume_normalized=False, start_time=None, cache_key=None):
         """
         After normalizing and processing an event, save adjacent models such as
         releases and environments to postgres and write the event into
@@ -455,7 +459,8 @@ class EventManager(object):
 
         if self._data.get("type") == "transaction":
             self._data["project"] = int(project_id)
-            jobs = save_transaction_events([self._data], projects)
+            job = {"data": self._data, "start_time": start_time}
+            jobs = save_transaction_events([job], projects)
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
@@ -463,7 +468,7 @@ class EventManager(object):
                 id=project.organization_id
             )
 
-        job = {"data": self._data, "project_id": project_id, "raw": raw}
+        job = {"data": self._data, "project_id": project_id, "raw": raw, "start_time": start_time}
         jobs = [job]
 
         _pull_out_data(jobs, projects)
@@ -532,6 +537,30 @@ class EventManager(object):
             )
         except HashDiscarded:
             event_discarded.send_robust(project=project, sender=EventManager)
+
+            project_key = None
+            if job["key_id"] is not None:
+                try:
+                    project_key = ProjectKey.objects.get_from_cache(id=job["key_id"])
+                except ProjectKey.DoesNotExist:
+                    pass
+
+            quotas.refund(project, key=project_key, timestamp=start_time)
+
+            # The outcomes_consumer generically handles all FILTERED outcomes,
+            # but needs to skip this since it cannot dispatch event_discarded.
+            mark_signal_sent(project_id, job["event"].event_id)
+
+            track_outcome(
+                project.organization_id,
+                project_id,
+                job["key_id"],
+                Outcome.FILTERED,
+                FilterStatKeys.DISCARDED_HASH,
+                to_datetime(job["start_time"]),
+                job["event"].event_id,
+                job["category"],
+            )
 
             metrics.incr(
                 "events.discarded",
@@ -633,6 +662,8 @@ class EventManager(object):
             tags=metric_tags,
         )
 
+        _track_outcome_accepted_many(jobs)
+
         self._data = job["event"].data.data
         return job["event"]
 
@@ -655,6 +686,11 @@ def _pull_out_data(jobs, projects):
         if transaction_name:
             transaction_name = force_text(transaction_name)
         job["transaction"] = transaction_name
+
+        key_id = None if data is None else data.get("key_id")
+        if key_id is not None:
+            key_id = int(key_id)
+        job["key_id"] = key_id
 
         job["logger_name"] = logger_name = data.get("logger")
         job["level"] = level = data.get("level")
@@ -908,6 +944,27 @@ def _eventstream_insert_many(jobs):
             # through the event stream, but we don't care
             # about post processing and handling the commit.
             skip_consume=job.get("raw", False),
+        )
+
+
+@metrics.wraps("save_event.track_outcome_accepted_many")
+def _track_outcome_accepted_many(jobs):
+    for job in jobs:
+        event = job["event"]
+
+        # This is where we can finally say that we have accepted the event.
+        if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
+            mark_signal_sent(event.project.id, event.event_id)
+
+        track_outcome(
+            event.project.organization_id,
+            job["project_id"],
+            job["key_id"],
+            Outcome.ACCEPTED,
+            None,
+            to_datetime(job["start_time"]),
+            event.event_id,
+            job["category"],
         )
 
 
@@ -1308,7 +1365,7 @@ def _materialize_event_metrics(jobs):
 
 
 @metrics.wraps("event_manager.save_transaction_events")
-def save_transaction_events(events, projects):
+def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
         organization_ids = set(project.organization_id for project in six.itervalues(projects))
 
@@ -1325,18 +1382,13 @@ def save_transaction_events(events, projects):
                 continue
 
     with metrics.timer("event_manager.save_transactions.prepare_jobs"):
-        jobs = list(
-            {
-                "data": event,
-                "project_id": event["project"],
-                "raw": False,
-                "group": None,
-                "is_new": False,
-                "is_regression": False,
-                "is_new_group_environment": False,
-            }
-            for event in events
-        )
+        for job in jobs:
+            job["project_id"] = job["data"]["project"]
+            job["raw"] = False
+            job["group"] = None
+            job["is_new"] = False
+            job["is_regression"] = False
+            job["is_new_group_environment"] = False
 
     _pull_out_data(jobs, projects)
     _get_or_create_release_many(jobs, projects)
@@ -1351,4 +1403,5 @@ def save_transaction_events(events, projects):
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
+    _track_outcome_accepted_many(jobs)
     return jobs
