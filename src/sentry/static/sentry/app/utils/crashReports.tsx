@@ -1,6 +1,6 @@
 import {t, tct} from 'app/locale';
 
-export function formatStoreCrashReports(value: number) {
+export function formatStoreCrashReports(value: number | ''): React.ReactNode {
   if (value === -1) {
     return t('Unlimited');
   } else if (value === 0) {

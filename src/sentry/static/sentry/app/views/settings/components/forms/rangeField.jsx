@@ -9,7 +9,7 @@ export default class RangeField extends React.Component {
       (typeof props.formatLabel === 'function' && props.formatLabel(value)) || value,
   };
 
-  onChange = (onChange, onBlur, value, e) => {
+  onChange = (onChange, _onBlur, value, e) => {
     // We need to toggle current value because Switch is not an input
     onChange(value, e);
     // onBlur(value, e);
