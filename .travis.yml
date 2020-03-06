@@ -40,7 +40,7 @@ env:
     - SENTRY_ZOOKEEPER_HOSTS=localhost:2181
     - PYTEST_ADDOPTS="--reruns 5"
 
-base_install: &before_install_default |-
+base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
 
   docker run \
@@ -52,7 +52,6 @@ base_install: &before_install_default |-
   docker run \
     --name sentry_kafka \
     -d --network host \
-    -v sentry_kafka:/var/lib/kafka \
     -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
     -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
     -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
@@ -62,6 +61,22 @@ base_install: &before_install_default |-
     confluentinc/cp-kafka:5.1.2
 
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
+
+start_snuba: &start_snuba |-
+  docker run \
+    --name sentry_clickhouse \
+    -d --network host \
+    --ulimit nofile=262144:262144 \
+    yandex/clickhouse-server:19.11 \
+
+  docker run \
+    --name sentry_snuba \
+    -d --network host \
+    -e SNUBA_SETTINGS=docker \
+    -e CLICKHOUSE_HOST=127.0.0.1 \
+    -e CLICKHOUSE_PORT=9000 \
+    -e CLICKHOUSE_HTTP_PORT=8123 \
+    getsentry/snuba
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -97,9 +112,8 @@ base_postgres: &postgres_default
     - redis-server
     - postgresql
   before_install:
-    - *before_install_default
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - *base_install
+    - *start_snuba
     - docker ps -a
   install:
     - python setup.py install_egg_info
@@ -115,11 +129,10 @@ base_acceptance: &acceptance_default
     - redis-server
     - postgresql
   before_install:
-    - *before_install_default
+    - *base_install
+    - *start_snuba
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
     - ./bin/yarn install --frozen-lockfile
@@ -178,7 +191,7 @@ matrix:
       name: 'Frontend'
       env: TEST_SUITE=js
       before_install:
-        - *before_install_default
+        - *base_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
@@ -200,9 +213,8 @@ matrix:
       name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
       before_install:
-        - *before_install_default
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - *base_install
+        - *start_snuba
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
@@ -215,34 +227,9 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - *before_install_default
+        - *base_install
+        - *start_snuba
         - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
-
-        - > # clickhouse
-          docker run
-          --name sentry_clickhouse
-          -d --network host
-          -v  sentry_clickhouse:/var/lib/clickhouse
-          --ulimit nofile=262144:262144
-          -e CLICKHOUSE_CONFIG=/etc/clickhouse-server/config.xml
-          yandex/clickhouse-server:19.11
-
-        - > # snuba
-          docker run
-          --name sentry_snuba
-          -d --network host
-          -p 127.0.0.1:1218:1218/tcp
-          -e PYTHONUNBUFFERED=1
-          -e SNUBA_SETTINGS=docker
-          -e DEBUG=1
-          -e CLICKHOUSE_HOST=127.0.0.1
-          -e CLICKHOUSE_PORT=9000
-          -e CLICKHOUSE_HTTP_PORT=8123
-          -e REDIS_HOST=127.0.0.1
-          -e REDIS_PORT=6379
-          -e REDIS_DB=1
-          getsentry/snuba devserver --no-workers
-
         - docker ps -a
 
     - python: 2.7
@@ -254,9 +241,8 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - *before_install_default
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - *base_install
+        - *start_snuba
         - docker ps -a
       install:
         - python setup.py install_egg_info
@@ -276,9 +262,8 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - *before_install_default
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - *base_install
+        - *start_snuba
         - docker ps -a
       install:
         - python setup.py install_egg_info
