@@ -1398,7 +1398,8 @@ def save_transaction_events(jobs, projects):
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
-    _send_event_saved_signal_many(jobs, projects)
+    if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
+        _send_event_saved_signal_many(jobs, projects)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
