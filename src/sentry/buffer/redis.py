@@ -230,8 +230,8 @@ class RedisBuffer(Buffer):
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
 
-        if exclude_filters:
-            pipe.hsetnx(key, "ef", pickle.dumps(exclude_filters))
+        if isinstance(exclude_filters, set):
+            pipe.hsetnx(key, "ef", json.dumps(list(exclude_filters)))
 
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
@@ -328,7 +328,7 @@ class RedisBuffer(Buffer):
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
 
-            exclude_filters_values = pickle.loads(values.pop("ef")) if "ef" in values else None
+            exclude_filters_values = set(json.loads(values.pop("ef"))) if "ef" in values else None
 
             incr_values = {}
             extra_values = {}
