@@ -841,6 +841,8 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
+    # Enable selection of members, teams or code owners as email targets for issue alerts.
+    "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
