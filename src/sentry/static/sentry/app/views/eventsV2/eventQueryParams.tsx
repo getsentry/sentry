@@ -207,7 +207,7 @@ assert(
 );
 
 export type Aggregation = keyof typeof AGGREGATIONS | '';
-export type AggregationRefinement = string;
+export type AggregationRefinement = string | undefined;
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns

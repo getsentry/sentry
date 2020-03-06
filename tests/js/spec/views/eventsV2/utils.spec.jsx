@@ -142,7 +142,7 @@ describe('decodeColumnOrder', function() {
       key: 'title',
       name: 'title',
       aggregation: '',
-      refinement: '',
+      refinement: undefined,
       field: 'title',
       width: 123,
       eventViewField: {
@@ -163,7 +163,7 @@ describe('decodeColumnOrder', function() {
       name: 'count()',
       aggregation: 'count',
       field: '',
-      refinement: '',
+      refinement: undefined,
       width: 123,
       eventViewField: {
         field: 'count()',
@@ -190,7 +190,7 @@ describe('decodeColumnOrder', function() {
       name: 'avg(transaction.duration)',
       aggregation: 'avg',
       field: 'transaction.duration',
-      refinement: '',
+      refinement: undefined,
       width: COL_WIDTH_UNDEFINED,
       eventViewField: {field: 'avg(transaction.duration)'},
       isSortable: true,

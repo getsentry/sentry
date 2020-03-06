@@ -196,7 +196,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
   aggregation: '',
   field: '',
-  refinement: '',
+  refinement: undefined,
   name: '',
   width: COL_WIDTH_UNDEFINED,
 
