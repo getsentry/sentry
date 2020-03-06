@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import space from 'app/styles/space';
 import {IconClose} from 'app/icons';
 
@@ -41,7 +41,7 @@ SidebarPanel.propTypes = {
 
 export default SidebarPanel;
 
-const getPositionForOrientation = (p: Props & {theme: typeof theme}) =>
+const getPositionForOrientation = (p: Props & {theme: Theme}) =>
   p.orientation === 'top'
     ? css`
         top: ${p.theme.sidebar.mobileHeight};

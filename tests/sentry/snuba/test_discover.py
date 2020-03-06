@@ -189,7 +189,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 9
+        assert len(result["meta"]) == 5
         assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
         assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
         assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
@@ -342,7 +342,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["user_id", "username", "email", "ip_address", "project_id"],
             aggregations=[
                 [
-                    "transform(project_id, [{}], ['{}'], '')".format(
+                    "transform(project_id, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), self.project.slug
                     ),
                     None,
@@ -413,7 +413,7 @@ class QueryTransformTest(TestCase):
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), self.project.slug
                     ),
                     None,
@@ -436,8 +436,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
+            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_95"}],
+            "data": [{"transaction": "api.do_things", "percentile_transaction_duration_0_95": 200}],
         }
         discover.query(
             selected_columns=["transaction", "p95", "count_unique(transaction)"],
@@ -448,12 +448,12 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)(duration)", None, "p95"],
+                ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"],
                 ["uniq", "transaction", "count_unique_transaction"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), self.project.slug
                     ),
                     None,
@@ -476,8 +476,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95()"}],
-            "data": [{"transaction": "api.do_things", "p95()": 200}],
+            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_95"}],
+            "data": [{"transaction": "api.do_things", "percentile_transaction_duration_0_95": 200}],
         }
         discover.query(
             selected_columns=["transaction", "p95()", "count_unique(transaction)"],
@@ -488,12 +488,12 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)(duration)", None, "p95"],
+                ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"],
                 ["uniq", "transaction", "count_unique_transaction"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), self.project.slug
                     ),
                     None,
@@ -532,7 +532,7 @@ class QueryTransformTest(TestCase):
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), self.project.slug
                     ),
                     None,
@@ -569,11 +569,11 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+                ["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), six.text_type(self.project.slug)
                     ),
                     None,
@@ -893,8 +893,8 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)(duration)", None, "p95"]],
-            having=[["p95", ">", 5]],
+            aggregations=[["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]],
+            having=[["percentile_transaction_duration_0_95", ">", 5]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -924,8 +924,8 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)(duration)", None, "p95"]],
-            having=[["p95", ">", 5]],
+            aggregations=[["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]],
+            having=[["percentile_transaction_duration_0_95", ">", 5]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1003,11 +1003,11 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+                ["quantile(0.75)", "duration", "percentile_transaction_duration_0_75"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
-                    "transform(projectid, [{}], ['{}'], '')".format(
+                    "transform(projectid, array({}), array('{}'), '')".format(
                         six.text_type(self.project.id), six.text_type(self.project.slug)
                     ),
                     None,

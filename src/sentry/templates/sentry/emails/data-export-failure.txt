@@ -1,7 +1,8 @@
 Unable to Export Data
 ---------------------
 
-We were unable to generate your data export due to an error:
+The data export you created at {{creation}} has failed.
+We were unable to generate your report due to an error:
 
     {{error_message}}
 

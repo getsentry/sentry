@@ -829,7 +829,7 @@ export type SentryAppComponent = {
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
   IntegrationDirectoryExperiment: '1' | '0';
-  AlertDefaultsExperimentTmp: 'testControl' | 'test2Options' | 'test3Options';
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV1';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -867,6 +867,10 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+export type StringMap<T> = {
+  [key: string]: T;
 };
 
 /**

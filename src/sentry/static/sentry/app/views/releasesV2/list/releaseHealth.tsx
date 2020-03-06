@@ -7,7 +7,7 @@ import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import CircleProgress from 'app/components/circularProgressbar';
+import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
@@ -108,10 +108,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeUsersColumn>
               {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <CircleProgress value={crashFreeUsers} />
-                  <CircleProgressCaption>
+                  <ProgressRing value={crashFreeUsers} />
+                  <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeUsers)}
-                  </CircleProgressCaption>
+                  </ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -121,10 +121,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeSessionsColumn>
               {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <CircleProgress value={crashFreeSessions} />
-                  <CircleProgressCaption>
+                  <ProgressRing value={crashFreeSessions} />
+                  <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeSessions)}
-                  </CircleProgressCaption>
+                  </ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -234,7 +234,7 @@ const StyledPanelItem = styled(PanelItem)`
   padding-top: 0;
 `;
 
-const CircleProgressCaption = styled('span')`
+const ProgressRingCaption = styled('span')`
   margin-left: ${space(1)};
 `;
 

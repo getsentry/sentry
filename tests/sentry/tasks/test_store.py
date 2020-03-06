@@ -5,11 +5,10 @@ import pytest
 from sentry.utils.compat import mock
 from time import time
 
-from sentry import quotas, tsdb
+from sentry import quotas
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
-from sentry.utils.dates import to_datetime
 from sentry.testutils.helpers.features import Feature
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -67,12 +66,6 @@ def mock_process_event():
 @pytest.fixture
 def mock_default_cache():
     with mock.patch("sentry.tasks.store.default_cache") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_incr():
-    with mock.patch.object(tsdb, "incr_multi") as m:
         yield m
 
 
@@ -203,7 +196,7 @@ def test_process_event_unprocessed(
 
 
 @pytest.mark.django_db
-def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register_plugin):
+def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
     register_plugin(BasicPreprocessorPlugin)
 
     data = {
@@ -219,16 +212,7 @@ def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register
     mock_save.side_effect = HashDiscarded
     with mock.patch.object(EventManager, "save", mock_save):
         save_event(data=data, start_time=now)
-        mock_incr.assert_called_with(
-            [
-                (tsdb.models.project_total_received, default_project.id),
-                (tsdb.models.organization_total_received, default_project.organization.id),
-                (tsdb.models.project_total_blacklisted, default_project.id),
-                (tsdb.models.organization_total_blacklisted, default_project.organization_id),
-                (tsdb.models.project_total_received_discarded, default_project.id),
-            ],
-            timestamp=to_datetime(now),
-        )
+        # should be caught
 
 
 @pytest.fixture(params=["org", "project"])

@@ -1,66 +1,76 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {components} from 'react-select';
 
+import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import {OrganizationSummary, SelectValue} from 'app/types';
+import {SelectValue} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {
-  AGGREGATIONS,
-  FIELDS,
-  TRACING_FIELDS,
-  Field,
-  Aggregation,
-} from '../eventQueryParams';
+import {FieldValueKind, FieldValue} from './types';
+import {FIELD_ALIASES, AggregateParameter} from '../eventQueryParams';
 import {Column} from '../eventView';
-import {AGGREGATE_ALIASES} from '../data';
 
+type FieldOptions = {[key: string]: SelectValue<FieldValue>};
 type Props = {
   className?: string;
-  organization: OrganizationSummary;
   parentIndex: number;
   column: Column;
-  tagKeys: string[];
+  fieldOptions: FieldOptions;
   onChange: (index: number, column: Column) => void;
 };
 
-type State = {
-  fields: SelectValue<string>[];
-  aggregations: string[];
-};
+const NO_OPTIONS: SelectValue<string>[] = [{label: t('N/A'), value: ''}];
 
-class ColumnEditRow extends React.Component<Props, State> {
-  state = {
-    fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    aggregations: filterAggregations(this.props.organization, this.props.column.field),
-  };
-
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.tagKeys !== this.props.tagKeys) {
-      this.syncFields();
-    }
-  }
-
+class ColumnEditRow extends React.Component<Props> {
   handleFieldChange = ({value}) => {
-    this.setState((state: State, props: Props) => {
-      const newAggregates = filterAggregations(props.organization, value);
-      const newState = {...state, aggregations: newAggregates};
-      let aggregation = props.column.aggregation;
+    const {column} = this.props;
+    let field = column.field,
+      aggregation = column.aggregation;
 
-      // If the new field makes the aggregation invalid, we should clear that state.
-      if (aggregation && !newAggregates.includes(aggregation as Aggregation)) {
+    switch (value.kind) {
+      case FieldValueKind.TAG:
+      case FieldValueKind.FIELD:
+        field = value.meta.name;
         aggregation = '';
-      }
-      this.triggerChange(value, aggregation as string);
+        break;
+      case FieldValueKind.FUNCTION:
+        aggregation = value.meta.name;
+        // Backwards compatibility for field alias versions of functions.
+        if (FIELD_ALIASES.includes(field)) {
+          field = '';
+        }
+        break;
+      default:
+        throw new Error('Invalid field type found in column picker');
+    }
 
-      return newState;
-    });
+    const currentField = this.getFieldOrTagValue(field);
+    if (aggregation && currentField !== null) {
+      const parameterSpec: AggregateParameter = value.meta.parameters[0];
+
+      if (parameterSpec === undefined) {
+        // New function has no parameter, clear the field
+        field = '';
+      } else if (
+        (currentField.kind === FieldValueKind.FIELD ||
+          currentField.kind === FieldValueKind.TAG) &&
+        parameterSpec.columnTypes.includes(currentField.meta.dataType)
+      ) {
+        // New function accepts current field.
+        field = currentField.meta.name;
+      } else {
+        // field does not fit within new function requirements.
+        field = '';
+      }
+    }
+
+    this.triggerChange(field, aggregation);
   };
 
-  handleFunctionChange = ({value}) => {
-    // TODO(mark) When we add improved tracing function support also clear
-    // the function parameter as necessary.
-    this.triggerChange(this.props.column.field, value);
+  handleFieldParameterChange = ({value}) => {
+    this.triggerChange(value.meta.name, this.props.column.aggregation);
   };
 
   triggerChange(field: string, aggregation: string) {
@@ -71,77 +81,133 @@ class ColumnEditRow extends React.Component<Props, State> {
     });
   }
 
-  syncFields() {
-    this.setState({
-      fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    });
+  getFieldOrTagValue(name: string): FieldValue | null {
+    const {fieldOptions} = this.props;
+    const fieldName = `field:${name}`;
+    const tagName = `tag:${name}`;
+    if (fieldOptions[fieldName]) {
+      return fieldOptions[fieldName].value;
+    }
+    if (fieldOptions[tagName]) {
+      return fieldOptions[tagName].value;
+    }
+
+    // Likely a tag that was deleted but left behind in a saved query
+    // Cook up a tag option so select control works.
+    if (name.length > 0) {
+      return {
+        kind: FieldValueKind.TAG,
+        meta: {
+          name,
+          dataType: 'string',
+          unknown: true,
+        },
+      };
+    }
+    return null;
+  }
+
+  getFieldData() {
+    let field: FieldValue | null = null,
+      fieldParameter: FieldValue | null = null,
+      fieldParameterOptions: SelectValue<FieldValue>[] = [];
+
+    const {column} = this.props;
+    let {fieldOptions} = this.props;
+    const funcName = `function:${column.aggregation}`;
+
+    if (fieldOptions[funcName] !== undefined) {
+      field = fieldOptions[funcName].value;
+      fieldParameter = this.getFieldOrTagValue(column.field);
+    } else if (!column.aggregation && FIELD_ALIASES.includes(column.field)) {
+      // Handle backwards compatible field aliases.
+      const aliasName = `function:${column.field}`;
+      if (fieldOptions[aliasName] !== undefined) {
+        field = fieldOptions[aliasName].value;
+      }
+    } else {
+      field = this.getFieldOrTagValue(column.field);
+    }
+
+    // If our current field, or columnParameter is a virtual tag, add it to the option list.
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+
+    if (
+      field &&
+      field.kind === FieldValueKind.FUNCTION &&
+      field.meta.parameters.length > 0
+    ) {
+      const parameters = field.meta.parameters;
+      fieldParameterOptions = Object.values(fieldOptions).filter(
+        ({value}) =>
+          (value.kind === FieldValueKind.FIELD || value.kind === FieldValueKind.TAG) &&
+          parameters[0].columnTypes.includes(value.meta.dataType)
+      );
+    }
+
+    return {field, fieldOptions, fieldParameter, fieldParameterOptions};
+  }
+
+  appendFieldIfUnknown(
+    fieldOptions: FieldOptions,
+    field: FieldValue | null
+  ): FieldOptions {
+    if (!field) {
+      return fieldOptions;
+    }
+
+    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+      // Clone the options so we don't mutate other rows.
+      fieldOptions = Object.assign({}, fieldOptions);
+      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+    }
+
+    return fieldOptions;
   }
 
   render() {
-    const {fields, aggregations} = this.state;
-    const {column, className} = this.props;
+    const {className} = this.props;
+    const {
+      field,
+      fieldOptions,
+      fieldParameter,
+      fieldParameterOptions,
+    } = this.getFieldData();
 
     return (
       <Container className={className}>
         <SelectControl
-          options={fields}
-          value={column.field}
+          name="field"
+          options={Object.values(fieldOptions)}
+          components={{
+            Option: ({label, value, ...props}) => (
+              <components.Option label={label} {...props}>
+                <Label>
+                  {label}
+                  {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                </Label>
+              </components.Option>
+            ),
+          }}
+          placeholder={t('Select (Required)')}
+          value={field}
           onChange={this.handleFieldChange}
         />
-        <SelectControl
-          options={generateOptions(aggregations)}
-          value={column.aggregation}
-          onChange={this.handleFunctionChange}
-        />
+        {fieldParameterOptions.length === 0 ? (
+          <SelectControl name="parameter" options={NO_OPTIONS} value="" isDisabled />
+        ) : (
+          <SelectControl
+            name="parameter"
+            placeholder={t('Select (Required)')}
+            options={fieldParameterOptions}
+            value={fieldParameter}
+            onChange={this.handleFieldParameterChange}
+          />
+        )}
       </Container>
     );
   }
-}
-
-function generateOptions(values: string[]): SelectValue<string>[] {
-  return values.map(item => ({label: item, value: item}));
-}
-
-function filterAggregations(organization: OrganizationSummary, f?: Field): Aggregation[] {
-  let functionList = Object.keys(AGGREGATIONS);
-  if (!organization.features.includes('transaction-events')) {
-    functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
-  }
-
-  // sort list in ascending order
-  functionList.sort();
-
-  if (!f) {
-    return functionList as Aggregation[];
-  }
-  // Unknown fields are likely tag keys and thus strings.
-  const fieldType = FIELDS[f] || 'string';
-
-  if (fieldType === 'never') {
-    return [];
-  }
-
-  // Aggregate aliases cannot be aggregated again.
-  if (AGGREGATE_ALIASES.includes(f)) {
-    return [];
-  }
-
-  functionList = functionList.reduce((accumulator, a) => {
-    if (
-      AGGREGATIONS[a].type.includes(fieldType) ||
-      AGGREGATIONS[a].type === '*' ||
-      fieldType === '*'
-    ) {
-      accumulator.push(a as Aggregation);
-    }
-
-    return accumulator;
-  }, [] as Aggregation[]);
-
-  // sort list in ascending order
-  functionList.sort();
-
-  return functionList as Aggregation[];
 }
 
 const Container = styled('div')`
@@ -153,4 +219,11 @@ const Container = styled('div')`
   flex-grow: 1;
 `;
 
-export default ColumnEditRow;
+const Label = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+export {ColumnEditRow};

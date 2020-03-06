@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
@@ -14,14 +14,13 @@ from sentry.tasks.data_export import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
-    max_value = len(ExportQueryType.as_choices()) - 1
-    query_type = serializers.IntegerField(required=True, min_value=0, max_value=max_value)
-    query_info = serializers.JSONField(required=True)
+    query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     # TODO(Leander): Implement query_info validation with jsonschema
+    query_info = serializers.JSONField(required=True)
 
 
 class DataExportEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationEventPermission,)
+    permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request, organization):
         """
@@ -44,16 +43,17 @@ class DataExportEndpoint(OrganizationEndpoint):
         try:
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
+            query_type = ExportQueryType.from_str(data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user=request.user,
-                query_type=data["query_type"],
+                query_type=query_type,
                 query_info=data["query_info"],
                 date_finished=None,
             )
             status = 200
             if created:
-                assemble_download.delay(data_export=data_export)
+                assemble_download.delay(data_export_id=data_export.id)
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests

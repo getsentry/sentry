@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {browserHistory} from 'react-router';
+import {Location, LocationDescriptorObject} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -8,27 +9,24 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
+import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 
 import {
   downloadAsCsv,
-  getAggregateAlias,
   getFieldRenderer,
   getExpandedResults,
   pushEventViewToLocation,
   explodeField,
   MetaType,
 } from '../utils';
-import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
-import SortLink, {Alignments} from '../sortLink';
-import renderTableModalEditColumnFactory from './tableModalEditColumn';
+import EventView, {Column, pickRelevantLocationQueryStrings} from '../eventView';
+import SortLink from '../sortLink';
+import {generateEventSlug, eventDetailsRouteWithEventView} from '../eventDetails/utils';
+import ColumnEditModal from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
-import {ColumnValueType} from '../eventQueryParams';
-import DraggableColumns, {
-  DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
-} from './draggableColumns';
-import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
+import HeaderCell from './headerCell';
 
 export type TableViewProps = {
   location: Location;
@@ -59,55 +57,6 @@ class TableView extends React.Component<TableViewProps> {
    *
    * In most cases, the new EventView object differs from the previous EventView
    * object. The new EventView object is pushed to the location object.
-   */
-  _createColumn = (
-    nextColumn: TableColumn<keyof TableDataRow>,
-    insertAt: number | undefined
-  ) => {
-    const {location, eventView, organization} = this.props;
-
-    let nextEventView: EventView;
-    const payload = {
-      aggregation: String(nextColumn.aggregation),
-      field: String(nextColumn.field),
-      fieldname: nextColumn.name,
-      width: COL_WIDTH_UNDEFINED,
-    };
-
-    if (typeof insertAt === 'number') {
-      // create and insert a column at a specific index
-      nextEventView = eventView.withNewColumnAt(payload, insertAt);
-
-      // metrics
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.add_column',
-        eventName: 'Discoverv2: Add a new column at an index',
-        insert_at_index: insertAt,
-        organization_id: parseInt(organization.id, 10),
-        ...payload,
-      });
-    } else {
-      // create and insert a column at the right end of the table
-      nextEventView = eventView.withNewColumn(payload);
-
-      // metrics
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.add_column.right_end',
-        eventName: 'Discoverv2: Add a new column at the right end of the table',
-        organization_id: parseInt(organization.id, 10),
-        ...payload,
-      });
-    }
-
-    pushEventViewToLocation({
-      location,
-      nextEventView,
-      extraQuery: pickRelevantLocationQueryStrings(location),
-    });
-  };
-
-  /**
-   * Please read the comment on `_createColumn`
    */
   _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
     const {location, eventView, tableData, organization} = this.props;
@@ -160,67 +109,12 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
-  /**
-   * Please read the comment on `_createColumn`
-   */
-  _deleteColumn = (columnIndex: number) => {
-    const {location, eventView, tableData, organization} = this.props;
-
-    const prevField = explodeField(eventView.fields[columnIndex]);
-
-    const tableMeta = (tableData && tableData.meta) || undefined;
-    const nextEventView = eventView.withDeletedColumn(columnIndex, tableMeta);
-
-    // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.delete_column',
-      eventName: 'Discoverv2: A column was deleted',
-      deleted_at_index: columnIndex,
-      organization_id: parseInt(organization.id, 10),
-      aggregation: prevField.aggregation,
-      field: prevField.field,
-    });
-
-    pushEventViewToLocation({
-      location,
-      nextEventView,
-      extraQuery: pickRelevantLocationQueryStrings(location),
-    });
-  };
-
-  /**
-   * Please read the comment on `_createColumn`
-   */
-  _moveColumnCommit = (fromIndex: number, toIndex: number) => {
-    const {location, eventView, organization} = this.props;
-
-    const prevField = explodeField(eventView.fields[fromIndex]);
-    const nextEventView = eventView.withMovedColumn({fromIndex, toIndex});
-
-    // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.move_column',
-      eventName: 'Discoverv2: A column was moved',
-      from_index: fromIndex,
-      to_index: toIndex,
-      organization_id: parseInt(organization.id, 10),
-      aggregation: prevField.aggregation,
-      field: prevField.field,
-    });
-
-    pushEventViewToLocation({
-      location,
-      nextEventView,
-      extraQuery: pickRelevantLocationQueryStrings(location),
-    });
-  };
-
   _renderPrependColumns = (
     isHeader: boolean,
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {eventView} = this.props;
+    const {organization, eventView} = this.props;
     const hasAggregates = eventView.getAggregateFields().length > 0;
     if (isHeader) {
       return [
@@ -229,16 +123,14 @@ class TableView extends React.Component<TableViewProps> {
         </HeaderIcon>,
       ];
     }
-    const {organization, location} = this.props;
+
     const eventSlug = generateEventSlug(dataRow);
-    const pathname = generateEventDetailsRoute({
+
+    const target = eventDetailsRouteWithEventView({
       orgSlug: organization.slug,
       eventSlug,
+      eventView,
     });
-    const target = {
-      pathname,
-      query: {...location.query},
-    };
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
@@ -251,34 +143,39 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-    const field = column.eventViewField;
-
-    // establish alignment based on the type
-    const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
-    let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
-
-    if (column.type === 'never' || column.type === '*') {
-      // fallback to align the column based on the table metadata
-      const maybeType =
-        tableData && tableData.meta
-          ? tableData.meta[getAggregateAlias(field.field)]
-          : undefined;
-
-      if (maybeType === 'integer' || maybeType === 'number') {
-        align = 'right';
-      }
-    }
 
     return (
-      <SortLink
-        align={align}
-        field={field}
-        location={location}
-        eventView={eventView}
-        /* TODO(leedongwei): Verbosity is due to error in Prettier, fix after
-           upgrade to v1.19.1 */
-        tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
-      />
+      <HeaderCell column={column} tableData={tableData}>
+        {({align}) => {
+          const field = column.eventViewField;
+
+          const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
+
+          function generateSortLink(): LocationDescriptorObject | undefined {
+            if (!tableDataMeta) {
+              return undefined;
+            }
+
+            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const queryStringObject = nextEventView.generateQueryStringObject();
+
+            return {
+              ...location,
+              query: queryStringObject,
+            };
+          }
+
+          return (
+            <SortLink
+              align={align}
+              field={field}
+              eventView={eventView}
+              tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+              generateSortLink={generateSortLink}
+            />
+          );
+        }}
+      </HeaderCell>
     );
   };
 
@@ -318,54 +215,30 @@ class TableView extends React.Component<TableViewProps> {
     );
   };
 
-  generateColumnOrder = ({
-    initialColumnIndex,
-    destinationColumnIndex,
-  }: {
-    initialColumnIndex: undefined | number;
-    destinationColumnIndex: undefined | number;
-  }) => {
-    const {eventView} = this.props;
-    const columnOrder = eventView.getColumns();
+  handleEditColumns = () => {
+    const {organization, eventView, tagKeys} = this.props;
+    this.trackEditAnalytics(organization, true);
 
-    if (
-      typeof destinationColumnIndex !== 'number' ||
-      typeof initialColumnIndex !== 'number'
-    ) {
-      return columnOrder;
-    }
-
-    if (destinationColumnIndex === initialColumnIndex) {
-      const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
-        ...columnOrder[destinationColumnIndex],
-        isDragging: true,
-      };
-
-      columnOrder[destinationColumnIndex] = currentDraggingColumn;
-
-      return columnOrder;
-    }
-
-    const nextColumnOrder = [...columnOrder];
-
-    nextColumnOrder.splice(
-      destinationColumnIndex,
-      0,
-      nextColumnOrder.splice(initialColumnIndex, 1)[0]
-    );
-
-    const currentDraggingColumn: TableColumn<keyof TableDataRow> = {
-      ...nextColumnOrder[destinationColumnIndex],
-      isDragging: true,
-    };
-    nextColumnOrder[destinationColumnIndex] = currentDraggingColumn;
-
-    return nextColumnOrder;
+    openModal(modalProps => (
+      <ColumnEditModal
+        {...modalProps}
+        organization={organization}
+        tagKeys={tagKeys}
+        columns={eventView.getColumns()}
+        onApply={this.handleUpdateColumns}
+      />
+    ));
   };
 
-  onToggleEdit = (isEditing: boolean) => {
-    const {organization} = this.props;
+  handleUpdateColumns = (columns: Column[]): void => {
+    const {organization, eventView} = this.props;
+    this.trackEditAnalytics(organization, false);
 
+    const nextView = eventView.withColumns(columns);
+    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+  };
+
+  trackEditAnalytics(organization: Organization, isEditing: boolean) {
     if (isEditing) {
       // metrics
       trackAnalyticsEvent({
@@ -381,83 +254,35 @@ class TableView extends React.Component<TableViewProps> {
         organization_id: parseInt(organization.id, 10),
       });
     }
-  };
+  }
 
   render() {
-    const {
-      organization,
-      isLoading,
-      error,
-      tableData,
-      tagKeys,
-      eventView,
-      title,
-    } = this.props;
+    const {isLoading, error, tableData, eventView, title} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
-    const {
-      renderModalBodyWithForm,
-      renderModalFooter,
-    } = renderTableModalEditColumnFactory(organization, tagKeys, {
-      createColumn: this._createColumn,
-      updateColumn: this._updateColumn,
-    });
-
     return (
-      <DraggableColumns
+      <GridEditable
+        editFeatures={['organizations:discover-query']}
+        noEditMessage={t('Requires discover query feature.')}
+        isLoading={isLoading}
+        error={error}
+        data={tableData ? tableData.data : []}
         columnOrder={columnOrder}
-        onDragDone={({draggingColumnIndex, destinationColumnIndex}) => {
-          if (
-            typeof draggingColumnIndex === 'number' &&
-            typeof destinationColumnIndex === 'number' &&
-            draggingColumnIndex !== destinationColumnIndex
-          ) {
-            this._moveColumnCommit(draggingColumnIndex, destinationColumnIndex);
-          }
+        columnSortBy={columnSortBy}
+        grid={{
+          renderHeadCell: this._renderGridHeaderCell as any,
+          renderBodyCell: this._renderGridBodyCell as any,
+          onResizeColumn: this._updateColumn as any,
+          renderPrependColumns: this._renderPrependColumns as any,
+          prependColumnWidths: ['40px'],
         }}
-      >
-        {({
-          isColumnDragging,
-          startColumnDrag,
-          draggingColumnIndex,
-          destinationColumnIndex,
-        }) => (
-          <GridEditable
-            editFeatures={['organizations:discover-query']}
-            noEditMessage={t('Requires discover query feature.')}
-            onToggleEdit={this.onToggleEdit}
-            isColumnDragging={isColumnDragging}
-            gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
-            isLoading={isLoading}
-            error={error}
-            data={tableData ? tableData.data : []}
-            columnOrder={this.generateColumnOrder({
-              initialColumnIndex: draggingColumnIndex,
-              destinationColumnIndex,
-            })}
-            columnSortBy={columnSortBy}
-            grid={{
-              renderHeadCell: this._renderGridHeaderCell as any,
-              renderBodyCell: this._renderGridBodyCell as any,
-              onResizeColumn: this._updateColumn as any,
-              renderPrependColumns: this._renderPrependColumns as any,
-              prependColumnWidths: ['40px'],
-            }}
-            modalEditColumn={{
-              renderBodyWithForm: renderModalBodyWithForm as any,
-              renderFooter: renderModalFooter,
-            }}
-            actions={{
-              deleteColumn: this._deleteColumn,
-              moveColumnCommit: this._moveColumnCommit,
-              onDragStart: startColumnDrag,
-              downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
-            }}
-          />
-        )}
-      </DraggableColumns>
+        actions={{
+          editColumns: this.handleEditColumns,
+          downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
+        }}
+      />
     );
   }
 }
@@ -476,8 +301,25 @@ const ExpandAggregateRow = (props: {
   const exploded = explodeField(eventViewField);
   const {aggregation} = exploded;
 
+  // count(column) drilldown
   if (aggregation === 'count') {
     const nextView = getExpandedResults(eventView, {}, dataRow);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextView.generateQueryStringObject(),
+    };
+
+    return <Link to={target}>{children({willExpand: true})}</Link>;
+  }
+
+  // count_unique(column) drilldown
+  if (aggregation === 'count_unique') {
+    // Drilldown into each distinct value and get a count() for each value.
+    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
+      field: '',
+      aggregation: 'count',
+    });
 
     const target = {
       pathname: location.pathname,

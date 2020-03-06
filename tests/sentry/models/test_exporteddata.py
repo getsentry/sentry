@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-import six
 import json
+import six
 import tempfile
 from datetime import timedelta
 from django.core import mail
@@ -42,16 +42,14 @@ class ExportedDataTest(TestCase):
         self.data_export.update(date_expired=timezone.now() - timedelta(weeks=1))
         assert self.data_export.status == ExportStatus.Expired
 
-    def test_date_expired_string_property(self):
-        assert self.data_export.date_expired_string is None
-        current_time = timezone.now()
-        self.data_export.update(date_expired=current_time)
-        assert isinstance(self.data_export.date_expired_string, six.binary_type)
-
     def test_payload_property(self):
         assert isinstance(self.data_export.payload, dict)
         keys = self.data_export.query_info.keys() + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
+
+    def test_format_date(self):
+        assert ExportedData.format_date(self.data_export.date_finished) is None
+        assert isinstance(ExportedData.format_date(self.data_export.date_added), six.binary_type)
 
     def test_delete_file(self):
         # Empty call should have no effect
@@ -121,7 +119,11 @@ class ExportedDataTest(TestCase):
         )
         expected_email_args = {
             "subject": "Your Download is Ready!",
-            "context": {"url": expected_url, "expiration": self.data_export.date_expired_string},
+            "context": {
+                "url": expected_url,
+                "expiration": ExportedData.format_date(date=self.data_export.date_expired),
+            },
+            "type": "organization.export-data",
             "template": "sentry/emails/data-export-success.txt",
             "html_template": "sentry/emails/data-export-success.html",
         }
@@ -139,11 +141,12 @@ class ExportedDataTest(TestCase):
             self.data_export.email_failure(self.TEST_STRING)
         expected_email_args = {
             "subject": "Unable to Export Data",
-            "type": "organization.export-data",
             "context": {
+                "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,
                 "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
             },
+            "type": "organization.export-data",
             "template": "sentry/emails/data-export-failure.txt",
             "html_template": "sentry/emails/data-export-failure.html",
         }

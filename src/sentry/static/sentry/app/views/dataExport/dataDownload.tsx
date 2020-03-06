@@ -2,11 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import Button from 'app/components/button';
+import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -52,6 +53,18 @@ class DataDownload extends AsyncView<Props, State> {
     return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
   }
 
+  renderDate(date: string | undefined): React.ReactNode {
+    if (!date) {
+      return null;
+    }
+    const d = new Date(date);
+    return (
+      <strong>
+        <DateTime date={d} />
+      </strong>
+    );
+  }
+
   renderExpired(): React.ReactNode {
     return (
       <React.Fragment>
@@ -79,12 +92,10 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   renderValid(): React.ReactNode {
-    const {download} = this.state;
+    const {
+      download: {dateExpired},
+    } = this.state;
     const {orgId, dataExportId} = this.props.params;
-    if (!download.dateExpired) {
-      return null;
-    }
-    const d = new Date(download.dateExpired);
     return (
       <React.Fragment>
         <h3>{t('Finally!')}</h3>
@@ -103,9 +114,7 @@ class DataDownload extends AsyncView<Props, State> {
           {t('Download CSV')}
         </Button>
         <p>{t('Keep in mind, this link will no longer work after:')}</p>
-        <p>
-          <b>{`${d.toLocaleDateString()}, ${d.toLocaleTimeString()}`}</b>
-        </p>
+        <p>{this.renderDate(dateExpired)}</p>
       </React.Fragment>
     );
   }
