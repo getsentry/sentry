@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 # Mail
 
 # TargetType = Enum('TargetType', 'owners team member')
+# TODD(jeff): change this to issue owners
 OWNERS = "Owners"
 TEAM = "Team"
 MEMBER = "Member"
@@ -59,7 +60,30 @@ CHOICES = [(OWNERS, "Owners"), (TEAM, "Team"), (MEMBER, "Member")]
 
 class NotifyEmailForm(forms.Form):
     targetType = forms.ChoiceField(choices=CHOICES)
-    targetIdentifier = BoundedBigIntegerField().formfield(required=False)
+    targetIdentifier = BoundedBigIntegerField().formfield(
+        required=False, help_text="Only required if 'Member' or 'Team' is selected"
+    )
+
+    def clean(self):
+        cleaned_data = super(NotifyEmailForm, self).clean()
+        # import pdb; pdb.set_trace()
+        # TODO(jeff): Change case
+        targetType = cleaned_data.get("targetType")
+        targetIdentifier = cleaned_data.get("targetIdentifier")
+
+        # TODO(jeff): check if target_identifier is ever expected to be < 0
+        if targetType == OWNERS:
+            self.cleaned_data["targetType"] = targetType
+            return
+
+        if targetIdentifier is None:
+            msg = forms.ValidationError("You need to specify a Team or Member to send a mail to.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        self.cleaned_data["targetType"] = targetType
+        self.cleaned_data["targetIdentifier"] = targetIdentifier
+        return
 
 
 class NotifyEmailAction(EventAction):
@@ -73,10 +97,10 @@ class NotifyEmailAction(EventAction):
     def after(self, event, state):
         extra = {"event_id": event.event_id}
         plugin = MailPlugin()
-        if not plugin.is_enabled(self.project):
-            extra["project_id"] = self.project.id
-            self.logger.info("rules.fail.is_enabled", extra=extra)
-            return
+        # if not plugin.is_enabled(self.project):
+        #     extra["project_id"] = self.project.id
+        #     self.logger.info("rules.fail.is_enabled", extra=extra)
+        #     return
 
         group = event.group
 
