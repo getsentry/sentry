@@ -31,6 +31,7 @@ import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import {IconIssues} from 'app/icons';
 import Link from 'app/components/links/link';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Feature from 'app/components/acl/feature';
@@ -399,7 +400,21 @@ class ProjectGeneralSettings extends AsyncView {
 
     return (
       <div>
-        <SettingsPageHeader title={t('Project Settings')} />
+        <SettingsPageHeader
+          title={t('Project Settings')}
+          action={
+            <Button
+              to={{
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {project: project.id},
+              }}
+              size="small"
+              icon={<IconIssues size="xs" />}
+            >
+              {t('Issues Stream')}
+            </Button>
+          }
+        />
         <PermissionAlert />
 
         <Form
