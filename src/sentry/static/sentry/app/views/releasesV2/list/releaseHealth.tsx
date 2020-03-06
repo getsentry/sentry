@@ -108,7 +108,7 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeUsersColumn>
               {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <ProgressRing value={crashFreeUsers} />
+                  <StyledProgressRing value={crashFreeUsers} />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeUsers)}
                   </ProgressRingCaption>
@@ -121,7 +121,7 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeSessionsColumn>
               {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <ProgressRing value={crashFreeSessions} />
+                  <StyledProgressRing value={crashFreeSessions} />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeSessions)}
                   </ProgressRingCaption>
@@ -203,7 +203,7 @@ const AdoptionColumn = styled(Column)`
   }
 
   ${Bar} {
-    /* TODO(releasesV2): this is wip */
+    /* TODO(releasesV2): this is still wip */
     margin: 3px;
   }
 `;
@@ -232,6 +232,11 @@ const ErrorsColumn = styled(RightColumn)`
 const StyledPanelItem = styled(PanelItem)`
   background: ${p => p.theme.offWhite};
   padding-top: 0;
+`;
+
+const StyledProgressRing = styled(ProgressRing)`
+  position: relative;
+  top: ${space(0.5)};
 `;
 
 const ProgressRingCaption = styled('span')`
