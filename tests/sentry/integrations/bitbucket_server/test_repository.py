@@ -77,7 +77,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         assert res == [
             {
                 "author_email": "sentryuser@getsentry.com",
-                "author_name": "SentryU",
+                "author_name": "Sentry User",
                 "message": "README.md edited online with Bitbucket",
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "sentryuser/newsdiffs",

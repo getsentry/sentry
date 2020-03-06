@@ -91,16 +91,16 @@ COMMIT_CHANGELIST_EXAMPLE = {
             "path": {
                 "components": ["e.txt"],
                 "parent": "",
-                "name": "e.txt",
+                "name": "d.txt",
                 "extension": "txt",
-                "toString": "e.txt"
+                "toString": "d.txt"
             },
             "srcPath": {
                 "components": ["d.txt"],
                 "parent": "",
-                "name": "d.txt",
+                "name": "e.txt",
                 "extension": "txt",
-                "toString": "d.txt"
+                "toString": "e.txt"
             },
             "executable": False,
             "percentUnchanged": -1,
