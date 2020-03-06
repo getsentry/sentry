@@ -50,7 +50,7 @@ const ReleaseHealth = ({release, location}: Props) => {
       <StyledPanelHeader>
         <HeaderLayout>
           <DailyUsersColumn>
-            {t('Daily Active users')}:
+            {t('Daily Sessions')}:
             <StatsPeriodChanger>
               {healthStatsPeriods.map(healthStatsPeriod => (
                 <StatsPeriod
