@@ -228,7 +228,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             }
             for result in results:
                 if "issue.id" in result:
-                    result["issue"] = issues[result["issue.id"]]
+                    result["issue"] = issues.get(result["issue.id"], "unknown")
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
