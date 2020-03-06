@@ -536,7 +536,12 @@ class EventManager(object):
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
-            event_discarded.send_robust(project=project, sender=EventManager)
+            if options.get("sentry:skip-discarded-signal-in-save-event") != "1":
+                event_discarded.send_robust(project=project, sender=EventManager)
+
+                # The outcomes_consumer generically handles all FILTERED outcomes,
+                # but needs to skip this since it cannot dispatch event_discarded.
+                mark_signal_sent(project_id, job["event"].event_id)
 
             project_key = None
             if job["key_id"] is not None:
@@ -546,10 +551,6 @@ class EventManager(object):
                     pass
 
             quotas.refund(project, key=project_key, timestamp=start_time)
-
-            # The outcomes_consumer generically handles all FILTERED outcomes,
-            # but needs to skip this since it cannot dispatch event_discarded.
-            mark_signal_sent(project_id, job["event"].event_id)
 
             track_outcome(
                 project.organization_id,
@@ -568,6 +569,7 @@ class EventManager(object):
                 tags={"organization_id": project.organization_id, "platform": job["platform"]},
             )
             raise
+
         job["event"].group = job["group"]
 
         if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
@@ -1396,7 +1398,8 @@ def save_transaction_events(jobs, projects):
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
-    _send_event_saved_signal_many(jobs, projects)
+    if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
+        _send_event_saved_signal_many(jobs, projects)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
