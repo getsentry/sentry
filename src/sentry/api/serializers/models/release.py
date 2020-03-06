@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-
 from collections import defaultdict
+
+from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -198,14 +199,13 @@ class ReleaseSerializer(Serializer):
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
             last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
+        group_counts_by_release = {}
         if project is not None:
-            group_counts_by_release = {}
             for release_id, new_groups in ReleaseProject.objects.filter(
                 project=project, release__in=item_list
             ).values_list("release_id", "new_groups"):
                 group_counts_by_release[release_id] = {project.id: new_groups}
         else:
-            group_counts_by_release = {}
             for project_id, release_id, new_groups in ReleaseProject.objects.filter(
                 release__in=item_list, new_groups__isnull=False
             ).values_list("project_id", "release_id", "new_groups"):
@@ -225,9 +225,9 @@ class ReleaseSerializer(Serializer):
             last_seen[release_project_env.release.version] = release_project_env.last_seen
 
         group_counts_by_release = {}
-        for project_id, release_id, new_groups in release_project_envs.values(
-            "project_id", "release_id", "new_issues_count"
-        ):
+        for project_id, release_id, new_groups in release_project_envs.annotate(
+            new_issues_count=Sum("new_issues_count")
+        ).values_list("project_id", "release_id", "new_issues_count"):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
