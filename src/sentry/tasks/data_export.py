@@ -5,9 +5,9 @@ import tempfile
 from contextlib import contextmanager
 from django.db import transaction, IntegrityError
 
-from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
+from sentry.models import ExportedData, File
+from sentry.processing.issues_by_tag import IssuesByTagProcessing, IssuesByTagProcessingError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
 from sentry.utils.sdk import capture_exception
@@ -77,70 +77,43 @@ def process_issue_by_tag(data_export, file, limit=None):
     Returns the suggested file name.
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
-    # Get the pertaining project
-    try:
-        payload = data_export.query_info
-        project = Project.objects.get(id=payload["project_id"])
-    except Project.DoesNotExist:
-        raise DataExportError("Requested project does not exist")
-
-    # Get the pertaining issue
-    try:
-        group, _ = get_group_with_redirect(
-            payload["group_id"], queryset=Group.objects.filter(project=project)
-        )
-    except Group.DoesNotExist:
-        raise DataExportError("Requested issue does not exist")
-
-    # Get the pertaining key
+    payload = data_export.query_info
     key = payload["key"]
-    lookup_key = u"sentry:{}".format(key) if tagstore.is_reserved_key(key) else key
-
-    # If the key is the 'user' tag, attach the event user
-    def attach_eventuser(items):
-        users = EventUser.for_tags(group.project_id, [i.value for i in items])
-        for item in items:
-            item._eventuser = users.get(item.value)
+    try:
+        project, group = IssuesByTagProcessing.get_project_and_group(
+            payload["project_id"], payload["group_id"]
+        )
+    except IssuesByTagProcessingError as error:
+        raise DataExportError(error)
 
     # Create the fields/callback lists
-    if key == "user":
-        callbacks = [attach_eventuser]
-        fields = [
-            "value",
-            "id",
-            "email",
-            "username",
-            "ip_address",
-            "times_seen",
-            "last_seen",
-            "first_seen",
-        ]
-    else:
-        callbacks = []
-        fields = ["value", "times_seen", "last_seen", "first_seen"]
+    # TODO: Move processing to a dataExport file with an importable IBTProcessing class
+    callbacks = (
+        [IssuesByTagProcessing.get_eventuser_callback(group.project_id)] if key == "user" else []
+    )
 
     # Example file name: ISSUE_BY_TAG-project10-user__721.csv
-    file_details = u"{}-{}__{}".format(project.slug, key, data_export.id)
+    file_details = "{}-{}__{}".format(project.slug, key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, fields)
+    writer = create_writer(file, IssuesByTagProcessing.get_fields(key))
     iteration = 0
     with snuba_error_handler():
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            gtv_list = tagstore.get_group_tag_value_iter(
+            gtv_list = IssuesByTagProcessing.get_issues_list(
                 project_id=group.project_id,
                 group_id=group.id,
                 environment_id=None,
-                key=lookup_key,
+                key=key,
                 callbacks=callbacks,
                 offset=offset,
             )
             if len(gtv_list) == 0:
                 break
-            gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
+            gtv_list_raw = [IssuesByTagProcessing.serialize_issue(key, item) for item in gtv_list]
             if limit and limit < next_offset:
                 # Since the next offset will pass the limit, write the remainder and quit
                 writer.writerows(gtv_list_raw[: limit % SNUBA_MAX_RESULTS])
@@ -189,24 +162,3 @@ def snuba_error_handler():
             capture_exception(error)
             message = "Internal error. Your query failed to run."
         raise DataExportError(message)
-
-
-################################
-#  Process-specific functions  #
-################################
-
-
-def serialize_issue_by_tag(key, item):
-    result = {
-        "value": item.value,
-        "times_seen": item.times_seen,
-        "last_seen": item.last_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "first_seen": item.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-    }
-    if key == "user":
-        euser = item._eventuser
-        result["id"] = euser.ident if euser else ""
-        result["email"] = euser.email if euser else ""
-        result["username"] = euser.username if euser else ""
-        result["ip_address"] = euser.ip_address if euser else ""
-    return result
