@@ -9,6 +9,7 @@ import {fields} from 'app/data/forms/projectGeneralSettings';
 import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 
 type Props = {
   organization: Organization;
@@ -20,6 +21,7 @@ type Props = {
 
 class ProjectDataPrivacyContent extends AsyncView<Props> {
   static contextTypes = {
+    organization: SentryTypes.Organization,
     // left the router contextType to satisfy the compiler
     router: PropTypes.object,
   };
