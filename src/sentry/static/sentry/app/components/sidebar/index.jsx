@@ -40,6 +40,7 @@ import localStorage from 'app/utils/localStorage';
 import withLatestContext from 'app/utils/withLatestContext';
 import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 
+import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
 import ServiceIncidents from './serviceIncidents';
 import OnboardingStatus from './onboardingStatus';
@@ -74,7 +75,7 @@ class Sidebar extends React.Component {
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.documentClickHandler);
+    document.addEventListener('click', this.flyoutCloseHandler);
 
     loadIncidents();
 
@@ -117,7 +118,7 @@ class Sidebar extends React.Component {
   }
 
   componentWillUnmount() {
-    document.removeEventListener('click', this.documentClickHandler);
+    document.removeEventListener('click', this.flyoutCloseHandler);
     document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
@@ -222,11 +223,19 @@ class Sidebar extends React.Component {
     }
   };
 
-  documentClickHandler = evt => {
-    // If click occurs outside of sidebar, close any active panel
-    if (this.sidebarRef.current && !this.sidebarRef.current.contains(evt.target)) {
-      this.hidePanel();
+  flyoutCloseHandler = evt => {
+    // Ignore if click occurs within sidebar
+    if (this.sidebarRef.current && this.sidebarRef.current.contains(evt.target)) {
+      return;
     }
+
+    // Ignore if click occurs within sidebar flyout panel
+    const flyout = getSidebarPanelContainer();
+    if (flyout && flyout.contains(evt.target)) {
+      return;
+    }
+
+    this.hidePanel();
   };
 
   /**
