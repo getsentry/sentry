@@ -179,7 +179,7 @@ class RedisBuffer(Buffer):
         - Insert/update a hashmap based on (model, columns)
             - Perform an incrby on counters
             - Perform a set (last write wins) on extra
-            - Set flag for whether or not to create/update the model in the database
+            - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
 
