@@ -33,7 +33,7 @@ from django.core.cache import cache
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.db.models.manager import BaseManager
-from sentry.signals import event_filtered, event_dropped
+from sentry.signals import event_filtered, event_dropped, event_saved
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome
@@ -77,7 +77,7 @@ def _process_signal(msg):
         return  # no project. this is valid, so ignore silently.
 
     outcome = int(msg.get("outcome", -1))
-    if outcome not in (Outcome.FILTERED, Outcome.RATE_LIMITED):
+    if outcome not in (Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED):
         metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "wrong_outcome_type"})
         return  # nothing to do here
 
@@ -105,7 +105,11 @@ def _process_signal(msg):
     if category is not None:
         category = DataCategory(category)
 
-    if outcome == Outcome.FILTERED:
+    if outcome == Outcome.ACCEPTED:
+        event_saved.send_robust(
+            project=project, category=category, quantity=quantity, sender=OutcomesConsumerWorker
+        )
+    elif outcome == Outcome.FILTERED:
         event_filtered.send_robust(
             ip=remote_addr,
             project=project,

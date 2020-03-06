@@ -67,9 +67,8 @@ const StyledLink = styled((props: StyledLinkProps) => {
   return <Link {...forwardProps} />;
 })`
   display: block;
+  width: 100%;
   white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
   color: inherit;
 
   &:hover,
@@ -83,6 +82,8 @@ const StyledLink = styled((props: StyledLinkProps) => {
 `;
 
 const StyledNonLink = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
   white-space: nowrap;
   ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
 `;

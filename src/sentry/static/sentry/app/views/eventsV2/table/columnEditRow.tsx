@@ -8,45 +8,16 @@ import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {ColumnType, AggregateParameter} from '../eventQueryParams';
+import {FieldValueKind, FieldValue} from './types';
+import {FIELD_ALIASES, AggregateParameter} from '../eventQueryParams';
 import {Column} from '../eventView';
 
-export enum FieldValueKind {
-  TAG = 'tag',
-  FIELD = 'field',
-  FUNCTION = 'function',
-}
-
-// Payload of select options used to update column
-// data as the first picker has tags, fields and functions all combined.
-export type FieldValue =
-  | {
-      kind: FieldValueKind.TAG;
-      meta: {
-        name: string;
-        dataType: ColumnType;
-      };
-    }
-  | {
-      kind: FieldValueKind.FIELD;
-      meta: {
-        name: string;
-        dataType: ColumnType;
-      };
-    }
-  | {
-      kind: FieldValueKind.FUNCTION;
-      meta: {
-        name: string;
-        parameters: AggregateParameter[];
-      };
-    };
-
+type FieldOptions = {[key: string]: SelectValue<FieldValue>};
 type Props = {
   className?: string;
   parentIndex: number;
   column: Column;
-  fieldOptions: {[key: string]: SelectValue<FieldValue>};
+  fieldOptions: FieldOptions;
   onChange: (index: number, column: Column) => void;
 };
 
@@ -66,9 +37,13 @@ class ColumnEditRow extends React.Component<Props> {
         break;
       case FieldValueKind.FUNCTION:
         aggregation = value.meta.name;
+        // Backwards compatibility for field alias versions of functions.
+        if (FIELD_ALIASES.includes(field)) {
+          field = '';
+        }
         break;
       default:
-        throw new Error('Invald field type found in column picker');
+        throw new Error('Invalid field type found in column picker');
     }
 
     const currentField = this.getFieldOrTagValue(field);
@@ -108,24 +83,55 @@ class ColumnEditRow extends React.Component<Props> {
 
   getFieldOrTagValue(name: string): FieldValue | null {
     const {fieldOptions} = this.props;
-    return (fieldOptions[`field:${name}`] || fieldOptions[`tag:${name}`] || {value: null})
-      .value;
+    const fieldName = `field:${name}`;
+    const tagName = `tag:${name}`;
+    if (fieldOptions[fieldName]) {
+      return fieldOptions[fieldName].value;
+    }
+    if (fieldOptions[tagName]) {
+      return fieldOptions[tagName].value;
+    }
+
+    // Likely a tag that was deleted but left behind in a saved query
+    // Cook up a tag option so select control works.
+    if (name.length > 0) {
+      return {
+        kind: FieldValueKind.TAG,
+        meta: {
+          name,
+          dataType: 'string',
+          unknown: true,
+        },
+      };
+    }
+    return null;
   }
 
-  getFieldParameterData() {
+  getFieldData() {
     let field: FieldValue | null = null,
       fieldParameter: FieldValue | null = null,
       fieldParameterOptions: SelectValue<FieldValue>[] = [];
 
-    const {column, fieldOptions} = this.props;
+    const {column} = this.props;
+    let {fieldOptions} = this.props;
     const funcName = `function:${column.aggregation}`;
 
-    if (column.aggregation && fieldOptions[funcName] !== undefined) {
+    if (fieldOptions[funcName] !== undefined) {
       field = fieldOptions[funcName].value;
       fieldParameter = this.getFieldOrTagValue(column.field);
+    } else if (!column.aggregation && FIELD_ALIASES.includes(column.field)) {
+      // Handle backwards compatible field aliases.
+      const aliasName = `function:${column.field}`;
+      if (fieldOptions[aliasName] !== undefined) {
+        field = fieldOptions[aliasName].value;
+      }
     } else {
       field = this.getFieldOrTagValue(column.field);
     }
+
+    // If our current field, or columnParameter is a virtual tag, add it to the option list.
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
 
     if (
       field &&
@@ -134,27 +140,49 @@ class ColumnEditRow extends React.Component<Props> {
     ) {
       const parameters = field.meta.parameters;
       fieldParameterOptions = Object.values(fieldOptions).filter(
-        item =>
-          item.value.kind === FieldValueKind.FIELD &&
-          parameters[0].columnTypes.includes(item.value.meta.dataType)
+        ({value}) =>
+          (value.kind === FieldValueKind.FIELD || value.kind === FieldValueKind.TAG) &&
+          parameters[0].columnTypes.includes(value.meta.dataType)
       );
     }
 
-    return {field, fieldParameter, fieldParameterOptions};
+    return {field, fieldOptions, fieldParameter, fieldParameterOptions};
+  }
+
+  appendFieldIfUnknown(
+    fieldOptions: FieldOptions,
+    field: FieldValue | null
+  ): FieldOptions {
+    if (!field) {
+      return fieldOptions;
+    }
+
+    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+      // Clone the options so we don't mutate other rows.
+      fieldOptions = Object.assign({}, fieldOptions);
+      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+    }
+
+    return fieldOptions;
   }
 
   render() {
-    // TODO add additional parameter for tracing functions
-    const {className, fieldOptions} = this.props;
-    const {field, fieldParameter, fieldParameterOptions} = this.getFieldParameterData();
+    const {className} = this.props;
+    const {
+      field,
+      fieldOptions,
+      fieldParameter,
+      fieldParameterOptions,
+    } = this.getFieldData();
 
     return (
       <Container className={className}>
         <SelectControl
+          name="field"
           options={Object.values(fieldOptions)}
           components={{
             Option: ({label, value, ...props}) => (
-              <components.Option {...props}>
+              <components.Option label={label} {...props}>
                 <Label>
                   {label}
                   {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
@@ -167,9 +195,10 @@ class ColumnEditRow extends React.Component<Props> {
           onChange={this.handleFieldChange}
         />
         {fieldParameterOptions.length === 0 ? (
-          <SelectControl options={NO_OPTIONS} value="" isDisabled />
+          <SelectControl name="parameter" options={NO_OPTIONS} value="" isDisabled />
         ) : (
           <SelectControl
+            name="parameter"
             placeholder={t('Select (Required)')}
             options={fieldParameterOptions}
             value={fieldParameter}

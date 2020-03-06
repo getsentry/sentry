@@ -6,11 +6,11 @@ import os
 import datetime
 import json
 import logging
-from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib
 
+from sentry.utils.compat import mock
 from sentry import eventstore, tagstore
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -32,7 +32,6 @@ from sentry.utils.settings import validate_settings, ConfigurationError, import_
 from sentry.utils.sdk import configure_scope
 from sentry.web.api import disable_transaction_events
 from sentry.wsgi import application
-
 
 DEPENDENCY_TEST_DATA = {
     "postgresql": (
@@ -564,7 +563,6 @@ class DependencyTest(TestCase):
     def validate_dependency(
         self, key, package, dependency_type, dependency, setting_value, import_string
     ):
-
         import_string.side_effect = self.raise_import_error(package)
 
         with self.settings(**{key: setting_value}):

@@ -841,8 +841,6 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
-    # Enable different issue alerts on new project creation.
-    "organizations:new-project-issue-alert-options": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
@@ -1337,6 +1335,8 @@ SENTRY_WATCHERS = (
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = False
+SENTRY_RELAY_PORT = 3000
+SENTRY_REVERSE_PROXY_PORT = 8000
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1404,13 +1404,13 @@ SENTRY_DEVSERVICES = {
     },
     "reverse_proxy": {
         "image": "nginx:1.16.1",
-        "ports": {"80/tcp": 8000},
+        "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"3000/tcp": 3000},
+        "ports": {"3000/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
     },

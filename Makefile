@@ -181,6 +181,11 @@ test-plugins:
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
 	@echo ""
 
+test-relay-integration:
+	@echo "--> Running Relay integration tests"
+	pytest tests/relay_integration -vv
+	@echo ""
+
 lint: lint-python lint-js
 
 # configuration for flake8 can be found in setup.cfg
@@ -221,7 +226,8 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js
+.PHONY: travis-test-cli travis-test-relay-integration
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
@@ -229,8 +235,10 @@ travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
+travis-test-relay-integration: test-relay-integration
 
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-lint
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator
+.PHONY: travis-scan-js travis-scan-cli travis-scan-lint travis-scan-relay-integration
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -245,3 +253,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop
+travis-scan-relay-integration: travis-noop

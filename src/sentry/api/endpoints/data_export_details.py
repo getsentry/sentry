@@ -4,13 +4,13 @@ from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
 from sentry.models import ExportedData
 
 
 class DataExportDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationEventPermission,)
+    permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request, organization, **kwargs):
         """

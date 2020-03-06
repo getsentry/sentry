@@ -1,7 +1,8 @@
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import themeObj from 'app/utils/theme';
+import SettingsHeader from 'app/views/settings/components/settingsHeader';
+import {Theme} from 'app/utils/theme';
 
 type Params = {
   /**
@@ -25,7 +26,7 @@ type Params = {
    */
   menuWithArrow: boolean;
 
-  theme: typeof themeObj;
+  theme: Theme;
 };
 
 /**
@@ -121,6 +122,10 @@ const DropdownBubble = styled('div')<Params>`
   /* This is needed to be able to cover e.g. pagination buttons, but also be
    * below dropdown actor button's zindex */
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
+
+  ${SettingsHeader} & {
+    z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
+  }
 `;
 
 export default DropdownBubble;

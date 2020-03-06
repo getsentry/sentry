@@ -14,7 +14,6 @@ export type GridColumn<K = ObjectKey> = {
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
-  isDragging: boolean;
 };
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
