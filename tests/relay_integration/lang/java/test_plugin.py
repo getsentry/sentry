@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import pytest
 
-from ....sentry.lang.java.test_plugin import BasicResolvingIntegrationTest
+from tests.sentry.lang.java.test_plugin import BasicResolvingIntegrationTest
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 
 
