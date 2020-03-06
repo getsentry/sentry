@@ -13,12 +13,4 @@ export const displayCrashFreePercent = (
 export const convertAdoptionToProgress = (
   percent: number,
   numberOfProgressUnits = 5
-): number => {
-  const fullProgressPercent = 80; // we consider 80% full adoption
-
-  if (percent > fullProgressPercent) {
-    return numberOfProgressUnits;
-  }
-
-  return Math.floor((numberOfProgressUnits * percent) / fullProgressPercent);
-};
+): number => Math.ceil((percent * numberOfProgressUnits) / 100);
