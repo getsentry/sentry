@@ -13,7 +13,7 @@ from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb, options
 from sentry.attachments import attachment_cache
 from sentry.constants import (
     DataCategory,
@@ -541,7 +541,8 @@ class EventManager(object):
             raise
         job["event"].group = job["group"]
 
-        _send_event_saved_signal_many(jobs, projects)
+        if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
+            _send_event_saved_signal_many(jobs, projects)
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does

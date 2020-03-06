@@ -9,7 +9,7 @@ from django.conf import settings
 
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing
+from sentry import features, reprocessing, options
 from sentry.constants import DataCategory
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
@@ -532,7 +532,8 @@ def _do_save_event(
 
             with metrics.timer("tasks.store.do_save_event.track_outcome"):
                 # This is where we can finally say that we have accepted the event.
-                mark_signal_sent(event.project.id, event_id)
+                if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
+                    mark_signal_sent(event.project.id, event_id)
                 track_outcome(
                     event.project.organization_id,
                     event.project.id,
