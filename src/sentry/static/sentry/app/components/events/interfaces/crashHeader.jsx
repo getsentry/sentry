@@ -191,7 +191,6 @@ export default CrashHeader;
 const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
   flex-direction: column;
   flex-wrap: wrap;
   width: 100%;
