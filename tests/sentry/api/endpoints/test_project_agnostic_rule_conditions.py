@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 
 
 class ProjectAgnosticRuleConditionsTest(APITestCase):
-    @patch("sentry.experiments.get", return_value="3OptionsV1")
+    @patch("sentry.experiments.get", return_value="3OptionsV2")
     def test_simple(self, mocked_experiment):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")

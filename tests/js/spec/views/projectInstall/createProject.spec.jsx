@@ -188,7 +188,10 @@ describe('CreateProject', function() {
         .simulate('click');
       expectSubmitButtonToBeDisabled(true);
 
-      wrapper.find('input[data-test-id="range-input"]');
+      wrapper
+        .find('input[data-test-id="range-input"]')
+        .first()
+        .simulate('change', {target: {value: '2'}});
       expectSubmitButtonToBeDisabled(true);
 
       wrapper
@@ -217,7 +220,7 @@ describe('CreateProject', function() {
 
       wrapper
         .find('RadioLineItem')
-        .last()
+        .first()
         .simulate('click');
       expectSubmitButtonToBeDisabled(false);
     });

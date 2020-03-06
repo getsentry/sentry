@@ -71,7 +71,7 @@ class CreateProject extends React.Component {
       organization.experiments?.AlertDefaultsExperiment;
     const isInAlertDefaultsExperiment = [
       '2OptionsV1',
-      '3OptionsV1',
+      '3OptionsV2',
       'controlV1',
     ].includes(alertDefaultsExperimentVariant);
 

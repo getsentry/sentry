@@ -23,7 +23,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
         experiment_variant = experiments.get(
             org=organization, experiment_name="AlertDefaultsExperiment"
         )
-        if experiment_variant == "3OptionsV1":
+        if experiment_variant == "3OptionsV2":
             return Response(
                 [
                     info_extractor(rule_cls)
