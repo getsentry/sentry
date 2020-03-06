@@ -7,7 +7,7 @@ from django.db import transaction, IntegrityError
 
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData, File
-from sentry.processing.issues_by_tag import IssuesByTagProcessing, IssuesByTagProcessingError
+from sentry.processing.data_export import IssuesByTag, DataExportProcessingError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
 from sentry.utils.sdk import capture_exception
@@ -80,30 +80,27 @@ def process_issue_by_tag(data_export, file, limit=None):
     payload = data_export.query_info
     key = payload["key"]
     try:
-        project, group = IssuesByTagProcessing.get_project_and_group(
+        project, group = IssuesByTag.get_project_and_group(
             payload["project_id"], payload["group_id"]
         )
-    except IssuesByTagProcessingError as error:
+    except DataExportProcessingError as error:
         raise DataExportError(error)
 
     # Create the fields/callback lists
-    # TODO: Move processing to a dataExport file with an importable IBTProcessing class
-    callbacks = (
-        [IssuesByTagProcessing.get_eventuser_callback(group.project_id)] if key == "user" else []
-    )
+    callbacks = [IssuesByTag.get_eventuser_callback(group.project_id)] if key == "user" else []
 
     # Example file name: ISSUE_BY_TAG-project10-user__721.csv
     file_details = "{}-{}__{}".format(project.slug, key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, IssuesByTagProcessing.get_fields(key))
+    writer = create_writer(file, IssuesByTag.get_fields(key))
     iteration = 0
     with snuba_error_handler():
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            gtv_list = IssuesByTagProcessing.get_issues_list(
+            gtv_list = IssuesByTag.get_issues_list(
                 project_id=group.project_id,
                 group_id=group.id,
                 environment_id=None,
@@ -113,7 +110,7 @@ def process_issue_by_tag(data_export, file, limit=None):
             )
             if len(gtv_list) == 0:
                 break
-            gtv_list_raw = [IssuesByTagProcessing.serialize_issue(key, item) for item in gtv_list]
+            gtv_list_raw = [IssuesByTag.serialize_issue(key, item) for item in gtv_list]
             if limit and limit < next_offset:
                 # Since the next offset will pass the limit, write the remainder and quit
                 writer.writerows(gtv_list_raw[: limit % SNUBA_MAX_RESULTS])

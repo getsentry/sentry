@@ -6,11 +6,11 @@ from sentry import tagstore
 from sentry.models import EventUser, Group, get_group_with_redirect, Project
 
 
-class IssuesByTagProcessingError(Exception):
+class DataExportProcessingError(Exception):
     pass
 
 
-class IssuesByTagProcessing:
+class IssuesByTag:
     def get_project_and_group(project_id, group_id):
         try:
             project = Project.objects.get(id=project_id)
@@ -19,9 +19,9 @@ class IssuesByTagProcessing:
             )
             return (project, group)
         except Project.DoesNotExist:
-            raise IssuesByTagProcessingError("Requested project does not exist")
+            raise DataExportProcessingError("Requested project does not exist")
         except Group.DoesNotExist:
-            raise IssuesByTagProcessingError("Requested group does not exist")
+            raise DataExportProcessingError("Requested group does not exist")
 
     def get_fields(key):
         if key == "user":
