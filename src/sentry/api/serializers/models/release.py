@@ -226,8 +226,8 @@ class ReleaseSerializer(Serializer):
 
         group_counts_by_release = {}
         for project_id, release_id, new_groups in release_project_envs.annotate(
-            new_issues_count=Sum("new_issues_count")
-        ).values_list("project_id", "release_id", "new_issues_count"):
+            aggregated_new_issues_count=Sum("new_issues_count")
+        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
             group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
 
         return first_seen, last_seen, group_counts_by_release
