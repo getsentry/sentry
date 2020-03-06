@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.models import Project, ProjectStatus
+from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import get_date_range_from_params, InvalidParams
@@ -233,3 +234,22 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 "You cannot use the %s attribute(s) with the selected version"
                 % ", ".join(bad_fields)
             )
+
+
+class KeyTransactionSerializer(serializers.Serializer):
+    transaction = serializers.CharField(required=True, max_length=200)
+
+    def validate(self, data):
+        data = super(KeyTransactionSerializer, self).validate(data)
+        base_filter = self.context.copy()
+        # Limit the number of key transactions
+        if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:
+            raise serializers.ValidationError(
+                "At most {} Key Transactions can be added".format(MAX_KEY_TRANSACTIONS)
+            )
+
+        base_filter["transaction"] = data["transaction"]
+
+        if KeyTransaction.objects.filter(**base_filter).count() > 0:
+            raise serializers.ValidationError("This Key Transaction was already added")
+        return data
