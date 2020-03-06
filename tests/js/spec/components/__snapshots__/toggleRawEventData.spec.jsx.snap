@@ -18,22 +18,26 @@ exports[`EventDataSection renders formatted 1`] = `
     <h3>
       Additional Data
     </h3>
-    <div
-      className="btn-group"
+    <ButtonBar
+      merged={true}
     >
-      <a
-        className="active btn btn-default btn-sm"
+      <forwardRef<Button>
+        className="active"
         onClick={[Function]}
+        priority="primary"
+        size="xsmall"
       >
         Formatted
-      </a>
-      <a
-        className=" btn btn-default btn-sm"
+      </forwardRef<Button>>
+      <forwardRef<Button>
+        className=""
         onClick={[Function]}
+        priority="default"
+        size="xsmall"
       >
         Raw
-      </a>
-    </div>
+      </forwardRef<Button>>
+    </ButtonBar>
   </SectionHeader>
   <SectionContents />
 </DataSection>
@@ -57,22 +61,26 @@ exports[`EventDataSection renders raw 1`] = `
     <h3>
       Additional Data
     </h3>
-    <div
-      className="btn-group"
+    <ButtonBar
+      merged={true}
     >
-      <a
-        className=" btn btn-default btn-sm"
+      <forwardRef<Button>
+        className=""
         onClick={[Function]}
+        priority="default"
+        size="xsmall"
       >
         Formatted
-      </a>
-      <a
-        className="active btn btn-default btn-sm"
+      </forwardRef<Button>>
+      <forwardRef<Button>
+        className="active"
         onClick={[Function]}
+        priority="primary"
+        size="xsmall"
       >
         Raw
-      </a>
-    </div>
+      </forwardRef<Button>>
+    </ButtonBar>
   </SectionHeader>
   <SectionContents />
 </DataSection>

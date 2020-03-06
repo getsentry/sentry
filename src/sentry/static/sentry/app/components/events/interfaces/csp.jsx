@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
@@ -50,26 +52,32 @@ export default class CspInterface extends React.Component {
 
     const title = (
       <div>
-        <div className="btn-group">
-          <a
-            className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
+        <ButtonBar merged>
+          <Button
+            className={view === 'report' ? 'active' : ''}
+            priority={view === 'report' ? 'primary' : 'default'}
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
-          </a>
-          <a
-            className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
+          </Button>
+          <Button
+            className={view === 'raw' ? 'active' : ''}
+            priority={view === 'raw' ? 'primary' : 'default'}
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'raw')}
           >
             {t('Raw')}
-          </a>
-          <a
-            className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
+          </Button>
+          <Button
+            className={view === 'help' ? 'active' : ''}
+            priority={view === 'help' ? 'primary' : 'default'}
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'help')}
           >
             {t('Help')}
-          </a>
-        </div>
+          </Button>
+        </ButtonBar>
         <h3>{t('CSP Report')}</h3>
       </div>
     );
