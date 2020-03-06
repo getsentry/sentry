@@ -224,7 +224,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, xAxis} = this.props;
-    data[0].data = data[0].data.splice(-1, 1);
+    const dataWithoutRecentBucket = data?.map(({data: event_data, ...restOfData}) => ({
+      ...restOfData,
+      data: event_data.slice(0, -1),
+    }));
+
     return (
       <LineChart
         isGroupedByDate
@@ -243,7 +247,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
             ])
           ),
         })}
-        series={data}
+        series={dataWithoutRecentBucket}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)
