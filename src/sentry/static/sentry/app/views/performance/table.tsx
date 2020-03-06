@@ -9,10 +9,11 @@ import {assert} from 'app/types/utils';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
 import EventView, {isAPIPayloadSimilar} from 'app/views/eventsV2/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
@@ -122,9 +123,11 @@ class Table extends React.Component<Props, State> {
 
     if (isLoading) {
       return (
-        <SpanEntireRow>
-          <LoadingIndicator />
-        </SpanEntireRow>
+        <tr>
+          <td colSpan={8}>
+            <LoadingIndicator />
+          </td>
+        </tr>
       );
     }
 
@@ -133,11 +136,13 @@ class Table extends React.Component<Props, State> {
 
     if (!hasResults) {
       return (
-        <SpanEntireRow>
-          <EmptyStateWarning>
-            <p>{t('No transactions found')}</p>
-          </EmptyStateWarning>
-        </SpanEntireRow>
+        <tr>
+          <td colSpan={8}>
+            <EmptyStateWarning>
+              <p>{t('No transactions found')}</p>
+            </EmptyStateWarning>
+          </td>
+        </tr>
       );
     }
 
@@ -145,14 +150,12 @@ class Table extends React.Component<Props, State> {
 
     const columnOrder = this.props.eventView.getColumns();
 
-    const lastIndex = tableData.data.length - 1;
     return tableData.data.map((row, index) => {
       assert(tableData.meta);
 
-      const isLastRow = index === lastIndex;
       return (
         <React.Fragment key={index}>
-          {this.renderRowItem(row, columnOrder, tableData.meta, isLastRow)}
+          <GridRow>{this.renderRowItem(row, columnOrder, tableData.meta)}</GridRow>
         </React.Fragment>
       );
     });
@@ -161,12 +164,10 @@ class Table extends React.Component<Props, State> {
   renderRowItem = (
     row: TableDataRow,
     columnOrder: TableColumn<React.ReactText>[],
-    tableMeta: MetaType,
-    isLastRow: boolean
+    tableMeta: MetaType
   ) => {
     const {organization, location, eventView} = this.props;
 
-    const lastIndex = columnOrder.length - 1;
     return columnOrder.map((column, index) => {
       const field = String(column.key);
       const fieldName = getAggregateAlias(field);
@@ -176,7 +177,6 @@ class Table extends React.Component<Props, State> {
       let rendered = fieldRenderer(row, {organization, location});
 
       const isFirstCell = index === 0;
-      const isLastCell = index === lastIndex;
 
       if (isFirstCell) {
         // the first column of the row should link to the transaction details view
@@ -195,28 +195,10 @@ class Table extends React.Component<Props, State> {
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       if (isNumeric) {
-        return (
-          <BodyCell
-            key={column.key}
-            first={isFirstCell}
-            last={isLastCell}
-            hideBottomBorder={isLastRow}
-          >
-            <NumericColumn>{rendered}</NumericColumn>
-          </BodyCell>
-        );
+        return <GridBodyCellNumber key={column.key}>{rendered}</GridBodyCellNumber>;
       }
 
-      return (
-        <BodyCell
-          key={column.key}
-          first={isFirstCell}
-          last={isLastCell}
-          hideBottomBorder={isLastRow}
-        >
-          {rendered}
-        </BodyCell>
-      );
+      return <GridBodyCell key={column.key}>{rendered}</GridBodyCell>;
     });
   };
 
@@ -228,7 +210,6 @@ class Table extends React.Component<Props, State> {
 
     const columnOrder = eventView.getColumns();
 
-    const lastindex = columnOrder.length - 1;
     return columnOrder.map((column, index) => (
       <HeaderCell column={column} tableData={tableData} key={index}>
         {({align}) => {
@@ -251,7 +232,7 @@ class Table extends React.Component<Props, State> {
           }
 
           return (
-            <HeadCell first={index === 0} last={lastindex === index}>
+            <GridHeadCell>
               <SortLink
                 align={align}
                 field={field}
@@ -259,7 +240,7 @@ class Table extends React.Component<Props, State> {
                 tableDataMeta={tableDataMeta}
                 generateSortLink={generateSortLink}
               />
-            </HeadCell>
+            </GridHeadCell>
           );
         }}
       </HeaderCell>
@@ -271,8 +252,10 @@ class Table extends React.Component<Props, State> {
       <div>
         <Panel>
           <TableGrid>
-            {this.renderHeader()}
-            {this.renderResults()}
+            <GridHead>
+              <GridRow>{this.renderHeader()}</GridRow>
+            </GridHead>
+            <GridBody>{this.renderResults()}</GridBody>
           </TableGrid>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
@@ -281,70 +264,49 @@ class Table extends React.Component<Props, State> {
   }
 }
 
-const TableGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto repeat(7, minmax(50px, max-content));
+const TableGrid = styled('table')`
+  margin: 0;
   width: 100%;
 `;
 
-const HeadCell = styled(PanelHeader)<{first?: boolean; last?: boolean}>`
-  background-color: ${p => p.theme.offWhite};
-
-  display: block;
-  text-overflow: ellipsis;
-
-  padding: ${props => {
-    /* top | right | bottom | left */
-
-    if (props.first) {
-      return `${space(2)} ${space(1)} ${space(2)} ${space(2)}`;
-    }
-
-    if (props.last) {
-      return `${space(2)} ${space(2)} ${space(2)} ${space(1)}`;
-    }
-
-    return `${space(2)} ${space(1)} ${space(2)} ${space(1)}`;
-  }};
+const GridHead = styled('thead')`
+  color: ${p => p.theme.gray3};
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 1;
 `;
 
-const BodyCell = styled(PanelItem)<{
-  first?: boolean;
-  last?: boolean;
-  hideBottomBorder: boolean;
-}>`
-  display: block;
-  text-overflow: ellipsis;
+const GridHeadCell = styled('th')`
+  padding: ${space(2)};
+  background: ${p => p.theme.offWhite};
+  ${overflowEllipsis};
 
-  padding: ${props => {
-    /* top | right | bottom | left */
+  &:first-child {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+  }
 
-    if (props.first) {
-      return `${space(2)} ${space(1)} ${space(2)} ${space(2)}`;
-    }
-
-    if (props.last) {
-      return `${space(2)} ${space(2)} ${space(2)} ${space(1)}`;
-    }
-
-    return `${space(2)} ${space(1)} ${space(2)} ${space(1)}`;
-  }};
-
-  ${props => {
-    if (props.hideBottomBorder) {
-      return 'border-bottom: none';
-    }
-
-    return null;
-  }};
+  &:last-child {
+    border-top-right-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
-const SpanEntireRow = styled('div')`
-  grid-column: 1 / -1;
+const GridBody = styled('tbody')`
+  font-size: 14px;
 `;
 
-const NumericColumn = styled('div')`
+const GridBodyCell = styled('td')`
+  border-top: 1px solid ${p => p.theme.borderDark};
+  padding: ${space(1)} ${space(2)};
+  ${overflowEllipsis};
+`;
+
+const GridBodyCellNumber = styled(GridBodyCell)`
   text-align: right;
+`;
+
+const GridRow = styled('tr')`
+  display: grid;
+  grid-template-columns: auto 120px repeat(6, minmax(70px, 120px));
 `;
 
 export default withApi(Table);

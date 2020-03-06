@@ -114,19 +114,20 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
-    events = []
+    jobs = []
     for message in messages:
         payload = message["payload"]
         project_id = int(message["project_id"])
+        start_time = float(message["start_time"])
 
         if project_id not in projects:
             continue
 
         with metrics.timer("ingest_consumer.decode_transaction_json"):
             data = json.loads(payload)
-            events.append(data)
+        jobs.append({"data": data, "start_time": start_time})
 
-    save_transaction_events(events, projects)
+    save_transaction_events(jobs, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")

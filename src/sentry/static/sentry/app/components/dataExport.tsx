@@ -10,7 +10,8 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 type DataExportPayload = {
-  queryType: number;
+  // Coordinate with ExportQueryType string (src/sentry/constants.py)
+  queryType: 'Discover' | 'Billing Report' | 'Issues-by-Tag';
   queryInfo: any; // TODO(ts): Formalize different possible payloads
 };
 

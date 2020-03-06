@@ -29,6 +29,9 @@ def to_datetime(value):
     The timestamp value must be a numeric type (either a integer or float,
     since it may contain a fractional component.)
     """
+    if value is None:
+        return None
+
     return epoch + timedelta(seconds=value)
 
 

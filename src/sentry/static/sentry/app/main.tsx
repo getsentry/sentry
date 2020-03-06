@@ -1,4 +1,3 @@
-import {hot} from 'react-hot-loader/root'; // This needs to come before react
 import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
 import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
 import React from 'react';
@@ -21,4 +20,4 @@ class Main extends React.Component {
   }
 }
 
-export default hot(Main);
+export default Main;

@@ -2,13 +2,15 @@ from __future__ import absolute_import
 
 import csv
 import tempfile
-
+from contextlib import contextmanager
 from django.db import transaction, IntegrityError
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import EventUser, File, Group, Project, get_group_with_redirect
+from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
+from sentry.utils import snuba
+from sentry.utils.sdk import capture_exception
 
 SNUBA_MAX_RESULTS = 1000
 
@@ -18,17 +20,21 @@ class DataExportError(Exception):
 
 
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
-def assemble_download(data_export):
+def assemble_download(data_export_id):
+    # Extract the ExportedData object
+    try:
+        data_export = ExportedData.objects.get(id=data_export_id)
+    except ExportedData.DoesNotExist as error:
+        return capture_exception(error)
+
     # Create a temporary file
     try:
         with tempfile.TemporaryFile() as tf:
             # Process the query based on its type
             if data_export.query_type == ExportQueryType.DISCOVER_V2:
-                process_discover_v2(data_export, tf)
-                return
+                file_name = process_discover_v2(data_export, tf)
             elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-                process_billing_report(data_export, tf)
-                return
+                file_name = process_billing_report(data_export, tf)
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
                 file_name = process_issue_by_tag(data_export, tf)
             # Create a new File object and attach it to the ExportedData
@@ -40,27 +46,32 @@ def assemble_download(data_export):
                     )
                     file.putfile(tf)
                     data_export.finalize_upload(file=file)
-            except IntegrityError:
+            except IntegrityError as error:
+                capture_exception(error)
                 raise DataExportError("Failed to save the assembled file")
-    except DataExportError as err:
+    except DataExportError as error:
         # TODO(Leander): Implement logging
-        return data_export.email_failure(message=err)
-    except BaseException:
+        return data_export.email_failure(message=error)
+    except NotImplementedError as error:
         # TODO(Leander): Implement logging
+        return data_export.email_failure(message=error)
+    except BaseException as error:
+        # TODO(Leander): Implement logging
+        capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
 
 
 def process_discover_v2(data_export, file):
     # TODO(Leander): Implement processing for Discover V2
-    return
+    raise NotImplementedError("Discover V2 processing has not been implemented yet")
 
 
 def process_billing_report(data_export, file):
     # TODO(Leander): Implement processing for Billing Reports
-    return
+    raise NotImplementedError("Billing report processing has not been implemented yet")
 
 
-def process_issue_by_tag(data_export, file):
+def process_issue_by_tag(data_export, file, limit=None):
     """
     Convert the tag query to a CSV, writing it to the provided file.
     Returns the suggested file name.
@@ -115,20 +126,28 @@ def process_issue_by_tag(data_export, file):
     # Iterate through all the GroupTagValues
     writer = create_writer(file, fields)
     iteration = 0
-    while True:
-        gtv_list = tagstore.get_group_tag_value_iter(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=None,
-            key=lookup_key,
-            callbacks=callbacks,
-            offset=SNUBA_MAX_RESULTS * iteration,
-        )
-        gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
-        if len(gtv_list_raw) == 0:
-            break
-        writer.writerows(gtv_list_raw)
-        iteration += 1
+    with snuba_error_handler():
+        while True:
+            offset = SNUBA_MAX_RESULTS * iteration
+            next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
+            gtv_list = tagstore.get_group_tag_value_iter(
+                project_id=group.project_id,
+                group_id=group.id,
+                environment_id=None,
+                key=lookup_key,
+                callbacks=callbacks,
+                offset=offset,
+            )
+            if len(gtv_list) == 0:
+                break
+            gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
+            if limit and limit < next_offset:
+                # Since the next offset will pass the limit, write the remainder and quit
+                writer.writerows(gtv_list_raw[: limit % SNUBA_MAX_RESULTS])
+                break
+            else:
+                writer.writerows(gtv_list_raw)
+                iteration += 1
     return file_name
 
 
@@ -143,9 +162,33 @@ def get_file_name(export_type, custom_string, extension="csv"):
     return file_name
 
 
-def alert_error():
-    # TODO(Leander): Handle errors in these tasks.
-    return
+# Adapted into contextmanager from 'src/sentry/api/endpoints/organization_events.py'
+@contextmanager
+def snuba_error_handler():
+    try:
+        yield
+    except snuba.QueryOutsideRetentionError:
+        raise DataExportError("Invalid date range. Please try a more recent date range.")
+    except snuba.QueryIllegalTypeOfArgument:
+        raise DataExportError("Invalid query. Argument to function is wrong type.")
+    except snuba.SnubaError as error:
+        message = "Internal error. Please try again."
+        if isinstance(
+            error,
+            (
+                snuba.RateLimitExceeded,
+                snuba.QueryMemoryLimitExceeded,
+                snuba.QueryTooManySimultaneous,
+            ),
+        ):
+            message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+        elif isinstance(
+            error,
+            (snuba.UnqualifiedQueryError, snuba.QueryExecutionError, snuba.SchemaValidationError),
+        ):
+            capture_exception(error)
+            message = "Internal error. Your query failed to run."
+        raise DataExportError(message)
 
 
 ################################

@@ -19,24 +19,36 @@ const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const babelConfig = require('./babel.config');
 
 const {env} = process;
+
+/**
+ * Environment configuration
+ */
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
-
+const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_PERCY = env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS;
+const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
-// HMR proxying
+/**
+ * Environment variables that are used by other tooling and should
+ * not be user configurable.
+ */
+// Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
-const USE_HOT_MODULE_RELOAD =
-  !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
-const NO_DEV_SERVER = env.NO_DEV_SERVER;
-const FORCE_WEBPACK_DEV_SERVER = env.FORCE_WEBPACK_DEV_SERVER;
-const IS_CI = !!env.CI || !!env.TRAVIS;
+// Used by sentry devserver runner to force using webpack-dev-server
+const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
+const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 
-const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const SHOULD_FORK_TS = DEV_MODE && !Boolean(env.NO_TS_FORK);
-const TS_FORK_WITH_ESLINT = Boolean(env.TS_FORK_WITH_ESLINT);
+/**
+ * User/tooling configurable enviroment variables
+ */
+const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
+const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with fork-ts plugin
+const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
+const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -237,7 +249,7 @@ let appConfig = {
         exclude: /(vendor|node_modules|dist)/,
         // Make sure we typecheck in CI, but not for local dev since that is run with
         // the fork-ts plugin
-        use: SHOULD_FORK_TS ? [babelLoaderConfig, tsLoaderConfig] : babelLoaderConfig,
+        use: SHOULD_FORK_TS ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
       },
       {
         test: /\.po$/,
@@ -305,7 +317,7 @@ let appConfig = {
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_PERCY: JSON.stringify(env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS),
+        IS_PERCY: JSON.stringify(IS_PERCY),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       },
@@ -403,10 +415,17 @@ if (!IS_PRODUCTION) {
 }
 
 // Dev only! Hot module reloading
-if (FORCE_WEBPACK_DEV_SERVER || (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
+if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
-  appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+  if (SHOULD_HOT_MODULE_RELOAD) {
+    // Hot reload react components on save
+    // We include the library here as to not break docker/google cloud builds
+    // since we do not install devDeps there.
+    const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+    appConfig.plugins.push(new ReactRefreshWebpackPlugin());
+  }
+
   appConfig.devServer = {
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -475,7 +494,7 @@ if (IS_PRODUCTION) {
   });
 }
 
-if (process.env.MEASURE) {
+if (env.MEASURE) {
   const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
   const smp = new SpeedMeasurePlugin();
   appConfig = smp.wrap(appConfig);

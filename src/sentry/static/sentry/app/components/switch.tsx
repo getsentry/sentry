@@ -6,6 +6,7 @@ type Props = {
   forwardRef?: React.Ref<HTMLButtonElement>;
   className?: string;
   id?: string;
+  name?: string;
   size?: 'sm' | 'lg';
   isActive?: boolean;
   isLoading?: boolean;
@@ -21,11 +22,13 @@ const Switch = ({
   isDisabled,
   toggle,
   id,
+  name,
   className,
 }: Props) => (
   <SwitchButton
     ref={forwardRef}
     id={id}
+    name={name}
     type="button"
     className={className}
     onClick={isDisabled ? undefined : toggle}

@@ -15,13 +15,14 @@ import theme from 'app/utils/theme';
 
 import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
 import {Column} from '../eventView';
-import {ColumnEditRow, FieldValue, FieldValueKind} from './columnEditRow';
+import {FieldValue, FieldValueKind} from './types';
+import {ColumnEditRow} from './columnEditRow';
 
 type Props = {
   // Input columns
   columns: Column[];
   organization: OrganizationSummary;
-  tagKeys: string[];
+  tagKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -38,6 +39,11 @@ type State = {
 
 const DRAG_CLASS = 'draggable-item';
 const GRAB_HANDLE_FUDGE = 25;
+
+enum PlaceholderPosition {
+  TOP,
+  BOTTOM,
+}
 
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {
@@ -125,15 +131,17 @@ class ColumnEditCollection extends React.Component<Props, State> {
       };
     });
 
-    tagKeys.forEach(tag => {
-      fieldOptions[`tag:${tag}`] = {
-        label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tag, dataType: 'string'},
-        },
-      };
-    });
+    if (tagKeys !== null) {
+      tagKeys.forEach(tag => {
+        fieldOptions[`tag:${tag}`] = {
+          label: tag,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tag, dataType: 'string'},
+          },
+        };
+      });
+    }
 
     this.setState({fieldOptions});
   }
@@ -206,7 +214,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Find the item that the ghost is currently over.
     const targetIndex = Array.from(dragItems).findIndex(dragItem => {
       const rects = dragItem.getBoundingClientRect();
-      const top = event.pageY;
+      const top = event.clientY;
 
       const thresholdStart = rects.top;
       const thresholdEnd = rects.top + rects.height;
@@ -269,51 +277,78 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, true, true)}
+        {this.renderItem(col, index, {isGhost: true})}
       </Ghost>
     );
 
     return ReactDOM.createPortal(ghost, this.portal);
   }
 
-  renderItem(col: Column, i: number, canDelete: boolean, isGhost: boolean = false) {
-    const {isDragging, draggingTargetIndex, fieldOptions} = this.state;
+  renderItem(
+    col: Column,
+    i: number,
+    {canDelete = true, isGhost = false}: {canDelete?: boolean; isGhost?: boolean}
+  ) {
+    const {isDragging, draggingTargetIndex, draggingIndex, fieldOptions} = this.state;
 
-    // Replace the dragged row with a placeholder.
+    let placeholder: React.ReactNode = null;
+    // Add a placeholder above the target row.
     if (isDragging && isGhost === false && draggingTargetIndex === i) {
-      return <DragPlaceholder key={`placeholder-${i}`} className={DRAG_CLASS} />;
+      placeholder = (
+        <DragPlaceholder
+          key={`placeholder:${col.aggregation}:${col.field}`}
+          className={DRAG_CLASS}
+        />
+      );
     }
 
+    // If the current row is the row in the drag ghost return the placeholder
+    // or a hole if the placeholder is elsewhere.
+    if (isDragging && isGhost === false && draggingIndex === i) {
+      return placeholder;
+    }
+
+    const position =
+      Number(draggingTargetIndex) <= Number(draggingIndex)
+        ? PlaceholderPosition.TOP
+        : PlaceholderPosition.BOTTOM;
+
     return (
-      <RowContainer key={`container-${i}`}>
-        {canDelete ? (
-          <IconButton
-            aria-label={t('Drag to reorder columns')}
-            onMouseDown={event => this.startDrag(event, i)}
-          >
-            <IconGrabbable size="sm" />
-          </IconButton>
-        ) : (
-          <span />
-        )}
-        <ColumnEditRow
-          className={DRAG_CLASS}
-          fieldOptions={fieldOptions}
-          column={col}
-          parentIndex={i}
-          onChange={this.handleUpdateColumn}
-        />
-        {canDelete ? (
-          <IconButton
-            aria-label={t('Remove column')}
-            onClick={() => this.removeColumn(i)}
-          >
-            <IconClose size="sm" />
-          </IconButton>
-        ) : (
-          <span />
-        )}
-      </RowContainer>
+      <React.Fragment>
+        {position === PlaceholderPosition.TOP && placeholder}
+        <RowContainer
+          className={isGhost ? '' : DRAG_CLASS}
+          key={`container:${col.aggregation}:${col.field}:${isGhost}`}
+        >
+          {canDelete ? (
+            <IconButton
+              aria-label={t('Drag to reorder')}
+              onMouseDown={event => this.startDrag(event, i)}
+            >
+              <IconGrabbable size="sm" />
+            </IconButton>
+          ) : (
+            <span />
+          )}
+          <ColumnEditRow
+            fieldOptions={fieldOptions}
+            column={col}
+            parentIndex={i}
+            onChange={this.handleUpdateColumn}
+          />
+          {canDelete ? (
+            <IconButton
+              aria-label={t('Remove column')}
+              onClick={() => this.removeColumn(i)}
+            >
+              <IconClose size="sm" />
+            </IconButton>
+          ) : (
+            <span />
+          )}
+        </RowContainer>
+        {position === PlaceholderPosition.BOTTOM && placeholder}
+      </React.Fragment>
     );
   }
 
@@ -329,10 +364,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <strong>{t('Field Parameter')}</strong>
           </Heading>
         </RowContainer>
-        {columns.map((col: Column, i: number) => this.renderItem(col, i, canDelete))}
+        {columns.map((col: Column, i: number) => this.renderItem(col, i, {canDelete}))}
         <RowContainer>
           <Actions>
-            <Button size="xsmall" onClick={this.handleAddColumn}>
+            <Button
+              label={t('Add a Column')}
+              size="xsmall"
+              onClick={this.handleAddColumn}
+            >
               <StyledIconAdd circle size="sm" />
               {t('Add a Column')}
             </Button>
@@ -349,7 +388,7 @@ const RowContainer = styled('div')`
   align-items: center;
   width: 100%;
 
-  margin-bottom: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
 
 const Ghost = styled('div')`
@@ -364,7 +403,7 @@ const Ghost = styled('div')`
   cursor: grabbing;
 
   & > ${RowContainer} {
-    margin-bottom: 0;
+    padding-bottom: 0;
   }
 
   & svg {
