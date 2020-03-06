@@ -85,6 +85,22 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                     {
                         "path": "a.txt",
                         "type": "M"
+                    },
+                    {
+                        "path": "b.txt",
+                        "type": "A"
+                    },
+                    {
+                        "path": "c.txt",
+                        "type": "D"
+                    },
+                    {
+                        "path": "e.txt",
+                        "type": "D"
+                    },
+                    {
+                        "path": "d.txt",
+                        "type": "A"
                     }
                 ],
                 "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
