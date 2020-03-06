@@ -18,7 +18,6 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
 )
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -28,7 +27,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 
 from sentry.testutils import TestCase
@@ -56,25 +55,26 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @fixture
     def rule(self):
-        rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "some rule",
-            query="",
-            aggregation=QueryAggregations.TOTAL,
-            time_window=1,
-            threshold_period=1,
-        )
-        trigger = create_alert_rule_trigger(
-            rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
-        )
-        create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
-        )
-        return rule
+        with self.tasks():
+            rule = create_alert_rule(
+                self.organization,
+                [self.project],
+                "some rule",
+                query="",
+                aggregation=QueryAggregations.TOTAL,
+                time_window=1,
+                threshold_period=1,
+            )
+            trigger = create_alert_rule_trigger(
+                rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
+            )
+            create_alert_rule_trigger_action(
+                trigger,
+                AlertRuleTriggerAction.Type.EMAIL,
+                AlertRuleTriggerAction.TargetType.USER,
+                six.text_type(self.user.id),
+            )
+            return rule
 
     @fixture
     def trigger(self):

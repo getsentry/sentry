@@ -34,12 +34,11 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
-    query_aggregation_to_snuba,
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
