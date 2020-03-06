@@ -1,10 +1,12 @@
 import {css} from '@emotion/core';
 
+import {Theme} from 'app/utils/theme';
+
 type Props = {
   disabled?: boolean;
   monospace?: boolean;
   readOnly?: boolean;
-  theme: any;
+  theme: Theme;
 };
 
 const inputStyles = (props: Props) =>

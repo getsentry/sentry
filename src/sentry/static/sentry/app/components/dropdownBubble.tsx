@@ -2,7 +2,7 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import SettingsHeader from 'app/views/settings/components/settingsHeader';
-import themeObj from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 type Params = {
   /**
@@ -26,7 +26,7 @@ type Params = {
    */
   menuWithArrow: boolean;
 
-  theme: typeof themeObj;
+  theme: Theme;
 };
 
 /**

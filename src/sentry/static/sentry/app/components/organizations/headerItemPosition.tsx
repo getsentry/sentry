@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import {AutoCompleteRoot} from 'app/components/dropdownAutoCompleteMenu';
 import {TimeRangeRoot} from 'app/components/organizations/timeRangeSelector/index';
 
 type Props = {
   isSpacer?: boolean;
-  theme: typeof theme;
+  theme: Theme;
 };
 
 function getMediaQueryForSpacer(p: Props): string {
