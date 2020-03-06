@@ -72,10 +72,9 @@ start_snuba: &start_snuba |-
   docker run \
     --name sentry_snuba \
     -d --network host \
-    -e SNUBA_SETTINGS=docker \
+    -e SNUBA_SETTINGS=test \
     -e CLICKHOUSE_HOST=127.0.0.1 \
     -e CLICKHOUSE_PORT=9000 \
-    -e CLICKHOUSE_HTTP_PORT=8123 \
     getsentry/snuba
 
 script:
@@ -113,8 +112,7 @@ base_postgres: &postgres_default
     - postgresql
   before_install:
     - *base_install
-    - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
-    - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+    - *start_snuba
     - docker ps -a
   install:
     - python setup.py install_egg_info
