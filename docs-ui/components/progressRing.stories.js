@@ -76,7 +76,7 @@ storiesOf('UI|ProgressRing', module).add(
           textCss={() => css`
             font-size: 14px;
             font-weight: bold;
-            fill: #ec5f5f;
+            color: #ec5f5f;
           `}
           progressColor="#ff4d44"
           backgroundColor="#fbe6e6"
