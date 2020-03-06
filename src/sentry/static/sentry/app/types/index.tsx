@@ -829,7 +829,7 @@ export type SentryAppComponent = {
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
   IntegrationDirectoryExperiment: '1' | '0';
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV1';
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
 };
 
 type SavedQueryVersions = 1 | 2;
