@@ -20,7 +20,7 @@ class DataExportError(Exception):
 
 
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
-def assemble_download(data_export_id):
+def assemble_download(data_export_id, limit=None, environment_id=None):
     # Extract the ExportedData object
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
@@ -36,7 +36,9 @@ def assemble_download(data_export_id):
             elif data_export.query_type == ExportQueryType.BILLING_REPORT:
                 file_name = process_billing_report(data_export, tf)
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-                file_name = process_issue_by_tag(data_export, tf)
+                file_name = process_issue_by_tag(
+                    data_export=data_export, file=tf, limit=limit, environment_id=environment_id
+                )
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
             try:
@@ -71,7 +73,7 @@ def process_billing_report(data_export, file):
     raise NotImplementedError("Billing report processing has not been implemented yet")
 
 
-def process_issue_by_tag(data_export, file, limit=None):
+def process_issue_by_tag(data_export, file, limit, environment_id):
     """
     Convert the tag query to a CSV, writing it to the provided file.
     Returns the suggested file name.

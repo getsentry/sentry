@@ -4,7 +4,10 @@ from django.http import Http404
 
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
-from sentry.models import Environment, EventUser, Group, get_group_with_redirect
+from sentry.models import Environment, EventUser
+
+# TODO(Fix this shitß)
+from sentry.processing.data_export import IssuesByTag, DataExportProcessingError
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 
@@ -69,12 +72,8 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
     def get(self, request, organization, project, group_id, key):
         try:
-            # TODO(tkaemming): This should *actually* redirect, see similar
-            # comment in ``GroupEndpoint.convert_args``.
-            group, _ = get_group_with_redirect(
-                group_id, queryset=Group.objects.filter(project=project)
-            )
-        except Group.DoesNotExist:
+            _, group = IssuesByTag.get_project_and_group(project.id, group_id)
+        except DataExportProcessingError:
             raise Http404
 
         if tagstore.is_reserved_key(key):
@@ -94,13 +93,14 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise Http404
 
-        if key == "user":
-            callbacks = [attach_eventuser(project.id)]
-        else:
-            callbacks = []
+        callbacks = [IssuesByTag.get_eventuser_callback(group.project_id)] if key == "user" else []
 
-        gtv_iter = tagstore.get_group_tag_value_iter(
-            group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
+        gtv_iter = IssuesByTag.get_issues_list(
+            project_id=group.project_id,
+            group_id=group_id,
+            environment_id=environment_id,
+            key=key,
+            callbacks=callbacks,
         )
 
         filename = u"{}-{}".format(group.qualified_short_id or group.id, key)

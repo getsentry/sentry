@@ -5,6 +5,8 @@ import six
 from sentry import tagstore
 from sentry.models import EventUser, Group, get_group_with_redirect, Project
 
+# TODO(Leander): Add environment checking to this module
+
 
 class DataExportProcessingError(Exception):
     pass
@@ -14,6 +16,8 @@ class IssuesByTag:
     def get_project_and_group(project_id, group_id):
         try:
             project = Project.objects.get(id=project_id)
+            # TODO(tkaemming): This should *actually* redirect, see similar
+            # comment in ``GroupEndpoint.convert_args``.
             group, _ = get_group_with_redirect(
                 group_id, queryset=Group.objects.filter(project=project)
             )
@@ -46,11 +50,11 @@ class IssuesByTag:
 
         return wrapper
 
-    def get_issues_list(key, **kwargs):
+    def get_issues_list(key, *args, **kwargs):
         lookup_key = (
             six.text_type("sentry:{}").format(key) if tagstore.is_reserved_key(key) else key
         )
-        return tagstore.get_group_tag_value_iter(key=lookup_key, **kwargs)
+        return tagstore.get_group_tag_value_iter(key=lookup_key, *args, **kwargs)
 
     def serialize_issue(item, key):
         result = {
