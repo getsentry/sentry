@@ -34,7 +34,7 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
-const DEFAULT_THRESHOLD_VALUE: string = '10';
+const DEFAULT_PLACEHOLDER_VALUE: string = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
@@ -107,7 +107,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       alertSetting: `${Actions.CREATE_ALERT_LATER}`,
       metric: MetricValues.ERRORS,
       interval: '',
-      threshold: DEFAULT_THRESHOLD_VALUE,
+      threshold: '',
     };
   }
 
@@ -131,7 +131,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
     ];
     if (hasProperlyLoadedConditions) {
-      options.unshift([
+      options.push([
         `${Actions.CUSTOMIZED_ALERTS}`,
         <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
           {t('When there are more than')}
@@ -139,7 +139,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             type="number"
             min="0"
             name=""
-            placeholder={DEFAULT_THRESHOLD_VALUE}
+            placeholder={DEFAULT_PLACEHOLDER_VALUE}
             value={this.state.threshold}
             key={name}
             onChange={threshold =>
@@ -263,7 +263,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     }
 
     this.setStateAndUpdateParents({
-      alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
       conditions,
       intervalChoices,
       interval,
