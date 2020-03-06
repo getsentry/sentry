@@ -47,6 +47,13 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
           description: t('Manage issue ownership rules for a project'),
         },
         {
+          path: `${pathPrefix}/data-privacy/`,
+          title: t('Data Privacy'),
+          description: t('Configure Datascrubbers for a project'),
+          show: ({features}) => features!.has('datascrubbers-v2'),
+          badge: () => 'new',
+        },
+        {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
         },

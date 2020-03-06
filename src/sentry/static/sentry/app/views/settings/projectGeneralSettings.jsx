@@ -31,6 +31,9 @@ import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import Link from 'app/components/links/link';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Feature from 'app/components/acl/feature';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -471,19 +474,37 @@ class ProjectGeneralSettings extends AsyncView {
             />
           )}
 
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Data Privacy')}
-            fields={[
-              fields.dataScrubber,
-              fields.dataScrubberDefaults,
-              fields.scrubIPAddresses,
-              fields.sensitiveFields,
-              fields.safeFields,
-              fields.storeCrashReports,
-              fields.relayPiiConfig,
-            ]}
-          />
+          <Feature features={['datascrubbers-v2']}>
+            {({hasFeature}) =>
+              hasFeature ? (
+                <Panel>
+                  <PanelHeader>{t('Data Privacy')}</PanelHeader>
+                  <EmptyMessage
+                    title={t('Data Privacy section now has its own tab')}
+                    description={
+                      <Link to={`/settings/${orgId}/projects/${projectId}/data-privacy/`}>
+                        {t('Go to Data Privacy')}
+                      </Link>
+                    }
+                  />
+                </Panel>
+              ) : (
+                <JsonForm
+                  {...jsonFormProps}
+                  title={t('Data Privacy')}
+                  fields={[
+                    fields.dataScrubber,
+                    fields.dataScrubberDefaults,
+                    fields.scrubIPAddresses,
+                    fields.sensitiveFields,
+                    fields.safeFields,
+                    fields.storeCrashReports,
+                    fields.relayPiiConfig,
+                  ]}
+                />
+              )
+            }
+          </Feature>
 
           <JsonForm
             {...jsonFormProps}

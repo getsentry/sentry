@@ -392,6 +392,18 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
+
+      <Route
+        name={t('Data Privacy')}
+        path="data-privacy/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectDataPrivacy" */ 'app/views/settings/projectDataPrivacy/projectDataPrivacy'
+          )
+        }
+      />
+
       <Route
         path="debug-symbols/"
         name="Debug Information Files"
