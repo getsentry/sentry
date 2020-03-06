@@ -27,7 +27,7 @@ export default function profiler() {
           description: `<${displayName}>`,
         },
         {
-          autoPopAfter: 500, // After this timeout we'll pop this activity regardless
+          autoPopAfter: 2000, // After this timeout we'll pop this activity regardless
         }
       );
       // For whatever reason it's not guaranteed that `finishProfile` will be called, that's why we need
