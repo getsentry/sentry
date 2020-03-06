@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
-import pytz
 import itertools
 
 from django.db import models, IntegrityError, transaction
@@ -11,7 +10,6 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
 from time import time
-from datetime import datetime
 
 from sentry.app import locks
 from sentry.db.models import (
@@ -25,7 +23,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange, DateTimeField
+from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -46,10 +44,6 @@ class ReleaseProject(Model):
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
-
-    # persisted health stats
-    adoption = BoundedPositiveIntegerField(null=True)
-    last_health_update = DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -304,27 +298,6 @@ class Release(Model):
         try:
             with transaction.atomic():
                 ReleaseProject.objects.create(project=project, release=self)
-                if not project.flags.has_releases:
-                    project.flags.has_releases = True
-                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
-        except IntegrityError:
-            return False
-        else:
-            return True
-
-    def add_project_and_update_health_data(self, project, adoption=None):
-        """Adds a project to the release if missing and updates the materialized
-        health data on it.
-        """
-        from sentry.models import Project
-
-        try:
-            with transaction.atomic():
-                ReleaseProject.objects.update_or_create(
-                    project=project,
-                    release=self,
-                    defaults={"adoption": adoption, "last_health_update": datetime.now(pytz.UTC)},
-                )
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))

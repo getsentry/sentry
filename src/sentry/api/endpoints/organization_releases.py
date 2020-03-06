@@ -3,11 +3,8 @@ from __future__ import absolute_import
 from itertools import izip
 
 import six
-import pytz
 from django.db import IntegrityError, transaction
-from django.db.models.expressions import RawSQL
 from rest_framework.response import Response
-from datetime import datetime, timedelta
 
 from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
@@ -22,7 +19,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, Project, ReleaseProject
+from sentry.models import Activity, Release, Project
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
@@ -90,8 +87,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
 
 def debounce_update_release_health_data(organization, project_ids):
     """This causes a flush of snuba health data to the postgres tables once
-    per minute for the given projects.  Currently only adoption statistics
-    are stored on postgres as those are always last 24 hour approximations.
+    per minute for the given projects.
     """
     # Figure out which projects need to get updates from the snuba.
     should_update = {}
@@ -108,29 +104,18 @@ def debounce_update_release_health_data(organization, project_ids):
     # health data over the last 24 hours. It will miss releases where the last
     # date is <24h ago.  We need to aggregate the data for the totals per release
     # manually here now.  This does not take environments into account.
-    for stats in get_changed_project_release_model_adoptions(should_update.keys()):
-        project = Project.objects.get_from_cache(id=stats["project_id"])
+    for project_id, version in get_changed_project_release_model_adoptions(should_update.keys()):
+        project = Project.objects.get_from_cache(id=project_id)
 
         # We might have never observed the release.  This for instance can
         # happen if the release only had health data so far.  For these cases
         # we want to create the release the first time we observed it on the
         # health side.
-        release = Release.get_or_create(project=project, version=stats["release"])
+        release = Release.get_or_create(project=project, version=version)
 
         # Make sure that the release knows about this project.  Like we had before
         # the project might not have been associated with this release yet.
-        release.add_project_and_update_health_data(
-            project, adoption=int(stats["adoption"] * 100000)
-        )
-
-    # Now force all release projects with health data that are older than
-    # 24 hours to have no adoption data.
-    ReleaseProject.objects.filter(
-        project_id__in=should_update.keys(),
-        last_health_update__isnull=False,
-        adoption__gt=0,
-        last_health_update__lt=datetime.now(pytz.UTC) - timedelta(days=1),
-    ).update(adoption=0)
+        release.add_project(project)
 
     # Debounce updates for a minute
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
@@ -195,10 +180,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        elif sort == "adoption":
-            if not flatten:
-                return Response({"detail": "sorting by adoption requires flattening"}, status=400)
-            sort_query = "sentry_release_project.adoption"
         elif sort in ("crash_free_sessions", "crash_free_users"):
             if not flatten:
                 return Response(
@@ -224,15 +205,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if sort_query is not None:
             queryset = queryset.filter(projects__id__in=filter_params["project_id"])
             select_extra["sort"] = sort_query
-
-            # The hack that makes flattening work is the only one that also needs
-            # the null last sorting (for adoption).  Because the raw sql here
-            # however does not work for the query generated for non flattened
-            # cases we need to fall back to `-sort` here.
-            if not flatten:
-                paginator_kwargs["order_by"] = "-sort"
-            else:
-                paginator_kwargs["order_by"] = RawSQL("sort", []).desc(nulls_last=True)
+            paginator_kwargs["order_by"] = "-sort"
 
         queryset = queryset.extra(select=select_extra)
         if filter_params["start"] and filter_params["end"]:

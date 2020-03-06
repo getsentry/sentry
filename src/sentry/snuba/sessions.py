@@ -17,40 +17,19 @@ def _get_conditions_and_filter_keys(project_releases, environments):
 
 
 def get_changed_project_release_model_adoptions(project_ids):
-    """Given some project IDs returns adoption rates that should be updated
-    on the postgres tables.
-    """
-    user_totals = {}
-    yesterday = datetime.now(pytz.utc) - timedelta(days=1)
+    """Returns the last 48 hours worth of releases."""
+    start = datetime.now(pytz.utc) - timedelta(days=2)
     rv = []
-
-    # Get the 24 hour totals per release
-    for x in raw_query(
-        dataset=Dataset.Sessions,
-        selected_columns=["project_id", "users"],
-        groupby=["project_id"],
-        start=yesterday,
-        filter_keys={"project_id": project_ids},
-    )["data"]:
-        user_totals[x["project_id"]] = x["users"]
 
     # Find all releases with adoption in the last 24 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release", "users"],
         groupby=["release", "project_id"],
-        start=yesterday,
+        start=start,
         filter_keys={"project_id": project_ids},
     )["data"]:
-        totals = float(user_totals.get(x["project_id"]))
-        rv.append(
-            {
-                "date": yesterday,
-                "project_id": x["project_id"],
-                "release": x["release"],
-                "adoption": x["users"] / totals * 100 if totals else None,
-            }
-        )
+        rv.append((x["project_id"], x["release"]))
 
     return rv
 
