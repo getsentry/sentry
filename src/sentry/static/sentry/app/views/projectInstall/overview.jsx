@@ -34,8 +34,8 @@ class ProjectInstallOverview extends AsyncComponent {
     const {orgId, projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}`
-      : recreateRoute(`install/${platform}`, {
+      ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}/`
+      : recreateRoute(`install/${platform}/`, {
           ...this.props,
           stepBack: -3,
         });
