@@ -173,6 +173,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'value',
+        defaultValue: 1,
         dataType: 'integer',
         required: false,
       },
@@ -184,6 +185,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'value',
+        defaultValue: 1,
         dataType: 'integer',
         required: false,
       },

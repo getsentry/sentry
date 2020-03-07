@@ -322,7 +322,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     return (
       <React.Fragment
-        key={`${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
+        key={`${i}:${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
       >
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer className={isGhost ? '' : DRAG_CLASS}>

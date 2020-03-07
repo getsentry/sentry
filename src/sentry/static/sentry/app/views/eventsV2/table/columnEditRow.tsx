@@ -4,7 +4,6 @@ import {components} from 'react-select';
 
 import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import Input from 'app/components/forms/input';
 import {SelectValue, StringMap} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -102,9 +101,9 @@ class ColumnEditRow extends React.Component<Props> {
     this.triggerChange(column.aggregation, value.meta.name, column.refinement);
   };
 
-  handleRefinementChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  handleRefinementChange = (value: string) => {
     const {column} = this.props;
-    this.triggerChange(column.aggregation, column.field, event.target.value);
+    this.triggerChange(column.aggregation, column.field, value);
   };
 
   triggerChange(aggregation: string, field: string, refinement?: string) {
@@ -244,12 +243,12 @@ class ColumnEditRow extends React.Component<Props> {
         const inputProps = {
           required: descriptor.required,
           value: descriptor.value,
-          onChange: this.handleRefinementChange,
+          onUpdate: this.handleRefinementChange,
         };
         switch (descriptor.dataType) {
           case 'number':
             return (
-              <StyledInput
+              <BufferedInput
                 name="refinement"
                 key="parameter:number"
                 type="number"
@@ -260,7 +259,7 @@ class ColumnEditRow extends React.Component<Props> {
             );
           case 'integer':
             return (
-              <StyledInput
+              <BufferedInput
                 name="refinement"
                 key="parameter:integer"
                 type="number"
@@ -271,7 +270,7 @@ class ColumnEditRow extends React.Component<Props> {
             );
           default:
             return (
-              <StyledInput
+              <BufferedInput
                 name="refinement"
                 key="parameter:text"
                 type="text"
@@ -289,7 +288,12 @@ class ColumnEditRow extends React.Component<Props> {
     if (requiredInputs > 0) {
       for (let i = 0; i < requiredInputs; i++) {
         inputs.push(
-          <StyledInput key={`disabled:${i}`} placeholder={t('N/A')} disabled />
+          <StyledInput
+            className="form-control"
+            key={`disabled:${i}`}
+            placeholder={t('N/A')}
+            disabled
+          />
         );
       }
     }
@@ -349,9 +353,75 @@ const Label = styled('span')`
   width: 100%;
 `;
 
+type InputProps = React.HTMLProps<HTMLInputElement> & {
+  onUpdate: (value: string) => void;
+  value: string;
+};
+type InputState = {value: string};
+
+/**
+ * Because controlled inputs fire onChange on every key stroke,
+ * we can't update the ColumnEditRow that often as it would re-render
+ * the input elements causing focus to be lost.
+ *
+ * Using a buffered input lets us throttle rendering and enforce data
+ * constraints better.
+ */
+class BufferedInput extends React.Component<InputProps, InputState> {
+  state = {
+    value: this.props.value,
+  };
+
+  private input: React.RefObject<HTMLInputElement>;
+
+  constructor(props: InputProps) {
+    super(props);
+    this.input = React.createRef();
+  }
+
+  get isValid() {
+    if (!this.input.current) {
+      return true;
+    }
+    return this.input.current.validity.valid;
+  }
+
+  handleBlur = () => {
+    if (this.isValid) {
+      this.props.onUpdate(this.state.value);
+    } else {
+      this.setState({value: this.props.value});
+    }
+  };
+
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (this.isValid) {
+      this.setState({value: event.target.value});
+    }
+  };
+
+  render() {
+    const {onUpdate, ...props} = this.props;
+    return (
+      <StyledInput
+        {...props}
+        ref={this.input}
+        className="form-control"
+        value={this.state.value}
+        onChange={this.handleChange}
+        onBlur={this.handleBlur}
+      />
+    );
+  }
+}
+
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled(Input)`
+const StyledInput = styled('input')`
   min-width: 50px;
+
+  &:not([disabled='true']):invalid {
+    border-color: ${p => p.theme.red};
+  }
 `;
 
 export {ColumnEditRow};
