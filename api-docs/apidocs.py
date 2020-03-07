@@ -28,8 +28,8 @@ network = get_or_create(client, "network", namespace)
 containers = {
     "postgres": {
         "image": SENTRY_DEVSERVICES["postgres"]["image"],
-        "ports": {"5432/tcp": ("127.0.0.1", 5433)},
-        "environment": {"POSTGRES_DB": "sentry_api_docs"},
+        "ports": {"5432/tcp": ("127.0.0.1", 5400)},
+        "environment": {"POSTGRES_DB": "sentry_api_docs", "POSTGRES_HOST_AUTH_METHOD": "trust"},
     },
     "redis": {
         "image": SENTRY_DEVSERVICES["redis"]["image"],

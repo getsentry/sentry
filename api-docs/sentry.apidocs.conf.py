@@ -25,7 +25,7 @@ DATABASES = {
         "USER": "postgres",
         "PASSWORD": "",
         "HOST": "127.0.0.1",
-        "PORT": 5433,
+        "PORT": 5400,
     }
 }
 SENTRY_USE_BIG_INTS = True
