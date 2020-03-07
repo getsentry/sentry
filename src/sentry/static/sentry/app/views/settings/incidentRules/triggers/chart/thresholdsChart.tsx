@@ -224,9 +224,9 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, xAxis} = this.props;
-    const dataWithoutRecentBucket = data?.map(({data: event_data, ...restOfData}) => ({
+    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => ({
       ...restOfData,
-      data: event_data.slice(0, -1),
+      data: eventData.slice(0, -1),
     }));
 
     return (
