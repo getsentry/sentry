@@ -251,9 +251,9 @@ class ColumnEditRow extends React.Component<Props> {
               <BufferedInput
                 name="refinement"
                 key="parameter:number"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*(\.[0-9]*)?"
                 {...inputProps}
               />
             );
@@ -262,9 +262,9 @@ class ColumnEditRow extends React.Component<Props> {
               <BufferedInput
                 name="refinement"
                 key="parameter:integer"
-                type="number"
-                min="0"
-                step="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 {...inputProps}
               />
             );
