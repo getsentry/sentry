@@ -111,7 +111,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(fieldRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
         'user-def'
       );
-      expect(fieldRow.find('Input[disabled]')).toHaveLength(1);
+      expect(fieldRow.find('StyledInput[disabled]')).toHaveLength(1);
     });
   });
 
@@ -133,13 +133,13 @@ describe('EventsV2 -> ColumnEditModal', function() {
       const countRow = wrapper.find('ColumnEditRow').first();
       // Has a select and 2 disabled inputs
       expect(countRow.find('SelectControl')).toHaveLength(1);
-      expect(countRow.find('Input[disabled]')).toHaveLength(2);
+      expect(countRow.find('StyledInput[disabled]')).toHaveLength(2);
 
       const apdexRow = wrapper.find('ColumnEditRow').last();
       // two select fields, and one number input.
       expect(apdexRow.find('SelectControl')).toHaveLength(2);
-      expect(apdexRow.find('Input[disabled]')).toHaveLength(0);
-      expect(apdexRow.find('Input[type="number"]')).toHaveLength(1);
+      expect(apdexRow.find('StyledInput[disabled]')).toHaveLength(0);
+      expect(apdexRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
     });
   });
 
@@ -157,7 +157,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('renders as an aggregate function with no parameters', function() {
       const row = wrapper.find('ColumnEditRow').first();
       expect(row.find('SelectControl[name="field"] SingleValue').text()).toBe('p95()');
-      expect(row.find('Input[disabled]')).toHaveLength(1);
+      expect(row.find('StyledInput[disabled]')).toHaveLength(1);
     });
 
     it('updates correctly when the function is changed', function() {
@@ -195,7 +195,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('shows no options for parameterless functions', function() {
       selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
 
-      const parameter = wrapper.find('ColumnEditRow Input[disabled=true]');
+      const parameter = wrapper.find('ColumnEditRow StyledInput[disabled]');
       expect(parameter).toHaveLength(1);
     });
 
@@ -207,7 +207,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(field.find('SingleValue').text()).toBe('transaction.duration');
 
       // Input should show and have default value.
-      const refinement = wrapper.find('ColumnEditRow Input[type="number"]');
+      const refinement = wrapper.find('ColumnEditRow input[inputMode="numeric"]');
       expect(refinement.props().value).toBe('300');
     });
   });
