@@ -11,7 +11,8 @@ from sentry.conf.server import SENTRY_DEVSERVICES
 from subprocess import Popen
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-OUTPUT_PATH = os.path.join(HERE, "cache")
+# TODO(manu): take in a path from the command line
+OUTPUT_PATH = "/usr/src/output"
 SENTRY_CONFIG = os.environ["SENTRY_CONF"] = os.path.join(HERE, "sentry.apidocs.conf.py")
 os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 HOST = urlparse("https://127.0.0.1").netloc
@@ -201,7 +202,6 @@ def output_markdown(sections, scenarios, section_mapping):
 
 
 def dump_json(path, data):
-    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "json", path)
     try:
         os.makedirs(os.path.dirname(path))
@@ -213,7 +213,6 @@ def dump_json(path, data):
 
 
 def dump_index_markdown(section, title, links):
-    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "markdown", section, "index.md")
     try:
         os.makedirs(os.path.dirname(path))
@@ -225,7 +224,6 @@ def dump_index_markdown(section, title, links):
 
 
 def dump_markdown(path, data):
-    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "markdown", path)
     try:
         os.makedirs(os.path.dirname(path))
