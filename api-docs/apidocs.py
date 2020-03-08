@@ -201,7 +201,7 @@ def output_markdown(sections, scenarios, section_mapping):
 
 
 def dump_json(path, data):
-    OUTPUT_PATH = "/tmp/src/output"
+    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "json", path)
     try:
         os.makedirs(os.path.dirname(path))
@@ -213,7 +213,7 @@ def dump_json(path, data):
 
 
 def dump_index_markdown(section, title, links):
-    OUTPUT_PATH = "/tmp/src/output"
+    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "markdown", section, "index.md")
     try:
         os.makedirs(os.path.dirname(path))
@@ -225,7 +225,7 @@ def dump_index_markdown(section, title, links):
 
 
 def dump_markdown(path, data):
-    OUTPUT_PATH = "/tmp/src/output"
+    # OUTPUT_PATH = "/usr/src/output"
     path = os.path.join(OUTPUT_PATH, "markdown", path)
     try:
         os.makedirs(os.path.dirname(path))
