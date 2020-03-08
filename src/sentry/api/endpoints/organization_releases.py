@@ -5,6 +5,7 @@ from itertools import izip
 import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
@@ -141,7 +142,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         sort = request.GET.get("sort") or "date"
         stats_period = request.GET.get("healthStatsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
-            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+            raise ParseError(detail=ERR_INVALID_STATS_PERIOD)
         if stats_period is None and with_health:
             stats_period = "24h"
 
@@ -183,7 +184,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         elif sort in ("crash_free_sessions", "crash_free_users"):
             if not flatten:
                 return Response(
-                    {"detail": "sorting by crash statistics requires flattening"}, status=400
+                    {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
+                    status=400,
                 )
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
