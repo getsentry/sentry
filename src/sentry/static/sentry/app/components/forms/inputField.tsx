@@ -6,6 +6,7 @@ import FormField from 'app/components/forms/formField';
 type InputFieldProps = FormField['props'] & {
   placeholder: string;
   inputStyle?: object;
+  onBlur?: (event?: React.FocusEvent<HTMLInputElement>) => void;
 };
 
 export default class InputField<
@@ -34,6 +35,7 @@ export default class InputField<
         required={this.props.required}
         value={this.state.value as string | number} //can't pass in boolean here
         style={this.props.inputStyle}
+        onBlur={this.props.onBlur}
         {...this.getAttributes()}
       />
     );

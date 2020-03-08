@@ -11,6 +11,8 @@ import ProjectActions from 'app/actions/projectActions';
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 
+import ProjectDataPrivacyRulesPanel from './projectDataPrivacyRulesPanel';
+
 type Props = {
   organization: Organization;
   params: {
@@ -67,10 +69,10 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
               fields.sensitiveFields,
               fields.safeFields,
               fields.storeCrashReports,
-              fields.relayPiiConfig,
             ]}
           />
         </Form>
+        <ProjectDataPrivacyRulesPanel />
       </React.Fragment>
     );
   }
