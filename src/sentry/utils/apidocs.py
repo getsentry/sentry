@@ -263,11 +263,15 @@ def extract_endpoint_info(pattern, internal_endpoint):
 def iter_endpoints():
     from sentry.api.urls import urlpatterns
 
+    # print("xxxManu in iter_endpoints")
+
     for pattern in urlpatterns:
+        # print("xxxManu evaluating pattern: %s" % pattern)
         internal_endpoint = get_internal_endpoint_from_pattern(pattern)
         if internal_endpoint is None:
             continue
         for endpoint in extract_endpoint_info(pattern, internal_endpoint):
+            # print('xxxManu yielding endpoint')
             yield endpoint
 
 

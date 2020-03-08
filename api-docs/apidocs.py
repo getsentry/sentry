@@ -24,6 +24,8 @@ namespace = "apidocs"
 network = get_or_create(client, "network", namespace)
 
 
+# print ("xxxManu started")
+
 # Define our set of containers we want to run
 containers = {
     "postgres": {
@@ -100,10 +102,21 @@ sentry = Popen(
     ["sentry", "--config=" + SENTRY_CONFIG, "run", "web", "-w", "1", "--bind", "127.0.0.1:12356"]
 )
 
+# print ("xxxManu opened process")
+
+
 # Fair game from here
 from django.core.management import call_command
 
-call_command("migrate", interactive=False, traceback=True, verbosity=0)
+call_command(
+    "migrate",
+    interactive=False,
+    traceback=True,
+    verbosity=0,
+    migrate=True,
+    merge=True,
+    ignore_ghost_migrations=True,
+)
 
 import zlib
 import six
@@ -153,12 +166,17 @@ def output_json(sections, scenarios, section_mapping):
 
 def output_markdown(sections, scenarios, section_mapping):
     report("docs", "Generating markdown documents")
+    # print ("xxxManu Generating markdown")
+    # print ("xxxManu Generating markdown section_mapping: %s" % section_mapping)
     for section, title in sections.items():
+        # print ("xxxManu Generating markdown for %s" % title)
         i = 0
         links = []
         for endpoint in section_mapping.get(section, []):
+            # print ("xxxManu Generating markdown for endpoint %s" % endpoint)
             i += 1
             path = u"{}/{}.md".format(section, endpoint["endpoint_name"])
+            # print ("xxxManu output_markdown path: %s" % path)
             auth = ""
             if len(endpoint["params"].get("auth", [])):
                 auth = endpoint["params"]["auth"][0]["description"]
@@ -270,6 +288,7 @@ def format_headers(headers):
     return [u"{}: {}".format(key, value) for key, value in headers.items()]
 
 
+# print ("xxxManu Beginning reporting")
 utils = MockUtils()
 report("org", "Creating user and organization")
 user = utils.create_user("john@interstellar.invalid")
@@ -282,6 +301,7 @@ team = utils.create_team("Powerful Abolitionist", org=org)
 utils.join_team(team, user)
 
 projects = []
+# print ("xxxManu Beginning project")
 for project_name in "Pump Station", "Prime Mover":
     report("project", 'Creating project "%s"' % project_name)
     project = utils.create_project(project_name, teams=[team], org=org)
@@ -314,6 +334,8 @@ for endpoint in iter_endpoints():
 sections = get_sections()
 
 output_format = "both"
+# print ("xxxManu section_mapping: %s" % section_mapping)
+
 if output_format in ("json", "both"):
     output_json(sections, scenario_map, section_mapping)
 if output_format in ("markdown", "both"):
