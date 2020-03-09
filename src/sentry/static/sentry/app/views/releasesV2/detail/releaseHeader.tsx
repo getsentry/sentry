@@ -4,15 +4,18 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import Link from 'app/components/links/link';
 import ListLink from 'app/components/links/listLink';
 import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
-import {Release} from 'app/types';
+import {Release, Deploy} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
+import Count from 'app/components/count';
+import TimeSince from 'app/components/timeSince';
 
 import ReleaseStat from './releaseStat';
 import Breadcrumbs from './breadcrumbs';
@@ -22,10 +25,11 @@ type Props = {
   location: Location;
   orgId: string;
   release: Release;
+  deploys: Deploy[];
 };
 
-const ReleaseHeader = ({location, orgId, release}: Props) => {
-  const {version} = release;
+const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
+  const {version, newGroups, url} = release;
 
   const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
     version
@@ -52,15 +56,39 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
         />
 
         <StatsWrapper>
-          <ReleaseStat label={t('Deploys')}>
-            <DeploysWrapper>
-              <StyledBadge text="stag" />
-              <StyledBadge text="prod" />
-            </DeploysWrapper>
+          {deploys.length > 0 && (
+            <ReleaseStat label={t('Deploys')}>
+              <DeploysWrapper>
+                {deploys.map(deploy => {
+                  return (
+                    <Tooltip
+                      title={<TimeSince date={deploy.dateFinished} />}
+                      key={deploy.id}
+                    >
+                      <Link
+                        title={t('View in stream')}
+                        to={`/organizations/${orgId}/issues/?query=release:${encodeURIComponent(
+                          version
+                        )}&environment=${encodeURIComponent(deploy.environment)}`}
+                      >
+                        <StyledBadge text={deploy.environment} />
+                      </Link>
+                    </Tooltip>
+                  );
+                })}
+              </DeploysWrapper>
+            </ReleaseStat>
+          )}
+          <ReleaseStat label={t('Crashes')}>
+            <Count value={release.healthData?.crashes ?? 0} />
           </ReleaseStat>
-          <ReleaseStat label={t('Crashes')}>{(1234).toLocaleString()}</ReleaseStat>
-          <ReleaseStat label={t('Errors')}>{(4321).toLocaleString()}</ReleaseStat>
-          <ReleaseActions version={release.version} orgId={orgId} />
+          <ReleaseStat label={t('Errors')}>
+            <Count value={release.healthData?.errors ?? 0} />
+          </ReleaseStat>
+          <ReleaseStat label={t('New Issues')}>
+            <Count value={newGroups} />
+          </ReleaseStat>
+          <ReleaseActions version={version} orgId={orgId} />
         </StatsWrapper>
       </Layout>
 
@@ -75,13 +103,15 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
           </Clipboard>
         </IconWrapper>
 
-        <IconWrapper>
-          <Tooltip title="https://freight.getsentry.net/deploys/getsentry/production/8261/">
-            <ExternalLink href="https://freight.getsentry.net/deploys/getsentry/production/8261/">
-              <IconOpen size="xs" />
-            </ExternalLink>
-          </Tooltip>
-        </IconWrapper>
+        {!!url && (
+          <IconWrapper>
+            <Tooltip title={url}>
+              <ExternalLink href={url}>
+                <IconOpen size="xs" />
+              </ExternalLink>
+            </Tooltip>
+          </IconWrapper>
+        )}
       </ReleaseName>
 
       <StyledNavTabs>

@@ -47,14 +47,13 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
     };
 
+    const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
+      params.release
+    )}/`;
+
     return [
-      [
-        'release',
-        `/organizations/${organization.slug}/releases/${encodeURIComponent(
-          params.release
-        )}/`,
-        {query},
-      ],
+      ['release', basePath, {query}],
+      ['deploys', `${basePath}deploys/`, {}],
     ];
   }
 
@@ -77,7 +76,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, location} = this.props;
-    const {release} = this.state;
+    const {release, deploys} = this.state;
 
     return (
       <NoProjectMessage organization={organization}>
@@ -86,6 +85,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             location={location}
             orgId={organization.slug}
             release={release}
+            deploys={deploys}
           />
 
           {this.props.children}
