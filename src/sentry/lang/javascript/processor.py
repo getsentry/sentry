@@ -539,7 +539,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # therefore we only process user-land frames (starting with /)
         # or those created by bundle/webpack internals
         if self.data.get("platform") == "node" and (
-            frame.get("abs_path").includes("node_modules")
+            "node_modules" in frame.get("abs_path")
             or not frame.get("abs_path").startswith("/", "app:", "webpack:")
         ):
             return
