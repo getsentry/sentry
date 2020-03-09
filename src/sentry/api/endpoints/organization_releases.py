@@ -157,8 +157,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             return Response({"detail": six.text_type(e)}, status=400)
 
         # This should get us all the projects into postgres that have received
-        # health data in the last 24 hours.
-        debounce_update_release_health_data(organization, filter_params["project_id"])
+        # health data in the last 24 hours.  If health data is not requested
+        # we don't upsert releases.
+        if with_health:
+            debounce_update_release_health_data(organization, filter_params["project_id"])
 
         queryset = Release.objects.filter(organization=organization).select_related("owner")
 
