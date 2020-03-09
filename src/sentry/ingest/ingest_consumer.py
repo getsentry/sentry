@@ -11,7 +11,7 @@ import multiprocessing as _multiprocessing
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features
+from sentry import eventstore, features
 from sentry.cache import default_cache
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
@@ -217,6 +217,17 @@ def process_individual_attachment(message, projects):
         logger.info("Organization has no event attachments: %s", project_id)
         return
 
+    # Attachments may be uploaded for events that already exist. Fetch the
+    # existing group_id, so that the attachment can be fetched by group-level
+    # APIs. This is inherently racy.
+    events = eventstore.get_unfetched_events(
+        filter=eventstore.Filter(event_ids=[event_id], project_ids=[project.id]), limit=1
+    )
+
+    group_id = None
+    if events:
+        group_id = events[0].group_id
+
     attachment = message["attachment"]
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment.pop("attachment_type"), **attachment
@@ -231,7 +242,7 @@ def process_individual_attachment(message, projects):
 
     file.putfile(BytesIO(attachment.data))
     EventAttachment.objects.create(
-        project_id=project.id, event_id=event_id, name=attachment.name, file=file
+        project_id=project.id, group_id=group_id, event_id=event_id, name=attachment.name, file=file
     )
 
     attachment.delete()

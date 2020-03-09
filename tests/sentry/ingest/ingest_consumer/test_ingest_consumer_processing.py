@@ -136,12 +136,24 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
 @pytest.mark.parametrize(
     "chunks", [(b"Hello ", b"World!"), (b"",), ()], ids=["basic", "zerolen", "nochunks"]
 )
-def test_individual_attachments(default_project, monkeypatch, event_attachments, chunks):
+@pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
+def test_individual_attachments(
+    default_project, factories, monkeypatch, event_attachments, chunks, with_group
+):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
 
     event_id = "515539018c9b4260a6f999572f1661ee"
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
+    group_id = None
+
+    if with_group:
+        event = factories.store_event(
+            data={"event_id": event_id, "message": "existence is pain"}, project_id=project_id
+        )
+
+        group_id = event.group.id
+        assert group_id, "this test requires a group to work"
 
     for i, chunk in enumerate(chunks):
         process_attachment_chunk(
@@ -180,12 +192,13 @@ def test_individual_attachments(default_project, monkeypatch, event_attachments,
     if not event_attachments:
         assert not attachments
     else:
-        att1, = attachments
-        assert att1.file.type == "event.attachment"
-        assert att1.file.headers == {"Content-Type": "application/octet-stream"}
-        f = att1.file.getfile()
-        assert f.read() == b"".join(chunks)
-        assert f.name == "foo.txt"
+        attachment, = attachments
+        assert attachment.file.type == "event.attachment"
+        assert attachment.file.headers == {"Content-Type": "application/octet-stream"}
+        assert attachment.group_id == group_id
+        file = attachment.file.getfile()
+        assert file.read() == b"".join(chunks)
+        assert file.name == "foo.txt"
 
 
 @pytest.mark.django_db
