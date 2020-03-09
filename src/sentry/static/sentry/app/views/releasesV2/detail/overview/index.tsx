@@ -12,28 +12,31 @@ import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import SessionDuration from './sessionDuration';
+import {ReleaseContext} from '../index';
 
 type Props = {
   organization: Organization;
   params: Params;
 };
 
-// TODO(releasesV2): link to freight, list of projects
-
 const ReleaseOverview = ({organization, params}: Props) => {
   return (
-    <ContentBox>
-      <Main>
-        <HealthChart />
-        <Issues orgId={organization.slug} version={params.release} />
-      </Main>
-      <Sidebar>
-        <CommitAuthorBreakdown />
-        <ProjectReleaseDetails />
-        <TotalCrashFreeUsers />
-        <SessionDuration />
-      </Sidebar>
-    </ContentBox>
+    <ReleaseContext.Consumer>
+      {release => (
+        <ContentBox>
+          <Main>
+            <HealthChart />
+            <Issues orgId={organization.slug} version={params.release} />
+          </Main>
+          <Sidebar>
+            <CommitAuthorBreakdown />
+            <ProjectReleaseDetails release={release!} />
+            <TotalCrashFreeUsers />
+            <SessionDuration />
+          </Sidebar>
+        </ContentBox>
+      )}
+    </ReleaseContext.Consumer>
   );
 };
 

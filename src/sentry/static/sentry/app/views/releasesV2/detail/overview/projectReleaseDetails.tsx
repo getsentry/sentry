@@ -4,21 +4,48 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Release} from 'app/types';
+import Version from 'app/components/version';
+import TimeSince from 'app/components/timeSince';
 
-type Props = {};
+type Props = {
+  release: Release;
+};
 
-const ProjectReleaseDetails = ({}: Props) => {
+// TODO(releasesV2): TagValues should probably be links
+const ProjectReleaseDetails = ({release}: Props) => {
   return (
     <Wrapper>
       <SectionHeading>{t('Project Release Details')}</SectionHeading>
       <StyledTable>
         <tbody>
-          {[1, 2, 3, 4, 5].map((_, index) => (
-            <StyledTr key={index}>
-              <TagKey>Version</TagKey>
-              <TagValue>04f902711</TagValue>
-            </StyledTr>
-          ))}
+          <StyledTr>
+            <TagKey>{t('Version')}</TagKey>
+            <TagValue>
+              <Version version={release.version} anchor={false} />
+            </TagValue>
+          </StyledTr>
+
+          <StyledTr>
+            <TagKey>{t('Created')}</TagKey>
+            <TagValue>
+              <TimeSince date={release.dateCreated} />
+            </TagValue>
+          </StyledTr>
+
+          <StyledTr>
+            <TagKey>{t('First Event')}</TagKey>
+            <TagValue>
+              {release.firstEvent ? <TimeSince date={release.firstEvent} /> : '-'}
+            </TagValue>
+          </StyledTr>
+
+          <StyledTr>
+            <TagKey>{t('Last Event')}</TagKey>
+            <TagValue>
+              {release.lastEvent ? <TimeSince date={release.lastEvent} /> : '-'}
+            </TagValue>
+          </StyledTr>
         </tbody>
       </StyledTable>
     </Wrapper>
@@ -60,7 +87,6 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
-  color: ${p => p.theme.blue};
   ${overflowEllipsis};
 `;
 

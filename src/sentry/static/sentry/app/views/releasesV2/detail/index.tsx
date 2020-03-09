@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Release} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -17,6 +17,8 @@ import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 import ReleaseHeader from './releaseHeader';
+
+const ReleaseContext = React.createContext<Release | undefined>(undefined);
 
 type Props = {
   organization: Organization;
@@ -88,7 +90,9 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             deploys={deploys}
           />
 
-          {this.props.children}
+          <ReleaseContext.Provider value={release}>
+            {this.props.children}
+          </ReleaseContext.Provider>
         </StyledPageContent>
       </NoProjectMessage>
     );
@@ -106,4 +110,5 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+export {ReleasesV2DetailContainer, ReleaseContext};
 export default withOrganization(ReleasesV2DetailContainer);
