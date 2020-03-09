@@ -4,6 +4,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 import {boolean, number} from '@storybook/addon-knobs';
+
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownButton from 'app/components/dropdownButton';
