@@ -540,7 +540,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # or those created by bundle/webpack internals
         if self.data.get("platform") == "node" and (
             "node_modules" in frame.get("abs_path")
-            or not frame.get("abs_path").startswith("/", "app:", "webpack:")
+            or not frame.get("abs_path").startswith(("/", "app:", "webpack:"))
         ):
             return
 
