@@ -170,26 +170,12 @@ export const AGGREGATIONS = {
     isSortable: true,
   },
   rps: {
-    parameters: [
-      {
-        kind: 'value',
-        defaultValue: '1',
-        dataType: 'integer',
-        required: false,
-      },
-    ],
+    parameters: [],
     outputType: 'number',
     isSortable: true,
   },
   rpm: {
-    parameters: [
-      {
-        kind: 'value',
-        defaultValue: '1',
-        dataType: 'integer',
-        required: false,
-      },
-    ],
+    parameters: [],
     outputType: 'number',
     isSortable: true,
   },
