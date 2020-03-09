@@ -54,6 +54,7 @@ default_manager.add("organizations:create")
 
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
+default_manager.add("organizations:audit-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
