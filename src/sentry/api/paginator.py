@@ -255,6 +255,70 @@ class OffsetPaginator(object):
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
+class MergingOffsetPaginator(OffsetPaginator):
+    """This paginator uses a function to first look up items from an
+    independently paginated resource to only then fall back to a query set.
+    This is for instance useful if you want to query snuba for the primary
+    sort order and then look up data in postgres.
+    """
+
+    def __init__(
+        self,
+        queryset,
+        data_load_func,
+        apply_to_queryset,
+        key_from_model=None,
+        key_from_data=None,
+        max_limit=MAX_LIMIT,
+        on_results=None,
+    ):
+        super(MergingOffsetPaginator, self).__init__(
+            queryset, max_limit=max_limit, on_results=on_results
+        )
+        self.data_load_func = data_load_func
+        self.apply_to_queryset = apply_to_queryset
+        self.key_from_model = key_from_model or (lambda x: x.id)
+        self.key_from_data = key_from_data or (lambda x: x)
+
+    def get_result(self, limit=100, cursor=None):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+        limit = (cursor.value or limit) + 1
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        primary_results = self.data_load_func(offset=offset, limit=limit)
+
+        queryset = self.apply_to_queryset(self.queryset, primary_results)
+
+        mapping = {}
+        for model in queryset:
+            mapping[self.key_from_model(model)] = model
+
+        results = []
+        for row in primary_results:
+            model = mapping.get(self.key_from_data(row))
+            if model is not None:
+                results.append(model)
+
+        next_cursor = Cursor(limit, page + 1, False, len(primary_results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+        results = list(results[:limit])
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
+
+
 def reverse_bisect_left(a, x, lo=0, hi=None):
     """\
     Similar to ``bisect.bisect_left``, but expects the data in the array ``a``

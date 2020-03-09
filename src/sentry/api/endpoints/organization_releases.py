@@ -1,24 +1,36 @@
 from __future__ import absolute_import
 
+from itertools import izip
+
 import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.release import ReleaseSerializer
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release
+from sentry.models import Activity, Release, Project
 from sentry.signals import release_created
+from sentry.snuba.sessions import (
+    get_changed_project_release_model_adoptions,
+    get_project_releases_by_stability,
+)
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.cache import cache
+
+
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
 @scenario("CreateNewOrganizationReleaseWithRef")
@@ -74,6 +86,47 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
+def debounce_update_release_health_data(organization, project_ids):
+    """This causes a flush of snuba health data to the postgres tables once
+    per minute for the given projects.
+    """
+    # Figure out which projects need to get updates from the snuba.
+    should_update = {}
+    cache_keys = ["debounce-health:%d" % id for id in project_ids]
+    cache_data = cache.get_many(cache_keys)
+    for project_id, cache_key in izip(project_ids, cache_keys):
+        if cache_data.get(cache_key) is None:
+            should_update[project_id] = cache_key
+
+    if not should_update:
+        return
+
+    projects = {p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())}
+
+    # This gives us updates for all release-projects which have seen new
+    # health data over the last 24 hours. It will miss releases where the last
+    # date is <24h ago.  We need to aggregate the data for the totals per release
+    # manually here now.  This does not take environments into account.
+    for project_id, version in get_changed_project_release_model_adoptions(should_update.keys()):
+        project = projects.get(project_id)
+        if project is None:
+            # should not happen
+            continue
+
+        # We might have never observed the release.  This for instance can
+        # happen if the release only had health data so far.  For these cases
+        # we want to create the release the first time we observed it on the
+        # health side.
+        release = Release.get_or_create(project=project, version=version)
+
+        # Make sure that the release knows about this project.  Like we had before
+        # the project might not have been associated with this release yet.
+        release.add_project(project)
+
+    # Debounce updates for a minute
+    cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
+
+
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
 
@@ -89,6 +142,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                               "starts with" filter for the version.
         """
         query = request.GET.get("query")
+        with_health = request.GET.get("health") == "1"
+        flatten = request.GET.get("flatten") == "1"
+        sort = request.GET.get("sort") or "date"
+        stats_period = request.GET.get("healthStatsPeriod")
+        if stats_period not in (None, "", "24h", "14d"):
+            raise ParseError(detail=ERR_INVALID_STATS_PERIOD)
+        if stats_period is None and with_health:
+            stats_period = "24h"
+
+        paginator_cls = OffsetPaginator
+        paginator_kwargs = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -97,13 +161,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         except OrganizationEventsError as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
-        queryset = (
-            Release.objects.filter(
-                organization=organization, projects__id__in=filter_params["project_id"]
-            )
-            .select_related("owner")
-            .distinct()
-        )
+        # This should get us all the projects into postgres that have received
+        # health data in the last 24 hours.  If health data is not requested
+        # we don't upsert releases.
+        if with_health:
+            debounce_update_release_health_data(organization, filter_params["project_id"])
+
+        queryset = Release.objects.filter(organization=organization).select_related("owner")
 
         if "environment" in filter_params:
             queryset = queryset.filter(
@@ -114,20 +178,60 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if query:
             queryset = queryset.filter(version__istartswith=query)
 
-        sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        queryset = queryset.extra(select={"sort": sort_query})
+        select_extra = {}
+        sort_query = None
+
+        if flatten:
+            select_extra["_for_project_id"] = "sentry_release_project.project_id"
+        else:
+            queryset = queryset.distinct()
+
+        if sort == "date":
+            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
+        elif sort in ("crash_free_sessions", "crash_free_users", "sessions_1h", "sessions_24h"):
+            if not flatten:
+                return Response(
+                    {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
+                    status=400,
+                )
+            paginator_cls = MergingOffsetPaginator
+            paginator_kwargs.update(
+                data_load_func=lambda offset, limit: get_project_releases_by_stability(
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort,
+                    offset=offset,
+                    limit=limit,
+                ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    projects__id__in=list(x[0] for x in rows), version__in=list(x[1] for x in rows)
+                ),
+                key_from_model=lambda x: (x._for_project_id, x.version),
+            )
+        else:
+            return Response({"detail": "invalid sort"}, status=400)
+
+        if sort_query is not None:
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+            select_extra["sort"] = sort_query
+            paginator_kwargs["order_by"] = "-sort"
+
+        queryset = queryset.extra(select=select_extra)
         if filter_params["start"] and filter_params["end"]:
             queryset = queryset.extra(
-                where=["%s BETWEEN %%s and %%s" % sort_query],
+                where=[
+                    "COALESCE(sentry_release.date_released, sentry_release.date_added) BETWEEN %s and %s"
+                ],
                 params=[filter_params["start"], filter_params["end"]],
             )
 
+        serializer = ReleaseSerializer(with_health_data=with_health, stats_period=stats_period)
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-sort",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=paginator_cls,
+            on_results=lambda x: serialize(x, request.user, serializer=serializer),
+            **paginator_kwargs
         )
 
     @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])

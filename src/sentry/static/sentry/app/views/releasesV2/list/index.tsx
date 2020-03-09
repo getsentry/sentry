@@ -51,9 +51,16 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, location} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor', 'query', 'sort']),
+      ...pick(location.query, [
+        ...Object.values(URL_PARAM),
+        'cursor',
+        'query',
+        'sort',
+        'healthStatsPeriod',
+      ]),
       per_page: 50,
       health: 1,
+      flatten: 1,
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
@@ -123,7 +130,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const {loading, releases} = this.state;
 
     if (loading) {
@@ -144,6 +151,7 @@ class ReleasesList extends AsyncView<Props, State> {
               key={`${release.version}-${release.dateCreated}`}
               release={release}
               project={projects.find(p => p.slug === release.projectSlug)}
+              location={location}
             />
           ))
         }
