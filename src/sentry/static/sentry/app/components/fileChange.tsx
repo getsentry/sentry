@@ -13,8 +13,7 @@ type Props = {
   authors: AvatarUser[];
 };
 
-function FileChange({filename, authors}: Props) {
-  return (
+const FileChange = ({filename, authors}: Props)  => (
     <FileItem className="list-group-item list-group-item-sm">
       <Filename>
         <StyledIconFile size="xs" />
@@ -24,8 +23,7 @@ function FileChange({filename, authors}: Props) {
         <AvatarList users={authors} avatarSize={25} typeMembers="authors" />
       </div>
     </FileItem>
-  );
-}
+);
 
 FileChange.propTypes = {
   filename: PropTypes.string.isRequired,
