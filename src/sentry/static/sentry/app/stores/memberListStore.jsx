@@ -15,6 +15,10 @@ const MemberListStore = Reflux.createStore({
     this.trigger(this.items, 'initial');
   },
 
+  isLoaded() {
+    return this.loaded;
+  },
+
   getById(id) {
     if (!this.items) {
       return null;
