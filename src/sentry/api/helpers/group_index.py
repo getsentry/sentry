@@ -420,6 +420,22 @@ def self_subscribe_and_assign_issue(acting_user, group):
             return Actor(type=User, id=acting_user.id)
 
 
+def track_update_groups(function):
+    def wrapper(request, *args, **kwargs):
+        response = function(request, *args, **kwargs)
+
+        serializer = GroupValidator(data=request.data, partial=True)
+        results = dict(serializer.validated_data) if serializer.is_valid() else {}
+        tags = {key: True for key in results.keys()}
+        tags["status"] = response.status_code
+
+        metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
+        return response
+
+    return wrapper
+
+
+@track_update_groups
 def update_groups(request, projects, organization_id, search_fn):
     group_ids = request.GET.getlist("id")
     if group_ids:
