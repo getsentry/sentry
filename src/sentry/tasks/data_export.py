@@ -30,18 +30,17 @@ def assemble_download(data_export_id):
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
-        return capture_exception(error)
+        capture_exception(error)
+        return
 
     # Create a temporary file
     try:
         with tempfile.TemporaryFile() as tf:
             # Process the query based on its type
-            if data_export.query_type == ExportQueryType.DISCOVER_V2:
-                file_name = process_discover_v2(data_export, tf)
-            elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-                file_name = process_billing_report(data_export, tf)
-            elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
+            if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
                 file_name = process_issue_by_tag(data_export, tf)
+            elif data_export.query_type == ExportQueryType.DISCOVER:
+                file_name = process_discover(data_export, tf)
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
             try:
@@ -70,16 +69,6 @@ def assemble_download(data_export_id):
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
         return data_export.email_failure(message="Internal processing failure")
-
-
-def process_discover_v2(data_export, file):
-    # TODO(Leander): Implement processing for Discover V2
-    raise NotImplementedError("Discover V2 processing has not been implemented yet")
-
-
-def process_billing_report(data_export, file):
-    # TODO(Leander): Implement processing for Billing Reports
-    raise NotImplementedError("Billing report processing has not been implemented yet")
 
 
 def process_issue_by_tag(data_export, file, limit=None):
@@ -134,9 +123,9 @@ def process_issue_by_tag(data_export, file, limit=None):
         callbacks = []
         fields = ["value", "times_seen", "last_seen", "first_seen"]
 
-    # Example file name: ISSUE_BY_TAG-project10-user__721.csv
+    # Example file name: Issues-by-Tag-project10-user__721.csv
     file_details = six.text_type("{}-{}__{}").format(project.slug, key, data_export.id)
-    file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
+    file_name = get_file_name(ExportQueryType.ISSUES_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
     writer = create_writer(file, fields)
@@ -164,6 +153,11 @@ def process_issue_by_tag(data_export, file, limit=None):
                 writer.writerows(gtv_list_raw)
                 iteration += 1
     return file_name
+
+
+def process_discover(data_export, file):
+    # TODO(Leander): Implement processing for Discover
+    raise NotImplementedError("Discover processing has not been implemented yet")
 
 
 def create_writer(file, fields):
