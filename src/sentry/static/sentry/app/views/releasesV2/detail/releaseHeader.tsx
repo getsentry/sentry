@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import ListLink from 'app/components/links/listLink';
+import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
 import {Release} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
-import {IconCopy, IconDelete} from 'app/icons';
+import {IconCopy, IconDelete, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
 import Badge from 'app/components/badge';
@@ -67,13 +68,21 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
 
       <ReleaseName>
         <Version version={version} anchor={false} />
-        <Clipboard value={version}>
-          <ClipboardIconWrapper>
+        <IconWrapper>
+          <Clipboard value={version}>
             <Tooltip title={version}>
               <IconCopy size="xs" />
             </Tooltip>
-          </ClipboardIconWrapper>
-        </Clipboard>
+          </Clipboard>
+        </IconWrapper>
+
+        <IconWrapper>
+          <Tooltip title="https://freight.getsentry.net/deploys/getsentry/production/8261/">
+            <ExternalLink href="https://freight.getsentry.net/deploys/getsentry/production/8261/">
+              <IconOpen size="xs" />
+            </ExternalLink>
+          </Tooltip>
+        </IconWrapper>
       </ReleaseName>
 
       <StyledNavTabs>
@@ -135,13 +144,17 @@ const ReleaseName = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const ClipboardIconWrapper = styled('span')`
-  color: ${p => p.theme.gray2};
+const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;
   margin-left: ${space(1)};
-  &:hover {
-    cursor: pointer;
-    color: ${p => p.theme.gray4};
+
+  &,
+  a {
+    color: ${p => p.theme.gray2};
+    &:hover {
+      cursor: pointer;
+      color: ${p => p.theme.gray4};
+    }
   }
 `;
 

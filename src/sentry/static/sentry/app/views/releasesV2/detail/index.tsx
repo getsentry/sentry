@@ -15,7 +15,6 @@ import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import space from 'app/styles/space';
 
 import ReleaseHeader from './releaseHeader';
 

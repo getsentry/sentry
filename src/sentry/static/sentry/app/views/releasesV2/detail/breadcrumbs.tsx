@@ -55,5 +55,5 @@ const StyledIcon = styled(IconChevron)`
   color: ${p => p.theme.gray2};
   height: 12px;
   width: 12px;
-  margin: 0 ${space(1)} ${space(0.5)} ${space(1)};
+  margin: 0 ${space(1)} ${space(0.25)} ${space(1)};
 `;
