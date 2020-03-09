@@ -249,13 +249,13 @@ def extract_endpoint_info(pattern, internal_endpoint, parents):
         endpoint_name = camelcase_to_dashes(endpoint_name)
         title, text, warning, params = parse_doc_string(doc)
         if not parents:
-            path = API_PREFIX + path.lstrip("/")
+            api_path = API_PREFIX + path.lstrip("/")
         else:
             parents_prefix = reduce(lambda x, y: "%s%s" % (x, y.lstrip("/")), parents)
-            path = API_PREFIX + parents_prefix.lstrip("/") + path.lstrip("/")
+            api_path = API_PREFIX + parents_prefix.lstrip("/") + path.lstrip("/")
 
         yield dict(
-            path=path,
+            path=api_path,
             method=method_name,
             title=title,
             text=text,
