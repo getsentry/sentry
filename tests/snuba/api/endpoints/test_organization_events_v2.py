@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -1954,3 +1955,67 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 2
             assert data[0]["issue"] == event1.group.qualified_short_id
             assert data[1]["issue"] == "unknown"
+
+    def test_context_fields(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("android")
+        transaction_data = load_data("transaction")
+        data["spans"] = transaction_data["spans"]
+        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        data["type"] = "transaction"
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        data["contexts"]["http"] = {
+            "method": "GET",
+            "referer": "something.something",
+            "url": "https://areyouasimulation.com",
+        }
+        self.store_event(data, project_id=project.id)
+
+        fields = [
+            "http.method",
+            "device.charging",
+            "http.referer",
+            "http.url",
+            "os.build",
+            "os.kernel_version",
+            "device.arch",
+            "device.battery_level",
+            "device.brand",
+            "device.locale",
+            "device.model_id",
+            "device.name",
+            "device.online",
+            "device.orientation",
+            "device.simulator",
+            "device.uuid",
+        ]
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": fields + ["count()"], "query": "event.type:transaction"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        results = response.data["data"]
+
+        for field in fields:
+            key, value = field.split(".", 1)
+            expected = data["contexts"][key][value]
+
+            # TODO (evanh) There appears to be some bug in how these values are returned from Snuba
+            # As far as I can tell, they're saved as the correct type in the tables, so I'm not sure why
+            # they are being stringifyed when returned from the results
+            if expected in (True, False):
+                expected = six.text_type(expected)
+            elif isinstance(expected, six.integer_types):
+                expected = "{:.1f}".format(expected)
+
+            assert results[0][field] == expected
+        assert results[0]["count"] == 1
