@@ -80,7 +80,7 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev: ensure-venv
+install-sentry-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
