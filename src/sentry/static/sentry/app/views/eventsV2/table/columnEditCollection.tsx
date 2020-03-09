@@ -107,8 +107,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Having a mapping makes finding the value objects easier
     // later as well.
     functions.forEach(func => {
+      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
       fieldOptions[`function:${func}`] = {
-        label: AGGREGATIONS[func].parameters.length ? `${func}(\u{2026})` : `${func}()`,
+        label: `${func}(${ellipsis})`,
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {
@@ -375,7 +376,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       <div>
         {this.renderGhost(gridColumns)}
         <RowContainer>
-          <Heading>
+          <Heading gridColumns={gridColumns}>
             <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
             <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
           </Heading>
