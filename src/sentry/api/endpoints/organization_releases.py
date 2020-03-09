@@ -101,12 +101,17 @@ def debounce_update_release_health_data(organization, project_ids):
     if not should_update:
         return
 
+    projects = {p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())}
+
     # This gives us updates for all release-projects which have seen new
     # health data over the last 24 hours. It will miss releases where the last
     # date is <24h ago.  We need to aggregate the data for the totals per release
     # manually here now.  This does not take environments into account.
     for project_id, version in get_changed_project_release_model_adoptions(should_update.keys()):
-        project = Project.objects.get_from_cache(id=project_id)
+        project = projects.get(project_id)
+        if project is None:
+            # should not happen
+            continue
 
         # We might have never observed the release.  This for instance can
         # happen if the release only had health data so far.  For these cases
