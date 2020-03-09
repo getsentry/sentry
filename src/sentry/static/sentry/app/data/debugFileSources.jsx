@@ -3,6 +3,8 @@ export const DEBUG_SOURCE_LAYOUTS = {
   symstore: 'Microsoft SymStore',
   symstore_index2: 'Microsoft SymStore (with index2.txt)',
   ssqp: 'Microsoft SSQP',
+  unified: 'Unified Symbol Server Layout',
+  debuginfod: 'debuginfod',
 };
 
 export const DEBUG_SOURCE_CASINGS = {
