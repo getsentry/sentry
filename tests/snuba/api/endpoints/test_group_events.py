@@ -307,6 +307,16 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
 
+    def test_invalid_query(self):
+        self.login_as(user=self.user)
+        first_seen = timezone.now() - timedelta(days=5)
+        group = self.create_group(first_seen=first_seen)
+        response = self.client.get(
+            u"/api/0/issues/{}/events/".format(group.id),
+            data={"statsPeriod": "7d", "query": "foo(bar"},
+        )
+        assert response.status_code == 400
+
     def test_multiple_group(self):
         self.login_as(user=self.user)
 
