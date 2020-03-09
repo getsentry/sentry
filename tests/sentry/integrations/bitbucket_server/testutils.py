@@ -34,6 +34,86 @@ COMPARE_COMMITS_EXAMPLE = {
     ]
 }
 
+COMMIT_CHANGELIST_EXAMPLE = {
+    "values": [
+        {
+            "path": {
+                "components": ["a.txt"],
+                "parent": "",
+                "name": "a.txt",
+                "extension": "txt",
+                "toString": "a.txt"
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "MODIFY",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {
+                "gitChangeType": "MODIFY"
+            }
+        },
+        {
+            "path": {
+                "components": ["b.txt"],
+                "parent": "",
+                "name": "b.txt",
+                "extension": "txt",
+                "toString": "b.txt"
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "ADD",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {
+                "gitChangeType": "ADD"
+            }
+        },
+        {
+            "path": {
+                "components": ["c.txt"],
+                "parent": "",
+                "name": "c.txt",
+                "extension": "txt",
+                "toString": "c.txt"
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "DELETE",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {
+                "gitChangeType": "DELETE"
+            }
+        },
+        {
+            "path": {
+                "components": ["e.txt"],
+                "parent": "",
+                "name": "d.txt",
+                "extension": "txt",
+                "toString": "d.txt"
+            },
+            "srcPath": {
+                "components": ["d.txt"],
+                "parent": "",
+                "name": "e.txt",
+                "extension": "txt",
+                "toString": "e.txt"
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "MOVE",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {
+                "gitChangeType": "MOVE"
+            }
+        }
+    ]
+}
+
 REPO = {
     u"slug": u"helloworld",
     u"id": 72,
