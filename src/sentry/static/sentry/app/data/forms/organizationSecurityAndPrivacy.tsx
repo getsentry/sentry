@@ -128,11 +128,11 @@ const organizationSecurityAndPrivacy: Array<JsonFormObject> = [
         type: 'string',
         label: t('Advanced datascrubber configuration'),
         placeholder: t('Paste a JSON configuration here.'),
-    multiline: true,
-    monospace: true,
-    autosize: true,
-    inline: false,
-    maxRows: 20,
+        multiline: true,
+        monospace: true,
+        autosize: true,
+        inline: false,
+        maxRows: 20,
         help: tct(
           'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. This list of rules can be extended on a per-project level, but never overridden. [learn_more:Learn more]',
           {
