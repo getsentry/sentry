@@ -128,12 +128,12 @@ export type ProjectRelease = {
 };
 
 export type Health = {
-  crash_free_users: number | null;
-  total_users: number;
-  crash_free_sessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+  crashFreeSessions: number | null;
   stats: HealthGraphData;
-  crashes: number;
-  errors: number;
+  sessionsCrashed: number;
+  sessionsErrored: number;
   adoption: number | null;
 };
 export type HealthGraphData = {
@@ -829,7 +829,7 @@ export type SentryAppComponent = {
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
   IntegrationDirectoryExperiment: '1' | '0';
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV1';
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
 };
 
 type SavedQueryVersions = 1 | 2;

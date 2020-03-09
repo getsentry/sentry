@@ -2,13 +2,13 @@ import React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
 import posed, {PoseGroup} from 'react-pose';
 
-import theme from 'app/utils/theme';
+import theme, {Theme} from 'app/utils/theme';
 import testablePose from 'app/utils/testablePose';
 
 type TextProps = {
   textCss?: Props['textCss'];
   percent: number;
-  theme: typeof theme;
+  theme: Theme;
 };
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
@@ -42,14 +42,23 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * The color of the ring background
    */
   backgroundColor?: string;
+  /**
+   * Endcaps on the progress bar
+   */
+  progressEndcaps?: React.SVGAttributes<SVGCircleElement>['strokeLinecap'];
 };
 
-const Text = styled('text')<Omit<TextProps, 'theme'>>`
-  fill: ${p => p.theme.gray1};
+const Text = styled('div')<Omit<TextProps, 'theme'>>`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: ${p => p.theme.gray1};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  text-anchor: middle;
-  dominant-baseline: central;
-  transition: fill 100ms;
+  padding-top: 1px;
+  transition: color 100ms;
   ${p => p.textCss && p.textCss(p)}
 `;
 
@@ -72,6 +81,7 @@ const ProgressRing = ({
   animateText = false,
   progressColor = theme.green,
   backgroundColor = theme.offWhite2,
+  progressEndcaps,
   ...p
 }: Props) => {
   const radius = size / 2 - barWidth / 2;
@@ -101,7 +111,6 @@ const ProgressRing = ({
 
   return (
     <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
-      {text !== undefined && textNode}
       <RingBackground
         r={radius}
         barWidth={barWidth}
@@ -111,6 +120,7 @@ const ProgressRing = ({
       />
       <RingBar
         strokeDashoffset={progressOffset}
+        strokeLinecap={progressEndcaps}
         circumference={circumference}
         r={radius}
         barWidth={barWidth}
@@ -118,6 +128,9 @@ const ProgressRing = ({
         cy={radius + barWidth / 2}
         color={ringColor}
       />
+      <foreignObject height="100%" width="100%">
+        {text !== undefined && textNode}
+      </foreignObject>
     </svg>
   );
 };

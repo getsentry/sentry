@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {User} from 'app/types';
+import {AvatarUser} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
@@ -20,7 +20,7 @@ type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
   className?: string;
-  users: User[];
+  users: AvatarUser[];
   renderTooltip?: UserAvatar['props']['renderTooltip'];
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;

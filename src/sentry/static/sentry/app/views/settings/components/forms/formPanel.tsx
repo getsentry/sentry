@@ -3,7 +3,7 @@ import React from 'react';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
-import {Scope} from 'app/types';
+import {Scope, StringMap} from 'app/types';
 
 import {FieldObject, JsonFormObject} from './type';
 
@@ -20,7 +20,7 @@ type Props = {
 
   // TODO(ts): See if this is still in use
   access?: Scope[];
-  features?: string[];
+  features?: StringMap<any>;
 
   additionalFieldProps: {[key: string]: any};
 

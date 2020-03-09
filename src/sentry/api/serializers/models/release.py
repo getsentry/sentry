@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 import six
 
-
 from collections import defaultdict
+
 from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -71,6 +72,11 @@ def get_users_for_authors(organization_id, authors, user=None):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
+    def __init__(self, *args, **kwargs):
+        self.with_health_data = kwargs.pop("with_health_data", False)
+        self.stats_period = kwargs.pop("stats_period", None)
+        Serializer.__init__(self, *args, **kwargs)
+
     def _get_commit_metadata(self, item_list, user):
         """
         Returns a dictionary of release_id => commit metadata,
@@ -153,15 +159,34 @@ class ReleaseSerializer(Serializer):
             result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
         return result
 
-    def __get_release_data_no_environment(self, project, item_list):
-        if project is not None:
-            project_ids = [project.id]
-        else:
-            project_ids = list(
+    def __get_project_id_list(self, item_list):
+        project_ids = set()
+        need_fallback = False
+
+        for release in item_list:
+            if release._for_project_id is not None:
+                project_ids.add(release._for_project_id)
+            else:
+                need_fallback = True
+
+        if not need_fallback:
+            return sorted(project_ids), True
+
+        return (
+            list(
                 ReleaseProject.objects.filter(release__in=item_list)
                 .values_list("project_id", flat=True)
                 .distinct()
-            )
+            ),
+            False,
+        )
+
+    def __get_release_data_no_environment(self, project, item_list):
+        if project is not None:
+            project_ids = [project.id]
+            specialized = True
+        else:
+            project_ids, specialized = self.__get_project_id_list(item_list)
 
         first_seen = {}
         last_seen = {}
@@ -174,21 +199,17 @@ class ReleaseSerializer(Serializer):
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen
             last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
+        group_counts_by_release = {}
         if project is not None:
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(project=project, release__in=item_list).values_list(
-                    "release_id", "new_groups"
-                )
-            )
+            for release_id, new_groups in ReleaseProject.objects.filter(
+                project=project, release__in=item_list
+            ).values_list("release_id", "new_groups"):
+                group_counts_by_release[release_id] = {project.id: new_groups}
         else:
-            # assume it should be a sum across release
-            # if no particular project specified
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
-                .values("release_id")
-                .annotate(new_groups=Sum("new_groups"))
-                .values_list("release_id", "new_groups")
-            )
+            for project_id, release_id, new_groups in ReleaseProject.objects.filter(
+                release__in=item_list, new_groups__isnull=False
+            ).values_list("project_id", "release_id", "new_groups"):
+                group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
         return first_seen, last_seen, group_counts_by_release
 
     def __get_release_data_with_environment(self, project, item_list, environment):
@@ -203,12 +224,13 @@ class ReleaseSerializer(Serializer):
             first_seen[release_project_env.release.version] = release_project_env.first_seen
             last_seen[release_project_env.release.version] = release_project_env.last_seen
 
-        issue_counts_by_release = dict(
-            release_project_envs.values("release_id")
-            .annotate(new_issues_count=Sum("new_issues_count"))
-            .values_list("release_id", "new_issues_count")
-        )
-        return first_seen, last_seen, issue_counts_by_release
+        group_counts_by_release = {}
+        for project_id, release_id, new_groups in release_project_envs.annotate(
+            aggregated_new_issues_count=Sum("new_issues_count")
+        ).values_list("project_id", "release_id", "aggregated_new_issues_count"):
+            group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+
+        return first_seen, last_seen, group_counts_by_release
 
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
@@ -231,24 +253,53 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
-            "release_id", "project__slug", "project__name"
+            "release_id", "release__version", "project__slug", "project__name", "project__id"
         )
-        for pr in project_releases:
-            release_projects[pr["release_id"]].append(
-                {"slug": pr["project__slug"], "name": pr["project__name"]}
+
+        if self.with_health_data:
+            health_data = get_release_health_data_overview(
+                [(pr["project__id"], pr["release__version"]) for pr in project_releases],
+                stats_period=self.stats_period,
             )
+        else:
+            health_data = None
+
+        for pr in project_releases:
+            pr_rv = {
+                "id": pr["project__id"],
+                "slug": pr["project__slug"],
+                "name": pr["project__name"],
+            }
+            if health_data is not None:
+                pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
+            release_projects[pr["release_id"]].append(pr_rv)
 
         result = {}
         for item in item_list:
-            result[item] = {
+            single_release_projects = release_projects.get(item.id, [])
+
+            if item._for_project_id is not None:
+                single_release_projects = [
+                    x for x in single_release_projects if x["id"] == item._for_project_id
+                ]
+                release_new_groups = (issue_counts_by_release.get(item.id) or {}).get(
+                    item._for_project_id
+                ) or 0
+            else:
+                release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
+
+            p = {
                 "owner": owners[six.text_type(item.owner_id)] if item.owner_id else None,
-                "new_groups": issue_counts_by_release.get(item.id) or 0,
-                "projects": release_projects.get(item.id, []),
+                "new_groups": release_new_groups,
+                "projects": single_release_projects,
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
-            result[item].update(release_metadata_attrs[item])
-            result[item].update(deploy_metadata_attrs[item])
+
+            p.update(release_metadata_attrs[item])
+            p.update(deploy_metadata_attrs[item])
+
+            result[item] = p
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
@@ -273,6 +324,27 @@ class ReleaseSerializer(Serializer):
                 "buildHash": info["build_hash"],
             }
 
+        def expose_health_data(data):
+            if not data:
+                return None
+            return {
+                "durationP50": data["duration_p50"],
+                "durationP90": data["duration_p90"],
+                "crashFreeUsers": data["crash_free_users"],
+                "crashFreeSessions": data["crash_free_sessions"],
+                "sessionsCrashed": data["sessions_crashed"],
+                "sessionsErrored": data["sessions_errored"],
+                "totalUsers": data["total_users"],
+                "adoption": data["adoption"],
+                "stats": data.get("stats"),
+            }
+
+        def expose_project(project):
+            rv = {"id": project["id"], "slug": project["slug"], "name": project["name"]}
+            if "health_data" in project:
+                rv["healthData"] = expose_health_data(project["health_data"])
+            return rv
+
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
@@ -289,7 +361,7 @@ class ReleaseSerializer(Serializer):
             "deployCount": obj.total_deploys,
             "lastDeploy": attrs.get("last_deploy"),
             "authors": attrs.get("authors", []),
-            "projects": attrs.get("projects", []),
+            "projects": [expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
         }

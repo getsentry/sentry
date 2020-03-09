@@ -1,37 +1,70 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
+import theme from 'app/utils/theme';
+import ScoreBar, {Bar} from 'app/components/scoreBar';
 
 import UsersChart from './usersChart';
-import {mockData} from './mock';
+import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
 
 type Props = {
   release: ProjectRelease;
+  location: Location;
 };
 
-const ReleaseHealth = ({release}: Props) => {
+const ReleaseHealth = ({release, location}: Props) => {
+  const {pathname, query} = location;
+  const activeHealthStatsPeriod = (query.healthStatsPeriod || '24h') as '24h' | '14d';
   const {
     adoption,
-    total_users,
-    crash_free_users,
-    crash_free_sessions,
-    crashes,
-    errors,
+    stats,
+    crashFreeUsers,
+    crashFreeSessions,
+    sessionsCrashed,
+    sessionsErrored,
   } = release.healthData!;
 
-  // TODO(releasesv2): make dynamic once api is finished
+  const healthStatsPeriods = [
+    {
+      key: '24h',
+      label: t('24h'),
+    },
+    {
+      key: '14d',
+      label: t('14d'),
+    },
+  ];
+
   return (
     <React.Fragment>
       <StyledPanelHeader>
         <HeaderLayout>
-          <DailyUsersColumn>{t('Daily active users')}</DailyUsersColumn>
+          <DailyUsersColumn>
+            {t('Daily Sessions')}:
+            <StatsPeriodChanger>
+              {healthStatsPeriods.map(healthStatsPeriod => (
+                <StatsPeriod
+                  key={healthStatsPeriod.key}
+                  to={{
+                    pathname,
+                    query: {...query, healthStatsPeriod: healthStatsPeriod.key},
+                  }}
+                  active={activeHealthStatsPeriod === healthStatsPeriod.key}
+                >
+                  {healthStatsPeriod.label}
+                </StatsPeriod>
+              ))}
+            </StatsPeriodChanger>
+          </DailyUsersColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
@@ -45,28 +78,40 @@ const ReleaseHealth = ({release}: Props) => {
           <Layout>
             <DailyUsersColumn>
               <ChartWrapper>
-                <UsersChart data={mockData[0].graphData} height={20} statsPeriod="24h" />
+                <UsersChart
+                  data={stats}
+                  height={20}
+                  statsPeriod={activeHealthStatsPeriod}
+                />
               </ChartWrapper>
             </DailyUsersColumn>
 
             <AdoptionColumn>
               {defined(adoption) ? (
-                <React.Fragment>
-                  <ProgressRing value={adoption} />
-                  <ProgressRingCaption>
-                    {`${adoption}% ${tn('with %s user', 'with %s users', total_users)}`}
-                  </ProgressRingCaption>
-                </React.Fragment>
+                <ScoreBar
+                  score={convertAdoptionToProgress(adoption)}
+                  size={14}
+                  thickness={14}
+                  palette={[
+                    theme.red,
+                    theme.yellowOrange,
+                    theme.yellowOrange,
+                    theme.green,
+                    theme.green,
+                  ]}
+                />
               ) : (
                 '-'
               )}
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
-              {defined(crash_free_users) ? (
+              {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <ProgressRing value={crash_free_users} />
-                  <ProgressRingCaption>{crash_free_users}%</ProgressRingCaption>
+                  <StyledProgressRing value={crashFreeUsers} />
+                  <ProgressRingCaption>
+                    {displayCrashFreePercent(crashFreeUsers)}
+                  </ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -74,10 +119,12 @@ const ReleaseHealth = ({release}: Props) => {
             </CrashFreeUsersColumn>
 
             <CrashFreeSessionsColumn>
-              {defined(crash_free_sessions) ? (
+              {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <ProgressRing value={crash_free_sessions} />
-                  <ProgressRingCaption>{crash_free_sessions}%</ProgressRingCaption>
+                  <StyledProgressRing value={crashFreeSessions} />
+                  <ProgressRingCaption>
+                    {displayCrashFreePercent(crashFreeSessions)}
+                  </ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -85,11 +132,11 @@ const ReleaseHealth = ({release}: Props) => {
             </CrashFreeSessionsColumn>
 
             <CrashesColumn>
-              <Count value={crashes ?? 0} />
+              <Count value={sessionsCrashed ?? 0} />
             </CrashesColumn>
 
             <ErrorsColumn>
-              <Count value={errors ?? 0} />
+              <Count value={sessionsErrored ?? 0} />
             </ErrorsColumn>
           </Layout>
         </StyledPanelItem>
@@ -111,7 +158,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 const Layout = styled('div')`
   display: grid;
   grid-template-areas: 'daily-users adoption crash-free-users crash-free-sessions crashes errors';
-  grid-template-columns: 3fr minmax(230px, 2fr) 2fr 2fr 1fr 1fr;
+  grid-template-columns: 3fr minmax(230px, 2fr) 2fr 2fr 160px 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -144,6 +191,7 @@ const CenterColumn = styled(Column)`
 const DailyUsersColumn = styled(Column)`
   grid-area: daily-users;
   display: flex;
+  align-items: flex-end;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }
@@ -152,6 +200,11 @@ const AdoptionColumn = styled(Column)`
   grid-area: adoption;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
+  }
+
+  ${Bar} {
+    /* TODO(releasesV2): this is still wip */
+    margin: 3px;
   }
 `;
 const CrashFreeUsersColumn = styled(CenterColumn)`
@@ -181,15 +234,41 @@ const StyledPanelItem = styled(PanelItem)`
   padding-top: 0;
 `;
 
+const StyledProgressRing = styled(ProgressRing)`
+  position: relative;
+  top: ${space(0.5)};
+`;
+
 const ProgressRingCaption = styled('span')`
   margin-left: ${space(1)};
 `;
 
 const ChartWrapper = styled('div')`
+  flex: 1;
   margin-right: ${space(2)};
   g > .barchart-rect {
-    background: ${p => p.theme.gray2};
-    fill: ${p => p.theme.gray2};
+    /* TODO(releasesV2): figure out with design these colors */
+    background: #c6becf;
+    fill: #c6becf;
+  }
+`;
+
+const StatsPeriodChanger = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-column-gap: ${space(0.75)};
+  flex: 1;
+  justify-content: flex-end;
+  text-align: right;
+  margin-right: ${space(2)};
+  margin-left: ${space(0.5)};
+`;
+
+const StatsPeriod = styled(Link)<{active: boolean}>`
+  color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+
+  &:hover {
+    color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
   }
 `;
 

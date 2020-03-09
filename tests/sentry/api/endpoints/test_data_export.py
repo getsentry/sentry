@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
-    payload = {"query_type": "Discover", "query_info": {"env": "test"}}
+    payload = {"query_type": "Issues-by-Tag", "query_info": {"env": "test"}}
 
     def setUp(self):
         self.user = self.create_user("user1@example.com")
