@@ -1095,6 +1095,18 @@ describe('EventView.withColumns()', function() {
     ]);
   });
 
+  it('drops empty columns', function() {
+    const newView = eventView.withColumns([
+      {field: 'issue', aggregation: ''},
+      {field: '', aggregation: 'count'},
+      {field: '', aggregation: ''},
+    ]);
+    expect(newView.fields).toEqual([
+      {field: 'issue', width: COL_WIDTH_UNDEFINED},
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
+    ]);
+  });
+
   it('inherits widths from existing columns when names match', function() {
     const newView = eventView.withColumns([
       {field: '', aggregation: 'count'},

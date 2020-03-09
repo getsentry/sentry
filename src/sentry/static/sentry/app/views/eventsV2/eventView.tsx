@@ -575,6 +575,7 @@ class EventView {
   withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
     const fields: Field[] = columns
+      .filter(col => col.field || col.aggregation)
       .map(col => generateFieldAsString(col))
       .map((field, i) => {
         // newly added field
