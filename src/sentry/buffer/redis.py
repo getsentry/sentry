@@ -42,8 +42,14 @@ def batch_buffers_incr():
             buffers_to_flush = _local_buffers
             _local_buffers = None
 
-            for (filters, model), (columns, extra) in buffers_to_flush.items():
-                buffer.incr(model=model, columns=columns, filters=dict(filters), extra=extra)
+            for (filters, model), (columns, extra, signal_only) in buffers_to_flush.items():
+                buffer.incr(
+                    model=model,
+                    columns=columns,
+                    filters=dict(filters),
+                    extra=extra,
+                    signal_only=signal_only,
+                )
 
 
 class PendingBuffer(object):
