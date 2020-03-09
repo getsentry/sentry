@@ -1,17 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import {ListGroup, ListGroupItem} from 'app/components/listGroup';
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 
 function Collapsed(props) {
   return (
-    <li className="list-group-item list-group-item-sm align-center">
-      <span className="icon-container" />
+    <ListGroupItem centered>
       <a onClick={props.onClick}>
         {tn('Show %s collapsed file', 'Show %s collapsed files', props.count)}
       </a>
-    </li>
+    </ListGroupItem>
   );
 }
 
@@ -54,7 +56,7 @@ class RepositoryFileSummary extends React.Component {
     const numCollapsed = fileCount - files.length;
     const canCollapse = fileCount > MAX;
     return (
-      <div>
+      <Container>
         <h5>
           {tn(
             '%s file changed in ' + repository,
@@ -62,7 +64,7 @@ class RepositoryFileSummary extends React.Component {
             fileCount
           )}
         </h5>
-        <ul className="list-group list-group-striped m-b-2">
+        <ListGroup striped>
           {files.map(filename => {
             const {authors, types} = fileChangeSummary[filename];
             return (
@@ -78,15 +80,18 @@ class RepositoryFileSummary extends React.Component {
             <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
           )}
           {numCollapsed === 0 && canCollapse && (
-            <li className="list-group-item list-group-item-sm align-center">
-              <span className="icon-container" />
+            <ListGroupItem centered>
               <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-            </li>
+            </ListGroupItem>
           )}
-        </ul>
-      </div>
+        </ListGroup>
+      </Container>
     );
   }
 }
+
+const Container = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default RepositoryFileSummary;
