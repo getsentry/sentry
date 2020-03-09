@@ -670,6 +670,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if updated:
             transaction_id = uuid4().hex
 
+            delete_project.apply_async(
+                kwargs={"object_id": project.id, "transaction_id": transaction_id}, countdown=3600
+            )
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
@@ -689,9 +693,5 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
             project.rename_on_pending_deletion()
-
-            delete_project.apply_async(
-                kwargs={"object_id": project.id, "transaction_id": transaction_id}, countdown=3600
-            )
 
         return Response(status=204)
