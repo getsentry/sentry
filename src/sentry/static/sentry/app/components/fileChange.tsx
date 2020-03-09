@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {ListGroupItem} from 'app/components/listGroup';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {AvatarUser} from 'app/types';
@@ -13,16 +14,16 @@ type Props = {
   authors: AvatarUser[];
 };
 
-const FileChange = ({filename, authors}: Props)  => (
-    <FileItem className="list-group-item list-group-item-sm">
-      <Filename>
-        <StyledIconFile size="xs" />
-        {filename}
-      </Filename>
-      <div>
-        <AvatarList users={authors} avatarSize={25} typeMembers="authors" />
-      </div>
-    </FileItem>
+const FileChange = ({filename, authors}: Props) => (
+  <FileItem>
+    <Filename>
+      <StyledIconFile size="xs" />
+      {filename}
+    </Filename>
+    <div>
+      <AvatarList users={authors} avatarSize={25} typeMembers="authors" />
+    </div>
+  </FileItem>
 );
 
 FileChange.propTypes = {
@@ -30,7 +31,7 @@ FileChange.propTypes = {
   authors: PropTypes.array.isRequired,
 };
 
-const FileItem = styled('li')`
+const FileItem = styled(ListGroupItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
