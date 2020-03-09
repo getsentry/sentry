@@ -67,8 +67,9 @@ class RedisBufferTest(TestCase):
         columns = {"times_seen": 2}
         filters = {"pk": 1}
         extra = {"foo": "bar", "datetime": datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)}
+        signal_only = None
         self.buf.process("foo")
-        process.assert_called_once_with(Group, columns, filters, extra)
+        process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
@@ -86,8 +87,9 @@ class RedisBufferTest(TestCase):
         columns = {"times_seen": 2}
         filters = {"pk": 1}
         extra = {"foo": "bar"}
+        signal_only = None
         self.buf.process("foo")
-        process.assert_called_once_with(Group, columns, filters, extra)
+        process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
     # this test should be passing once we no longer serialize using pickle
     @pytest.mark.xfail
@@ -168,3 +170,61 @@ class RedisBufferTest(TestCase):
 
         # Make sure we didn't queue up more
         assert len(process_pending.apply_async.mock_calls) == 2
+
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_uses_signal_only(self, process):
+        client = self.buf.cluster.get_routing_client()
+        client.hmset(
+            "foo",
+            {
+                "f": '{"pk": ["i","1"]}',
+                "i+times_seen": "1",
+                "m": "sentry.utils.compat.mock.Mock",
+                "s": "1",
+            },
+        )
+        self.buf.process("foo")
+        process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
+
+    """
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    def test_incr_uses_signal_only(self):
+        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+        client = self.buf.cluster.get_routing_client()
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        columns = {"times_seen": 1}
+        filters = {"pk": 1, "datetime": now}
+        self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True)
+        result = client.hgetall("foo")
+        assert result == {
+            "e+foo": '["s","bar"]',
+            "e+datetime": '["d","1493791566.000000"]',
+            "f": '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
+            "i+times_seen": "1",
+            "m": "mock.mock.Mock",
+            "s": "1"
+        }
+    """
+
+    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.buffer.redis._local_buffers", dict())
+    def test_signal_only_saved_local_buffs(self):
+        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        columns = {"times_seen": 1}
+        filters = {"pk": 1, "datetime": now}
+
+        self.buf.incr(
+            model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True
+        )
+
+        from sentry.buffer.redis import _local_buffers
+
+        frozen_filters = tuple(sorted(filters.items()))
+        key = (frozen_filters, model)
+        values = _local_buffers[key]
+
+        assert values[-1]  # signal_only stored last
