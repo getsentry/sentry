@@ -31,11 +31,6 @@ outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
 
 
-def decide_signals_in_consumer():
-    rate = options.get("outcomes.signals-in-consumer-sample-rate")
-    return rate and rate > random.random()
-
-
 def decide_tsdb_in_consumer():
     rate = options.get("outcomes.tsdb-in-consumer-sample-rate")
     return rate and rate > random.random()
