@@ -10,13 +10,13 @@ import NavTabs from 'app/components/navTabs';
 import {Release} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
-import {IconCopy, IconDelete, IconOpen} from 'app/icons';
+import {IconCopy, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import Button from 'app/components/button';
 import Badge from 'app/components/badge';
 
 import ReleaseStat from './releaseStat';
 import Breadcrumbs from './breadcrumbs';
+import ReleaseActions from './releaseActions';
 
 type Props = {
   location: Location;
@@ -39,35 +39,34 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
   ];
 
   return (
-    <HeaderBox>
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: t('Releases'),
-            to: `/organizations/${orgId}/releases-v2/`,
-          },
-          {label: <Version version={version} anchor={false} />},
-        ]}
-      />
+    <Header>
+      <Layout>
+        <Breadcrumbs
+          crumbs={[
+            {
+              label: t('Releases'),
+              to: `/organizations/${orgId}/releases-v2/`,
+            },
+            {label: <Version version={version} anchor={false} />},
+          ]}
+        />
 
-      <ReleaseControls>
-        <ReleaseStat label={t('Deploys')}>
-          <DeploysWrapper>
-            <StyledBadge text="stag" />
-            <StyledBadge text="prod" />
-          </DeploysWrapper>
-        </ReleaseStat>
-        <ReleaseStat label={t('Crashes')}>{(1234).toLocaleString()}</ReleaseStat>
-        <ReleaseStat label={t('Errors')}>{(4321).toLocaleString()}</ReleaseStat>
-        <div>
-          <Button>
-            <IconDelete size="xs" />
-          </Button>
-        </div>
-      </ReleaseControls>
+        <StatsWrapper>
+          <ReleaseStat label={t('Deploys')}>
+            <DeploysWrapper>
+              <StyledBadge text="stag" />
+              <StyledBadge text="prod" />
+            </DeploysWrapper>
+          </ReleaseStat>
+          <ReleaseStat label={t('Crashes')}>{(1234).toLocaleString()}</ReleaseStat>
+          <ReleaseStat label={t('Errors')}>{(4321).toLocaleString()}</ReleaseStat>
+          <ReleaseActions version={release.version} orgId={orgId} />
+        </StatsWrapper>
+      </Layout>
 
       <ReleaseName>
         <Version version={version} anchor={false} />
+
         <IconWrapper>
           <Clipboard value={version}>
             <Tooltip title={version}>
@@ -96,31 +95,34 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
           </ListLink>
         ))}
       </StyledNavTabs>
-    </HeaderBox>
+    </Header>
   );
 };
 
-const HeaderBox = styled('div')`
+const Header = styled('div')`
   padding: ${space(2)} ${space(4)} 0;
   border-bottom: 1px solid ${p => p.theme.borderDark};
+`;
 
+const Layout = styled('div')`
+  margin-bottom: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-column-gap: ${space(3)};
-    grid-template-columns: 66% auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 0;
   }
 `;
 
-const ReleaseControls = styled('div')`
+const StatsWrapper = styled('div')`
   display: grid;
-  grid-column-gap: ${space(4)};
-  grid-auto-flow: column;
-  justify-content: flex-start;
+  grid-auto-flow: row;
+  grid-gap: ${space(2)};
   padding: ${space(1.5)} 0;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-gap: ${space(4)};
+  }
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     justify-content: flex-end;
     text-align: right;
