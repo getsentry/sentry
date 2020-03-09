@@ -38,21 +38,26 @@ def get_project_releases_by_stability(project_ids, offset, limit, scope, environ
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
     """
-    assert scope in ("sessions", "users")
+    orderby, delta = {
+        "crash_free_sessions": ([["divide", ["sessions_crashed", "sessions"]]], timedelta(days=1)),
+        "crash_free_users": ([["divide", ["users_crashed", "users"]]], timedelta(days=1)),
+        "sessions_1h": (["sessions"], timedelta(hours=1)),
+        "sessions_24h": (["sessions"], timedelta(days=1)),
+    }[scope]
+    start = datetime.utcnow() - delta
 
     conditions = []
     if environments is not None:
         conditions.append(["environment", "IN", environments])
     filter_keys = {"project_id": project_ids}
-    yesterday = datetime.utcnow() - timedelta(days=1)
     rv = []
 
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
-        orderby=[["divide", ["%s_crashed" % scope, scope]]],
-        start=yesterday,
+        orderby=orderby,
+        start=start,
         offset=offset,
         limit=limit,
         conditions=conditions,

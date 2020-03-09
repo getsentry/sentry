@@ -183,7 +183,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        elif sort in ("crash_free_sessions", "crash_free_users"):
+        elif sort in ("crash_free_sessions", "crash_free_users", "sessions_1h", "sessions_24h"):
             if not flatten:
                 return Response(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
@@ -194,7 +194,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 data_load_func=lambda offset, limit: get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
-                    scope=sort[11:],
+                    scope=sort,
                     offset=offset,
                     limit=limit,
                 ),
