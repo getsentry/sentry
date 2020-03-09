@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
@@ -64,21 +66,25 @@ class RequestInterface extends React.Component {
     let actions;
     if (!this.isPartial() && fullUrl) {
       actions = (
-        <div key="view-buttons" className="btn-group">
-          <a
-            className={(view === 'formatted' ? 'active' : '') + ' btn btn-default btn-sm'}
+        <ButtonBar key="view-buttons" merged>
+          <Button
+            className={view === 'formatted' ? 'active' : ''}
+            priority={view === 'formatted' ? 'primary' : 'default'}
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'formatted')}
           >
             {/* Translators: this means "formatted" rendering (fancy tables) */
             t('Formatted')}
-          </a>
-          <a
-            className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
+          </Button>
+          <MonoButton
+            className={view === 'curl' ? 'active' : ''}
+            priority={view === 'curl' ? 'primary' : 'default'}
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'curl')}
           >
-            <code>{'curl'}</code>
-          </a>
-        </div>
+            curl
+          </MonoButton>
+        </ButtonBar>
       );
     }
 
@@ -145,6 +151,10 @@ const StyledIconOpen = styled(IconOpen)`
   &:hover {
     color: ${p => p.theme.gray3};
   }
+`;
+
+const MonoButton = styled(Button)`
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export default RequestInterface;

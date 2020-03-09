@@ -86,12 +86,26 @@ class Release(Model):
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
+    # HACK HACK HACK
+    # As a transitionary step we permit release rows to exist multiple times
+    # where they are "specialized" for a specific project.  The goal is to
+    # later split up releases by project again.  This is for instance used
+    # by the org release listing.
+    _for_project_id = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release"
         unique_together = (("organization", "version"),)
 
     __repr__ = sane_repr("organization_id", "version")
+
+    def __eq__(self, other):
+        """Make sure that specialized releases are only comparable to the same
+        other specialized release.  This for instance lets us treat them
+        separately for serialization purposes.
+        """
+        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
 
     @staticmethod
     def is_valid_version(value):

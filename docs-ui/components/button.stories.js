@@ -4,6 +4,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 import {boolean, number} from '@storybook/addon-knobs';
+
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownButton from 'app/components/dropdownButton';
@@ -221,8 +222,10 @@ storiesOf('UI|Buttons', module)
         <Section>
           <h3>Merged Buttons</h3>
           <ButtonBar merged>
-            <Button>Left Button</Button>
-            <Button priority="primary">Right Button</Button>
+            <Button priority="primary" className="active">
+              Left Button
+            </Button>
+            <Button>Right Button</Button>
           </ButtonBar>
         </Section>
 
@@ -230,7 +233,9 @@ storiesOf('UI|Buttons', module)
           <h3>Multiple Merged Buttons</h3>
           <ButtonBar merged>
             <Button>First Button</Button>
-            <Button>Second Button</Button>
+            <Button priority="primary" className="active">
+              Second Button
+            </Button>
             <Button>Third Button</Button>
             <Button>Fourth Button</Button>
           </ButtonBar>

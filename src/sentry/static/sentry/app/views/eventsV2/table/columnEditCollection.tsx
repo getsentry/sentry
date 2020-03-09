@@ -7,12 +7,13 @@ import {
   UserSelectValues,
   setBodyUserSelect,
 } from 'app/components/events/interfaces/spans/utils';
-import {IconAdd, IconGrabbable, IconClose} from 'app/icons';
+import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import {SelectValue, OrganizationSummary, StringMap} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import {SectionHeading} from '../styles';
 import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
 import {Column} from '../eventView';
 import {FieldValue, FieldValueKind} from './types';
@@ -327,12 +328,12 @@ class ColumnEditCollection extends React.Component<Props, State> {
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer className={isGhost ? '' : DRAG_CLASS}>
           {canDelete ? (
-            <IconButton
+            <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-            >
-              <IconGrabbable size="sm" />
-            </IconButton>
+              icon={<IconGrabbable color={theme.gray4} />}
+              borderless
+            />
           ) : (
             <span />
           )}
@@ -345,12 +346,12 @@ class ColumnEditCollection extends React.Component<Props, State> {
             takeFocus={i === this.props.columns.length - 1}
           />
           {canDelete ? (
-            <IconButton
+            <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-            >
-              <IconClose size="sm" />
-            </IconButton>
+              icon={<IconDelete color={theme.gray2} />}
+              borderless
+            />
           ) : (
             <span />
           )}
@@ -374,9 +375,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
       <div>
         {this.renderGhost(gridColumns)}
         <RowContainer>
-          <Heading gridColumns={gridColumns}>
-            <strong>{t('Tag / Field / Function')}</strong>
-            <strong>{t('Parameters')}</strong>
+          <Heading>
+            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
           </Heading>
         </RowContainer>
         {columns.map((col: Column, i: number) =>
@@ -385,11 +386,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
         <RowContainer>
           <Actions>
             <Button
+              size="small"
               label={t('Add a Column')}
-              size="xsmall"
               onClick={this.handleAddColumn}
+              icon={<IconAdd circle size="xs" />}
             >
-              <StyledIconAdd circle size="sm" />
               {t('Add a Column')}
             </Button>
           </Actions>
@@ -404,7 +405,6 @@ const RowContainer = styled('div')`
   grid-template-columns: 30px auto 30px;
   align-items: center;
   width: 100%;
-
   padding-bottom: ${space(1)};
 `;
 
@@ -435,24 +435,6 @@ const DragPlaceholder = styled('div')`
   height: 38px;
 `;
 
-const IconButton = styled('button')`
-  margin: 0;
-  padding: 0;
-  border: 0;
-  height: 16px;
-  background: transparent;
-  outline: none;
-
-  &:focus > svg,
-  &:active > svg {
-    color: ${p => p.theme.purple};
-  }
-`;
-
-const StyledIconAdd = styled(IconAdd)`
-  margin-right: ${space(1)};
-`;
-
 const Actions = styled('div')`
   grid-column: 2 / 3;
 `;
@@ -464,6 +446,10 @@ const Heading = styled('div')<{gridColumns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
   grid-column-gap: ${space(1)};
+`;
+
+const StyledSectionHeading = styled(SectionHeading)`
+  margin-bottom: 0;
 `;
 
 export default ColumnEditCollection;

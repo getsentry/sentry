@@ -125,7 +125,7 @@ describe('IssueAlertOptions', function() {
     );
   });
 
-  it('should pre-fill threshold value after a valid server response', () => {
+  it('should not pre-fill threshold value after a valid server response', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: MOCK_RESP_VERBOSE,
@@ -133,6 +133,6 @@ describe('IssueAlertOptions', function() {
 
     const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
 
-    expect(wrapper.find('input[data-test-id="range-input"]').props().value).toBe('10');
+    expect(wrapper.find('input[data-test-id="range-input"]').props().value).toBe('');
   });
 });
