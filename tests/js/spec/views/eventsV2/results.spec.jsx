@@ -16,7 +16,7 @@ const FIELDS = [
     field: 'user',
   },
   {
-    field: 'count(id)',
+    field: 'count()',
   },
 ];
 
@@ -214,7 +214,7 @@ describe('EventsV2 > Results', function() {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), yAxis: 'count(id)'}},
+        location: {query: {...generateFields(), yAxis: 'count()'}},
       },
     });
 
@@ -240,6 +240,6 @@ describe('EventsV2 > Results', function() {
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
-    expect(eventsRequest.props().yAxis).toEqual('count(id)');
+    expect(eventsRequest.props().yAxis).toEqual('count()');
   });
 });
