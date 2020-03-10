@@ -118,7 +118,7 @@ class Columns(Enum):
         "device.orientation",
     )
     DEVICE_SIMULATOR = Column(
-        "events.contexts[device_simulator]",
+        "events.contexts[device.simulator]",
         "contexts[device.simulator]",
         "contexts[device.simulator]",
         "device.simulator",
