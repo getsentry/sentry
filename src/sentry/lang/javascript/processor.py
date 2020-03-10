@@ -538,8 +538,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # can't fetch if this is internal node module as well
         # therefore we only process user-land frames (starting with /)
         # or those created by bundle/webpack internals
-        if self.data.get("platform") == "node" and not frame.get("abs_path").startswith(
-            ("/", "app:", "webpack:")
+        if self.data.get("platform") == "node" and (
+            "node_modules" in frame.get("abs_path")
+            or not frame.get("abs_path").startswith(("/", "app:", "webpack:"))
         ):
             return
 
