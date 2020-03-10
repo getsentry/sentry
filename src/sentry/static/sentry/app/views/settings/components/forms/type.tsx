@@ -32,6 +32,7 @@ type BaseField = {
   required?: boolean;
   placeholder?: string | (() => string);
   multiline?: boolean;
+  monospace?: boolean;
   visible?: boolean | ((props: any) => boolean);
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: string;
