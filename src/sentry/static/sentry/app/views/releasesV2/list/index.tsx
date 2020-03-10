@@ -112,7 +112,7 @@ class ReleasesList extends AsyncView<Props, State> {
           lastEvent,
           newGroups,
         } = release;
-        const {slug, healthData} = project;
+        const {slug, id, healthData} = project;
         return {
           version,
           dateCreated,
@@ -123,6 +123,7 @@ class ReleasesList extends AsyncView<Props, State> {
           newGroups,
           healthData: healthData!,
           projectSlug: slug,
+          projectId: id,
           // TODO(releasesv2): make api send also project platform
         };
       })

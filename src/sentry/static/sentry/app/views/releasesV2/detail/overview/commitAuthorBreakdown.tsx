@@ -11,6 +11,8 @@ import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
 import {Commit, User} from 'app/types';
 
+import {SectionHeading, Wrapper} from './styles';
+
 type Props = {
   projectId: string;
   orgId: string;
@@ -97,23 +99,11 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   }
 }
 
-const SectionHeading = styled('h4')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
-`;
-
-const Wrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(4)};
-`;
-
 const AuthorLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Author = styled('div')`

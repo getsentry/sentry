@@ -8,6 +8,8 @@ import {Release} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 
+import {SectionHeading, Wrapper} from './styles';
+
 type Props = {
   release: Release;
 };
@@ -49,23 +51,11 @@ const ProjectReleaseDetails = ({release}: Props) => {
   );
 };
 
-const SectionHeading = styled('h4')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
-`;
-
-const Wrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(4)};
-`;
-
 const StyledTable = styled('table')`
   table-layout: fixed;
   width: 100%;
   max-width: 100%;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTr = styled('tr')`

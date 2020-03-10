@@ -5,43 +5,31 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+import {SectionHeading, Wrapper} from './styles';
+
 type Props = {};
 
-const TotalCrashFreeUsers = ({}: Props) => {
-  return (
-    <Wrapper>
-      <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
-      <Timeline>
-        {[1, 2, 3, 4].map((_, index) => (
-          <Row key={index}>
-            <InnerRow>
-              <Text bold>March 7</Text>
-              <Text bold right>
-                4.8k users
-              </Text>
-            </InnerRow>
-            <InnerRow>
-              <Text>1 wk later</Text>
-              <Text right>30%</Text>
-            </InnerRow>
-          </Row>
-        ))}
-      </Timeline>
-    </Wrapper>
-  );
-};
-
-const SectionHeading = styled('h4')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
-`;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${space(4)};
-`;
+const TotalCrashFreeUsers = ({}: Props) => (
+  <Wrapper>
+    <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
+    <Timeline>
+      {[1, 2, 3, 4].map((_, index) => (
+        <Row key={index}>
+          <InnerRow>
+            <Text bold>March 7</Text>
+            <Text bold right>
+              4.8k users
+            </Text>
+          </InnerRow>
+          <InnerRow>
+            <Text>1 wk later</Text>
+            <Text right>30%</Text>
+          </InnerRow>
+        </Row>
+      ))}
+    </Timeline>
+  </Wrapper>
+);
 
 const Timeline = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
