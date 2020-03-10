@@ -408,8 +408,39 @@ class TriggerStatus(Enum):
     RESOLVED = 1
 
 
+class IncidentTriggerManager(BaseManager):
+    CACHE_KEY = "incident:triggers:%s"
+
+    @classmethod
+    def _build_cache_key(self, incident_id):
+        return self.CACHE_KEY % incident_id
+
+    def get_for_incident(self, incident):
+        """
+        Fetches the IncidentTriggers associated with an Incident. Attempts to fetch from
+        cache then hits the database.
+        """
+        cache_key = self._build_cache_key(incident.id)
+        triggers = cache.get(cache_key)
+        if triggers is None:
+            triggers = list(IncidentTrigger.objects.filter(incident=incident))
+            cache.set(cache_key, triggers, 3600)
+
+        return triggers
+
+    @classmethod
+    def clear_incident_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_cache_key(instance.id))
+
+    @classmethod
+    def clear_incident_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_cache_key(instance.incident_id))
+
+
 class IncidentTrigger(Model):
     __core__ = True
+
+    objects = IncidentTriggerManager()
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
@@ -608,3 +639,7 @@ post_delete.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRul
 post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
 post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
 post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
+
+post_delete.connect(IncidentTriggerManager.clear_incident_cache, sender=Incident)
+post_save.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)
+post_delete.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)
