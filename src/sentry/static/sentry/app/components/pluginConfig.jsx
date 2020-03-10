@@ -71,6 +71,7 @@ class PluginConfig extends React.Component {
   };
 
   handleTestPlugin = async () => {
+    this.setState({testResults: ''});
     addLoadingMessage(t('Sending test...'));
 
     try {
