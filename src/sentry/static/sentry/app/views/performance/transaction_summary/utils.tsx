@@ -8,7 +8,7 @@ export function transactionSummaryRouteWithEventView({
   transaction,
 }: {
   orgSlug: string;
-  projectID: string | undefined;
+  projectID: string | string[] | undefined;
   transaction: string;
 }) {
   const pathname = generateTransactionSummaryRoute({
