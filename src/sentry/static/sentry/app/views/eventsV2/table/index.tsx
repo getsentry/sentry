@@ -92,11 +92,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
         query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
-        if (this.state.tableFetchID !== tableFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
-
+        // We want to measure this metric regardless of whether we use the result
         metric.measure({
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
@@ -104,6 +100,11 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: jqXHR && jqXHR.status,
           },
         });
+        if (this.state.tableFetchID !== tableFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+
         this.setState(prevState => ({
           isLoading: false,
           tableFetchID: undefined,
