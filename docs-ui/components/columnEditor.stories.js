@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
@@ -29,6 +28,27 @@ storiesOf('Discover|ColumnEditor', module).add(
       {
         field: 'id',
         aggregation: 'count',
+      },
+      {
+        field: 'title',
+        aggregation: 'count_unique',
+      },
+      {
+        field: '',
+        aggregation: 'p95',
+      },
+      {
+        field: 'issue.id',
+        aggregation: '',
+      },
+      {
+        field: 'issue.id',
+        aggregation: 'count_unique',
+      },
+      {
+        refinement: '0.81',
+        field: 'transaction.duration',
+        aggregation: 'percentile',
       },
     ];
 

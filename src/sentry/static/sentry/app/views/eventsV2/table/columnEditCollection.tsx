@@ -7,20 +7,23 @@ import {
   UserSelectValues,
   setBodyUserSelect,
 } from 'app/components/events/interfaces/spans/utils';
-import {IconAdd, IconGrabbable, IconClose} from 'app/icons';
+import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
+import {SelectValue, OrganizationSummary, StringMap} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
+import {SectionHeading} from '../styles';
+import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
 import {Column} from '../eventView';
-import ColumnEditRow from './columnEditRow';
+import {FieldValue, FieldValueKind} from './types';
+import {ColumnEditRow} from './columnEditRow';
 
 type Props = {
   // Input columns
   columns: Column[];
   organization: OrganizationSummary;
-  tagKeys: string[];
+  tagKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -31,10 +34,17 @@ type State = {
   draggingTargetIndex: undefined | number;
   left: undefined | number;
   top: undefined | number;
+  // Stored as a object so we can find elements later.
+  fieldOptions: StringMap<SelectValue<FieldValue>>;
 };
 
 const DRAG_CLASS = 'draggable-item';
 const GRAB_HANDLE_FUDGE = 25;
+
+enum PlaceholderPosition {
+  TOP,
+  BOTTOM,
+}
 
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {
@@ -43,6 +53,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingTargetIndex: void 0,
     left: void 0,
     top: void 0,
+    fieldOptions: {},
   };
 
   componentDidMount() {
@@ -58,6 +69,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
       document.body.appendChild(this.portal);
     }
+    this.syncFields();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.tagKeys !== prevProps.tagKeys) {
+      this.syncFields();
+    }
   }
 
   componentWillUnmount() {
@@ -71,6 +89,65 @@ class ColumnEditCollection extends React.Component<Props, State> {
   portal: HTMLElement | null = null;
   dragGhostRef = React.createRef<HTMLDivElement>();
 
+  syncFields() {
+    const {organization, tagKeys} = this.props;
+
+    let fields = Object.keys(FIELDS);
+    let functions = Object.keys(AGGREGATIONS);
+
+    // Strip tracing features if the org doesn't have access.
+    if (!organization.features.includes('transaction-events')) {
+      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
+      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
+    }
+    const fieldOptions: StringMap<SelectValue<FieldValue>> = {};
+
+    // Index items by prefixed keys as custom tags
+    // can overlap both fields and function names.
+    // Having a mapping makes finding the value objects easier
+    // later as well.
+    functions.forEach(func => {
+      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
+      fieldOptions[`function:${func}`] = {
+        label: `${func}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: func,
+            parameters: AGGREGATIONS[func].parameters,
+          },
+        },
+      };
+    });
+
+    fields.forEach(field => {
+      fieldOptions[`field:${field}`] = {
+        label: field,
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: field,
+            dataType: FIELDS[field],
+          },
+        },
+      };
+    });
+
+    if (tagKeys !== null) {
+      tagKeys.forEach(tag => {
+        fieldOptions[`tag:${tag}`] = {
+          label: tag,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tag, dataType: 'string'},
+          },
+        };
+      });
+    }
+
+    this.setState({fieldOptions});
+  }
+
   cleanUpListeners() {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
@@ -80,7 +157,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   // Signal to the parent that a new column has been added.
   handleAddColumn = () => {
-    const newColumns = [...this.props.columns, {aggregation: '', field: ''}];
+    const newColumns = [
+      ...this.props.columns,
+      {aggregation: '', field: '', refinement: undefined},
+    ];
     this.props.onChange(newColumns);
   };
 
@@ -139,7 +219,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Find the item that the ghost is currently over.
     const targetIndex = Array.from(dragItems).findIndex(dragItem => {
       const rects = dragItem.getBoundingClientRect();
-      const top = event.pageY;
+      const top = event.clientY;
 
       const thresholdStart = rects.top;
       const thresholdEnd = rects.top + rects.height;
@@ -187,7 +267,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     });
   };
 
-  renderGhost() {
+  renderGhost(gridColumns: number) {
     const index = this.state.draggingIndex;
     if (typeof index !== 'number' || !this.state.isDragging || !this.portal) {
       return null;
@@ -202,61 +282,116 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, true)}
+        {this.renderItem(col, index, {isGhost: true, gridColumns})}
       </Ghost>
     );
 
     return ReactDOM.createPortal(ghost, this.portal);
   }
 
-  renderItem(col: Column, i: number, isGhost = false) {
-    const {organization, tagKeys} = this.props;
-    const {isDragging, draggingTargetIndex} = this.state;
+  renderItem(
+    col: Column,
+    i: number,
+    {
+      canDelete = true,
+      isGhost = false,
+      gridColumns = 2,
+    }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
+  ) {
+    const {isDragging, draggingTargetIndex, draggingIndex, fieldOptions} = this.state;
 
-    // Replace the dragged row with a placeholder.
+    let placeholder: React.ReactNode = null;
+    // Add a placeholder above the target row.
     if (isDragging && isGhost === false && draggingTargetIndex === i) {
-      return <DragPlaceholder key={`placeholder-${i}`} className={DRAG_CLASS} />;
+      placeholder = (
+        <DragPlaceholder
+          key={`placeholder:${col.aggregation}:${col.field}:${col.refinement}`}
+          className={DRAG_CLASS}
+        />
+      );
     }
 
+    // If the current row is the row in the drag ghost return the placeholder
+    // or a hole if the placeholder is elsewhere.
+    if (isDragging && isGhost === false && draggingIndex === i) {
+      return placeholder;
+    }
+
+    const position =
+      Number(draggingTargetIndex) <= Number(draggingIndex)
+        ? PlaceholderPosition.TOP
+        : PlaceholderPosition.BOTTOM;
+
     return (
-      <RowContainer key={`container-${i}`}>
-        <IconButton
-          aria-label={t('Drag to reorder columns')}
-          onMouseDown={event => this.startDrag(event, i)}
-        >
-          <IconGrabbable size="sm" />
-        </IconButton>
-        <ColumnEditRow
-          className={DRAG_CLASS}
-          organization={organization}
-          column={col}
-          parentIndex={i}
-          tagKeys={tagKeys}
-          onChange={this.handleUpdateColumn}
-        />
-        <IconButton aria-label={t('Remove column')} onClick={() => this.removeColumn(i)}>
-          <IconClose size="sm" />
-        </IconButton>
-      </RowContainer>
+      <React.Fragment
+        key={`${i}:${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
+      >
+        {position === PlaceholderPosition.TOP && placeholder}
+        <RowContainer className={isGhost ? '' : DRAG_CLASS}>
+          {canDelete ? (
+            <Button
+              aria-label={t('Drag to reorder')}
+              onMouseDown={event => this.startDrag(event, i)}
+              icon={<IconGrabbable color={theme.gray4} />}
+              borderless
+            />
+          ) : (
+            <span />
+          )}
+          <ColumnEditRow
+            fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
+            column={col}
+            parentIndex={i}
+            onChange={this.handleUpdateColumn}
+            takeFocus={i === this.props.columns.length - 1}
+          />
+          {canDelete ? (
+            <Button
+              aria-label={t('Remove column')}
+              onClick={() => this.removeColumn(i)}
+              icon={<IconDelete color={theme.gray2} />}
+              borderless
+            />
+          ) : (
+            <span />
+          )}
+        </RowContainer>
+        {position === PlaceholderPosition.BOTTOM && placeholder}
+      </React.Fragment>
     );
   }
 
   render() {
     const {columns} = this.props;
+    const canDelete = columns.length > 1;
+
+    // Get the longest number of columns so we can layout the rows.
+    // We always want at least 2 columns.
+    const gridColumns = Math.max(
+      ...columns.map(col => (col.field && col.refinement !== undefined ? 3 : 2))
+    );
+
     return (
       <div>
-        {this.renderGhost()}
+        {this.renderGhost(gridColumns)}
         <RowContainer>
-          <Heading>
-            <strong>{t('Column')}</strong>
-            <strong>{t('Function')}</strong>
+          <Heading gridColumns={gridColumns}>
+            <StyledSectionHeading>{t('Tag / Field / Function')}</StyledSectionHeading>
+            <StyledSectionHeading>{t('Field Parameter')}</StyledSectionHeading>
           </Heading>
         </RowContainer>
-        {columns.map((col: Column, i: number) => this.renderItem(col, i))}
+        {columns.map((col: Column, i: number) =>
+          this.renderItem(col, i, {canDelete, gridColumns})
+        )}
         <RowContainer>
           <Actions>
-            <Button size="xsmall" onClick={this.handleAddColumn}>
-              <StyledIconAdd circle size="sm" />
+            <Button
+              size="small"
+              label={t('Add a Column')}
+              onClick={this.handleAddColumn}
+              icon={<IconAdd circle size="xs" />}
+            >
               {t('Add a Column')}
             </Button>
           </Actions>
@@ -271,8 +406,7 @@ const RowContainer = styled('div')`
   grid-template-columns: 30px auto 30px;
   align-items: center;
   width: 100%;
-
-  margin-bottom: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
 
 const Ghost = styled('div')`
@@ -282,12 +416,12 @@ const Ghost = styled('div')`
   padding: 4px;
   border: 4px solid ${p => p.theme.borderLight};
   border-radius: 4px;
-  width: 400px;
+  width: 450px;
   opacity: 0.8;
   cursor: grabbing;
 
   & > ${RowContainer} {
-    margin-bottom: 0;
+    padding-bottom: 0;
   }
 
   & svg {
@@ -302,30 +436,21 @@ const DragPlaceholder = styled('div')`
   height: 38px;
 `;
 
-const IconButton = styled('button')`
-  margin: 0;
-  padding: 0;
-  border: 0;
-  height: 16px;
-  background: transparent;
-  outline: none;
-`;
-
-const StyledIconAdd = styled(IconAdd)`
-  margin-right: ${space(1)};
-`;
-
 const Actions = styled('div')`
   grid-column: 2 / 3;
 `;
 
-const Heading = styled('div')`
+const Heading = styled('div')<{gridColumns: number}>`
   grid-column: 2 / 3;
 
   /* Emulate the grid used in the column editor rows */
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
   grid-column-gap: ${space(1)};
+`;
+
+const StyledSectionHeading = styled(SectionHeading)`
+  margin-bottom: 0;
 `;
 
 export default ColumnEditCollection;

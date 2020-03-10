@@ -11,7 +11,7 @@ import multiprocessing as _multiprocessing
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features
+from sentry import eventstore, features, options
 from sentry.cache import default_cache
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
@@ -114,19 +114,25 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
-    events = []
+    if options.get("store.transactions-celery") is True:
+        for message in messages:
+            process_event(message, projects)
+        return
+
+    jobs = []
     for message in messages:
         payload = message["payload"]
         project_id = int(message["project_id"])
+        start_time = float(message["start_time"])
 
         if project_id not in projects:
             continue
 
         with metrics.timer("ingest_consumer.decode_transaction_json"):
             data = json.loads(payload)
-            events.append(data)
+        jobs.append({"data": data, "start_time": start_time})
 
-    save_transaction_events(events, projects)
+    save_transaction_events(jobs, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")
@@ -216,6 +222,17 @@ def process_individual_attachment(message, projects):
         logger.info("Organization has no event attachments: %s", project_id)
         return
 
+    # Attachments may be uploaded for events that already exist. Fetch the
+    # existing group_id, so that the attachment can be fetched by group-level
+    # APIs. This is inherently racy.
+    events = eventstore.get_unfetched_events(
+        filter=eventstore.Filter(event_ids=[event_id], project_ids=[project.id]), limit=1
+    )
+
+    group_id = None
+    if events:
+        group_id = events[0].group_id
+
     attachment = message["attachment"]
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment.pop("attachment_type"), **attachment
@@ -230,7 +247,7 @@ def process_individual_attachment(message, projects):
 
     file.putfile(BytesIO(attachment.data))
     EventAttachment.objects.create(
-        project_id=project.id, event_id=event_id, name=attachment.name, file=file
+        project_id=project.id, group_id=group_id, event_id=event_id, name=attachment.name, file=file
     )
 
     attachment.delete()

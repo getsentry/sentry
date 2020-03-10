@@ -228,25 +228,14 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             }
             for result in results:
                 if "issue.id" in result:
-                    result["issue"] = issues[result["issue.id"]]
+                    result["issue"] = issues.get(result["issue.id"], "unknown")
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
 
-        projects = {
-            p["id"]: p["slug"]
-            for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
-                "id", "slug"
-            )
-        }
         for result in results:
             for key in ("projectid", "project.id"):
                 if key in result:
-                    # Handle bizarre empty case
-                    if result[key] == 0:
-                        result["project.name"] = ""
-                    else:
-                        result["project.name"] = projects[result[key]]
                     if key not in fields:
                         del result[key]
 

@@ -12,7 +12,7 @@ from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey, EventAttachment
-from sentry.signals import event_accepted, event_dropped, event_filtered
+from sentry.signals import event_accepted
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
@@ -205,27 +205,27 @@ class StoreViewTest(TestCase):
         }
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Allow", resp)
+        assert resp.has_header("Allow")
         self.assertEquals(resp["Allow"], "GET, POST, HEAD, OPTIONS")
-        self.assertIn("Content-Length", resp)
+        assert resp.has_header("Content-Length")
         self.assertEquals(resp["Content-Length"], "0")
 
     def test_options_with_no_origin_or_referrer(self):
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "*")
 
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
     def test_options_response_origin_preferred_over_referrer(self):
@@ -233,7 +233,7 @@ class StoreViewTest(TestCase):
             self.path, HTTP_REFERER="http://foo.com", HTTP_ORIGIN="http://bar.com"
         )
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://bar.com")
 
     @mock.patch("sentry.event_manager.is_valid_ip", mock.Mock(return_value=False))
@@ -359,7 +359,7 @@ class StoreViewTest(TestCase):
 
         resp = self._postWithHeader(body, HTTP_ORIGIN="lolnope.com")
         assert resp.status_code == 403, (resp.status_code, resp.content)
-        assert "Invalid origin" in resp.content
+        assert b"Invalid origin" in resp.content
 
     def test_request_with_beginning_glob(self):
         self.project.update_option(
@@ -595,40 +595,6 @@ class StoreViewTest(TestCase):
             mock_event_accepted, ip="127.0.0.1", project=self.project, signal=event_accepted
         )
 
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.app.quotas.is_rate_limited")
-    def test_dropped_signal(self, mock_is_rate_limited):
-        mock_is_rate_limited.is_limited = True
-
-        mock_event_dropped = Mock()
-
-        event_dropped.connect(mock_event_dropped)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 429, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_dropped, ip="127.0.0.1", project=self.project, signal=event_dropped
-        )
-
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.event_manager.EventManager.should_filter")
-    def test_filtered_signal(self, mock_should_filter):
-        mock_should_filter.return_value = (True, "ip-address")
-
-        mock_event_filtered = Mock()
-
-        event_filtered.connect(mock_event_filtered)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 403, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_filtered, ip="127.0.0.1", project=self.project, signal=event_filtered
-        )
-
 
 class CrossDomainXmlTest(TestCase):
     @fixture
@@ -643,7 +609,7 @@ class CrossDomainXmlTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="*" secure="false" />' in resp.content.decode("utf-8")
+        assert b'<allow-access-from domain="*" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_whitelist(self, get_origins):
@@ -653,13 +619,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode(
-            "utf-8"
-        )
-        assert (
-            '<allow-access-from domain="www.disqus.com" secure="false" />'
-            in resp.content.decode("utf-8")
-        )
+        assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
+        assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_no_origins(self, get_origins):
@@ -669,7 +630,7 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert "<allow-access-from" not in resp.content.decode("utf-8")
+        assert b"<allow-access-from" not in resp.content
 
     def test_output_allows_x_sentry_auth(self):
         resp = self.client.get(self.path)
@@ -677,8 +638,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert (
-            '<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
-            in resp.content.decode("utf-8")
+            b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
+            in resp.content
         )
 
 

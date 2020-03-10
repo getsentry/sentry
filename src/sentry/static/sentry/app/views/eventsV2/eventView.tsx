@@ -55,6 +55,7 @@ export type Field = {
 export type Column = {
   aggregation: string;
   field: string;
+  refinement?: string;
   width?: number;
 };
 
@@ -106,14 +107,13 @@ export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): 
   return !!getSortKeyFromField(field, tableMeta);
 }
 
-const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
-  const {aggregation, field} = props;
-
-  const hasAggregation = aggregation.length > 0;
-
-  const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
-
-  return fieldAsString;
+const generateFieldAsString = (col: Column): string => {
+  const {aggregation, field, refinement} = col;
+  const parameters = [field, refinement].filter(i => i);
+  if (aggregation) {
+    return `${aggregation}(${parameters.join(',')})`;
+  }
+  return field;
 };
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -342,7 +342,7 @@ class EventView {
     const environment: string[] =
       Array.isArray(newQuery.environment) && newQuery.environment.length > 0
         ? newQuery.environment
-        : collectQueryStringByKey(location.query, 'environment');
+        : collectQueryStringByKey(query, 'environment');
 
     const project: number[] =
       Array.isArray(newQuery.projects) && newQuery.projects.length > 0
@@ -572,26 +572,57 @@ class EventView {
     });
   }
 
-  withNewColumn(newColumn: Column): EventView {
-    const field = newColumn.field.trim();
-    const aggregation = newColumn.aggregation.trim();
-    const fieldAsString = generateFieldAsString({field, aggregation});
-    const newField: Field = {
-      field: fieldAsString,
-      width: newColumn.width || COL_WIDTH_UNDEFINED,
-    };
-
+  withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
-    newEventView.fields = [...newEventView.fields, newField];
+    const fields: Field[] = columns
+      .filter(col => col.field || col.aggregation)
+      .map(col => generateFieldAsString(col))
+      .map((field, i) => {
+        // newly added field
+        if (!newEventView.fields[i]) {
+          return {field, width: COL_WIDTH_UNDEFINED};
+        }
+        // Existing columns that were not re ordered should retain
+        // their old widths.
+        const existing = newEventView.fields[i];
+        const width =
+          existing.field === field && existing.width !== undefined
+            ? existing.width
+            : COL_WIDTH_UNDEFINED;
+        return {field, width};
+      });
+    newEventView.fields = fields;
+
+    // Update sorts as sorted fields may have been removed.
+    if (newEventView.sorts) {
+      // Filter the sort fields down to those that are still selected.
+      const sortKeys = fields.map(field => fieldToSort(field, undefined)?.field);
+      const newSort = newEventView.sorts.filter(
+        sort => sort && sortKeys.includes(sort.field)
+      );
+      // If the sort field was removed, try and find a new sortable column.
+      if (newSort.length === 0) {
+        const sortField = fields.find(field => isFieldSortable(field, undefined));
+        if (sortField) {
+          newSort.push({field: sortField.field, kind: 'desc'});
+        }
+      }
+      newEventView.sorts = newSort;
+    }
 
     return newEventView;
   }
 
-  withNewColumnAt(newColumn: Column, insertIndex: number): EventView {
-    const newEventView = this.withNewColumn(newColumn);
-    const fromIndex = newEventView.fields.length - 1;
+  withNewColumn(newColumn: Column): EventView {
+    const fieldAsString = generateFieldAsString(newColumn);
+    const newField: Field = {
+      field: fieldAsString,
+      width: newColumn.width || COL_WIDTH_UNDEFINED,
+    };
+    const newEventView = this.clone();
+    newEventView.fields = [...newEventView.fields, newField];
 
-    return newEventView.withMovedColumn({fromIndex, toIndex: insertIndex});
+    return newEventView;
   }
 
   withUpdatedColumn(
@@ -599,13 +630,11 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const {aggregation, field, width} = updatedColumn;
-
     const columnToBeUpdated = this.fields[columnIndex];
-    const fieldAsString = generateFieldAsString({field, aggregation});
+    const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
-    const updateWidth = columnToBeUpdated.width !== width;
+    const updateWidth = columnToBeUpdated.width !== updatedColumn.width;
 
     if (!updateField && !updateWidth) {
       return this;
@@ -618,7 +647,7 @@ class EventView {
 
     const updatedField: Field = {
       field: fieldAsString,
-      width: width || COL_WIDTH_UNDEFINED,
+      width: updatedColumn.width || COL_WIDTH_UNDEFINED,
     };
 
     const fields = [...newEventView.fields];
@@ -927,7 +956,6 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-
     const defaultOption = yAxisOptions[0].value;
 
     if (!yAxis) {

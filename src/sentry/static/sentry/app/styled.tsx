@@ -21,9 +21,7 @@ import * as React from 'react';
 // eslint-disable-next-line import/no-unresolved
 import * as CSS from 'csstype';
 
-import theme from './utils/theme';
-
-type Theme = typeof theme;
+import {Theme} from './utils/theme';
 
 /**
  * @desc Utility type for getting props type of React component.

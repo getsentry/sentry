@@ -36,7 +36,7 @@ from sentry.models import (
     OrganizationIntegration,
     UserReport,
 )
-from sentry.signals import event_discarded, event_saved
+from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.relay.config import get_project_config
@@ -1015,31 +1015,40 @@ class EventManagerTest(TestCase):
 
         manager = EventManager(make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]))
 
-        mock_event_discarded = mock.Mock()
-        event_discarded.connect(mock_event_discarded)
-        mock_event_saved = mock.Mock()
-        event_saved.connect(mock_event_saved)
+        from sentry.utils.outcomes import track_outcome
 
-        with self.tasks():
-            with self.assertRaises(HashDiscarded):
-                event = manager.save(1)
+        mock_track_outcome = mock.Mock(wraps=track_outcome)
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.tasks():
+                with self.assertRaises(HashDiscarded):
+                    event = manager.save(1)
 
-        assert not mock_event_saved.called
         assert_mock_called_once_with_partial(
-            mock_event_discarded, project=group.project, sender=EventManager, signal=event_discarded
+            mock_track_outcome, outcome=Outcome.FILTERED, reason=FilterStatKeys.DISCARDED_HASH
         )
 
-    def test_event_saved_signal(self):
-        mock_event_saved = mock.Mock()
-        event_saved.connect(mock_event_saved)
+        def query(model, key, **kwargs):
+            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
 
+        # Ensure that we incremented TSDB counts
+        assert query(tsdb.models.organization_total_received, event.project.organization.id) == 2
+        assert query(tsdb.models.project_total_received, event.project.id) == 2
+
+        assert query(tsdb.models.project, event.project.id) == 1
+        assert query(tsdb.models.group, event.group.id) == 1
+
+        assert query(tsdb.models.organization_total_blacklisted, event.project.organization.id) == 1
+        assert query(tsdb.models.project_total_blacklisted, event.project.id) == 1
+
+    def test_event_accepted_outcome(self):
         manager = EventManager(make_event(message="foo"))
         manager.normalize()
-        event = manager.save(1)
 
-        assert_mock_called_once_with_partial(
-            mock_event_saved, project=event.group.project, sender=EventManager, signal=event_saved
-        )
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            manager.save(1)
+
+        assert_mock_called_once_with_partial(mock_track_outcome, outcome=Outcome.ACCEPTED)
 
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"

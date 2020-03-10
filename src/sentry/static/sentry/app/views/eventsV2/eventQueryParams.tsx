@@ -1,49 +1,182 @@
 import {assert} from 'app/types/utils';
 
-export type ColumnValueType =
-  | '*' // Matches to everything
+export type ColumnType =
+  | '*' // Matches to everything TODO(mark) remove this in favour of explicit type lists.
   | 'string'
   | 'integer'
   | 'number'
   | 'duration'
   | 'timestamp'
-  | 'boolean'
-  | 'never'; // Matches to nothing
+  | 'boolean';
+
+export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
+
+export type AggregateParameter =
+  | {
+      kind: 'column';
+      columnTypes: Readonly<ColumnType[]>;
+      defaultValue?: string;
+      required: boolean;
+    }
+  | {
+      kind: 'value';
+      dataType: ColumnType;
+      defaultValue?: string;
+      required: boolean;
+    };
 
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
   count: {
-    type: '*',
+    parameters: [],
+    outputType: 'number',
     isSortable: true,
   },
   count_unique: {
-    type: '*',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'timestamp', 'boolean'],
+        required: true,
+      },
+    ],
+    outputType: 'number',
     isSortable: true,
   },
-  /*
-  rpm: {
-    type: 'numeric',
-    isSortable: true,
-  },
-  pXX: {
-    type: 'numeric',
-    isSortable: true,
-  },
-  */
   min: {
-    type: ['timestamp', 'duration'],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'number', 'duration', 'timestamp'],
+        required: true,
+      },
+    ],
+    outputType: null,
     isSortable: true,
   },
   max: {
-    type: ['timestamp', 'duration'],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'number', 'duration', 'timestamp'],
+        required: true,
+      },
+    ],
+    outputType: null,
     isSortable: true,
   },
   avg: {
-    type: ['duration'],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'number', 'duration'],
+        required: true,
+      },
+    ],
+    outputType: null,
     isSortable: true,
   },
   sum: {
-    type: ['duration'],
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'number', 'duration'],
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
+  last_seen: {
+    parameters: [],
+    outputType: 'timestamp',
+    isSortable: true,
+  },
+
+  // Tracing functions.
+  p75: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
+  p95: {
+    parameters: [],
+    outputType: 'duration',
+    type: [],
+    isSortable: true,
+  },
+  p99: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
+  percentile: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '0.5',
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
+  error_rate: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+  },
+  apdex: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+  },
+  impact: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+  },
+  rps: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+  },
+  rpm: {
+    parameters: [],
+    outputType: 'number',
     isSortable: true,
   },
 } as const;
@@ -52,7 +185,9 @@ assert(
   AGGREGATIONS as Readonly<
     {
       [key in keyof typeof AGGREGATIONS]: {
-        type: '*' | Readonly<ColumnValueType[]>;
+        parameters: Readonly<AggregateParameter[]>;
+        // null means to inherit from the column.
+        outputType: null | ColumnType;
         isSortable: boolean;
       };
     }
@@ -60,6 +195,7 @@ assert(
 );
 
 export type Aggregation = keyof typeof AGGREGATIONS | '';
+export type AggregationRefinement = string | undefined;
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
@@ -134,21 +270,8 @@ export const FIELDS = {
   // Field alises defined in src/sentry/api/event_search.py
   project: 'string',
   issue: 'string',
-
-  // duration aliases and fake functions.
-  // Once we've expanded the functions support these
-  // need to be revisited
-  p75: 'duration',
-  p95: 'duration',
-  p99: 'duration',
-
-  // TODO when these become real functions, we need to revisit how
-  // their types are inferred in decodeColumnOrder()
-  apdex: 'number',
-  impact: 'number',
-  error_rate: 'number',
 } as const;
-assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnValueType}>);
+assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
 
 export type Field = keyof typeof FIELDS | string | '';
 
@@ -159,10 +282,27 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'transaction.status',
+  'p75',
+  'p95',
+  'p99',
+  'percentile',
+  'error_rate',
+  'apdex',
+  'impact',
+  'rps',
+  'rpm',
+];
+
+// In the early days of discover2 these functions were exposed
+// as simple fields. Until we clean up all the saved queries we
+// need this for backwards compatibility.
+export const FIELD_ALIASES = [
   'apdex',
   'impact',
   'p99',
   'p95',
   'p75',
   'error_rate',
+  'last_seen',
+  'latest_event',
 ];

@@ -18,7 +18,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading-indicator")
         if snapshot_name is not None:
             self.browser.snapshot("organization settings -- " + snapshot_name)
-        assert self.browser.element_exists(".ref-organization-settings")
+        assert self.browser.element_exists('[data-test-id="organization-settings"]')
 
     def renders_2fa_setting(self):
         return self.browser.element_exists("#require2FA")
@@ -54,7 +54,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
 
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
-        assert not self.browser.element_exists(".ref-organization-settings .error")
+        assert not self.browser.element_exists('[data-test-id="organization-settings"] .error')
         self.browser.click("#require2FA")
 
         self.browser.wait_until(".modal")

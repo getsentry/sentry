@@ -342,7 +342,9 @@ export const fields = {
     label: t('Advanced datascrubber configuration'),
     placeholder: t('Paste a JSON configuration here.'),
     multiline: true,
+    monospace: true,
     autosize: true,
+    inline: false,
     maxRows: 20,
     help: tct(
       'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',

@@ -109,6 +109,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  firstEvent: 'string' | null;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
@@ -127,12 +128,12 @@ export type ProjectRelease = {
 };
 
 export type Health = {
-  crash_free_users: number | null;
-  total_users: number;
-  crash_free_sessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+  crashFreeSessions: number | null;
   stats: HealthGraphData;
-  crashes: number;
-  errors: number;
+  sessionsCrashed: number;
+  sessionsErrored: number;
   adoption: number | null;
 };
 export type HealthGraphData = {
@@ -827,6 +828,8 @@ export type SentryAppComponent = {
 
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  IntegrationDirectoryExperiment: '1' | '0';
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -864,6 +867,10 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+export type StringMap<T> = {
+  [key: string]: T;
 };
 
 /**

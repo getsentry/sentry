@@ -45,18 +45,26 @@ class Columns(Enum):
     OS_KERNEL_VERSION = Column(
         "events.os_kernel_version", "os_kernel_version", "os_kernel_version", "os.kernel_version"
     )
-    DEVICE_NAME = Column("events.device_name", "device_name", "device_name", "device.name")
-    DEVICE_BRAND = Column("events.device_brand", "device_brand", "device_brand", "device.brand")
-    DEVICE_LOCALE = Column(
-        "events.device_locale", "device_locale", "device_locale", "device.locale"
-    )
-    DEVICE_UUID = Column("events.device_uuid", "device_uuid", "device_uuid", "device.uuid")
     DEVICE_ARCH = Column("events.device_arch", "device_arch", "device_arch", "device.arch")
     DEVICE_BATTERY_LEVEL = Column(
         "events.device_battery_level",
         "device_battery_level",
         "device_battery_level",
         "device.battery_level",
+    )
+    DEVICE_BRAND = Column("events.device_brand", "device_brand", "device_brand", "device.brand")
+    DEVICE_CHARGING = Column(
+        "events.device_charging", "device_charging", "device_charging", "device.charging"
+    )
+    DEVICE_LOCALE = Column(
+        "events.device_locale", "device_locale", "device_locale", "device.locale"
+    )
+    DEVICE_MODEL_ID = Column(
+        "events.device_model_id", "device_model_id", "device_model_id", "device.model_id"
+    )
+    DEVICE_NAME = Column("events.device_name", "device_name", "device_name", "device.name")
+    DEVICE_ONLINE = Column(
+        "events.device_online", "device_online", "device_online", "device.online"
     )
     DEVICE_ORIENTATION = Column(
         "events.device_orientation",
@@ -67,12 +75,7 @@ class Columns(Enum):
     DEVICE_SIMULATOR = Column(
         "events.device_simulator", "device_simulator", "device_simulator", "device.simulator"
     )
-    DEVICE_ONLINE = Column(
-        "events.device_online", "device_online", "device_online", "device.online"
-    )
-    DEVICE_CHARGING = Column(
-        "events.device_charging", "device_charging", "device_charging", "device.charging"
-    )
+    DEVICE_UUID = Column("events.device_uuid", "device_uuid", "device_uuid", "device.uuid")
     GEO_COUNTRY_CODE = Column(
         "events.geo_country_code", "geo_country_code", "geo_country_code", "geo.country_code"
     )

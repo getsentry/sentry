@@ -40,10 +40,10 @@ class ScoreBar extends React.Component {
 
     return (
       <div className={className}>
-        {[...Array(scoreInBounds)].map((j, i) => (
+        {[...Array(scoreInBounds)].map((_j, i) => (
           <Bar {...barProps} key={i} color={palette[paletteIndex]} />
         ))}
-        {[...Array(maxScore - scoreInBounds)].map((j, i) => (
+        {[...Array(maxScore - scoreInBounds)].map((_j, i) => (
           <Bar key={`empty-${i}`} {...barProps} empty />
         ))}
       </div>
@@ -71,4 +71,6 @@ const Bar = styled('div')`
   width: ${p => (!p.vertical ? p.thickness : p.size)}px;
   height: ${p => (!p.vertical ? p.size : p.thickness)}px;
 `;
+
+export {Bar, StyledScoreBar};
 export default StyledScoreBar;

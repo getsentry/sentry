@@ -378,7 +378,7 @@ export default class AsyncComponent<
    *   ['stateKeyName', '/endpoint/', {optional: 'query params'}, {options}]
    * ]
    */
-  getEndpoints(): [string, string, any?, any?][] {
+  getEndpoints(): Array<[string, string, any?, any?]> {
     const endpoint = this.getEndpoint();
     if (!endpoint) {
       return [];

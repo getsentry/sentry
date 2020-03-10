@@ -5,11 +5,10 @@ import pytest
 from sentry.utils.compat import mock
 from time import time
 
-from sentry import quotas, tsdb
+from sentry import quotas
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
-from sentry.utils.dates import to_datetime
 from sentry.testutils.helpers.features import Feature
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -67,12 +66,6 @@ def mock_process_event():
 @pytest.fixture
 def mock_default_cache():
     with mock.patch("sentry.tasks.store.default_cache") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_incr():
-    with mock.patch.object(tsdb, "incr_multi") as m:
         yield m
 
 
@@ -203,7 +196,7 @@ def test_process_event_unprocessed(
 
 
 @pytest.mark.django_db
-def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register_plugin):
+def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
     register_plugin(BasicPreprocessorPlugin)
 
     data = {
@@ -219,27 +212,35 @@ def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register
     mock_save.side_effect = HashDiscarded
     with mock.patch.object(EventManager, "save", mock_save):
         save_event(data=data, start_time=now)
-        mock_incr.assert_called_with(
-            [
-                (tsdb.models.project_total_received, default_project.id),
-                (tsdb.models.organization_total_received, default_project.organization.id),
-                (tsdb.models.project_total_blacklisted, default_project.id),
-                (tsdb.models.organization_total_blacklisted, default_project.organization_id),
-                (tsdb.models.project_total_received_discarded, default_project.id),
-            ],
-            timestamp=to_datetime(now),
-        )
+        # should be caught
+
+
+@pytest.fixture(params=["org", "project"])
+def options_model(request, default_organization, default_project):
+    if request.param == "org":
+        return default_organization
+    elif request.param == "project":
+        return default_project
+    else:
+        raise ValueError(request.param)
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("setting_method", ["datascrubbers", "piiconfig"])
 def test_scrubbing_after_processing(
-    default_project, default_organization, mock_save_event, register_plugin, mock_default_cache
+    default_project,
+    default_organization,
+    mock_save_event,
+    register_plugin,
+    mock_default_cache,
+    setting_method,
+    options_model,
 ):
     @register_plugin
     class TestPlugin(Plugin2):
         def get_event_enhancers(self, data):
             def more_extra(data):
-                data["extra"]["new_aaa"] = "remove me"
+                data["extra"]["aaa"] = "remove me"
                 return data
 
             return [more_extra]
@@ -248,7 +249,7 @@ def test_scrubbing_after_processing(
             # Right now we do not scrub data from event preprocessors, only
             # from event enhancers.
             def more_extra(data):
-                data["extra"]["new_aaa2"] = "event preprocessor"
+                data["extra"]["aaa2"] = "event preprocessor"
                 return data
 
             return [more_extra]
@@ -256,15 +257,22 @@ def test_scrubbing_after_processing(
         def is_enabled(self, project=None):
             return True
 
-    default_project.update_option("sentry:sensitive_fields", ["a"])
-    default_project.update_option("sentry:scrub_data", True)
+    if setting_method == "datascrubbers":
+        options_model.update_option("sentry:sensitive_fields", ["a"])
+        options_model.update_option("sentry:scrub_data", True)
+    elif setting_method == "piiconfig":
+        options_model.update_option(
+            "sentry:relay_pii_config", '{"applications": {"extra.aaa": ["@anything:replace"]}}'
+        )
+    else:
+        raise ValueError(setting_method)
 
     data = {
         "project": default_project.id,
         "platform": "python",
         "logentry": {"formatted": "test"},
         "event_id": EVENT_ID,
-        "extra": {"aaa": "do not remove me"},
+        "extra": {},
     }
 
     mock_default_cache.get.return_value = data
@@ -275,9 +283,8 @@ def test_scrubbing_after_processing(
     (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
     assert key == "e:1"
     assert event["extra"] == {
-        u"aaa": u"do not remove me",
-        u"new_aaa": u"[Filtered]",
-        u"new_aaa2": u"event preprocessor",
+        u"aaa": u"[Filtered]" if setting_method == "datascrubbers" else u"[redacted]",
+        u"aaa2": u"event preprocessor",
     }
     assert duration == 3600
 

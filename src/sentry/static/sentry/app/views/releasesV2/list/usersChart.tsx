@@ -45,7 +45,7 @@ class UsersChart extends React.Component<Props> {
         <BarChart
           points={chartData}
           height={height}
-          label={t('users')}
+          label={t('sessions')}
           minHeights={[3]}
           gap={1}
         />

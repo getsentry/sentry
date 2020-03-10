@@ -61,4 +61,22 @@ describe('StackedBarChart', function() {
       expect(columns.at(2).text()).toEqual('last seen');
     });
   });
+  describe('functions', function() {
+    it('creates an AM/PM time label if use24Hours is disabled', function() {
+      const marker = {x: 1439776800, className: 'first-seen', label: 'first seen'};
+
+      const wrapper = shallow(<StackedBarChart />);
+      wrapper.instance().use24Hours = () => false;
+
+      expect(wrapper.instance().timeLabelAsFull(marker)).toMatch(/[A|P]M/);
+    });
+    it('creates a 24h time label if use24Hours is enabled', function() {
+      const marker = {x: 1439776800, className: 'first-seen', label: 'first seen'};
+
+      const wrapper = shallow(<StackedBarChart />);
+      wrapper.instance().use24Hours = () => true;
+
+      expect(wrapper.instance().timeLabelAsFull(marker)).not.toMatch(/[A|P]M/);
+    });
+  });
 });

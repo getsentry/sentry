@@ -14,7 +14,7 @@ import {
   explodeField,
   hasAggregateField,
 } from 'app/views/eventsV2/utils';
-import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 describe('getAggregateAlias', function() {
   it('no-ops simple fields', function() {
@@ -36,6 +36,15 @@ describe('getAggregateAlias', function() {
     expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
     expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
       'count_foo_bar_is-Enterprise_42'
+    );
+  });
+
+  it('handles 2 arg functions', function() {
+    expect(getAggregateAlias('percentile(transaction.duration,0.81)')).toEqual(
+      'percentile_transaction_duration_0_81'
+    );
+    expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
+      'percentile_transaction_duration_0_11'
     );
   });
 });
@@ -61,7 +70,7 @@ describe('getFieldRenderer', function() {
       createdAt: new Date(2019, 9, 3, 12, 13, 14),
       url: '/example',
       latest_event: 'deadbeef',
-      'project.name': project.slug,
+      project: project.slug,
     };
   });
 
@@ -112,7 +121,7 @@ describe('getFieldRenderer', function() {
   });
 
   it('can render project as an avatar', function() {
-    const renderer = getFieldRenderer('project', {'project.name': 'string'});
+    const renderer = getFieldRenderer('project', {project: 'string'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
@@ -142,13 +151,13 @@ describe('decodeColumnOrder', function() {
       key: 'title',
       name: 'title',
       aggregation: '',
+      refinement: undefined,
       field: 'title',
       width: 123,
       eventViewField: {
         field: 'title',
         width: 123,
       },
-      isDragging: false,
       isSortable: false,
       type: 'string',
     });
@@ -163,12 +172,12 @@ describe('decodeColumnOrder', function() {
       name: 'count()',
       aggregation: 'count',
       field: '',
+      refinement: undefined,
       width: 123,
       eventViewField: {
         field: 'count()',
         width: 123,
       },
-      isDragging: false,
       isSortable: true,
       type: 'number',
     });
@@ -190,9 +199,29 @@ describe('decodeColumnOrder', function() {
       name: 'avg(transaction.duration)',
       aggregation: 'avg',
       field: 'transaction.duration',
-      width: COL_WIDTH_NUMBER,
+      refinement: undefined,
+      width: COL_WIDTH_UNDEFINED,
       eventViewField: {field: 'avg(transaction.duration)'},
-      isDragging: false,
+      isSortable: true,
+      type: 'duration',
+    });
+  });
+
+  it('can decode elements with aggregate functions with multiple arguments', function() {
+    const results = decodeColumnOrder([
+      {field: 'percentile(transaction.duration, 0.65)'},
+    ]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'percentile(transaction.duration, 0.65)',
+      name: 'percentile(transaction.duration, 0.65)',
+      aggregation: 'percentile',
+      field: 'transaction.duration',
+      refinement: '0.65',
+      width: COL_WIDTH_UNDEFINED,
+      eventViewField: {field: 'percentile(transaction.duration, 0.65)'},
       isSortable: true,
       type: 'duration',
     });
@@ -420,11 +449,8 @@ describe('getExpandedResults()', function() {
 
   it('applies project condition to project property', () => {
     const view = new EventView(state);
-    let result = getExpandedResults(view, {project: 1});
-    expect(result.query).toEqual('event.type:error');
-    expect(result.project).toEqual([42, 1]);
 
-    result = getExpandedResults(view, {'project.id': 1});
+    const result = getExpandedResults(view, {'project.id': 1});
     expect(result.query).toEqual('event.type:error');
     expect(result.project).toEqual([42, 1]);
   });

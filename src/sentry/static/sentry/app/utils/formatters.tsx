@@ -22,10 +22,15 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
 export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
     const parsedVersion = new Release(rawVersion);
+    const versionToDisplay = parsedVersion.describe();
 
-    return `${parsedVersion.describe()}${
-      withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
-    }`;
+    if (versionToDisplay.length) {
+      return `${versionToDisplay}${
+        withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
+      }`;
+    }
+
+    return rawVersion;
   } catch {
     return rawVersion;
   }

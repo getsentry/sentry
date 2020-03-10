@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
 import zipfile
+import pytest
 from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry import eventstore
-from sentry.testutils import TestCase
+from sentry.testutils import SentryStoreHelper, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils import json
-
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
@@ -24,7 +22,12 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-class BasicResolvingIntegrationTest(TestCase):
+class BasicResolvingIntegrationTest(object):
+    def post_and_retrieve_event(self, data):
+        raise NotImplementedError(
+            "post_and_retrieve_event should be implemented in a dervied test class"
+        )
+
     def test_basic_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -90,22 +93,21 @@ class BasicResolvingIntegrationTest(TestCase):
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        # We do a preflight post, because there are many queries polluting the array
-        # before the actual "processing" happens (like, auth_user)
-        resp = self._postWithHeader(event_data)
-        with self.assertWriteQueries(
-            {
-                "nodestore_node": 2,
-                "sentry_eventuser": 1,
-                "sentry_groupedmessage": 1,
-                "sentry_userreport": 1,
-            }
-        ):
-            self._postWithHeader(event_data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
 
-        event = eventstore.get_event_by_id(self.project.id, event_id)
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
         frames = bt.frames
@@ -184,14 +186,17 @@ class BasicResolvingIntegrationTest(TestCase):
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        resp = self._postWithHeader(event_data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+        event = self.post_and_retrieve_event(event_data)
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
             "mapping_uuid": u"071207ac-b491-4a74-957c-2c94fd9594f2",
             "type": "proguard_missing_lineno",
         }
+
+
+@pytest.mark.sentry_store_integration
+class BasicResolvingIntegrationTestLegacy(
+    SentryStoreHelper, TestCase, BasicResolvingIntegrationTest
+):
+    pass

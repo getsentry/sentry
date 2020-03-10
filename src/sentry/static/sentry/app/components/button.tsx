@@ -33,6 +33,7 @@ type Props = {
   tooltipProps?: any;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
+  name?: string;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
@@ -379,6 +380,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
 
 const Icon = styled(({hasChildren, ...props}: IconProps) => <span {...props} />)`
   margin-right: ${getIconMargin};
+  display: flex;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
