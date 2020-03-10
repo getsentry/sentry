@@ -27,7 +27,7 @@ class ActorAwareFields extends React.PureComponent<Props> {
     const {disabled, loading, projects, project, organization, action} = this.props;
     const {slug: projectSlug} = project;
 
-    const isOwner = action.targetType === 'Owners';
+    const isIssueOwners = action.targetType === 'IssueOwners';
     const isTeam = action.targetType === 'Team';
 
     return (
@@ -44,16 +44,16 @@ class ActorAwareFields extends React.PureComponent<Props> {
             }),
           }}
           options={[
-            {value: 'Owners', label: 'Owner'},
+            {value: 'IssueOwners', label: 'Issue Owners'},
             {value: 'Team', label: 'Team'},
             {value: 'Member', label: 'Member'},
           ]}
           onChange={this.handleChangeActorType}
         />
-        {!isOwner ? (
+        {!isIssueOwners ? (
           <SelectMembers
             disabled={disabled}
-            key={isTeam ? 'team' : 'member'}
+            key={isTeam ? 'Team' : 'Member'}
             showTeam={isTeam}
             project={projects.find(({slug}) => slug === projectSlug)}
             organization={organization}

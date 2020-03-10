@@ -127,7 +127,7 @@ class RuleNode extends React.Component<Props> {
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
     if (!isInitialized) {
       const newData: IssueAlertRuleAction = {...(data as IssueAlertRuleAction)};
-      newData.targetType = 'Owner';
+      newData.targetType = 'IssueOwners';
       this.handleMailActionChange(newData);
     }
     return (
@@ -203,7 +203,7 @@ class RuleNode extends React.Component<Props> {
     }
 
     switch (data.targetType) {
-      case 'Owners':
+      case 'IssueOwners':
         return (
           <ThinAlert type="warning">
             {t('If there are no matching ')}
