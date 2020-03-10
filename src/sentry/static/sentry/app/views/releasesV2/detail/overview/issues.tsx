@@ -7,6 +7,8 @@ import Button from 'app/components/button';
 import GroupList from 'app/views/releases/detail/groupList';
 import space from 'app/styles/space';
 import {Panel} from 'app/components/panels';
+import EventView from 'app/views/eventsV2/eventView';
+import {formatVersion} from 'app/utils/formatters';
 
 type Props = {
   orgId: string;
@@ -14,6 +16,26 @@ type Props = {
 };
 
 const Issues = ({orgId, version}: Props) => {
+  // TODO(releasesV2): figure out the query we want + do we want to pass globalSelectionHeader values?
+  const getDiscoverUrl = () => {
+    const discoverQuery = {
+      id: undefined,
+      version: 2,
+      name: `${t('Release')} ${formatVersion(version)}`,
+      fields: ['title', 'count(id)', 'event.type', 'user', 'last_seen'],
+      query: `release:${version}`,
+
+      projects: [],
+      range: '',
+      start: '',
+      end: '',
+      environment: [''],
+    } as const;
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
+    return discoverView.getResultsViewUrlTarget(orgId);
+  };
+
   return (
     <React.Fragment>
       <ControlsWrapper>
@@ -34,7 +56,7 @@ const Issues = ({orgId, version}: Props) => {
           ))}
         </DropdownControl>
 
-        <Button>{t('Open in Discover')}</Button>
+        <Button to={getDiscoverUrl()}>{t('Open in Discover')}</Button>
       </ControlsWrapper>
 
       <TableWrapper>
