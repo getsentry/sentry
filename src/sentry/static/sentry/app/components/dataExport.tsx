@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 type DataExportPayload = {
   // Coordinate with ExportQueryType string (src/sentry/constants.py)
-  queryType: 'Discover' | 'Billing Report' | 'Issues-by-Tag';
+  queryType: 'Issues-by-Tag' | 'Discover';
   queryInfo: any; // TODO(ts): Formalize different possible payloads
 };
 

@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {DataSection} from 'app/components/events/styles';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
 
 const defaultProps = {
@@ -77,20 +79,24 @@ class EventDataSection extends React.Component<Props> {
             </Permalink>
             {titleNode}
             {type === 'extra' && (
-              <div className="btn-group">
-                <a
-                  className={(!raw ? 'active' : '') + ' btn btn-default btn-sm'}
+              <ButtonBar merged>
+                <Button
+                  className={!raw ? 'active' : ''}
+                  priority={!raw ? 'primary' : 'default'}
+                  size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, false)}
                 >
                   {t('Formatted')}
-                </a>
-                <a
-                  className={(raw ? 'active' : '') + ' btn btn-default btn-sm'}
+                </Button>
+                <Button
+                  className={raw ? 'active' : ''}
+                  priority={raw ? 'primary' : 'default'}
+                  size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, true)}
                 >
                   {t('Raw')}
-                </a>
-              </div>
+                </Button>
+              </ButtonBar>
             )}
             {actions && <ActionContainer>{actions}</ActionContainer>}
           </SectionHeader>
@@ -116,6 +122,7 @@ const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   position: relative;
+  margin-bottom: ${space(3)};
 
   & h3,
   & h3 a {
@@ -130,8 +137,8 @@ const SectionHeader = styled('div')`
     font-weight: 600;
     line-height: 1.2;
     padding: ${space(0.75)} 0;
+    margin-bottom: 0;
     text-transform: uppercase;
-    margin-bottom: 20px;
   }
 
   & small {
