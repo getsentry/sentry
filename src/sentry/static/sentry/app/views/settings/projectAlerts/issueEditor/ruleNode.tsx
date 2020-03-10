@@ -207,12 +207,18 @@ class RuleNode extends React.Component<Props> {
         return (
           <ThinAlert type="warning">
             {t('If there are no matching ')}
-            <a href="https://docs.sentry.io/workflow/issue-owners/">
+            <a
+              href="https://docs.sentry.io/workflow/issue-owners/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
               {t('issue owners')}
             </a>
             {t(', ownership is determined by the setting on ')}
             <a
               href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+              rel="noopener noreferrer"
+              target="_blank"
             >
               {t('this page')}
             </a>
@@ -225,7 +231,11 @@ class RuleNode extends React.Component<Props> {
         return (
           <Alert thin type="warning">
             {t('Alerts sent directly to a member override their ')}
-            <a href="/settings/account/notifications">
+            <a
+              href="/settings/account/notifications"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
               {t('personal project alert settings')}
             </a>
             {t('.')}
