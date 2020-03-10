@@ -79,7 +79,7 @@ class AssistantActivityV2Test(APITestCase):
             assert guide["seen"] is False
 
     def test_dismissed(self):
-        guide = "issue"
+        guide = "issue_stream"
         AssistantActivity.objects.create(
             user=self.user, guide_id=self.guides[guide]["id"], dismissed_ts=timezone.now()
         )
@@ -88,7 +88,7 @@ class AssistantActivityV2Test(APITestCase):
         assert {"guide": guide, "seen": True} in resp.data
 
     def test_viewed(self):
-        guide = "issue"
+        guide = "issue_stream"
         AssistantActivity.objects.create(
             user=self.user, guide_id=self.guides[guide]["id"], viewed_ts=timezone.now()
         )
