@@ -114,7 +114,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
-    if options.get("sentry:ingest-transactions-celery") == "1":
+    if options.get("store.transactions-celery") is True:
         for message in messages:
             process_event(message, projects)
         return

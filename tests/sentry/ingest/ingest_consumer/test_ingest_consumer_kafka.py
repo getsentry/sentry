@@ -103,8 +103,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         auto_offset_reset="earliest",
     )
 
-    opt = "0" if inline_transactions else "1"
-    options.set("sentry:ingest-transactions-celery", opt)
+    options.set("store.transactions-celery", not inline_transactions)
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
