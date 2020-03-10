@@ -45,6 +45,9 @@ def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
 
+    if data.get("type") == "transaction":
+        return False
+
     for plugin in plugins.all(version=2):
         processors = safe_execute(
             plugin.get_event_preprocessors, data=data, _with_transaction=False

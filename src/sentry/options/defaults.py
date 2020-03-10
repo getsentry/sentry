@@ -174,6 +174,10 @@ register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZ
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
+# Toggles between processing transactions directly in the ingest consumer
+# (``False``) and spawning a save_event task (``True``).
+register("store.transactions-celery", default=False)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused
