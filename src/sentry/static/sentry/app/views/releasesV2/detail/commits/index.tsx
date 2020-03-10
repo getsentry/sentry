@@ -2,8 +2,6 @@ import React from 'react';
 
 type Props = {};
 
-const ReleaseCommits = ({}: Props) => {
-  return <div>ReleaseCommits</div>;
-};
+const ReleaseCommits = ({}: Props) => <div>ReleaseCommits</div>;
 
 export default ReleaseCommits;

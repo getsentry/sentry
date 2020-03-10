@@ -14,20 +14,16 @@ type Props = {
   crumbs: Crumb[];
 };
 
-const Breadcrumbs = ({crumbs}: Props) => {
-  return (
-    <BreadcrumbList>
-      {crumbs.map((crumb, index) => {
-        return (
-          <React.Fragment key={crumb.to}>
-            <BreadcrumbItem to={crumb.to}>{crumb.label}</BreadcrumbItem>
-            {index < crumbs.length - 1 && <StyledIcon direction="right" />}
-          </React.Fragment>
-        );
-      })}
-    </BreadcrumbList>
-  );
-};
+const Breadcrumbs = ({crumbs}: Props) => (
+  <BreadcrumbList>
+    {crumbs.map((crumb, index) => (
+      <React.Fragment key={crumb.to}>
+        <BreadcrumbItem to={crumb.to}>{crumb.label}</BreadcrumbItem>
+        {index < crumbs.length - 1 && <StyledIcon direction="right" />}
+      </React.Fragment>
+    ))}
+  </BreadcrumbList>
+);
 
 export default Breadcrumbs;
 

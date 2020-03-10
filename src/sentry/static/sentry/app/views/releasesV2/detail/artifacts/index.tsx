@@ -2,8 +2,6 @@ import React from 'react';
 
 type Props = {};
 
-const ReleaseArtifacts = ({}: Props) => {
-  return <div>ReleaseArtifacts</div>;
-};
+const ReleaseArtifacts = ({}: Props) => <div>ReleaseArtifacts</div>;
 
 export default ReleaseArtifacts;

@@ -59,23 +59,21 @@ const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
           {deploys.length > 0 && (
             <ReleaseStat label={t('Deploys')}>
               <DeploysWrapper>
-                {deploys.map(deploy => {
-                  return (
-                    <Tooltip
-                      title={<TimeSince date={deploy.dateFinished} />}
-                      key={deploy.id}
+                {deploys.map(deploy => (
+                  <Tooltip
+                    title={<TimeSince date={deploy.dateFinished} />}
+                    key={deploy.id}
+                  >
+                    <Link
+                      title={t('View in stream')}
+                      to={`/organizations/${orgId}/issues/?query=release:${encodeURIComponent(
+                        version
+                      )}&environment=${encodeURIComponent(deploy.environment)}`}
                     >
-                      <Link
-                        title={t('View in stream')}
-                        to={`/organizations/${orgId}/issues/?query=release:${encodeURIComponent(
-                          version
-                        )}&environment=${encodeURIComponent(deploy.environment)}`}
-                      >
-                        <StyledBadge text={deploy.environment} />
-                      </Link>
-                    </Tooltip>
-                  );
-                })}
+                      <StyledBadge text={deploy.environment} />
+                    </Link>
+                  </Tooltip>
+                ))}
               </DeploysWrapper>
             </ReleaseStat>
           )}

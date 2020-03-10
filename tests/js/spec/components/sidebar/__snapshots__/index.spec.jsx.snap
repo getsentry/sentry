@@ -1317,7 +1317,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -1385,7 +1385,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -1466,7 +1466,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -1546,7 +1546,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -1630,7 +1630,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -1711,7 +1711,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         </span>
                       </a>
                       <span>
-                         ·
+                         · 
                       </span>
                       <button
                         aria-disabled="false"
@@ -2432,7 +2432,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"
@@ -3096,7 +3096,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"
@@ -3824,7 +3824,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"
@@ -4557,7 +4557,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"
@@ -5305,7 +5305,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"
@@ -6042,7 +6042,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <span
                                             key="2"
                                           >
-                                             ·
+                                             · 
                                           </span>
                                           <forwardRef<Button>
                                             key="4"

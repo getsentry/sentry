@@ -6,14 +6,12 @@ type Props = {
   children: React.ReactNode;
 };
 
-const ReleaseStat = ({label, children}: Props) => {
-  return (
-    <Wrapper>
-      <Label>{label}</Label>
-      <Value>{children}</Value>
-    </Wrapper>
-  );
-};
+const ReleaseStat = ({label, children}: Props) => (
+  <Wrapper>
+    <Label>{label}</Label>
+    <Value>{children}</Value>
+  </Wrapper>
+);
 
 const Wrapper = styled('div')`
   /* text-align: right; */
