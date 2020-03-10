@@ -26,7 +26,7 @@ class DataExportError(Exception):
 
 
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
-def assemble_download(data_export_id):
+def assemble_download(data_export_id, limit=None):
     # Extract the ExportedData object
     try:
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})
@@ -40,9 +40,9 @@ def assemble_download(data_export_id):
         with tempfile.TemporaryFile() as tf:
             # Process the query based on its type
             if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
-                file_name = process_issue_by_tag(data_export, tf)
+                file_name = process_issue_by_tag(data_export, tf, limit)
             elif data_export.query_type == ExportQueryType.DISCOVER:
-                file_name = process_discover(data_export, tf)
+                file_name = process_discover(data_export, tf, limit)
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
             try:
@@ -71,7 +71,7 @@ def assemble_download(data_export_id):
         return data_export.email_failure(message="Internal processing failure")
 
 
-def process_issue_by_tag(data_export, file, limit=None):
+def process_issue_by_tag(data_export, file, limit):
     """
     Convert the tag query to a CSV, writing it to the provided file.
     Returns the suggested file name.
@@ -155,7 +155,12 @@ def process_issue_by_tag(data_export, file, limit=None):
     return file_name
 
 
-def process_discover(data_export, file, limit=None):
+def process_discover(data_export, file, limit):
+    """
+    Convert the discovery query to a CSV, writing it to the provided file.
+    Returns the suggested file name.
+    (Adapted from 'src/sentry/api/endpoints/organization_events.py')
+    """
     payload = data_export.query_info
 
     start, end = get_date_range_from_params(payload)
