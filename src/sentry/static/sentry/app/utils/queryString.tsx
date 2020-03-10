@@ -2,6 +2,8 @@ import queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
 
+import RESERVED_WORDS from './queryStringReservedWords';
+
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(qs: string): string {
   return qs.trim().replace(/\s+/g, ' ');
@@ -35,10 +37,12 @@ export function appendTagCondition(
   key: string,
   value: string
 ): string {
-  // Use the explicit tag syntax to handle the case when the tag name (key) is a
-  // reserved keyword.
-  // https://docs.sentry.io/workflow/search/?platform=node#explicit-tag-syntax
-  key = `tags[${key}]`;
+  if (RESERVED_WORDS.includes(key)) {
+    //Use the explicit tag syntax to handle the case when the tag name (key) is a
+    //reserved keyword.
+    //https://docs.sentry.io/workflow/search/?platform=node#explicit-tag-syntax
+    key = `tags[${key}]`;
+  }
 
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
