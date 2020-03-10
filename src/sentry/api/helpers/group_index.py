@@ -422,7 +422,12 @@ def self_subscribe_and_assign_issue(acting_user, group):
 
 def track_update_groups(function):
     def wrapper(request, projects, *args, **kwargs):
-        response = function(request, projects, *args, **kwargs)
+        try:
+            response = function(request, projects, *args, **kwargs)
+        except Exception as error:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            # Continue raising the error now that we've incr the metric
+            raise error
 
         serializer = GroupValidator(
             data=request.data, partial=True, context={"project": projects[0]}
