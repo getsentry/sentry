@@ -31,10 +31,10 @@ def is_targeted_action_key(key):
 
 def split_key_for_targeted_action(key):
     # TODO(jeff): Change import once logic has been bubbled to action
-    from sentry.rules.actions.notify_email import MailPlugin
+    from sentry.rules.actions.notify_email import MailAdapter
 
     _, _, project_id, target_type, target_identifier = key.split(":", 4)
-    return MailPlugin(), Project.objects.get(pk=project_id), target_type, target_identifier
+    return MailAdapter(), Project.objects.get(pk=project_id), target_type, target_identifier
 
 
 def split_key(key):
