@@ -19,11 +19,15 @@ class AssistantActivityTest(APITestCase):
         self.guides = manager.all()
 
     def test_invalid_inputs(self):
-        # Invalid guide id.
-        resp = self.client.put(self.path, {"guide_id": 1938})
+        # Missing status
+        resp = self.client.put(self.path, {"guide_id": 1})
         assert resp.status_code == 400
 
-        # Invalid status.
+        # Invalid guide id
+        resp = self.client.put(self.path, {"guide_id": 1938, "status": "dismissed"})
+        assert resp.status_code == 400
+
+        # Invalid status
         resp = self.client.put(self.path, {"guide_id": 1, "status": "whats_my_name_again"})
         assert resp.status_code == 400
 

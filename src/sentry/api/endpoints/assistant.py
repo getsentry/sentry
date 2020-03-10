@@ -25,6 +25,12 @@ class AssistantSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES))
     useful = serializers.BooleanField(required=False)
 
+    def validate_guide_id(self, value):
+        valid_ids = manager.get_valid_ids()
+        if value not in valid_ids:
+            raise serializers.ValidationError("Not a valid assistant guide_id")
+        return value
+
     def validate(self, attrs):
         attrs = super(AssistantSerializer, self).validate(attrs)
         guide = attrs.get("guide")
@@ -33,14 +39,14 @@ class AssistantSerializer(serializers.Serializer):
         if guide_id:
             return attrs
 
-        if not guide:
-            raise serializers.ValidationError("Assistant guide or guide_id is required")
+        if not guide and not guide_id:
+            raise serializers.ValidationError("Either assistant guide or guide_id is required")
 
         guide_id = manager.get_guide_id(guide)
         if not guide_id:
             raise serializers.ValidationError("Not a valid assistant guide")
-        attrs["guide_id"] = guide_id
 
+        attrs["guide_id"] = guide_id
         return attrs
 
 
@@ -58,10 +64,7 @@ class AssistantEndpoint(Endpoint):
             value["seen"] = value["id"] in seen_ids
 
         if "v2" in request.GET:
-            guides = [
-                {"guide": key, "seen": value["seen"] in seen_ids}
-                for key, value in six.iteritems(guides)
-            ]
+            guides = [{"guide": key, "seen": value["seen"]} for key, value in six.iteritems(guides)]
         return Response(guides)
 
     def put(self, request):
