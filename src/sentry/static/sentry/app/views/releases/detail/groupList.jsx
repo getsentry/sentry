@@ -151,11 +151,14 @@ const GroupList = createReactClass({
   },
 
   render() {
-    if (this.state.loading) {
+    const {orgId, canSelectGroups, withChart} = this.props;
+    const {loading, error, groups, memberList, pageLinks} = this.state;
+
+    if (loading) {
       return <LoadingIndicator />;
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
-    } else if (this.state.groups.length === 0) {
+    } else if (groups.length === 0) {
       return (
         <Panel>
           <PanelBody>
@@ -167,18 +170,15 @@ const GroupList = createReactClass({
       );
     }
 
-    const {orgId, canSelectGroups, withChart} = this.props;
-
     return (
       <React.Fragment>
         <Panel>
           <GroupListHeader withChart={withChart} />
           <PanelBody>
-            {this.state.groups.map(({id, project}) => {
+            {groups.map(({id, project}) => {
               const members =
-                this.state.memberList &&
-                this.state.memberList.hasOwnProperty(project.slug)
-                  ? this.state.memberList[project.slug]
+                memberList && memberList.hasOwnProperty(project.slug)
+                  ? memberList[project.slug]
                   : null;
 
               return (
@@ -194,7 +194,7 @@ const GroupList = createReactClass({
             })}
           </PanelBody>
         </Panel>
-        <Pagination pageLinks={this.state.pageLinks} onCursor={this.onCursorChange} />
+        <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
       </React.Fragment>
     );
   },

@@ -15,6 +15,7 @@ import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {formatVersion} from 'app/utils/formatters';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -36,7 +37,11 @@ type State = {
 class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
     const {params, organization} = this.props;
-    return routeTitleGen(t('Release %s', params.release), organization.slug, false);
+    return routeTitleGen(
+      t('Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
   }
 
   getDefaultState() {
@@ -45,7 +50,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string, {}][] {
+  getEndpoints(): [string, string, {}?][] {
     const {organization, location, params} = this.props;
 
     const query = {
@@ -58,7 +63,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
     return [
       ['release', basePath, {query}],
-      ['deploys', `${basePath}deploys/`, {}],
+      ['deploys', `${basePath}deploys/`],
     ];
   }
 

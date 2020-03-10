@@ -36,15 +36,18 @@ const Issues = ({orgId, version}: Props) => {
     return discoverView.getResultsViewUrlTarget(orgId);
   };
 
+  const issueTypes = [
+    {value: 'new', label: t('New Issues')},
+    {value: 'resolved', label: t('Resolved Issues')},
+    {value: 'all', label: t('All Issues')},
+  ];
+
+  // TODO(releasesV2): not dynamic yet
   return (
     <React.Fragment>
       <ControlsWrapper>
-        <DropdownControl label="Resolved Issues">
-          {[
-            {value: 'new', label: t('New Issues')},
-            {value: 'resolved', label: t('Resolved Issues')},
-            {value: 'all', label: t('All Issues')},
-          ].map((opt, index) => (
+        <DropdownControl label={t('Resolved Issues')}>
+          {issueTypes.map((opt, index) => (
             <DropdownItem
               key={opt.value}
               onSelect={() => {}}

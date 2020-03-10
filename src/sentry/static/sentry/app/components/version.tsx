@@ -45,7 +45,7 @@ type Props = {
    * Will add project ID to the linked url (can be overriden by preserveGlobalSelection).
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
-  projectId?: string | number;
+  projectId?: string;
   /**
    * Ellipsis on overflow
    */
@@ -73,7 +73,7 @@ const Version = ({
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
 
-  let releaseDetailProjectId: null | undefined | string | string[] | number;
+  let releaseDetailProjectId: null | undefined | string | string[];
   if (!preserveGlobalSelection) {
     if (projectId) {
       // if user specifically sets projectId and not preserveGlobalSelection, use that

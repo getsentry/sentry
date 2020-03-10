@@ -7,15 +7,12 @@ type Props = {
 };
 
 const ReleaseStat = ({label, children}: Props) => (
-  <Wrapper>
+  <div>
     <Label>{label}</Label>
     <Value>{children}</Value>
-  </Wrapper>
+  </div>
 );
 
-const Wrapper = styled('div')`
-  /* text-align: right; */
-`;
 const Label = styled('div')`
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};

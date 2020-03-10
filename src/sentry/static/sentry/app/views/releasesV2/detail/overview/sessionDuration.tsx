@@ -9,6 +9,7 @@ import {SectionHeading, Wrapper} from './styles';
 
 type Props = {};
 
+// TODO(releasesV2): waiting for API
 const SessionDuration = ({}: Props) => (
   <StyledWrapper>
     <SectionHeading>{t('Session Duration')}</SectionHeading>

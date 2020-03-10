@@ -34,9 +34,9 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   getEndpoints(): [string, string][] {
     const {projectId, orgId, version} = this.props;
 
-    const commitsEndpoint = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
-    )}/commits/`;
+    const commitsEndpoint = `/projects/${orgId}/${encodeURIComponent(
+      projectId
+    )}/releases/${encodeURIComponent(version)}/commits/`;
 
     return [['commits', commitsEndpoint]];
   }

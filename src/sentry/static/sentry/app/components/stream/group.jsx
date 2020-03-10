@@ -94,7 +94,14 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {query, hasGuideAnchor, canSelect, memberList, withChart} = this.props;
+    const {
+      query,
+      hasGuideAnchor,
+      canSelect,
+      memberList,
+      withChart,
+      statsPeriod,
+    } = this.props;
 
     return (
       <Group data-test-id="group" onClick={this.toggleSelect}>
@@ -115,7 +122,7 @@ const StreamGroup = createReactClass({
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
-            <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
+            <GroupChart id={data.id} statsPeriod={statsPeriod} data={data} />
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">

@@ -35,7 +35,7 @@ const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
     version
   )}/`;
 
-  const links = [
+  const tabs = [
     {title: t('Overview'), to: releasePath},
     {title: t('Commits'), to: `${releasePath}commits/`},
     {title: t('Artifacts'), to: `${releasePath}artifacts/`},
@@ -113,13 +113,13 @@ const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
       </ReleaseName>
 
       <StyledNavTabs>
-        {links.map(link => (
+        {tabs.map(tab => (
           <ListLink
-            key={link.to}
-            to={`${link.to}${location.search}`}
-            isActive={() => link.to === location.pathname}
+            key={tab.to}
+            to={`${tab.to}${location.search}`}
+            isActive={() => tab.to === location.pathname}
           >
-            {link.title}
+            {tab.title}
           </ListLink>
         ))}
       </StyledNavTabs>

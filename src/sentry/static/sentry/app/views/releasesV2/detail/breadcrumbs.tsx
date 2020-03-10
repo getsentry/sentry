@@ -1,3 +1,4 @@
+// TODO(matej): this could be moved to components to be reused in the future (also discover has something similar)
 import React from 'react';
 import styled from '@emotion/styled';
 

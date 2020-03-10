@@ -9,6 +9,7 @@ import {SectionHeading, Wrapper} from './styles';
 
 type Props = {};
 
+// TODO(releasesV2): waiting for API
 const TotalCrashFreeUsers = ({}: Props) => (
   <Wrapper>
     <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>

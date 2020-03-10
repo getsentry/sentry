@@ -44,9 +44,9 @@ const ReleaseActions = ({orgId, version}: Props) => {
           'Deleting this release is permanent. Are you sure you wish to continue?'
         )}
       >
-        <StyledButton>
+        <Button>
           <IconDelete size="xs" />
-        </StyledButton>
+        </Button>
       </Confirm>
     </Wrapper>
   );
@@ -57,11 +57,6 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: min-content;
   grid-gap: ${space(0.5)};
-`;
-
-const StyledButton = styled(Button)`
-  width: 40px;
-  height: 40px;
 `;
 
 export default ReleaseActions;
