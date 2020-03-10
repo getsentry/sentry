@@ -44,7 +44,7 @@ export default class RRWebIntegration extends AsyncComponent {
       <ReplayWrapper>
         <h5>Replay</h5>
         <Panel>
-          <StyledLazyLoad
+          <LazyLoad
             component={() =>
               import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer').then(
                 mod => mod.default
@@ -60,11 +60,4 @@ export default class RRWebIntegration extends AsyncComponent {
 
 const ReplayWrapper = styled('div')`
   padding-top: 20px;
-`;
-
-const StyledLazyLoad = styled(LazyLoad)`
-  .rr-player,
-  .rr-player__frame {
-    width: 100% !important;
-  }
 `;
