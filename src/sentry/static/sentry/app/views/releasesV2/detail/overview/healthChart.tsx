@@ -9,16 +9,16 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {EventsChart} from 'app/views/events/eventsChart';
 import withOrganization from 'app/utils/withOrganization';
-import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
 
-// VERY ROUGH MOCK, MORE LIKE VISUAL PLACEHOLDER
+// VERY ROUGH MOCK, MORE LIKE VISUAL PLACEHOLDER, this will be changed completely
 
-const HealthChart = ({organization, router, api}: any) => (
+const HealthChart = ({organization, router}: any) => (
   <Panel>
     <ChartWrapper>
       <EventsChart
         {...{
-          api,
+          api: new Client(),
           router,
           query: '',
           organization,
@@ -110,4 +110,4 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
 `;
 
-export default withApi(withOrganization(withRouter(HealthChart)));
+export default withOrganization(withRouter(HealthChart));

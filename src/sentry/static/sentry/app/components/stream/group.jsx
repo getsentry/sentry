@@ -1,4 +1,5 @@
 import $ from 'jquery';
+// eslint-disable-next-line no-restricted-imports
 import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';

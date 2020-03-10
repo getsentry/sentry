@@ -55,6 +55,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
+      health: 1,
     };
 
     const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
