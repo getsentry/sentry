@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import {Panel} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import LazyLoad from 'app/components/lazyLoad';
@@ -59,6 +60,6 @@ export default class RRWebIntegration extends AsyncComponent {
 }
 
 const ReplayWrapper = styled('div')`
-  padding-top: 20px;
+  padding-top: ${space(3)};
   overflow: hidden;
 `;
