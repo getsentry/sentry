@@ -1,40 +1,101 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import round from 'lodash/round';
 
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import AsyncComponent from 'app/components/asyncComponent';
+import {percent} from 'app/utils';
+import {userDisplayName} from 'app/utils/formatters';
+import {Commit, User} from 'app/types';
 
-type Props = {};
+type Props = {
+  projectId: string;
+  orgId: string;
+  version: string;
+  commitCount: number;
+} & AsyncComponent['props'];
 
-const CommitAuthorBreakdown = ({}: Props) => {
-  return (
-    <Wrapper>
-      <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
-      {[1, 2, 3, 4].map(() => (
-        <AuthorLine key={name}>
-          <Author>
-            <StyledUserAvatar
-              user={{
-                name: 'Matej Minar',
-                email: 'matej.minar@sentry.io',
-              }}
-              size={20}
-              hasTooltip
-            />
-            <AuthorName>Matej Minar</AuthorName>
-          </Author>
+type State = {
+  commits: Commit[];
+} & AsyncComponent['state'];
 
-          <Stats>
-            <Commits>15 commits</Commits>
-            <Percent>100%</Percent>
-          </Stats>
-        </AuthorLine>
-      ))}
-    </Wrapper>
-  );
-};
+class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+    };
+  }
+
+  getEndpoints(): [string, string][] {
+    const {projectId, orgId, version} = this.props;
+
+    const commitsEndpoint = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      version
+    )}/commits/`;
+
+    return [['commits', commitsEndpoint]];
+  }
+
+  getDisplayPercent(authorCommitCount: number): string {
+    const {commitCount} = this.props;
+
+    const calculatedPercent = round(percent(authorCommitCount, commitCount), 0);
+
+    return `${calculatedPercent < 1 ? '<1' : calculatedPercent}%`;
+  }
+
+  renderBody() {
+    // group commits by author
+    const groupedAuthorCommits = this.state.commits?.reduce(
+      (authorCommitsAccumulator, commit) => {
+        const email = commit.author?.email ?? 'undefined';
+
+        if (authorCommitsAccumulator.hasOwnProperty(email)) {
+          authorCommitsAccumulator[email].commitCount += 1;
+        } else {
+          authorCommitsAccumulator[email] = {
+            commitCount: 1,
+            author: commit.author,
+          };
+        }
+
+        return authorCommitsAccumulator;
+      },
+      {} as {[key: string]: {author: User | undefined; commitCount: number}}
+    );
+
+    // sort authors by number of commits
+    const sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
+      (a, b) => b.commitCount - a.commitCount
+    );
+
+    if (!sortedAuthorsByNumberOfCommits.length) {
+      return null;
+    }
+
+    return (
+      <Wrapper>
+        <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
+        {sortedAuthorsByNumberOfCommits.map(({commitCount, author}) => (
+          <AuthorLine key={author?.email}>
+            <Author>
+              <StyledUserAvatar user={author} size={20} hasTooltip />
+              <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
+            </Author>
+
+            <Stats>
+              <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
+              <Percent>{this.getDisplayPercent(commitCount)}</Percent>
+            </Stats>
+          </AuthorLine>
+        ))}
+      </Wrapper>
+    );
+  }
+}
 
 const SectionHeading = styled('h4')`
   color: ${p => p.theme.gray3};

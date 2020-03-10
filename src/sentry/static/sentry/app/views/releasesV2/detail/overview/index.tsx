@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Params} from 'react-router/lib/Router';
+import {Location} from 'history';
 
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
@@ -17,25 +18,43 @@ import {ReleaseContext} from '../index';
 type Props = {
   organization: Organization;
   params: Params;
+  location: Location;
 };
 
-const ReleaseOverview = ({organization, params}: Props) => {
+const ReleaseOverview = ({organization, params, location}: Props) => {
+  const projectId =
+    typeof location.query.project === 'string' ? location.query.project : undefined;
+
+  if (!projectId) {
+    return null;
+  }
+
   return (
     <ReleaseContext.Consumer>
-      {release => (
-        <ContentBox>
-          <Main>
-            <HealthChart />
-            <Issues orgId={organization.slug} version={params.release} />
-          </Main>
-          <Sidebar>
-            <CommitAuthorBreakdown />
-            <ProjectReleaseDetails release={release!} />
-            <TotalCrashFreeUsers />
-            <SessionDuration />
-          </Sidebar>
-        </ContentBox>
-      )}
+      {release => {
+        const {commitCount, version} = release!; // if release is undefined, this will not be rendered at all
+        return (
+          <ContentBox>
+            <Main>
+              <HealthChart />
+              <Issues orgId={organization.slug} version={params.release} />
+            </Main>
+            <Sidebar>
+              {commitCount > 0 && (
+                <CommitAuthorBreakdown
+                  version={version}
+                  orgId={organization.slug}
+                  projectId={location.query.project as string}
+                  commitCount={commitCount}
+                />
+              )}
+              <ProjectReleaseDetails release={release!} />
+              <TotalCrashFreeUsers />
+              <SessionDuration />
+            </Sidebar>
+          </ContentBox>
+        );
+      }}
     </ReleaseContext.Consumer>
   );
 };

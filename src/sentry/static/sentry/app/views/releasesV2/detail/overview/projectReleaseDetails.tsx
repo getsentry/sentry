@@ -14,6 +14,7 @@ type Props = {
 
 // TODO(releasesV2): TagValues should probably be links
 const ProjectReleaseDetails = ({release}: Props) => {
+  const {version, dateCreated, firstEvent, lastEvent} = release;
   return (
     <Wrapper>
       <SectionHeading>{t('Project Release Details')}</SectionHeading>
@@ -22,29 +23,25 @@ const ProjectReleaseDetails = ({release}: Props) => {
           <StyledTr>
             <TagKey>{t('Version')}</TagKey>
             <TagValue>
-              <Version version={release.version} anchor={false} />
+              <Version version={version} anchor={false} />
             </TagValue>
           </StyledTr>
 
           <StyledTr>
             <TagKey>{t('Created')}</TagKey>
             <TagValue>
-              <TimeSince date={release.dateCreated} />
+              <TimeSince date={dateCreated} />
             </TagValue>
           </StyledTr>
 
           <StyledTr>
             <TagKey>{t('First Event')}</TagKey>
-            <TagValue>
-              {release.firstEvent ? <TimeSince date={release.firstEvent} /> : '-'}
-            </TagValue>
+            <TagValue>{firstEvent ? <TimeSince date={firstEvent} /> : '-'}</TagValue>
           </StyledTr>
 
           <StyledTr>
             <TagKey>{t('Last Event')}</TagKey>
-            <TagValue>
-              {release.lastEvent ? <TimeSince date={release.lastEvent} /> : '-'}
-            </TagValue>
+            <TagValue>{lastEvent ? <TimeSince date={lastEvent} /> : '-'}</TagValue>
           </StyledTr>
         </tbody>
       </StyledTable>

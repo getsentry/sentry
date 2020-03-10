@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization, Release} from 'app/types';
+import {Organization, Release, Deploy} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -27,7 +27,10 @@ type Props = {
   params: Params;
 } & AsyncView['props'];
 
-type State = {} & AsyncView['state'];
+type State = {
+  release: Release;
+  deploys: Deploy[];
+} & AsyncView['state'];
 
 // TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
