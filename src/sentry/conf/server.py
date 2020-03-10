@@ -791,8 +791,6 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
-    # Enable audit page. ( https://www.notion.so/sentry/Audit-Page-Design-Doc-81108939d0f847938385942a16d1305d)
-    "organizations:audit-page": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -828,6 +826,8 @@ SENTRY_FEATURES = {
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
     "organizations:releases-v2": False,
+    # Enable rule page.
+    "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on

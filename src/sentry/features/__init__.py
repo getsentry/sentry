@@ -54,7 +54,6 @@ default_manager.add("organizations:create")
 
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
-default_manager.add("organizations:audit-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
@@ -83,6 +82,7 @@ default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
+default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:datascrubbers-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
