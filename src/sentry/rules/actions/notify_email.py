@@ -284,7 +284,7 @@ class MailAdapter(object):
                     ).values_list("id", flat=True)
                 )
 
-            alert_settings = project.get_member_alert_settings(self.alert_option_key)
+            alert_settings = project.get_member_alert_settings(self.legacy_mail.alert_option_key)
             disabled_users = set(user for user, setting in alert_settings.items() if setting == 0)
             return send_to_list - disabled_users
         else:
