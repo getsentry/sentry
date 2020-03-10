@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {assert} from 'app/types/utils';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
@@ -20,10 +20,29 @@ import SortLink from 'app/views/eventsV2/sortLink';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {getFieldRenderer, MetaType, getAggregateAlias} from 'app/views/eventsV2/utils';
-import {
-  generateEventSlug,
-  eventDetailsRouteWithEventView,
-} from 'app/views/eventsV2/eventDetails/utils';
+import {EventData} from 'app/views/eventsV2/data';
+import withProjects from 'app/utils/withProjects';
+
+import {transactionSummaryRouteWithEventView} from './transaction_summary/utils';
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  const projectSlug = (eventData?.project as string) || undefined;
+
+  if (typeof projectSlug === undefined) {
+    return undefined;
+  }
+
+  const project = projects.find(currentProject => currentProject.slug === projectSlug);
+
+  if (!project) {
+    return undefined;
+  }
+
+  return project.id;
+}
 
 type Props = {
   api: Client;
@@ -31,6 +50,9 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
+
+  projects: Project[];
+  loadingProjects: boolean;
 };
 
 type State = {
@@ -166,7 +188,7 @@ class Table extends React.Component<Props, State> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) => {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, projects} = this.props;
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -182,12 +204,12 @@ class Table extends React.Component<Props, State> {
         // the first column of the row should link to the transaction details view
         // on Discover
 
-        const eventSlug = generateEventSlug(row);
+        const projectID = getProjectID(row, projects);
 
-        const target = eventDetailsRouteWithEventView({
+        const target = transactionSummaryRouteWithEventView({
           orgSlug: organization.slug,
-          eventSlug,
-          eventView,
+          transaction: String(row.transaction) || '',
+          projectID,
         });
 
         rendered = <Link to={target}>{rendered}</Link>;
@@ -307,4 +329,4 @@ const GridRow = styled('tr')`
   grid-template-columns: auto 120px repeat(6, minmax(70px, 120px));
 `;
 
-export default withApi(Table);
+export default withProjects(withApi(Table));
