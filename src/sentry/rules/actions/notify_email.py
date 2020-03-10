@@ -1,61 +1,33 @@
 """
-Used for notifying a *specific* plugin
+Used for notifying via email
 """
 from __future__ import absolute_import
 
-from django import forms
-
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
-
-# from sentry.plugins.base import plugins
-from sentry.rules.actions.base import EventAction
-
-# from sentry.rules.actions.services import PluginService, SentryAppService
-# from sentry.models import SentryApp
-# from sentry.utils.safe import safe_execute
-
-# Mail import
 import itertools
 import logging
 import six
 
-# from enum import Enum
-
-# from django.core.urlresolvers import reverse
+from django import forms
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import options
-from sentry.models import ProjectOwnership, User, Team
-
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
+from sentry.models import ProjectOwnership, User, Team
 from sentry.plugins.base.structs import Notification
-from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.plugins.sentry_mail.models import MailPlugin
+from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
-
-# from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
-# from sentry.plugins.sentry_mail.activity import emails
-
-# Mail import
-
-# Mail
-NOTSET = object()
-
-logger = logging.getLogger(__name__)
-# Mail
-
-# TargetType = Enum('TargetType', 'owners team member')
-# TODD(jeff): change this to issue owners
-OWNERS = "IssueOwners"
+ISSUE_OWNERS = "IssueOwners"
 TEAM = "Team"
 MEMBER = "Member"
-CHOICES = [(OWNERS, "Issue Owners"), (TEAM, "Team"), (MEMBER, "Member")]
+CHOICES = [(ISSUE_OWNERS, "Issue Owners"), (TEAM, "Team"), (MEMBER, "Member")]
 
 
 class NotifyEmailForm(forms.Form):
@@ -66,13 +38,11 @@ class NotifyEmailForm(forms.Form):
 
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
-        # import pdb; pdb.set_trace()
         # TODO(jeff): Change case
         targetType = cleaned_data.get("targetType")
         targetIdentifier = cleaned_data.get("targetIdentifier")
 
-        # TODO(jeff): check if target_identifier is ever expected to be < 0
-        if targetType == OWNERS:
+        if targetType == ISSUE_OWNERS:
             self.cleaned_data["targetType"] = targetType
             return
 
@@ -89,6 +59,7 @@ class NotifyEmailForm(forms.Form):
 class NotifyEmailAction(EventAction):
     form_cls = NotifyEmailForm
     label = "Send an email to {targetType}"
+    metrics_slug = "EmailAction"
 
     def __init__(self, *args, **kwargs):
         super(NotifyEmailAction, self).__init__(*args, **kwargs)
@@ -96,18 +67,18 @@ class NotifyEmailAction(EventAction):
 
     def after(self, event, state):
         extra = {"event_id": event.event_id}
-        plugin = MailPlugin()
+        mail_adapter = MailAdapter()
 
         group = event.group
 
-        if not plugin.should_notify(group=group, event=event):
+        if not mail_adapter.should_notify(group=group):
             extra["group_id"] = group.id
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
-        metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
-            lambda event, futures: plugin.rule_notify(
+            lambda event, futures: mail_adapter.rule_notify(
                 event, futures, self.data["targetType"], self.data.get("targetIdentifier", None)
             )
         )
@@ -116,16 +87,22 @@ class NotifyEmailAction(EventAction):
         return self.form_cls(self.data)
 
 
-class MailPlugin(NotificationPlugin):
-    # title = "Mail"
-    conf_key = "mail"
-    # slug = "mail"
-    # version = sentry.VERSION
-    # author = "Sentry Team"
-    # author_url = "https://github.com/getsentry/sentry"
+class MailAdapter(object):
+    """
+    Adapter for the `MailPlugin`. This class attempts to decouple `MailPlugin` from the email notification question.
+    On complete decoupling, consider renaming this class to `MailProcessor`
+
+    Logic that was used solely for sending mail notifications is extracted into this class.
+
+    We want the mail behaviours in the `MailAdapter` to be as similar as possible to the `MailPlugin`.
+    Thus, keys are still fetched from the `MailPlugin` as they are used to access project options for mail.
+    Essentially, we still treat MailPlugin as a source of truth for keys.
+    """
+
     project_default_enabled = True
     project_conf_form = None
-    subject_prefix = None
+    logger = logging.getLogger("sentry.notify_email_action.MailAdapter")
+    legacy_mail = MailPlugin()
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
         from sentry.models import ProjectOption
@@ -137,7 +114,11 @@ class MailPlugin(NotificationPlugin):
         # TODO(Jeff): Why did we remove rate limits
 
         rules = []
-        extra = {"event_id": event.event_id, "group_id": event.group_id, "plugin": self.slug}
+        extra = {
+            "event_id": event.event_id,
+            "group_id": event.group_id,
+            "is_from_mail_action_adapter": True,
+        }
         log_event = "dispatched"
         for future in futures:
             rules.append(future.rule)
@@ -150,15 +131,12 @@ class MailPlugin(NotificationPlugin):
 
         project = event.group.project
         extra["project_id"] = project.id
-        """
-        TODO: (jeff) look into decoupling digests from plugins, see (src/sentry/tasks/digests.py),
-        (src/sentry/digests/notifications.py)
-        """
-        if hasattr(self, "notify_digest") and digests.enabled(project):
+
+        if digests.enabled(project):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(
-                    project, get_digest_option_key(self.get_conf_key(), key)
+                    project, get_digest_option_key(self.legacy_mail.get_conf_key(), key)
                 )
 
             digest_key = unsplit_key_for_targeted_action(
@@ -182,11 +160,6 @@ class MailPlugin(NotificationPlugin):
 
         self.logger.info("notification.%s" % log_event, extra=extra)
 
-    def _subject_prefix(self):
-        if self.subject_prefix is not None:
-            return self.subject_prefix
-        return options.get("mail.subject-prefix")
-
     def _build_message(
         self,
         project,
@@ -201,13 +174,14 @@ class MailPlugin(NotificationPlugin):
         send_to=None,
         type=None,
     ):
-        # if send_to is None:
-        #     send_to = self.get_send_to(project)
         if not send_to:
-            logger.debug("Skipping message rendering, no users to send to.")
+            self.logger.debug("Skipping message rendering, no users to send to.")
             return
 
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
+        subject_prefix = (
+            self.legacy_mail.get_option("subject_prefix", project)
+            or self.legacy_mail._subject_prefix()
+        )
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
@@ -222,7 +196,6 @@ class MailPlugin(NotificationPlugin):
             reference=reference,
             reply_reference=reply_reference,
         )
-        # add_users(send_to : user_id, project: project)
         msg.add_users(send_to, project=project)
         return msg
 
@@ -231,22 +204,23 @@ class MailPlugin(NotificationPlugin):
         if message is not None:
             return message.send_async()
 
-    # def get_notification_settings_url(self):
-    #     return absolute_uri(reverse("sentry-account-settings-notifications"))
-    #
-    # def get_project_url(self, project):
-    #     return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
-    #
-    def is_configured(self, project, **kwargs):
-        # Nothing to configure here
-        return True
+    def get_sendable_users(self, project):
+        """
+             Return a collection of user IDs that are eligible to receive
+             notifications for the provided project.
+             """
+        return project.get_notification_recipients(self.legacy_mail.alert_option_key)
 
-    def should_notify(self, group, event):
+    def should_notify(self, group):
         send_to = self.get_sendable_users(group.project)
         if not send_to:
             return False
 
-        return super(MailPlugin, self).should_notify(group, event)
+        if not group.is_unresolved():
+            return False
+
+        # No rate limit checks needed as mail should be throttled due to digests.
+        return True
 
     # TODO: Maybe this should shift into the action.
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
@@ -261,7 +235,7 @@ class MailPlugin(NotificationPlugin):
             return set(xs) if xs or xs == 0 else set()
 
         if not (project and project.teams.exists()):
-            logger.debug("Tried to send notification to invalid project: %r", project)
+            self.logger.debug("Tried to send notification to invalid project: %r", project)
             return set()
         # TODO(jeff): check if notification.event can be None
 
@@ -269,11 +243,11 @@ class MailPlugin(NotificationPlugin):
             return return_set(self.get_send_to_all_in_project(project))
 
         send_to = []
-        if target_type == "Owners":
+        if target_type == ISSUE_OWNERS:
             send_to = self.get_send_to_owners(event, project)
-        elif target_type == "Member":
+        elif target_type == MEMBER:
             send_to = self.get_send_to_member(project, target_identifier)
-        elif target_type == "Team":
+        elif target_type == TEAM:
             send_to = self.get_send_to_team(target_identifier)
         return return_set(send_to)
 
@@ -346,7 +320,7 @@ class MailPlugin(NotificationPlugin):
             tags={"organization": project.organization_id, "outcome": "everyone"},
             skip_internal=True,
         )
-        cache_key = "%s:send_to:%s" % (self.get_conf_key(), project.pk)
+        cache_key = "%s:send_to:%s" % (self.legacy_mail.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = [s for s in self.get_sendable_users(project) if s]
@@ -471,9 +445,6 @@ class MailPlugin(NotificationPlugin):
             date=dateformat.format(date, "N j, Y, P e"),
         )
 
-    # TODO(Jeff): Not required, but there is a dependency on mail plugin due to the way we send digests (sent key will
-    #  be used to instantiate the MailPlugin to handle the notifyDigest call)
-    # TODO(Jeff): How do we supply the additional argument (target_id) to digest?
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         user_ids = self.get_send_to(project, target_type, target_identifier)
         for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
