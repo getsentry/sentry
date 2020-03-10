@@ -161,12 +161,24 @@ def output_json(sections, scenarios, section_mapping):
 
 def output_markdown(sections, scenarios, section_mapping):
     report("docs", "Generating markdown documents")
+    processed_endpoints = []
+
     for section, title in sections.items():
         i = 0
         links = []
         for endpoint in section_mapping.get(section, []):
             i += 1
             path = u"{}/{}.md".format(section, endpoint["endpoint_name"])
+
+            # If we have already processed an endpoint, don't process it again.
+            # This can happen in the case for groups of urls.
+            # Since they have the same section and endpoint name, it'll resolve
+            # to the same path so no need to process it again.
+            if path in processed_endpoints:
+                continue
+            else:
+                processed_endpoints.append(path)
+
             auth = ""
             if len(endpoint["params"].get("auth", [])):
                 auth = endpoint["params"]["auth"][0]["description"]
