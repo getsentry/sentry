@@ -266,7 +266,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       expect(onApply).toHaveBeenCalledWith([
         columns[1],
-        {field: 'title', aggregation: '', refinement: ''},
+        {field: 'title', aggregation: '', refinement: undefined},
       ]);
     });
   });

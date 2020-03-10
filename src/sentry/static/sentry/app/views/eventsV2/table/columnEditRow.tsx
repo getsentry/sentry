@@ -52,13 +52,13 @@ class ColumnEditRow extends React.Component<Props> {
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.FIELD:
-        currentParams = ['', value.meta.name, ''];
+        currentParams = ['', value.meta.name, undefined];
         break;
       case FieldValueKind.FUNCTION:
         currentParams[0] = value.meta.name;
         // Backwards compatibility for field alias versions of functions.
         if (currentParams[1] && FIELD_ALIASES.includes(currentParams[1])) {
-          currentParams = [currentParams[0], '', ''];
+          currentParams = [currentParams[0], '', undefined];
         }
         break;
       default:
