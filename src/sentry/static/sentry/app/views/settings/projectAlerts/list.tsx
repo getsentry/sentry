@@ -84,7 +84,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {canEditRule, organization, params} = this.props;
+    const {canEditRule, location, organization, params} = this.props;
     const {orgId, projectId} = params;
     const {loading, rules} = this.state;
 
