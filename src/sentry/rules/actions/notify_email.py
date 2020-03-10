@@ -52,10 +52,10 @@ logger = logging.getLogger(__name__)
 
 # TargetType = Enum('TargetType', 'owners team member')
 # TODD(jeff): change this to issue owners
-OWNERS = "Owners"
+OWNERS = "IssueOwners"
 TEAM = "Team"
 MEMBER = "Member"
-CHOICES = [(OWNERS, "Owners"), (TEAM, "Team"), (MEMBER, "Member")]
+CHOICES = [(OWNERS, "Issue Owners"), (TEAM, "Team"), (MEMBER, "Member")]
 
 
 class NotifyEmailForm(forms.Form):
@@ -97,10 +97,6 @@ class NotifyEmailAction(EventAction):
     def after(self, event, state):
         extra = {"event_id": event.event_id}
         plugin = MailPlugin()
-        # if not plugin.is_enabled(self.project):
-        #     extra["project_id"] = self.project.id
-        #     self.logger.info("rules.fail.is_enabled", extra=extra)
-        #     return
 
         group = event.group
 
