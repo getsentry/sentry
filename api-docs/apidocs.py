@@ -170,15 +170,6 @@ def output_markdown(sections, scenarios, section_mapping):
             i += 1
             path = u"{}/{}.md".format(section, endpoint["endpoint_name"])
 
-            # If we have already processed an endpoint, don't process it again.
-            # This can happen in the case for groups of urls.
-            # Since they have the same section and endpoint name, it'll resolve
-            # to the same path so no need to process it again.
-            if path in processed_endpoints:
-                continue
-            else:
-                processed_endpoints.add(path)
-
             auth = ""
             if len(endpoint["params"].get("auth", [])):
                 auth = endpoint["params"]["auth"][0]["description"]
@@ -198,7 +189,9 @@ def output_markdown(sections, scenarios, section_mapping):
             )
             dump_markdown(path, payload)
 
-            links.append({"title": endpoint["title"], "path": path})
+            if path not in processed_endpoints:
+                links.append({"title": endpoint["title"], "path": path})
+                processed_endpoints.add(path)
         dump_index_markdown(section, title, links)
 
 
