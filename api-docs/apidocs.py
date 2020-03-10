@@ -161,7 +161,7 @@ def output_json(sections, scenarios, section_mapping):
 
 def output_markdown(sections, scenarios, section_mapping):
     report("docs", "Generating markdown documents")
-    processed_endpoints = []
+    processed_endpoints = set()
 
     for section, title in sections.items():
         i = 0
@@ -177,7 +177,7 @@ def output_markdown(sections, scenarios, section_mapping):
             if path in processed_endpoints:
                 continue
             else:
-                processed_endpoints.append(path)
+                processed_endpoints.add(path)
 
             auth = ""
             if len(endpoint["params"].get("auth", [])):
