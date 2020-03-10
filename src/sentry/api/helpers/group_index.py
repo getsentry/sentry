@@ -421,10 +421,12 @@ def self_subscribe_and_assign_issue(acting_user, group):
 
 
 def track_update_groups(function):
-    def wrapper(request, *args, **kwargs):
-        response = function(request, *args, **kwargs)
+    def wrapper(request, projects, *args, **kwargs):
+        response = function(request, projects, *args, **kwargs)
 
-        serializer = GroupValidator(data=request.data, partial=True)
+        serializer = GroupValidator(
+            data=request.data, partial=True, context={"project": projects[0]}
+        )
         results = dict(serializer.validated_data) if serializer.is_valid() else {}
         tags = {key: True for key in results.keys()}
         tags["status"] = response.status_code
