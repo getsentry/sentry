@@ -2,7 +2,7 @@ import queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
 
-import RESERVED_WORDS from './queryStringReservedWords';
+import RESERVED_TAGS from './queryStringReservedTags';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(qs: string): string {
@@ -37,9 +37,9 @@ export function appendTagCondition(
   key: string,
   value: string
 ): string {
-  if (RESERVED_WORDS.includes(key)) {
+  if (RESERVED_TAGS.includes(key)) {
     //Use the explicit tag syntax to handle the case when the tag name (key) is a
-    //reserved keyword.
+    //reserved tag (keyword).
     //https://docs.sentry.io/workflow/search/?platform=node#explicit-tag-syntax
     key = `tags[${key}]`;
   }
