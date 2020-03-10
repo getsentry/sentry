@@ -19,28 +19,24 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-class ProjectAlertsEditor extends React.Component<Props> {
-  render() {
-    const {hasMetricAlerts, location, params} = this.props;
-    const {projectId} = params;
-    const alertType = location.pathname.includes('/alerts/metric-rules/')
-      ? 'metric'
-      : 'issue';
-    const title = t('Edit Alert');
+function ProjectAlertsEditor(props: Props) {
+  const {hasMetricAlerts, location, params} = props;
+  const {projectId} = params;
+  const alertType = location.pathname.includes('/alerts/metric-rules/')
+    ? 'metric'
+    : 'issue';
+  const title = t('Edit Alert');
 
-    return (
-      <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
-        <SettingsPageHeader title={title} />
+  return (
+    <React.Fragment>
+      <SentryDocumentTitle title={title} objSlug={projectId} />
+      <SettingsPageHeader title={title} />
 
-        {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
+      {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...props} />}
 
-        {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesDetails {...this.props} />
-        )}
-      </React.Fragment>
-    );
-  }
+      {hasMetricAlerts && alertType === 'metric' && <IncidentRulesDetails {...props} />}
+    </React.Fragment>
+  );
 }
 
 export default ProjectAlertsEditor;

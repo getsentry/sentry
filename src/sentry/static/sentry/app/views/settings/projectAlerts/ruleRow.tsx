@@ -113,11 +113,14 @@ class RuleRow extends React.Component<Props, State> {
                   <div>
                     {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
                     {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
-                    {trigger.alertThreshold}/{data.timeWindow}min
+                    {trigger.alertThreshold}/{data.timeWindow}
+                    {t('min')}
                   </div>
                 </Trigger>
                 <Actions>
-                  {trigger.actions?.map((action, j) => <div key={j}>{action.desc}</div>)}
+                  {trigger.actions?.map((action, j) => (
+                    <div key={j}>{action.desc}</div>
+                  ))}
                 </Actions>
               </TriggerAndActions>
             ))}
