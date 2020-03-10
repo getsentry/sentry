@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from django.contrib import admin
-
-from social_auth.models import UserSocialAuth
 from social_auth.django_compat import get_all_field_names
+from social_auth.models import UserSocialAuth
+
+from django.contrib import admin
 
 _User = UserSocialAuth.user_model()
 

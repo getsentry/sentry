@@ -1,19 +1,20 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
 from collections import namedtuple
 from datetime import timedelta
-from django.core.cache import cache
-from django.utils import timezone
 from random import randrange
+
+import six
+from django.core.cache import cache
 
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
+
+from django.utils import timezone
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 

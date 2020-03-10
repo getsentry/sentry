@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
-
 from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):

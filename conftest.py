@@ -4,8 +4,8 @@ import os
 import sys
 from hashlib import md5
 
-import six
 import pytest
+import six
 
 pytest_plugins = ["sentry.utils.pytest"]
 

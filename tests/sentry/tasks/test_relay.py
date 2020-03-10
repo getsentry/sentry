@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.tasks.relay import schedule_update_config_cache
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
+from sentry.tasks.relay import schedule_update_config_cache
 
 
 @pytest.fixture

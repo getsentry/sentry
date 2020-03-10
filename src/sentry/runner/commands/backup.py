@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import click
+
 from sentry.runner.decorators import configuration
 
 

@@ -2,34 +2,24 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-import six
-
 from datetime import timedelta
 
-from django.utils import timezone
-from sentry.utils.compat.mock import patch
+import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
-    GroupSerializerSnuba,
-    StreamGroupSerializerSnuba,
-    snuba_tsdb,
+    GroupSerializerSnuba, StreamGroupSerializerSnuba, snuba_tsdb
 )
 from sentry.models import (
-    Group,
-    Environment,
-    GroupEnvironment,
-    GroupLink,
-    GroupResolution,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    UserOption,
-    UserOptionValue,
+    Environment, Group, GroupEnvironment, GroupLink, GroupResolution,
+    GroupSnooze, GroupStatus, GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import patch
+
+from django.utils import timezone
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):

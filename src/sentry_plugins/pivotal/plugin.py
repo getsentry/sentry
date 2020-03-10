@@ -2,19 +2,20 @@ from __future__ import absolute_import
 
 import requests
 import six
-
 from django.conf.urls import url
-from django.utils.encoding import force_text
 from rest_framework.response import Response
-
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
-from sentry.http import safe_urlopen, safe_urlread
-from sentry.utils import json
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from six.moves.urllib.parse import urlencode
-
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
+from six.moves.urllib.parse import urlencode
+
+from sentry.http import safe_urlopen, safe_urlread
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import (
+    IssueGroupActionEndpoint, IssuePlugin2, PluginError
+)
+from sentry.utils import json
+
+from django.utils.encoding import force_text
 
 DESCRIPTION = """
 Improve your productivity by creating tickets in Pivotal Tracker directly from Sentry issues.

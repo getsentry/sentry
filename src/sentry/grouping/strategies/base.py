@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import six
 import inspect
+
+import six
 
 from sentry import projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
-
 
 STRATEGIES = {}
 

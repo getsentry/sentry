@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from unittest import TestCase
+
 from django.http import HttpRequest
 
-from unittest import TestCase
 from sentry.utils.session_store import RedisSessionStore
 
 

@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
 import re
-
 from datetime import timedelta
+
 from django import forms
-from django.utils import timezone
 
 from sentry import tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
+
+from django.utils import timezone
 
 intervals = {
     "1m": ("one minute", timedelta(minutes=1)),

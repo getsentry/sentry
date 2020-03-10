@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
-
 from django.db import connections
 
 from sentry.api.bases import OrganizationMemberEndpoint

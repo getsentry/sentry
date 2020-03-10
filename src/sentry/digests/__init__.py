@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
+
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime

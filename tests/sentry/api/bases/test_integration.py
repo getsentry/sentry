@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 from django.http import HttpRequest
+from rest_framework.exceptions import APIException
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from rest_framework.exceptions import APIException
 from sentry.integrations.exceptions import ApiError
 from sentry.testutils import APITestCase
 

@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
-from sentry.incidents.logic import subscribe_to_incident, unsubscribe_from_incident
+from sentry.incidents.logic import (
+    subscribe_to_incident, unsubscribe_from_incident
+)
 
 
 class IncidentSubscriptionPermission(IncidentPermission):

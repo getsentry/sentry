@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.search_common import SearchType
 
+from django.utils import timezone
 
 DEFAULT_SAVED_SEARCHES = [
     {"name": "Unresolved Issues", "query": "is:unresolved", "is_default": True},

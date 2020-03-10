@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 
 import dateutil.parser as dp
-from msgpack import unpack, Unpacker, UnpackException, ExtraData
+from msgpack import ExtraData, Unpacker, UnpackException, unpack
 
 from sentry.utils.safe import get_path, setdefault_path
 

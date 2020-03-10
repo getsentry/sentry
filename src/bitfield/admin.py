@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 import six
-from django.contrib.admin import FieldListFilter
-from django.contrib.admin.options import IncorrectLookupParameters
-from django.core.exceptions import ValidationError
-from django.db.models import F
-from django.utils.translation import ugettext_lazy as _
-
 from bitfield import Bit
 from bitfield.compat import bitor
+from django.core.exceptions import ValidationError
+from django.db.models import F
+
+from django.contrib.admin import FieldListFilter
+from django.contrib.admin.options import IncorrectLookupParameters
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class BitFieldListFilter(FieldListFilter):

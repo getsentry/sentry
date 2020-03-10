@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import json
 import os
-import six
 
-from flask import Flask, redirect, url_for, request, session
+import six
+from flask import Flask, redirect, request, session, url_for
 from flask_oauth import OAuth
 
 BASE_URL = os.environ.get("BASE_URL", "http://dev.getsentry.net:8000")

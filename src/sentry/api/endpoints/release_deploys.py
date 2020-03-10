@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 from django.db.models import F
-from django.utils import timezone
-
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -11,8 +9,12 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.models import (
+    Deploy, Environment, Release, ReleaseProjectEnvironment
+)
 from sentry.signals import deploy_created
+
+from django.utils import timezone
 
 
 class DeploySerializer(serializers.Serializer):

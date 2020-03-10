@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 from django.db.models import F
-from django.utils import timezone
 from rest_framework import serializers
 
 from sentry import newsletter
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import User, UserEmail
+
+from django.utils import timezone
 
 
 class DefaultNewsletterValidator(serializers.Serializer):

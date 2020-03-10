@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
 import responses
-
 from exam import fixture
+from sentry_plugins.vsts.repository_provider import (
+    VisualStudioRepositoryProvider
+)
+from sentry_plugins.vsts.testutils import (
+    COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
+)
 from social_auth.models import UserSocialAuth
-from sentry.testutils import PluginTestCase
-from sentry.models import Repository
 
-from sentry_plugins.vsts.repository_provider import VisualStudioRepositoryProvider
-from sentry_plugins.vsts.testutils import COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
+from sentry.models import Repository
+from sentry.testutils import PluginTestCase
 
 
 class VisualStudioRepositoryProviderPluginTest(PluginTestCase):

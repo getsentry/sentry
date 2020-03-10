@@ -1,14 +1,14 @@
 from __future__ import absolute_import, print_function
 
 import importlib
+from uuid import UUID, uuid4
+
 import six
-
-from sentry.db.models.utils import Creator
-
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from psycopg2.extensions import register_adapter
-from uuid import uuid4, UUID
+
+from sentry.db.models.utils import Creator
 
 
 # Adapted from django-pgfields

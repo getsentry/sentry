@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 import itertools
-import six
 
+import six
 from django.http import HttpResponse
+
 from sentry.utils.compat import filter
 
 

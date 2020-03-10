@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
-from sentry.utils import json
 from sentry.models import ApiToken
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.testutils import APITestCase
+from sentry.utils import json
 
 
 class SentryInternalAppTokenTest(APITestCase):

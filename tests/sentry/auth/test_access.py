@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
-from django.contrib.auth.models import AnonymousUser
+from sentry.auth import access
+from sentry.models import (
+    AuthIdentity, AuthProvider, ObjectStatus, Organization
+)
+from sentry.testutils import TestCase
 from sentry.utils.compat.mock import Mock
 
-from sentry.auth import access
-from sentry.models import AuthProvider, AuthIdentity, Organization, ObjectStatus
-from sentry.testutils import TestCase
+from django.contrib.auth.models import AnonymousUser
 
 
 class FromUserTest(TestCase):

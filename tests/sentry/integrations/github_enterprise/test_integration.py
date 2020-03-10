@@ -2,18 +2,17 @@ from __future__ import absolute_import
 
 import responses
 import six
-from sentry.utils.compat.mock import patch
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.github_enterprise import (
+    GitHubEnterpriseIntegrationProvider
+)
 from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
+    Identity, IdentityProvider, IdentityStatus, Integration,
+    OrganizationIntegration
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 
 
 class GitHubEnterpriseIntegrationTest(IntegrationTestCase):

@@ -2,9 +2,11 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import django.utils.timezone
+
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
+
+import django.utils.timezone
 
 
 class Migration(migrations.Migration):

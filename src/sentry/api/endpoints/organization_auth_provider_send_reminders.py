@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
-from django.utils.translation import ugettext_lazy as _
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAdminPermission
+from sentry.api.bases.organization import (
+    OrganizationAdminPermission, OrganizationEndpoint
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import AuthProvider
 from sentry.tasks.auth import email_missing_links
+
+from django.utils.translation import ugettext_lazy as _
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 

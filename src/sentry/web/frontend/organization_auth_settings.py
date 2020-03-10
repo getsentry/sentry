@@ -1,22 +1,26 @@
 from __future__ import absolute_import
 
 from django import forms
-from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
+from sentry.models import (
+    AuditLogEntryEvent, AuthProvider, OrganizationMember, User
+)
 from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
+
+from django.contrib import messages
+
+from django.utils.translation import ugettext_lazy as _
 
 ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 

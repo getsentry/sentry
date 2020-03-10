@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 from collections import OrderedDict
 
 EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----

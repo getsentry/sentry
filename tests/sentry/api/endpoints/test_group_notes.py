@@ -3,13 +3,8 @@ from __future__ import absolute_import
 import six
 
 from sentry.models import (
-    Activity,
-    GroupLink,
-    GroupSubscription,
-    GroupSubscriptionReason,
-    ExternalIssue,
-    Integration,
-    OrganizationIntegration,
+    Activity, ExternalIssue, GroupLink, GroupSubscription,
+    GroupSubscriptionReason, Integration, OrganizationIntegration
 )
 from sentry.testutils import APITestCase
 

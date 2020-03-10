@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 import six
-from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
@@ -14,6 +13,8 @@ from sentry.incidents.logic import create_alert_rule, subscribe_to_incident
 from sentry.incidents.models import IncidentGroup
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class IncidentSerializerTest(TestCase):

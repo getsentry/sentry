@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
-import responses
-
 from uuid import uuid4
 
+import responses
+
+from sentry.integrations.slack.tasks import (
+    RedisRuleStatus, find_channel_id_for_rule
+)
+from sentry.models import Integration, Rule
+from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
-from sentry.models import Integration, Rule
-from sentry.integrations.slack.tasks import find_channel_id_for_rule, RedisRuleStatus
-from sentry.testutils.cases import TestCase
 
 
 class SlackTasksTest(TestCase):

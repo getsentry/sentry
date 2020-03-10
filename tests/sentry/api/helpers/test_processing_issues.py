@@ -6,11 +6,8 @@ from exam import fixture
 
 from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.models import (
-    EventError,
-    EventProcessingIssue,
-    ProcessingIssue,
-    RawEvent,
-    ReprocessingReport,
+    EventError, EventProcessingIssue, ProcessingIssue, RawEvent,
+    ReprocessingReport
 )
 from sentry.testutils import TestCase
 

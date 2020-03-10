@@ -1,12 +1,9 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
@@ -15,10 +12,15 @@ from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
-from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
 from sentry.utils import auth, metrics
 from sentry.utils.sdk import capture_exception
+from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
+from sentry.web.frontend.base import BaseView
+
+from django.contrib import messages
+from django.contrib.auth import REDIRECT_FIELD_NAME
+
+from django.utils.translation import ugettext_lazy as _
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 

@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
 import random
-
+import time
 from datetime import datetime
+from enum import IntEnum
+
+import six
 from django.conf import settings
 from django.core.cache import cache
-from enum import IntEnum
-import six
-import time
 
-from sentry import tsdb, options
+from sentry import options, tsdb
 from sentry.constants import DataCategory
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES

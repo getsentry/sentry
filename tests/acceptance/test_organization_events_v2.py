@@ -1,20 +1,19 @@
 from __future__ import absolute_import
 
 import copy
-import six
-import pytest
-import pytz
 import time
-from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
+import pytest
+import pytz
+import six
 from six.moves.urllib.parse import urlencode
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now
-
 
 FEATURE_NAMES = [
     "organizations:discover-basic",

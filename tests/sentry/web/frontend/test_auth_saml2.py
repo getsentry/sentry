@@ -1,28 +1,25 @@
 from __future__ import absolute_import
 
-import six
-import pytest
 import base64
-from sentry.utils.compat import mock
-from exam import fixture
-from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 
+import pytest
+import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
+from exam import fixture
+from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
+from sentry.auth.providers.saml2.provider import (
+    HAS_SAML2, Attributes, SAML2Provider
+)
 from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    AuthProvider,
-    Organization,
-    TotpInterface,
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization,
+    TotpInterface
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
-from sentry.utils.compat import map
-
+from sentry.utils.compat import map, mock
 
 dummy_provider_config = {
     "idp": {

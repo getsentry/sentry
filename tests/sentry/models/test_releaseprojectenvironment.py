@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 
 from sentry.models import Environment, Release, ReleaseProjectEnvironment
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class GetOrCreateTest(TestCase):

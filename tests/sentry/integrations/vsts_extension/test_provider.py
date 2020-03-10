@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch
-from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves.urllib.parse import parse_qs, urlparse
+from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts_extension import (
-    VstsExtensionIntegrationProvider,
-    VstsExtensionFinishedView,
+    VstsExtensionFinishedView, VstsExtensionIntegrationProvider
 )
 from sentry.models import Integration
-from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
+from sentry.utils.compat.mock import patch
 
 
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):

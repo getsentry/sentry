@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-import six
 import re
-
 from datetime import datetime, timedelta
 
 import pytz
+import six
 from dateutil.parser import parse
 from django.db import connections
 

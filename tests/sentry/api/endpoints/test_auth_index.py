@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from base64 import b64encode
+
 import six
 
-from base64 import b64encode
 from sentry.testutils import APITestCase
 
 

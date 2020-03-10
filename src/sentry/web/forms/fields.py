@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
 import six
-
-from django.forms.widgets import TextInput, Widget
+from django.forms import (
+    CharField, EmailField, Field, TypedChoiceField, ValidationError
+)
 from django.forms.utils import flatatt
-from django.forms import Field, CharField, EmailField, TypedChoiceField, ValidationError
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.forms.widgets import TextInput, Widget
 
 from sentry.models import User
 from sentry.security import is_valid_email_address
+
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 
 class CustomTypedChoiceField(TypedChoiceField):

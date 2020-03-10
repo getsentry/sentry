@@ -5,7 +5,9 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
+from sentry.models import (
+    ExternalIssue, GroupLink, Integration, OrganizationIntegration
+)
 
 
 @register(Integration)

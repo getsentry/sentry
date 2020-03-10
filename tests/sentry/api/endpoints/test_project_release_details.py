@@ -1,13 +1,16 @@
 from __future__ import absolute_import
+
 import unittest
+from datetime import datetime
 
 import pytz
-from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.api.endpoints.project_release_details import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
-from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+from sentry.models import (
+    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+)
 from sentry.testutils import APITestCase
 
 

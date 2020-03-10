@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import calendar
 import datetime
-import jwt
 import time
 
-from sentry import options
-
+import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
+
+from sentry import options
 
 
 class GitHubClientMixin(AuthApiClient):

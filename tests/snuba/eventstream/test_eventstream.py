@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
-from datetime import datetime, timedelta
-import six
-import time
 import logging
-from sentry.utils.compat.mock import patch, Mock
+import time
+from datetime import datetime, timedelta
+
+import six
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import snuba, json
+from sentry.utils import json, snuba
+from sentry.utils.compat.mock import Mock, patch
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase):

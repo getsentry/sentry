@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import responses
-
 from exam import fixture
+from sentry_plugins.segment.plugin import SegmentPlugin
+
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.segment.plugin import SegmentPlugin
 
 
 class SegmentPluginTest(PluginTestCase):

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-import posixpath
 
+import posixpath
 from django.http import StreamingHttpResponse
 from rest_framework import serializers
 from rest_framework.response import Response

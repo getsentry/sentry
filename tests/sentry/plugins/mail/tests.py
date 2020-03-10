@@ -4,41 +4,33 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-from sentry.utils.compat import mock
 import pytz
 import six
-from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
-from django.utils import timezone
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 
-from sentry.api.serializers import serialize, UserReportWithGroupSerializer
+from sentry.api.serializers import UserReportWithGroupSerializer, serialize
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.event_manager import EventManager, get_event_type
 from sentry.models import (
-    Activity,
-    GroupSubscription,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    ProjectOption,
-    ProjectOwnership,
-    Repository,
-    Rule,
-    UserOption,
-    UserOptionValue,
-    UserReport,
+    Activity, GroupSubscription, Organization, OrganizationMember,
+    OrganizationMemberTeam, ProjectOption, ProjectOwnership, Repository, Rule,
+    UserOption, UserOptionValue, UserReport
 )
-from sentry.ownership.grammar import Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
-from sentry.event_manager import get_event_type
 from sentry.testutils import TestCase
-from sentry.utils.email import MessageBuilder
-from sentry.event_manager import EventManager
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import Mock
+from sentry.utils.email import MessageBuilder
+
+from django.contrib.auth.models import AnonymousUser
+
+from django.utils import timezone
 
 
 class MailPluginTest(TestCase):

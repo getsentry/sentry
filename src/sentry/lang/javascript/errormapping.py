@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
-import re
 import json
-import time
 import logging
 import random
-import six
+import re
+import time
 
+import six
 from django.conf import settings
 from django.core.cache import cache
 from six.moves.urllib.parse import parse_qsl

@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
 import itertools
-from sentry.utils.compat import mock
-import pytest
-
 from datetime import datetime, timedelta
-from django.utils import timezone
-from sentry import tsdb
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.models import Group, GroupSnooze
+
+import pytest
 from six.moves import xrange
-from sentry.testutils.helpers.datetime import iso_format, before_now
+
+from sentry import tsdb
+from sentry.models import Group, GroupSnooze
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
+
+from django.utils import timezone
 
 
 class GroupSnoozeTest(TestCase, SnubaTestCase):

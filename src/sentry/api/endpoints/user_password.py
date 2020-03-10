@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-from django.utils.crypto import constant_time_compare
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.auth import password_validation
 from sentry.security import capture_security_activity
+
+from django.utils.crypto import constant_time_compare
 
 
 class UserPasswordSerializer(serializers.Serializer):

@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import six
-
-from django.core.validators import validate_slug, ValidationError
+from django.core.validators import ValidationError, validate_slug
 from django.db import transaction
 from rest_framework.response import Response
 

@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-import uuid
 import logging
-
+import uuid
 
 REPROCESSING_OPTION = "sentry:processing-rev"
 

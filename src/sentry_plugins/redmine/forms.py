@@ -1,10 +1,12 @@
 from __future__ import absolute_import
+
 import json
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from .client import RedmineClient
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class RedmineOptionsForm(forms.Form):

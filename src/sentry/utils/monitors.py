@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-import six
+from time import time
 
-from celery.signals import task_prerun, task_postrun
+import six
+from celery.signals import task_postrun, task_prerun
 from django.conf import settings
 from six.moves.urllib.parse import urlparse
-from time import time
 
 from sentry.net.http import SafeSession
 from sentry.utils.sdk import capture_exception, configure_scope

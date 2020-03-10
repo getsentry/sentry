@@ -1,20 +1,20 @@
 from __future__ import absolute_import
 
-from functools import partial
 from copy import deepcopy
+from functools import partial
 
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationPermission
+from sentry import features
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.utils import snuba
 from sentry.discover.utils import transform_aliases_and_query
-from sentry import features
+from sentry.utils import snuba
+from sentry.utils.compat import map
 
 from .serializers import DiscoverQuerySerializer
-from sentry.utils.compat import map
 
 
 class DiscoverQueryPermission(OrganizationPermission):

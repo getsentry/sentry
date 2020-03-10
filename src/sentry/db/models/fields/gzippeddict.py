@@ -1,13 +1,13 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
+import six
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
 from sentry.utils.compat import pickle
-from sentry.utils.strings import decompress, compress
+from sentry.utils.strings import compress, decompress
 
 __all__ = ("GzippedDictField",)
 

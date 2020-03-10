@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
-from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class OrganizationIncidentActivityIndexTest(APITestCase):

@@ -4,15 +4,16 @@ from copy import deepcopy
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.models import AssistantActivity
 from sentry.assistant import manager
+from sentry.models import AssistantActivity
 from sentry.utils.compat import zip
+
+from django.utils import timezone
 
 VALID_STATUSES = frozenset(("viewed", "dismissed"))
 

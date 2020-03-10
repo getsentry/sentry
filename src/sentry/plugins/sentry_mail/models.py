@@ -2,19 +2,16 @@ from __future__ import absolute_import
 
 import itertools
 import logging
+
 import six
+from django.core.urlresolvers import reverse
 
 import sentry
-
-from django.core.urlresolvers import reverse
-from django.utils import dateformat
-from django.utils.encoding import force_text
-from django.utils.safestring import mark_safe
-
 from sentry import options
+from sentry.digests.utilities import (
+    get_digest_metadata, get_personalized_digests
+)
 from sentry.models import ProjectOwnership, User
-
-from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils import metrics
@@ -25,6 +22,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
+
+from django.utils import dateformat
+from django.utils.encoding import force_text
+from django.utils.safestring import mark_safe
 
 NOTSET = object()
 

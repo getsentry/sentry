@@ -8,13 +8,11 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    ListField,
-    ReleaseSerializer,
-    ReleaseHeadCommitSerializer,
-    ReleaseHeadCommitSerializerDeprecated,
+    ListField, ReleaseHeadCommitSerializer,
+    ReleaseHeadCommitSerializerDeprecated, ReleaseSerializer
 )
 from sentry.models import Activity, Group, Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 

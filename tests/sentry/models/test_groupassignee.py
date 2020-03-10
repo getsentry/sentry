@@ -1,20 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import pytest
 import six
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
-    GroupAssignee,
-    Activity,
-    Integration,
-    GroupLink,
-    ExternalIssue,
-    OrganizationIntegration,
-    sync_group_assignee_inbound,
+    Activity, ExternalIssue, GroupAssignee, GroupLink, Integration,
+    OrganizationIntegration, sync_group_assignee_inbound
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class GroupAssigneeTestCase(TestCase):

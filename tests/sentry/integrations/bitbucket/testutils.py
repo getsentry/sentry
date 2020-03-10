@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 from collections import OrderedDict
 
 COMPARE_COMMITS_EXAMPLE = b"""{

@@ -1,28 +1,21 @@
 from __future__ import absolute_import, print_function
 
+import itertools
 import logging
 import re
-import six
-import itertools
-
-from django.db import models, IntegrityError, transaction
-from django.db.models import F
-from django.utils import timezone
-from django.utils.functional import cached_property
 from time import time
 
-from sentry.app import locks
-from sentry.db.models import (
-    ArrayField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    sane_repr,
-)
+import six
+from django.db import IntegrityError, models, transaction
+from django.db.models import F
+from sentry_relay import RelayError, parse_release
 
-from sentry_relay import parse_release, RelayError
+from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.db.models import (
+    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, JSONField,
+    Model, sane_repr
+)
 from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -30,6 +23,9 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.strings import truncatechars
+
+from django.utils import timezone
+from django.utils.functional import cached_property
 
 logger = logging.getLogger(__name__)
 

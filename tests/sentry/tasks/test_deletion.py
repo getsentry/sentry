@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -11,45 +10,20 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication,
-    ApiApplicationStatus,
-    ApiGrant,
-    ApiToken,
-    Commit,
-    CommitAuthor,
-    Environment,
-    EnvironmentProject,
-    Group,
-    GroupAssignee,
-    GroupHash,
-    GroupMeta,
-    GroupRedirect,
-    GroupResolution,
-    GroupStatus,
-    Organization,
-    OrganizationStatus,
-    Project,
-    ProjectStatus,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    Repository,
-    Team,
-    TeamStatus,
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
+    CommitAuthor, Environment, EnvironmentProject, Group, GroupAssignee,
+    GroupHash, GroupMeta, GroupRedirect, GroupResolution, GroupStatus,
+    Organization, OrganizationStatus, Project, ProjectStatus, Release,
+    ReleaseCommit, ReleaseEnvironment, Repository, Team, TeamStatus
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.tasks.deletion import (
-    delete_api_application,
-    delete_groups,
-    delete_organization,
-    delete_project,
-    delete_repository,
-    delete_team,
-    generic_delete,
-    revoke_api_tokens,
+    delete_api_application, delete_groups, delete_organization, delete_project,
+    delete_repository, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 
 class DeleteOrganizationTest(TestCase):

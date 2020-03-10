@@ -1,15 +1,16 @@
 from __future__ import absolute_import, division
 
 import logging
-import six
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+
+from django.utils import timezone
 
 logger = logging.getLogger("sentry.auth")
 

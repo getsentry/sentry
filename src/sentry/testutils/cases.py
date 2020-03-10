@@ -1,5 +1,64 @@
 from __future__ import absolute_import
-from sentry.utils.compat import zip
+
+import base64
+import inspect
+import os
+import os.path
+from datetime import datetime
+
+import pytest
+import requests
+import six
+from click.testing import CliRunner
+from django.conf import settings
+from django.core import signing
+from django.core.cache import cache
+from django.core.urlresolvers import reverse
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.http import HttpRequest
+from django.test import TestCase, TransactionTestCase, override_settings
+from django.test.utils import CaptureQueriesContext
+from exam import Exam, before, fixture
+from pkg_resources import iter_entry_points
+from rest_framework.test import APITestCase as BaseAPITestCase
+from six.moves.urllib.parse import urlencode
+
+from sentry import auth
+from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
+from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
+from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
+from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
+from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
+from sentry.auth.superuser import ORG_ID as SU_ORG_ID
+from sentry.auth.superuser import Superuser
+from sentry.constants import MODULE_ROOT
+from sentry.eventstream.snuba import SnubaEventStream
+from sentry.models import (
+    Dashboard, DeletedOrganization, GroupMeta, ObjectStatus, Organization,
+    ProjectOption, Repository, TotpInterface, WidgetDataSource,
+    WidgetDataSourceTypes
+)
+from sentry.plugins.base import plugins
+from sentry.rules import EventState
+from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.utils import json
+from sentry.utils.auth import SSO_SESSION_KEY
+from sentry.utils.compat import mock, zip
+from sentry.utils.compat.mock import patch
+
+from .factories import Factories
+from .fixtures import Fixtures
+from .helpers import (
+    AuthProvider, Feature, TaskRunner, get_auth_header, override_options,
+    parse_queries
+)
+from .skips import requires_snuba
+
+from django.contrib.auth import login
+from django.contrib.auth.models import AnonymousUser
+
+from django.utils import timezone
 
 __all__ = (
     "TestCase",
@@ -20,76 +79,9 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
 )
 
-import base64
-import os
-import os.path
-import pytest
-import requests
-import six
-import inspect
-from sentry.utils.compat import mock
 
-from click.testing import CliRunner
-from datetime import datetime
-from django.conf import settings
-from django.contrib.auth import login
-from django.contrib.auth.models import AnonymousUser
-from django.core import signing
-from django.core.cache import cache
-from django.core.urlresolvers import reverse
-from django.db import connections, DEFAULT_DB_ALIAS
-from django.http import HttpRequest
-from django.test import override_settings, TestCase, TransactionTestCase
-from django.test.utils import CaptureQueriesContext
-from django.utils import timezone
-from exam import before, fixture, Exam
-from sentry.utils.compat.mock import patch
-from pkg_resources import iter_entry_points
-from rest_framework.test import APITestCase as BaseAPITestCase
-from six.moves.urllib.parse import urlencode
 
-from sentry import auth
-from sentry.auth.providers.dummy import DummyProvider
-from sentry.auth.superuser import (
-    Superuser,
-    COOKIE_SALT as SU_COOKIE_SALT,
-    COOKIE_NAME as SU_COOKIE_NAME,
-    ORG_ID as SU_ORG_ID,
-    COOKIE_SECURE as SU_COOKIE_SECURE,
-    COOKIE_DOMAIN as SU_COOKIE_DOMAIN,
-    COOKIE_PATH as SU_COOKIE_PATH,
-)
-from sentry.constants import MODULE_ROOT
-from sentry.eventstream.snuba import SnubaEventStream
-from sentry.models import (
-    GroupMeta,
-    ProjectOption,
-    Repository,
-    DeletedOrganization,
-    Organization,
-    TotpInterface,
-    Dashboard,
-    ObjectStatus,
-    WidgetDataSource,
-    WidgetDataSourceTypes,
-)
-from sentry.plugins.base import plugins
-from sentry.rules import EventState
-from sentry.tagstore.snuba import SnubaTagStorage
-from sentry.utils import json
-from sentry.utils.auth import SSO_SESSION_KEY
 
-from .fixtures import Fixtures
-from .factories import Factories
-from .skips import requires_snuba
-from .helpers import (
-    AuthProvider,
-    Feature,
-    get_auth_header,
-    TaskRunner,
-    override_options,
-    parse_queries,
-)
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 

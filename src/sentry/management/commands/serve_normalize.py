@@ -1,18 +1,19 @@
 from __future__ import absolute_import, print_function
 
-import SocketServer
 import base64
+import json
 import os
+import resource
+import SocketServer
 import stat
 import sys
 import time
 import traceback
-import json
-import resource
 from optparse import make_option
 
 import six
 from django.core.management.base import BaseCommand, CommandError
+
 from django.utils.encoding import force_str
 
 

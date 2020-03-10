@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db.models import Q
 from rest_framework.response import Response
 
@@ -12,7 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 

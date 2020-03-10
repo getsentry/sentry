@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.db import transaction
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 

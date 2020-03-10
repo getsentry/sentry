@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+from collections import Counter, OrderedDict, defaultdict
+
 import six
 
-from collections import Counter, defaultdict, OrderedDict
-from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.api.fields.actor import Actor
+from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 
 
 # TODO(tkaemming): This should probably just be part of `build_digest`.

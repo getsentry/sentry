@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-
 from unittest import TestCase
-from sentry.utils.retries import TimedRetryPolicy, RetryException
+
+from sentry.utils.compat import mock
+from sentry.utils.retries import RetryException, TimedRetryPolicy
 
 
 class TimedRetryPolicyTestCase(TestCase):

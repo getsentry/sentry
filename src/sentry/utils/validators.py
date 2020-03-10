@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import ipaddress
-import six
 import uuid
+
+import six
 
 
 def validate_ip(value, required=True):

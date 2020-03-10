@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
+
 def forwards(apps, schema_editor):
     """
     Backfill the saved queries with their version.

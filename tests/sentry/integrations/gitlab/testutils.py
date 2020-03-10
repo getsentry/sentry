@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.testutils import APITestCase
 from time import time
-from sentry.models import Identity, IdentityProvider, Integration, Repository
 
+from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.testutils import APITestCase
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
 WEBHOOK_SECRET = "secret-token-value"

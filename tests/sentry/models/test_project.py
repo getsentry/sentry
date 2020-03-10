@@ -5,17 +5,9 @@ from __future__ import absolute_import
 import six
 
 from sentry.models import (
-    Environment,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    EnvironmentProject,
-    ProjectOwnership,
-    ProjectTeam,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Rule,
+    Environment, EnvironmentProject, OrganizationMember,
+    OrganizationMemberTeam, Project, ProjectOwnership, ProjectTeam, Release,
+    ReleaseProject, ReleaseProjectEnvironment, Rule
 )
 from sentry.testutils import TestCase
 from sentry.utils.compat import zip

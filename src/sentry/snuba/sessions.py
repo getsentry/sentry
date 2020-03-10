@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime
-from sentry.utils.dates import to_timestamp
+import pytz
+
 from sentry.snuba.dataset import Dataset
+from sentry.utils.dates import to_timestamp
+from sentry.utils.snuba import parse_snuba_datetime, raw_query
 
 
 def _get_conditions_and_filter_keys(project_releases, environments):

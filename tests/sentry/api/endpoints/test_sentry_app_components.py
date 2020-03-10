@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch, call
 
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import call, patch
 
 
 class SentryAppComponentsTest(APITestCase):

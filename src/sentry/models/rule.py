@@ -1,17 +1,15 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    Model,
-    FlexibleForeignKey,
-    GzippedDictField,
-    sane_repr,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
+    sane_repr
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
+
+from django.utils import timezone
 
 
 # TODO(dcramer): pull in enum library

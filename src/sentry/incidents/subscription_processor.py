@@ -5,29 +5,23 @@ import operator
 from copy import deepcopy
 from datetime import timedelta
 
-
 from django.conf import settings
 from django.db import transaction
 
+from sentry.incidents.endpoints.serializers import (
+    CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
+)
 from sentry.incidents.logic import create_incident, update_incident_status
-from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    Incident,
-    IncidentStatus,
-    IncidentTrigger,
-    IncidentType,
-    TriggerStatus,
+    AlertRule, AlertRuleThresholdType, AlertRuleTrigger, Incident,
+    IncidentStatus, IncidentTrigger, IncidentType, TriggerStatus
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
-
+from sentry.utils.dates import to_datetime, to_timestamp
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())

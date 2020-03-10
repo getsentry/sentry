@@ -2,16 +2,18 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
+from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.pipeline import Pipeline
-from sentry.models import Identity, IdentityStatus, IdentityProvider
 
 from . import default_manager
+
+from django.contrib import messages
+
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 IDENTITY_LINKED = _("Your {identity_provider} account has been associated with your Sentry account")
 

@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
-__all__ = ["override_options"]
+from contextlib import contextmanager
 
 from django.test.utils import override_settings
-from contextlib import contextmanager
+
 from sentry.utils.compat.mock import patch
+
+__all__ = ["override_options"]
+
 
 
 @contextmanager

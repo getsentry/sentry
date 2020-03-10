@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 import logging
 import re
-import six
 
-from django.utils.timezone import now
+import six
 from simplejson import JSONEncoder
 from structlog import get_logger
 from structlog.processors import _json_fallback_handler
 
 from sentry.utils import metrics
+
+from django.utils.timezone import now
 
 _default_encoder = JSONEncoder(
     separators=(",", ":"),

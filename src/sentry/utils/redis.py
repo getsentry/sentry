@@ -2,25 +2,25 @@ from __future__ import absolute_import
 
 import functools
 import logging
-import posixpath
-import six
-
 from threading import Lock
 
+import posixpath
 import rb
-from django.utils.functional import SimpleLazyObject
+import six
 from pkg_resources import resource_string
 from redis.client import Script, StrictRedis
 from redis.connection import ConnectionPool
-from redis.exceptions import ConnectionError, BusyLoadingError
+from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import StrictRedisCluster
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.versioning import Version, check_versions
 from sentry.utils.compat import map
+from sentry.utils.versioning import Version, check_versions
+from sentry.utils.warnings import DeprecatedSettingWarning
+
+from django.utils.functional import SimpleLazyObject
 
 logger = logging.getLogger(__name__)
 

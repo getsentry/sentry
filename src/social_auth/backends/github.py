@@ -13,14 +13,12 @@ field, check OAuthBackend class for details on how to extend it.
 from __future__ import absolute_import
 
 import simplejson
-
 from django.conf import settings
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.request import Request
-from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
-
+from social_auth.utils import dsa_urlopen
 
 # GitHub configuration
 GITHUB_AUTHORIZATION_URL = "https://github.com/login/oauth/authorize"

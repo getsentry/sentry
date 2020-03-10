@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
 import six
-
 from django import forms
 from django.conf import settings
-from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
 from sentry.models import Activity, GroupMeta
@@ -13,6 +11,8 @@ from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+from django.utils.html import format_html
 
 
 class NewIssueForm(forms.Form):

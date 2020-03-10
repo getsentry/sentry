@@ -1,29 +1,23 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
-from django.contrib.auth.models import AnonymousUser
+
+import six
 from django.core import signing
-from django.utils import timezone
-from sentry.utils.compat.mock import Mock
 
 from sentry.auth.superuser import (
-    COOKIE_DOMAIN,
-    COOKIE_HTTPONLY,
-    COOKIE_NAME,
-    COOKIE_PATH,
-    COOKIE_SALT,
-    COOKIE_SECURE,
-    IDLE_MAX_AGE,
-    MAX_AGE,
-    SESSION_KEY,
-    Superuser,
+    COOKIE_DOMAIN, COOKIE_HTTPONLY, COOKIE_NAME, COOKIE_PATH, COOKIE_SALT,
+    COOKIE_SECURE, IDLE_MAX_AGE, MAX_AGE, SESSION_KEY, Superuser
 )
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.auth import mark_sso_complete
+from sentry.utils.compat.mock import Mock
+
+from django.contrib.auth.models import AnonymousUser
+
+from django.utils import timezone
 
 UNSET = object()
 

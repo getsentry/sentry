@@ -2,12 +2,12 @@
 
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.constants import DataCategory
 from sentry.models import OrganizationOption, ProjectKey
 from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
 from sentry.testutils import TestCase
-
-import pytest
 
 
 class QuotaTest(TestCase):

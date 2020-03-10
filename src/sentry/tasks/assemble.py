@@ -1,11 +1,10 @@
 from __future__ import absolute_import, print_function
 
-from os import path
-
 import hashlib
 import logging
-import six
+from os import path
 
+import six
 from django.db import IntegrityError, transaction
 
 from sentry.api.serializers import serialize
@@ -13,7 +12,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
 

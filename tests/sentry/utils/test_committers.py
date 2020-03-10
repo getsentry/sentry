@@ -1,24 +1,22 @@
 from __future__ import absolute_import
 
 import unittest
-
 from datetime import timedelta
-from django.utils import timezone
-from sentry.utils.compat.mock import Mock
 from uuid import uuid4
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
+from sentry.models import (
+    Commit, CommitAuthor, CommitFileChange, Release, Repository
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
-    _get_commit_file_changes,
-    _get_frame_paths,
-    _match_commits_path,
-    get_serialized_event_file_committers,
-    get_previous_releases,
-    score_path_match_length,
-    tokenize_path,
+    _get_commit_file_changes, _get_frame_paths, _match_commits_path,
+    get_previous_releases, get_serialized_event_file_committers,
+    score_path_match_length, tokenize_path
 )
+from sentry.utils.compat.mock import Mock
+
+from django.utils import timezone
 
 # TODO(lb): Tests are still needed for _get_committers and _get_event_file_commiters
 

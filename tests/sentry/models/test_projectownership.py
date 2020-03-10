@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.testutils import TestCase
 from sentry.api.fields.actor import Actor
-from sentry.models import ProjectOwnership, User, Team
+from sentry.models import ProjectOwnership, Team, User
 from sentry.models.projectownership import resolve_actors
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.testutils import TestCase
 from sentry.utils.cache import cache
 
 

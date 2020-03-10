@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
-from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import (
-    CamelSnakeModelSerializer,
-    CamelSnakeSerializer,
-    convert_dict_key_case,
-    camel_to_snake_case,
-    snake_to_camel_case,
+    CamelSnakeModelSerializer, CamelSnakeSerializer, camel_to_snake_case,
+    convert_dict_key_case, snake_to_camel_case
 )
+
+from django.contrib.contenttypes.models import ContentType
 
 
 class PersonSerializer(CamelSnakeSerializer):

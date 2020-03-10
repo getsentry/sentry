@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.models import UserReport
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+from sentry.models import UserReport
 from sentry.utils.safe import get_path, set_path, setdefault_path
-
 
 # Attachment type used for Apple Crash Reports
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"

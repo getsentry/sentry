@@ -7,42 +7,29 @@ from uuid import uuid4
 import six
 from django.db import transaction
 from django.db.models.signals import post_save
-from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleEnvironment,
-    AlertRuleExcludedProjects,
-    AlertRuleQuerySubscription,
-    AlertRuleStatus,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
-    Incident,
-    IncidentActivity,
-    IncidentActivityType,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSnapshot,
-    IncidentSeen,
-    IncidentStatus,
-    IncidentSubscription,
-    TimeSeriesSnapshot,
+    AlertRule, AlertRuleEnvironment, AlertRuleExcludedProjects,
+    AlertRuleQuerySubscription, AlertRuleStatus, AlertRuleTrigger,
+    AlertRuleTriggerAction, AlertRuleTriggerExclusion, Incident,
+    IncidentActivity, IncidentActivityType, IncidentGroup, IncidentProject,
+    IncidentSeen, IncidentSnapshot, IncidentStatus, IncidentSubscription,
+    TimeSeriesSnapshot
 )
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
-    bulk_create_snuba_subscriptions,
-    bulk_delete_snuba_subscriptions,
-    bulk_update_snuba_subscriptions,
-    query_aggregation_to_snuba,
+    bulk_create_snuba_subscriptions, bulk_delete_snuba_subscriptions,
+    bulk_update_snuba_subscriptions, query_aggregation_to_snuba
 )
-from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
+from sentry.utils.snuba import SnubaQueryParams, SnubaTSResult, bulk_raw_query
+
+from django.utils import timezone
 
 
 class AlreadyDeletedError(Exception):

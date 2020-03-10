@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import pytest
+from six.moves import xrange
 
 from sentry.utils.iterators import advance, chunked, shingle
-from six.moves import xrange
 
 
 def test_chunked():

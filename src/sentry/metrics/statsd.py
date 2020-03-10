@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ["StatsdMetricsBackend"]
-
 import statsd
 
 from .base import MetricsBackend
+
+__all__ = ["StatsdMetricsBackend"]
+
+
 
 
 class StatsdMetricsBackend(MetricsBackend):

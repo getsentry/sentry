@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 import six
+from six.moves import filter as _filter
+from six.moves import map as _map
+from six.moves import zip as _zip
 
 try:
     import cPickle as pickle
@@ -13,9 +16,6 @@ try:
 except ImportError:
     import functools  # NOQA
 
-from six.moves import map as _map
-from six.moves import filter as _filter
-from six.moves import zip as _zip
 
 
 def map(a, b, *c):

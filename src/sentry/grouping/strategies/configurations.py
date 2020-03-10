@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.grouping.strategies.base import (
-    create_strategy_configuration,
-    RISK_LEVEL_MEDIUM,
-    RISK_LEVEL_HIGH,
+    RISK_LEVEL_HIGH, RISK_LEVEL_MEDIUM, create_strategy_configuration
 )
-
 
 # The classes of grouping algorithms
 CLASSES = []

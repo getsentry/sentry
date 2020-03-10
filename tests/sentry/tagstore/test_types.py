@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pickle
 
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 
 
 def test_pickle():

@@ -4,7 +4,9 @@ import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.integrations.exceptions import (
+    ApiError, ApiUnauthorized, IntegrationError
+)
 from sentry.models import Integration
 
 

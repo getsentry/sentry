@@ -2,19 +2,15 @@ from __future__ import absolute_import
 
 import responses
 import six
-
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
-from sentry.utils.compat.mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
+    Identity, IdentityProvider, IdentityStatus, Integration,
+    OrganizationIntegration
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import Mock, patch
 
 
 class GitlabIntegrationTest(IntegrationTestCase):

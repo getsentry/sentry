@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from django.db.models import DateTimeField, DO_NOTHING
+from django.db.models import DO_NOTHING, DateTimeField
 from django.db.models.signals import post_delete
-from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.cache import cache
+
+from django.utils import timezone
 
 
 class GroupEnvironment(Model):

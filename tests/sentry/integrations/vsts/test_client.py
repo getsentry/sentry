@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import responses
-
 from time import time
 
+import responses
+
 from sentry.models import Identity, IdentityProvider, Integration
+
 from .testutils import VstsIntegrationTestCase
 
 

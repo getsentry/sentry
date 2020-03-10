@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import namedtuple
-from django.conf import settings
-from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 from functools import partial
+
+import six
+from django.conf import settings
+from six.moves.urllib.parse import (
+    parse_qs, quote, urlencode, urljoin, urlparse
+)
 
 from sentry import options
 from sentry.utils import json
-from sentry.utils.compat import map
-from sentry.utils.compat import filter
+from sentry.utils.compat import filter, map
 
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 

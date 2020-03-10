@@ -1,14 +1,14 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import pytest
 import six
 
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
-
-import pytest
-from django.utils.functional import cached_property
+from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+from django.utils.functional import cached_property
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures

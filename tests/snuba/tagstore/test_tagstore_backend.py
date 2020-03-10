@@ -1,24 +1,23 @@
 from __future__ import absolute_import
 
 import calendar
-from datetime import timedelta, datetime
 import json
+from datetime import datetime, timedelta
+
 import pytest
 import requests
 import six
-
 from django.conf import settings
-from django.utils import timezone
 
-from sentry.models import GroupHash, EventUser
+from sentry.models import EventUser, GroupHash
 from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
+    GroupTagKeyNotFound, GroupTagValueNotFound, TagKeyNotFound,
+    TagValueNotFound
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage, cache_suffix_time
 from sentry.testutils import SnubaTestCase, TestCase
+
+from django.utils import timezone
 
 
 class TagStorageTest(TestCase, SnubaTestCase):

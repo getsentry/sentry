@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from exam import fixture
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType

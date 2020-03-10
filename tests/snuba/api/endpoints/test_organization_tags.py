@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase

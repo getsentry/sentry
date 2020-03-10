@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+from unittest import TestCase
+
 from cryptography.fernet import Fernet
 
-from unittest import TestCase
-from sentry.utils.encryption import EncryptionManager, MARKER
+from sentry.utils.encryption import MARKER, EncryptionManager
 
 
 class EncryptionManagerTest(TestCase):

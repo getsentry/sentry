@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.models.project import Project
 from unittest import TestCase
 
 from sentry.message_filters import _web_crawlers_filter
+from sentry.models.project import Project
 from sentry.relay.config import ProjectConfig
 
 

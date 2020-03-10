@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import copy
+
 import pytest
 
 from sentry.datascrubbing import scrub_data

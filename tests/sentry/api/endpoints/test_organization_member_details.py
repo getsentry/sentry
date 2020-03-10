@@ -1,24 +1,18 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db.models import F
-from sentry.utils.compat.mock import patch
 
 from sentry.models import (
-    Authenticator,
-    AuthProvider,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    RecoveryCodeInterface,
-    TotpInterface,
+    Authenticator, AuthProvider, InviteStatus, Organization,
+    OrganizationMember, OrganizationMemberTeam, RecoveryCodeInterface,
+    TotpInterface
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import map
+from sentry.utils.compat.mock import patch
 
 
 class UpdateOrganizationMemberTest(APITestCase):

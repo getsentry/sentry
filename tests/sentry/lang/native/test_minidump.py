@@ -1,10 +1,11 @@
 from __future__ import absolute_import
+
 import io
+
 import msgpack
+
 from sentry.lang.native.minidump import (
-    is_minidump_event,
-    merge_attached_breadcrumbs,
-    merge_attached_event,
+    is_minidump_event, merge_attached_breadcrumbs, merge_attached_event
 )
 
 

@@ -3,12 +3,14 @@
 from __future__ import absolute_import
 
 import io
+import json
 import os
 import sys
-import json
 from distutils import log
 
 import sentry
+
+from .base import BaseBuildCommand
 
 JS_SDK_REGISTRY_URL = (
     "https://release-registry.services.sentry.io/sdks/sentry.javascript.browser/versions"
@@ -43,7 +45,6 @@ def sync_registry():
     dump_registry("_registry", data)
 
 
-from .base import BaseBuildCommand
 
 
 class BuildJsSdkRegistryCommand(BaseBuildCommand):

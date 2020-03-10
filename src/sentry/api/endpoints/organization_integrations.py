@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationIntegrationsPermission
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus, OrganizationIntegration

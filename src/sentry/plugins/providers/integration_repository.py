@@ -3,14 +3,15 @@ from __future__ import absolute_import
 import dateutil.parser
 import six
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Repository, Integration
+from sentry.models import Integration, Repository
 from sentry.signals import repo_linked
+
+from django.utils import timezone
 
 
 class IntegrationRepositoryProvider(object):

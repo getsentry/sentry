@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 import csv
+
 import six
+from django.http import StreamingHttpResponse
+
+from sentry.utils.compat import map
 
 from django.utils.encoding import force_bytes
-from django.http import StreamingHttpResponse
-from sentry.utils.compat import map
 
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
 # the encoding param

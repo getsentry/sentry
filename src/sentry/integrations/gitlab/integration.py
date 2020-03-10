@@ -1,30 +1,28 @@
 from __future__ import absolute_import
 
 import six
-from six.moves.urllib.parse import urlparse
-from django.utils.translation import ugettext_lazy as _
 from django import forms
+from six.moves.urllib.parse import urlparse
 
-from sentry.web.helpers import render_to_response
-from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.gitlab import get_user_info, get_oauth_data
+from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
+from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    FeatureDescription,
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation,
+    IntegrationMetadata, IntegrationProvider
 )
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.utils.http import absolute_uri
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
+
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Connect your Sentry organization to an organization in your GitLab instance or gitlab.com, enabling the following features:

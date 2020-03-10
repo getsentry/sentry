@@ -2,15 +2,16 @@ from __future__ import absolute_import, print_function
 
 import collections
 import logging
-import six
 
+import six
 from django.conf import settings
 from django.db import transaction
-from django.utils.encoding import force_text
 
 from sentry.utils import json
-from sentry.utils.strings import truncatechars
 from sentry.utils.compat import filter
+from sentry.utils.strings import truncatechars
+
+from django.utils.encoding import force_text
 
 
 def safe_execute(func, *args, **kwargs):

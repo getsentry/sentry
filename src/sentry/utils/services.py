@@ -7,13 +7,13 @@ import logging
 import threading
 
 import six
-from django.utils.functional import empty, LazyObject
 
-from sentry.utils import warnings, metrics
+from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import FutureSet, ThreadedExecutor
 
 from .imports import import_string
 
+from django.utils.functional import LazyObject, empty
 
 logger = logging.getLogger(__name__)
 

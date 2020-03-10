@@ -10,9 +10,8 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstream.base import EventStream
-from sentry.utils import snuba, json
+from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
-
 
 logger = logging.getLogger(__name__)
 

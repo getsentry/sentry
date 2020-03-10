@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import six
-import uuid
 import bisect
-
+import uuid
 from datetime import datetime
+
+import six
 from pytz import utc
 
 

@@ -2,15 +2,15 @@ from __future__ import absolute_import
 
 import logging
 
-import six
 import boto3
+import six
 from botocore.client import ClientError
-
 from sentry_plugins.base import CorePluginMixin
-from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
-from sentry.utils import json, metrics
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 

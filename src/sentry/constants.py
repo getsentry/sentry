@@ -6,18 +6,18 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-import six
+from collections import OrderedDict, namedtuple
 from datetime import timedelta
 from enum import IntEnum, unique
 
-from collections import OrderedDict, namedtuple
-from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
-
-from sentry.utils.integrationdocs import load_doc
-from sentry.utils.geo import rust_geoip
-
 import sentry_relay
+import six
+from django.conf import settings
+
+from sentry.utils.geo import rust_geoip
+from sentry.utils.integrationdocs import load_doc
+
+from django.utils.translation import ugettext_lazy as _
 
 
 def get_all_languages():

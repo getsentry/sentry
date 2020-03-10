@@ -4,7 +4,9 @@ import six
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import (
+    NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
+)
 from sentry.api.serializers import serialize
 
 

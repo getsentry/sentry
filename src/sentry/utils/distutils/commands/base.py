@@ -4,13 +4,11 @@ import os
 import os.path
 import shutil
 import sys
-
 from distutils import log
-from subprocess import check_output
 from distutils.core import Command
+from subprocess import check_output
 
 import sentry  # We just need its path via __file__
-
 
 SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, "..", "..", ".."))
 

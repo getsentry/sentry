@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.plugins.base import Plugin
-
 from sentry_plugins.base import CorePluginMixin
+
+from sentry.plugins.base import Plugin
 
 
 class JiraACPlugin(CorePluginMixin, Plugin):

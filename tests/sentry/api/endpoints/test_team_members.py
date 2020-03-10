@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.testutils import APITestCase
 from sentry.models import InviteStatus
+from sentry.testutils import APITestCase
 
 
 class TeamMembersTest(APITestCase):

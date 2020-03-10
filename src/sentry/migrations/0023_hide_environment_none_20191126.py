@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
+
 def hide_environment_none(apps, schema_editor):
     """
     Hide environments that are named none, since they're blacklisted and no longer can be created.

@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from sentry.interfaces.base import Interface
+
 __all__ = ("Spans", "Span")
 
-from sentry.interfaces.base import Interface
 
 SPAN_KEYS = (
     "trace_id",

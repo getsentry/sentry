@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
 import os
-import click
-
 from contextlib import contextmanager
+
+import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration

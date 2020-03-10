@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
-from parsimonious.grammar import Grammar, NodeVisitor
+
 from parsimonious.exceptions import ParseError  # noqa
-from sentry.utils.safe import get_path
+from parsimonious.grammar import Grammar, NodeVisitor
+
 from sentry.utils.glob import glob_match
+from sentry.utils.safe import get_path
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
 

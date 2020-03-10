@@ -2,12 +2,17 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.db.models.signals import pre_delete
-from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane_repr
-from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
+from sentry.db.mixin import (
+    PendingDeletionMixin, delete_pending_deletion_option
+)
+from sentry.db.models import (
+    BoundedPositiveIntegerField, JSONField, Model, sane_repr
+)
 from sentry.signals import pending_delete
+
+from django.utils import timezone
 
 
 class Repository(Model, PendingDeletionMixin):

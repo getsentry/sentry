@@ -1,29 +1,17 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
-    OrganizationMember,
-    OrganizationOption,
-    Project,
-    EnvironmentProject,
-    ProjectOwnership,
-    ProjectBookmark,
-    ProjectStatus,
-    ProjectTeam,
-    Rule,
-    UserOption,
-    DeletedProject,
-    ProjectRedirect,
-    AuditLogEntry,
-    AuditLogEntryEvent,
+    AuditLogEntry, AuditLogEntryEvent, DeletedProject, EnvironmentProject,
+    OrganizationMember, OrganizationOption, Project, ProjectBookmark,
+    ProjectOwnership, ProjectRedirect, ProjectStatus, ProjectTeam, Rule,
+    UserOption
 )
 from sentry.testutils import APITestCase
-from sentry.utils.compat import zip
+from sentry.utils.compat import mock, zip
 
 
 class ProjectDetailsTest(APITestCase):

@@ -1,17 +1,15 @@
 from __future__ import absolute_import, print_function
-import six
 
+import six
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import (
-    Model,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    GzippedDictField,
-    sane_repr,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
+    sane_repr
 )
 from sentry.utils.strings import truncatechars
+
+from django.utils import timezone
 
 
 class AuditLogEntryEvent(object):

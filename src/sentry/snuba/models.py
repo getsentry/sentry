@@ -4,10 +4,11 @@ from datetime import timedelta
 from enum import Enum
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.models.manager import BaseManager
+
+from django.utils import timezone
 
 
 class QueryAggregations(Enum):

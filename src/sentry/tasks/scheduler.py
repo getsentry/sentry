@@ -2,11 +2,11 @@ from __future__ import absolute_import, division
 
 import logging
 
-from django.utils import timezone
-
 from sentry.app import locks
 from sentry.models import ScheduledJob
 from sentry.tasks.base import instrumented_task
+
+from django.utils import timezone
 
 logger = logging.getLogger("sentry.scheduler")
 

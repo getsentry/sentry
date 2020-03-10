@@ -4,17 +4,21 @@ import logging
 import warnings
 
 from bitfield import BitField
-from django.contrib.auth.signals import user_logged_out
-from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
-from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.dispatch import receiver
 
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, sane_repr
+from sentry.db.models import (
+    BaseManager, BaseModel, BoundedAutoField, sane_repr
+)
 from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
+
+from django.contrib.auth.models import AbstractBaseUser, UserManager
+from django.contrib.auth.signals import user_logged_out
+
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 audit_logger = logging.getLogger("sentry.audit.user")
 

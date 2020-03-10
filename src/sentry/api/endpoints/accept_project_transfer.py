@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
 import six
-from django.http import Http404
-from django.utils.encoding import force_str
 from django.core.signing import BadSignature, SignatureExpired
+from django.http import Http404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -12,17 +11,15 @@ from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializerWithProjectsAndTeams,
+    DetailedOrganizationSerializerWithProjectsAndTeams
+)
+from sentry.models import (
+    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus,
+    Project, Team
 )
 from sentry.utils.signing import unsign
-from sentry.models import (
-    AuditLogEntryEvent,
-    OrganizationMember,
-    Organization,
-    OrganizationStatus,
-    Team,
-    Project,
-)
+
+from django.utils.encoding import force_str
 
 
 class InvalidPayload(Exception):

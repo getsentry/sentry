@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.utils.translation import ugettext_lazy as _
 
-
 # Guide Schema
 # id (text, required): unique id
 # required_targets (list): An empty list will cause the guide to be shown regardless

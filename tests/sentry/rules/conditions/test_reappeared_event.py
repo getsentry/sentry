@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
+from sentry.testutils.cases import RuleTestCase
 
 
 class ReappearedEventConditionTest(RuleTestCase):

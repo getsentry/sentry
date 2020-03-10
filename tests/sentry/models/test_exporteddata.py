@@ -1,18 +1,20 @@
 from __future__ import absolute_import
 
 import json
-import six
 import tempfile
 from datetime import timedelta
+
+import six
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 
 from sentry.models import ExportedData, File
 from sentry.models.exporteddata import DEFAULT_EXPIRATION, ExportStatus
 from sentry.testutils import TestCase
-from sentry.utils.http import absolute_uri
 from sentry.utils.compat.mock import patch
+from sentry.utils.http import absolute_uri
+
+from django.utils import timezone
 
 
 class ExportedDataTest(TestCase):

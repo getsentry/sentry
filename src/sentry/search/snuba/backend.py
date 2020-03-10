@@ -1,18 +1,21 @@
 from __future__ import absolute_import
 
-from abc import ABCMeta, abstractmethod
 import functools
-import six
+from abc import ABCMeta, abstractmethod
 from datetime import timedelta
 
+import six
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry import quotas
 from sentry.api.event_search import InvalidSearchQuery
-from sentry.models import Release, GroupEnvironment, Group, GroupStatus, GroupSubscription
+from sentry.models import (
+    Group, GroupEnvironment, GroupStatus, GroupSubscription, Release
+)
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+
+from django.utils import timezone
 
 
 def assigned_to_filter(actor, projects):

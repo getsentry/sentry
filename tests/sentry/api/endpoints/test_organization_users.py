@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
+from sentry.api.serializers import (
+    OrganizationMemberWithProjectsSerializer, serialize
+)
 from sentry.testutils import APITestCase
 
 

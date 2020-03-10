@@ -5,8 +5,8 @@ import os
 
 import six
 from django.conf import settings
-from django.db.migrations.loader import MigrationLoader
 from django.core.management.commands import makemigrations
+from django.db.migrations.loader import MigrationLoader
 
 template = """Django migrations lock file. This helps us avoid migration conflicts on master.
 If you have a conflict in this file, it means that someone has committed a migration

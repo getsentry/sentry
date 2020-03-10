@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 import six
-from django.utils import timezone
 
-from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.utils.dates import parse_stats_period
 
+from django.utils import timezone
 
 MAX_STATS_PERIOD = timedelta(days=90)
 

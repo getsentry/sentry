@@ -1,14 +1,14 @@
 from __future__ import absolute_import, print_function
 
 import logging
-
-from six.moves.urllib.parse import parse_qsl, urlencode
 from time import time
 from uuid import uuid4
 
+from six.moves.urllib.parse import parse_qsl, urlencode
+
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.utils.http import absolute_uri

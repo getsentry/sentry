@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import responses
-
 from exam import fixture
+from sentry_plugins.victorops.plugin import VictorOpsPlugin
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
   "result":"success",

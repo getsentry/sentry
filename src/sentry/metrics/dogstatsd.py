@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ["DogStatsdMetricsBackend"]
-
 from datadog import initialize, statsd
 
 from .base import MetricsBackend
+
+__all__ = ["DogStatsdMetricsBackend"]
+
+
 
 
 class DogStatsdMetricsBackend(MetricsBackend):

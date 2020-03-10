@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
+from six.moves.urllib.parse import urlencode, urlparse, urlunparse
+
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
 

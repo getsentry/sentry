@@ -1,18 +1,13 @@
 from __future__ import absolute_import
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.models import (
-    ApiKey,
-    AuditLogEntryEvent,
-    DeletedOrganization,
-    DeletedTeam,
-    DeletedProject,
-    Organization,
-    OrganizationStatus,
+    ApiKey, AuditLogEntryEvent, DeletedOrganization, DeletedProject,
+    DeletedTeam, Organization, OrganizationStatus
 )
 from sentry.testutils import TestCase
 from sentry.utils.audit import create_audit_entry
+
+from django.contrib.auth.models import AnonymousUser
 
 
 class FakeHttpRequest(object):

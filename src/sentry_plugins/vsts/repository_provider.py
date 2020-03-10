@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import six
+from six.moves.urllib.parse import urlparse
 
 from sentry.plugins import providers
-from six.moves.urllib.parse import urlparse
 
 from .mixins import VisualStudioMixin
 

@@ -19,19 +19,17 @@ import logging
 
 import six
 from requests.exceptions import ReadTimeout
+from sentry_plugins.anonymizeip import anonymize_ip
+from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.utils import get_secret_field_config
 
 from sentry import http, tagstore
 from sentry.app import ratelimiter
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-
-from sentry_plugins.base import CorePluginMixin
-from sentry_plugins.utils import get_secret_field_config
-from sentry_plugins.anonymizeip import anonymize_ip
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-
 
 logger = logging.getLogger(__name__)
 

@@ -3,16 +3,14 @@ from __future__ import absolute_import
 from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.digests.utilities import (
-    build_events_by_actor,
-    convert_actors_to_users,
-    get_event_from_groups_in_digest,
-    get_personalized_digests,
-    team_actors_to_user_ids,
+    build_events_by_actor, convert_actors_to_users,
+    get_event_from_groups_in_digest, get_personalized_digests,
+    team_actors_to_user_ids
 )
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 def sort_records(records):

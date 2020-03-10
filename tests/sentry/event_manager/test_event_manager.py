@@ -3,43 +3,32 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from sentry.utils.compat import mock
-import pytest
 import uuid
-
 from collections import namedtuple
 from datetime import datetime, timedelta
-from django.utils import timezone
 from time import time
+
+import pytest
 
 from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.event_manager import EventManager, EventUser, HashDiscarded
 from sentry.eventstore.models import Event
-from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
-    Activity,
-    Environment,
-    ExternalIssue,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    GroupTombstone,
-    Integration,
-    Release,
-    ReleaseProjectEnvironment,
-    OrganizationIntegration,
-    UserReport,
+    Activity, Environment, ExternalIssue, Group, GroupEnvironment, GroupHash,
+    GroupLink, GroupRelease, GroupResolution, GroupStatus, GroupTombstone,
+    Integration, OrganizationIntegration, Release, ReleaseProjectEnvironment,
+    UserReport
 )
-from sentry.utils.outcomes import Outcome
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase
-from sentry.utils.data_filters import FilterStatKeys
 from sentry.relay.config import get_project_config
+from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.utils.compat import mock
+from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.outcomes import Outcome
+
+from django.utils import timezone
 
 
 def make_event(**kwargs):

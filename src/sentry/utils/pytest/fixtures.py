@@ -11,14 +11,13 @@ import io
 import os
 import re
 import sys
-import yaml
-import sentry
+from datetime import datetime
 
 import pytest
 import six
+import yaml
 
-from datetime import datetime
-
+import sentry
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions

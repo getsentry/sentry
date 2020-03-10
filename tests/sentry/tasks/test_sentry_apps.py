@@ -1,33 +1,31 @@
 from __future__ import absolute_import
 
-import six
-import pytest
-
-from celery import Task
 from collections import namedtuple
+
+import pytest
+import six
+from celery import Task
 from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch
 from requests.exceptions import RequestException
 
+from sentry.api.serializers import serialize
 from sentry.models import Rule, SentryApp, SentryAppInstallation
+from sentry.receivers.sentry_apps import *  # NOQA
+from sentry.tasks.post_process import post_process_group
+from sentry.tasks.sentry_apps import (
+    installation_webhook, notify_sentry_app, process_resource_change,
+    process_resource_change_bound, send_alert_event, send_webhooks,
+    workflow_notification
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import faux
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.http import absolute_uri
-from sentry.receivers.sentry_apps import *  # NOQA
 from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
-from sentry.tasks.post_process import post_process_group
-from sentry.api.serializers import serialize
-from sentry.tasks.sentry_apps import (
-    send_alert_event,
-    notify_sentry_app,
-    process_resource_change,
-    process_resource_change_bound,
-    installation_webhook,
-    workflow_notification,
-    send_webhooks,
+from sentry.utils.compat.mock import patch
+from sentry.utils.http import absolute_uri
+from sentry.utils.sentryappwebhookrequests import (
+    SentryAppWebhookRequestsBuffer
 )
 
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])

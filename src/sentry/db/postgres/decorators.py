@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
 import sys
-
 from functools import wraps
+
+import six
 
 from .exceptions import TransactionAborted
 from .helpers import can_reconnect

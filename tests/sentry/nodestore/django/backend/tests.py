@@ -3,12 +3,13 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 
-from sentry.nodestore.django.models import Node
 from sentry.nodestore.django.backend import DjangoNodeStorage
+from sentry.nodestore.django.models import Node
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
+
+from django.utils import timezone
 
 
 class DjangoNodeStorageTest(TestCase):

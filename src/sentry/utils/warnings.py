@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import collections
-import six
 import warnings
+
+import six
 
 
 class UnsupportedBackend(RuntimeWarning):

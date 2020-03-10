@@ -6,8 +6,12 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.logic import (
+    create_alert_rule_trigger, create_alert_rule_trigger_action
+)
+from sentry.incidents.models import (
+    AlertRuleThresholdType, AlertRuleTriggerAction
+)
 from sentry.testutils import TestCase
 
 

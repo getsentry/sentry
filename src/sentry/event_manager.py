@@ -1,92 +1,62 @@
 from __future__ import absolute_import, print_function
 
+import ipaddress
 import logging
 import time
+from datetime import timedelta
 
-import ipaddress
 import jsonschema
 import six
-
-from datetime import timedelta
 from django.core.cache import cache
-from django.db import connection, IntegrityError, router, transaction
+from django.db import IntegrityError, connection, router, transaction
 from django.db.models import Func
-from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
+from sentry import (
+    buffer, eventstore, eventstream, eventtypes, features, quotas, tsdb
+)
 from sentry.attachments import attachment_cache
 from sentry.constants import (
-    DataCategory,
-    DEFAULT_STORE_NORMALIZER_ARGS,
-    LOG_LEVELS_MAP,
-    MAX_TAG_VALUE_LENGTH,
-    MAX_SECS_IN_FUTURE,
-    MAX_SECS_IN_PAST,
-)
-from sentry.message_filters import should_filter_event
-from sentry.grouping.api import (
-    get_grouping_config_dict_for_project,
-    get_grouping_config_dict_for_event_data,
-    load_grouping_config,
-    apply_server_fingerprinting,
-    get_fingerprinting_config_for_project,
-    GroupingConfigNotFound,
+    DEFAULT_STORE_NORMALIZER_ARGS, LOG_LEVELS_MAP, MAX_SECS_IN_FUTURE,
+    MAX_SECS_IN_PAST, MAX_TAG_VALUE_LENGTH, DataCategory
 )
 from sentry.coreapi import (
-    APIError,
-    APIForbidden,
-    decompress_gzip,
-    decompress_deflate,
-    decode_and_decompress_data,
-    decode_data,
-    safely_load_json_string,
+    APIError, APIForbidden, decode_and_decompress_data, decode_data,
+    decompress_deflate, decompress_gzip, safely_load_json_string
+)
+from sentry.culprit import generate_culprit
+from sentry.grouping.api import (
+    GroupingConfigNotFound, apply_server_fingerprinting,
+    get_fingerprinting_config_for_project,
+    get_grouping_config_dict_for_event_data,
+    get_grouping_config_dict_for_project, load_grouping_config
 )
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+)
+from sentry.message_filters import should_filter_event
 from sentry.models import (
-    Activity,
-    Environment,
-    EventAttachment,
-    EventDict,
-    EventError,
-    EventUser,
-    File,
-    Group,
-    GroupEnvironment,
-    GroupHash,
-    GroupLink,
-    GroupRelease,
-    GroupResolution,
-    GroupStatus,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    UserReport,
-    Organization,
-    CRASH_REPORT_TYPES,
-    get_crashreport_key,
+    CRASH_REPORT_TYPES, Activity, Environment, EventAttachment, EventDict,
+    EventError, EventUser, File, Group, GroupEnvironment, GroupHash, GroupLink,
+    GroupRelease, GroupResolution, GroupStatus, Organization, Project,
+    ProjectKey, Release, ReleaseEnvironment, ReleaseProject,
+    ReleaseProjectEnvironment, UserReport, get_crashreport_key
 )
 from sentry.plugins.base import plugins
-from sentry import quotas
 from sentry.signals import first_event_received
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterStatKeys,
-)
-from sentry.utils.dates import to_timestamp, to_datetime
-from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.culprit import generate_culprit
 from sentry.utils.compat import map
+from sentry.utils.data_filters import (
+    FilterStatKeys, is_valid_error_message, is_valid_ip, is_valid_release
+)
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+
+from django.utils.encoding import force_text
 
 logger = logging.getLogger("sentry.events")
 

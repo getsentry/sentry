@@ -1,21 +1,24 @@
 from __future__ import absolute_import
 
-import logging
 import json
-import requests
-import six
-
+import logging
 from collections import OrderedDict
 from time import time
 
+import requests
+import six
 from bs4 import BeautifulSoup
-from django.utils.functional import cached_property
-from requests.exceptions import ConnectionError, Timeout, HTTPError
+from requests.exceptions import ConnectionError, HTTPError, Timeout
+
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
 
-from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
+from .exceptions import (
+    ApiError, ApiHostError, ApiTimeoutError, UnsupportedResponseType
+)
+
+from django.utils.functional import cached_property
 
 
 class BaseApiResponse(object):

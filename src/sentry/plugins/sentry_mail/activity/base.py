@@ -1,22 +1,20 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from django.utils.html import escape, mark_safe
 from six.moves.urllib.parse import urlparse, urlunparse
 
 from sentry import options
 from sentry.models import (
-    GroupSubscription,
-    GroupSubscriptionReason,
-    ProjectOption,
-    UserAvatar,
-    UserOption,
+    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
+    UserOption
 )
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
+
+from django.utils.html import escape, mark_safe
 
 
 class ActivityEmail(object):

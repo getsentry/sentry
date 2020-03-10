@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import pkg_resources
-
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.plugins.base import plugins
 from sentry.api.permissions import SuperuserPermission
+from sentry.plugins.base import plugins
 
 
 class InternalPackagesEndpoint(Endpoint):

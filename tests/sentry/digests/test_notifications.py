@@ -1,17 +1,14 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict, defaultdict
+
 from exam import fixture
 from six.moves import reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
-    Notification,
-    event_to_record,
-    rewrite_record,
-    group_records,
-    sort_group_contents,
-    sort_rule_groups,
+    Notification, event_to_record, group_records, rewrite_record,
+    sort_group_contents, sort_rule_groups
 )
 from sentry.models import Rule
 from sentry.testutils import TestCase

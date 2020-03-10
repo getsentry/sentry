@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import six
-
 from base64 import b64encode
 from threading import local
 from uuid import uuid4
 
-from django.core.cache import caches, InvalidCacheBackendError
+import six
+from django.core.cache import InvalidCacheBackendError, caches
 
 from sentry.utils.cache import memoize
 from sentry.utils.services import Service

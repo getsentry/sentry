@@ -1,25 +1,20 @@
 from __future__ import absolute_import
 
-
-from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
 from sentry import options
-
+from sentry.integrations.base import (
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation,
+    IntegrationMetadata, IntegrationProvider
+)
+from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.pipeline import PipelineView
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.integrations.base import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationMetadata,
-    IntegrationProvider,
-    FeatureDescription,
-)
 
-from sentry.models import OrganizationIntegration, PagerDutyService
-
-from sentry.pipeline import PipelineView
 from .client import PagerDutyClient
+
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Connect your Sentry organization with one or more PagerDuty accounts, and start getting

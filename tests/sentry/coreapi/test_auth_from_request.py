@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import pytest
-
 from django.core.exceptions import SuspiciousOperation
 
-from sentry.coreapi import ClientAuthHelper, APIUnauthorized
+from sentry.coreapi import APIUnauthorized, ClientAuthHelper
+from sentry.utils.compat import mock
 
 
 def test_valid():

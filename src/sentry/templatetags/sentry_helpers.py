@@ -10,11 +10,9 @@ import six
 from django import template
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import stringfilter
-from django.utils import timezone
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
 from pkg_resources import parse_version as Version
+from six.moves import range
+from six.moves.urllib.parse import quote
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
@@ -22,8 +20,11 @@ from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
-from six.moves import range
-from six.moves.urllib.parse import quote
+
+from django.utils import timezone
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 

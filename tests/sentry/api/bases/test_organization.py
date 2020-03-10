@@ -4,17 +4,20 @@ from datetime import timedelta
 
 from django.db.models import F
 from django.test import RequestFactory
-from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import (
+    NoProjects, OrganizationEndpoint, OrganizationPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import from_request, NoAccess
+from sentry.auth.access import NoAccess, from_request
 from sentry.models import ApiKey, Organization, TotpInterface
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class MockSuperUser(object):

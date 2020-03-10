@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
+from sentry.message_filters import (
+    _browser_extensions_filter, _legacy_browsers_filter, _localhost_filter,
+    _web_crawlers_filter
+)
 from sentry.models.projectoption import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils.safe import set_path
-from sentry.message_filters import (
-    _localhost_filter,
-    _browser_extensions_filter,
-    _web_crawlers_filter,
-    _legacy_browsers_filter,
-)
 
 
 class FilterTests(TestCase):

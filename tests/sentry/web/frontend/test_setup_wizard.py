@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.core.cache import cache
+from django.core.urlresolvers import reverse
 
-from sentry.testutils import PermissionTestCase
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
+from sentry.testutils import PermissionTestCase
 
 
 class SetupWizard(PermissionTestCase):

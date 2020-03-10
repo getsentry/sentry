@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError
-
 from social_auth.models import UserSocialAuth
 
 

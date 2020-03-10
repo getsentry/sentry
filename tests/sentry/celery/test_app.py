@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import pytest
 from celery.beat import ScheduleEntry
-from sentry.celery import app
 from django.conf import settings
+
+from sentry.celery import app
 
 app.loader.import_default_modules()
 

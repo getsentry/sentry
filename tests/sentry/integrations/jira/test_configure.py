@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
+from django.core.urlresolvers import reverse
 from jwt import ExpiredSignatureError
 
-from django.core.urlresolvers import reverse
-
-from sentry.integrations.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.atlassian_connect import (
+    AtlassianConnectValidationError
+)
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
-
 
 PERMISSIONS_WARNING = b"You must be an organization owner or manager in Sentry to complete setup."
 REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"

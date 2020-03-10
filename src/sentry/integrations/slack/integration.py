@@ -1,19 +1,19 @@
 from __future__ import absolute_import
 
-from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
 from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationFeatures,
-    IntegrationMetadata,
-    IntegrationProvider,
-    FeatureDescription,
+    FeatureDescription, IntegrationFeatures, IntegrationMetadata,
+    IntegrationProvider
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
+
 from .utils import track_response_code
+
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start

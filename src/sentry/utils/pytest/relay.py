@@ -1,13 +1,15 @@
 # Fixutres used to interact with a test Relay server
 
 from __future__ import absolute_import
-import pytest
-from os import path
-import six
-from six.moves.urllib.parse import urlparse
-import sys
+
 import datetime
 import shutil
+import sys
+from os import path
+
+import pytest
+import six
+from six.moves.urllib.parse import urlparse
 
 from sentry.runner.commands.devservices import get_docker_client
 

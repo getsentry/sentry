@@ -1,15 +1,15 @@
 from __future__ import absolute_import, division
 
 import itertools
-from sentry.utils.compat import mock
-import pytz
-
 from datetime import datetime, timedelta
-
 from unittest import TestCase
-from sentry.tsdb.base import BaseTSDB, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.utils.dates import to_timestamp
+
+import pytz
 from six.moves import xrange
+
+from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, BaseTSDB
+from sentry.utils.compat import mock
+from sentry.utils.dates import to_timestamp
 
 
 class BaseTSDBTest(TestCase):

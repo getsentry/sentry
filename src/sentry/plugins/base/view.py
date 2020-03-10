@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ["PluggableViewMixin"]
-
 from django.http import HttpResponseRedirect
 
 from .response import Response
+
+__all__ = ["PluggableViewMixin"]
+
+
 
 
 class PluggableViewMixin(object):

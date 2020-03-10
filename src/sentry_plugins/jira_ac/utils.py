@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 import hashlib
+
 import jwt
-
-from six.moves.urllib.parse import quote
-
 from sentry_plugins.exceptions import ApiError
+from six.moves.urllib.parse import quote
 
 
 def percent_encode(val):

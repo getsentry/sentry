@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+
 from sentry.models import UserEmail, UserOption
 from sentry.testutils import APITestCase
-
-from django.core.urlresolvers import reverse
 
 
 class UserNotificationFineTuningTest(APITestCase):

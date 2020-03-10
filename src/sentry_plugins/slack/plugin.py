@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
+from sentry_plugins.base import CorePluginMixin
+
 from sentry import tagstore
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import SlackApiClient
-from sentry_plugins.base import CorePluginMixin
 
 LEVEL_TO_COLOR = {
     "debug": "cfd3da",

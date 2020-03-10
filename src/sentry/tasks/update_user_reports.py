@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
 import logging
-import six
+from datetime import timedelta
 
-from django.utils import timezone
+import six
 
 from sentry import eventstore
 from sentry.models import UserReport
 from sentry.tasks.base import instrumented_task
+
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

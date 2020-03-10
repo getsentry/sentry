@@ -2,27 +2,24 @@ from __future__ import absolute_import
 
 import datetime
 import functools
-import six
-from collections import defaultdict, Iterable
-from dateutil.parser import parse as parse_datetime
+from collections import Iterable, defaultdict
 
+import six
+from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 
 from sentry import options
 from sentry.api.utils import default_start_end_dates
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagStorage
 from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
+    GroupTagKeyNotFound, GroupTagValueNotFound, TagKeyNotFound,
+    TagValueNotFound
 )
-from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.utils import snuba, metrics
-from sentry.utils.hashlib import md5_text
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
-
+from sentry.utils.hashlib import md5_text
 
 SEEN_COLUMN = "timestamp"
 

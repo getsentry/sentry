@@ -2,19 +2,13 @@ from __future__ import absolute_import
 
 import abc
 import logging
-import six
 import time
 
+import six
 from confluent_kafka import (
-    Consumer,
-    KafkaError,
-    KafkaException,
-    OFFSET_BEGINNING,
-    OFFSET_END,
-    OFFSET_STORED,
-    OFFSET_INVALID,
+    OFFSET_BEGINNING, OFFSET_END, OFFSET_INVALID, OFFSET_STORED, Consumer,
+    KafkaError, KafkaException
 )
-
 
 logger = logging.getLogger("batching-kafka-consumer")
 

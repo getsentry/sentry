@@ -1,22 +1,21 @@
 from __future__ import absolute_import
-from .client import VstsApiClient
 
 import logging
-import six
+import re
 
+import six
+from django.views.decorators.csrf import csrf_exempt
+
+from sentry.api.base import Endpoint
 from sentry.models import (
-    Identity,
-    Integration,
-    OrganizationIntegration,
-    sync_group_assignee_inbound,
+    Identity, Integration, OrganizationIntegration,
+    sync_group_assignee_inbound
 )
 from sentry.models.apitoken import generate_token
-from sentry.api.base import Endpoint
 
-from django.views.decorators.csrf import csrf_exempt
+from .client import VstsApiClient
+
 from django.utils.crypto import constant_time_compare
-
-import re
 
 UNSET = object()
 # Pull email from the string: u'lauryn <lauryn@sentry.io>'

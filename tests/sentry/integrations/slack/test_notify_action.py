@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
 import responses
-
 from six.moves.urllib.parse import parse_qs
 
-from sentry.utils import json
-from sentry.models import Integration, GroupStatus
-from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.models import GroupStatus, Integration
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils import json
 
 
 class SlackNotifyActionTest(RuleTestCase):

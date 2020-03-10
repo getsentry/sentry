@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
+from sentry.ownership.grammar import (
+    Matcher, Owner, Rule, dump_schema, load_schema, parse_rules
+)
 
 fixture_data = """
 # cool stuff comment

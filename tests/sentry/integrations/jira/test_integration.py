@@ -1,28 +1,25 @@
 from __future__ import absolute_import
 
+import copy
 import json
-from sentry.utils.compat import mock
+
+import pytest
 import responses
 import six
-import pytest
-import copy
-
 from django.core.urlresolvers import reverse
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
-    ExternalIssue,
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
+    ExternalIssue, Integration, IntegrationExternalProject,
+    OrganizationIntegration
 )
 from sentry.testutils import APITestCase
-from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
-
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import Mock
+from sentry.utils.http import absolute_uri
 
 SAMPLE_CREATE_META_RESPONSE = """
 {

@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.models import Incident
 

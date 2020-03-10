@@ -2,12 +2,16 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.message_filters import _legacy_browsers_filter, get_filter_key  # noqa
-from sentry.models.projectoption import ProjectOption
+from sentry.message_filters import (  # noqa
+    _legacy_browsers_filter, get_filter_key
+)
 from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
+from sentry.models.projectoption import ProjectOption
+from sentry.relay.config import (  # noqa
+    ProjectConfig, _filter_option_to_config_setting
+)
 from sentry.testutils import APITestCase, TestCase
 from sentry.utils.canonical import CanonicalKeyView
-from sentry.relay.config import ProjectConfig, _filter_option_to_config_setting  # noqa
 
 USER_AGENTS = {
     "android_2": "Mozilla/5.0 (Linux; U; Android 2.3.5; en-us; HTC Vision Build/GRI40) AppleWebKit/533.1 (KHTML, like Gecko) "

@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
+from sentry.snuba.models import (
+    QueryAggregations, QueryDatasets, QuerySubscription
+)
 from sentry.snuba.subscriptions import (
-    bulk_delete_snuba_subscriptions,
-    create_snuba_subscription,
-    delete_snuba_subscription,
-    update_snuba_subscription,
+    bulk_delete_snuba_subscriptions, create_snuba_subscription,
+    delete_snuba_subscription, update_snuba_subscription
 )
 from sentry.testutils import TestCase
 

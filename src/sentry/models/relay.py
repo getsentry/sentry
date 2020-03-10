@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import six
 from django.db import models
-from django.utils import timezone
+from sentry_relay import PublicKey
 
 from sentry.db.models import Model
-from django.utils.functional import cached_property
 
-from sentry_relay import PublicKey
+from django.utils import timezone
+from django.utils.functional import cached_property
 
 
 class Relay(Model):

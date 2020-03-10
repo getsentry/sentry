@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
-__all__ = ("Message",)
-
 import six
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
+from sentry.utils.json import prune_empty_keys
+
+__all__ = ("Message",)
+
+
 
 
 def stringify(value):

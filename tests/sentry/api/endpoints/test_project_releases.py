@@ -3,23 +3,18 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 import pytz
-from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
 from sentry.models import (
-    CommitAuthor,
-    CommitFileChange,
-    Environment,
-    Release,
-    ReleaseCommit,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Repository,
+    CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
+    ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
+
+from django.utils import timezone
 
 
 class ProjectReleaseListTest(APITestCase):

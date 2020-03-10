@@ -1,32 +1,26 @@
 from __future__ import absolute_import
 
-import responses
-import pytest
-import six
-
-from exam import fixture
-from django.test import RequestFactory
 from time import time
+
+import pytest
+import responses
+import six
+from django.test import RequestFactory
+from exam import fixture
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts.integration import VstsIntegration
-
 from sentry.models import (
-    ExternalIssue,
-    Identity,
-    IdentityProvider,
-    Integration,
-    IntegrationExternalProject,
+    ExternalIssue, Identity, IdentityProvider, Integration,
+    IntegrationExternalProject
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 
 from .testutils import (
-    WORK_ITEM_RESPONSE,
-    WORK_ITEM_STATES,
-    GET_PROJECTS_RESPONSE,
-    GET_USERS_RESPONSE,
+    GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE, WORK_ITEM_RESPONSE,
+    WORK_ITEM_STATES
 )
 
 

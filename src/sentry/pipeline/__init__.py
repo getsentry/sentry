@@ -1,13 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import logging
-
 from types import LambdaType
 
 from sentry.models import Organization
-from sentry.web.frontend.base import BaseView
-from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
+from sentry.utils.session_store import RedisSessionStore
+from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 

@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 from hashlib import md5
 
-from django.utils.encoding import force_bytes
-
-from sentry.utils.safe import get_path
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
+from sentry.utils.safe import get_path
 
+from django.utils.encoding import force_bytes
 
 DEFAULT_FINGERPRINT_VALUES = frozenset(["{{ default }}", "{{default}}"])
 TRANSACTION_FINGERPRINT_VALUES = frozenset(["{{ transaction }}", "{{transaction}}"])

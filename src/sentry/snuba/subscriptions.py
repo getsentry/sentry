@@ -8,12 +8,10 @@ from django.db import transaction
 from sentry.api.event_search import get_filter
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import (
-    QueryAggregations,
-    QueryDatasets,
-    QuerySubscription,
-    QuerySubscriptionEnvironment,
+    QueryAggregations, QueryDatasets, QuerySubscription,
+    QuerySubscriptionEnvironment
 )
-from sentry.utils.snuba import _snuba_pool, SnubaError
+from sentry.utils.snuba import SnubaError, _snuba_pool
 
 query_aggregation_to_snuba = {
     QueryAggregations.TOTAL: ("count()", "", "count"),

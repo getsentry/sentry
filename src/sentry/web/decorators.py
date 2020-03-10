@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
 from functools import wraps
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from django.contrib import messages
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.utils import auth
+
+from django.contrib import messages
+
+from django.utils.translation import ugettext_lazy as _
 
 ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 

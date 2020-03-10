@@ -4,10 +4,11 @@ import logging
 from datetime import timedelta
 
 from django.conf import settings
-from django.utils import timezone
 
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
+
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

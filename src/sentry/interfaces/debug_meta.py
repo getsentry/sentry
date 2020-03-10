@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-__all__ = ("DebugMeta",)
-
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
+
+__all__ = ("DebugMeta",)
+
 
 
 class DebugMeta(Interface):

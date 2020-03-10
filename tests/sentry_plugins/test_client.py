@@ -2,17 +2,13 @@ from __future__ import absolute_import
 
 import pytest
 import responses
-
-from sentry.utils.compat.mock import Mock
-from sentry.testutils import TestCase
-
-from sentry_plugins.exceptions import (
-    ApiError,
-    ApiHostError,
-    ApiUnauthorized,
-    UnsupportedResponseType,
-)
 from sentry_plugins.client import ApiClient, AuthApiClient
+from sentry_plugins.exceptions import (
+    ApiError, ApiHostError, ApiUnauthorized, UnsupportedResponseType
+)
+
+from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class ApiClientTest(TestCase):

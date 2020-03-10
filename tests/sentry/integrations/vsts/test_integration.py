@@ -1,28 +1,24 @@
 from __future__ import absolute_import
 
 import pytest
-import six
 import responses
-from sentry.utils.compat.mock import patch, Mock
+import six
+from six.moves.urllib.parse import parse_qs, urlparse
+from tests.sentry.plugins.testutils import (
+    VstsPlugin, register_mock_plugins, unregister_mock_plugins
+)
 
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
-    Integration,
-    IntegrationExternalProject,
-    OrganizationIntegration,
-    Repository,
-    Project,
+    Integration, IntegrationExternalProject, OrganizationIntegration, Project,
+    Repository
 )
 from sentry.plugins.base import plugins
-from six.moves.urllib.parse import urlparse, parse_qs
-from tests.sentry.plugins.testutils import (
-    register_mock_plugins,
-    unregister_mock_plugins,
-    VstsPlugin,
-)
-from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
+from sentry.utils.compat.mock import Mock, patch
+
+from .testutils import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 
 
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):

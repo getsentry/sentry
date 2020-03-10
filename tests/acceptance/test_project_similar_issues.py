@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
 from sentry.utils.samples import create_sample_event
+
+from django.utils import timezone
 
 
 class ProjectIssuesGroupingTest(AcceptanceTestCase):

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os.path
 import random
 from datetime import datetime, timedelta
-from django.utils import timezone
 
 import six
 
@@ -11,8 +10,10 @@ from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 from sentry.utils.canonical import CanonicalKeyDict
+from sentry.utils.dates import to_timestamp
+
+from django.utils import timezone
 
 epoch = datetime.utcfromtimestamp(0)
 

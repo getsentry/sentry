@@ -2,32 +2,29 @@ from __future__ import absolute_import
 
 import six
 from django.db import IntegrityError, transaction
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
-from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
+from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
-from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
+from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import ReleaseSerializer
 from sentry.api.serializers.rest_framework import (
-    ReleaseHeadCommitSerializer,
-    ReleaseHeadCommitSerializerDeprecated,
-    ReleaseWithVersionSerializer,
-    ListField,
+    ListField, ReleaseHeadCommitSerializer,
+    ReleaseHeadCommitSerializerDeprecated, ReleaseWithVersionSerializer
 )
-from sentry.models import Activity, Release, Project
+from sentry.models import Activity, Project, Release
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
-    get_project_releases_by_stability,
+    get_project_releases_by_stability
 )
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
-
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 

@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-
-from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.github.client import GitHubClientMixin
+from sentry.integrations.github.utils import get_jwt
 
 
 class GitHubEnterpriseAppsClient(GitHubClientMixin):

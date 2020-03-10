@@ -2,24 +2,23 @@ from __future__ import absolute_import
 
 import json
 import logging
-import six
-from enum import Enum
 from datetime import timedelta
+from enum import Enum
+
+import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.utils import timezone
 
 from sentry.constants import ExportQueryType
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    sane_repr,
+    BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model,
+    sane_repr
 )
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

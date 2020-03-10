@@ -1,17 +1,16 @@
 from __future__ import absolute_import
 
-import time
 import re
-import six
-
+import time
 from datetime import datetime, timedelta
+
+import six
+from django.apps import apps
 from django.conf import settings
 from django.db import models
-from django.apps import apps
 
 from .fields import JSONField
 from .utils import setting
-
 
 AUTH_USER_MODEL = settings.AUTH_USER_MODEL
 

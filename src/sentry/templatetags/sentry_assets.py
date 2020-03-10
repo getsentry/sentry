@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.template import Library
-from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+
+from django.utils.safestring import mark_safe
 
 register = Library()
 

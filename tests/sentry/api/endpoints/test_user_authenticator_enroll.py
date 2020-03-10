@@ -1,23 +1,20 @@
 from __future__ import absolute_import
 
 import io
-import os
 import json
+import os
 
-from six.moves.urllib.parse import parse_qsl
-from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db.models import F
+from six.moves.urllib.parse import parse_qsl
 
 from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    Authenticator,
-    Organization,
-    OrganizationMember,
+    AuditLogEntry, AuditLogEntryEvent, Authenticator, Organization,
+    OrganizationMember
 )
-from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 # TODO(joshuarli): move all fixtures to a standard path relative to gitroot,

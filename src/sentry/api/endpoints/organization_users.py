@@ -4,7 +4,9 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
+from sentry.api.serializers.models import (
+    OrganizationMemberWithProjectsSerializer
+)
 from sentry.models import OrganizationMember
 
 

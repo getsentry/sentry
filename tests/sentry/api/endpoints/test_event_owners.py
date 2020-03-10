@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import six
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
-
 from sentry.models import ProjectOwnership
-from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.testutils import APITestCase
 
 
 class ProjectOwnershipEndpointTestCase(APITestCase):

@@ -1,16 +1,17 @@
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
-from enum import Enum
-from simplejson import JSONEncoder, _default_decoder
 import datetime
-import uuid
-import six
 import decimal
+import uuid
+from enum import Enum
 
+import six
 from bitfield.types import BitHandler
-from django.utils.timezone import is_aware
+from simplejson import JSONEncoder, _default_decoder
+
 from django.utils.html import mark_safe
+from django.utils.timezone import is_aware
 
 
 def better_default_encoder(o):

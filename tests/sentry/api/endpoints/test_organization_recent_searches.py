@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 
@@ -10,6 +9,8 @@ from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class RecentSearchesListTest(APITestCase):

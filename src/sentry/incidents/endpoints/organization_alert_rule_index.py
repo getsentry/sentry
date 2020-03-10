@@ -8,8 +8,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.models import AlertRule
 
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):

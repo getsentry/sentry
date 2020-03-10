@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 
 from sentry.models import AuditLogEntry, AuditLogEntryEvent
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class OrganizationAuditLogsTest(APITestCase):

@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 import responses
-
 from exam import fixture
+from sentry_plugins.slack.plugin import SlackPlugin
+from six.moves.urllib.parse import parse_qs
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from six.moves.urllib.parse import parse_qs
-
-from sentry_plugins.slack.plugin import SlackPlugin
 
 
 class SlackPluginTest(PluginTestCase):

@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
+from sentry.incidents.models import (
+    IncidentActivity, IncidentActivityType, IncidentSubscription
+)
 from sentry.testutils import APITestCase
 
 

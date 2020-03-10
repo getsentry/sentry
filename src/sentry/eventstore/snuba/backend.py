@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import six
-
+import logging
 from copy import deepcopy
 from datetime import timedelta
-import logging
+
+import six
 
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns

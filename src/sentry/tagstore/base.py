@@ -4,10 +4,8 @@ import re
 
 from sentry.constants import TAG_LABELS
 from sentry.tagstore.exceptions import (
-    TagKeyNotFound,
-    TagValueNotFound,
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
+    GroupTagKeyNotFound, GroupTagValueNotFound, TagKeyNotFound,
+    TagValueNotFound
 )
 from sentry.utils.services import Service, raises
 

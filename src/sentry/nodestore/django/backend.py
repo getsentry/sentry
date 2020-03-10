@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import math
 
-from django.utils import timezone
-
 from sentry.db.models import create_or_update
 from sentry.nodestore.base import NodeStorage
 
 from .models import Node
+
+from django.utils import timezone
 
 
 class DjangoNodeStorage(NodeStorage):

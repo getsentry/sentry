@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.event_search import InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+from sentry.api.event_search import (
+    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+)
 from sentry.api.issue_search import (
-    convert_actor_value,
-    convert_query_values,
-    convert_release_value,
-    convert_user_value,
-    parse_search_query,
-    value_converters,
+    convert_actor_value, convert_query_values, convert_release_value,
+    convert_user_value, parse_search_query, value_converters
 )
 from sentry.constants import STATUS_CHOICES
 from sentry.testutils import TestCase

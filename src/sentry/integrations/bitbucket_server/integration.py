@@ -1,31 +1,31 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
+import six
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
 from django.views.decorators.csrf import csrf_exempt
-from sentry.integrations import (
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
-    FeatureDescription,
-    IntegrationInstallation,
-)
 from six.moves.urllib.parse import urlparse
-from sentry.integrations.repositories import RepositoryMixin
-from sentry.pipeline import PipelineView
-from sentry.utils.compat import filter
-from django.utils.translation import ugettext_lazy as _
+
+from sentry.integrations import (
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation,
+    IntegrationMetadata, IntegrationProvider
+)
 from sentry.integrations.exceptions import ApiError
+from sentry.integrations.repositories import RepositoryMixin
 from sentry.models.repository import Repository
+from sentry.pipeline import PipelineView
 from sentry.tasks.integrations import migrate_repo
+from sentry.utils.compat import filter
 from sentry.web.helpers import render_to_response
-from .repository import BitbucketServerRepositoryProvider
+
 from .client import BitbucketServer, BitbucketServerSetupClient
+from .repository import BitbucketServerRepositoryProvider
+
+from django.utils.translation import ugettext_lazy as _
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 

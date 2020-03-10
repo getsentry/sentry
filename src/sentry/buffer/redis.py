@@ -1,16 +1,13 @@
 from __future__ import absolute_import
 
-import six
-
 import contextlib
 import threading
-from time import time
 from binascii import crc32
-
 from datetime import datetime
+from time import time
+
+import six
 from django.db import models
-from django.utils import timezone
-from django.utils.encoding import force_bytes
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
@@ -20,6 +17,9 @@ from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
+
+from django.utils import timezone
+from django.utils.encoding import force_bytes
 
 _local_buffers = None
 _local_buffers_lock = threading.Lock()

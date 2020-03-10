@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-
 from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param

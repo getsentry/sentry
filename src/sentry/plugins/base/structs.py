@@ -1,8 +1,9 @@
 from __future__ import absolute_import, print_function
 
+import warnings
+
 __all__ = ("Annotation", "Notification")
 
-import warnings
 
 
 class Annotation(object):

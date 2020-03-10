@@ -3,12 +3,14 @@ from __future__ import absolute_import
 import base64
 import codecs
 import re
-import six
 import string
 import zlib
 
-from django.utils.encoding import force_text, smart_text
+import six
+
 from sentry.utils.compat import map
+
+from django.utils.encoding import force_text, smart_text
 
 _word_sep_re = re.compile(r"[\s.;,_-]+(?u)")
 _camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")

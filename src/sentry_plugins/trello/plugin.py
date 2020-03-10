@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
 import re
+
 from django.conf.urls import url
 from rest_framework.response import Response
-
-
-from sentry.utils.http import absolute_uri
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry_plugins.base import CorePluginMixin
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from .client import TrelloApiClient
 
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.utils.http import absolute_uri
+
+from .client import TrelloApiClient
 
 SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/trello/Trello_Instructions.md"  # NOQA
 

@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import json
 
-from sentry.utils.compat.mock import patch
-
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
+from sentry.utils.compat.mock import patch
 
 SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE = """
 {

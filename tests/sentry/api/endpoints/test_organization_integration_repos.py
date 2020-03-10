@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationIntegrationReposTest(APITestCase):

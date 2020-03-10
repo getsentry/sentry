@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.sentryappwebhookrequests import (
+    SentryAppWebhookRequestsBuffer
+)
 
 
 class SentryAppRequestsTest(APITestCase):

@@ -1,25 +1,18 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import defaultdict
 
+import six
 from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    User,
-    UserEmail,
+    Commit, CommitAuthor, Deploy, Release, ReleaseProject,
+    ReleaseProjectEnvironment, User, UserEmail
 )
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.utils.compat import zip
 
 

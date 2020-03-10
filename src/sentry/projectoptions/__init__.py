@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+from . import defaults  # NOQA
+from .defaults import LATEST_EPOCH  # NOQA
 from .manager import ProjectOptionsManager
 
 __all__ = ("get", "set", "delete", "register", "isset", "lookup_key")
@@ -22,7 +24,3 @@ def get_well_known_default(key, project=None, epoch=None):
     well_known_key = lookup_well_known_key(key)
     if well_known_key is not None:
         return well_known_key.get_default(project=project, epoch=epoch)
-
-
-from . import defaults  # NOQA
-from .defaults import LATEST_EPOCH  # NOQA

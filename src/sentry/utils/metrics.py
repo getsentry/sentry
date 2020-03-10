@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
+import functools
+import logging
+from contextlib import contextmanager
+from random import random
+from threading import Thread, local
+from time import time
+
+from django.conf import settings
+from six.moves.queue import Queue
+
 __all__ = ["timing", "incr"]
 
-import logging
 
-import functools
-from contextlib import contextmanager
-from django.conf import settings
-from random import random
-from time import time
-from threading import Thread, local
-from six.moves.queue import Queue
 
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)

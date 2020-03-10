@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import pytest
-
 from django.http import HttpRequest
 from rest_framework.exceptions import AuthenticationFailed
 
-from sentry.api.authentication import ClientIdSecretAuthentication, DSNAuthentication
+from sentry.api.authentication import (
+    ClientIdSecretAuthentication, DSNAuthentication
+)
 from sentry.models import ProjectKeyStatus
 from sentry.testutils import TestCase
 

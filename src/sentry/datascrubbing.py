@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import copy
+
 import sentry_relay
 import six
 

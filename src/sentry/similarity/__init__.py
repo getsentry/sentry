@@ -10,11 +10,8 @@ from sentry.similarity.backends.metrics import MetricsWrapper
 from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
 from sentry.similarity.features import (
-    ExceptionFeature,
-    FeatureSet,
-    InterfaceDoesNotExist,
-    MessageFeature,
-    get_application_chunks,
+    ExceptionFeature, FeatureSet, InterfaceDoesNotExist, MessageFeature,
+    get_application_chunks
 )
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis

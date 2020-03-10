@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-import six
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
 from sentry.models.exporteddata import ExportStatus
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class DataExportDetailsTest(APITestCase):

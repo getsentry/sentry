@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import pytest
-
 from datetime import datetime, timedelta
+
+import pytest
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase

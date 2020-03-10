@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+
 from sentry.constants import SentryAppStatus
-from sentry.models import SentryApp, OrganizationMember
+from sentry.models import OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json

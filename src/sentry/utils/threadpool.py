@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-import six
-from six.moves.queue import Queue, Empty
-
 from collections import defaultdict
 from threading import Thread
+
+import six
+from six.moves.queue import Empty, Queue
 
 
 class Worker(Thread):

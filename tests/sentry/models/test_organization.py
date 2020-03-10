@@ -1,32 +1,18 @@
 from __future__ import absolute_import
 
 import copy
-from sentry.utils.compat import mock
+from uuid import uuid4
+
+from django.core import mail
 
 from sentry.models import (
-    ApiKey,
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    Commit,
-    File,
-    Integration,
-    OrganizationAvatar,
-    OrganizationMember,
-    OrganizationIntegration,
-    OrganizationMemberTeam,
-    OrganizationOption,
-    Project,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    ReleaseFile,
-    Team,
-    TotpInterface,
-    User,
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, Integration,
+    OrganizationAvatar, OrganizationIntegration, OrganizationMember,
+    OrganizationMemberTeam, OrganizationOption, Project, Release,
+    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Team, TotpInterface, User
 )
 from sentry.testutils import TestCase
-from django.core import mail
-from uuid import uuid4
+from sentry.utils.compat import mock
 
 
 class OrganizationTest(TestCase):

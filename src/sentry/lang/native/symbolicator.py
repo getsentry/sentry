@@ -1,23 +1,22 @@
 from __future__ import absolute_import
 
-import sys
-import jsonschema
 import logging
-import six
+import sys
 import time
 
+import jsonschema
+import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
-
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
-from sentry.utils import json, metrics
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
+from sentry.utils import json, metrics
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600

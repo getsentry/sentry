@@ -1,14 +1,18 @@
 from __future__ import absolute_import
 
 import responses
-
 from django.core.urlresolvers import reverse
 from exam import fixture
-from six.moves.urllib.parse import urlparse, parse_qs
+from six.moves.urllib.parse import parse_qs, urlparse
 
-from sentry.models import Integration, IdentityProvider, Identity, IdentityStatus
+from sentry.models import (
+    Identity, IdentityProvider, IdentityStatus, Integration
+)
 from sentry.testutils import APITestCase
-from .testutils import EXAMPLE_PRIVATE_KEY, EXAMPLE_ISSUE_SEARCH, EXAMPLE_USER_SEARCH_RESPONSE
+
+from .testutils import (
+    EXAMPLE_ISSUE_SEARCH, EXAMPLE_PRIVATE_KEY, EXAMPLE_USER_SEARCH_RESPONSE
+)
 
 
 class JiraSearchEndpointTest(APITestCase):

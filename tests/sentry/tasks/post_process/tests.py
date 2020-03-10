@@ -3,16 +3,17 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
-from sentry.utils.compat.mock import Mock, patch, ANY
 
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
-from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema
-from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
+from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import ANY, Mock, patch
+
+from django.utils import timezone
 
 
 class PostProcessGroupTest(TestCase):

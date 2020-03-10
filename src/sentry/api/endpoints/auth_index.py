@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.contrib.auth import logout
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
@@ -13,6 +11,9 @@ from sentry.api.validators import AuthVerifyValidator
 from sentry.models import Authenticator
 from sentry.utils import auth, json
 from sentry.utils.functional import extract_lazy_object
+
+from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 
 
 class AuthIndexEndpoint(Endpoint):

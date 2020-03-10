@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import EventUser, OrganizationMemberTeam
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationUserIssuesTest(APITestCase, SnubaTestCase):

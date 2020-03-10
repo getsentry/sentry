@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.db import models
-from django.utils import timezone
 
-from sentry.utils.cache import cache
+from django.db import models
+
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+)
 from sentry.utils import metrics
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.utils.cache import cache
+
+from django.utils import timezone
 
 
 class ReleaseEnvironment(Model):

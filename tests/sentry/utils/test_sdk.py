@@ -1,14 +1,13 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from sentry_sdk import Hub
 
-from django.conf import settings
-from sentry.utils.sdk import configure_sdk, bind_organization_context
+from sentry import nodestore
 from sentry.app import raven
-
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
-from sentry import nodestore
+from sentry.utils.sdk import bind_organization_context, configure_sdk
 
 
 class SentryInternalClientTest(TestCase):

@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 from sentry import features
-from sentry.api.bases.group import GroupEndpoint
-from sentry.api.serializers import serialize, EventAttachmentSerializer
-from sentry.api.paginator import DateTimePaginator
-from sentry.models import EventAttachment
 from sentry.api.base import EnvironmentMixin
+from sentry.api.bases.group import GroupEndpoint
+from sentry.api.paginator import DateTimePaginator
+from sentry.api.serializers import EventAttachmentSerializer, serialize
+from sentry.models import EventAttachment
 
 
 class GroupEventAttachmentSerializer(EventAttachmentSerializer):

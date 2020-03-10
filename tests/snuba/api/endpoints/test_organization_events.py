@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 import six
-from six.moves.urllib.parse import urlencode
-
-from django.utils import timezone
 from django.core.urlresolvers import reverse
+from six.moves.urllib.parse import urlencode
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import map
+
+from django.utils import timezone
 
 
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):

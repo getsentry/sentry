@@ -1,21 +1,17 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 from unittest import TestCase as SimpleTestCase
 
 from sentry.api.paginator import (
-    BadPaginationError,
-    Paginator,
-    DateTimePaginator,
-    OffsetPaginator,
-    SequencePaginator,
-    GenericOffsetPaginator,
-    reverse_bisect_left,
+    BadPaginationError, DateTimePaginator, GenericOffsetPaginator,
+    OffsetPaginator, Paginator, SequencePaginator, reverse_bisect_left
 )
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.cursors import Cursor
+
+from django.utils import timezone
 
 
 class PaginatorTest(TestCase):

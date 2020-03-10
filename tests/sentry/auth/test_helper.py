@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import urlencode
 from django.test import RequestFactory
-from django.contrib.auth.models import AnonymousUser
+from six.moves.urllib.parse import urlencode
 
 from sentry.auth.helper import handle_new_user
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
+
+from django.contrib.auth.models import AnonymousUser
 
 
 class HandleNewUserTest(TestCase):

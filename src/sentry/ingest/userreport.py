@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 
 from sentry import eventstore
 from sentry.models import EventUser, UserReport
 from sentry.signals import user_feedback_received
+
+from django.utils import timezone
 
 
 class Conflict(Exception):

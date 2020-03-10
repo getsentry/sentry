@@ -1,28 +1,27 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import team as team_serializers
 from sentry.models import (
-    AuditLogEntryEvent,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
-    TeamStatus,
+    AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team,
+    TeamStatus
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import team_created
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
+
+from django.utils.translation import ugettext_lazy as _
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 

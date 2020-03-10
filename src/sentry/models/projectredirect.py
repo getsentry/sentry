@@ -1,9 +1,10 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
-from django.utils import timezone
 
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, Model
+
+from django.utils import timezone
 
 
 class ProjectRedirect(Model):

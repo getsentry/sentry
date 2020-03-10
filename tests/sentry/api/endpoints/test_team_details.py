@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus, DeletedTeam
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, DeletedTeam, Team, TeamStatus
+)
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class TeamDetailsTest(APITestCase):

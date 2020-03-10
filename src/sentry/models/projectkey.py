@@ -1,28 +1,24 @@
 from __future__ import absolute_import, print_function
 
-import petname
-import six
 import re
-
-from bitfield import BitField
 from uuid import uuid4
 
+import petname
+import six
+from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.db.models import (
-    Model,
-    BaseManager,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    sane_repr,
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, JSONField,
+    Model, sane_repr
 )
+
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 

@@ -2,17 +2,14 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, IntegrityError, transaction
-from django.utils import timezone
+from django.db import IntegrityError, models, transaction
 
 from sentry.db.models import (
-    BaseManager,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    sane_repr,
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, JSONField,
+    Model, sane_repr
 )
+
+from django.utils import timezone
 
 
 class OnboardingTask(object):

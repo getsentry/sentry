@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 from django.core import mail
 
 from sentry.models import InviteStatus, OrganizationMember
-from sentry.testutils import TestCase
 from sentry.tasks.members import send_invite_request_notification_email
+from sentry.testutils import TestCase
 
 
 class InviteRequestNotificationTest(TestCase):

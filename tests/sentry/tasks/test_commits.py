@@ -1,21 +1,16 @@
 from __future__ import absolute_import
 
 from django.core import mail
-from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
-    Commit,
-    Deploy,
-    Integration,
-    LatestRepoReleaseEnvironment,
-    Release,
-    ReleaseHeadCommit,
-    Repository,
+    Commit, Deploy, Integration, LatestRepoReleaseEnvironment, Release,
+    ReleaseHeadCommit, Repository
 )
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class FetchCommitsTest(TestCase):

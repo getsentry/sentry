@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 import fnmatch
 import ipaddress
+
 import six
 
-from django.utils.encoding import force_text
-
 from sentry import tsdb
-from sentry.utils.safe import get_path
 from sentry.relay.utils import to_camel_case_name
+from sentry.utils.safe import get_path
+
+from django.utils.encoding import force_text
 
 
 class FilterStatKeys(object):

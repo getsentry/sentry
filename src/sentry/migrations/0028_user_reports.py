@@ -9,9 +9,7 @@ from django.db import migrations
 from sentry import eventstore
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import (
-    SnubaError,
-    QueryOutsideRetentionError,
-    QueryOutsideGroupActivityError,
+    QueryOutsideGroupActivityError, QueryOutsideRetentionError, SnubaError
 )
 
 logger = logging.getLogger(__name__)

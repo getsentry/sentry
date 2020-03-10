@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import copy
 
-from sentry.attachments.base import CachedAttachment, BaseAttachmentCache
+from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
 
 
 class InMemoryCache(object):

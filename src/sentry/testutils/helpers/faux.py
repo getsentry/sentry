@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import deque
+
+import six
 
 from sentry.utils import json
 from sentry.utils.functional import compact

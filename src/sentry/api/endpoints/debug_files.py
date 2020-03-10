@@ -1,32 +1,29 @@
 from __future__ import absolute_import
 
-import six
-import jsonschema
 import logging
-import posixpath
 
+import jsonschema
+import posixpath
+import six
 from django.db import transaction
 from django.db.models import Q
-from django.http import StreamingHttpResponse, HttpResponse, Http404
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
-from symbolic import normalize_debug_id, SymbolicError
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import ratelimits
-
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
+from sentry.models import (
+    FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip
+)
 from sentry.tasks.assemble import (
-    get_assemble_status,
-    set_assemble_status,
-    AssembleTask,
-    ChunkFileState,
+    AssembleTask, ChunkFileState, get_assemble_status, set_assemble_status
 )
 from sentry.utils import json
-
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"

@@ -1,19 +1,20 @@
 from __future__ import absolute_import, print_function
 
-from hashlib import sha256
 import hmac
 import logging
+from hashlib import sha256
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils.crypto import constant_time_compare
-from django.utils.decorators import method_decorator
 from email_reply_parser import EmailReplyParser
 
 from sentry import options
 from sentry.tasks.email import process_inbound_email
 from sentry.utils.email import email_to_group_id
+
+from django.utils.crypto import constant_time_compare
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger("sentry.mailgun")
 

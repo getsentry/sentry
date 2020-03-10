@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import responses
-
-from six.moves.urllib.parse import urlparse, urlencode, parse_qs
+from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.testutils import IntegrationTestCase

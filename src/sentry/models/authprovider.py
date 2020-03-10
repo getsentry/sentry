@@ -2,15 +2,13 @@ from __future__ import absolute_import, print_function
 
 from bitfield import BitField
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
+    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model,
+    sane_repr
 )
+
+from django.utils import timezone
 
 
 class AuthProvider(Model):

@@ -2,12 +2,16 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
+
+from sentry_plugins.bitbucket.endpoints.webhook import (
+    parse_raw_user_email, parse_raw_user_name
+)
+from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
+
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase, TestCase
 
-from sentry_plugins.bitbucket.endpoints.webhook import parse_raw_user_email, parse_raw_user_name
-from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
+from django.utils import timezone
 
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"

@@ -14,23 +14,19 @@ from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import EmailActionHandler
 from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
+    create_alert_rule, create_alert_rule_trigger,
+    create_alert_rule_trigger_action
 )
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
-    IncidentType,
-    TriggerStatus,
+    AlertRuleThresholdType, AlertRuleTriggerAction, Incident, IncidentStatus,
+    IncidentType, TriggerStatus
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.models import QueryAggregations
-from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
-
+from sentry.snuba.query_subscription_consumer import (
+    QuerySubscriptionConsumer, subscriber_registry
+)
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.testutils import TestCase
 
 

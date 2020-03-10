@@ -2,15 +2,14 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.api import client
-
-from sentry.models import ApiKey, User, ProjectOption, Repository
-from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry_plugins.base import CorePluginMixin
+
+from sentry.api import client
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.models import ApiKey, ProjectOption, Repository, User
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
-
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 
 logger = logging.getLogger("sentry.plugins.heroku")
 

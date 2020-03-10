@@ -4,8 +4,10 @@ from rest_framework.response import Response
 
 from sentry.api.bases import SentryAppInstallationBaseEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import (
+    SentryAppInstallationSerializer
+)
 from sentry.mediators.sentry_app_installations import Destroyer, Updater
-from sentry.api.serializers.rest_framework import SentryAppInstallationSerializer
 
 
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):

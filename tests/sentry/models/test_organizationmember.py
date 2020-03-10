@@ -3,13 +3,15 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.core import mail
-from django.utils import timezone
-from sentry.utils.compat.mock import patch
 
 from sentry.auth import manager
-from sentry.models import InviteStatus, OrganizationMember, INVITE_DAYS_VALID
+from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
+
+from django.utils import timezone
 
 
 class OrganizationMemberTest(TestCase):

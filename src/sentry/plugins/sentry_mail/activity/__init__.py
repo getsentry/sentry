@@ -3,13 +3,13 @@ from __future__ import absolute_import
 from sentry.models import Activity
 
 from .assigned import AssignedActivityEmail
+from .new_processing_issues import NewProcessingIssuesActivityEmail
 from .note import NoteActivityEmail
-from .release import ReleaseActivityEmail
 from .regression import RegressionActivityEmail
+from .release import ReleaseActivityEmail
 from .resolved import ResolvedActivityEmail
 from .resolved_in_release import ResolvedInReleaseActivityEmail
 from .unassigned import UnassignedActivityEmail
-from .new_processing_issues import NewProcessingIssuesActivityEmail
 
 emails = {
     Activity.ASSIGNED: AssignedActivityEmail,

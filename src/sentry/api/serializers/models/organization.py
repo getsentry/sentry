@@ -1,26 +1,17 @@
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 
 from sentry import roles
-from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.app import quotas
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
-    ApiKey,
-    Organization,
-    OrganizationAccessRequest,
-    OrganizationAvatar,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    OrganizationStatus,
-    Project,
-    ProjectStatus,
-    Team,
-    TeamStatus,
+    ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar,
+    OrganizationOnboardingTask, OrganizationOption, OrganizationStatus,
+    Project, ProjectStatus, Team, TeamStatus
 )
 
 # org option default values

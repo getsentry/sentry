@@ -1,19 +1,19 @@
 from __future__ import absolute_import, print_function
 
-from base64 import b64encode
 import collections
 import logging
-import six
+from base64 import b64encode
 from uuid import uuid4
 
+import six
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
-from sentry.utils.cache import memoize
-from sentry.utils.compat import pickle
-from sentry.utils.strings import decompress, compress
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.db.models.utils import Creator
+from sentry.utils.cache import memoize
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.compat import pickle
+from sentry.utils.strings import compress, decompress
 
 from .gzippeddict import GzippedDictField
 

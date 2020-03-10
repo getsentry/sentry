@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
 import pytz
 
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
 from sentry.incidents.logic import create_alert_rule, create_incident
 from sentry.incidents.models import IncidentType
 from sentry.snuba.models import QueryAggregations
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
+
+from django.utils import timezone
 
 FEATURE_NAME = "organizations:incidents"
 

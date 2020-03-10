@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
-from uuid import uuid4
-from django.db import transaction
 
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRepositoryPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationRepositoryPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize

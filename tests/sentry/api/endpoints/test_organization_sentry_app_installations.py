@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import APITestCase
 from sentry.models import SentryAppInstallation
+from sentry.testutils import APITestCase
 
 
 class SentryAppInstallationsTest(APITestCase):

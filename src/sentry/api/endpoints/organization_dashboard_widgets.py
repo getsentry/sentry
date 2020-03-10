@@ -6,7 +6,9 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import get_next_dashboard_order, WidgetSerializer
+from sentry.api.serializers.rest_framework import (
+    WidgetSerializer, get_next_dashboard_order
+)
 from sentry.models import Widget, WidgetDataSource
 
 

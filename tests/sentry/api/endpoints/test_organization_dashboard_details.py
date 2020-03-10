@@ -1,15 +1,11 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
+
 from sentry.models import (
-    Dashboard,
-    ObjectStatus,
-    Widget,
-    WidgetDataSource,
-    WidgetDataSourceTypes,
-    WidgetDisplayTypes,
+    Dashboard, ObjectStatus, Widget, WidgetDataSource, WidgetDataSourceTypes,
+    WidgetDisplayTypes
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import zip

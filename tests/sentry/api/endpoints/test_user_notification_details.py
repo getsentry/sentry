@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.testutils import APITestCase
-from sentry.models import UserOption, UserOptionValue
-
 from django.core.urlresolvers import reverse
+
+from sentry.models import UserOption, UserOptionValue
+from sentry.testutils import APITestCase
 
 
 class UserNotificationDetailsTest(APITestCase):

@@ -7,7 +7,7 @@ from six.moves.urllib.parse import urlencode
 from sentry import options
 from sentry.models import User
 from sentry.utils.http import absolute_uri
-from sentry.utils.numbers import base36_encode, base36_decode
+from sentry.utils.numbers import base36_decode, base36_encode
 
 
 def get_signer():

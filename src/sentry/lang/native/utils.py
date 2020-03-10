@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-import re
-import six
 import logging
+import re
+
+import six
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import find_stacktraces_in_data

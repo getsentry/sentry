@@ -1,19 +1,25 @@
 from __future__ import absolute_import
 
-from django.db.models import Q
 from django.conf import settings
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import roles, features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry import features, roles
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize, OrganizationMemberWithTeamsSerializer
+from sentry.api.serializers import (
+    OrganizationMemberWithTeamsSerializer, serialize
+)
 from sentry.models import AuditLogEntryEvent, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
 from .organization_member_details import get_allowed_roles
-from .organization_member_index import OrganizationMemberSerializer, save_team_assignments
+from .organization_member_index import (
+    OrganizationMemberSerializer, save_team_assignments
+)
 
 ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
 ERR_INSUFFICIENT_ROLE = "You do not have permission to invite that role."

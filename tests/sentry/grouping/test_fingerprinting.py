@@ -2,8 +2,9 @@
 
 from __future__ import absolute_import
 
-import os
 import json
+import os
+
 import pytest
 
 from sentry import eventstore

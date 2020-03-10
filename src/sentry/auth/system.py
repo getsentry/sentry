@@ -1,16 +1,17 @@
 from __future__ import absolute_import, print_function
 
 import ipaddress
-import six
-
-from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
-from django.utils.crypto import constant_time_compare
 from uuid import uuid4
+
+import six
+from django.conf import settings
 
 from sentry import options
 from sentry.utils.cache import memoize
 
+from django.contrib.auth.models import AnonymousUser
+
+from django.utils.crypto import constant_time_compare
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(six.text_type(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS

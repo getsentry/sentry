@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
-
 from base64 import b64encode
 from datetime import datetime, timedelta
 
@@ -10,27 +8,21 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.api.endpoints.organization_releases import (
-    ReleaseHeadCommitSerializer,
-    ReleaseSerializerWithProjects,
+    ReleaseHeadCommitSerializer, ReleaseSerializerWithProjects
 )
-from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+from sentry.constants import (
+    BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+)
 from sentry.models import (
-    Activity,
-    ApiKey,
-    ApiToken,
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    Environment,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    ReleaseProjectEnvironment,
-    ReleaseProject,
-    Repository,
+    Activity, ApiKey, ApiToken, Commit, CommitAuthor, CommitFileChange,
+    Environment, Release, ReleaseCommit, ReleaseHeadCommit, ReleaseProject,
+    ReleaseProjectEnvironment, Repository
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
+from sentry.testutils import (
+    APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
+)
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase):

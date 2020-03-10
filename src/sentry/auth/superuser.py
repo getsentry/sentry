@@ -13,16 +13,17 @@ from __future__ import absolute_import
 
 import ipaddress
 import logging
-import six
-
 from datetime import datetime, timedelta
+
+import six
 from django.conf import settings
 from django.core.signing import BadSignature
-from django.utils import timezone
-from django.utils.crypto import constant_time_compare, get_random_string
 
 from sentry.auth.system import is_system_auth
 from sentry.utils.auth import has_completed_sso
+
+from django.utils import timezone
+from django.utils.crypto import constant_time_compare, get_random_string
 
 logger = logging.getLogger("sentry.superuser")
 

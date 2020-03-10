@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import posixpath
 import six
-
 from django.http import StreamingHttpResponse
 
 from sentry import eventstore, features, roles

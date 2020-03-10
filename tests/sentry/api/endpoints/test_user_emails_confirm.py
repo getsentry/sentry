@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import UserEmail
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class UserEmailsConfirmTest(APITestCase):

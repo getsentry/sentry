@@ -1,18 +1,16 @@
 from __future__ import absolute_import
 
 import six
-
 from django.conf.urls import url
 from rest_framework.response import Response
+from sentry_plugins.base import CorePluginMixin
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
-from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.utils.http import absolute_uri
 
-from sentry_plugins.base import CorePluginMixin
 from .client import AsanaClient
-
 
 ERR_AUTH_NOT_CONFIGURED = "You still need to associate an Asana identity with this account."
 

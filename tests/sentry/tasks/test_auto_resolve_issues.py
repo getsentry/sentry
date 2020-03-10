@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
-
 from datetime import timedelta
-from django.utils import timezone
 from time import time
 
 from sentry.models import Group, GroupStatus
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
+
+from django.utils import timezone
 
 
 class ScheduleAutoResolutionTest(TestCase):

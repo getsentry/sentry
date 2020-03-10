@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.template import loader
 
@@ -11,6 +10,8 @@ from sentry.api.serializers.base import serialize
 from sentry.auth import access
 from sentry.models import Team
 from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
+
+from django.contrib.auth.models import AnonymousUser
 
 logger = logging.getLogger("sentry")
 

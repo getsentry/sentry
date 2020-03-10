@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import OrderedDict
+
+import six
 from django import forms
 
 from sentry.rules.conditions.base import EventCondition

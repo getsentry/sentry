@@ -1,14 +1,11 @@
 from __future__ import absolute_import
 
-from exam import fixture
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.models import (
-    AuthIdentity,
-    AuthProvider,
-    OrganizationOption,
-    OrganizationMember,
-    UserEmail,
+    AuthIdentity, AuthProvider, OrganizationMember, OrganizationOption,
+    UserEmail
 )
 from sentry.testutils import AuthProviderTestCase
 

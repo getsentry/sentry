@@ -1,12 +1,13 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class MonitorDetailsTest(APITestCase):

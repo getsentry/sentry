@@ -1,26 +1,25 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-import pytz
 from datetime import datetime, timedelta
-from django.utils import timezone
 from hashlib import md5
 
+import pytz
+
 from sentry import options
-from sentry.api.issue_search import convert_query_values, IssueSearchVisitor, parse_search_query
+from sentry.api.issue_search import (
+    IssueSearchVisitor, convert_query_values, parse_search_query
+)
 from sentry.models import (
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupEnvironment,
-    GroupStatus,
-    GroupSubscription,
+    Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment,
+    GroupStatus, GroupSubscription
 )
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.compat import mock
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
+
+from django.utils import timezone
 
 
 def date_to_query_format(date):

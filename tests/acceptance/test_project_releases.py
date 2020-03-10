@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import json
-import pytest
 
+import pytest
 from django.conf import settings
-from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase
+
+from django.utils import timezone
 
 
 class ProjectReleasesTest(AcceptanceTestCase):

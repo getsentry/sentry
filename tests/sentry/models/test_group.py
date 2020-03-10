@@ -4,18 +4,15 @@ from datetime import timedelta
 
 import pytest
 from django.db.models import ProtectedError
-from django.utils import timezone
 
 from sentry.models import (
-    Group,
-    GroupRedirect,
-    GroupSnooze,
-    GroupStatus,
-    Release,
-    get_group_with_redirect,
+    Group, GroupRedirect, GroupSnooze, GroupStatus, Release,
+    get_group_with_redirect
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+
+from django.utils import timezone
 
 
 class GroupTest(TestCase, SnubaTestCase):

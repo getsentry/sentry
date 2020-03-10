@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
 from django.core.urlresolvers import reverse
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 
-from sentry.models import Integration, OrganizationIntegration
-
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.models import Integration, OrganizationIntegration
 
 
 class ProviderMixin(object):

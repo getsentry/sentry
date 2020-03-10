@@ -2,19 +2,19 @@ from __future__ import absolute_import
 
 import six
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponse
 from requests.exceptions import RequestException
-
+from sentry_plugins.base import CorePluginMixin
 
 import sentry
-from sentry_plugins.base import CorePluginMixin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.base import JSONResponse
 from sentry.plugins.bases.issue import IssuePlugin, NewIssueForm
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import TeamworkClient
+
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Create issues in Teamwork directly from Sentry. This integration also allows

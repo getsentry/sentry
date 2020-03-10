@@ -24,9 +24,9 @@ SOFTWARE.
 """
 from __future__ import absolute_import, unicode_literals
 
-import six
-
 from ipaddress import ip_address
+
+import six
 
 
 def anonymize_ip(

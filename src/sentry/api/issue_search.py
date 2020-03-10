@@ -1,24 +1,18 @@
 from __future__ import absolute_import
 
-from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
-    event_search_grammar,
-    InvalidSearchQuery,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-    SearchVisitor,
+    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue, SearchVisitor,
+    event_search_grammar
 )
 from sentry.constants import STATUS_CHOICES
 from sentry.search.utils import (
-    parse_actor_value,
-    parse_user_value,
-    parse_release,
-    parse_status_value,
+    parse_actor_value, parse_release, parse_status_value, parse_user_value
 )
 from sentry.utils.compat import map
+
+from django.utils.functional import cached_property
 
 
 class IssueSearchVisitor(SearchVisitor):

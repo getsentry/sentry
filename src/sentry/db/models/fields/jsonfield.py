@@ -1,17 +1,18 @@
 from __future__ import absolute_import, unicode_literals
-import json
-import datetime
-import six
 
+import datetime
+import json
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
+import six
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.lookups import Exact, IExact, In, Contains, IContains
-from django.utils.translation import ugettext_lazy as _
+from django.db.models.lookups import Contains, Exact, IContains, IExact, In
 
 from sentry.db.models.utils import Creator
+
+from django.utils.translation import ugettext_lazy as _
 
 
 def default(o):

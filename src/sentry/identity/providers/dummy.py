@@ -1,11 +1,13 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ["DummyProvider"]
-
 from django.http import HttpResponse
 
 from sentry.identity.base import Provider
 from sentry.pipeline import PipelineView
+
+__all__ = ["DummyProvider"]
+
+
 
 
 class AskEmail(PipelineView):

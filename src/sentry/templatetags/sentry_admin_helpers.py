@@ -3,9 +3,10 @@ from __future__ import absolute_import
 import datetime
 
 from django import template
-from django.utils import timezone
 
 from sentry import tsdb
+
+from django.utils import timezone
 
 register = template.Library()
 

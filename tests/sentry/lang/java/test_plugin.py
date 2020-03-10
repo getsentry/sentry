@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import zipfile
-import pytest
-from six import BytesIO
 
-from django.core.urlresolvers import reverse
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
+from six import BytesIO
 
 from sentry.testutils import SentryStoreHelper, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

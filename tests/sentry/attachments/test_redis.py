@@ -2,11 +2,12 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import zlib
+
 import pytest
 
-from sentry.cache.redis import RedisClusterCache, RbCache
+from sentry.cache.redis import RbCache, RedisClusterCache
+from sentry.utils.compat import mock
 from sentry.utils.imports import import_string
 
 

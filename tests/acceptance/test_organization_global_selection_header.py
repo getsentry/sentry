@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import six
-
-from django.utils import timezone
+from tests.acceptance.page_objects.issue_list import IssueListPage
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
-from tests.acceptance.page_objects.issue_list import IssueListPage
+from django.utils import timezone
 
 
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):

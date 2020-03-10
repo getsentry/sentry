@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class OrganizationIssuesNewTest(APITestCase):

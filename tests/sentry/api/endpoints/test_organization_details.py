@@ -1,30 +1,25 @@
 from __future__ import absolute_import
 
-import six
-
 from base64 import b64encode
-from django.core.urlresolvers import reverse
-from django.core import mail
-from sentry.utils.compat.mock import patch
-from exam import fixture
 from pprint import pprint
 
-from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+import six
+from django.core import mail
+from django.core.urlresolvers import reverse
+from exam import fixture
+
+from sentry.api.endpoints.organization_details import (
+    ERR_NO_2FA, ERR_SSO_ENABLED
+)
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
-    AuditLogEntry,
-    Authenticator,
-    AuthProvider,
-    DeletedOrganization,
-    ObjectStatus,
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
-    TotpInterface,
+    AuditLogEntry, Authenticator, AuthProvider, DeletedOrganization,
+    ObjectStatus, Organization, OrganizationAvatar, OrganizationOption,
+    OrganizationStatus, TotpInterface
 )
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationDetailsTest(APITestCase):

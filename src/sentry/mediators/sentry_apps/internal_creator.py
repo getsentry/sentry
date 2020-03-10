@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
 
+import six
+
 from sentry.mediators import Mediator, Param
+from sentry.mediators.sentry_app_installation_tokens import \
+    Creator as SentryAppInstallationTokenCreator
 from sentry.models import AuditLogEntryEvent
-from .creator import Creator as SentryAppCreator
+
 from ..sentry_app_installations import Creator as InstallationCreator
-from sentry.mediators.sentry_app_installation_tokens import (
-    Creator as SentryAppInstallationTokenCreator,
-)
+from .creator import Creator as SentryAppCreator
 
 
 class InternalCreator(Mediator):

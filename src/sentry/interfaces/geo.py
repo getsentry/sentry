@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from sentry.interfaces.base import Interface
+
 __all__ = ("Geo",)
 
-from sentry.interfaces.base import Interface
 
 
 class Geo(Interface):

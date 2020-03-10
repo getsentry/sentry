@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import functools
+
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Activity, Commit, Group, PullRequest
-from sentry.utils.functional import apply_values
 from sentry.utils.compat import zip
+from sentry.utils.functional import apply_values
 
 
 @register(Activity)

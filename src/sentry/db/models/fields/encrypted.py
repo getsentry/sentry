@@ -1,5 +1,13 @@
 from __future__ import absolute_import
 
+import six
+from django.db.models import CharField, TextField
+from picklefield.fields import PickledObjectField
+
+from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.utils import Creator
+from sentry.utils.encryption import decrypt, encrypt
+
 __all__ = (
     "EncryptedCharField",
     "EncryptedJsonField",
@@ -7,13 +15,7 @@ __all__ = (
     "EncryptedTextField",
 )
 
-import six
 
-from django.db.models import CharField, TextField
-from picklefield.fields import PickledObjectField
-from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.utils import Creator
-from sentry.utils.encryption import decrypt, encrypt
 
 
 class EncryptedCharField(CharField):

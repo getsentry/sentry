@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 
 import six
-
-from django.db.models.fields import BigIntegerField
-
 from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
+from django.db.models.fields import BigIntegerField
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
 # Twice faster than bin(i)[2:] or math.floor(math.log(i))

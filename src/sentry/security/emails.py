@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from django.utils import timezone
-
 from sentry.utils.email import MessageBuilder
+
+from django.utils import timezone
 
 
 def generate_security_email(account, type, actor, ip_address, context=None, current_datetime=None):

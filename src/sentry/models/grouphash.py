@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
+)
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class GroupHash(Model):

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from hashlib import sha1
 from uuid import uuid4
 
-from sentry.models import Commit, Repository, PullRequest
+from sentry.models import Commit, PullRequest, Repository
 from sentry.testutils import TestCase
 
 

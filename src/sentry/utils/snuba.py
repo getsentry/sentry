@@ -1,40 +1,34 @@
 from __future__ import absolute_import
 
-from collections import namedtuple, OrderedDict
-from copy import deepcopy
-from contextlib import contextmanager
-from datetime import datetime, timedelta
-from dateutil.parser import parse as parse_datetime
 import functools
 import os
-import pytz
 import re
-import six
 import time
-import urllib3
-import sentry_sdk
-
+from collections import OrderedDict, namedtuple
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from copy import deepcopy
+from datetime import datetime, timedelta
+
+import pytz
+import sentry_sdk
+import six
+import urllib3
+from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from six.moves.urllib.parse import urlparse
 
 from sentry import quotas
 from sentry.models import (
-    Environment,
-    Group,
-    GroupRelease,
-    Organization,
-    Project,
-    ProjectKey,
-    Release,
-    ReleaseProject,
+    Environment, Group, GroupRelease, Organization, Project, ProjectKey,
+    Release, ReleaseProject
 )
 from sentry.net.http import connection_from_url
-from sentry.utils import metrics, json
-from sentry.utils.dates import to_timestamp
-from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.events import Columns
+from sentry.utils import json, metrics
 from sentry.utils.compat import map
+from sentry.utils.dates import to_timestamp
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500

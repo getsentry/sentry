@@ -1,77 +1,52 @@
 from __future__ import absolute_import
 
 import json
-from uuid import uuid4
-import responses
 from datetime import timedelta
+from uuid import uuid4
+
+import responses
+import six
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-import six
-from django.utils import timezone
-from django.utils.functional import cached_property
-
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.incidents.events import (
-    IncidentCommentCreatedEvent,
-    IncidentCreatedEvent,
-    IncidentStatusUpdatedEvent,
+    IncidentCommentCreatedEvent, IncidentCreatedEvent,
+    IncidentStatusUpdatedEvent
 )
 from sentry.incidents.logic import (
-    AlertRuleNameAlreadyUsedError,
+    DEFAULT_ALERT_RULE_RESOLUTION, AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
-    bulk_build_incident_query_params,
-    bulk_get_incident_aggregates,
-    bulk_get_incident_event_stats,
-    bulk_get_incident_stats,
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-    create_event_stat_snapshot,
-    create_incident,
-    create_incident_activity,
-    create_incident_snapshot,
-    delete_alert_rule,
-    delete_alert_rule_trigger,
-    delete_alert_rule_trigger_action,
-    DEFAULT_ALERT_RULE_RESOLUTION,
-    get_actions_for_trigger,
+    ProjectsNotAssociatedWithAlertRuleError, bulk_build_incident_query_params,
+    bulk_get_incident_aggregates, bulk_get_incident_event_stats,
+    bulk_get_incident_stats, calculate_incident_prewindow, create_alert_rule,
+    create_alert_rule_trigger, create_alert_rule_trigger_action,
+    create_event_stat_snapshot, create_incident, create_incident_activity,
+    create_incident_snapshot, delete_alert_rule, delete_alert_rule_trigger,
+    delete_alert_rule_trigger_action, get_actions_for_trigger,
     get_available_action_integrations_for_org,
-    get_excluded_projects_for_alert_rule,
-    get_incident_aggregates,
-    get_incident_event_stats,
-    get_incident_subscribers,
-    get_triggers_for_alert_rule,
-    ProjectsNotAssociatedWithAlertRuleError,
-    subscribe_to_incident,
-    update_alert_rule,
-    update_alert_rule_trigger_action,
-    update_alert_rule_trigger,
-    update_incident_status,
-    calculate_incident_prewindow,
+    get_excluded_projects_for_alert_rule, get_incident_aggregates,
+    get_incident_event_stats, get_incident_subscribers,
+    get_triggers_for_alert_rule, subscribe_to_incident, update_alert_rule,
+    update_alert_rule_trigger, update_alert_rule_trigger_action,
+    update_incident_status
 )
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleStatus,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
-    Incident,
-    IncidentActivity,
-    IncidentActivityType,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSnapshot,
-    IncidentStatus,
-    IncidentSubscription,
-    IncidentType,
+    AlertRule, AlertRuleStatus, AlertRuleThresholdType, AlertRuleTrigger,
+    AlertRuleTriggerAction, AlertRuleTriggerExclusion, Incident,
+    IncidentActivity, IncidentActivityType, IncidentGroup, IncidentProject,
+    IncidentSnapshot, IncidentStatus, IncidentSubscription, IncidentType
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.snuba.models import (
+    QueryAggregations, QueryDatasets, QuerySubscription
+)
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.compat import zip
+
+from django.utils import timezone
+from django.utils.functional import cached_property
 
 
 class CreateIncidentTest(TestCase):

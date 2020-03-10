@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from six import string_types
 import zlib
+
+from six import string_types
 
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
-
 
 ATTACHMENT_META_KEY = u"{key}:a"
 ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"

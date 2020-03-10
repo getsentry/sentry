@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
 import pytest
-from sentry.utils.compat import mock
+
 from sentry.eventstream.kafka.state import (
-    InvalidState,
-    InvalidStateTransition,
-    MessageNotReady,
-    Offsets,
-    SynchronizedPartitionState,
-    SynchronizedPartitionStateManager,
+    InvalidState, InvalidStateTransition, MessageNotReady, Offsets,
+    SynchronizedPartitionState, SynchronizedPartitionStateManager
 )
+from sentry.utils.compat import mock
 
 
 def test_transitions():

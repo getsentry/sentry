@@ -1,16 +1,19 @@
 from __future__ import absolute_import, print_function
 
-import os
 import json
+import os
+
 import pytest
 
 from sentry import eventstore
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.event_manager import EventManager
+from sentry.grouping.api import (
+    get_default_grouping_config_dict, load_grouping_config
+)
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
 
 def dump_variant(variant, lines=None, indent=0):

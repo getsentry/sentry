@@ -1,9 +1,11 @@
 from __future__ import absolute_import, print_function
 
 import os
+from itertools import chain
+
 import click
 from six import text_type
-from itertools import chain
+
 from sentry.utils.compat import map
 
 

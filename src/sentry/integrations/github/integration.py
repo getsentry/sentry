@@ -1,19 +1,12 @@
 from __future__ import absolute_import
 
-from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
-
 from sentry import http, options
-
 from sentry.integrations import (
-    IntegrationInstallation,
-    IntegrationFeatures,
-    IntegrationProvider,
-    IntegrationMetadata,
-    FeatureDescription,
+    FeatureDescription, IntegrationFeatures, IntegrationInstallation,
+    IntegrationMetadata, IntegrationProvider
 )
-from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
 from sentry.pipeline import PipelineView
@@ -24,6 +17,8 @@ from .issues import GitHubIssueBasic
 from .repository import GitHubRepositoryProvider
 from .utils import get_jwt
 
+from django.utils.text import slugify
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Connect your Sentry organization into your GitHub organization or user account.

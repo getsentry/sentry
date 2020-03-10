@@ -1,19 +1,21 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
-from django.utils import timezone
+
+import six
 from django.db.models import Q
 
 from sentry import analytics
-from sentry.coreapi import APIError
 from sentry.constants import SentryAppStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators import service_hooks
+from sentry.coreapi import APIError
+from sentry.mediators import Mediator, Param, service_hooks
 from sentry.mediators.param import if_param
-from sentry.models import SentryAppComponent, ServiceHook, SentryAppInstallation, ApiToken
+from sentry.models import (
+    ApiToken, SentryAppComponent, SentryAppInstallation, ServiceHook
+)
 from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
+
+from django.utils import timezone
 
 
 class Updater(Mediator):

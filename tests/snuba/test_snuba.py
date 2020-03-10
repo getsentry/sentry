@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
+import time
+import uuid
 from datetime import datetime, timedelta
 
 import pytest
-import time
-import uuid
-from django.utils import timezone
 
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
+
+from django.utils import timezone
 
 
 class SnubaTest(TestCase, SnubaTestCase):

@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.utils.compat import mock
-from sentry.testutils import APITestCase
 from sentry.constants import SentryAppStatus
+from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
 
 
 class SentryAppPublishRequestTest(APITestCase):

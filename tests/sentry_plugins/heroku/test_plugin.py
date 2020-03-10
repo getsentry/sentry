@@ -1,26 +1,18 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import Mock, patch
-
-from django.utils import timezone
-
 from datetime import timedelta
+
+from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 from sentry.exceptions import HookValidationError
 from sentry.models import (
-    Commit,
-    Deploy,
-    Environment,
-    ProjectOption,
-    Release,
-    ReleaseCommit,
-    ReleaseHeadCommit,
-    Repository,
-    User,
+    Commit, Deploy, Environment, ProjectOption, Release, ReleaseCommit,
+    ReleaseHeadCommit, Repository, User
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import Mock, patch
 
-from sentry_plugins.heroku.plugin import HerokuReleaseHook
+from django.utils import timezone
 
 
 class SetRefsTest(TestCase):

@@ -2,17 +2,18 @@ from __future__ import absolute_import
 
 import hmac
 import logging
-import six
-
-from django.utils.crypto import constant_time_compare
 from functools import wraps
 from hashlib import sha256
+
+import six
 from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.authentication import TokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.models import Organization, Project, ProjectKey, Team
+
+from django.utils.crypto import constant_time_compare
 
 logger = logging.getLogger("sentry.integrations.cloudflare")
 

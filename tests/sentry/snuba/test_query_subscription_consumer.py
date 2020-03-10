@@ -5,22 +5,19 @@ import unittest
 from copy import deepcopy
 
 import mock
-import six
 import pytz
+import six
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from exam import fixture, patcher
 
-from sentry.utils.compat.mock import Mock
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
-    InvalidMessageError,
-    InvalidSchemaError,
-    QuerySubscriptionConsumer,
-    register_subscriber,
-    subscriber_registry,
+    InvalidMessageError, InvalidSchemaError, QuerySubscriptionConsumer,
+    register_subscriber, subscriber_registry
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.compat.mock import Mock
 
 
 class BaseQuerySubscriptionTest(object):

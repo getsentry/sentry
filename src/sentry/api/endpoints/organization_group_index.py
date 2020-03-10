@@ -1,31 +1,28 @@
 from __future__ import absolute_import, division, print_function
 
 import functools
+
 import six
-
 from django.conf import settings
-
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.api.bases import (
+    OrganizationEventPermission, OrganizationEventsEndpointBase
+)
 from sentry.api.helpers.group_index import (
-    build_query_params_from_request,
-    delete_groups,
-    get_by_short_id,
-    update_groups,
-    ValidationError,
+    ValidationError, build_query_params_from_request, delete_groups,
+    get_by_short_id, update_groups
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.snuba import discover
-from sentry.utils.validators import normalize_event_id
 from sentry.utils.compat import map
-
+from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 

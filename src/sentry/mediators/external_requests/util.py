@@ -3,9 +3,11 @@ from __future__ import absolute_import
 from jsonschema import Draft4Validator
 from requests.exceptions import RequestException
 
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
 from sentry.models.sentryapp import track_response_code
+from sentry.utils.sentryappwebhookrequests import (
+    SentryAppWebhookRequestsBuffer
+)
 
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",

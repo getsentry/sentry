@@ -1,13 +1,12 @@
 from __future__ import absolute_import
+
 import logging
 
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
-
 from sentry.integrations.atlassian_connect import (
-    AtlassianConnectValidationError,
-    get_integration_from_jwt,
+    AtlassianConnectValidationError, get_integration_from_jwt
 )
 from sentry.models import sync_group_assignee_inbound
 

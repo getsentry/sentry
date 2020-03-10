@@ -1,12 +1,15 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ["ReleaseHook"]
-
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 
 from sentry.exceptions import HookValidationError
 from sentry.models import Activity, Release
+
+from django.utils import timezone
+
+__all__ = ["ReleaseHook"]
+
+
 
 
 class ReleaseHook(object):

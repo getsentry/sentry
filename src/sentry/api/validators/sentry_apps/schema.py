@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import logging
 import json
+import logging
 
 from jsonschema import Draft4Validator
-from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
-
+from jsonschema.exceptions import best_match
 
 logger = logging.getLogger(__name__)
 

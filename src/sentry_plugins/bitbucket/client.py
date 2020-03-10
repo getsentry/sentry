@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 from requests_oauthlib import OAuth1
-from unidiff import PatchSet
-
 from sentry_plugins.client import AuthApiClient
+from unidiff import PatchSet
 
 
 class BitbucketClient(AuthApiClient):

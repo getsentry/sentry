@@ -2,17 +2,15 @@ from __future__ import absolute_import
 
 import functools
 import logging
-from sentry.utils.compat import mock
+from unittest import TestCase
+
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
-from unittest import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.redis import (
-    ClusterManager,
-    _shared_pool,
-    get_cluster_from_options,
-    _RedisCluster,
-    logger,
+    ClusterManager, _RedisCluster, _shared_pool, get_cluster_from_options,
+    logger
 )
 
 # Silence connection warnings

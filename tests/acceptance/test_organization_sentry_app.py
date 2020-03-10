@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 from exam import mock
-
+from tests.acceptance.page_objects.organization_integration_settings import (
+    OrganizationIntegrationSettingsPage
+)
 
 from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import (
-    OrganizationIntegrationSettingsPage,
-)
 
 
 class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):

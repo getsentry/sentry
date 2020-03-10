@@ -3,24 +3,16 @@
 from __future__ import absolute_import
 
 from django.core import mail
-from django.utils import timezone
 
 from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Environment,
-    GroupSubscriptionReason,
-    Release,
-    ReleaseCommit,
-    Repository,
-    UserEmail,
-    UserOption,
-    UserOptionValue,
+    Activity, Commit, CommitAuthor, Deploy, Environment,
+    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail,
+    UserOption, UserOptionValue
 )
 from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class ReleaseTestCase(TestCase):

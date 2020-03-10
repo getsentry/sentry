@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
+from django.db.utils import DatabaseError
+
+from sentry.models import UserOption
 
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
-from django.db.utils import DatabaseError
-from sentry.models import UserOption
 
 
 # Set user language if set

@@ -1,18 +1,14 @@
 from __future__ import absolute_import
 
 from exam import fixture
-from sentry.utils.compat.mock import patch
 
 from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationOption,
-    InviteStatus,
+    AuditLogEntry, AuditLogEntryEvent, InviteStatus, OrganizationMember,
+    OrganizationMemberTeam, OrganizationOption
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.utils.compat.mock import patch
 
 
 class InviteRequestBase(APITestCase):

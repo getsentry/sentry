@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import Iterable
 from itertools import chain
+
+import six
 
 from sentry.mediators import Mediator, Param
 from sentry.models import ServiceHook

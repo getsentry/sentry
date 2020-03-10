@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 import zipfile
 from uuid import uuid4
-from six import BytesIO, text_type
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
+from six import BytesIO, text_type
 
-from sentry.testutils import APITestCase
 from sentry.models import ProjectDebugFile
+from sentry.testutils import APITestCase
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs

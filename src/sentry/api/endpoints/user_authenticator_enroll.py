@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
+import logging
+
+import petname
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
 from rest_framework.response import Response
 
-import logging
-import petname
-
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.models import Authenticator
 from sentry.security import capture_security_activity
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 
 logger = logging.getLogger(__name__)
 

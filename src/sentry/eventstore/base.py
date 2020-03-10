@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service

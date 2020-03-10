@@ -2,28 +2,27 @@ from __future__ import absolute_import
 
 import atexit
 import logging
-import msgpack
-from six import BytesIO
-
-import multiprocessing.dummy
 import multiprocessing as _multiprocessing
+import multiprocessing.dummy
 
+import msgpack
 from django.conf import settings
 from django.core.cache import cache
+from six import BytesIO
 
 from sentry import eventstore, features, options
+from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.cache import default_cache
-from sentry.models import Project, File, EventAttachment
+from sentry.event_manager import save_transaction_events
+from sentry.ingest.userreport import Conflict, save_userreport
+from sentry.models import EventAttachment, File, Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json, metrics
-from sentry.utils.dates import to_datetime
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.ingest.userreport import Conflict, save_userreport
-from sentry.event_manager import save_transaction_events
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.dates import to_datetime
+from sentry.utils.kafka import create_batching_kafka_consumer
 
 logger = logging.getLogger(__name__)
 

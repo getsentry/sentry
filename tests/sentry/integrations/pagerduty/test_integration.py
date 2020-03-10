@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
 import responses
+from six.moves.urllib.parse import urlencode, urlparse
 
 from sentry import options
-from sentry.utils import json
-
-from six.moves.urllib.parse import urlencode, urlparse
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.integrations.pagerduty.integration import (
+    PagerDutyIntegrationProvider
+)
+from sentry.models import (
+    Integration, OrganizationIntegration, PagerDutyService
+)
 from sentry.testutils import IntegrationTestCase
-from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
+from sentry.utils import json
 
 
 class PagerDutyIntegrationTest(IntegrationTestCase):

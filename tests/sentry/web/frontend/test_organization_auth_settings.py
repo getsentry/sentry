@@ -2,19 +2,14 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.db import models
-from sentry.utils.compat.mock import patch
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    AuthIdentity,
-    AuthProvider,
-    Organization,
-    OrganizationMember,
-    TotpInterface,
+    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider,
+    Organization, OrganizationMember, TotpInterface
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):

@@ -1,13 +1,10 @@
 from __future__ import absolute_import
 
+import logging
 from datetime import datetime
 
 import pytz
-import logging
-
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth import logout
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -20,7 +17,13 @@ from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
-from sentry.models import Organization, OrganizationMember, OrganizationStatus, User, UserOption
+from sentry.models import (
+    Organization, OrganizationMember, OrganizationStatus, User, UserOption
+)
+
+from django.contrib.auth import logout
+
+from django.utils.translation import ugettext_lazy as _
 
 delete_logger = logging.getLogger("sentry.deletions.ui")
 

@@ -1,34 +1,25 @@
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    Organization,
+    OnboardingTask, OnboardingTaskStatus, Organization,
+    OrganizationOnboardingTask, OrganizationOption
 )
-from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
-    event_processed,
-    first_event_pending,
-    first_event_received,
-    issue_tracker_used,
-    member_invited,
-    member_joined,
-    plugin_enabled,
-    project_created,
-    alert_rule_created,
+    alert_rule_created, event_processed, first_event_pending,
+    first_event_received, issue_tracker_used, member_invited, member_joined,
+    plugin_enabled, project_created
 )
 from sentry.utils.javascript import has_sourcemap
+
+from django.utils import timezone
 
 
 def try_mark_onboarding_complete(organization_id):

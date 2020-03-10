@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 import logging
 from distutils.version import LooseVersion
+
 from django.conf import settings
 from django.core.cache import cache
 
 from sentry.net.http import Session
-from sentry.utils.safe import get_path
 from sentry.utils.compat import zip
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 

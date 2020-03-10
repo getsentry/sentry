@@ -6,23 +6,23 @@ import responses
 import six
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 from six.moves.urllib.parse import parse_qs
 
-from sentry.incidents.action_handlers import EmailActionHandler, SlackActionHandler
+from sentry.incidents.action_handlers import (
+    EmailActionHandler, SlackActionHandler
+)
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    QueryAggregations,
-    TriggerStatus,
+    AlertRuleTriggerAction, IncidentStatus, QueryAggregations, TriggerStatus
 )
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
+
+from django.utils import timezone
 
 
 class EmailActionHandlerGetTargetsTest(TestCase):

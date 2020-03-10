@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
 import six
-from django.utils import timezone
 from exam import fixture
 
-from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
+from sentry.api.endpoints.organization_pinned_searches import (
+    PINNED_SEARCH_NAME
+)
 from sentry.models import SavedSearch
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class CreateOrganizationPinnedSearchTest(APITestCase):

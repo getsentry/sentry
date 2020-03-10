@@ -5,35 +5,21 @@ from datetime import timedelta
 from uuid import uuid4
 
 import six
-from django.utils import timezone
 from exam import fixture
-from sentry.utils.compat.mock import patch, Mock
+from six.moves.urllib.parse import quote
 
 from sentry.models import (
-    Activity,
-    ApiToken,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupLink,
-    GroupResolution,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupSubscription,
-    GroupTombstone,
-    ExternalIssue,
-    Integration,
-    Release,
-    OrganizationIntegration,
-    UserOption,
+    Activity, ApiToken, ExternalIssue, Group, GroupAssignee, GroupBookmark,
+    GroupHash, GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze,
+    GroupStatus, GroupSubscription, GroupTombstone, Integration,
+    OrganizationIntegration, Release, UserOption
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from six.moves.urllib.parse import quote
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import Mock, patch
+
+from django.utils import timezone
 
 
 class GroupListTest(APITestCase, SnubaTestCase):

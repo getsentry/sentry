@@ -1,38 +1,24 @@
 from __future__ import absolute_import
 
 import json
-import six
 from datetime import timedelta
 from uuid import uuid4
 
+import six
 from django.core.urlresolvers import reverse
-from django.utils import timezone
-from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
-    Activity,
-    ApiToken,
-    ExternalIssue,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupHash,
-    GroupLink,
-    GroupSeen,
-    GroupShare,
-    GroupSnooze,
-    GroupStatus,
-    GroupResolution,
-    GroupSubscription,
-    GroupTombstone,
-    Integration,
-    OrganizationIntegration,
-    UserOption,
-    Release,
+    Activity, ApiToken, ExternalIssue, Group, GroupAssignee, GroupBookmark,
+    GroupHash, GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze,
+    GroupStatus, GroupSubscription, GroupTombstone, Integration,
+    OrganizationIntegration, Release, UserOption
 )
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import Mock, patch
+
+from django.utils import timezone
 
 
 class GroupListTest(APITestCase, SnubaTestCase):

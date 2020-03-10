@@ -4,31 +4,18 @@ from collections import defaultdict
 from itertools import chain
 
 import six
-
 from django.db.models import Count, Q
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange,
-    Deploy,
-    Environment,
-    Group,
-    GroupSubscriptionReason,
-    GroupLink,
-    ProjectTeam,
-    Release,
-    ReleaseCommit,
-    Repository,
-    Team,
-    User,
-    UserEmail,
-    UserOption,
-    UserOptionValue,
+    CommitFileChange, Deploy, Environment, Group, GroupLink,
+    GroupSubscriptionReason, ProjectTeam, Release, ReleaseCommit, Repository,
+    Team, User, UserEmail, UserOption, UserOptionValue
 )
+from sentry.utils.compat import zip
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
-from sentry.utils.compat import zip
 
 
 class ReleaseActivityEmail(ActivityEmail):

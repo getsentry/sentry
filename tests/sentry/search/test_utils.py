@@ -1,28 +1,22 @@
 from __future__ import absolute_import
 
-import pytest
-from sentry.utils.compat import mock
 from datetime import datetime, timedelta
-from django.utils import timezone
+
+import pytest
 
 from sentry.models import (
-    EventUser,
-    GroupStatus,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-    Team,
-    User,
+    EventUser, GroupStatus, Release, ReleaseEnvironment,
+    ReleaseProjectEnvironment, Team, User
 )
-from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import (
-    parse_query,
-    get_latest_release,
-    get_numeric_field_value,
-    convert_user_tag_to_query,
-    InvalidQuery,
+    InvalidQuery, convert_user_tag_to_query, get_latest_release,
+    get_numeric_field_value, parse_query
 )
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+
+from django.utils import timezone
 
 
 def test_get_numeric_field_value():

@@ -3,11 +3,13 @@ from __future__ import absolute_import
 import six
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry import tagstore
+from sentry.api.bases import (
+    NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
+)
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
-from sentry import tagstore
 
 
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):

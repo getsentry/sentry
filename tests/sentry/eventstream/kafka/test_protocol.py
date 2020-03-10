@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
-import pytest
-import pytz
 from datetime import datetime
 
+import pytest
+import pytz
+
 from sentry.eventstream.kafka.protocol import (
-    InvalidPayload,
-    InvalidVersion,
-    UnexpectedOperation,
-    get_task_kwargs_for_message,
+    InvalidPayload, InvalidVersion, UnexpectedOperation,
+    get_task_kwargs_for_message
 )
 from sentry.utils import json
 

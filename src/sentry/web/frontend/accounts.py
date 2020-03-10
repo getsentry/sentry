@@ -3,24 +3,31 @@ from __future__ import absolute_import
 import logging
 from functools import partial, update_wrapper
 
-from django.contrib import messages
-from django.contrib.auth import login as login_user, authenticate
-from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.http import HttpResponseRedirect, Http404, HttpResponse
-from django.views.decorators.http import require_http_methods
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.template.context_processors import csrf
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django.utils.translation import ugettext as _
+from django.views.decorators.http import require_http_methods
 
-from sentry.models import UserEmail, LostPasswordHash, Project, UserOption, Authenticator
+from sentry.models import (
+    Authenticator, LostPasswordHash, Project, UserEmail, UserOption
+)
 from sentry.security import capture_security_activity
 from sentry.signals import email_verified
-from sentry.web.decorators import login_required, signed_auth_required
-from sentry.web.forms.accounts import RecoverPasswordForm, ChangePasswordRecoverForm
-from sentry.web.helpers import render_to_response
 from sentry.utils import auth
+from sentry.web.decorators import login_required, signed_auth_required
+from sentry.web.forms.accounts import (
+    ChangePasswordRecoverForm, RecoverPasswordForm
+)
+from sentry.web.helpers import render_to_response
+
+from django.contrib import messages
+from django.contrib.auth import authenticate
+from django.contrib.auth import login as login_user
+
+from django.utils.translation import ugettext as _
 
 logger = logging.getLogger("sentry.accounts")
 

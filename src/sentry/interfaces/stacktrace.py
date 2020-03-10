@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
-__all__ = ("Stacktrace",)
-
 import six
-
-from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.models import UserOption
+from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
+
+from django.utils.translation import ugettext as _
+
+__all__ = ("Stacktrace",)
+
+
+
 
 
 def max_addr(cur, addr):

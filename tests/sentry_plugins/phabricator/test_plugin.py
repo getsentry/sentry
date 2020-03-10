@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import responses
-
-from exam import fixture
 from django.test import RequestFactory
-from sentry.testutils import PluginTestCase
-
+from exam import fixture
 from sentry_plugins.phabricator.plugin import PhabricatorPlugin
+
+from sentry.testutils import PluginTestCase
 
 
 class PhabricatorPluginTest(PluginTestCase):

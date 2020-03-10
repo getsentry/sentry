@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from sentry.exceptions import NotRegistered
+
 __all__ = ["ProviderNotRegistered"]
 
-from sentry.exceptions import NotRegistered
 
 
 class ProviderNotRegistered(NotRegistered):

@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-import progressbar
 import re
+
+import progressbar
 import six
-
 from django.db import connections, router
-
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 

@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import os.path
+from os.path import dirname, join
 
 from six.moves.urllib.parse import urlencode
-from os.path import join, dirname
 
 from sentry.testutils import AcceptanceTestCase
 

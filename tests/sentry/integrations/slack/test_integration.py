@@ -2,17 +2,13 @@ from __future__ import absolute_import
 
 import responses
 import six
-
 from django.test.utils import override_settings
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider
 from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
+    Identity, IdentityProvider, IdentityStatus, Integration,
+    OrganizationIntegration
 )
 from sentry.testutils import IntegrationTestCase
 

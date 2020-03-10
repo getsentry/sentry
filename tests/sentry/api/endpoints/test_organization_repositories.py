@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
 import six
-
-from sentry.utils.compat.mock import patch
-
 from django.core.urlresolvers import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class OrganizationRepositoriesListTest(APITestCase):

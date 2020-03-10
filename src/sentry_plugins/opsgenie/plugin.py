@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
 import logging
-import sentry
+
 import six
-
 from django import forms
-
 from sentry_plugins.base import CorePluginMixin
+
+import sentry
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
 from sentry.utils import json
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import OpsGenieApiClient
 

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.db import transaction
-from django.utils import timezone
 from rest_framework import serializers
 
 from sentry import features
@@ -12,15 +11,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.models import (
-    Monitor,
-    MonitorCheckIn,
-    CheckInStatus,
-    MonitorStatus,
-    Project,
-    ProjectKey,
-    ProjectStatus,
+    CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey,
+    ProjectStatus
 )
-from sentry.utils.sdk import configure_scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
+
+from django.utils import timezone
 
 
 class CheckInSerializer(serializers.Serializer):

@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
-from django.utils.functional import cached_property
 
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
 from sentry.utils import json, kafka, metrics
 
+from django.utils.functional import cached_property
 
 logger = logging.getLogger(__name__)
 

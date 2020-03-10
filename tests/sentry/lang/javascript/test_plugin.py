@@ -3,16 +3,15 @@
 from __future__ import absolute_import
 
 import os.path
+from base64 import b64encode
+
 import pytest
 import responses
 
-from base64 import b64encode
-
-from sentry.utils.compat.mock import patch
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import TestCase, SnubaTestCase, SentryStoreHelper
-
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SentryStoreHelper, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 
 # TODO(joshuarli): six 1.12.0 adds ensure_binary
 # might also want to put this in utils since we pretty much expect the result to be py3 str and not bytes

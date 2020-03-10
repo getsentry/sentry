@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 import six
 
-from sentry import analytics
-from sentry import http
+from sentry import analytics, http
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
 from sentry.utils import json
 
 from .link_identity import build_linking_url

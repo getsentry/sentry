@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
-
 from django.conf import settings
-
 
 logger = logging.getLogger(__name__)
 geoip_path_mmdb = getattr(settings, "GEOIP_PATH_MMDB", None)

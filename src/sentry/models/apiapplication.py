@@ -1,21 +1,18 @@
 from __future__ import absolute_import, print_function
 
-import petname
-
-from django.db import models
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse
 from uuid import uuid4
 
+import petname
+from django.db import models
+from six.moves.urllib.parse import urlparse
+
 from sentry.db.models import (
-    Model,
-    BaseManager,
-    BoundedPositiveIntegerField,
-    EncryptedTextField,
-    FlexibleForeignKey,
-    sane_repr,
+    BaseManager, BoundedPositiveIntegerField, EncryptedTextField,
+    FlexibleForeignKey, Model, sane_repr
 )
+
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 
 def generate_name():

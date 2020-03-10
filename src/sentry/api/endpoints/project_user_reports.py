@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
+from uuid import uuid4
+
 import six
 from rest_framework import serializers
-from uuid import uuid4
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.api.paginator import DateTimePaginator
+from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models import Environment, GroupStatus, ProjectKey, UserReport
-from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.ingest.userreport import save_userreport, Conflict
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario("CreateUserFeedback")

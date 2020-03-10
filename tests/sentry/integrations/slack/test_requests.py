@@ -1,17 +1,14 @@
 from __future__ import absolute_import
 
 import json
-from sentry.utils.compat import mock
 
 from sentry import options
-from sentry.utils.cache import memoize
-from sentry.testutils import TestCase
 from sentry.integrations.slack.requests import (
-    SlackRequest,
-    SlackEventRequest,
-    SlackActionRequest,
-    SlackRequestError,
+    SlackActionRequest, SlackEventRequest, SlackRequest, SlackRequestError
 )
+from sentry.testutils import TestCase
+from sentry.utils.cache import memoize
+from sentry.utils.compat import mock
 
 
 class SlackRequestTest(TestCase):

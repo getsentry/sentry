@@ -5,8 +5,10 @@ from functools import partial
 from sentry import eventstore
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.api.serializers import (
+    EventSerializer, SimpleEventSerializer, serialize
+)
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 
 @scenario("ListProjectAvailableSamples")

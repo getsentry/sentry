@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import six
-
-from django.utils import timezone
 from exam import fixture
 
 from sentry.models import ApiApplication, ApiGrant, ApiToken
 from sentry.testutils import TestCase
 from sentry.utils import json
+
+from django.utils import timezone
 
 
 class OAuthTokenTest(TestCase):

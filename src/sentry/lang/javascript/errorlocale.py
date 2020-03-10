@@ -1,9 +1,10 @@
 from __future__ import absolute_import, print_function
 
-import six
-import os
 import io
+import os
 import re
+
+import six
 
 from sentry.utils.safe import get_path
 

@@ -1,14 +1,20 @@
 from __future__ import absolute_import, print_function
 
-from django.db import IntegrityError, models, transaction
-from django.utils import timezone
+import re
 
-from sentry.constants import ENVIRONMENT_NAME_PATTERN, ENVIRONMENT_NAME_MAX_LENGTH
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from django.db import IntegrityError, models, transaction
+
+from sentry.constants import (
+    ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
+)
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-import re
+
+from django.utils import timezone
 
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 

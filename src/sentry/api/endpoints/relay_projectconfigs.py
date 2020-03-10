@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
 from rest_framework.response import Response
-
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
+from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.api.authentication import RelayAuthentication
+from sentry.models import Organization, OrganizationOption, Project, ProjectKey
 from sentry.relay import config, projectconfig_cache
-from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

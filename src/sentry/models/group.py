@@ -5,31 +5,29 @@ import math
 import re
 import warnings
 from collections import namedtuple
-from enum import Enum
 from datetime import timedelta
+from enum import Enum
 
 import six
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.utils import timezone
-from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+)
 from sentry.db.models import (
-    BaseManager,
-    BoundedBigIntegerField,
-    BoundedIntegerField,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    GzippedDictField,
-    Model,
-    sane_repr,
+    BaseManager, BoundedBigIntegerField, BoundedIntegerField,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
+    sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
+
+from django.utils import timezone
+from django.utils.http import urlencode
+from django.utils.translation import ugettext_lazy as _
 
 logger = logging.getLogger(__name__)
 

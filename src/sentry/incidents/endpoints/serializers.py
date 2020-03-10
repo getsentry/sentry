@@ -1,40 +1,31 @@
 from __future__ import absolute_import
 
+import operator
 from datetime import timedelta
 
-import operator
-
+from django.db import transaction
 from rest_framework import serializers
 
-from django.db import transaction
-
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.serializers.rest_framework.base import (
+    CamelSnakeModelSerializer
+)
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
-    AlertRuleNameAlreadyUsedError,
-    AlertRuleTriggerLabelAlreadyUsedError,
-    InvalidTriggerActionError,
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-    update_alert_rule,
-    update_alert_rule_trigger,
-    update_alert_rule_trigger_action,
-    delete_alert_rule_trigger_action,
-    delete_alert_rule_trigger,
+    AlertRuleNameAlreadyUsedError, AlertRuleTriggerLabelAlreadyUsedError,
+    InvalidTriggerActionError, create_alert_rule, create_alert_rule_trigger,
+    create_alert_rule_trigger_action, delete_alert_rule_trigger,
+    delete_alert_rule_trigger_action, update_alert_rule,
+    update_alert_rule_trigger, update_alert_rule_trigger_action
 )
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
+    AlertRule, AlertRuleThresholdType, AlertRuleTrigger,
+    AlertRuleTriggerAction
 )
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.models import QueryAggregations
-
 
 string_to_action_type = {
     registration.slug: registration.type

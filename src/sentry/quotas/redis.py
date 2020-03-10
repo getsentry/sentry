@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
 import functools
-import six
-
 from time import time
 
+import six
+
 from sentry.constants import DataCategory
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
-from sentry.utils.redis import (
-    get_dynamic_cluster_from_options,
-    validate_dynamic_cluster,
-    load_script,
+from sentry.quotas.base import (
+    NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 )
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
+from sentry.utils.compat import map, zip
+from sentry.utils.redis import (
+    get_dynamic_cluster_from_options, load_script, validate_dynamic_cluster
+)
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 

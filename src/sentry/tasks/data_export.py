@@ -2,14 +2,17 @@ from __future__ import absolute_import
 
 import csv
 import logging
-import six
 import tempfile
 from contextlib import contextmanager
-from django.db import transaction, IntegrityError
+
+import six
+from django.db import IntegrityError, transaction
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
+from sentry.models import (
+    EventUser, ExportedData, File, Group, Project, get_group_with_redirect
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception

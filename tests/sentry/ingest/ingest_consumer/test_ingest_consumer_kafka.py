@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import datetime
-import time
 import logging
+import time
+
 import msgpack
 import pytest
-
 from django.conf import settings
 
 from sentry import eventstore, options

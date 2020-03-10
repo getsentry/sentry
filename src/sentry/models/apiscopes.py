@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
-from bitfield import BitField
 from collections import Sequence
+
+import six
+from bitfield import BitField
 from django.db import models
 
 from sentry.db.models import ArrayField

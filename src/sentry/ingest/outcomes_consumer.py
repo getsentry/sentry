@@ -17,29 +17,29 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
-import six
-
-import time
 import atexit
 import logging
-import multiprocessing.dummy
 import multiprocessing as _multiprocessing
+import multiprocessing.dummy
+import time
 
-from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-
+import six
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.constants import DataCategory
-from sentry.models.project import Project
-from sentry.db.models.manager import BaseManager
-from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
-from sentry.utils.kafka import create_batching_kafka_consumer
-from sentry.utils import json, metrics
-from sentry.utils.data_filters import FilterStatKeys
-from sentry.utils.dates import to_datetime, parse_timestamp
-from sentry.utils.outcomes import Outcome
 from sentry.buffer.redis import batch_buffers_incr
+from sentry.constants import DataCategory
+from sentry.db.models.manager import BaseManager
+from sentry.models.project import Project
+from sentry.signals import (
+    event_discarded, event_dropped, event_filtered, event_saved
+)
+from sentry.utils import json, metrics
+from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
+from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.dates import parse_timestamp, to_datetime
+from sentry.utils.kafka import create_batching_kafka_consumer
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 

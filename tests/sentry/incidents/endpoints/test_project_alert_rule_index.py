@@ -1,20 +1,22 @@
 from __future__ import absolute_import
 
-import six
 import json
-import requests
-import pytz
 
+import pytz
+import requests
+import six
 from exam import fixture
 from freezegun import freeze_time
+from tests.sentry.api.serializers.test_alert_rule import (
+    BaseAlertRuleSerializerTest
+)
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
 from sentry.snuba.models import QueryAggregations
+from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils import TestCase, APITestCase
-from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
 class AlertRuleListEndpointTest(APITestCase):

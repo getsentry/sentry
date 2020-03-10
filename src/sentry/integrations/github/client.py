@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
+from sentry.integrations.github.utils import get_jwt
 
 
 class GitHubClientMixin(ApiClient):

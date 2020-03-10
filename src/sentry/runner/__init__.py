@@ -1,12 +1,14 @@
 from __future__ import absolute_import, print_function
 
-import os
-import click
-import sys
-import sentry
 import datetime
-from sentry.utils.imports import import_string
+import os
+import sys
+
+import click
+
+import sentry
 from sentry.utils.compat import map
+from sentry.utils.imports import import_string
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.

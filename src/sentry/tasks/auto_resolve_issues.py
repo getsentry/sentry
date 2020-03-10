@@ -1,15 +1,16 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from collections import defaultdict
 from datetime import datetime, timedelta
-from django.utils import timezone
 from time import time
+
+import six
 
 from sentry.models import Activity, Group, GroupStatus, Project, ProjectOption
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs
+
+from django.utils import timezone
 
 ONE_HOUR = 3600
 

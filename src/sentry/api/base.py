@@ -2,14 +2,13 @@ from __future__ import absolute_import
 
 import functools
 import logging
-import six
 import time
-
 from datetime import datetime, timedelta
-from django.conf import settings
-from django.utils.http import urlquote
-from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
+
+import six
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -20,19 +19,19 @@ from simplejson import JSONDecodeError
 from sentry import tsdb
 from sentry.auth import access
 from sentry.models import Environment
+from sentry.utils import json
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
-from sentry.utils.audit import create_audit_entry
 from sentry.utils.sdk import capture_exception
-from sentry.utils import json
 from sentry.web.api import allow_cors_options
-
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
+from django.utils.http import urlquote
 
 __all__ = ["DocSection", "Endpoint", "EnvironmentMixin", "StatsMixin"]
 

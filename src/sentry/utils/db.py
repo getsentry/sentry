@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import six
-
-from django.db import connections, DEFAULT_DB_ALIAS
-
-from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.db.models.fields.related_descriptors import (
+    ReverseOneToOneDescriptor
+)
 
 
 def attach_foreignkey(objects, field, related=(), database=None):

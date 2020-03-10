@@ -3,8 +3,10 @@ from __future__ import absolute_import
 import six
 
 from sentry.models import ExportedData, File
-from sentry.tasks.data_export import assemble_download, get_file_name, DataExportError
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.tasks.data_export import (
+    DataExportError, assemble_download, get_file_name
+)
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
 

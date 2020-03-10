@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-
-from sentry.models import Project
-from sentry.interfaces.contexts import ContextType
-from sentry.plugins.base import Plugin2
-from sentry.plugins.base.configuration import react_plugin_config
-from sentry.exceptions import PluginError
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry_plugins.base import CorePluginMixin
 
-from .client import SessionStackClient, UnauthorizedError, InvalidWebsiteIdError, InvalidApiUrlError
+from sentry.exceptions import PluginError
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.interfaces.contexts import ContextType
+from sentry.models import Project
+from sentry.plugins.base import Plugin2
+from sentry.plugins.base.configuration import react_plugin_config
+
+from .client import (
+    InvalidApiUrlError, InvalidWebsiteIdError, SessionStackClient,
+    UnauthorizedError
+)
 
 UNAUTHORIZED_ERROR = (
     "Unauthorized: either the combination of your account email and "

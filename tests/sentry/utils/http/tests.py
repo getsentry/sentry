@@ -2,30 +2,23 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import unittest
 
-from exam import fixture
 from django.http import HttpRequest
+from exam import fixture
 
 from sentry import options
 from sentry.models import Project
-from sentry.testutils import TestCase
-from sentry.utils.http import (
-    is_same_domain,
-    is_valid_origin,
-    get_origins,
-    absolute_uri,
-    origin_from_request,
-    heuristic_decode,
-)
-from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterTypes,
-)
 from sentry.relay.config import get_project_config
+from sentry.testutils import TestCase
+from sentry.utils.compat import mock
+from sentry.utils.data_filters import (
+    FilterTypes, is_valid_error_message, is_valid_ip, is_valid_release
+)
+from sentry.utils.http import (
+    absolute_uri, get_origins, heuristic_decode, is_same_domain,
+    is_valid_origin, origin_from_request
+)
 
 
 class AbsoluteUriTest(unittest.TestCase):

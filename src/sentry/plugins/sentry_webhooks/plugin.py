@@ -1,19 +1,20 @@
 from __future__ import absolute_import
 
 import logging
-import six
-import sentry
 
+import six
 from django import forms
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
 
+import sentry
 from sentry.exceptions import PluginError
-from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
-from sentry.utils.safe import safe_execute
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases import notify
 from sentry.utils.compat import filter
+from sentry.utils.safe import safe_execute
+
+from django.utils.translation import ugettext_lazy as _
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.

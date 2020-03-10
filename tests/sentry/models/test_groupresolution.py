@@ -3,10 +3,11 @@
 from __future__ import absolute_import, print_function
 
 from datetime import timedelta
-from django.utils import timezone
 
 from sentry.models import GroupResolution
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class GroupResolutionTest(TestCase):

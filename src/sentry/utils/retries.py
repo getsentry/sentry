@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
+import functools
 import itertools
 import logging
 import random
 import time
-import functools
 
 from django.utils.encoding import force_bytes
 

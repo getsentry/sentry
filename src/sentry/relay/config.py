@@ -1,25 +1,26 @@
 from __future__ import absolute_import
 
-import six
 import uuid
-
-from sentry_sdk import Hub
-
 from datetime import datetime
+
+import six
 from pytz import utc
+from sentry_sdk import Hub
 
 from sentry import quotas, utils
 from sentry.constants import ObjectStatus
+from sentry.datascrubbing import merge_pii_configs
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters
 from sentry.models.organizationoption import OrganizationOption
-from sentry.utils.safe import safe_execute
-from sentry.utils.data_filters import FilterTypes, FilterStatKeys, get_filter_key
-from sentry.utils.http import get_origins
-from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
-from sentry.datascrubbing import merge_pii_configs
+from sentry.utils.data_filters import (
+    FilterStatKeys, FilterTypes, get_filter_key
+)
+from sentry.utils.http import get_origins
+from sentry.utils.safe import safe_execute
+from sentry.utils.sdk import configure_scope
 
 
 def get_project_key_config(project_key):

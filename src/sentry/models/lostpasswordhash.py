@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
+
+from django.utils import timezone
 
 CHARACTERS = u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 

@@ -1,14 +1,18 @@
 from __future__ import absolute_import
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import http
-from sentry.rules.actions.base import EventAction
-from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.rules.actions.base import EventAction
+from sentry.utils import json, metrics
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name, track_response_code
+from .utils import (
+    build_group_attachment, get_channel_id, strip_channel_name,
+    track_response_code
+)
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class SlackNotifyServiceForm(forms.Form):

@@ -2,19 +2,18 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-
-from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
-from sentry.models import ProjectKey, EventAttachment
+from sentry.models import EventAttachment, ProjectKey
 from sentry.signals import event_accepted
-from sentry.testutils import assert_mock_called_once_with_partial, TestCase
+from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.utils import json
+from sentry.utils.compat import mock
+from sentry.utils.compat.mock import Mock
 from sentry.utils.data_filters import FilterTypes
 
 

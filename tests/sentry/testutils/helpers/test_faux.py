@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from unittest import TestCase
 
 import six
-from sentry.utils.compat.mock import patch
+
 from sentry.testutils.helpers.faux import faux
+from sentry.utils.compat.mock import patch
 
 
 def fakefunc(*args, **kwargs):

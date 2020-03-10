@@ -1,17 +1,20 @@
 from __future__ import absolute_import
 
 import responses
-import sentry
-
-from sentry.utils.compat.mock import MagicMock
 from six.moves.urllib.parse import urlencode, urlparse
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins, unregister_mock_plugins
+)
 
+import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
-from sentry.models import Integration, OrganizationIntegration, Repository, Project
+from sentry.models import (
+    Integration, OrganizationIntegration, Project, Repository
+)
 from sentry.plugins.base import plugins
 from sentry.testutils import IntegrationTestCase
-from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
+from sentry.utils.compat.mock import MagicMock
 
 
 class GitHubIntegrationTest(IntegrationTestCase):

@@ -1,17 +1,19 @@
 from __future__ import absolute_import
 
-import six
 import logging
-
-from django.conf import settings
-from django.contrib.auth import login as _login
-from django.contrib.auth.backends import ModelBackend
-from django.core.urlresolvers import reverse, resolve
-from django.utils.http import is_safe_url
 from time import time
 
-from sentry.models import User, Authenticator
+import six
+from django.conf import settings
+from django.core.urlresolvers import resolve, reverse
+
+from sentry.models import Authenticator, User
 from sentry.utils.compat import map
+
+from django.contrib.auth import login as _login
+from django.contrib.auth.backends import ModelBackend
+
+from django.utils.http import is_safe_url
 
 logger = logging.getLogger("sentry.auth")
 

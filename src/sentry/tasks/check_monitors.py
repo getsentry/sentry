@@ -1,20 +1,15 @@
 from __future__ import absolute_import, print_function
 
 import logging
-
 from datetime import timedelta
-from django.utils import timezone
 
 from sentry.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorFailure,
-    MonitorStatus,
-    MonitorType,
+    CheckInStatus, Monitor, MonitorCheckIn, MonitorFailure, MonitorStatus,
+    MonitorType
 )
 from sentry.tasks.base import instrumented_task
 
+from django.utils import timezone
 
 logger = logging.getLogger("sentry")
 

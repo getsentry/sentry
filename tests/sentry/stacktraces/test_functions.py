@@ -3,9 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.stacktraces.functions import (
-    replace_enclosed_string,
-    split_func_tokens,
-    trim_function_name,
+    replace_enclosed_string, split_func_tokens, trim_function_name
 )
 
 

@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.db.models.query import QuerySet
-from django.utils import timezone
 
-from sentry.db.models import Model, BaseManager
+from sentry.db.models import BaseManager, Model
+
+from django.utils import timezone
 
 
 class ParanoidQuerySet(QuerySet):

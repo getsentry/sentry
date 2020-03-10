@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.plugins import providers
-from sentry.models import Integration
 from sentry.integrations.exceptions import IntegrationError
+from sentry.models import Integration
+from sentry.plugins import providers
 
 MAX_COMMIT_DATA_REQUESTS = 90
 

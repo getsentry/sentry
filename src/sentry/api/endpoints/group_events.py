@@ -1,27 +1,29 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
-from django.utils import timezone
-from rest_framework.exceptions import ParseError
-from rest_framework.response import Response
 from functools import partial
 
+import six
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
-from sentry.api.event_search import get_filter, InvalidSearchQuery
+from sentry.api.event_search import InvalidSearchQuery, get_filter
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.serializers import (
+    EventSerializer, SimpleEventSerializer, serialize
+)
+from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
+
+from django.utils import timezone
 
 
 class NoResults(Exception):

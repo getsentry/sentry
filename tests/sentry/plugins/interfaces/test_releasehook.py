@@ -1,11 +1,12 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ["ReleaseHook"]
-
 from sentry.exceptions import HookValidationError
 from sentry.models import Commit, Release, ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.testutils import TestCase
+
+__all__ = ["ReleaseHook"]
+
 
 
 class StartReleaseTest(TestCase):

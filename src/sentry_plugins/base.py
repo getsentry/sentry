@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
+import sys
+
 import pkg_resources
 import sentry_plugins
 import six
-import sys
+from sentry_plugins.constants import (
+    ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
+)
+from sentry_plugins.exceptions import (
+    ApiError, ApiHostError, ApiUnauthorized, UnsupportedResponseType
+)
 
 from sentry.exceptions import InvalidIdentity, PluginError
-
-from sentry_plugins.constants import ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
-from sentry_plugins.exceptions import (
-    ApiError,
-    ApiHostError,
-    ApiUnauthorized,
-    UnsupportedResponseType,
-)
 
 
 class CorePluginMixin(object):

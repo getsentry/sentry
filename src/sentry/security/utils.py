@@ -3,9 +3,10 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.utils import timezone
 
 from .emails import generate_security_email
+
+from django.utils import timezone
 
 logger = logging.getLogger("sentry.security")
 

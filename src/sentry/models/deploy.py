@@ -6,11 +6,14 @@ sentry.models.deploy
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils import timezone
 
 from sentry.app import locks
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
+)
 from sentry.utils.retries import TimedRetryPolicy
+
+from django.utils import timezone
 
 
 class Deploy(Model):

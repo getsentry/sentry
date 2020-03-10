@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models import (
+    AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
+)
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):

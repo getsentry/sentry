@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-import six
 import string
 
-from django.utils.encoding import force_text
+import six
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, trim
+
+from django.utils.encoding import force_text
 
 __all__ = ("Contexts",)
 

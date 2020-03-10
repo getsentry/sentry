@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import logging
 from importlib import import_module
 
-from sentry.relay.utils import type_to_class_name
 from sentry.relay.changesets.base import ChangesetError
+from sentry.relay.utils import type_to_class_name
 
 logger = logging.getLogger(__name__)
 

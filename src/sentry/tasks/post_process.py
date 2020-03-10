@@ -6,11 +6,11 @@ import time
 from django.conf import settings
 
 from sentry import features
-from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope

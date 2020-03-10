@@ -1,31 +1,34 @@
 from __future__ import absolute_import
 
+import json
+import logging
 import os
 import zlib
-import json
-import click
-import logging
-import six
-
 from datetime import datetime
-from subprocess import Popen, PIPE, check_output
+from subprocess import PIPE, Popen, check_output
+
+import click
+import six
+from django.conf import settings
+# Fair game from here
+from django.core.management import call_command
 from six.moves.urllib.parse import urlparse
+
+# No sentry or django imports before this point
+from sentry.runner import configure
+from sentry.utils.apidocs import (
+    MockUtils, Runner, get_sections, iter_endpoints, iter_scenarios
+)
+from sentry.web.helpers import render_to_string
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 SENTRY_CONFIG = os.environ["SENTRY_CONF"] = os.path.join(HERE, "sentry.conf.py")
 os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
-# No sentry or django imports before this point
-from sentry.runner import configure
 
 configure()
-from django.conf import settings
 
-# Fair game from here
-from django.core.management import call_command
 
-from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, iter_endpoints, get_sections
-from sentry.web.helpers import render_to_string
 
 
 OUTPUT_PATH = os.path.join(HERE, "cache")

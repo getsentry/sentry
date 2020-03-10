@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from base64 import b64encode
 
+import six
 from django.core.urlresolvers import reverse
 
 from sentry.models import OrganizationAvatar

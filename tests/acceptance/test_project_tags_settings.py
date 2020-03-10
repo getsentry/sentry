@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from sentry.testutils import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from mock import patch
+
 import pytz
+from mock import patch
+
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 current_time = datetime.utcnow().replace(tzinfo=pytz.utc)

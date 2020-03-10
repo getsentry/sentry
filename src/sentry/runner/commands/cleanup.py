@@ -5,11 +5,11 @@ from datetime import timedelta
 from uuid import uuid4
 
 import click
-from django.utils import timezone
-
-from sentry.runner.decorators import log_options
 from six.moves import xrange
 
+from sentry.runner.decorators import log_options
+
+from django.utils import timezone
 
 # allows services like tagstore to add their own (abstracted) models
 # to cleanup

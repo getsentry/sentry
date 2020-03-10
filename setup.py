@@ -3,14 +3,19 @@ from __future__ import absolute_import
 
 import os
 import sys
+from distutils.command.build import build as BuildCommand
+
+from setuptools import find_packages, setup
+from setuptools.command.develop import develop as DevelopCommand
+from setuptools.command.sdist import sdist as SDistCommand
+
+from sentry.utils.distutils import (
+    BuildAssetsCommand, BuildIntegrationDocsCommand, BuildJsSdkRegistryCommand
+)
 
 if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
-from distutils.command.build import build as BuildCommand
-from setuptools import setup, find_packages
-from setuptools.command.sdist import sdist as SDistCommand
-from setuptools.command.develop import develop as DevelopCommand
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,11 +23,6 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 
-from sentry.utils.distutils import (
-    BuildAssetsCommand,
-    BuildIntegrationDocsCommand,
-    BuildJsSdkRegistryCommand,
-)
 
 
 VERSION = "10.1.0.dev0"

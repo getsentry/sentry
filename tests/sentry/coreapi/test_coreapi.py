@@ -2,17 +2,12 @@
 
 from __future__ import absolute_import
 
-import six
 import pytest
+import six
 
 from sentry.coreapi import (
-    APIError,
-    APIUnauthorized,
-    Auth,
-    ClientApiHelper,
-    ClientAuthHelper,
-    decode_data,
-    safely_load_json_string,
+    APIError, APIUnauthorized, Auth, ClientApiHelper, ClientAuthHelper,
+    decode_data, safely_load_json_string
 )
 from sentry.interfaces.base import get_interface
 from sentry.testutils import TestCase

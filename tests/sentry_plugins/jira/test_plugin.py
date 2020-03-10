@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
 import responses
-
-from exam import fixture
-from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
+from exam import fixture
+from sentry_plugins.jira.plugin import JiraPlugin
+
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from sentry_plugins.jira.plugin import JiraPlugin
+from django.contrib.auth.models import AnonymousUser
 
 create_meta_response = {
     "expand": "projects",

@@ -1,19 +1,19 @@
 from __future__ import absolute_import
 
 import calendar
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
+
 import pytz
 import requests
 import six
-
 from django.conf import settings
-from sentry.utils.compat.mock import patch
 
 from sentry.models import GroupHash, GroupRelease, Release
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.dates import to_timestamp
 
 

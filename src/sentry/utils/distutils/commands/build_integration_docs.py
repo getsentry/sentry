@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os.path
-
 from distutils import log
 
 from .base import BaseBuildCommand

@@ -1,34 +1,21 @@
 from __future__ import absolute_import
 
-import six
-
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
 
-from sentry import options
+import six
+
+from sentry import eventstore, options
 from sentry.api.event_search import (
-    get_filter,
-    get_function_alias,
-    is_function,
-    resolve_field_list,
-    InvalidSearchQuery,
-    FIELD_ALIASES,
+    FIELD_ALIASES, InvalidSearchQuery, get_filter, get_function_alias,
+    is_function, resolve_field_list
 )
-
-from sentry import eventstore
-
 from sentry.models import Project, ProjectStatus
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
-    Dataset,
-    SnubaTSResult,
-    DISCOVER_COLUMN_MAP,
-    QUOTED_LITERAL_RE,
-    raw_query,
-    to_naive_timestamp,
-    naiveify_datetime,
-    resolve_condition,
+    DISCOVER_COLUMN_MAP, QUOTED_LITERAL_RE, Dataset, SnubaTSResult,
+    naiveify_datetime, raw_query, resolve_condition, to_naive_timestamp
 )
 
 __all__ = (

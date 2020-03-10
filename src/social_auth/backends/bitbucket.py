@@ -13,7 +13,6 @@ extend it.
 from __future__ import absolute_import
 
 import simplejson
-
 from social_auth.backends import BaseOAuth1, OAuthBackend
 from social_auth.utils import dsa_urlopen
 

@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.helpers.environments import environment_visibility_filter_options
+from sentry.api.helpers.environments import (
+    environment_visibility_filter_options
+)
 from sentry.api.serializers import serialize
 from sentry.models import Environment, EnvironmentProject
 

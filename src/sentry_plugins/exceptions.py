@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
-from bs4 import BeautifulSoup
 from collections import OrderedDict
+
+from bs4 import BeautifulSoup
 from simplejson.decoder import JSONDecodeError
 from six.moves.urllib.parse import urlparse
+
 from sentry.utils import json
 
 

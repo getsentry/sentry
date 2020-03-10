@@ -1,11 +1,15 @@
 from __future__ import absolute_import, print_function
 
 from datetime import timedelta
-from django.utils import timezone
+
 from freezegun import freeze_time
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
+from sentry.models import (
+    CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
+)
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 @freeze_time("2019-01-01")

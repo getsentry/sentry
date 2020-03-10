@@ -6,28 +6,25 @@ from copy import deepcopy
 from datetime import datetime
 
 import six
-from django.utils.functional import cached_property
-from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node
+from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
+from parsimonious.nodes import Node
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
-    parse_datetime_range,
-    parse_datetime_string,
-    parse_datetime_value,
-    InvalidQuery,
+    InvalidQuery, parse_datetime_range, parse_datetime_string,
+    parse_datetime_value
 )
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
-from sentry.utils.compat import filter
+
+from django.utils.functional import cached_property
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 

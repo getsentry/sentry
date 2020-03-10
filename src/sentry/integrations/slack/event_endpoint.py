@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import json
 import re
-import six
 from collections import defaultdict
 
+import six
 from django.conf import settings
 from django.db.models import Q
 
@@ -14,7 +14,10 @@ from sentry.incidents.models import Incident
 from sentry.models import Group, Project
 
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import build_group_attachment, build_incident_attachment, logger, track_response_code
+from .utils import (
+    build_group_attachment, build_incident_attachment, logger,
+    track_response_code
+)
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe

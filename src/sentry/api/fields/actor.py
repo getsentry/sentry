@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from collections import defaultdict, namedtuple
+
+import six
 from rest_framework import serializers
 
-from sentry.models import User, Team
+from sentry.models import Team, User
 from sentry.utils.auth import find_users
 
 

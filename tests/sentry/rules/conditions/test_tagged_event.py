@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from sentry.rules.conditions.tagged_event import (
+    MatchType, TaggedEventCondition
+)
 from sentry.testutils.cases import RuleTestCase
-from sentry.rules.conditions.tagged_event import TaggedEventCondition, MatchType
 
 
 class TaggedEventConditionTest(RuleTestCase):

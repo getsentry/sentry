@@ -1,25 +1,25 @@
 from __future__ import absolute_import, print_function
 
-from django.contrib import messages
-from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
-
 from django.http import HttpResponse, HttpResponseServerError
-from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems, add_metaclass
+from six import add_metaclass, iteritems
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
 
+from django.contrib import messages
+from django.contrib.auth import logout
+
+from django.utils.decorators import method_decorator
+from django.utils.translation import ugettext_lazy as _
 
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings

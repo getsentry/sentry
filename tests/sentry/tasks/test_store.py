@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
-import pytest
-
-from sentry.utils.compat import mock
 from time import time
+
+import pytest
 
 from sentry import quotas
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
 from sentry.testutils.helpers.features import Feature
+from sentry.utils.compat import mock
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 

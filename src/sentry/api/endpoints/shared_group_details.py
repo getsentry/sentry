@@ -5,10 +5,8 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, EnvironmentMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
-    serialize,
-    SharedEventSerializer,
-    SharedGroupSerializer,
-    SharedProjectSerializer,
+    SharedEventSerializer, SharedGroupSerializer, SharedProjectSerializer,
+    serialize
 )
 from sentry.models import Group
 

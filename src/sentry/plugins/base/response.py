@@ -1,11 +1,13 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ("Response", "JSONResponse")
-
 from django.http import HttpResponse
 from django.template.context_processors import csrf
 
 from sentry.utils import json
+
+__all__ = ("Response", "JSONResponse")
+
+
 
 
 class Response(object):

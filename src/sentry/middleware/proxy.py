@@ -4,6 +4,9 @@ import io
 import logging
 import zlib
 
+from django.conf import settings
+from django.core.exceptions import MiddlewareNotUsed
+
 try:
     import uwsgi
 
@@ -11,8 +14,6 @@ try:
 except ImportError:
     has_uwsgi = False
 
-from django.conf import settings
-from django.core.exceptions import MiddlewareNotUsed
 
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8

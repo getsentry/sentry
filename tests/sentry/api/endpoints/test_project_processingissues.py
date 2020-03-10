@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
+
 from django.core.urlresolvers import reverse
 
-from sentry.models import ProcessingIssue, EventError, RawEvent, EventProcessingIssue
+from sentry.models import (
+    EventError, EventProcessingIssue, ProcessingIssue, RawEvent
+)
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class ProjectProjectProcessingIssuesTest(APITestCase):

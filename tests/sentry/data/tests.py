@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import os
+
 import six
 
 from sentry.constants import DATA_ROOT

@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils import timezone
 
-from sentry.db.models import Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+)
+
+from django.utils import timezone
 
 
 class Distribution(Model):

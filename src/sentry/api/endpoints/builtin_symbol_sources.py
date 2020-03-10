@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
 import six
-
 from django.conf import settings
+from rest_framework.response import Response
+
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 

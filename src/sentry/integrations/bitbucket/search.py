@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint

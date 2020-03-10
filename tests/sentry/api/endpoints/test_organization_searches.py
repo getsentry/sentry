@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch
-from sentry.models.search_common import SearchType
 from sentry.models.savedsearch import DEFAULT_SAVED_SEARCHES
+from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class OrganizationSearchesListTest(APITestCase):

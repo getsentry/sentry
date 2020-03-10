@@ -1,22 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Environment,
-    EnvironmentProject,
-    EventAttachment,
-    File,
-    Group,
-    GroupAssignee,
-    GroupMeta,
-    GroupResolution,
-    Project,
-    Release,
-    ReleaseCommit,
-    Repository,
-    ScheduledDeletion,
-    ProjectDebugFile,
+    Commit, CommitAuthor, Environment, EnvironmentProject, EventAttachment,
+    File, Group, GroupAssignee, GroupMeta, GroupResolution, Project,
+    ProjectDebugFile, Release, ReleaseCommit, Repository, ScheduledDeletion
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

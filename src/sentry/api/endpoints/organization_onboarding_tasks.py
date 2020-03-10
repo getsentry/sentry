@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.receivers import try_mark_onboarding_complete
+
+from django.utils import timezone
 
 
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):

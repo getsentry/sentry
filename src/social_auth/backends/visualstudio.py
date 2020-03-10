@@ -6,10 +6,8 @@ and put into sentry.conf.py
 from __future__ import absolute_import
 
 import requests
-
 from django.conf import settings
 from django.core.urlresolvers import reverse
-
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.utils import setting
 

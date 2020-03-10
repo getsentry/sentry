@@ -11,30 +11,22 @@ from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
 
 import pytz
-from django.utils import dateformat, timezone
+from six.moves import reduce, zip_longest
 
 from sentry.app import tsdb
 from sentry.models import (
-    Activity,
-    GroupStatus,
-    Organization,
-    OrganizationStatus,
-    Project,
-    Team,
-    User,
-    UserOption,
+    Activity, GroupStatus, Organization, OrganizationStatus, Project, Team,
+    User, UserOption
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
+from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
-from six.moves import reduce, zip_longest
-from sentry.utils.compat import map
-from sentry.utils.compat import zip
-from sentry.utils.compat import filter
 
+from django.utils import dateformat, timezone
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
 

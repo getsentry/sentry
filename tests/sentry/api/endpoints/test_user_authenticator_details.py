@@ -1,22 +1,20 @@
 from __future__ import absolute_import
 
 import datetime
-from sentry.utils.compat import mock
-import six
 
+import six
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import F
-from django.conf import settings
-from django.utils import timezone
 
 from sentry.models import (
-    Authenticator,
-    TotpInterface,
-    RecoveryCodeInterface,
-    SmsInterface,
-    Organization,
+    Authenticator, Organization, RecoveryCodeInterface, SmsInterface,
+    TotpInterface
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
+
+from django.utils import timezone
 
 
 class UserAuthenticatorDetailsTest(APITestCase):

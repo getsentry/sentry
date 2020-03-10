@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
-import six
-import pytest
-
-from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
+
+import pytest
+import six
 
 from sentry import eventstore
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 

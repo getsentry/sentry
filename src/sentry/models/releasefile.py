@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
-import os
 import errno
-import six
+import os
 
+import six
 from django.core.files.base import File as FileObj
 from django.db import models
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry import options
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+)
 from sentry.models import clear_cached_files
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text

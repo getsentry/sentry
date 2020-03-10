@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
 from contextlib import contextmanager
+
+import six
 
 from sentry.utils.locking import UnableToAcquireLock
 

@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from django.utils.http import urlencode
 
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
+
+from django.utils.http import urlencode
 
 
 class VstsExtensionConfigurationView(BaseView):

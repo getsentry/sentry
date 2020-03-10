@@ -1,21 +1,23 @@
 from __future__ import absolute_import
 
-from abc import ABCMeta, abstractmethod, abstractproperty
-
 import logging
 import time
-import six
+from abc import ABCMeta, abstractmethod, abstractproperty
 from datetime import timedelta
 from hashlib import md5
 
-from django.utils import timezone
+import six
 
 from sentry import options
 from sentry.api.event_search import convert_search_filter_to_snuba_query
-from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
+from sentry.api.paginator import (
+    DateTimePaginator, Paginator, SequencePaginator
+)
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
-from sentry.utils import snuba, metrics
+from sentry.utils import metrics, snuba
+
+from django.utils import timezone
 
 
 def get_search_filter(search_filters, name, operator):

@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
-from sentry_plugins.base import CorePluginMixin
-from sentry.exceptions import PluginError
-from sentry_plugins.exceptions import ApiError, ApiHostError, ApiUnauthorized
-from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.plugins.base.structs import Notification
-from sentry.testutils import TestCase
 from requests.exceptions import HTTPError, SSLError
+from sentry_plugins.base import CorePluginMixin
+from sentry_plugins.exceptions import ApiError, ApiHostError, ApiUnauthorized
+
+from sentry.exceptions import PluginError
 from sentry.models import GroupStatus
+from sentry.plugins.base.structs import Notification
+from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.testutils import TestCase
 
 
 class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):

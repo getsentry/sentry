@@ -1,20 +1,24 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
-from rest_framework.response import Response
+
+import six
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.event_search import resolve_field_list, InvalidSearchQuery, get_function_alias
+from sentry.api.bases import (
+    NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
+)
+from sentry.api.event_search import (
+    InvalidSearchQuery, get_function_alias, resolve_field_list
+)
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
-from sentry.utils.dates import parse_stats_period
 from sentry.utils.compat import zip
+from sentry.utils.dates import parse_stats_period
 
 # Maximum number of results we are willing to fetch.
 # Clients should adapt the interval width based on their

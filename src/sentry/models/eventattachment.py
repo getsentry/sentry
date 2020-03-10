@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 from django.core.cache import cache
 from django.db import models
+
+from sentry.db.models import (
+    BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+)
+
 from django.utils import timezone
-
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
-
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")

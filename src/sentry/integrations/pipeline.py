@@ -1,20 +1,26 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ["IntegrationPipeline"]
-
+import six
 from django.db import IntegrityError
-from django.utils import timezone
-from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.models import (
+    Identity, IdentityProvider, IdentityStatus, Integration
+)
 from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
+
 from . import default_manager
 
-import six
+from django.utils import timezone
+from django.utils.translation import ugettext as _
+
+__all__ = ["IntegrationPipeline"]
+
+
+
 
 
 def ensure_integration(key, data):

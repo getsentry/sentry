@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins, unregister_mock_plugins
+)
+
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
-from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 
 class OrganizationIntegrationSettingsTest(AcceptanceTestCase):

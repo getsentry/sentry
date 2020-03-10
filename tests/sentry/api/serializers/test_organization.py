@@ -3,11 +3,10 @@
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 
+from sentry.api.serializers import DetailedOrganizationSerializer, serialize
 from sentry.auth import access
-from sentry.api.serializers import serialize, DetailedOrganizationSerializer
 from sentry.testutils import TestCase
 
 

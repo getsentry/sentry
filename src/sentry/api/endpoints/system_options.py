@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
 import six
-
-import sentry
-
 from django.conf import settings
 from rest_framework.response import Response
 
+import sentry
 from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission

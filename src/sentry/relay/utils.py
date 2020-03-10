@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import six
 import uuid
+
+import six
 
 
 def get_header_relay_id(request):

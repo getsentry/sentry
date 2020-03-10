@@ -1,16 +1,18 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
-from django.contrib import messages
+import six
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.api import client
 from sentry.models import AuditLogEntryEvent, Organization, OrganizationStatus
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
+
+from django.contrib import messages
+
+from django.utils.translation import ugettext_lazy as _
 
 ERR_MESSAGES = {
     OrganizationStatus.VISIBLE: _("Deletion already canceled."),

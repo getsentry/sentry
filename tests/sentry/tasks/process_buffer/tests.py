@@ -2,10 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class ProcessIncrTest(TestCase):

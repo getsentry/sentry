@@ -1,16 +1,12 @@
 from __future__ import absolute_import
-import six
 
 import responses
+import six
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.slack.utils import (
-    build_group_attachment,
-    build_incident_attachment,
-    CHANNEL_PREFIX,
-    get_channel_id,
-    RESOLVED_COLOR,
-    MEMBER_PREFIX,
+    CHANNEL_PREFIX, MEMBER_PREFIX, RESOLVED_COLOR, build_group_attachment,
+    build_incident_attachment, get_channel_id
 )
 from sentry.models import Integration
 from sentry.testutils import TestCase

@@ -3,14 +3,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectTeam,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Team,
+    OrganizationMember, OrganizationMemberTeam, Project, ProjectTeam, Release,
+    ReleaseProject, ReleaseProjectEnvironment, Team
 )
 from sentry.testutils import TestCase
 

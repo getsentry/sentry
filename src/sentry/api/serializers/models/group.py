@@ -5,45 +5,29 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
-
 from django.conf import settings
 from django.db.models import Min, Q
-from django.utils import timezone
 
 from sentry import tagstore, tsdb
-from sentry.app import env
+from sentry.api.fields.actor import Actor
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
-from sentry.api.fields.actor import Actor
+from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    ApiToken,
-    Commit,
-    Environment,
-    Group,
-    GroupAssignee,
-    GroupBookmark,
-    GroupEnvironment,
-    GroupLink,
-    GroupMeta,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupShare,
-    GroupStatus,
-    GroupSubscription,
-    GroupSubscriptionReason,
-    Integration,
-    SentryAppInstallationToken,
-    User,
-    UserOption,
-    UserOptionValue,
+    ApiToken, Commit, Environment, Group, GroupAssignee, GroupBookmark,
+    GroupEnvironment, GroupLink, GroupMeta, GroupResolution, GroupSeen,
+    GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Integration, SentryAppInstallationToken, User,
+    UserOption, UserOptionValue
 )
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.utils.compat import map, zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
-from sentry.utils.compat import map, zip
+
+from django.utils import timezone
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",

@@ -6,7 +6,9 @@ import datetime
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.models import (
+    Deploy, Environment, Release, ReleaseProjectEnvironment
+)
 from sentry.testutils import APITestCase
 
 

@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
+
+from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from tests.acceptance.page_objects.issue_details import IssueDetailsPage
+
+from django.utils import timezone
 
 
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):

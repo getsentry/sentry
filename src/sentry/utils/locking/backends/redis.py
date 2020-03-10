@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from uuid import uuid4
+
+import six
 
 from sentry.utils import redis
 from sentry.utils.locking.backends import LockBackend

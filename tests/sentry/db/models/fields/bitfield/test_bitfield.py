@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
 import pickle
-import six
 
+import six
+from bitfield import Bit, BitField, BitHandler
+from bitfield.compat import bitand, bitor
 from django import forms
 from django.db import connection, models
 from django.db.models import F
 from django.test import TestCase
-
-from bitfield import Bit, BitField, BitHandler
-from bitfield.compat import bitand, bitor
 
 
 class BitFieldTestModel(models.Model):

@@ -1,16 +1,19 @@
 from __future__ import absolute_import
+
 import logging
 from json import loads
 
 import jsonschema
 import pytz
 import sentry_sdk
-from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
+from sentry_sdk.tracing import Span
 
-from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
+from sentry.snuba.json_schemas import (
+    SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
+)
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.subscriptions import _delete_from_snuba
 from sentry.utils import metrics

@@ -1,17 +1,27 @@
 from __future__ import absolute_import
 
 import datetime
-import responses
+
 import pytest
+import responses
 import six
+from exam import fixture
+
+from sentry.integrations.bitbucket_server.repository import (
+    BitbucketServerRepositoryProvider
+)
+from sentry.integrations.exceptions import IntegrationError
+from sentry.models import (
+    Identity, IdentityProvider, IdentityStatus, Integration, Repository
+)
+from sentry.testutils import APITestCase
+
+from .testutils import (
+    COMMIT_CHANGELIST_EXAMPLE, COMPARE_COMMITS_EXAMPLE, EXAMPLE_PRIVATE_KEY,
+    REPO
+)
 
 from django.utils import timezone
-from exam import fixture
-from sentry.models import Integration, Repository, IdentityProvider, Identity, IdentityStatus
-from sentry.testutils import APITestCase
-from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
-from sentry.integrations.exceptions import IntegrationError
-from .testutils import EXAMPLE_PRIVATE_KEY, COMPARE_COMMITS_EXAMPLE, REPO, COMMIT_CHANGELIST_EXAMPLE
 
 
 class BitbucketServerRepositoryProviderTest(APITestCase):

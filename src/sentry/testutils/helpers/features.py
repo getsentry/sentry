@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
-__all__ = ["Feature", "with_feature"]
-
-import six
 import collections
 from contextlib import contextmanager
+
+import six
+
 from sentry.utils.compat.mock import patch
+
+__all__ = ["Feature", "with_feature"]
+
 
 
 @contextmanager

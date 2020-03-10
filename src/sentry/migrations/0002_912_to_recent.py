@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
-import sentry.db.models.fields.bounded
-import sentry.db.models.fields.jsonfield
-import sentry.db.models.fields.uuid
-import sentry.db.models.fields.array
-import django.utils.timezone
-import sentry.db.models.fields.foreignkey
 import django.db.models.deletion
 from django.conf import settings
+from django.db import migrations, models
+
+import sentry.db.models.fields.array
+import sentry.db.models.fields.bounded
 import sentry.db.models.fields.encrypted
+import sentry.db.models.fields.foreignkey
+import sentry.db.models.fields.jsonfield
+import sentry.db.models.fields.uuid
+
+import django.utils.timezone
 
 
 class Migration(migrations.Migration):

@@ -1,30 +1,23 @@
 from __future__ import absolute_import
 
 import datetime
-import pytest
-import six
 import unittest
 from datetime import timedelta
+
+import pytest
+import six
+from freezegun import freeze_time
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
-from django.utils import timezone
-from freezegun import freeze_time
-
 from sentry.api.event_search import (
-    event_search_grammar,
-    get_filter,
-    resolve_field_list,
-    parse_search_query,
-    get_json_meta_type,
-    InvalidSearchQuery,
-    SearchBoolean,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-    SearchVisitor,
+    InvalidSearchQuery, SearchBoolean, SearchFilter, SearchKey, SearchValue,
+    SearchVisitor, event_search_grammar, get_filter, get_json_meta_type,
+    parse_search_query, resolve_field_list
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+
+from django.utils import timezone
 
 
 def test_get_json_meta_type():

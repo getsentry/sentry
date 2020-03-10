@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
 from collections import namedtuple
 
 from sentry.coreapi import APIUnauthorized
@@ -8,7 +7,10 @@ from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.compat.mock import patch
+from sentry.utils.sentryappwebhookrequests import (
+    SentryAppWebhookRequestsBuffer
+)
 
 MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
 MockResponseInstance = MockResponse({}, {}, True, 200)

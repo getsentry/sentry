@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 
 import collections
-from collections import namedtuple
 import re
+from collections import namedtuple
 
 from rest_framework import serializers
 from six.moves.urllib.parse import urlparse
@@ -14,7 +14,6 @@ from sentry.models.projectoption import ProjectOption
 from sentry.signals import inbound_filter_toggled
 from sentry.utils.data_filters import FilterStatKeys, get_filter_key
 from sentry.utils.safe import get_path
-
 
 EventFilteredRet = namedtuple("EventFilteredRet", "should_filter reason")
 

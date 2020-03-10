@@ -5,16 +5,13 @@ import logging
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry.db.models import (
-    ArrayField,
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    FlexibleForeignKey,
-    Model,
+    ArrayField, BoundedPositiveIntegerField, EncryptedJsonField,
+    FlexibleForeignKey, Model
 )
 
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

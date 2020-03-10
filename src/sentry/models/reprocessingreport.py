@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils import timezone
 
-from sentry.db.models import BaseManager, Model, FlexibleForeignKey, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+
+from django.utils import timezone
 
 
 class ReprocessingReport(Model):

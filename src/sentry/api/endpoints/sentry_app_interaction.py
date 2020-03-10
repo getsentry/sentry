@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from rest_framework.response import Response
-
 import logging
+
+from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin

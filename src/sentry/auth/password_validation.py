@@ -1,13 +1,15 @@
-from __future__ import unicode_literals, absolute_import
+from __future__ import absolute_import, unicode_literals
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
+
+from sentry.utils.imports import import_string
+
 from django.utils.functional import lazy
 from django.utils.html import format_html
 from django.utils.six import text_type
-from django.utils.translation import ugettext as _, ungettext
-
-from sentry.utils.imports import import_string
+from django.utils.translation import ugettext as _
+from django.utils.translation import ungettext
 
 _default_password_validators = None
 

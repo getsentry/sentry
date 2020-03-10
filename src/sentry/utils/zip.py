@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 import os
-import six
 import shutil
 import zipfile
+
+import six
 
 
 def is_unsafe_path(path):

@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+
+from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ProjectEventTest(SnubaTestCase, TestCase):

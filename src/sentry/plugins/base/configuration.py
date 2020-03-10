@@ -1,13 +1,8 @@
 from __future__ import absolute_import
 
 import six
-
-from django.utils.translation import ugettext as _
-from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
-from django.contrib import messages
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 
 from sentry import options
 from sentry.api import client
@@ -15,6 +10,11 @@ from sentry.api.serializers import serialize
 from sentry.models import ProjectOption
 from sentry.utils import json
 from sentry.web.helpers import render_to_string
+
+from django.contrib import messages
+
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 
 
 def react_plugin_config(plugin, project, request):

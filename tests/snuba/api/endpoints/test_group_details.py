@@ -1,9 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from sentry.utils.compat import mock
-
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.utils.compat import mock
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):

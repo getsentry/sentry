@@ -3,9 +3,8 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases import (
-    OrganizationEndpoint,
-    SentryAppBaseEndpoint,
-    add_integration_platform_metric_tag,
+    OrganizationEndpoint, SentryAppBaseEndpoint,
+    add_integration_platform_metric_tag
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize

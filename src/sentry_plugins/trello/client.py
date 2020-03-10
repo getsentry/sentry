@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-
 from sentry_plugins.client import ApiClient
-
 
 ORG_BOARD_PATH = "/organizations/%s/boards"
 MEMBER_ORG_PATH = "/members/me/organizations"

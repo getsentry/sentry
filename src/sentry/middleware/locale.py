@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import pytz
-
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
-from django.utils.translation import _trans, LANGUAGE_SESSION_KEY
 
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
+
+from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
 
 
 class SentryLocaleMiddleware(LocaleMiddleware):

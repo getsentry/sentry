@@ -1,8 +1,9 @@
 from __future__ import absolute_import, print_function
 
+from sentry import ratelimits
+
 __all__ = ("Notifier",)
 
-from sentry import ratelimits
 
 
 class Notifier(object):

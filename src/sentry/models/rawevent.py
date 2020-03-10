@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils import timezone
 
-from sentry.db.models import Model, NodeField, FlexibleForeignKey, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, NodeField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.utils.canonical import CanonicalKeyView
+
+from django.utils import timezone
 
 
 def ref_func(x):

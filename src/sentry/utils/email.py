@@ -2,34 +2,36 @@ from __future__ import absolute_import
 
 import logging
 import os
-import six
 import subprocess
 import tempfile
 import time
-
 from email.utils import parseaddr
 from functools import partial
 from operator import attrgetter
 from random import randrange
 
 import lxml
+import six
 import toronado
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
-from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserOption
+from sentry.models import (
+    Activity, Group, GroupEmailThread, Project, User, UserOption
+)
 from sentry.utils import metrics
+from sentry.utils.compat import map
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
-from sentry.utils.compat import map
+
+from django.utils.crypto import constant_time_compare
+from django.utils.encoding import force_bytes, force_str, force_text
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5

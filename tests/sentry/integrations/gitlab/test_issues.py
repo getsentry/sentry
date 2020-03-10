@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
+import copy
+
 import responses
 import six
-import copy
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue
-from sentry.utils.http import absolute_uri
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.http import absolute_uri
+
 from .testutils import GitLabTestCase
 
 

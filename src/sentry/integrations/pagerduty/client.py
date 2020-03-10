@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.integrations.client import ApiClient
+from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.eventstore.models import Event
-from sentry.api.serializers import serialize, ExternalEventSerializer
+from sentry.integrations.client import ApiClient
 
 LEVEL_SEVERITY_MAP = {
     "debug": "info",

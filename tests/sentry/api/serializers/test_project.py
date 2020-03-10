@@ -2,29 +2,24 @@
 
 from __future__ import absolute_import
 
+import datetime
 from datetime import timedelta
 
 import six
-import datetime
-from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
-    bulk_fetch_project_latest_releases,
-    ProjectWithOrganizationSerializer,
-    ProjectWithTeamSerializer,
-    ProjectSummarySerializer,
+    ProjectSummarySerializer, ProjectWithOrganizationSerializer,
+    ProjectWithTeamSerializer, bulk_fetch_project_latest_releases
 )
 from sentry.models import (
-    Deploy,
-    Environment,
-    EnvironmentProject,
-    Release,
-    ReleaseProjectEnvironment,
-    UserReport,
+    Deploy, Environment, EnvironmentProject, Release,
+    ReleaseProjectEnvironment, UserReport
 )
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class ProjectSerializerTest(TestCase):

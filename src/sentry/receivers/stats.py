@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-
 from celery.signals import task_failure, task_prerun, task_sent, task_success
 from django.db.models.signals import post_save
 

@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
 from datetime import date
 
 from sentry.mediators.sentry_app_installation_tokens import Creator
-from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
-from sentry.models import AuditLogEntry, SentryAppInstallationToken, SentryAppInstallation
+from sentry.mediators.sentry_app_installations import \
+    Creator as SentryAppInstallationCreator
+from sentry.models import (
+    AuditLogEntry, SentryAppInstallation, SentryAppInstallationToken
+)
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class TestCreatorBase(TestCase):

@@ -2,27 +2,29 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
-
 from time import time
-from django.utils import timezone
-from django.conf import settings
 
+from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
-from sentry.relay.config import get_project_config
-from sentry.datascrubbing import scrub_data
-from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
+from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
+from sentry.datascrubbing import scrub_data
+from sentry.models import Activity, Project, ProjectOption
+from sentry.relay.config import get_project_config
+from sentry.stacktraces.processing import (
+    process_stacktraces, should_process_for_stacktraces
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
+from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import configure_scope
-from sentry.models import ProjectOption, Activity, Project
+
+from django.utils import timezone
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")

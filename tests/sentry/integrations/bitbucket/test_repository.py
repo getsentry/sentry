@@ -1,17 +1,22 @@
 from __future__ import absolute_import
 
 import datetime
-import responses
+
 import pytest
+import responses
 import six
+from exam import fixture
+
+from sentry.integrations.bitbucket.repository import (
+    BitbucketRepositoryProvider
+)
+from sentry.integrations.exceptions import IntegrationError
+from sentry.models import Integration, Repository
+from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+
+from .testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 
 from django.utils import timezone
-from exam import fixture
-from sentry.models import Integration, Repository
-from sentry.testutils import TestCase, IntegrationRepositoryTestCase
-from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
-from sentry.integrations.exceptions import IntegrationError
-from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 
 class BitbucketRepositoryProviderTest(TestCase):

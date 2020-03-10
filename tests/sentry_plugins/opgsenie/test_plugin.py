@@ -2,14 +2,13 @@ from __future__ import absolute_import
 
 import responses
 import six
-
 from exam import fixture
+from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 class OpsGeniePluginTest(PluginTestCase):

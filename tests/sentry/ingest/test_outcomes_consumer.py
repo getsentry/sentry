@@ -1,18 +1,22 @@
 from __future__ import absolute_import
 
 import logging
+
 import pytest
 import six
-
-from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
-from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
-from sentry.testutils.factories import Factories
-from sentry.utils.outcomes import Outcome
 from django.conf import settings
-from sentry.utils import json
-from sentry.utils.json import prune_empty_keys
-from sentry.utils.data_filters import FilterStatKeys
 
+from sentry.ingest.outcomes_consumer import (
+    get_outcomes_consumer, is_signal_sent, mark_signal_sent
+)
+from sentry.signals import (
+    event_discarded, event_dropped, event_filtered, event_saved
+)
+from sentry.testutils.factories import Factories
+from sentry.utils import json
+from sentry.utils.data_filters import FilterStatKeys
+from sentry.utils.json import prune_empty_keys
+from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 

@@ -9,20 +9,15 @@ from sentry import deletions
 from sentry.auth.access import from_user
 from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleStatus,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentActivity,
-    IncidentActivityType,
-    IncidentStatus,
+    AlertRule, AlertRuleStatus, AlertRuleTriggerAction, Incident,
+    IncidentActivity, IncidentActivityType, IncidentStatus
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task, retry
+from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils import metrics
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 

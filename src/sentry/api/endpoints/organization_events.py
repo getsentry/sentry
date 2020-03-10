@@ -1,27 +1,32 @@
 from __future__ import absolute_import
 
 import logging
-import six
-import sentry_sdk
-
 from functools import partial
-from django.utils.http import urlquote
-from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
+import sentry_sdk
+import six
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+
+from sentry import eventstore, features
 from sentry.api.base import LINK_HEADER
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import (
+    NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
+)
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
-from sentry import eventstore, features
+from sentry.api.serializers import (
+    EventSerializer, SimpleEventSerializer, serialize
+)
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.http import absolute_uri
-from sentry.models.project import Project
-from sentry.models.group import Group
+
+from django.utils.http import urlquote
 
 logger = logging.getLogger(__name__)
 

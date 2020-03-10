@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
-import six
 from uuid import uuid4
 
+import six
 from django.conf import settings
 
-from sentry.utils import json
-from sentry.tasks.base import instrumented_task
+from sentry.integrations.slack.utils import (
+    get_channel_id_with_timeout, strip_channel_name
+)
 from sentry.mediators import project_rules
 from sentry.models import Integration, Project, Rule
-from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
+from sentry.tasks.base import instrumented_task
+from sentry.utils import json
 from sentry.utils.redis import redis_clusters
 
 

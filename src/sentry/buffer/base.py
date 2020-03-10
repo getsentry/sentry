@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.db.models import F
 
 from sentry.signals import buffer_incr_complete

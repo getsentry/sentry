@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import map
+
+from django.utils import timezone
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):

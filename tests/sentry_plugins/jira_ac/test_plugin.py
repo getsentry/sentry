@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from exam import fixture
 from django.test import RequestFactory
-from sentry.testutils import PluginTestCase
-
+from exam import fixture
 from sentry_plugins.jira_ac.plugin import JiraACPlugin
+
+from sentry.testutils import PluginTestCase
 
 
 class JiraPluginTest(PluginTestCase):

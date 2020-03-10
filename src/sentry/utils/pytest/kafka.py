@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import os
+import time
 
 import pytest
 import six
-from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
-import time
-import logging
+from confluent_kafka.admin import AdminClient
 
 _log = logging.getLogger(__name__)
 

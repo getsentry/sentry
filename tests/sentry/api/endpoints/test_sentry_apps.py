@@ -1,24 +1,21 @@
 from __future__ import absolute_import
 
-import six
 import re
 
-from sentry.utils.compat.mock import patch
+import six
 from django.core.urlresolvers import reverse
 
 from sentry.constants import SentryAppStatus
-from sentry.utils import json
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.mediators import sentry_apps
 from sentry.models import (
-    SentryApp,
-    SentryAppInstallationToken,
-    SentryAppInstallation,
-    ApiToken,
-    OrganizationMember,
+    ApiToken, OrganizationMember, SentryApp, SentryAppInstallation,
+    SentryAppInstallationToken
 )
 from sentry.models.sentryapp import MASKED_VALUE
-from sentry.mediators import sentry_apps
+from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
+from sentry.utils import json
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppsTest(APITestCase):

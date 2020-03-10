@@ -1,33 +1,35 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, models
 import bitfield.models
-import sentry.models.scheduledeletion
-import sentry.models.groupshare
-import sentry.db.models.fields.uuid
-import django.utils.timezone
-import sentry.db.models.fields.citext
-from django.conf import settings
-import sentry.models.sentryappinstallation
-import sentry.models.apigrant
-import sentry.db.models.fields.gzippeddict
-import sentry.models.apitoken
-import sentry.models.apiapplication
-import sentry.models.sentryapp
-import sentry.db.models.fields.node
-import sentry.db.mixin
-import sentry.db.models.fields.bounded
-import sentry.models.useremail
-import sentry.models.broadcast
-import sentry.db.models.fields.array
-import sentry.db.models.fields.jsonfield
-import sentry.models.servicehook
-import sentry.db.models.fields.foreignkey
 import django.db.models.deletion
-import sentry.models.user
-import sentry.models.event
+from django.conf import settings
+from django.db import migrations, models
+
+import sentry.db.mixin
+import sentry.db.models.fields.array
+import sentry.db.models.fields.bounded
+import sentry.db.models.fields.citext
 import sentry.db.models.fields.encrypted
+import sentry.db.models.fields.foreignkey
+import sentry.db.models.fields.gzippeddict
+import sentry.db.models.fields.jsonfield
+import sentry.db.models.fields.node
+import sentry.db.models.fields.uuid
+import sentry.models.apiapplication
+import sentry.models.apigrant
+import sentry.models.apitoken
+import sentry.models.broadcast
+import sentry.models.event
+import sentry.models.groupshare
+import sentry.models.scheduledeletion
+import sentry.models.sentryapp
+import sentry.models.sentryappinstallation
+import sentry.models.servicehook
+import sentry.models.user
+import sentry.models.useremail
+
+import django.utils.timezone
 
 
 class Migration(migrations.Migration):

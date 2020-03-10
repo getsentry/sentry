@@ -6,21 +6,16 @@ from rest_framework import serializers
 
 from sentry.auth.access import from_user
 from sentry.incidents.endpoints.serializers import (
-    action_target_type_to_string,
-    AlertRuleSerializer,
-    AlertRuleTriggerSerializer,
-    AlertRuleTriggerActionSerializer,
-    string_to_action_type,
-    string_to_action_target_type,
+    AlertRuleSerializer, AlertRuleTriggerActionSerializer,
+    AlertRuleTriggerSerializer, action_target_type_to_string,
+    string_to_action_target_type, string_to_action_type
 )
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    AlertRuleEnvironment,
+    AlertRule, AlertRuleEnvironment, AlertRuleThresholdType,
+    AlertRuleTriggerAction
 )
-from sentry.models import Integration, Environment
+from sentry.models import Environment, Integration
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 

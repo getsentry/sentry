@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from django.utils.http import urlquote
-
 from exam import fixture
 
 from sentry.testutils import TestCase
+
+from django.utils.http import urlquote
 
 
 class AuthClose(TestCase):

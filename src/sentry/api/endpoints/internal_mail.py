@@ -4,9 +4,9 @@ import six
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.utils.email import send_mail
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.utils.email import send_mail
 
 
 class InternalMailEndpoint(Endpoint):

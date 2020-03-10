@@ -1,24 +1,24 @@
 from __future__ import absolute_import
 
-import six
 import time
-from datetime import datetime
 from copy import deepcopy
+from datetime import datetime
 
+import six
 from rest_framework import status
 from rest_framework.response import Response
-
-from django.utils import timezone
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize, CombinedRuleSerializer
+from sentry.api.serializers import CombinedRuleSerializer, serialize
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
-from sentry.utils.cursors import build_cursor, Cursor
+from sentry.utils.cursors import Cursor, build_cursor
+
+from django.utils import timezone
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):

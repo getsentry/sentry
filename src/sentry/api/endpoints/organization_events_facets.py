@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+
 import six
-
-from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.snuba import discover
 from sentry import features, tagstore
+from sentry.api.bases import (
+    NoProjects, OrganizationEventsEndpointBase, OrganizationEventsError
+)
+from sentry.snuba import discover
 
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):

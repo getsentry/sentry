@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.serializers import Serializer, register
-from sentry.api.serializers import serialize
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.incidents.models import IncidentActivity
 from sentry.utils.db import attach_foreignkey

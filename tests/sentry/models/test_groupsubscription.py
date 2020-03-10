@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import functools
 import itertools
 
-from sentry.models import GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
+from sentry.models import (
+    GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
+)
 from sentry.testutils import TestCase
 
 

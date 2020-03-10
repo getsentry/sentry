@@ -1,20 +1,19 @@
 from __future__ import absolute_import
 
 import re
+
 import phonenumbers
-
 from django import forms
-from django.utils.translation import ugettext_lazy as _
-
-from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-
-from .client import TwilioApiClient
 from sentry_plugins.base import CorePluginMixin
 
 import sentry
-from sentry.utils.compat import map
-from sentry.utils.compat import filter
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.utils.compat import filter, map
+
+from .client import TwilioApiClient
+
+from django.utils.translation import ugettext_lazy as _
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160

@@ -1,19 +1,18 @@
 from __future__ import absolute_import
 
-import uuid
-import pytest
 import time
+import uuid
 
-from sentry.utils import json
-from sentry.ingest.ingest_consumer import (
-    process_event,
-    process_attachment_chunk,
-    process_individual_attachment,
-    process_userreport,
-)
+import pytest
+
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
-from sentry.models import EventAttachment, UserReport, EventUser
+from sentry.ingest.ingest_consumer import (
+    process_attachment_chunk, process_event, process_individual_attachment,
+    process_userreport
+)
+from sentry.models import EventAttachment, EventUser, UserReport
+from sentry.utils import json
 
 
 def get_normalized_event(data, project):

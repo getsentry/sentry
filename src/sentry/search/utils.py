@@ -5,13 +5,14 @@ from datetime import datetime, timedelta
 
 import six
 from django.db import DataError
-from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
+from sentry.models import KEYWORD_MAP, EventUser, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 from sentry.utils.compat import map
+
+from django.utils import timezone
 
 
 class InvalidQuery(Exception):

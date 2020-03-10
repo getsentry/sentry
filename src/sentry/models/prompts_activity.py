@@ -1,16 +1,14 @@
 from __future__ import absolute_import, print_function
 
-from django.db import models
 from django.conf import settings
-from django.utils import timezone
+from django.db import models
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    sane_repr,
+    BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model,
+    sane_repr
 )
+
+from django.utils import timezone
 
 
 class PromptsActivity(Model):

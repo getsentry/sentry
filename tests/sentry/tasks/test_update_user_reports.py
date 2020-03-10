@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
-from django.utils import timezone
-
 from sentry.models import UserReport
 from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class UpdateUserReportTest(TestCase):

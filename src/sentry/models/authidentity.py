@@ -1,11 +1,15 @@
 from __future__ import absolute_import, print_function
 
 from datetime import timedelta
+
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 
-from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    EncryptedJsonField, FlexibleForeignKey, Model, sane_repr
+)
+
+from django.utils import timezone
 
 
 class AuthIdentity(Model):

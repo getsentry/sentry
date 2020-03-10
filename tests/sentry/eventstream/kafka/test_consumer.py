@@ -7,7 +7,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 import pytest
-
 from six.moves import xrange
 
 try:

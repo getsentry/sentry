@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import bitfield.models
 from django.conf import settings
 from django.db import migrations, models
-import bitfield.models
-import sentry.models
+
 import sentry.db.models.fields.jsonfield
+import sentry.models
 
 
 def is_test_db():

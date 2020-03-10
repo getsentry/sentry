@@ -2,17 +2,13 @@ from __future__ import absolute_import, print_function
 
 from django.views.generic import View
 
-from sentry.incidents.models import (
-    Incident,
-    AlertRule,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    TriggerStatus,
-    IncidentStatus,
-)
-from sentry.models.project import Project
-from sentry.models.organization import Organization
 from sentry.incidents.action_handlers import EmailActionHandler
+from sentry.incidents.models import (
+    AlertRule, AlertRuleTrigger, AlertRuleTriggerAction, Incident,
+    IncidentStatus, TriggerStatus
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from .mail import MailPreview
 

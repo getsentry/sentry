@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import re
-import six
 
+import six
 from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 
 from sentry.utils.safe import get_path
-
 
 SYSTEM_FRAMES = [
     "std::",

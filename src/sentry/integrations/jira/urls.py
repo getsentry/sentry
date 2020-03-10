@@ -9,7 +9,6 @@ from .search import JiraSearchEndpoint
 from .uninstalled import JiraUninstalledEndpoint
 from .webhooks import JiraIssueUpdatedWebhook
 
-
 urlpatterns = [
     url(r"^configure/$", JiraConfigureView.as_view()),
     url(r"^descriptor/$", JiraDescriptorEndpoint.as_view()),

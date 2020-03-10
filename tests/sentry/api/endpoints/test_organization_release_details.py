@@ -1,25 +1,21 @@
 from __future__ import absolute_import
+
 import unittest
-from sentry.utils.compat.mock import patch
 from datetime import datetime
 
 import pytz
 from django.core.urlresolvers import reverse
 
+from sentry.api.endpoints.organization_release_details import (
+    OrganizationReleaseSerializer
+)
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (
-    Activity,
-    Environment,
-    File,
-    Release,
-    ReleaseCommit,
-    ReleaseFile,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Repository,
+    Activity, Environment, File, Release, ReleaseCommit, ReleaseFile,
+    ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 from sentry.testutils import APITestCase
-from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
+from sentry.utils.compat.mock import patch
 
 
 class ReleaseDetailsTest(APITestCase):

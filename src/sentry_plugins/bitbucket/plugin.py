@@ -2,16 +2,14 @@ from __future__ import absolute_import
 
 from django.conf.urls import url
 from rest_framework.response import Response
-
-from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
-from sentry.utils.http import absolute_uri
-
 from sentry_plugins.exceptions import ApiError
+
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
+from sentry.utils.http import absolute_uri
 
 from .mixins import BitbucketMixin
 from .repository_provider import BitbucketRepositoryProvider
-
 
 ISSUE_TYPES = (
     ("bug", "Bug"),

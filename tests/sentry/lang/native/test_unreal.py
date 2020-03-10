@@ -1,18 +1,16 @@
 from __future__ import absolute_import
+
 import os
 
 from symbolic import Unreal4Crash
 
-from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import (
-    merge_unreal_user,
-    unreal_attachment_type,
-    merge_unreal_context_event,
-    merge_unreal_logs_event,
+    merge_unreal_context_event, merge_unreal_logs_event, merge_unreal_user,
+    unreal_attachment_type
 )
 from sentry.models import UserReport
-
+from sentry.testutils import TestCase
 
 MOCK_EVENT_ID = "12852a74acc943a790c8f1cd23907caa"
 

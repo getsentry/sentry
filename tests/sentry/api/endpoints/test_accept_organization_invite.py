@@ -1,19 +1,14 @@
 from __future__ import absolute_import
 
-from six.moves.urllib.parse import parse_qsl
-from django.core.urlresolvers import reverse
-from django.db.models import F
 from datetime import timedelta
 
+from django.core.urlresolvers import reverse
+from django.db.models import F
+from six.moves.urllib.parse import parse_qsl
+
 from sentry.models import (
-    AuditLogEntry,
-    AuditLogEntryEvent,
-    Authenticator,
-    InviteStatus,
-    Organization,
-    OrganizationMember,
-    TotpInterface,
-    AuthProvider,
+    AuditLogEntry, AuditLogEntryEvent, Authenticator, AuthProvider,
+    InviteStatus, Organization, OrganizationMember, TotpInterface
 )
 from sentry.testutils import TestCase
 

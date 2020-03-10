@@ -1,37 +1,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import dateutil.parser
 import hashlib
 import hmac
 import logging
-import six
 
+import dateutil.parser
+import six
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse, Http404
-from django.utils.crypto import constant_time_compare
-from django.utils.decorators import method_decorator
+from django.http import Http404, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from django.utils import timezone
+from sentry_plugins.exceptions import ApiError
+from sentry_plugins.github.client import GitHubClient
 from simplejson import JSONDecodeError
+
 from sentry import options
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    CommitFileChange,
-    Integration,
-    Organization,
-    OrganizationOption,
-    Repository,
-    User,
-    PullRequest,
+    Commit, CommitAuthor, CommitFileChange, Integration, Organization,
+    OrganizationOption, PullRequest, Repository, User
 )
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 
-from sentry_plugins.exceptions import ApiError
-from sentry_plugins.github.client import GitHubClient
+from django.utils import timezone
+from django.utils.crypto import constant_time_compare
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger("sentry.webhooks")
 

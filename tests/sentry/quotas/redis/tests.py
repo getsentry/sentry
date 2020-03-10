@@ -2,18 +2,17 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
-import six
 import time
 
+import six
 from exam import fixture, patcher
+from six.moves import xrange
 
 from sentry.quotas.base import QuotaConfig, QuotaScope
-from sentry.quotas.redis import is_rate_limited, RedisQuota
+from sentry.quotas.redis import RedisQuota, is_rate_limited
 from sentry.testutils import TestCase
+from sentry.utils.compat import map, mock
 from sentry.utils.redis import clusters
-from six.moves import xrange
-from sentry.utils.compat import map
 
 
 def test_is_rate_limited_script():

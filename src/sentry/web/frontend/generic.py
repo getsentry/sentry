@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
 import os
-import posixpath
 
+import posixpath
 from django.conf import settings
-from django.http import HttpResponseNotFound, Http404
-from django.contrib.staticfiles import finders
-from django.utils.six.moves.urllib.parse import unquote
+from django.http import Http404, HttpResponseNotFound
 from django.views import static
+
+from django.contrib.staticfiles import finders
+
+from django.utils.six.moves.urllib.parse import unquote
 
 FOREVER_CACHE = "max-age=315360000"
 NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"

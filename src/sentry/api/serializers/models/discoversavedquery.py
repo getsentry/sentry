@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DiscoverSavedQuery

@@ -2,27 +2,21 @@
 
 from __future__ import absolute_import
 
-import six
-
 from uuid import uuid4
 
+import six
+
 from sentry import tagstore
-from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.endpoints.organization_releases import (
+    ReleaseSerializerWithProjects
+)
 from sentry.api.serializers import serialize
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Deploy,
-    Environment,
-    Release,
-    ReleaseCommit,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    User,
-    UserEmail,
+    Commit, CommitAuthor, Deploy, Environment, Release, ReleaseCommit,
+    ReleaseProject, ReleaseProjectEnvironment, User, UserEmail
 )
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):

@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-import six
 import sys
+
+import six
+
 from sentry.utils.compat import map
 
 try:

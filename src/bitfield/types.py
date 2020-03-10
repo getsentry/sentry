@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import six
-
+from django.core.exceptions import ImproperlyConfigured
 from six import string_types
+
 from sentry.utils.compat import implements_to_string
 
 
@@ -250,7 +251,6 @@ class BitHandler(object):
         return self._labels[flag]
 
 
-from django.core.exceptions import ImproperlyConfigured
 
 # We need to register adapters in Django 1.8 in order to prevent
 # "ProgrammingError: can't adapt type"

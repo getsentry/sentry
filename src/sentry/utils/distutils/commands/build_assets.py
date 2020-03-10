@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-import json
 import datetime
+import json
 import os
 import os.path
 import sys
 import traceback
-
 from distutils import log
 
 from .base import BaseBuildCommand

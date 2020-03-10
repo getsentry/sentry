@@ -1,12 +1,14 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from datetime import datetime
-from django.utils import timezone
+
+import six
 from mock import patch
+
 from sentry.models import Monitor, MonitorFailure, MonitorType, ScheduleType
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class MonitorTestCase(TestCase):

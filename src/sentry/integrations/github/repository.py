@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.core.cache import cache
 
 from sentry.integrations.exceptions import ApiError, IntegrationError

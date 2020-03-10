@@ -1,28 +1,19 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
-
 from sentry.models import (
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
-    OrganizationOption,
-    Rule,
-)
-from sentry.signals import (
-    event_processed,
-    project_created,
-    first_event_pending,
-    first_event_received,
-    member_invited,
-    member_joined,
-    plugin_enabled,
-    issue_tracker_used,
-    alert_rule_created,
+    OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask,
+    OrganizationOption, Rule
 )
 from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.signals import (
+    alert_rule_created, event_processed, first_event_pending,
+    first_event_received, issue_tracker_used, member_invited, member_joined,
+    plugin_enabled, project_created
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
+from django.utils import timezone
 
 
 class OrganizationOnboardingTaskTest(TestCase):

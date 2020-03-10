@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import os
 
 from django.conf import settings
 from sentry_sdk import Hub
 
+from sentry.utils.compat import mock
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")

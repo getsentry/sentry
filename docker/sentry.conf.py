@@ -1,42 +1,16 @@
 # flake8: noqa
 from __future__ import absolute_import
 
-# This file is just Python, with a touch of Django which means
-# you can inherit and tweak settings to your hearts content.
+import os
+import os.path
 
-# For Docker, the following environment variables are supported:
-#  SENTRY_POSTGRES_HOST
-#  SENTRY_POSTGRES_PORT
-#  SENTRY_DB_NAME
-#  SENTRY_DB_USER
-#  SENTRY_DB_PASSWORD
-#  SENTRY_RABBITMQ_HOST
-#  SENTRY_RABBITMQ_USERNAME
-#  SENTRY_RABBITMQ_PASSWORD
-#  SENTRY_RABBITMQ_VHOST
-#  SENTRY_REDIS_HOST
-#  SENTRY_REDIS_PASSWORD
-#  SENTRY_REDIS_PORT
-#  SENTRY_REDIS_DB
-#  SENTRY_MEMCACHED_HOST
-#  SENTRY_MEMCACHED_PORT
-#  SENTRY_FILESTORE_DIR
-#  SENTRY_SERVER_EMAIL
-#  SENTRY_EMAIL_HOST
-#  SENTRY_EMAIL_PORT
-#  SENTRY_EMAIL_USER
-#  SENTRY_EMAIL_PASSWORD
-#  SENTRY_EMAIL_USE_TLS
-#  SENTRY_ENABLE_EMAIL_REPLIES
-#  SENTRY_SMTP_HOSTNAME
-#  SENTRY_MAILGUN_API_KEY
-#  SENTRY_SINGLE_ORGANIZATION
-#  SENTRY_SECRET_KEY
 from sentry.conf.server import *
 from sentry.utils.types import Bool
 
-import os
-import os.path
+# This file is just Python, with a touch of Django which means
+# you can inherit and tweak settings to your hearts content.
+
+
 
 CONF_ROOT = os.path.dirname(__file__)
 env = os.environ.get

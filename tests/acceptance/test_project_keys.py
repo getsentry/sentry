@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
 
 from sentry.models import ProjectKey
 from sentry.testutils import AcceptanceTestCase
+
+from django.utils import timezone
 
 
 class ProjectKeysTest(AcceptanceTestCase):

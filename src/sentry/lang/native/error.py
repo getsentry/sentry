@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import logging
+
 import six
 
-from sentry.utils.compat import implements_to_string
 from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.utils import image_name
 from sentry.models import EventError
 from sentry.reprocessing import report_processing_issue
+from sentry.utils.compat import implements_to_string
 
 FATAL_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,

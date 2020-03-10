@@ -3,10 +3,11 @@
 from __future__ import absolute_import
 
 import os
+
 import six
 
-from sentry.testutils import CliTestCase
 from sentry.runner.commands.init import init
+from sentry.testutils import CliTestCase
 
 
 class InitTest(CliTestCase):

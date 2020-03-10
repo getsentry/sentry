@@ -2,15 +2,14 @@ from __future__ import absolute_import
 
 import responses
 import six
-
-from exam import fixture
 from django.core.urlresolvers import reverse
+from exam import fixture
+from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
+
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
 
 INVALID_METHOD = (
     '{"status":"invalid method","message":"You must use HTTP POST to submit your event"}'

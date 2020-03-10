@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict
+
 from django import forms
 
 from sentry import tagstore

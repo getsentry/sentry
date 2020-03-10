@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
-import os
 import json
+import os
 import subprocess
 import time
 

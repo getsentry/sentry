@@ -7,42 +7,31 @@ from uuid import uuid4
 
 import pytz
 import six
-from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from sentry.utils.compat.mock import call, Mock
 
 from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
+    create_alert_rule, create_alert_rule_trigger,
+    create_alert_rule_trigger_action
 )
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentStatus,
-    IncidentTrigger,
-    IncidentType,
-    TriggerStatus,
+    AlertRule, AlertRuleThresholdType, AlertRuleTrigger,
+    AlertRuleTriggerAction, Incident, IncidentStatus, IncidentTrigger,
+    IncidentType, TriggerStatus
 )
 from sentry.incidents.subscription_processor import (
-    build_alert_rule_stat_keys,
-    build_alert_rule_trigger_stat_key,
-    build_trigger_stat_keys,
-    get_alert_rule_stats,
-    get_redis_client,
-    partition,
-    SubscriptionProcessor,
-    update_alert_rule_stats,
+    SubscriptionProcessor, build_alert_rule_stat_keys,
+    build_alert_rule_trigger_stat_key, build_trigger_stat_keys,
+    get_alert_rule_stats, get_redis_client, partition, update_alert_rule_stats
 )
 from sentry.snuba.models import QueryAggregations, QuerySubscription
+from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.testutils import TestCase
-from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
+from sentry.utils.compat.mock import Mock, call
+from sentry.utils.dates import to_timestamp
+
+from django.utils import timezone
 
 
 @freeze_time()

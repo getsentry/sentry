@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, serialize, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData, User
 

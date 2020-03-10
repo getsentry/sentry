@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.db.models import Max
-from django.utils import timezone
 
 from sentry.constants import VALID_PLATFORMS
 from sentry.models import Group, Project, ProjectPlatform
 from sentry.tasks.base import instrumented_task
+
+from django.utils import timezone
 
 
 @instrumented_task(name="sentry.tasks.collect_project_platforms", queue="stats")

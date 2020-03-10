@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-import six
 import sys
 import traceback
 
+import six
 from rest_framework.response import Response
+
 from sentry.utils.sdk import capture_exception
 
 from .organization import OrganizationEndpoint, OrganizationPermission

@@ -1,28 +1,25 @@
 from __future__ import absolute_import
 
 import logging
+
 import posixpath
 import six
 
 from sentry.event_manager import validate_and_set_timestamp
-from sentry.lang.native.error import write_error, SymbolicationFailed
+from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE
 from sentry.lang.native.utils import (
-    get_sdk_from_event,
-    native_images_from_data,
-    is_native_platform,
-    image_name,
-    signal_from_data,
-    get_event_attachment,
+    get_event_attachment, get_sdk_from_event, image_name, is_native_platform,
+    native_images_from_data, signal_from_data
 )
-from sentry.models import Project, EventError
-from sentry.utils.in_app import is_known_third_party, is_optional_package
-from sentry.utils.safe import get_path, set_path, setdefault_path, trim
+from sentry.models import EventError, Project
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.compat import zip
+from sentry.utils.in_app import is_known_third_party, is_optional_package
+from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 
 logger = logging.getLogger(__name__)
 

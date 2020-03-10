@@ -5,7 +5,7 @@ import json
 from exam import fixture
 
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupEventJsonTest(TestCase):

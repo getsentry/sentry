@@ -1,26 +1,17 @@
 from __future__ import absolute_import
 
-import six
 from hashlib import sha1
-from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
+import six
+
 from sentry.models import (
-    Activity,
-    Commit,
-    CommitAuthor,
-    Group,
-    GroupAssignee,
-    GroupLink,
-    GroupStatus,
-    GroupSubscription,
-    OrganizationMember,
-    Release,
-    Repository,
-    UserEmail,
-    UserOption,
+    Activity, Commit, CommitAuthor, Group, GroupAssignee, GroupLink,
+    GroupStatus, GroupSubscription, OrganizationMember, Release, Repository,
+    UserEmail, UserOption
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class ResolveGroupResolutionsTest(TestCase):

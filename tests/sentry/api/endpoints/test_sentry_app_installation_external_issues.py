@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
 import responses
-
+import six
 from django.core.urlresolvers import reverse
+
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
 

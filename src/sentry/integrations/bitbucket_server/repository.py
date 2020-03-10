@@ -1,16 +1,20 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import datetime
-from django.utils import timezone
+
+import six
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from sentry.models.integration import Integration
-from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-from sentry.utils.http import absolute_uri
+
 from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.models.integration import Integration
+from sentry.plugins.providers.integration_repository import (
+    IntegrationRepositoryProvider
+)
 from sentry.utils.hashlib import md5_text
+from sentry.utils.http import absolute_uri
+
+from django.utils import timezone
 
 
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):

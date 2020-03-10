@@ -1,16 +1,17 @@
 from __future__ import absolute_import, print_function
 
-import click
 import logging
 import os
-import six
 
+import click
+import django.db.models.base
+import six
 from django.conf import settings
 
 from sentry.utils import metrics, warnings
+from sentry.utils.compat import map
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 
@@ -396,7 +397,6 @@ def validate_options(settings):
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
 
 
-import django.db.models.base
 
 model_unpickle = django.db.models.base.model_unpickle
 

@@ -8,14 +8,11 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.logic import bulk_get_incident_stats
 from sentry.incidents.models import (
-    Incident,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSeen,
-    IncidentSubscription,
+    Incident, IncidentGroup, IncidentProject, IncidentSeen,
+    IncidentSubscription
 )
-from sentry.utils.db import attach_foreignkey
 from sentry.utils.compat import zip
+from sentry.utils.db import attach_foreignkey
 
 
 @register(Incident)

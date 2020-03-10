@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-import six
 import sys
 import types
+
+import six
 
 from sentry.utils.cache import memoize
 

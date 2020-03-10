@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.exceptions import PluginError
-
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.constants import ERR_UNAUTHORIZED
+
+from sentry.exceptions import PluginError
 
 from .client import VstsClient
 

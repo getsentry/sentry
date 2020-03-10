@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+
 from sentry.models import Group
+from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 def format_project_event(project_slug, event_id):

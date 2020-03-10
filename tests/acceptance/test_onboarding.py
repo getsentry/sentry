@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 from selenium.common.exceptions import TimeoutException
 
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
+from sentry.utils.compat import mock
 from sentry.utils.retries import TimedRetryPolicy
 
 

@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import simplejson
 import six
-
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
-from django.utils.encoding import smart_text
 
 from sentry.db.models.utils import Creator
+
+from django.utils.encoding import smart_text
 
 
 class JSONField(TextField):

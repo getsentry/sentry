@@ -3,10 +3,11 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.geo import geo_by_addr
+
+from django.utils import timezone
 
 
 class UserIP(Model):

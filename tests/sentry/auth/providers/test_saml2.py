@@ -1,13 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import pytest
-from sentry.utils.compat import mock
-
-from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuthProvider
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 dummy_provider_config = {
     "attribute_mapping": {

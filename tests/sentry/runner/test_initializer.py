@@ -4,7 +4,7 @@ import pytest
 import six
 
 from sentry.runner.importer import ConfigurationError
-from sentry.runner.initializer import bootstrap_options, apply_legacy_settings
+from sentry.runner.initializer import apply_legacy_settings, bootstrap_options
 
 
 @pytest.fixture

@@ -1,10 +1,12 @@
 from __future__ import absolute_import
-import responses
+
 import pytest
+import responses
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import Identity
 from sentry.utils import json
+
 from .testutils import GitLabTestCase
 
 

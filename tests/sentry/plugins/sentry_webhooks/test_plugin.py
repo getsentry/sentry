@@ -3,15 +3,17 @@
 from __future__ import absolute_import
 
 import json
+
 import pytest
 import responses
-
 from exam import fixture
 
 from sentry.exceptions import PluginError
 from sentry.models import Rule
 from sentry.plugins.base import Notification
-from sentry.plugins.sentry_webhooks.plugin import validate_urls, WebHooksPlugin, WebHooksOptionsForm
+from sentry.plugins.sentry_webhooks.plugin import (
+    WebHooksOptionsForm, WebHooksPlugin, validate_urls
+)
 from sentry.testutils import TestCase
 
 

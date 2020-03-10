@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 

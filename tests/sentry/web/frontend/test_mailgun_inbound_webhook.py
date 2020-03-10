@@ -1,10 +1,9 @@
 from __future__ import absolute_import, print_function
 
-from sentry.utils.compat import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 from sentry.utils.email import group_id_to_email
 
 body_plain = "foo bar"

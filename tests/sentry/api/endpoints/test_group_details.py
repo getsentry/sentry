@@ -1,29 +1,19 @@
 from __future__ import absolute_import, print_function
 
-from sentry.utils.compat import mock
-import six
 from base64 import b64encode
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.models import (
-    Activity,
-    ApiKey,
-    Environment,
-    Group,
-    GroupHash,
-    GroupAssignee,
-    GroupBookmark,
-    GroupResolution,
-    GroupSeen,
-    GroupSnooze,
-    GroupSubscription,
-    GroupStatus,
-    GroupTombstone,
-    Release,
+    Activity, ApiKey, Environment, Group, GroupAssignee, GroupBookmark,
+    GroupHash, GroupResolution, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSubscription, GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import mock
+
+from django.utils import timezone
 
 
 class GroupDetailsTest(APITestCase):

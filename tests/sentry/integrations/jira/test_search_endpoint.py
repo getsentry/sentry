@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
 import responses
-
-from exam import fixture
-from six.moves.urllib.parse import urlparse, parse_qs
-
 from django.core.urlresolvers import reverse
+from exam import fixture
+from six.moves.urllib.parse import parse_qs, urlparse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
 
 SAMPLE_SEARCH_RESPONSE = """
 {

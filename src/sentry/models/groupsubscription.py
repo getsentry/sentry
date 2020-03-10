@@ -3,15 +3,13 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry.db.models import (
-    BaseManager,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    sane_repr,
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
+
+from django.utils import timezone
 
 
 class GroupSubscriptionReason(object):

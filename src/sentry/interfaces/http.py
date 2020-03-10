@@ -1,21 +1,25 @@
 from __future__ import absolute_import
-from sentry.utils.compat import map
-
-__all__ = ("Http",)
 
 import re
-import six
 
-from django.utils.translation import ugettext as _
-from django.utils.http import urlencode
+import six
 from six.moves.urllib.parse import parse_qsl
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.utils import json
-from sentry.utils.strings import to_unicode
+from sentry.utils.compat import map
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
+from sentry.utils.strings import to_unicode
 from sentry.web.helpers import render_to_string
+
+from django.utils.http import urlencode
+from django.utils.translation import ugettext as _
+
+__all__ = ("Http",)
+
+
+
 
 # Instead of relying on a list of hardcoded methods, just loosly match
 # against a pattern.

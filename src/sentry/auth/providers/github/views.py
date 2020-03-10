@@ -2,17 +2,15 @@ from __future__ import absolute_import
 
 import six
 from django import forms
+
 from sentry.auth.view import AuthView, ConfigureView
 from sentry.models import AuthIdentity
 
 from .client import GitHubClient
-from .constants import ERR_NO_ORG_ACCESS
-from .constants import REQUIRE_VERIFIED_EMAIL
 from .constants import (
-    ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL,
-    ERR_NO_SINGLE_PRIMARY_EMAIL,
-    ERR_NO_VERIFIED_PRIMARY_EMAIL,
-    ERR_NO_PRIMARY_EMAIL,
+    ERR_NO_ORG_ACCESS, ERR_NO_PRIMARY_EMAIL, ERR_NO_SINGLE_PRIMARY_EMAIL,
+    ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL, ERR_NO_VERIFIED_PRIMARY_EMAIL,
+    REQUIRE_VERIFIED_EMAIL
 )
 
 

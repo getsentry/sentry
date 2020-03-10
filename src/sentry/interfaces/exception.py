@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
-__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
-
 import re
+
 import six
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
+
+__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
+
+
 
 _type_value_re = re.compile("^(\w+):(.*)$")
 

@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
 from datetime import timedelta
-from django.utils import timezone
+
+import six
 
 from sentry.models import Option
 from sentry.options import default_manager
 from sentry.options.manager import UnknownOption
 from sentry.tasks.base import instrumented_task
+
+from django.utils import timezone
 
 ONE_HOUR = 60 * 60
 logger = logging.getLogger("sentry")

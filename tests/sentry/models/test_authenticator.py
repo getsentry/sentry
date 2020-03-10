@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+from sentry.models import Authenticator, RecoveryCodeInterface, TotpInterface
 from sentry.testutils import TestCase
-from sentry.models import Authenticator, TotpInterface, RecoveryCodeInterface
 
 
 class AuthenticatorTest(TestCase):

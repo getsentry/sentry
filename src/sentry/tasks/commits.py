@@ -1,19 +1,15 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
-    Deploy,
-    LatestRepoReleaseEnvironment,
-    Release,
-    ReleaseHeadCommit,
-    Repository,
-    User,
+    Deploy, LatestRepoReleaseEnvironment, Release, ReleaseHeadCommit,
+    Repository, User
 )
 from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry

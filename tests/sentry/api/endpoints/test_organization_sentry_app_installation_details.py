@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-from sentry.utils.compat.mock import patch
-
-from sentry.testutils import APITestCase
 import responses
+from django.core.urlresolvers import reverse
+
 from sentry.mediators.token_exchange import GrantExchanger
+from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppInstallationDetailsTest(APITestCase):

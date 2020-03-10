@@ -12,7 +12,6 @@ from sentry.utils import redis
 
 from .base import MinHashIndexBackendTestMixin
 
-
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 

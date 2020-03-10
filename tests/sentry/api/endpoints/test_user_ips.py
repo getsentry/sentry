@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from django.utils import timezone
 
 from sentry.models import UserIP
 from sentry.testutils import APITestCase
+
+from django.utils import timezone
 
 
 class UserEmailsTest(APITestCase):

@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
-from rest_framework import serializers, status
 from uuid import uuid4
+
+import six
+from rest_framework import serializers, status
 
 from sentry import roles
 from sentry.api.base import DocSection
@@ -15,19 +15,18 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
+from sentry.constants import (
+    LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+)
+from sentry.lang.native.utils import (
+    STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
+)
 from sentry.models import (
-    AuditLogEntryEvent,
-    Authenticator,
-    AuthProvider,
-    Organization,
-    OrganizationAvatar,
-    OrganizationOption,
-    OrganizationStatus,
+    AuditLogEntryEvent, Authenticator, AuthProvider, Organization,
+    OrganizationAvatar, OrganizationOption, OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = u"You cannot remove the default organization."

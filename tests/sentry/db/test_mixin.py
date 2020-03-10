@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat.mock import patch
-
 from sentry.models import OrganizationOption, Repository
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class RenamePendingDeleteTest(TestCase):

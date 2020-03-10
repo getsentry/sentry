@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.group import GroupEndpoint
-from sentry.api.serializers import serialize
-from sentry.api.paginator import DateTimePaginator
-from sentry.models import UserReport, Environment
 from sentry.api.base import EnvironmentMixin
+from sentry.api.bases.group import GroupEndpoint
+from sentry.api.paginator import DateTimePaginator
+from sentry.api.serializers import serialize
+from sentry.models import Environment, UserReport
 
 
 class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):

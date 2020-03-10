@@ -1,24 +1,20 @@
 from __future__ import absolute_import, print_function
 
 import hmac
-import six
-
-from django.db import models
-from django.utils import timezone
 from hashlib import sha256
 from uuid import uuid4
 
+import six
+from django.db import models
+
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    ArrayField,
-    Model,
-    BaseManager,
-    BoundedPositiveIntegerField,
-    EncryptedTextField,
-    FlexibleForeignKey,
-    sane_repr,
+    ArrayField, BaseManager, BoundedPositiveIntegerField, EncryptedTextField,
+    FlexibleForeignKey, Model, sane_repr
 )
 from sentry.models import SentryApp
+
+from django.utils import timezone
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",

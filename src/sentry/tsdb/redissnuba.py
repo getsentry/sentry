@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import inspect
+
 import six
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.tsdb.dummy import DummyTSDB
 from sentry.tsdb.redis import RedisTSDB
 from sentry.tsdb.snuba import SnubaTSDB
-
 
 READ = 0
 WRITE = 1

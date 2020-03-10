@@ -1,14 +1,16 @@
 from __future__ import absolute_import
 
 import functools
-import six
 from collections import defaultdict
 
+import six
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
-from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
+from sentry.utils.warnings import (
+    DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
+)
 
 
 class InternalWarningsEndpoint(Endpoint):

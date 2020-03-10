@@ -2,18 +2,15 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db import models, IntegrityError
-from django.utils import timezone
+from django.db import IntegrityError, models
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    FlexibleForeignKey,
-    Model,
+    BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
 )
 from sentry.signals import integration_added
 
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

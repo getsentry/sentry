@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import itertools
+from datetime import timedelta
 from uuid import uuid4
 
-from datetime import timedelta
 from django.db import connections, router
-from django.utils import timezone
+
 from sentry.utils.compat import zip
+
+from django.utils import timezone
 
 
 class BulkDeleteQuery(object):

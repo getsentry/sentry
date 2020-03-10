@@ -3,12 +3,13 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule
 from sentry.plugins.base import plugins
-from sentry.testutils import TestCase
 from sentry.rules.processor import RuleProcessor
+from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class RuleProcessorTest(TestCase):

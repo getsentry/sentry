@@ -1,9 +1,8 @@
 # flake8: noqa
-from sentry.conf.server import *
-
-import os
 import getpass
+import os
 
+from sentry.conf.server import *
 
 SENTRY_APIDOCS_REDIS_PORT = 12355
 SENTRY_APIDOCS_WEB_PORT = 12356

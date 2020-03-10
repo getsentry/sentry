@@ -1,16 +1,11 @@
 from __future__ import absolute_import
 
-import sys
 import functools
+import sys
 
 from sentry.utils.strings import (
-    is_valid_dot_atom,
-    soft_break,
-    soft_hyphenate,
-    tokens_from_name,
-    codec_lookup,
-    truncatechars,
-    oxfordize_list,
+    codec_lookup, is_valid_dot_atom, oxfordize_list, soft_break,
+    soft_hyphenate, tokens_from_name, truncatechars
 )
 
 ZWSP = u"\u200b"  # zero width space

@@ -1,16 +1,15 @@
 from __future__ import absolute_import
+
 from datetime import datetime
+
 import pytz
+
+from sentry.incidents.models import (
+    AlertRuleTrigger, Incident, IncidentStatus, IncidentTrigger, TriggerStatus
+)
+from sentry.models import Organization
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
-from sentry.models import Organization
-from sentry.incidents.models import (
-    IncidentStatus,
-    TriggerStatus,
-    AlertRuleTrigger,
-    Incident,
-    IncidentTrigger,
-)
 
 
 class AddProjectToIncludeAllRulesTest(TestCase):

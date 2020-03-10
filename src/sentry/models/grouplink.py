@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model,
-    sane_repr,
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    JSONField,
+    BoundedBigIntegerField, BoundedPositiveIntegerField, JSONField, Model,
+    sane_repr
 )
+
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 
 class GroupLink(Model):

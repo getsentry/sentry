@@ -10,15 +10,13 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
-from sentry.utils.compat.mock import call, Mock
 
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
-    QuerySubscriptionConsumer,
-    register_subscriber,
-    subscriber_registry,
+    QuerySubscriptionConsumer, register_subscriber, subscriber_registry
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.utils.compat.mock import Mock, call
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):

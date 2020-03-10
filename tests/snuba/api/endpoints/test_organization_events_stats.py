@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
-import six
 import uuid
-import mock
-
 from datetime import timedelta
 
+import mock
+import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import zip
 
 

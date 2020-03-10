@@ -7,11 +7,8 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    QueryAggregations,
-    TriggerStatus,
-    IncidentStatus,
+    AlertRuleThresholdType, AlertRuleTriggerAction, IncidentStatus,
+    QueryAggregations, TriggerStatus
 )
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

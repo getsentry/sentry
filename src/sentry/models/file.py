@@ -1,29 +1,31 @@
 from __future__ import absolute_import
 
-import os
-import six
 import mmap
+import os
 import tempfile
 import time
-
-from hashlib import sha1
-from uuid import uuid4
-from threading import Semaphore
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from hashlib import sha1
+from threading import Semaphore
+from uuid import uuid4
 
+import six
 from django.conf import settings
-from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
+from django.core.files.base import File as FileObj
 from django.core.files.storage import get_storage_class
-from django.db import models, transaction, IntegrityError
-from django.utils import timezone
+from django.db import IntegrityError, models, transaction
 
 from sentry.app import locks
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
+)
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
+
+from django.utils import timezone
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)

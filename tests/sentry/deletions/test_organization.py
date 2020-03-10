@@ -1,20 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit,
-    CommitAuthor,
-    Dashboard,
-    Environment,
-    ExternalIssue,
-    Organization,
-    PullRequest,
-    Release,
-    ReleaseCommit,
-    ReleaseEnvironment,
-    Repository,
-    ScheduledDeletion,
-    Widget,
-    WidgetDataSource,
+    Commit, CommitAuthor, Dashboard, Environment, ExternalIssue, Organization,
+    PullRequest, Release, ReleaseCommit, ReleaseEnvironment, Repository,
+    ScheduledDeletion, Widget, WidgetDataSource
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

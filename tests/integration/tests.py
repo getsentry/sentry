@@ -2,36 +2,39 @@
 
 from __future__ import absolute_import, print_function
 
-import os
 import datetime
 import json
 import logging
-import six
-from time import sleep
+import os
 import zlib
+from gzip import GzipFile
+from time import sleep
 
-from sentry.utils.compat import mock
-from sentry import eventstore, tagstore
+import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
-from django.utils import timezone
 from exam import fixture
-from gzip import GzipFile
-from sentry_sdk import Hub, Client
+from sentry_sdk import Client, Hub
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from six import StringIO
 from werkzeug.test import Client as WerkzeugClient
 
+from sentry import eventstore, tagstore
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
-from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.settings import validate_settings, ConfigurationError, import_string
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.sdk import configure_scope
+from sentry.utils.settings import (
+    ConfigurationError, import_string, validate_settings
+)
 from sentry.web.api import disable_transaction_events
 from sentry.wsgi import application
+
+from django.utils import timezone
 
 DEPENDENCY_TEST_DATA = {
     "postgresql": (

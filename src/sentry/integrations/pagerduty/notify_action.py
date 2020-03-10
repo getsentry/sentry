@@ -5,13 +5,17 @@ from __future__ import absolute_import
 
 import six
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import ObjectStatus
-from sentry.rules.actions.base import EventAction
-from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.integrations.exceptions import ApiError
+from sentry.models import (
+    Integration, OrganizationIntegration, PagerDutyService
+)
+from sentry.rules.actions.base import EventAction
+
 from .client import PagerDutyClient
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class PagerDutyNotifyServiceForm(forms.Form):

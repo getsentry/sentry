@@ -1,8 +1,9 @@
 from __future__ import absolute_import, division
 
+from datetime import datetime, timedelta
+
 import pytz
 import six
-from datetime import datetime, timedelta
 
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.tsdb.base import TSDBModel

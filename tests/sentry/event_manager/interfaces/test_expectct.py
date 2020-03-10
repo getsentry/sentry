@@ -5,8 +5,8 @@ from __future__ import absolute_import
 import pytest
 
 from sentry import eventstore
-from sentry.interfaces.security import ExpectCT
 from sentry.event_manager import EventManager
+from sentry.interfaces.security import ExpectCT
 
 
 @pytest.fixture

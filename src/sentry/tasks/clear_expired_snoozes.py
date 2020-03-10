@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
-from django.utils import timezone
-
 from sentry.models import Group, GroupSnooze, GroupStatus
 from sentry.tasks.base import instrumented_task
+
+from django.utils import timezone
 
 
 @instrumented_task(name="sentry.tasks.clear_expired_snoozes", time_limit=15, soft_time_limit=10)

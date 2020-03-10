@@ -7,10 +7,10 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize, ProjectSummarySerializer
-from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
+from sentry.api.serializers import ProjectSummarySerializer, serialize
+from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
 from sentry.signals import project_created
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
 

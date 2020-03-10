@@ -1,19 +1,15 @@
 from __future__ import absolute_import
 
 from datetime import datetime
+
 import pytest
 import pytz
 
 from sentry.models import GroupRelease, Release
 from sentry.testutils import TestCase
 from sentry.utils.snuba import (
-    _prepare_query_params,
-    get_snuba_translators,
-    get_json_type,
-    get_snuba_column_name,
-    Dataset,
-    SnubaQueryParams,
-    UnqualifiedQueryError,
+    Dataset, SnubaQueryParams, UnqualifiedQueryError, _prepare_query_params,
+    get_json_type, get_snuba_column_name, get_snuba_translators
 )
 
 

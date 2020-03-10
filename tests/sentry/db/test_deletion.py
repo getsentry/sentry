@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
 
 from sentry.db.deletion import BulkDeleteQuery
 from sentry.models import Group, Project
 from sentry.testutils import TestCase, TransactionTestCase
+
+from django.utils import timezone
 
 
 class BulkDeleteQueryTest(TestCase):

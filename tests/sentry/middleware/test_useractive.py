@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.utils import timezone
+
 from django.test import RequestFactory
 from exam import fixture
 
 from sentry.middleware.user import UserActiveMiddleware
 from sentry.testutils import TestCase
+
+from django.utils import timezone
 
 
 class UserActiveMiddlewareTest(TestCase):

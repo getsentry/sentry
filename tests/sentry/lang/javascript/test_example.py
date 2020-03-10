@@ -2,13 +2,14 @@
 
 from __future__ import absolute_import
 
-import os
 import json
+import os
+
 import pytest
 import responses
 
-from sentry.testutils import TransactionTestCase, SentryStoreHelper
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import SentryStoreHelper, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 def get_fixture_path(name):

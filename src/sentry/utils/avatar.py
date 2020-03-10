@@ -5,17 +5,17 @@ Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.utils.encoding import force_text
-from django.utils.html import escape
 from six.moves.urllib.parse import urlencode
 
-from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
 from sentry.utils.compat import map
+from sentry.utils.hashlib import md5_text
+
+from django.utils.encoding import force_text
+from django.utils.html import escape
 
 
 def get_gravatar_url(email, size=None, default="mm"):

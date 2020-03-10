@@ -7,27 +7,19 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
-from sentry import http
-from sentry import tagstore
+from sentry import http, tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.models import (
+    GroupAssignee, GroupStatus, Identity, Integration, OrganizationMember,
+    Project, ReleaseProject, Team, User
+)
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import metrics, json
+from sentry.utils import json, metrics
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.models import (
-    GroupStatus,
-    GroupAssignee,
-    OrganizationMember,
-    Project,
-    User,
-    Identity,
-    Integration,
-    Team,
-    ReleaseProject,
-)
 
 logger = logging.getLogger("sentry.integrations.slack")
 

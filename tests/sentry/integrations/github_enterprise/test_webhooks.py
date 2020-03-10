@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import six
-
 from datetime import datetime
-from django.utils import timezone
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
-from sentry.testutils import APITestCase
 from uuid import uuid4
 
+import six
+
+from sentry.models import (
+    Commit, CommitAuthor, Integration, PullRequest, Repository
+)
+from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
+
 from .testutils import (
-    PUSH_EVENT_EXAMPLE_INSTALLATION,
-    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
-    PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
+    PULL_REQUEST_CLOSED_EVENT_EXAMPLE, PULL_REQUEST_EDITED_EVENT_EXAMPLE,
+    PULL_REQUEST_OPENED_EVENT_EXAMPLE, PUSH_EVENT_EXAMPLE_INSTALLATION
 )
 
-from sentry.utils.compat.mock import patch
+from django.utils import timezone
 
 
 class WebhookTest(APITestCase):

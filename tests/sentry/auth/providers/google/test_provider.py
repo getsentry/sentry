@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.google.constants import DATA_VERSION
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import TestCase
-
-from sentry.auth.providers.google.constants import DATA_VERSION
 
 
 class GoogleOAuth2ProviderTest(TestCase):

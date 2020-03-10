@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
+
 import six
 
-from collections import defaultdict
-from django.utils import timezone
-
 from .base import Newsletter
+
+from django.utils import timezone
 
 
 class NewsletterSubscription(object):

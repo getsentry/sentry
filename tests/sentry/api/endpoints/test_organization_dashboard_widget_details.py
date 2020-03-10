@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Dashboard,
-    Widget,
-    WidgetDataSource,
-    WidgetDataSourceTypes,
-    WidgetDisplayTypes,
+    Dashboard, Widget, WidgetDataSource, WidgetDataSourceTypes,
+    WidgetDisplayTypes
 )
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 

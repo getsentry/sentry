@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
+import six
 from rest_framework.response import Response
 from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth

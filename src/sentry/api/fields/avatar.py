@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 from base64 import b64decode
+
 from django.conf import settings
-from rest_framework import serializers
 from PIL import Image
+from rest_framework import serializers
 from six import BytesIO
 
 from sentry.api.exceptions import SentryAPIException

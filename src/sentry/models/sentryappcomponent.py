@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model, UUIDField
+from sentry.db.models import (
+    EncryptedJsonField, FlexibleForeignKey, Model, UUIDField
+)
 
 
 class SentryAppComponent(Model):

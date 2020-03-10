@@ -11,7 +11,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models import Group, GroupHash
 from sentry.tasks.unmerge import unmerge
-from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.snuba import raw_query
 
 

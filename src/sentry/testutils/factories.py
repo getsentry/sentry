@@ -1,77 +1,50 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-from django.conf import settings
-
 import io
 import os
-import petname
 import random
-import six
 import warnings
 from binascii import hexlify
 from hashlib import sha1
-from uuid import uuid4
 from importlib import import_module
+from uuid import uuid4
 
-from django.contrib.auth.models import AnonymousUser
+import petname
+import six
+from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
-from django.utils.text import slugify
 
-from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
+from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
+    create_alert_rule, create_alert_rule_trigger,
+    create_alert_rule_trigger_action
 )
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    Incident,
-    IncidentActivity,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSeen,
-    IncidentType,
+    AlertRuleThresholdType, AlertRuleTriggerAction, Incident, IncidentActivity,
+    IncidentGroup, IncidentProject, IncidentSeen, IncidentType
 )
 from sentry.mediators import (
-    sentry_apps,
-    sentry_app_installations,
-    sentry_app_installation_tokens,
-    service_hooks,
+    sentry_app_installation_tokens, sentry_app_installations, sentry_apps,
+    service_hooks
 )
 from sentry.models import (
-    Activity,
-    Environment,
-    Group,
-    Organization,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectBookmark,
-    Team,
-    User,
-    UserEmail,
-    Release,
-    Commit,
-    ReleaseCommit,
-    CommitAuthor,
-    Repository,
-    CommitFileChange,
-    ProjectDebugFile,
-    File,
-    UserPermission,
-    EventAttachment,
-    UserReport,
-    PlatformExternalIssue,
-    ReleaseFile,
+    Activity, Commit, CommitAuthor, CommitFileChange, Environment,
+    EventAttachment, File, Group, Organization, OrganizationMember,
+    OrganizationMemberTeam, PlatformExternalIssue, Project, ProjectBookmark,
+    ProjectDebugFile, Release, ReleaseCommit, ReleaseFile, Repository, Team,
+    User, UserEmail, UserPermission, UserReport
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import loremipsum, json
+from sentry.utils import json, loremipsum
+
+from django.contrib.auth.models import AnonymousUser
+
+from django.utils import timezone
+from django.utils.text import slugify
 
 
 def get_fixture_path(name):

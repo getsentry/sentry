@@ -4,11 +4,9 @@ from collections import defaultdict
 
 import six
 
-from sentry.api.serializers import register, serialize, Serializer
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import (
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
+    AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion
 )
 from sentry.utils.compat import zip
 

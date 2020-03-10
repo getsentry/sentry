@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-import pytz
-
-from mock import patch
 from datetime import datetime, timedelta
-from django.utils import timezone
+
+import pytz
+from mock import patch
+from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from tests.acceptance.page_objects.issue_details import IssueDetailsPage
+
+from django.utils import timezone
 
 event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 now = datetime.utcnow().replace(tzinfo=pytz.utc)

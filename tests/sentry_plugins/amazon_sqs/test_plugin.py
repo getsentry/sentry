@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 from botocore.client import ClientError
 from exam import fixture
-from sentry.utils.compat.mock import patch
+from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-
-from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
+from sentry.utils.compat.mock import patch
 
 
 class AmazonSQSPluginTest(PluginTestCase):

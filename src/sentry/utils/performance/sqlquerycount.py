@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import six
 import threading
-
 from collections import defaultdict
+
+import six
 
 from sentry.debug.utils.patch_context import PatchContext
 

@@ -12,40 +12,31 @@ enabled.
 from __future__ import absolute_import
 
 import logging
-import requests
-import six
 import threading
 
+import requests
+import six
 from requests_oauthlib import OAuth1
-from django.contrib.auth import authenticate
-from django.utils.crypto import get_random_string, constant_time_compare
 from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import Request
 from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import Request
+from social_auth.exceptions import (
+    AuthCanceled, AuthFailed, AuthMissingParameter, AuthStateForbidden,
+    AuthStateMissing, AuthTokenError, AuthUnknownError, BackendError,
+    StopPipeline
+)
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
-    setting,
-    model_to_ctype,
-    ctype_to_model,
-    clean_partial_pipeline,
-    url_add_parameters,
-    dsa_urlopen,
-    parse_qs,
-)
-from social_auth.exceptions import (
-    StopPipeline,
-    AuthFailed,
-    AuthCanceled,
-    AuthUnknownError,
-    AuthTokenError,
-    AuthMissingParameter,
-    AuthStateMissing,
-    AuthStateForbidden,
-    BackendError,
+    clean_partial_pipeline, ctype_to_model, dsa_urlopen, model_to_ctype,
+    parse_qs, setting, url_add_parameters
 )
 
 from sentry.utils import json
 from sentry.utils.compat import map
+
+from django.contrib.auth import authenticate
+
+from django.utils.crypto import constant_time_compare, get_random_string
 
 PIPELINE = setting(
     "SOCIAL_AUTH_PIPELINE",

@@ -1,27 +1,28 @@
 from __future__ import absolute_import
 
-import pytz
-import six
 import string
-
 from collections import OrderedDict
 from datetime import datetime
-from dateutil.parser import parse as parse_date
-from django.conf import settings
-from django.utils.encoding import force_text
 from hashlib import md5
 
+import pytz
+import six
+from dateutil.parser import parse as parse_date
+from django.conf import settings
+
 from sentry import eventtypes
+from sentry.db.models import NodeData
 from sentry.interfaces.base import get_interfaces
 from sentry.models import EventDict
-from sentry.db.models import NodeData
 from sentry.snuba.events import Columns
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
+from sentry.utils.compat import zip
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
-from sentry.utils.compat import zip
+
+from django.utils.encoding import force_text
 
 
 def ref_func(x):

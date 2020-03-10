@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 from django.core import mail
 
 from sentry.models import AuthProvider, OrganizationMember
-from sentry.testutils import TestCase
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
+from sentry.testutils import TestCase
 
 
 class EmailMissingLinksTest(TestCase):

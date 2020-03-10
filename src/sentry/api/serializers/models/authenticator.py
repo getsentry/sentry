@@ -4,11 +4,8 @@ import six
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
-    AuthenticatorInterface,
-    RecoveryCodeInterface,
-    SmsInterface,
-    TotpInterface,
-    U2fInterface,
+    AuthenticatorInterface, RecoveryCodeInterface, SmsInterface, TotpInterface,
+    U2fInterface
 )
 
 

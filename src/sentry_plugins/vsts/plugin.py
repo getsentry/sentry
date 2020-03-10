@@ -4,9 +4,10 @@ easily out of issues detected from Sentry.io """
 from __future__ import absolute_import
 
 from mistune import markdown
+
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.utils.http import absolute_uri
-from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .mixins import VisualStudioMixin
 from .repository_provider import VisualStudioRepositoryProvider

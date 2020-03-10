@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import six
-
-from django.db import transaction
 from uuid import uuid4
+
+import six
+from django.db import transaction
 
 from sentry.models import OrganizationOption
 

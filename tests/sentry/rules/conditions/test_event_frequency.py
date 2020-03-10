@@ -1,20 +1,19 @@
 from __future__ import absolute_import
 
 import itertools
-import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.compat import mock
+import pytz
 import six
+from six.moves import xrange
 
 from sentry import tsdb
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
-    EventFrequencyCondition,
-    EventUniqueUserFrequencyCondition,
+    EventFrequencyCondition, EventUniqueUserFrequencyCondition
 )
 from sentry.testutils.cases import RuleTestCase
-from six.moves import xrange
+from sentry.utils.compat import mock
 
 
 class FrequencyConditionMixin(object):

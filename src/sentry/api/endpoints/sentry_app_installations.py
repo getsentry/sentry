@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.utils.translation import ugettext_lazy as _
-
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -11,6 +9,8 @@ from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import SentryAppInstallation
+
+from django.utils.translation import ugettext_lazy as _
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):

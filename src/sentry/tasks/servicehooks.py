@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from time import time
+
+import six
 
 from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen

@@ -1,17 +1,15 @@
 from __future__ import absolute_import
 
 import json
-import six
-
 from uuid import uuid4
 
+import six
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from sentry_relay import generate_key_pair
 
 from sentry.models import Relay
 from sentry.testutils import APITestCase
-
-from sentry_relay import generate_key_pair
 
 
 class RelayRegisterTest(APITestCase):
