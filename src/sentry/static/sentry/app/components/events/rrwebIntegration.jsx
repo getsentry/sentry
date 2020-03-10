@@ -60,4 +60,5 @@ export default class RRWebIntegration extends AsyncComponent {
 
 const ReplayWrapper = styled('div')`
   padding-top: 20px;
+  overflow: hidden;
 `;
