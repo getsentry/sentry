@@ -1780,3 +1780,5 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 # symbolicator. If too low, too many events up in the sleep queue. If too high,
 # process_event might backlog and affect events from other platforms.
 SYMBOLICATOR_POLL_TIMEOUT = 4
+
+SENTRY_REQUEST_METRIC_ALLOWED_PATHS = ("sentry.web.api", "sentry.api.endpoints")
