@@ -112,7 +112,7 @@ class NotifyEmailAction(EventAction):
         metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
         yield self.future(
             lambda event, futures: plugin.rule_notify(
-                event, futures, self.data.targetType, self.data.get("targetIdentifier", None)
+                event, futures, self.data["targetType"], self.data.get("targetIdentifier", None)
             )
         )
 
