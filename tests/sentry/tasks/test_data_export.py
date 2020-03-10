@@ -37,7 +37,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         de1 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
-            query_type=2,
+            query_type=0,
             query_info={
                 "project_id": self.project.id,
                 "group_id": self.event.group_id,
@@ -58,7 +58,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         de2 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
-            query_type=2,
+            query_type=0,
             query_info={
                 "project_id": self.project.id,
                 "group_id": self.event.group_id,
@@ -81,7 +81,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         de1 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
-            query_type=2,
+            query_type=0,
             query_info={"project_id": -1, "group_id": self.event.group_id, "key": "user"},
         )
         with self.tasks():
@@ -92,7 +92,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         de2 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
-            query_type=2,
+            query_type=0,
             query_info={"project_id": self.project.id, "group_id": -1, "key": "user"},
         )
         with self.tasks():
