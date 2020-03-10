@@ -26,7 +26,13 @@ import {
   TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType, Column} from './eventView';
-import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
+import {
+  Aggregation,
+  AggregationRefinement,
+  Field,
+  AGGREGATIONS,
+  FIELDS,
+} from './eventQueryParams';
 import {TableColumn, TableDataRow} from './table/types';
 
 export type EventQuery = {
@@ -37,14 +43,13 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*)\)$/;
-const ROUND_BRACKETS_PATTERN = /[\(\)]/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
-function explodeFieldString(field: string): {aggregation: string; field: string} {
+function explodeFieldString(field: string): Column {
   const results = field.match(AGGREGATE_PATTERN);
 
   if (results && results.length >= 3) {
-    return {aggregation: results[1], field: results[2]};
+    return {aggregation: results[1], field: results[2], refinement: results[3]};
   }
 
   return {aggregation: '', field};
@@ -56,6 +61,7 @@ export function explodeField(field: FieldType): Column {
   return {
     aggregation: results.aggregation,
     field: results.field,
+    refinement: results.refinement,
     width: field.width || COL_WIDTH_UNDEFINED,
   };
 }
@@ -174,8 +180,9 @@ export function getAggregateAlias(field: string): string {
     return field;
   }
   return field
-    .replace(AGGREGATE_PATTERN, '$1_$2')
+    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
     .replace(/\./g, '_')
+    .replace(/\,/g, '_')
     .replace(/_+$/, '');
 }
 
@@ -190,6 +197,7 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
   aggregation: '',
   field: '',
+  refinement: undefined,
   name: '',
   width: COL_WIDTH_UNDEFINED,
 
@@ -203,22 +211,19 @@ export function decodeColumnOrder(
   fields: Readonly<FieldType[]>
 ): TableColumn<React.ReactText>[] {
   return fields.map((f: FieldType) => {
-    const col = {aggregationField: f.field, name: f.field, width: f.width};
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
+    const col = explodeField(f);
 
-    // "field" will be split into ["field"]
-    // "agg()" will be split into ["agg", "", ""]
-    // "agg(field)" will be split to ["agg", "field", ""]
-    // Any column without brackets are assumed to be a field
-    const aggregationField = col.aggregationField.split(ROUND_BRACKETS_PATTERN);
-
-    if (aggregationField.length === 1) {
-      column.field = aggregationField[0] as Field;
-    } else {
-      column.aggregation = aggregationField[0] as Aggregation;
-      column.field = aggregationField[1] as Field;
+    if (col.aggregation) {
+      column.aggregation = col.aggregation as Aggregation;
     }
-    column.key = col.aggregationField;
+    if (col.field) {
+      column.field = col.field as Field;
+    }
+    if (col.refinement) {
+      column.refinement = col.refinement as AggregationRefinement;
+    }
+    column.key = f.field;
 
     // Aggregations can have a strict outputType or they can inherit from their field.
     // Otherwise use the FIELDS data to infer types.

@@ -6,6 +6,7 @@ import {
   AggregateParameter,
   Aggregation,
   Field,
+  AggregationRefinement,
 } from '../eventQueryParams';
 import {Field as FieldType} from '../eventView';
 import {MetaType} from '../utils';
@@ -18,6 +19,7 @@ export type TableColumn<K> = GridColumnOrder<K> & {
   // name: string               From GridColumnHeader
   aggregation: Aggregation;
   field: Field;
+  refinement: AggregationRefinement;
   eventViewField: Readonly<FieldType>;
 
   type: ColumnValueType;

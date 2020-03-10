@@ -35,7 +35,7 @@ export const AGGREGATE_ALIASES = [
 
 // default list of yAxis options
 export const CHART_AXIS_OPTIONS = [
-  {label: 'count(id)', value: 'count(id)'},
+  {label: 'count()', value: 'count()'},
   {label: 'count_unique(users)', value: 'count_unique(user)'},
 ];
 
@@ -57,12 +57,12 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     fields: [
       'transaction',
       'project',
-      'count(id)',
+      'count()',
       'avg(transaction.duration)',
       'p75()',
       'p95()',
     ],
-    orderby: '-count_id',
+    orderby: '-count',
     query: 'event.type:transaction',
     projects: [],
     version: 2,
@@ -75,8 +75,8 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
     name: t('Errors by Title'),
-    fields: ['title', 'count(id)', 'count_unique(user)', 'project'],
-    orderby: '-count_id',
+    fields: ['title', 'count()', 'count_unique(user)', 'project'],
+    orderby: '-count',
     query: 'event.type:error',
     projects: [],
     version: 2,
@@ -85,8 +85,8 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
     name: t('Errors by URL'),
-    fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-    orderby: '-count_id',
+    fields: ['url', 'count()', 'count_unique(issue.id)'],
+    orderby: '-count',
     query: 'event.type:error',
     projects: [],
     version: 2,

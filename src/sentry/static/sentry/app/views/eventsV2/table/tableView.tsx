@@ -65,6 +65,7 @@ class TableView extends React.Component<TableViewProps> {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
       width: nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED,
+      refinement: nextColumn.refinement,
     };
 
     const tableMeta = (tableData && tableData.meta) || undefined;

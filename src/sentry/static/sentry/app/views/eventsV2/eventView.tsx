@@ -55,6 +55,7 @@ export type Field = {
 export type Column = {
   aggregation: string;
   field: string;
+  refinement?: string;
   width?: number;
 };
 
@@ -106,11 +107,13 @@ export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): 
   return !!getSortKeyFromField(field, tableMeta);
 }
 
-const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
-  const {aggregation, field} = props;
-  const hasAggregation = aggregation.length > 0;
-
-  return hasAggregation ? `${aggregation}(${field})` : field;
+const generateFieldAsString = (col: Column): string => {
+  const {aggregation, field, refinement} = col;
+  const parameters = [field, refinement].filter(i => i);
+  if (aggregation) {
+    return `${aggregation}(${parameters.join(',')})`;
+  }
+  return field;
 };
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -572,6 +575,7 @@ class EventView {
   withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
     const fields: Field[] = columns
+      .filter(col => col.field || col.aggregation)
       .map(col => generateFieldAsString(col))
       .map((field, i) => {
         // newly added field
@@ -626,13 +630,11 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const {aggregation, field, width} = updatedColumn;
-
     const columnToBeUpdated = this.fields[columnIndex];
-    const fieldAsString = generateFieldAsString({field, aggregation});
+    const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
-    const updateWidth = columnToBeUpdated.width !== width;
+    const updateWidth = columnToBeUpdated.width !== updatedColumn.width;
 
     if (!updateField && !updateWidth) {
       return this;
@@ -645,7 +647,7 @@ class EventView {
 
     const updatedField: Field = {
       field: fieldAsString,
-      width: width || COL_WIDTH_UNDEFINED,
+      width: updatedColumn.width || COL_WIDTH_UNDEFINED,
     };
 
     const fields = [...newEventView.fields];
@@ -954,7 +956,6 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-
     const defaultOption = yAxisOptions[0].value;
 
     if (!yAxis) {

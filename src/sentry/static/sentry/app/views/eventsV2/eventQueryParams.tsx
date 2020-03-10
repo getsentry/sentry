@@ -11,11 +11,19 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
-export type AggregateParameter = {
-  kind: 'column' | 'value';
-  columnTypes: Readonly<ColumnType[]>;
-  required: boolean;
-};
+export type AggregateParameter =
+  | {
+      kind: 'column';
+      columnTypes: Readonly<ColumnType[]>;
+      defaultValue?: string;
+      required: boolean;
+    }
+  | {
+      kind: 'value';
+      dataType: ColumnType;
+      defaultValue?: string;
+      required: boolean;
+    };
 
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
@@ -84,6 +92,8 @@ export const AGGREGATIONS = {
     outputType: 'timestamp',
     isSortable: true,
   },
+
+  // Tracing functions.
   p75: {
     parameters: [],
     outputType: 'duration',
@@ -98,6 +108,75 @@ export const AGGREGATIONS = {
   p99: {
     parameters: [],
     outputType: 'duration',
+    isSortable: true,
+  },
+  percentile: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '0.5',
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
+  error_rate: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+  },
+  apdex: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+  },
+  impact: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+  },
+  rps: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+  },
+  rpm: {
+    parameters: [],
+    outputType: 'number',
     isSortable: true,
   },
 } as const;
@@ -116,6 +195,7 @@ assert(
 );
 
 export type Aggregation = keyof typeof AGGREGATIONS | '';
+export type AggregationRefinement = string | undefined;
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
@@ -202,12 +282,15 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'transaction.status',
+  'p75',
+  'p95',
+  'p99',
+  'percentile',
+  'error_rate',
   'apdex',
   'impact',
-  'p99',
-  'p95',
-  'p75',
-  'error_rate',
+  'rps',
+  'rpm',
 ];
 
 // In the early days of discover2 these functions were exposed
