@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from itertools import izip
-
 import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
@@ -28,6 +26,7 @@ from sentry.snuba.sessions import (
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
+from sentry.utils.compat import zip as izip
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
