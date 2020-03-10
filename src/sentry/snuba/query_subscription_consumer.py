@@ -102,7 +102,7 @@ class QuerySubscriptionConsumer(object):
                         transaction="query_subscription_consumer_process_message",
                         sampled=True,
                     )
-                ):
+                ), metrics.timer("snuba_query_subscriber.handle_message"):
                     self.handle_message(message)
 
                 # Track latest completed message here, for use in `shutdown` handler.

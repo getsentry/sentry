@@ -142,6 +142,7 @@ class SubscriptionProcessor(object):
             if alert_operator(
                 aggregation_value, trigger.alert_threshold
             ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                 with transaction.atomic():
                     self.trigger_alert_threshold(trigger)
             elif (
@@ -149,6 +150,7 @@ class SubscriptionProcessor(object):
                 and resolve_operator(aggregation_value, trigger.resolve_threshold)
                 and self.check_trigger_status(trigger, TriggerStatus.ACTIVE)
             ):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                 with transaction.atomic():
                     self.trigger_resolve_threshold(trigger)
             else:
@@ -173,6 +175,7 @@ class SubscriptionProcessor(object):
         """
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
+            metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.last_update
@@ -235,6 +238,7 @@ class SubscriptionProcessor(object):
         """
         self.trigger_resolve_counts[trigger.id] += 1
         if self.trigger_resolve_counts[trigger.id] >= self.alert_rule.threshold_period:
+            metrics.incr("incidents.alert_rules.trigger", tags={"type": "resolve"})
             incident_trigger = self.incident_triggers[trigger.id]
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()
