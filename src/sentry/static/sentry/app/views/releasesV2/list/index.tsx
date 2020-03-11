@@ -26,6 +26,7 @@ import Projects from 'app/utils/projects';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleaseListPeriod from './releaseListPeriod';
 
 type Props = {
   params: Params;
@@ -75,7 +76,13 @@ class ReleasesList extends AsyncView<Props, State> {
   getSort() {
     const {sort} = this.props.location.query;
 
-    return typeof sort === 'string' ? sort : undefined;
+    return typeof sort === 'string' ? sort : 'date';
+  }
+
+  getPeriod() {
+    const {summaryStatsPeriod} = this.props.location.query;
+
+    return typeof summaryStatsPeriod === 'string' ? summaryStatsPeriod : '48h';
   }
 
   handleSearch = (query: string) => {
@@ -93,6 +100,15 @@ class ReleasesList extends AsyncView<Props, State> {
     router.push({
       ...location,
       query: {...location.query, cursor: undefined, sort},
+    });
+  };
+
+  handlePeriod = (summaryStatsPeriod: string) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, summaryStatsPeriod},
     });
   };
 
@@ -164,7 +180,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+        <GlobalSelectionHeader organization={organization} showDateSelector={false} />
 
         <NoProjectMessage organization={organization}>
           <PageContent>
@@ -173,6 +189,10 @@ class ReleasesList extends AsyncView<Props, State> {
                 {t('Releases v2')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
+                <ReleaseListPeriod
+                  selected={this.getPeriod()}
+                  onSelect={this.handlePeriod}
+                />
                 <ReleaseListSortOptions
                   selected={this.getSort()}
                   onSelect={this.handleSort}
@@ -206,9 +226,15 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-column-gap: ${space(2)};
+  grid-template-columns: auto auto 1fr;
+  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
+  /* TODO(releasesV2): this could use some responsive love, but not yet sure if we are keeping it */
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+    grid-template-columns: none;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
 `;
 
 export default withOrganization(ReleasesList);
