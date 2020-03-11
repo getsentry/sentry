@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mount} from 'sentry-test/enzyme';
 import LazyLoad from 'app/components/lazyLoad';
 
 describe('LazyLoad', function() {
   it('renders with a loading indicator when promise is not resolved yet', function() {
-    const promise = new Promise((resolve, reject) => {});
+    const promise = new Promise(() => {});
     const getComponent = () => promise;
-    const wrapper = shallow(<LazyLoad component={getComponent} />);
+    const wrapper = mount(<LazyLoad component={getComponent} />);
 
     // Should be loading
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
@@ -15,7 +15,7 @@ describe('LazyLoad', function() {
 
   it('renders when given a promise of a "button" component', async function() {
     let res;
-    const promise = new Promise((resolve, reject) => {
+    const promise = new Promise(resolve => {
       res = resolve;
     });
     const getComponent = () => promise;
@@ -42,7 +42,7 @@ describe('LazyLoad', function() {
     console.error = jest.fn();
     const getComponent = jest.fn(
       () =>
-        new Promise((resolve, reject) => reject(new Error('Could not load component')))
+        new Promise((_resolve, reject) => reject(new Error('Could not load component')))
     );
     let wrapper;
 
