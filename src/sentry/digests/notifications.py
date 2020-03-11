@@ -17,11 +17,10 @@ logger = logging.getLogger("sentry.digests")
 
 Notification = namedtuple("Notification", "event rules")
 
-# TODO(jeff): Do I need to used special characters or randomize this string to reduce probability of collision.
 TARGETED_MAIL_ACTION_SYMBOL = "targeted_mail"
 
 
-# TODO(jeff):tests needed for these new methods
+# TODO(jeff): Tests needed
 def is_targeted_action_key(key):
     return (
         len(
@@ -35,6 +34,7 @@ def is_targeted_action_key(key):
     )
 
 
+# TODO(jeff): Tests needed
 def split_key_for_targeted_action(key):
     from sentry.rules.actions.notify_email import MailAdapter
 
@@ -49,6 +49,7 @@ def split_key(key):
     return plugins.get(plugin_slug), Project.objects.get(pk=project_id)
 
 
+# TODO(jeff): Tests needed
 def unsplit_key_for_targeted_action(project, target_type, target_id=None):
     sanitised_target_id = target_id if (target_id is not None) else -1
     return u"{targeted_action_symbol}:p:{project.id}:{target_type}:{sanitised_target_id}".format(
