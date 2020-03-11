@@ -444,7 +444,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled('input')`
   min-width: 50px;
-  /* Matcht the height of the select boxes */
+  /* Match the height of the select boxes */
   height: 37px;
 
   &:not([disabled='true']):invalid {
