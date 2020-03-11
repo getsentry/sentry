@@ -50,7 +50,7 @@ describe('Issues -> Merged View', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('renders with mocked data', async function() {
+  it.only('renders with mocked data', async function() {
     const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
@@ -69,6 +69,11 @@ describe('Issues -> Merged View', function() {
         disableLifecycleMethods: false,
       }
     );
+
+    await tick();
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
 
     expect(wrapper).toMatchSnapshot();
   });
