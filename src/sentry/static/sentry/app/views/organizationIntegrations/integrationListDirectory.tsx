@@ -29,7 +29,7 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 
-import {popularityWeights as weights} from './constants';
+import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -202,22 +202,31 @@ export class OrganizationIntegrations extends AsyncComponent<
     return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    const sortByName = (a, b) => a.name.localeCompare(b.name);
-    const sortByPopularity = (a, b) => {
-      const weightA = Number.isInteger(weights[a.slug]) ? weights[a.slug] : 1;
-      const weightB = Number.isInteger(weights[b.slug]) ? weights[b.slug] : 1;
-      return weightA > weightB ? -1 : weightB > weightA ? 1 : 0;
-    };
-    const sortByInstalled = (a, b) => this.getInstallValue(b) - this.getInstallValue(a);
+  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    a.name.localeCompare(b.name);
 
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
+    Number.isInteger(POPULARITY_WEIGHT[integration.slug])
+      ? POPULARITY_WEIGHT[integration.slug]
+      : 1;
+
+  sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+    const weightA = this.getPopularityWeight(a);
+    const weightB = this.getPopularityWeight(b);
+    return weightB - weightA;
+  };
+
+  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    this.getInstallValue(b) - this.getInstallValue(a);
+
+  sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     if (isSortIntegrationsByWeightActive()) {
       return integrations
-        .sort(sortByName)
-        .sort(sortByPopularity)
-        .sort(sortByInstalled);
+        .sort(this.sortByName)
+        .sort(this.sortByPopularity)
+        .sort(this.sortByInstalled);
     }
-    return integrations.sort(sortByName).sort(sortByInstalled);
+    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
   }
 
   async componentDidUpdate(_, prevState: State) {

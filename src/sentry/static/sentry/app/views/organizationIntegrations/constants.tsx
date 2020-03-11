@@ -2,7 +2,7 @@ export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
 
-export const colors = {
+export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray2',
   [PENDING]: 'yellowOrange',
@@ -15,7 +15,7 @@ export const colors = {
  * The weights should reflect the relative popularity of each integration.
  */
 
-export const popularityWeights = {
+export const POPULARITY_WEIGHT = {
   // First-party-integrations
   slack: 50,
   github: 20,
@@ -49,4 +49,4 @@ export const popularityWeights = {
   clickup: 1,
   amixir: 1,
   split: 1,
-};
+} as const;

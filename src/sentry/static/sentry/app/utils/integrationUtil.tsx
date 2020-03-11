@@ -12,9 +12,9 @@ import {
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 
-const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION';
-const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY';
-const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT';
+const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
+const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY' as const;
+const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
