@@ -4,7 +4,7 @@ import logging
 import pytest
 import six
 
-from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
+from sentry.ingest.outcomes_consumer import get_outcomes_consumer
 from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome
@@ -123,34 +123,6 @@ class OutcomeTester(object):
 @pytest.fixture
 def outcome_tester(requires_kafka, kafka_producer, kafka_admin, task_runner):
     return OutcomeTester(kafka_producer, kafka_admin, task_runner)
-
-
-@pytest.mark.django_db
-def test_outcome_consumer_ignores_outcomes_already_handled(outcome_tester):
-    # put a few outcome messages on the kafka topic and also mark them in the cache
-    for i in range(4):
-        event_id = _get_event_id(i)
-
-        if i < 2:
-            # pretend that we have already processed this outcome before
-            project_id = outcome_tester.project.id
-            mark_signal_sent(project_id=project_id, event_id=event_id)
-
-        outcome_tester.track_outcome(
-            event_id=event_id,
-            outcome=Outcome.FILTERED,
-            reason="some_reason",
-            remote_addr="127.33.44.{}".format(i),
-        )
-
-    project_id = outcome_tester.project.id
-    outcome_tester.run(lambda: not is_signal_sent(project_id, event_id))
-
-    # verify that no signal was called (since the events have been previously processed)
-    ips = [outcome["ip"] for outcome in outcome_tester.events_filtered]
-    assert ips == ["127.33.44.2", "127.33.44.3"]
-    assert not outcome_tester.events_dropped
-    assert not outcome_tester.events_saved
 
 
 @pytest.mark.django_db

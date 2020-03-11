@@ -17,8 +17,6 @@ signals to getSentry for these outcomes.
 """
 from __future__ import absolute_import
 
-import six
-
 import time
 import atexit
 import logging
@@ -28,7 +26,6 @@ import multiprocessing as _multiprocessing
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 
 from django.conf import settings
-from django.core.cache import cache
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
@@ -48,29 +45,6 @@ def _get_signal_cache_key(project_id, event_id):
     return "signal:{}:{}".format(project_id, event_id)
 
 
-def mark_signal_sent(project_id, event_id):
-    """
-    Remembers that a signal was emitted.
-
-    Sets a boolean flag to remember (for one hour) that a signal for a
-    particular event id (in a project) was sent. This is used by the signals
-    forwarder to avoid double-emission.
-
-    :param project_id: :param event_id: :return:
-    """
-    assert isinstance(project_id, six.integer_types)
-    key = _get_signal_cache_key(project_id, event_id)
-    cache.set(key, True, 3600)
-
-
-def is_signal_sent(project_id, event_id):
-    """
-    Checks a signal was sent previously.
-    """
-    key = _get_signal_cache_key(project_id, event_id)
-    return cache.get(key, None) is not None
-
-
 def _process_signal(msg):
     project_id = int(msg.get("project_id") or 0)
     if project_id == 0:
@@ -86,10 +60,6 @@ def _process_signal(msg):
     if not event_id:
         metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "missing_event_id"})
         return
-
-    if is_signal_sent(project_id=project_id, event_id=event_id):
-        metrics.incr("outcomes_consumer.skip_outcome", tags={"reason": "is_signal_sent"})
-        return  # message already processed nothing left to do
 
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -131,9 +101,6 @@ def _process_signal(msg):
             quantity=quantity,
             sender=OutcomesConsumerWorker,
         )
-
-    # remember that we sent the signal just in case the processor dies before
-    mark_signal_sent(project_id=project_id, event_id=event_id)
 
     timestamp = msg.get("timestamp")
     if timestamp is not None:
