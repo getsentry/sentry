@@ -2,9 +2,9 @@ import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import * as Sentry from '@sentry/browser';
 
 import theme from 'app/utils/theme';
 import {
@@ -20,41 +20,63 @@ import Hovercard from 'app/components/hovercard';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Guide} from 'app/components/assistant/types';
 import {CloseIcon} from 'app/components/assistant/styles';
 
-// A GuideAnchor puts an informative hovercard around an element.
-// Guide anchors register with the GuideStore, which uses registrations
-// from one or more anchors on the page to determine which guides can
-// be shown on the page.
-const GuideAnchor = createReactClass({
+type Props = {
+  target: string;
+  position?: string;
+};
+
+type State = {
+  active: boolean;
+  orgId: string | null;
+  currentGuide?: Guide;
+  step?: number;
+};
+
+/**
+ * A GuideAnchor puts an informative hovercard around an element.
+ * Guide anchors register with the GuideStore, which uses registrations
+ * from one or more anchors on the page to determine which guides can
+ * be shown on the page.
+ */
+const GuideAnchor = createReactClass<Props, State>({
   propTypes: {
     target: PropTypes.string.isRequired,
     position: PropTypes.string,
   },
 
-  mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange')],
+  mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
     return {
       active: false,
+      orgId: null,
     };
   },
 
   componentDidMount() {
-    registerAnchor(this);
+    const {target} = this.props;
+    target && registerAnchor(target);
   },
 
   componentDidUpdate(_prevProps, prevState) {
     if (this.containerElement && !prevState.active && this.state.active) {
-      const windowHeight = $(window).height();
-      $('html,body').animate({
-        scrollTop: $(this.containerElement).offset().top - windowHeight / 2,
-      });
+      try {
+        const {top} = this.containerElement.getBoundingClientRect();
+        const scrollTop = window.pageYOffset;
+        const centerElement = top + scrollTop - window.innerHeight / 2;
+        window.scrollTo({top: centerElement});
+      } catch (err) {
+        Sentry.captureException(err);
+      }
     }
   },
 
   componentWillUnmount() {
-    unregisterAnchor(this);
+    const {target} = this.props;
+    target && unregisterAnchor(target);
   },
 
   onGuideStateChange(data) {
@@ -63,30 +85,23 @@ const GuideAnchor = createReactClass({
       data.currentGuide.steps[data.currentStep].target === this.props.target;
     this.setState({
       active,
-      guide: data.currentGuide,
+      currentGuide: data.currentGuide,
       step: data.currentStep,
-      org: data.org,
-      messageVariables: {
-        orgSlug: data.org && data.org.slug,
-        projectSlug: data.project && data.project.slug,
-      },
+      orgId: data.orgId,
     });
   },
 
-  interpolate(template, variables) {
-    const regex = /\${([^{]+)}/g;
-    return template.replace(regex, (_match, g1) => variables[g1.trim()]);
-  },
-
-  /* Terminology:
-   - A guide can be FINISHED by clicking one of the buttons in the last step.
-   - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x).
-   - In both cases we consider it CLOSED.
-  */
+  /**
+   * Terminology:
+   *
+   *  - A guide can be FINISHED by clicking one of the buttons in the last step
+   *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
+   *  - In both cases we consider it CLOSED
+   */
   handleFinish(e) {
     e.stopPropagation();
-    const {guide, org} = this.state;
-    recordFinish(guide.id, org);
+    const {currentGuide, org} = this.state;
+    recordFinish(currentGuide.guide, org);
     closeGuide();
   },
 
@@ -97,12 +112,12 @@ const GuideAnchor = createReactClass({
 
   handleDismiss(e) {
     e.stopPropagation();
-    const {guide, step, org} = this.state;
-    dismissGuide(guide.id, step, org);
+    const {currentGuide, step, orgId} = this.state;
+    dismissGuide(currentGuide.guide, step, orgId);
   },
 
   render() {
-    const {active, guide, step, messageVariables} = this.state;
+    const {active, currentGuide, step} = this.state;
     if (!active) {
       return this.props.children ? this.props.children : null;
     }
@@ -110,28 +125,24 @@ const GuideAnchor = createReactClass({
     const body = (
       <GuideContainer>
         <GuideInputRow>
-          <StyledTitle>{guide.steps[step].title}</StyledTitle>
-          {step < guide.steps.length - 1 && (
+          <StyledTitle>{currentGuide.steps[step].title}</StyledTitle>
+          {step < currentGuide.steps.length - 1 && (
             <CloseLink onClick={this.handleDismiss} href="#" data-test-id="close-button">
               <CloseIcon />
             </CloseLink>
           )}
         </GuideInputRow>
         <StyledContent>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: this.interpolate(guide.steps[step].message, messageVariables),
-            }}
-          />
+          <div>{currentGuide.steps[step].description}</div>
           <Actions>
             <div>
-              {step < guide.steps.length - 1 ? (
+              {step < currentGuide.steps.length - 1 ? (
                 <Button priority="success" size="small" onClick={this.handleNextStep}>
-                  {t('Next')} &rarr;
+                  {t('Next')}
                 </Button>
               ) : (
                 <Button priority="success" size="small" onClick={this.handleFinish}>
-                  {t(guide.steps.length === 1 ? 'Got It' : 'Done')}
+                  {t(currentGuide.steps.length === 1 ? 'Got It' : 'Done')}
                 </Button>
               )}
             </div>
