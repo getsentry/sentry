@@ -190,17 +190,22 @@ export class OrganizationIntegrations extends AsyncComponent<
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
-    if (isSentryApp(integration)) {
-      const install = this.getAppInstall(integration);
-      if (install) {
-        return install.status === 'pending' ? 1 : 2;
-      }
-      return 0;
-    }
+
     if (isPlugin(integration)) {
       return integration.projectList.length > 0 ? 2 : 0;
     }
-    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+
+    if (!isSentryApp(integration)) {
+      return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    }
+
+    const install = this.getAppInstall(integration);
+
+    if (install) {
+      return install.status === 'pending' ? 1 : 2;
+    }
+
+    return 0;
   }
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
