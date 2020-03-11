@@ -9,8 +9,7 @@ export const COLORS = {
 } as const;
 
 /**
- * Integrations in the integration directory should be sorted by their popularity (weight).
- * The weights should reflect the relative popularity of each integration are hardcoded.
+ * Integrations in the integration directory should be sorted by their popularity (weight). The weights should reflect the relative popularity of each integration are hardcoded.
  */
 
 export const POPULARITY_WEIGHT: {
