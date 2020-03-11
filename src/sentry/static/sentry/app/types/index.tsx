@@ -914,8 +914,18 @@ export type OnboardingTaskDescriptor = {
   title: string;
   description: string;
   detailedDescription?: string;
+  /**
+   * Can this task be skipped?
+   */
   skippable: boolean;
-  prereq: number[];
+  /**
+   * A list of require task keys that must have been completed before these
+   * tasks may be completed.
+   */
+  requisites: OnboardingTaskKey[];
+  /**
+   * Should the onboarding task currently be displayed
+   */
   display: boolean;
 } & (
   | {

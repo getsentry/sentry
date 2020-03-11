@@ -1854,7 +1854,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                             "display": true,
                             "location": "/organizations/org-slug/projects/new/",
-                            "prereq": Array [],
+                            "requisites": Array [],
                             "skippable": false,
                             "task": "create_project",
                             "title": "Create a project",
@@ -1898,7 +1898,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                               "display": true,
                               "location": "/organizations/org-slug/projects/new/",
-                              "prereq": Array [],
+                              "requisites": Array [],
                               "skippable": false,
                               "task": "create_project",
                               "title": "Create a project",
@@ -2276,7 +2276,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                                 "display": true,
                                 "location": "/organizations/org-slug/projects/new/",
-                                "prereq": Array [],
+                                "requisites": Array [],
                                 "skippable": false,
                                 "task": "create_project",
                                 "title": "Create a project",
@@ -2512,8 +2512,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Choose your platform and send an event.",
                             "display": true,
                             "location": "/settings/org-slug/projects/:projectId/install/",
-                            "prereq": Array [
-                              1,
+                            "requisites": Array [
+                              "create_project",
                             ],
                             "skippable": false,
                             "task": "send_first_event",
@@ -2558,8 +2558,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Choose your platform and send an event.",
                               "display": true,
                               "location": "/settings/org-slug/projects/:projectId/install/",
-                              "prereq": Array [
-                                1,
+                              "requisites": Array [
+                                "create_project",
                               ],
                               "skippable": false,
                               "task": "send_first_event",
@@ -2938,8 +2938,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Choose your platform and send an event.",
                                 "display": true,
                                 "location": "/settings/org-slug/projects/:projectId/install/",
-                                "prereq": Array [
-                                  1,
+                                "requisites": Array [
+                                  "create_project",
                                 ],
                                 "skippable": false,
                                 "task": "send_first_event",
@@ -3177,7 +3177,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
-                            "prereq": Array [],
+                            "requisites": Array [],
                             "skippable": true,
                             "task": "invite_member",
                             "title": "Invite team members",
@@ -3222,7 +3222,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
-                              "prereq": Array [],
+                              "requisites": Array [],
                               "skippable": true,
                               "task": "invite_member",
                               "title": "Invite team members",
@@ -3601,7 +3601,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                                 "display": true,
-                                "prereq": Array [],
+                                "requisites": Array [],
                                 "skippable": true,
                                 "task": "invite_member",
                                 "title": "Invite team members",
@@ -3904,9 +3904,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Capture errors from both your front and back ends.",
                             "display": true,
                             "location": "/organizations/org-slug/projects/new/",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_second_platform",
@@ -3951,9 +3951,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Capture errors from both your front and back ends.",
                               "display": true,
                               "location": "/organizations/org-slug/projects/new/",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_second_platform",
@@ -4332,9 +4332,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Capture errors from both your front and back ends.",
                                 "display": true,
                                 "location": "/organizations/org-slug/projects/new/",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_second_platform",
@@ -4638,9 +4638,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                             "display": true,
                             "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_user_context",
@@ -4686,9 +4686,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                               "display": true,
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_user_context",
@@ -5068,9 +5068,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                                 "display": true,
                                 "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_user_context",
@@ -5386,9 +5386,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                             "display": true,
                             "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_release_tracking",
@@ -5434,9 +5434,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                               "display": true,
                               "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_release_tracking",
@@ -5816,9 +5816,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                                 "display": true,
                                 "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_release_tracking",
