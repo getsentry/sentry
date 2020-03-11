@@ -13,6 +13,10 @@ import {Commit, User} from 'app/types';
 
 import {SectionHeading, Wrapper} from './styles';
 
+type GroupedAuthorCommits = {
+  [key: string]: {author: User | undefined; commitCount: number};
+};
+
 type Props = {
   projectId: string;
   orgId: string;
@@ -66,7 +70,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
         return authorCommitsAccumulator;
       },
-      {} as {[key: string]: {author: User | undefined; commitCount: number}}
+      {} as GroupedAuthorCommits
     );
 
     // sort authors by number of commits

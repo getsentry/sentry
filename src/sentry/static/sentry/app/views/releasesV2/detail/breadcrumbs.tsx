@@ -20,7 +20,7 @@ const Breadcrumbs = ({crumbs}: Props) => (
     {crumbs.map((crumb, index) => (
       <React.Fragment key={crumb.to}>
         <BreadcrumbItem to={crumb.to}>{crumb.label}</BreadcrumbItem>
-        {index < crumbs.length - 1 && <StyledIcon direction="right" />}
+        {index < crumbs.length - 1 && <StyledIcon size="xs" direction="right" />}
       </React.Fragment>
     ))}
   </BreadcrumbList>
@@ -50,7 +50,5 @@ const BreadcrumbItem = styled(Link)`
 
 const StyledIcon = styled(IconChevron)`
   color: ${p => p.theme.gray2};
-  height: 12px;
-  width: 12px;
   margin: 0 ${space(1)} ${space(0.25)} ${space(1)};
 `;
