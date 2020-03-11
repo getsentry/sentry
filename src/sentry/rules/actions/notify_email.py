@@ -30,63 +30,6 @@ MEMBER = "Member"
 CHOICES = [(ISSUE_OWNERS, "Issue Owners"), (TEAM, "Team"), (MEMBER, "Member")]
 
 
-class NotifyEmailForm(forms.Form):
-    targetType = forms.ChoiceField(choices=CHOICES)
-    targetIdentifier = BoundedBigIntegerField().formfield(
-        required=False, help_text="Only required if 'Member' or 'Team' is selected"
-    )
-
-    def clean(self):
-        cleaned_data = super(NotifyEmailForm, self).clean()
-        # TODO(jeff): Change case
-        targetType = cleaned_data.get("targetType")
-        targetIdentifier = cleaned_data.get("targetIdentifier")
-
-        if targetType == ISSUE_OWNERS:
-            self.cleaned_data["targetType"] = targetType
-            return
-
-        if targetIdentifier is None:
-            msg = forms.ValidationError("You need to specify a Team or Member to send a mail to.")
-            self.add_error("targetIdentifier", msg)
-            return
-
-        self.cleaned_data["targetType"] = targetType
-        self.cleaned_data["targetIdentifier"] = targetIdentifier
-        return
-
-
-class NotifyEmailAction(EventAction):
-    form_cls = NotifyEmailForm
-    label = "Send an email to {targetType}"
-    metrics_slug = "EmailAction"
-
-    def __init__(self, *args, **kwargs):
-        super(NotifyEmailAction, self).__init__(*args, **kwargs)
-        self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
-
-    def after(self, event, state):
-        extra = {"event_id": event.event_id}
-        mail_adapter = MailAdapter()
-
-        group = event.group
-
-        if not mail_adapter.should_notify(group=group):
-            extra["group_id"] = group.id
-            self.logger.info("rule.fail.should_notify", extra=extra)
-            return
-
-        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
-        yield self.future(
-            lambda event, futures: mail_adapter.rule_notify(
-                event, futures, self.data["targetType"], self.data.get("targetIdentifier", None)
-            )
-        )
-
-    def get_form_instance(self):
-        return self.form_cls(self.data)
-
-
 class MailAdapter(object):
     """
     Adapter for the `MailPlugin`. This class attempts to decouple `MailPlugin` from the email notification question.
@@ -494,3 +437,60 @@ class MailAdapter(object):
                 context=context,
                 send_to=[user_id],
             )
+
+
+class NotifyEmailForm(forms.Form):
+    targetType = forms.ChoiceField(choices=CHOICES)
+    targetIdentifier = BoundedBigIntegerField().formfield(
+        required=False, help_text="Only required if 'Member' or 'Team' is selected"
+    )
+
+    def clean(self):
+        cleaned_data = super(NotifyEmailForm, self).clean()
+        # TODO(jeff): Change case
+        targetType = cleaned_data.get("targetType")
+        targetIdentifier = cleaned_data.get("targetIdentifier")
+
+        if targetType == ISSUE_OWNERS:
+            self.cleaned_data["targetType"] = targetType
+            return
+
+        if targetIdentifier is None:
+            msg = forms.ValidationError("You need to specify a Team or Member to send a mail to.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        self.cleaned_data["targetType"] = targetType
+        self.cleaned_data["targetIdentifier"] = targetIdentifier
+        return
+
+
+class NotifyEmailAction(EventAction):
+    form_cls = NotifyEmailForm
+    label = "Send an email to {targetType}"
+    metrics_slug = "EmailAction"
+    mail_adapter = MailAdapter()
+
+    def __init__(self, *args, **kwargs):
+        super(NotifyEmailAction, self).__init__(*args, **kwargs)
+        self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
+
+    def after(self, event, state):
+        extra = {"event_id": event.event_id}
+
+        group = event.group
+
+        if not self.mail_adapter.should_notify(group=group):
+            extra["group_id"] = group.id
+            self.logger.info("rule.fail.should_notify", extra=extra)
+            return
+
+        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        yield self.future(
+            lambda event, futures: self.mail_adapter.rule_notify(
+                event, futures, self.data["targetType"], self.data.get("targetIdentifier", None)
+            )
+        )
+
+    def get_form_instance(self):
+        return self.form_cls(self.data)
