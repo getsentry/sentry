@@ -20,8 +20,8 @@ import Hovercard from 'app/components/hovercard';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import {Guide} from 'app/components/assistant/types';
 import {CloseIcon} from 'app/components/assistant/styles';
+import {Guide} from 'app/components/assistant/types';
 
 type Props = {
   target: string;
@@ -100,8 +100,8 @@ const GuideAnchor = createReactClass<Props, State>({
    */
   handleFinish(e) {
     e.stopPropagation();
-    const {currentGuide, org} = this.state;
-    recordFinish(currentGuide.guide, org);
+    const {currentGuide, orgId} = this.state;
+    recordFinish(currentGuide.guide, orgId);
     closeGuide();
   },
 
