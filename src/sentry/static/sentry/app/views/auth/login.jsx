@@ -90,7 +90,7 @@ class Login extends React.Component {
     return (
       <React.Fragment>
         <Header>
-          <Heading>{t('Sign in to continue')}</Heading>
+          <Heading>{t('Sign in to TEST')}</Heading>
           <AuthNavTabs>{tabs.map(renderTab)}</AuthNavTabs>
         </Header>
         {loading && <LoadingIndicator />}
