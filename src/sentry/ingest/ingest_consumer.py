@@ -73,9 +73,19 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 projects_to_fetch.add(message["project_id"])
 
                 if message_type == "event":
-                    other_messages.append((process_event, message))
-                elif message_type == "transaction":
-                    transactions.append(message)
+                    with metrics.timer("ingest_consumer.decode_event_json"):
+                        # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
+                        # which assumes that data passed in is a raw dictionary.
+                        message["payload"] = json.loads(message["payload"])
+
+                    if (
+                        message["payload"]["type"] == "transaction"
+                        and options.get("store.transactions-celery") is False
+                    ):
+                        transactions.append(message)
+                    else:
+                        other_messages.append((process_event, message))
+
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -114,22 +124,15 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
-    if options.get("store.transactions-celery") is True:
-        for message in messages:
-            process_event(message, projects)
-        return
-
     jobs = []
     for message in messages:
-        payload = message["payload"]
+        data = message["payload"]
         project_id = int(message["project_id"])
         start_time = float(message["start_time"])
 
         if project_id not in projects:
             continue
 
-        with metrics.timer("ingest_consumer.decode_transaction_json"):
-            data = json.loads(payload)
         jobs.append({"data": data, "start_time": start_time})
 
     save_transaction_events(jobs, projects)
@@ -137,7 +140,7 @@ def process_transactions_batch(messages, projects):
 
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(message, projects):
-    payload = message["payload"]
+    data = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
     project_id = int(message["project_id"])
@@ -160,13 +163,6 @@ def process_event(message, projects):
     except KeyError:
         logger.error("Project for ingested event does not exist: %s", project_id)
         return
-
-    # Parse the JSON payload. This is required to compute the cache key and
-    # call process_event. The payload will be put into Kafka raw, to avoid
-    # serializing it again.
-    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-    # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload)
 
     cache_key = cache_key_for_event(data)
     default_cache.set(cache_key, data, CACHE_TIMEOUT)

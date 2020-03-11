@@ -43,7 +43,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
     for _ in range(2):
         process_event(
             {
-                "payload": json.dumps(payload),
+                "payload": payload,
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,
@@ -94,7 +94,7 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
 
     process_event(
         {
-            "payload": json.dumps(payload),
+            "payload": payload,
             "start_time": start_time,
             "event_id": event_id,
             "project_id": project_id,

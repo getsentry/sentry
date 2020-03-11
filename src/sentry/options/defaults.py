@@ -176,7 +176,7 @@ register("store.lie-about-filter-status", default=False)
 
 # Toggles between processing transactions directly in the ingest consumer
 # (``False``) and spawning a save_event task (``True``).
-register("store.transactions-celery", default=False)
+register("store.transactions-celery", default=True)
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
