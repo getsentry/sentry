@@ -29,7 +29,13 @@ from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+SUMMARY_STATS_PERIOD = ("24h", "48h", "7d", "14d")
+HEALTH_STATS_PERIOD = ("", "24h", "14d")
+ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
+
+
+def get_stats_period_detail(key, choices):
+    return ERR_INVALID_STATS_PERIOD % (key, ", ".join("'%s'" % x for x in choices))
 
 
 @scenario("CreateNewOrganizationReleaseWithRef")
@@ -144,11 +150,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
-        stats_period = request.GET.get("healthStatsPeriod")
-        if stats_period not in (None, "", "24h", "14d"):
-            raise ParseError(detail=ERR_INVALID_STATS_PERIOD)
-        if stats_period is None and with_health:
-            stats_period = "24h"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "48h"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        if summary_stats_period not in SUMMARY_STATS_PERIOD:
+            raise ParseError(
+                detail=get_stats_period_detail("summaryStatsPeriod", SUMMARY_STATS_PERIOD)
+            )
+        if health_stats_period not in HEALTH_STATS_PERIOD:
+            raise ParseError(
+                detail=get_stats_period_detail("healthStatsPeriod", HEALTH_STATS_PERIOD)
+            )
 
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
@@ -187,7 +198,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        elif sort in ("crash_free_sessions", "crash_free_users", "sessions_1h", "sessions_24h"):
+        elif sort in ("crash_free_sessions", "crash_free_users", "sessions", "users"):
             if not flatten:
                 return Response(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
@@ -200,6 +211,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     environments=filter_params.get("environment"),
                     scope=sort,
                     offset=offset,
+                    stats_period=summary_stats_period,
                     limit=limit,
                 ),
                 apply_to_queryset=lambda queryset, rows: queryset.filter(
@@ -224,7 +236,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 params=[filter_params["start"], filter_params["end"]],
             )
 
-        serializer = ReleaseSerializer(with_health_data=with_health, stats_period=stats_period)
+        serializer = ReleaseSerializer(
+            with_health_data=with_health,
+            health_stats_period=health_stats_period,
+            summary_stats_period=summary_stats_period,
+        )
         return self.paginate(
             request=request,
             queryset=queryset,
