@@ -9,7 +9,7 @@ export default function profiler() {
     const displayName = getDisplayName(WrappedComponent);
 
     return class extends React.Component {
-      static displayName = displayName;
+      static displayName = `profiler(${displayName})`;
 
       static propTypes = {
         api: PropTypes.object,
