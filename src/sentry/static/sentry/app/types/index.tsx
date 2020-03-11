@@ -948,7 +948,7 @@ export type OnboardingTaskDescriptor = {
 export type OnboardingTaskStatus = {
   task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user?: string | null;
+  user?: AvatarUser | null;
   dateCompleted?: string;
   completionSeen?: string;
   data?: object;
