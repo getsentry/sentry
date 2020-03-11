@@ -54,4 +54,4 @@ export const POPULARITY_WEIGHT: {
   segment: 1,
   'amazon-sqs': 1,
   splunk: 1,
-};
+} as const;

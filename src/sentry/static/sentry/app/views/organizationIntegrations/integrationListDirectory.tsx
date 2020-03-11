@@ -16,7 +16,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  isSortIntegrationsByWeightActive,
+  getSortIntegrationsByWeightActive,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -196,7 +196,8 @@ export class OrganizationIntegrations extends AsyncComponent<
         return install.status === 'pending' ? 1 : 2;
       }
       return 0;
-    } else if (isPlugin(integration)) {
+    }
+    if (isPlugin(integration)) {
       return integration.projectList.length > 0 ? 2 : 0;
     }
     return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
@@ -218,7 +219,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (isSortIntegrationsByWeightActive()) {
+    if (getSortIntegrationsByWeightActive()) {
       return integrations
         .sort(this.sortByName)
         .sort(this.sortByPopularity)

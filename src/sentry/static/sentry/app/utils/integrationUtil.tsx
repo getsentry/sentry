@@ -40,7 +40,7 @@ export const isIntegrationDirectoryActive = (organization?: Organization) => {
   }
 };
 
-export const isSortIntegrationsByWeightActive = () =>
+export const getSortIntegrationsByWeightActive = () =>
   localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT) === '1';
 
 export type SingleIntegrationEvent = {
