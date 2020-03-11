@@ -8,6 +8,7 @@ import {IconBookmark} from 'app/icons/iconBookmark';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import Card from 'app/components/card';
 
 type Props = {
   title?: string;
@@ -40,62 +41,38 @@ class QueryCard extends React.PureComponent<Props> {
     } = this.props;
 
     return (
-      <StyledQueryCard
-        data-test-id={`card-${title}`}
-        onClick={this.handleClick}
-        to={this.props.to}
-      >
-        <QueryCardHeader>
-          <StyledTitle>
-            {title}
-            {starred && (
-              <StyledIconBookmark
-                color={theme.yellow}
-                data-test-id="is-saved-query"
-                solid
-              />
-            )}
-          </StyledTitle>
-          <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
-        </QueryCardHeader>
-        <QueryCardBody>{renderGraph()}</QueryCardBody>
-        <QueryCardFooter>
-          <StyledCreator>{subtitle}</StyledCreator>
-          {renderContextMenu && renderContextMenu()}
-        </QueryCardFooter>
-      </StyledQueryCard>
+      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
+        <StyledQueryCard interactive>
+          <QueryCardHeader>
+            <StyledTitle>
+              {title}
+              {starred && (
+                <StyledIconBookmark
+                  color={theme.yellow}
+                  data-test-id="is-saved-query"
+                  solid
+                />
+              )}
+            </StyledTitle>
+            <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
+          </QueryCardHeader>
+          <QueryCardBody>{renderGraph()}</QueryCardBody>
+          <QueryCardFooter>
+            <StyledCreator>{subtitle}</StyledCreator>
+            {renderContextMenu && renderContextMenu()}
+          </QueryCardFooter>
+        </StyledQueryCard>
+      </Link>
     );
   }
 }
 
-const StyledQueryCard = styled(Link)`
-  background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  align-items: stretch;
-  flex-direction: column;
+const StyledQueryCard = styled(Card)`
   justify-content: space-between;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  text-align: left;
-  padding: 0;
-
+  height: 100%;
   &:focus,
   &:hover {
-    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
-    position: relative;
-    top: -2px;
-    outline: none;
-  }
-
-  &:active {
-    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.5);
-  }
-
-  /* This is to ensure the graph is visually clickable */
-  * {
-    cursor: pointer;
+    top: -1px;
   }
 `;
 
