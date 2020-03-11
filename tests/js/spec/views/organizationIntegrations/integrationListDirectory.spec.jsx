@@ -2,6 +2,7 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import IntegrationListDirectory from 'app/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
@@ -18,8 +19,7 @@ describe('IntegrationListDirectory', function() {
     Client.clearMockResponses();
   });
 
-  const org = TestStubs.Organization();
-  const routerContext = TestStubs.routerContext();
+  const {org, routerContext} = initializeOrg();
   let wrapper;
 
   describe('Renders view', function() {
