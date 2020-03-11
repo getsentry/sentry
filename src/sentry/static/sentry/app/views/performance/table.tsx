@@ -1,6 +1,5 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {t} from 'app/locale';
@@ -8,12 +7,10 @@ import {Organization, Project} from 'app/types';
 import {assert} from 'app/types/utils';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import space from 'app/styles/space';
 import {Panel} from 'app/components/panels';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
 import EventView, {isAPIPayloadSimilar} from 'app/views/eventsV2/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
@@ -24,6 +21,15 @@ import {EventData} from 'app/views/eventsV2/data';
 import withProjects from 'app/utils/withProjects';
 
 import {transactionSummaryRouteWithEventView} from './transaction_summary/utils';
+import {
+  TableGrid,
+  GridHead,
+  GridRow,
+  GridBody,
+  GridHeadCell,
+  GridBodyCell,
+  GridBodyCellNumber,
+} from './styles';
 
 export function getProjectID(
   eventData: EventData,
@@ -177,7 +183,9 @@ class Table extends React.Component<Props, State> {
 
       return (
         <React.Fragment key={index}>
-          <GridRow>{this.renderRowItem(row, columnOrder, tableData.meta)}</GridRow>
+          <GridRow numOfColumns={columnOrder.length}>
+            {this.renderRowItem(row, columnOrder, tableData.meta)}
+          </GridRow>
         </React.Fragment>
       );
     });
@@ -268,12 +276,15 @@ class Table extends React.Component<Props, State> {
   };
 
   render() {
+    const {eventView} = this.props;
+    const columnOrder = eventView.getColumns();
+
     return (
       <div>
         <Panel>
           <TableGrid>
             <GridHead>
-              <GridRow>{this.renderHeader()}</GridRow>
+              <GridRow numOfColumns={columnOrder.length}>{this.renderHeader()}</GridRow>
             </GridHead>
             <GridBody>{this.renderResults()}</GridBody>
           </TableGrid>
@@ -283,50 +294,5 @@ class Table extends React.Component<Props, State> {
     );
   }
 }
-
-const TableGrid = styled('table')`
-  margin: 0;
-  width: 100%;
-`;
-
-const GridHead = styled('thead')`
-  color: ${p => p.theme.gray3};
-  text-transform: uppercase;
-  font-size: 12px;
-  line-height: 1;
-`;
-
-const GridHeadCell = styled('th')`
-  padding: ${space(2)};
-  background: ${p => p.theme.offWhite};
-  ${overflowEllipsis};
-
-  &:first-child {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-  }
-
-  &:last-child {
-    border-top-right-radius: ${p => p.theme.borderRadius};
-  }
-`;
-
-const GridBody = styled('tbody')`
-  font-size: 14px;
-`;
-
-const GridBodyCell = styled('td')`
-  border-top: 1px solid ${p => p.theme.borderDark};
-  padding: ${space(1)} ${space(2)};
-  ${overflowEllipsis};
-`;
-
-const GridBodyCellNumber = styled(GridBodyCell)`
-  text-align: right;
-`;
-
-const GridRow = styled('tr')`
-  display: grid;
-  grid-template-columns: auto 120px repeat(6, minmax(70px, 120px));
-`;
 
 export default withProjects(withApi(Table));
