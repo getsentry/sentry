@@ -27,7 +27,7 @@ const IntegrationStatus = styled((props: StatusProps) => {
     </StatusWrapper>
   );
 })`
-  color: ${(props: StatusProps) => theme[COLORS[props.status]]};
+  color: ${p => theme[COLORS[p.status]]};
   margin-left: ${space(0.5)};
   font-weight: light;
   margin-right: ${space(0.75)};

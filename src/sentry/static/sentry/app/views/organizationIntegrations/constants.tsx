@@ -6,7 +6,7 @@ export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray2',
   [PENDING]: 'yellowOrange',
-};
+} as const;
 
 /**
  * Integrations in the integration directory should be sorted by their popularity (weight).
