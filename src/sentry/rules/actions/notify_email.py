@@ -24,10 +24,20 @@ from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
 
-ISSUE_OWNERS = "IssueOwners"
-TEAM = "Team"
-MEMBER = "Member"
-CHOICES = [(ISSUE_OWNERS, "Issue Owners"), (TEAM, "Team"), (MEMBER, "Member")]
+from enum import Enum
+
+
+class NotifyEmailActionTargetType(Enum):
+    ISSUE_OWNERS = "IssueOwners"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+CHOICES = [
+    (NotifyEmailActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
+    (NotifyEmailActionTargetType.TEAM.value, "Team"),
+    (NotifyEmailActionTargetType.MEMBER.value, "Member"),
+]
 
 
 class MailAdapter(object):
@@ -188,11 +198,11 @@ class MailAdapter(object):
             return return_set(self.get_send_to_all_in_project(project))
 
         send_to = []
-        if target_type == ISSUE_OWNERS:
+        if target_type == NotifyEmailActionTargetType.ISSUE_OWNERS.value:
             send_to = self.get_send_to_owners(event, project)
-        elif target_type == MEMBER:
+        elif target_type == NotifyEmailActionTargetType.MEMBER.value:
             send_to = self.get_send_to_member(target_identifier)
-        elif target_type == TEAM:
+        elif target_type == NotifyEmailActionTargetType.TEAM.value:
             send_to = self.get_send_to_team(project, target_identifier)
         return return_set(send_to)
 
@@ -451,7 +461,7 @@ class NotifyEmailForm(forms.Form):
         targetType = cleaned_data.get("targetType")
         targetIdentifier = cleaned_data.get("targetIdentifier")
 
-        if targetType == ISSUE_OWNERS:
+        if targetType == NotifyEmailActionTargetType.ISSUE_OWNERS.value:
             self.cleaned_data["targetType"] = targetType
             return
 
