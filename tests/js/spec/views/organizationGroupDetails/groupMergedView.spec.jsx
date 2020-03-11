@@ -50,7 +50,7 @@ describe('Issues -> Merged View', function() {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it.only('renders with mocked data', async function() {
+  it('renders with mocked data', async function() {
     const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
