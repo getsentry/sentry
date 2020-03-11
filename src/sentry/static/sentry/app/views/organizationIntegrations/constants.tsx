@@ -7,3 +7,10 @@ export const colors = {
   [NOT_INSTALLED]: 'gray2',
   [PENDING]: 'yellowOrange',
 };
+
+export const weights = {
+  slack: 10,
+  splunk: 3,
+  webhooks: 100,
+  bitbucket_server: 30,
+};

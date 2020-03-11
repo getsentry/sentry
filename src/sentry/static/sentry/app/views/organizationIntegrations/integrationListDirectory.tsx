@@ -16,6 +16,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
+  isSortIntegrationsByWeightActive,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -28,6 +29,7 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 
+import {weights} from './constants';
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -201,9 +203,21 @@ export class OrganizationIntegrations extends AsyncComponent<
   }
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    return integrations
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+    const sortByName = arr => arr.sort((a, b) => a.name.localeCompare(b.name));
+    const sortByPopularity = arr =>
+      arr.sort((a, b) => {
+        const weightA = weights[a.slug] ? weights[a.slug] : 1;
+        const weightB = weights[b.slug] ? weights[b.slug] : 1;
+        return weightA > weightB ? -1 : weightB > weightA ? 1 : 0;
+      });
+    const sortByInstalled = arr =>
+      arr.sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+
+    if (isSortIntegrationsByWeightActive()) {
+      return sortByInstalled(sortByPopularity(sortByName(integrations)));
+    }
+
+    return sortByInstalled(sortByName(integrations));
   }
 
   async componentDidUpdate(_, prevState: State) {
