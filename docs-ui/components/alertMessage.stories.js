@@ -1,15 +1,17 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
+import space from 'app/styles/space';
 import AlertMessage from 'app/components/alertMessage';
 
 storiesOf('UI|Alerts/AlertMessage', module)
   .add(
     'Default',
     withInfo('Inline alert messages')(() => (
-      <div>
+      <Grid>
         <AlertMessage
           alert={{
             id: 'id',
@@ -44,13 +46,13 @@ storiesOf('UI|Alerts/AlertMessage', module)
             url: 'url',
           }}
         />
-      </div>
+      </Grid>
     ))
   )
   .add(
     'System',
     withInfo('System-level alert messages that appear at the top of the viewport')(() => (
-      <div>
+      <Grid>
         <AlertMessage
           alert={{
             id: 'id',
@@ -90,6 +92,11 @@ storiesOf('UI|Alerts/AlertMessage', module)
           }}
           system
         />
-      </div>
+      </Grid>
     ))
   );
+
+const Grid = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+`;
