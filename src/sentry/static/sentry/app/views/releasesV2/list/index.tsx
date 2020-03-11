@@ -53,10 +53,12 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const query = {
       ...pick(location.query, [
-        ...Object.values(URL_PARAM),
+        'project',
+        'environment',
         'cursor',
         'query',
         'sort',
+        'summaryStatsPeriod',
         'healthStatsPeriod',
       ]),
       per_page: 50,
