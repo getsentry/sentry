@@ -64,8 +64,6 @@ class MailAdapter(object):
         from sentry.digests.notifications import event_to_record, unsplit_key_for_targeted_action
         from sentry import digests
 
-        # TODO(Jeff): Why did we remove rate limits
-
         rules = []
         extra = {
             "event_id": event.event_id,
@@ -159,9 +157,9 @@ class MailAdapter(object):
 
     def get_sendable_users(self, project):
         """
-             Return a collection of user IDs that are eligible to receive
-             notifications for the provided project.
-             """
+        Return a collection of user IDs that are eligible to receive
+        notifications for the provided project.
+        """
         return project.get_notification_recipients(self.legacy_mail.alert_option_key)
 
     def should_notify(self, group):
@@ -175,7 +173,6 @@ class MailAdapter(object):
         # No rate limit checks needed as mail should be throttled due to digests.
         return True
 
-    # TODO: Maybe this should shift into the action.
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
         Returns a list of user IDs for the users that should receive
@@ -192,7 +189,6 @@ class MailAdapter(object):
         if not (project and project.teams.exists()):
             self.logger.debug("Tried to send notification to invalid project: %r", project)
             return set()
-        # TODO(jeff): check if notification.event can be None
 
         if not event:
             return return_set(self.get_send_to_all_in_project(project))
@@ -249,7 +245,6 @@ class MailAdapter(object):
         return disabled_users
 
     def get_send_to_team(self, project, target_identifier):
-        # TODO(Jeff): need to implement filtering based on user mail options
         if target_identifier is None:
             return []
         try:
@@ -267,7 +262,6 @@ class MailAdapter(object):
         try:
             user = User.objects.get(id=int(target_identifier))
         except User.DoesNotExist:
-            # TODO(jeff): consider throwing an error?
             return []
         return [user.id]
 
@@ -457,7 +451,6 @@ class NotifyEmailForm(forms.Form):
 
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
-        # TODO(jeff): Change case
         targetType = cleaned_data.get("targetType")
         targetIdentifier = cleaned_data.get("targetIdentifier")
 

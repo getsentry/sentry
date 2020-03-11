@@ -39,6 +39,7 @@ def schedule_digests():
         deliver_digest.delay(entry.key, entry.timestamp)
 
 
+# TODO(jeff): Need to update tests
 @instrumented_task(name="sentry.tasks.digests.deliver_digest", queue="digests.delivery")
 def deliver_digest(key, schedule_timestamp=None):
     from sentry import digests
