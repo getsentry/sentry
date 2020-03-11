@@ -10,25 +10,23 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{organizationId: string; projectId: string}, {}>;
 
-function ProjectAlerts({children, organization}: Props) {
-  return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Feature organization={organization} features={['incidents']}>
-          {({hasFeature}) => (
-            <React.Fragment>
-              {React.isValidElement(children) &&
-                React.cloneElement(children, {
-                  organization,
-                  canEditRule: hasAccess,
-                  hasMetricAlerts: hasFeature,
-                })}
-            </React.Fragment>
-          )}
-        </Feature>
-      )}
-    </Access>
-  );
-}
+const ProjectAlerts = ({children, organization}: Props) => (
+  <Access organization={organization} access={['project:write']}>
+    {({hasAccess}) => (
+      <Feature organization={organization} features={['incidents']}>
+        {({hasFeature}) => (
+          <React.Fragment>
+            {React.isValidElement(children) &&
+              React.cloneElement(children, {
+                organization,
+                canEditRule: hasAccess,
+                hasMetricAlerts: hasFeature,
+              })}
+          </React.Fragment>
+        )}
+      </Feature>
+    )}
+  </Access>
+);
 
 export default ProjectAlerts;
