@@ -141,7 +141,7 @@ def configure_sdk():
             upstream_transport.capture_event(event)
 
         if relay_transport:
-            rate = options.get("ingest.use-relay-dsn-sample-rate")
+            rate = options.get("store.use-relay-dsn-sample-rate")
             if rate and random.random() < rate:
                 relay_transport.capture_event(event)
                 return
