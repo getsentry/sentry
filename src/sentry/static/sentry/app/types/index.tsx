@@ -233,6 +233,7 @@ type SentryEventBase = {
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+  projectID: string;
 
   tags: EventTag[];
 
