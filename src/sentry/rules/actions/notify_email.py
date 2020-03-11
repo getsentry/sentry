@@ -232,6 +232,8 @@ class MailAdapter(object):
         """
 
         def return_set(xs):
+            if isinstance(xs, set):
+                return xs
             return set(xs) if xs or xs == 0 else set()
 
         if not (project and project.teams.exists()):
@@ -246,9 +248,9 @@ class MailAdapter(object):
         if target_type == ISSUE_OWNERS:
             send_to = self.get_send_to_owners(event, project)
         elif target_type == MEMBER:
-            send_to = self.get_send_to_member(project, target_identifier)
+            send_to = self.get_send_to_member(target_identifier)
         elif target_type == TEAM:
-            send_to = self.get_send_to_team(target_identifier)
+            send_to = self.get_send_to_team(project, target_identifier)
         return return_set(send_to)
 
     def get_send_to_owners(self, event, project):
@@ -267,41 +269,46 @@ class MailAdapter(object):
                 tags={"organization": project.organization_id, "outcome": "match"},
                 skip_internal=True,
             )
-            send_to_list = set()
+            send_to_set = set()
             teams_to_resolve = set()
             for owner in owners:
                 if owner.type == User:
-                    send_to_list.add(owner.id)
+                    send_to_set.add(owner.id)
                 else:
                     teams_to_resolve.add(owner.id)
 
             # get all users in teams
             if teams_to_resolve:
-                send_to_list |= set(
+                send_to_set |= set(
                     User.objects.filter(
                         is_active=True,
                         sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
                     ).values_list("id", flat=True)
                 )
 
-            alert_settings = project.get_member_alert_settings(self.legacy_mail.alert_option_key)
-            disabled_users = set(user for user, setting in alert_settings.items() if setting == 0)
-            return send_to_list - disabled_users
+            return send_to_set - self.disabled_users_from_project(project)
         else:
             return self.get_send_to_all_in_project(project)
 
-    @staticmethod
-    def get_send_to_team(target_identifier):
+    def disabled_users_from_project(self, project):
+        alert_settings = project.get_member_alert_settings(self.legacy_mail.alert_option_key)
+        disabled_users = set(user for user, setting in alert_settings.items() if setting == 0)
+        return disabled_users
+
+    def get_send_to_team(self, project, target_identifier):
+        # TODO(Jeff): need to implement filtering based on user mail options
         if target_identifier is None:
             return []
         try:
             team = Team.objects.get(id=int(target_identifier))
         except Team.DoesNotExist:
             return []
-        return team.member_set.values_list("user_id", flat=True)
+        return set(
+            team.member_set.values_list("user_id", flat=True)
+        ) - self.disabled_users_from_project(project)
 
     @staticmethod
-    def get_send_to_member(project, target_identifier):
+    def get_send_to_member(target_identifier):
         if target_identifier is None:
             return []
         try:
@@ -309,10 +316,7 @@ class MailAdapter(object):
         except User.DoesNotExist:
             # TODO(jeff): consider throwing an error?
             return []
-        alert_settings = project.get_member_alert_settings("mail:alert")
-        disabled_users = set(user_id for user_id, setting in alert_settings.items() if setting == 0)
-        if user.id not in disabled_users:
-            return [user.id]
+        return [user.id]
 
     def get_send_to_all_in_project(self, project):
         metrics.incr(
