@@ -201,9 +201,6 @@ describe('IntegrationRow', function() {
       );
       expect(wrapper.find('PluginIcon').props().pluginId).toEqual('amazon-sqs');
       expect(wrapper.find('IntegrationName').props().children).toEqual('Amazon SQS');
-      expect(wrapper.find('IntegrationName').props().to).toEqual(
-        `/settings/${org.slug}/plugins/amazon-sqs/`
-      );
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').exists()).toEqual(false);
