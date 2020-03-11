@@ -274,13 +274,13 @@ def transform_results(result, translated_columns, snuba_args):
 # TODO(evanh) This is only here for backwards compatibilty with old queries using these deprecated
 # aliases. Once we migrate the queries these can go away.
 OLD_FUNCTIONS_TO_NEW = {
-    "p75": "percentile(transaction.duration, 0.75)",
-    "p95": "percentile(transaction.duration, 0.95)",
-    "p99": "percentile(transaction.duration, 0.99)",
+    "p75": "p75()",
+    "p95": "p95()",
+    "p99": "p99()",
     "last_seen": "last_seen()",
     "latest_event": "latest_event()",
-    "apdex": "apdex(transaction.duration, 300)",
-    "impact": "impact(transaction.duration, 300)",
+    "apdex": "apdex(300)",
+    "impact": "impact(300)",
 }
 
 

@@ -993,6 +993,21 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p75": {
+        "name": "p75",
+        "args": [],
+        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+    },
+    "p95": {
+        "name": "p95",
+        "args": [],
+        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+    },
+    "p99": {
+        "name": "p99",
+        "args": [],
+        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+    },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
@@ -1019,19 +1034,19 @@ FUNCTIONS = {
     },
     "apdex": {
         "name": "apdex",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex({column}, {satisfaction:g})",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex(duration, {satisfaction:g})",
         "result_type": "number",
     },
     "impact": {
         "name": "impact",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
         # in a format Snuba can parse so query optimizations can be applied.
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "error_rate": {
