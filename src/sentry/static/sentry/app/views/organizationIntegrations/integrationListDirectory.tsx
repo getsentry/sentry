@@ -208,11 +208,11 @@ export class OrganizationIntegrations extends AsyncComponent<
     return 0;
   }
 
-  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
-    a.name.localeCompare(b.name);
-
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
     POPULARITY_WEIGHT[integration.slug] ?? 1;
+
+  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    a.name.localeCompare(b.name);
 
   sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     const weightA = this.getPopularityWeight(a);
