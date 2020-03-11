@@ -16,5 +16,6 @@
     "env": {
       "SENTRY_EXPERIMENTAL_SPA": "1"
     }
-  }
+  },
+  "github": {"silent": true}
 }
