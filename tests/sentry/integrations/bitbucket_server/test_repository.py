@@ -11,7 +11,7 @@ from sentry.models import Integration, Repository, IdentityProvider, Identity, I
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
 from sentry.integrations.exceptions import IntegrationError
-from .testutils import EXAMPLE_PRIVATE_KEY, COMPARE_COMMITS_EXAMPLE, REPO
+from .testutils import EXAMPLE_PRIVATE_KEY, COMPARE_COMMITS_EXAMPLE, REPO, COMMIT_CHANGELIST_EXAMPLE
 
 
 class BitbucketServerRepositoryProviderTest(APITestCase):
@@ -66,6 +66,12 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             json=COMPARE_COMMITS_EXAMPLE,
         )
 
+        responses.add(
+            responses.GET,
+            "https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301/changes",
+            json=COMMIT_CHANGELIST_EXAMPLE,
+        )
+
         res = self.provider.compare_commits(repo, None, "e18e4e72de0d824edfbe0d73efe34cbd0d01d301")
 
         assert res == [
@@ -75,7 +81,28 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 "message": "README.md edited online with Bitbucket",
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "sentryuser/newsdiffs",
-                "patch_set": None,
+                "patch_set": [
+                    {
+                        "path": "a.txt",
+                        "type": "M"
+                    },
+                    {
+                        "path": "b.txt",
+                        "type": "A"
+                    },
+                    {
+                        "path": "c.txt",
+                        "type": "D"
+                    },
+                    {
+                        "path": "e.txt",
+                        "type": "D"
+                    },
+                    {
+                        "path": "d.txt",
+                        "type": "A"
+                    }
+                ],
                 "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
             }
         ]

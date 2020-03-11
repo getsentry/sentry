@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -126,55 +128,55 @@ class CrashHeader extends React.Component {
           {titleNode}
         </TitleInfo>
         <ButtonGroupWrapper>
-          <ButtonGroup className="btn-group">
+          <ButtonGroup merged>
             {this.hasSystemFrames() && (
-              <a
-                className={
-                  (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
-                }
+              <Button
+                className={stackView === 'app' ? 'active' : ''}
+                priority={stackView === 'app' ? 'primary' : 'default'}
+                size="xsmall"
                 onClick={() => this.setStackView('app')}
               >
                 {t('App Only')}
-              </a>
+              </Button>
             )}
-            <a
-              className={
-                (stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
+            <Button
+              className={stackView === 'full' ? 'active' : ''}
+              priority={stackView === 'full' ? 'primary' : 'default'}
+              size="xsmall"
               onClick={() => this.setStackView('full')}
             >
               {t('Full')}
-            </a>
-            <a
-              className={
-                (stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
+            </Button>
+            <Button
+              className={stackView === 'raw' ? 'active' : ''}
+              priority={stackView === 'raw' ? 'primary' : 'default'}
               onClick={() => this.setStackView('raw')}
+              size="xsmall"
             >
               {t('Raw')}
-            </a>
+            </Button>
           </ButtonGroup>
           {this.hasMinified() && (
-            <ButtonGroup className="btn-group">
+            <ButtonGroup merged>
               {[
-                <a
+                <Button
                   key="original"
-                  className={
-                    (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
-                  }
+                  className={stackType === 'original' ? 'active' : ''}
+                  priority={stackType === 'original' ? 'primary' : 'default'}
+                  size="xsmall"
                   onClick={() => this.setStackType('original')}
                 >
                   {this.getOriginalButtonLabel()}
-                </a>,
-                <a
+                </Button>,
+                <Button
                   key="minified"
-                  className={
-                    (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
-                  }
+                  className={stackType === 'minified' ? 'active' : ''}
+                  priority={stackType === 'minified' ? 'primary' : 'default'}
+                  size="xsmall"
                   onClick={() => this.setStackType('minified')}
                 >
                   {this.getMinifiedButtonLabel()}
-                </a>,
+                </Button>,
               ]}
             </ButtonGroup>
           )}
@@ -189,7 +191,6 @@ export default CrashHeader;
 const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
   flex-direction: column;
   flex-wrap: wrap;
   width: 100%;
@@ -211,9 +212,10 @@ const TitleInfo = styled('div')`
   }
 `;
 
-const ButtonGroup = styled('div')`
+const ButtonGroup = styled(ButtonBar)`
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};
+  padding-right: ${space(1)};
 `;
 
 const ButtonGroupWrapper = styled('div')`
@@ -221,9 +223,6 @@ const ButtonGroupWrapper = styled('div')`
   flex-direction: column;
   flex-wrap: wrap;
   margin-right: -${space(1)};
-  > .btn-group {
-    padding-right: ${space(1)};
-  }
   @media (min-width: ${props => props.theme.breakpoints[1]}) {
     flex-direction: row;
   }

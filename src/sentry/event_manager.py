@@ -13,7 +13,7 @@ from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb, options
+from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import attachment_cache
 from sentry.constants import (
     DataCategory,
@@ -41,7 +41,6 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.ingest.outcomes_consumer import mark_signal_sent
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
@@ -72,7 +71,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry import quotas
-from sentry.signals import event_discarded, event_saved, first_event_received
+from sentry.signals import first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
@@ -536,13 +535,6 @@ class EventManager(object):
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
-            if options.get("sentry:skip-discarded-signal-in-save-event") != "1":
-                event_discarded.send_robust(project=project, sender=EventManager)
-
-                # The outcomes_consumer generically handles all FILTERED outcomes,
-                # but needs to skip this since it cannot dispatch event_discarded.
-                mark_signal_sent(project_id, job["event"].event_id)
-
             project_key = None
             if job["key_id"] is not None:
                 try:
@@ -553,14 +545,14 @@ class EventManager(object):
             quotas.refund(project, key=project_key, timestamp=start_time)
 
             track_outcome(
-                project.organization_id,
-                project_id,
-                job["key_id"],
-                Outcome.FILTERED,
-                FilterStatKeys.DISCARDED_HASH,
-                to_datetime(job["start_time"]),
-                job["event"].event_id,
-                job["category"],
+                org_id=project.organization_id,
+                project_id=project_id,
+                key_id=job["key_id"],
+                outcome=Outcome.FILTERED,
+                reason=FilterStatKeys.DISCARDED_HASH,
+                timestamp=to_datetime(job["start_time"]),
+                event_id=job["event"].event_id,
+                category=job["category"],
             )
 
             metrics.incr(
@@ -571,9 +563,6 @@ class EventManager(object):
             raise
 
         job["event"].group = job["group"]
-
-        if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
-            _send_event_saved_signal_many(jobs, projects)
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does
@@ -823,18 +812,6 @@ def _materialize_metadata_many(jobs):
         data["culprit"] = job["culprit"]
 
 
-@metrics.wraps("save_event.send_event_saved_signal_many")
-def _send_event_saved_signal_many(jobs, projects):
-    for job in jobs:
-        event_saved.send_robust(
-            project=projects[job["project_id"]],
-            event_size=job["event"].size,
-            category=job["category"],
-            quantity=1,
-            sender=EventManager,
-        )
-
-
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs, projects):
     for job in jobs:
@@ -954,19 +931,15 @@ def _track_outcome_accepted_many(jobs):
     for job in jobs:
         event = job["event"]
 
-        # This is where we can finally say that we have accepted the event.
-        if options.get("sentry:skip-accepted-signal-in-save-event") != "1":
-            mark_signal_sent(event.project.id, event.event_id)
-
         track_outcome(
-            event.project.organization_id,
-            job["project_id"],
-            job["key_id"],
-            Outcome.ACCEPTED,
-            None,
-            to_datetime(job["start_time"]),
-            event.event_id,
-            job["category"],
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            event_id=event.event_id,
+            category=job["category"],
         )
 
 
@@ -1398,7 +1371,6 @@ def save_transaction_events(jobs, projects):
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _materialize_metadata_many(jobs)
-    _send_event_saved_signal_many(jobs, projects)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)

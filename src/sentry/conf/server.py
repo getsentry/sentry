@@ -826,6 +826,8 @@ SENTRY_FEATURES = {
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
     "organizations:releases-v2": False,
+    # Enable rule page.
+    "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on
@@ -841,6 +843,8 @@ SENTRY_FEATURES = {
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
+    # Enable selection of members, teams or code owners as email targets for issue alerts.
+    "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
@@ -1682,7 +1686,7 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
-KAFKA_SNUBA_QUERY_SUBSCRIPTIONS = "snuba-query-subscriptions"
+KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -1690,9 +1694,9 @@ KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
-    KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: {
+    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
-        "topic": KAFKA_SNUBA_QUERY_SUBSCRIPTIONS,
+        "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
@@ -1778,3 +1782,5 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 # symbolicator. If too low, too many events up in the sleep queue. If too high,
 # process_event might backlog and affect events from other platforms.
 SYMBOLICATOR_POLL_TIMEOUT = 4
+
+SENTRY_REQUEST_METRIC_ALLOWED_PATHS = ("sentry.web.api", "sentry.api.endpoints")

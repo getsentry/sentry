@@ -4,12 +4,13 @@ import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {IconAdd} from 'app/icons/iconAdd';
 import {Member, Organization, Project, Team, User} from 'app/types';
 import {addTeamToProject} from 'app/actionCreators/projects';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
-import {IconAdd} from 'app/icons/iconAdd';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectControl from 'app/components/forms/selectControl';
@@ -60,6 +61,7 @@ type Props = {
 
 type State = {
   loading: boolean;
+  memberListLoading: boolean;
   inputValue: string;
   options: AllMentionable[] | null;
 };
@@ -87,20 +89,26 @@ class SelectMembers extends React.Component<Props, State> {
     loading: false,
     inputValue: '',
     options: null,
+    memberListLoading: !MemberListStore.isLoaded(),
   };
 
   componentWillUnmount() {
-    if (this.projectsStoreUnlisten) {
-      this.projectsStoreUnlisten();
-    }
+    this.unlisteners.forEach(callIfFunction);
   }
 
   selectRef = React.createRef<typeof SelectControl>();
 
-  // See comments in `handleAddTeamToProject` for why we close the menu this way
-  projectsStoreUnlisten = ProjectsStore.listen(() => {
-    this.closeSelectMenu();
-  });
+  unlisteners = [
+    // See comments in `handleAddTeamToProject` for why we close the menu this way
+    ProjectsStore.listen(() => {
+      this.closeSelectMenu();
+    }),
+    MemberListStore.listen(() => {
+      this.setState({
+        memberListLoading: !MemberListStore.isLoaded(),
+      });
+    }),
+  ];
 
   renderUserBadge = (user: User) => (
     <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
@@ -283,16 +291,16 @@ class SelectMembers extends React.Component<Props, State> {
   }, 250);
 
   handleLoadOptions = (): Promise<AllMentionable[]> => {
-    const usersInProject = this.getMentionableUsers();
-    const teamsInProject = this.getMentionableTeams();
-    const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
-    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
-
     if (this.props.showTeam) {
+      const teamsInProject = this.getMentionableTeams();
+      const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
       const options = [...teamsInProject, ...teamsNotInProject];
       this.setState({options});
       return Promise.resolve(options);
     }
+
+    const usersInProject = this.getMentionableUsers();
+    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     // Return a promise for `react-select`
     return new Promise((resolve, reject) => {
@@ -324,6 +332,13 @@ class SelectMembers extends React.Component<Props, State> {
   render() {
     const {placeholder} = this.props;
 
+    // If memberList is still loading we need to disable a placeholder Select,
+    // otherwise `react-select` will call `loadOptions` and prematurely load
+    // options
+    if (this.state.memberListLoading) {
+      return <StyledSelectControl isDisabled placeholder={t('Loading')} />;
+    }
+
     return (
       <StyledSelectControl
         ref={this.selectRef}
@@ -331,10 +346,11 @@ class SelectMembers extends React.Component<Props, State> {
           option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
+        isOptionDisabled={option => option.disabled}
         defaultOptions
         async
         isDisabled={this.props.disabled}
-        cache={false}
+        cacheOptions={false}
         placeholder={placeholder}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}

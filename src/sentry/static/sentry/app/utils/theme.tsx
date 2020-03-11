@@ -228,8 +228,9 @@ const theme = {
     },
 
     globalSelectionHeader: 1009,
-    sidebar: 1010,
-    orgAndUserMenu: 1011,
+    sidebarPanel: 1019,
+    sidebar: 1020,
+    orgAndUserMenu: 1030,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
@@ -277,7 +278,6 @@ const theme = {
     menuSpacing: '15px',
     panel: {
       width: '320px',
-      headerHeight: '62px',
     },
   },
 
