@@ -195,9 +195,12 @@ class RuleNode extends React.Component<Props> {
 
   conditionallyRenderHelpfulBanner() {
     const {data, project, organization} = this.props;
-    // Can't do typechecking at runtime for data to be of type '...' due to type erasure of user defined types in the
-    // transpilation process.
-    // See: https://stackoverflow.com/questions/51528780/typescript-check-typeof-against-custom-type
+    /**
+     * Would prefer to check if data is of `IssueAlertRuleAction` type, however we can't do typechecking at runtime as
+     * user defined types are erased through transpilation.
+     * Instead, we apply duck typing semantics here.
+     * See: https://stackoverflow.com/questions/51528780/typescript-check-typeof-against-custom-type
+     */
     if (!data?.targetType) {
       return null;
     }
