@@ -329,17 +329,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
           submitLabel={t('Save Rule')}
           extraButton={
-            <Confirm
-              priority="danger"
-              confirmText={t('Delete Rule')}
-              onConfirm={this.handleDeleteRule}
-              header={t('Delete Rule')}
-              message={t('Are you sure you want to delete this rule?')}
-            >
-              <Button priority="danger" type="button">
-                {t('Delete Rule')}
-              </Button>
-            </Confirm>
+            isSavedAlertRule(rule) ? (
+              <Confirm
+                priority="danger"
+                confirmText={t('Delete Rule')}
+                onConfirm={this.handleDeleteRule}
+                header={t('Delete Rule')}
+                message={t('Are you sure you want to delete this rule?')}
+              >
+                <Button priority="danger" type="button">
+                  {t('Delete Rule')}
+                </Button>
+              </Confirm>
+            ) : null
           }
         >
           {this.state.loading && <SemiTransparentLoadingMask />}
