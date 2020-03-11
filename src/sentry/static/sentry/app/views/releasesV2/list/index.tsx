@@ -23,7 +23,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Projects from 'app/utils/projects';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListPeriod from './releaseListPeriod';
