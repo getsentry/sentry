@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationInstallationStatus} from 'app/types';
 
-import {colors} from './constants';
+import {COLORS} from './constants';
 
 type StatusProps = {
   status: IntegrationInstallationStatus;
@@ -22,12 +22,12 @@ const IntegrationStatus = styled((props: StatusProps) => {
   const {status, ...p} = props;
   return (
     <StatusWrapper>
-      <CircleIndicator size={6} color={theme[colors[status]]} />
+      <CircleIndicator size={6} color={theme[COLORS[status]]} />
       <div {...p}>{`${t(status)}`}</div>
     </StatusWrapper>
   );
 })`
-  color: ${(props: StatusProps) => theme[colors[props.status]]};
+  color: ${p => theme[COLORS[p.status]]};
   margin-left: ${space(0.5)};
   font-weight: light;
   margin-right: ${space(0.75)};
