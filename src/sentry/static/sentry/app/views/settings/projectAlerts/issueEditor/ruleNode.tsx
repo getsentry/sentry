@@ -138,7 +138,6 @@ class RuleNode extends React.Component<Props> {
       <MailActionFields
         disabled={false}
         loading={!isInitialized}
-        error={false}
         action={data as IssueAlertRuleAction}
         onChange={this.handleMailActionChange}
       />

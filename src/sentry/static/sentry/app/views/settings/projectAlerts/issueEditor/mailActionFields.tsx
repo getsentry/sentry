@@ -17,7 +17,6 @@ type Props = {
   projects: Project[];
   disabled: boolean;
   loading: boolean;
-  error: boolean;
   action: IssueAlertRuleAction;
   onChange: (action: IssueAlertRuleAction) => void;
 };
