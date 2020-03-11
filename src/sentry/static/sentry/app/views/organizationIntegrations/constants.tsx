@@ -1,12 +1,3 @@
-import {
-  Organization,
-  Integration,
-  SentryApp,
-  IntegrationProvider,
-  SentryAppInstallation,
-  PluginWithProjectList,
-} from 'app/types';
-
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;

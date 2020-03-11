@@ -206,9 +206,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     a.name.localeCompare(b.name);
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
-    Number.isInteger(POPULARITY_WEIGHT[integration.slug])
-      ? POPULARITY_WEIGHT[integration.slug]
-      : 1;
+    POPULARITY_WEIGHT[integration.slug] ?? 1;
 
   sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     const weightA = this.getPopularityWeight(a);
