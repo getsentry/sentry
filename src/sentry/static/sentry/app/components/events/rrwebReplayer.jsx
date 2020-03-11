@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import rrwebPlayer from 'rrweb-player';
 
+import theme from 'app/utils/theme';
+
 class RRWebReplayer extends Component {
   static propTypes = {
     url: PropTypes.string.isRequired,
@@ -28,16 +30,16 @@ class RRWebReplayer extends Component {
 }
 
 export default styled(RRWebReplayer)`
-  display: flex;
-  flex: 1;
-  align-items: center;
-
-  .rr-player {
-    position: relative;
-  }
-
+  .rr-player,
   .rr-player__frame {
+    width: auto !important;
+    max-width: 600px;
     overflow: hidden;
+    margin: 0 auto;
+
+    @media (min-width: ${theme.breakpoints[3]}) {
+      max-width: 800px;
+    }
   }
 
   .replayer-wrapper {
@@ -46,10 +48,6 @@ export default styled(RRWebReplayer)`
     transform-origin: top left;
     left: 50%;
     top: 50%;
-  }
-
-  .replayer-wrapper > iframe {
-    border: none;
   }
 
   .rr-controller {

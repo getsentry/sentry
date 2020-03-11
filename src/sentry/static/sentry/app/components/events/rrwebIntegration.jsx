@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
+import {Panel} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
 import LazyLoad from 'app/components/lazyLoad';
 
 export default class RRWebIntegration extends AsyncComponent {
@@ -41,25 +42,24 @@ export default class RRWebIntegration extends AsyncComponent {
     const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Replay')}</h3>
-          <Panel>
-            <PanelBody>
-              <PanelItem>
-                <LazyLoad
-                  component={() =>
-                    import(
-                      /* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer'
-                    ).then(mod => mod.default)
-                  }
-                  url={url}
-                />
-              </PanelItem>
-            </PanelBody>
-          </Panel>
-        </div>
-      </div>
+      <ReplayWrapper>
+        <h5>Replay</h5>
+        <Panel>
+          <LazyLoad
+            component={() =>
+              import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer').then(
+                mod => mod.default
+              )
+            }
+            url={url}
+          />
+        </Panel>
+      </ReplayWrapper>
     );
   }
 }
+
+const ReplayWrapper = styled('div')`
+  padding-top: ${space(3)};
+  overflow: hidden;
+`;
