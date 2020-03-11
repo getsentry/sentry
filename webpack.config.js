@@ -50,10 +50,8 @@ const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
-// Deploy previews are built using netlify. We can check if we're in netlifys
+// Deploy previews are built using zeit. We can check if we're in zeit's
 // build process by checking the existence of the PULL_REQUEST env var.
-//
-// See: https://www.netlify.com/docs/continuous-deployment/#environment-variables
 const DEPLOY_PREVIEW_CONFIG = env.PULL_REQUEST && {
   commitRef: env.COMMIT_REF,
   reviewId: env.REVIEW_ID,
