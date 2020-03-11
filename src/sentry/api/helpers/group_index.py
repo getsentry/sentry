@@ -420,6 +420,29 @@ def self_subscribe_and_assign_issue(acting_user, group):
             return Actor(type=User, id=acting_user.id)
 
 
+def track_update_groups(function):
+    def wrapper(request, projects, *args, **kwargs):
+        try:
+            response = function(request, projects, *args, **kwargs)
+        except Exception:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            # Continue raising the error now that we've incr the metric
+            raise
+
+        serializer = GroupValidator(
+            data=request.data, partial=True, context={"project": projects[0]}
+        )
+        results = dict(serializer.validated_data) if serializer.is_valid() else {}
+        tags = {key: True for key in results.keys()}
+        tags["status"] = response.status_code
+
+        metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
+        return response
+
+    return wrapper
+
+
+@track_update_groups
 def update_groups(request, projects, organization_id, search_fn):
     group_ids = request.GET.getlist("id")
     if group_ids:
