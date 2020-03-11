@@ -143,7 +143,7 @@ class ApiClient(object):
         extra = {
             "plugin": self.plugin_name,
             "status": code,
-            "error": six.text_type(error[:128]) if error else None,
+            "error": six.text_type(error)[:128] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
         logger.info("plugins.http_response", extra=extra)
