@@ -11,7 +11,11 @@ export function displayDeployPreviewAlert() {
   }
 
   const {commitRef, reviewId, repoUrl} = DEPLOY_PREVIEW_CONFIG;
-  const repoName = repoUrl.match(/\w+\/\w+\/?$/)[0];
+  const repoName = repoUrl?.match(/\w+\/\w+\/?$/)[0];
+
+  if (!repoName) {
+    return;
+  }
 
   const pullLink = (
     <ExternalLink href={`${repoUrl}/pull/${reviewId}`}>

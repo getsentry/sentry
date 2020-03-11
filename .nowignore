@@ -1,0 +1,4 @@
+/src
+/tests
+!/src/sentry/static/sentry
+!/src/sentry/locale
