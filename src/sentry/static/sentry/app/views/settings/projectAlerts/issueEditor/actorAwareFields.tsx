@@ -1,15 +1,15 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import SelectMembers from 'app/components/selectMembers';
 import SelectControl from 'app/components/forms/selectControl';
+import {Organization, Project} from 'app/types';
+import {IssueAlertRuleAction} from 'app/types/alerts';
+import {PanelItem} from 'app/components/panels';
+import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
 import withProject from 'app/utils/withProject';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Project} from 'app/types';
-import {IssueAlertRuleAction} from 'app/types/alerts';
-import styled from 'app/styled';
-import {PanelItem} from 'app/components/panels';
-import space from 'app/styles/space';
 
 type Props = {
   project: Project;
