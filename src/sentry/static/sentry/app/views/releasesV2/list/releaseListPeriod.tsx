@@ -9,29 +9,29 @@ type Props = {
   onSelect: (key: string) => void;
 };
 
-const ReleaseListSortOptions = ({selected, onSelect}: Props) => {
+const ReleaseListPeriod = ({selected, onSelect}: Props) => {
   const options = [
     {
-      key: 'date',
-      label: t('Date Created'),
+      key: '24h',
+      label: t('Last 24 hours'),
     },
     {
-      key: 'sessions',
-      label: t('Total Sessions'),
+      key: '48h',
+      label: t('Last 48 hours'),
     },
     {
-      key: 'crash_free_users',
-      label: t('Crash Free Users'),
+      key: '7d',
+      label: t('Last 7 days'),
     },
     {
-      key: 'crash_free_sessions',
-      label: t('Crash Free Sessions'),
+      key: '14d',
+      label: t('Last 14 days'),
     },
   ];
 
   return (
     <ReleaseListDropdown
-      label={t('Sort by')}
+      label={t('Period')}
       options={options}
       selected={selected}
       onSelect={onSelect}
@@ -39,4 +39,4 @@ const ReleaseListSortOptions = ({selected, onSelect}: Props) => {
   );
 };
 
-export default ReleaseListSortOptions;
+export default ReleaseListPeriod;
