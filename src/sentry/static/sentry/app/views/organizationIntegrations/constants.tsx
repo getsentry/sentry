@@ -1,3 +1,12 @@
+import {
+  Organization,
+  Integration,
+  SentryApp,
+  IntegrationProvider,
+  SentryAppInstallation,
+  PluginWithProjectList,
+} from 'app/types';
+
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
@@ -15,7 +24,9 @@ export const COLORS = {
  * The weights should reflect the relative popularity of each integration.
  */
 
-export const POPULARITY_WEIGHT = {
+export const POPULARITY_WEIGHT: {
+  [key: string]: number;
+} = {
   // First-party-integrations
   slack: 50,
   github: 20,
@@ -49,4 +60,4 @@ export const POPULARITY_WEIGHT = {
   clickup: 1,
   amixir: 1,
   split: 1,
-} as const;
+};
