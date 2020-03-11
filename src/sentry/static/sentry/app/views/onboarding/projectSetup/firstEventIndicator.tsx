@@ -1,4 +1,3 @@
-import {keyframes} from '@emotion/core';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 import styled from '@emotion/styled';
@@ -9,6 +8,7 @@ import EventWaiter from 'app/views/onboarding/projectSetup/eventWaiter';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import testablePose from 'app/utils/testablePose';
+import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
 import {Group, Organization} from 'app/types';
 
 type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
@@ -82,39 +82,9 @@ const indicatorPoses = testablePose({
 
 const PosedText = posed.div(indicatorPoses);
 
-const pulse = keyframes`
-  0% {
-    transform: scale(0.1);
-    opacity: 1
-  }
-
-  40%, 100% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-`;
-
 const WaitingIndicator = styled(posed.div(indicatorPoses))`
   margin: 0 6px;
-  height: 10px;
-  width: 10px;
-  border-radius: 50%;
-  background: ${p => p.theme.redLight};
-  position: relative;
-
-  &:before {
-    content: '';
-    display: block;
-    position: absolute;
-    height: 100px;
-    width: 100px;
-    border-radius: 50%;
-    top: -45px;
-    left: -45px;
-    border: 4px solid ${p => p.theme.redLight};
-    transform-origin: center;
-    animation: ${pulse} 3s ease-out infinite;
-  }
+  ${pulsingIndicatorStyles};
 `;
 
 const PosedReceivedIndicator = posed(InlineSvg)(indicatorPoses);
