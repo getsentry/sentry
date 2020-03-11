@@ -826,6 +826,8 @@ SENTRY_FEATURES = {
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
     "organizations:releases-v2": False,
+    # Enable rule page.
+    "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on
