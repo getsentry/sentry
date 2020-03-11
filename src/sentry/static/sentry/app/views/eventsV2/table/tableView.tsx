@@ -63,7 +63,7 @@ class TableView extends React.Component<TableViewProps> {
     const {location, eventView, organization} = this.props;
 
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const nextEventView = eventView.withResizedField(columnIndex, newWidth);
+    const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     if (nextEventView !== eventView) {
       const changed: string[] = [];
