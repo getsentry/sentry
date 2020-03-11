@@ -50,7 +50,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string, {}?][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location, params} = this.props;
 
     const query = {

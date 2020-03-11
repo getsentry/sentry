@@ -31,7 +31,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {projectId, orgId, version} = this.props;
 
     const commitsEndpoint = `/projects/${orgId}/${encodeURIComponent(
@@ -53,7 +53,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     // group commits by author
     const groupedAuthorCommits = this.state.commits?.reduce(
       (authorCommitsAccumulator, commit) => {
-        const email = commit.author?.email ?? 'undefined';
+        const email = commit.author?.email ?? 'unknown';
 
         if (authorCommitsAccumulator.hasOwnProperty(email)) {
           authorCommitsAccumulator[email].commitCount += 1;
