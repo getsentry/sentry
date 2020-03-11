@@ -21,16 +21,21 @@ Notification = namedtuple("Notification", "event rules")
 TARGETED_MAIL_ACTION_SYMBOL = "targeted_mail"
 
 
+# TODO(jeff):tests needed for these new methods
 def is_targeted_action_key(key):
-    return [
-        token
-        for idx, token in enumerate(key.split(":"))
-        if idx == 0 and token == TARGETED_MAIL_ACTION_SYMBOL
-    ].length == 1
+    return (
+        len(
+            [
+                token
+                for idx, token in enumerate(key.split(":"))
+                if idx == 0 and token == TARGETED_MAIL_ACTION_SYMBOL
+            ]
+        )
+        == 1
+    )
 
 
 def split_key_for_targeted_action(key):
-    # TODO(jeff): Change import once logic has been bubbled to action
     from sentry.rules.actions.notify_email import MailAdapter
 
     _, _, project_id, target_type, target_identifier = key.split(":", 4)
