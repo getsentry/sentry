@@ -27,11 +27,11 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import Mock
 from sentry.utils.email import MessageBuilder
-from sentry.rules.actions.notify_email import NotifyEmailAction, MailAdapter
-
-OWNERS = "IssueOwners"
-TEAM = "Team"
-MEMBER = "Member"
+from sentry.rules.actions.notify_email import (
+    NotifyEmailAction,
+    MailAdapter,
+    NotifyEmailActionTargetType,
+)
 
 
 class NotifyEmailTest(RuleTestCase):
@@ -69,7 +69,7 @@ class MailAdapterTest(TestCase):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
@@ -92,7 +92,7 @@ class MailAdapterTest(TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
@@ -112,7 +112,7 @@ class MailAdapterTest(TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
@@ -134,7 +134,7 @@ class MailAdapterTest(TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
@@ -197,7 +197,7 @@ class MailAdapterTest(TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -231,7 +231,9 @@ class MailAdapterTest(TestCase):
         )
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest, OWNERS)
+            self.adapter.notify_digest(
+                project, digest, NotifyEmailActionTargetType.ISSUE_OWNERS.value
+            )
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1
@@ -245,7 +247,9 @@ class MailAdapterTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))
-        self.adapter.notify_digest(self.project, digest, OWNERS)
+        self.adapter.notify_digest(
+            self.project, digest, NotifyEmailActionTargetType.ISSUE_OWNERS.value
+        )
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
@@ -269,7 +273,9 @@ class MailAdapterTest(TestCase):
         )
 
         with self.tasks():
-            self.adapter.notify_digest(self.project, digest, OWNERS)
+            self.adapter.notify_digest(
+                self.project, digest, NotifyEmailActionTargetType.ISSUE_OWNERS.value
+            )
 
         assert len(mail.outbox) == 1
 
@@ -328,7 +334,7 @@ class MailAdapterTest(TestCase):
         with self.tasks():
             notification = Notification(event=event)
 
-            self.adapter.notify(notification, OWNERS)
+            self.adapter.notify(notification, NotifyEmailActionTargetType.ISSUE_OWNERS.value)
 
         assert len(mail.outbox) >= 1
 
@@ -415,7 +421,7 @@ class MailAdapterTargetTest(TestCase):
     def test_get_send_to_with_team_owners(self):
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
         assert {self.user.pk, self.user2.pk, self.user4.pk} == self.adapter.get_send_to(
-            self.project, OWNERS, event=event.data
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -423,51 +429,67 @@ class MailAdapterTargetTest(TestCase):
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
         assert {self.user.pk, self.user4.pk} == self.adapter.get_send_to(
-            self.project, OWNERS, event=event.data
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
         )
 
     def test_get_send_to_with_user_owners(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
         assert {self.user.pk, self.user2.pk} == self.adapter.get_send_to(
-            self.project, OWNERS, event=event.data
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
         )
 
         # Make sure that disabling mail alerts works as expected
         UserOption.objects.set_value(
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
-        assert {self.user.pk} == self.adapter.get_send_to(self.project, OWNERS, event=event.data)
+        assert {self.user.pk} == self.adapter.get_send_to(
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
+        )
 
     def test_get_send_to_with_user_owner(self):
         event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert {self.user2.pk} == self.adapter.get_send_to(self.project, OWNERS, event=event.data)
+        assert {self.user2.pk} == self.adapter.get_send_to(
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
+        )
 
     def test_get_send_to_with_fallthrough(self):
         event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert {self.user2.pk} == self.adapter.get_send_to(self.project, OWNERS, event=event.data)
+        assert {self.user2.pk} == self.adapter.get_send_to(
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
+        )
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert set() == self.adapter.get_send_to(self.project, OWNERS, event=event.data)
+        assert set() == self.adapter.get_send_to(
+            self.project, NotifyEmailActionTargetType.ISSUE_OWNERS.value, event=event.data
+        )
 
     def test_notify_users_with_owners(self):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
-        self.assert_notify(event_all_users, [self.user.email, self.user2.email], OWNERS)
+        self.assert_notify(
+            event_all_users,
+            [self.user.email, self.user2.email],
+            NotifyEmailActionTargetType.ISSUE_OWNERS.value,
+        )
 
         event_team = self.store_event(
             data=self.make_event_data("foo.py"), project_id=self.project.id
         )
         self.assert_notify(
-            event_team, [self.user.email, self.user2.email, self.user4.email], OWNERS
+            event_team,
+            [self.user.email, self.user2.email, self.user4.email],
+            NotifyEmailActionTargetType.ISSUE_OWNERS.value,
         )
 
         event_single_user = self.store_event(
             data=self.make_event_data("foo.jx"), project_id=self.project.id
         )
-        self.assert_notify(event_single_user, [self.user2.email], OWNERS)
+        self.assert_notify(
+            event_single_user, [self.user2.email], NotifyEmailActionTargetType.ISSUE_OWNERS.value
+        )
 
         # Make sure that disabling mail alerts works as expected
         UserOption.objects.set_value(
@@ -476,7 +498,9 @@ class MailAdapterTargetTest(TestCase):
         event_all_users = self.store_event(
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
-        self.assert_notify(event_all_users, [self.user.email], OWNERS)
+        self.assert_notify(
+            event_all_users, [self.user.email], NotifyEmailActionTargetType.ISSUE_OWNERS.value
+        )
 
     # TEAMS TESTS
     def test_get_send_to_team(self):
@@ -485,7 +509,7 @@ class MailAdapterTargetTest(TestCase):
         )
 
         assert {self.user3.pk, self.user4.pk} == self.adapter.get_send_to(
-            self.project, TEAM, self.team2.id, event=event.data
+            self.project, NotifyEmailActionTargetType.TEAM.value, self.team2.id, event=event.data
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -493,29 +517,42 @@ class MailAdapterTargetTest(TestCase):
             user=self.user3, key="mail:alert", value=0, project=self.project
         )
         assert {self.user4.pk} == self.adapter.get_send_to(
-            self.project, TEAM, self.team2.id, event=event.data
+            self.project, NotifyEmailActionTargetType.TEAM.value, self.team2.id, event=event.data
         )
 
     def test_notify_users_via_teams(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
         self.assert_notify(
-            event, [self.user.email, self.user2.email, self.user4.email], TEAM, self.team.id
+            event,
+            [self.user.email, self.user2.email, self.user4.email],
+            NotifyEmailActionTargetType.TEAM.value,
+            self.team.id,
         )
-        self.assert_notify(event, [self.user3.email, self.user4.email], TEAM, self.team2.id)
+        self.assert_notify(
+            event,
+            [self.user3.email, self.user4.email],
+            NotifyEmailActionTargetType.TEAM.value,
+            self.team2.id,
+        )
 
         # Make sure that disabling mail alerts works as expected
         UserOption.objects.set_value(
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
 
-        self.assert_notify(event, [self.user.email, self.user4.email], TEAM, self.team.id)
+        self.assert_notify(
+            event,
+            [self.user.email, self.user4.email],
+            NotifyEmailActionTargetType.TEAM.value,
+            self.team.id,
+        )
 
     # MEMBERS TESTS
     def test_get_send_to_member(self):
         event = self.store_event(data=self.make_event_data("snoo.py"), project_id=self.project.id)
 
         assert {self.user3.pk} == self.adapter.get_send_to(
-            self.project, MEMBER, self.user3.id, event=event.data
+            self.project, NotifyEmailActionTargetType.MEMBER.value, self.user3.id, event=event.data
         )
 
         # Make sure that disabling mail alerts works as expected (User still gets mail)
@@ -523,17 +560,23 @@ class MailAdapterTargetTest(TestCase):
             user=self.user3, key="mail:alert", value=0, project=self.project
         )
         assert {self.user3.pk} == self.adapter.get_send_to(
-            self.project, MEMBER, self.user3.id, event=event.data
+            self.project, NotifyEmailActionTargetType.MEMBER.value, self.user3.id, event=event.data
         )
 
     def test_notify_users_via_members(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
-        self.assert_notify(event, [self.user.email], MEMBER, self.user.id)
-        self.assert_notify(event, [self.user4.email], MEMBER, self.user4.id)
+        self.assert_notify(
+            event, [self.user.email], NotifyEmailActionTargetType.MEMBER.value, self.user.id
+        )
+        self.assert_notify(
+            event, [self.user4.email], NotifyEmailActionTargetType.MEMBER.value, self.user4.id
+        )
 
         # Make sure that disabling mail alerts works as expected (User still gets mail)
         UserOption.objects.set_value(
             user=self.user4, key="mail:alert", value=0, project=self.project
         )
 
-        self.assert_notify(event, [self.user4.email], MEMBER, self.user4.id)
+        self.assert_notify(
+            event, [self.user4.email], NotifyEmailActionTargetType.MEMBER.value, self.user4.id
+        )
