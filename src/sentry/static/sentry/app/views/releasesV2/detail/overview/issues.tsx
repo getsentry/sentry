@@ -15,9 +15,20 @@ type Props = {
   version: string;
 };
 
-const Issues = ({orgId, version}: Props) => {
+type State = {
+  issuesType: string;
+};
+
+class Issues extends React.Component<Props, State> {
+  // TODO(releasesV2): we may want to put this in the URL, for now it stays just in state (issues stream is still subject to change)
+  state = {
+    issuesType: 'new',
+  };
+
   // TODO(releasesV2): figure out the query we want + do we want to pass globalSelectionHeader values?
-  const getDiscoverUrl = () => {
+  getDiscoverUrl() {
+    const {version, orgId} = this.props;
+
     const discoverQuery = {
       id: undefined,
       version: 2,
@@ -34,46 +45,88 @@ const Issues = ({orgId, version}: Props) => {
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
     return discoverView.getResultsViewUrlTarget(orgId);
+  }
+
+  getIssuesEndpoint(): {path: string; query: string} {
+    const {version, orgId} = this.props;
+    const {issuesType} = this.state;
+
+    switch (issuesType) {
+      case 'all':
+        return {path: `/organizations/${orgId}/issues/`, query: `release:"${version}"`};
+      case 'resolved':
+        return {
+          path: `/organizations/${orgId}/releases/${version}/resolved/`,
+          query: '',
+        };
+      case 'new':
+      default:
+        return {
+          path: `/organizations/${orgId}/issues/`,
+          query: `first-release:"${version}"`,
+        };
+    }
+  }
+
+  handleIssuesTypeSelection = (issuesType: string) => {
+    this.setState({issuesType});
   };
 
-  const issueTypes = [
-    {value: 'new', label: t('New Issues')},
-    {value: 'resolved', label: t('Resolved Issues')},
-    {value: 'all', label: t('All Issues')},
-  ];
+  renderFilterLabel(label: string | undefined) {
+    return (
+      <React.Fragment>
+        <LabelText>{t('Filter')}: &nbsp; </LabelText>
+        {label}
+      </React.Fragment>
+    );
+  }
 
-  // TODO(releasesV2): not dynamic yet
-  return (
-    <React.Fragment>
-      <ControlsWrapper>
-        <DropdownControl label={t('Resolved Issues')}>
-          {issueTypes.map((opt, index) => (
-            <DropdownItem
-              key={opt.value}
-              onSelect={() => {}}
-              eventKey={opt.value}
-              isActive={index === 1}
-            >
-              {opt.label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+  render() {
+    const {issuesType} = this.state;
+    const {orgId} = this.props;
+    const {path, query} = this.getIssuesEndpoint();
+    const issuesTypes = [
+      {value: 'new', label: t('New Issues')},
+      {value: 'resolved', label: t('Resolved Issues')},
+      {value: 'all', label: t('All Issues')},
+    ];
 
-        <Button to={getDiscoverUrl()}>{t('Open in Discover')}</Button>
-      </ControlsWrapper>
+    return (
+      <React.Fragment>
+        <ControlsWrapper>
+          <DropdownControl
+            label={this.renderFilterLabel(
+              issuesTypes.find(i => i.value === issuesType)?.label
+            )}
+          >
+            {issuesTypes.map(({value, label}) => (
+              <DropdownItem
+                key={value}
+                onSelect={this.handleIssuesTypeSelection}
+                eventKey={value}
+                isActive={value === issuesType}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
 
-      <TableWrapper>
-        <GroupList
-          orgId={orgId}
-          // release:
-          query={`first-release:"${version}"`}
-          canSelectGroups={false}
-          withChart={false}
-        />
-      </TableWrapper>
-    </React.Fragment>
-  );
-};
+          <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+        </ControlsWrapper>
+
+        <TableWrapper>
+          <GroupList
+            orgId={orgId}
+            endpointPath={path}
+            query={query}
+            canSelectGroups={false}
+            withChart={false}
+          />
+        </TableWrapper>
+      </React.Fragment>
+    );
+  }
+}
 
 const ControlsWrapper = styled('div')`
   display: flex;
@@ -88,6 +141,11 @@ const TableWrapper = styled('div')`
     /* smaller space between table and pagination */
     margin-bottom: -${space(1)};
   }
+`;
+
+const LabelText = styled('em')`
+  font-style: normal;
+  color: ${p => p.theme.gray2};
 `;
 
 export default Issues;

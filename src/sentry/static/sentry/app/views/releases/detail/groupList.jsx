@@ -29,6 +29,7 @@ const GroupList = createReactClass({
     canSelectGroups: PropTypes.bool,
     withChart: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
+    endpointPath: PropTypes.string,
   },
 
   contextTypes: {
@@ -58,12 +59,20 @@ const GroupList = createReactClass({
     this.fetchData();
   },
 
-  shouldComponentUpdate(_nextProps, nextState) {
-    return !isEqual(this.state, nextState);
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      !isEqual(this.state, nextState) ||
+      nextProps.endpointPath !== this.props.endpointPath ||
+      nextProps.query !== this.props.query
+    );
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.orgId !== this.props.orgId) {
+    if (
+      prevProps.orgId !== this.props.orgId ||
+      prevProps.endpointPath !== this.props.endpointPath ||
+      prevProps.query !== this.props.query
+    ) {
       this.fetchData();
     }
   },
@@ -105,8 +114,8 @@ const GroupList = createReactClass({
   },
 
   getGroupListEndpoint() {
-    const {orgId} = this.props;
-    const path = `/organizations/${orgId}/issues/`;
+    const {orgId, endpointPath} = this.props;
+    const path = endpointPath ?? `/organizations/${orgId}/issues/`;
 
     return `${path}?${qs.stringify(this.getQueryParams())}`;
   },
