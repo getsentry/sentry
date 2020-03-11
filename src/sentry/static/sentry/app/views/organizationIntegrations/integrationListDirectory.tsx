@@ -29,7 +29,7 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 
-import {weights} from './constants';
+import {popularityWeights as weights} from './constants';
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -203,21 +203,21 @@ export class OrganizationIntegrations extends AsyncComponent<
   }
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    const sortByName = arr => arr.sort((a, b) => a.name.localeCompare(b.name));
-    const sortByPopularity = arr =>
-      arr.sort((a, b) => {
-        const weightA = weights[a.slug] ? weights[a.slug] : 1;
-        const weightB = weights[b.slug] ? weights[b.slug] : 1;
-        return weightA > weightB ? -1 : weightB > weightA ? 1 : 0;
-      });
-    const sortByInstalled = arr =>
-      arr.sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+    const sortByName = (a, b) => a.name.localeCompare(b.name);
+    const sortByPopularity = (a, b) => {
+      const weightA = Number.isInteger(weights[a.slug]) ? weights[a.slug] : 1;
+      const weightB = Number.isInteger(weights[b.slug]) ? weights[b.slug] : 1;
+      return weightA > weightB ? -1 : weightB > weightA ? 1 : 0;
+    };
+    const sortByInstalled = (a, b) => this.getInstallValue(b) - this.getInstallValue(a);
 
     if (isSortIntegrationsByWeightActive()) {
-      return sortByInstalled(sortByPopularity(sortByName(integrations)));
+      return integrations
+        .sort(sortByName)
+        .sort(sortByPopularity)
+        .sort(sortByInstalled);
     }
-
-    return sortByInstalled(sortByName(integrations));
+    return integrations.sort(sortByName).sort(sortByInstalled);
   }
 
   async componentDidUpdate(_, prevState: State) {

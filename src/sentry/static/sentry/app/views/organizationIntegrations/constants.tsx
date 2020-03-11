@@ -8,7 +8,14 @@ export const colors = {
   [PENDING]: 'yellowOrange',
 };
 
-export const weights = {
+/**
+ * Integrations in the integration directory should be sorted by their popularity (weight).
+ * These weights should be hardcoded in the application itself.
+ * We can store this in a map where the key is the integration slug and the value is an integer and represents the weight.
+ * The weights should reflect the relative popularity of each integration.
+ */
+
+export const popularityWeights = {
   slack: 10,
   splunk: 3,
   webhooks: 100,
