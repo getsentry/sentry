@@ -31,7 +31,7 @@ from sentry.utils.cache import cache
 
 
 SUMMARY_STATS_PERIOD = ("24h", "48h", "7d", "14d")
-HEALTH_STATS_PERIOD = ("", "24h", "14h")
+HEALTH_STATS_PERIOD = ("", "24h", "14d")
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
 
