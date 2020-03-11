@@ -63,7 +63,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
     def flush_batch(self, batch):
         attachment_chunks = []
         other_messages = []
-        transactions = []
 
         projects_to_fetch = set()
 
@@ -74,8 +73,6 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
                 if message_type == "event":
                     other_messages.append((process_event, message))
-                elif message_type == "transaction":
-                    transactions.append(message)
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -105,34 +102,8 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 ):
                     pass
 
-        if transactions:
-            process_transactions_batch(transactions, projects)
-
     def shutdown(self):
         pass
-
-
-@metrics.wraps("ingest_consumer.process_transactions_batch")
-def process_transactions_batch(messages, projects):
-    if options.get("store.transactions-celery") is True:
-        for message in messages:
-            process_event(message, projects)
-        return
-
-    jobs = []
-    for message in messages:
-        payload = message["payload"]
-        project_id = int(message["project_id"])
-        start_time = float(message["start_time"])
-
-        if project_id not in projects:
-            continue
-
-        with metrics.timer("ingest_consumer.decode_transaction_json"):
-            data = json.loads(payload)
-        jobs.append({"data": data, "start_time": start_time})
-
-    save_transaction_events(jobs, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")
