@@ -386,7 +386,7 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (DEPLOY_PREVIEW_CONFIG) {
+if (SENTRY_EXPERIMENTAL_SPA) {
   /**
    * Generate a index.html file used for running the app in pure client mode.
    * This is currently used for PR deploy previews, where only the frontend
