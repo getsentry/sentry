@@ -22,7 +22,13 @@ type Props = {
   onChange: (action: IssueAlertRuleAction) => void;
 };
 
-class ActorAwareFields extends React.PureComponent<Props> {
+export enum MailActionTargetType {
+  IssueOwners = 'IssueOwners',
+  Team = 'Team',
+  Member = 'Member',
+}
+
+class MailActionFields extends React.PureComponent<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', e: HTMLInputElement) => {
     const {onChange, action} = this.props;
     if (e.value === action[attribute]) {
@@ -58,8 +64,8 @@ class ActorAwareFields extends React.PureComponent<Props> {
     const {disabled, loading, projects, project, organization, action} = this.props;
     const {slug: projectSlug} = project;
 
-    const isIssueOwners = action.targetType === 'IssueOwners';
-    const isTeam = action.targetType === 'Team';
+    const isIssueOwners = action.targetType === MailActionTargetType.IssueOwners;
+    const isTeam = action.targetType === MailActionTargetType.Team;
 
     return (
       <PanelItemGrid>
@@ -75,16 +81,16 @@ class ActorAwareFields extends React.PureComponent<Props> {
             }),
           }}
           options={[
-            {value: 'IssueOwners', label: 'Issue Owners'},
-            {value: 'Team', label: 'Team'},
-            {value: 'Member', label: 'Member'},
+            {value: MailActionTargetType.IssueOwners, label: 'Issue Owners'},
+            {value: MailActionTargetType.Team, label: 'Team'},
+            {value: MailActionTargetType.Member, label: 'Member'},
           ]}
           onChange={this.handleChangeActorType}
         />
         {!isIssueOwners ? (
           <SelectMembers
             disabled={disabled}
-            key={isTeam ? 'Team' : 'Member'}
+            key={isTeam ? MailActionTargetType.Team : MailActionTargetType.Member}
             showTeam={isTeam}
             project={projects.find(({slug}) => slug === projectSlug)}
             organization={organization}
@@ -115,4 +121,4 @@ const PanelItemGrid = styled(PanelItem)`
   grid-gap: ${space(2)};
 `;
 
-export default withOrganization(withProjects(withProject(ActorAwareFields)));
+export default withOrganization(withProjects(withProject(MailActionFields)));

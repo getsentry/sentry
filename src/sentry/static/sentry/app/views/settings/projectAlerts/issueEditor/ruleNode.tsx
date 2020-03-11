@@ -7,13 +7,17 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
-import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
-import ActorAwareFields from 'app/views/settings/projectAlerts/issueEditor/actorAwareFields';
-import Alert from 'app/components/alert';
+import {t} from 'app/locale';
+import {
+  // eslint-disable-next-line import/no-named-default
+  default as MailActionFields,
+  MailActionTargetType,
+} from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
 import {Organization, Project} from 'app/types';
 
 type FormField = {
@@ -121,17 +125,17 @@ class RuleNode extends React.Component<Props> {
     );
   };
 
-  getActorAwareFields = (_: string, __: FormField) => {
+  getMailActionFields = (_: string, __: FormField) => {
     const {data} = this.props;
     const isInitialized =
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
     if (!isInitialized) {
       const newData: IssueAlertRuleAction = {...(data as IssueAlertRuleAction)};
-      newData.targetType = 'IssueOwners';
+      newData.targetType = MailActionTargetType.IssueOwners;
       this.handleMailActionChange(newData);
     }
     return (
-      <ActorAwareFields
+      <MailActionFields
         disabled={false}
         loading={!isInitialized}
         error={false}
@@ -146,7 +150,7 @@ class RuleNode extends React.Component<Props> {
       choice: this.getChoiceField,
       number: this.getNumberField,
       string: this.getTextField,
-      mailAction: this.getActorAwareFields,
+      mailAction: this.getMailActionFields,
     };
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
@@ -206,7 +210,7 @@ class RuleNode extends React.Component<Props> {
     }
 
     switch (data.targetType) {
-      case 'IssueOwners':
+      case MailActionTargetType.IssueOwners:
         return (
           <ThinAlert type="warning">
             {t('If there are no matching ')}
@@ -228,9 +232,9 @@ class RuleNode extends React.Component<Props> {
             {t('.')}
           </ThinAlert>
         );
-      case 'Team':
+      case MailActionTargetType.Team:
         return null;
-      case 'Member':
+      case MailActionTargetType.Member:
         return (
           <Alert thin type="warning">
             {t('Alerts sent directly to a member override their ')}
