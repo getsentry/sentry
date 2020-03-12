@@ -1,4 +1,7 @@
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {
+  AlertRuleAggregations,
+  IncidentRule,
+} from 'app/views/settings/incidentRules/types';
 import {User, Repository} from 'app/types';
 
 type Data = [number, {count: number}[]][];
@@ -28,6 +31,8 @@ export type IncidentStats = {
   };
   totalEvents: number;
   uniqueUsers: number;
+  aggregation: AlertRuleAggregations;
+  alertRule: IncidentRule;
 };
 
 export type IncidentSuspect = {
