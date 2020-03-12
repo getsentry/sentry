@@ -136,6 +136,7 @@ export type Health = {
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  hasHealthData: boolean;
 };
 export type HealthGraphData = {
   [key: string]: [number, number][];
