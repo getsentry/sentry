@@ -125,7 +125,7 @@ class RuleNode extends React.Component<Props> {
   };
 
   getMailActionFields = (_: string, __: FormField) => {
-    const {data} = this.props;
+    const {data, organization, project} = this.props;
     const isInitialized =
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
     if (!isInitialized) {
@@ -136,6 +136,8 @@ class RuleNode extends React.Component<Props> {
     return (
       <MailActionFields
         disabled={false}
+        project={project}
+        organization={organization}
         loading={!isInitialized}
         action={data as IssueAlertRuleAction}
         onChange={this.handleMailActionChange}

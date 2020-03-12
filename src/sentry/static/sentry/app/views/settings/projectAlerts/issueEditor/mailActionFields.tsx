@@ -7,14 +7,10 @@ import {Organization, Project} from 'app/types';
 import {IssueAlertRuleAction} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
-import withProjects from 'app/utils/withProjects';
-import withProject from 'app/utils/withProject';
-import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   project: Project;
   organization: Organization;
-  projects: Project[];
   disabled: boolean;
   loading: boolean;
   action: IssueAlertRuleAction;
@@ -60,8 +56,7 @@ class MailActionFields extends React.PureComponent<Props> {
   };
 
   render: () => React.ReactElement = () => {
-    const {disabled, loading, projects, project, organization, action} = this.props;
-    const {slug: projectSlug} = project;
+    const {disabled, loading, project, organization, action} = this.props;
 
     const isIssueOwners = action.targetType === MailActionTargetType.IssueOwners;
     const isTeam = action.targetType === MailActionTargetType.Team;
@@ -91,7 +86,7 @@ class MailActionFields extends React.PureComponent<Props> {
             disabled={disabled}
             key={isTeam ? MailActionTargetType.Team : MailActionTargetType.Member}
             showTeam={isTeam}
-            project={projects.find(({slug}) => slug === projectSlug)}
+            project={project}
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
             value={`${action.targetIdentifier}`}
@@ -120,4 +115,4 @@ const PanelItemGrid = styled(PanelItem)`
   grid-gap: ${space(2)};
 `;
 
-export default withOrganization(withProjects(withProject(MailActionFields)));
+export default MailActionFields;
