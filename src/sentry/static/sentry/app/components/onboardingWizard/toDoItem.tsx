@@ -84,19 +84,19 @@ class TodoItem extends React.Component<Props, State> {
     switch (task.status) {
       case 'complete':
         description = tct('[user] completed [dateCompleted]', {
-          user: task.user,
+          user: task.user?.name,
           dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'pending':
         description = tct('[user] kicked off [dateCompleted]', {
-          user: task.user,
+          user: task.user?.name,
           dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'skipped':
         description = tct('[user] skipped [dateCompleted]', {
-          user: task.user,
+          user: task.user?.name,
           dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
