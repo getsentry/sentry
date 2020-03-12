@@ -1,6 +1,8 @@
 import {css} from '@emotion/core';
 
-const SidebarDropdownMenu = p => css`
+import {Theme} from 'app/utils/theme';
+
+const SidebarDropdownMenu = (p: {theme: Theme}) => css`
   position: absolute;
   background: ${p.theme.white};
   color: ${p.theme.gray5};
