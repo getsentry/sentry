@@ -2,7 +2,7 @@ import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Organization, Project, Config} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -23,7 +23,6 @@ import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 import recreateRoute from 'app/utils/recreateRoute';
-import withConfig from 'app/utils/withConfig';
 import withProject from 'app/utils/withProject';
 
 import {
@@ -38,7 +37,6 @@ import FormModel from '../../components/forms/model';
 import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
-  config: Config;
   organization: Organization;
   project: Project;
   routes: PlainRoute[];
@@ -381,7 +379,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {config, organization, ruleId, rule, params, onSubmitSuccess} = this.props;
+    const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
@@ -425,7 +423,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           >
             <TriggersChart
               api={this.api}
-              config={config}
               organization={organization}
               projects={this.state.projects}
               triggers={triggers}
@@ -464,7 +461,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 export {RuleFormContainer};
-export default withConfig(withProject(RuleFormContainer));
+export default withProject(RuleFormContainer);
 
 /**
  * We need a default value of empty string for resolveThreshold or else React complains
