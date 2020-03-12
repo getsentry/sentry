@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Organization} from 'app/types';
+import {Organization, OrganizationSummary} from 'app/types';
 import {tn} from 'app/locale';
 
 type Props = {
-  organization: Organization;
+  organization: OrganizationSummary;
 };
 
 const SidebarOrgSummary = ({organization}: Props) => {
-  const projects = organization.projects && organization.projects.length;
+  const fullOrg = organization as Organization;
+  const projects = fullOrg.projects && fullOrg.projects.length;
   const extra: string[] = [];
 
   if (projects) {
@@ -29,10 +29,6 @@ const SidebarOrgSummary = ({organization}: Props) => {
       </Details>
     </OrgSummary>
   );
-};
-
-SidebarOrgSummary.propTypes = {
-  organization: SentryTypes.Organization,
 };
 
 const OrgSummary = styled('div')`
