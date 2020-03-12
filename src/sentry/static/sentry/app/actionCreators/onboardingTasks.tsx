@@ -1,6 +1,7 @@
 import {Client} from 'app/api';
 import {Organization, OnboardingTask} from 'app/types';
 import OrganizationActions from 'app/actions/organizationActions';
+import ConfigStore from 'app/stores/configStore';
 
 /**
  * Update an onboarding task.
@@ -20,15 +21,16 @@ export async function updateOnboardingTask(
     });
   }
 
-  const hasSkippedTask = organization.onboardingTasks.find(
+  const hasExistingTask = organization.onboardingTasks.find(
     task => task.task === updatedTask.task
   );
 
-  const onboardingTasks = hasSkippedTask
+  const user = ConfigStore.get('user');
+  const onboardingTasks = hasExistingTask
     ? organization.onboardingTasks.map(task =>
         task.task === updatedTask.task ? {...task, ...updatedTask} : task
       )
-    : [...organization.onboardingTasks, updatedTask];
+    : [...organization.onboardingTasks, {...updatedTask, user}];
 
   OrganizationActions.update({onboardingTasks});
 }
