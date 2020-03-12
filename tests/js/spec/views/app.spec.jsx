@@ -21,7 +21,7 @@ describe('App', function() {
     });
 
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
   });

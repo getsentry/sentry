@@ -98,7 +98,7 @@ describe('Organization Developer Settings', function() {
         },
       });
       Client.addMockResponse({
-        url: '/assistant/',
+        url: '/assistant/?v2',
         body: [],
       });
       Client.addMockResponse({

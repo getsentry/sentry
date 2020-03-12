@@ -53,7 +53,7 @@ describe('Command Palette Modal', function() {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
   });

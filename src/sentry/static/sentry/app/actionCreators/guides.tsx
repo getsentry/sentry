@@ -5,7 +5,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 const api = new Client();
 
 export function fetchGuides() {
-  api.request('/assistant/', {
+  api.request('/assistant/?v2', {
     method: 'GET',
     success: data => {
       GuideActions.fetchSucceeded(data);
@@ -13,12 +13,12 @@ export function fetchGuides() {
   });
 }
 
-export function registerAnchor(anchor) {
-  GuideActions.registerAnchor(anchor);
+export function registerAnchor(target: string) {
+  GuideActions.registerAnchor(target);
 }
 
-export function unregisterAnchor(anchor) {
-  GuideActions.unregisterAnchor(anchor);
+export function unregisterAnchor(target: string) {
+  GuideActions.unregisterAnchor(target);
 }
 
 export function nextStep() {
@@ -29,46 +29,42 @@ export function closeGuide() {
   GuideActions.closeGuide();
 }
 
-export function dismissGuide(guideId, step, org) {
-  recordDismiss(guideId, step, org);
+export function dismissGuide(guide: string, step: number, orgId: string) {
+  recordDismiss(guide, step, orgId);
   closeGuide();
 }
 
-export function recordFinish(guideId, org) {
+export function recordFinish(guide: string, orgId: string) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
-      guide_id: guideId,
+      guide,
       status: 'viewed',
     },
   });
   const data = {
     eventKey: 'assistant.guide_finished',
     eventName: 'Assistant Guide Finished',
-    guide: guideId,
+    guide,
+    organization_id: orgId,
   };
-  if (org) {
-    data.organization_id = org.id;
-  }
   trackAnalyticsEvent(data);
 }
 
-export function recordDismiss(guideId, step, org) {
+export function recordDismiss(guide: string, step: number, orgId: string) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
-      guide_id: guideId,
+      guide,
       status: 'dismissed',
     },
   });
   const data = {
     eventKey: 'assistant.guide_dismissed',
     eventName: 'Assistant Guide Dismissed',
-    guide: guideId,
+    guide,
     step,
+    organization_id: orgId,
   };
-  if (org) {
-    data.organization_id = org.id;
-  }
   trackAnalyticsEvent(data);
 }
