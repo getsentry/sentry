@@ -872,9 +872,9 @@ def get_json_meta_type(field, snuba_type):
     alias_definition = FIELD_ALIASES.get(field)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    function_match = is_function(field)
     if function_match:
-        function_definition = FUNCTIONS.get(function_match.group(1))
+        function_definition = FUNCTIONS.get(function_match.group("function"))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
     # TODO remove this check when field aliases are removed.
@@ -997,16 +997,19 @@ FUNCTIONS = {
         "name": "p75",
         "args": [],
         "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+        "result_type": "duration",
     },
     "p95": {
         "name": "p95",
         "args": [],
         "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+        "result_type": "duration",
     },
     "p99": {
         "name": "p99",
         "args": [],
         "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
     },
     "rps": {
         "name": "rps",
@@ -1095,9 +1098,6 @@ FUNCTIONS = {
         "result_type": "duration",
     },
 }
-
-
-FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
 def is_function(field):
