@@ -65,6 +65,7 @@ export default class Chart extends React.PureComponent<Props> {
       closedTs &&
       typeof nearbyClosedTimestampIndex !== 'undefined' &&
       chartData[nearbyClosedTimestampIndex];
+    const seriesName = getDisplayForAlertRuleAggregation(aggregation);
 
     return (
       <LineChart
@@ -73,11 +74,13 @@ export default class Chart extends React.PureComponent<Props> {
         series={[
           {
             // e.g. Events or Users
-            seriesName: getDisplayForAlertRuleAggregation(aggregation),
+            seriesName,
             dataArray: chartData?.slice(0, -1),
             markPoint: MarkPoint({
               data: [
                 {
+                  labelForValue: seriesName,
+                  seriesName,
                   symbol: `image://${detectedSymbol}`,
                   name: t('Incident Started'),
                   coord: detectedCoordinate,
@@ -85,6 +88,8 @@ export default class Chart extends React.PureComponent<Props> {
                 ...(closedTs
                   ? [
                       {
+                        labelForValue: seriesName,
+                        seriesName,
                         symbol: `image://${closedSymbol}`,
                         symbolSize: 24,
                         name: t('Incident Closed'),
