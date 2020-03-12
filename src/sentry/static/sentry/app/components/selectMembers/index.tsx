@@ -57,7 +57,7 @@ type Props = {
   onInputChange?: (value: any) => any;
   disabled?: boolean;
   placeholder?: string;
-  styles?: Object;
+  styles?: React.CSSProperties;
 };
 
 type State = {
