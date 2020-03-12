@@ -114,6 +114,7 @@ class OnboardingTasksSerializer(Serializer):
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP.get(obj.status),
             "user": obj.user.name if obj.user else None,
+            "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,
         }

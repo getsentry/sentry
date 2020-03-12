@@ -34,17 +34,39 @@ def get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
-def get_project_releases_by_stability(project_ids, offset, limit, scope, environments=None):
+def check_has_health_data(project_releases):
+    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
+    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    return set(
+        (x["project_id"], x["release"])
+        for x in raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["release", "project_id"],
+            groupby=["release", "project_id"],
+            start=datetime.utcnow() - timedelta(days=90),
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"]
+    )
+
+
+def get_project_releases_by_stability(
+    project_ids, offset, limit, scope, stats_period=None, environments=None
+):
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
     """
-    orderby, delta = {
-        "crash_free_sessions": ([["divide", ["sessions_crashed", "sessions"]]], timedelta(days=1)),
-        "crash_free_users": ([["divide", ["users_crashed", "users"]]], timedelta(days=1)),
-        "sessions_1h": (["sessions"], timedelta(hours=1)),
-        "sessions_24h": (["sessions"], timedelta(days=1)),
+    if stats_period is None:
+        stats_period = "24h"
+
+    _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
+
+    orderby = {
+        "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
+        "crash_free_users": [["divide", ["users_crashed", "users"]]],
+        "sessions": ["sessions"],
+        "users": ["users"],
     }[scope]
-    start = datetime.utcnow() - delta
 
     conditions = []
     if environments is not None:
@@ -57,7 +79,7 @@ def get_project_releases_by_stability(project_ids, offset, limit, scope, environ
         selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
         orderby=orderby,
-        start=start,
+        start=stats_start,
         offset=offset,
         limit=limit,
         conditions=conditions,
@@ -77,7 +99,29 @@ def _make_stats(start, rollup, buckets):
     return rv
 
 
-def get_release_health_data_overview(project_releases, environments=None, stats_period=None):
+STATS_PERIODS = {
+    "24h": (3600, 24),
+    "1d": (3600, 24),
+    "48h": (3600, 48),
+    "2d": (3600, 48),
+    "7d": (86400, 7),
+    "14d": (86400, 14),
+}
+
+
+def get_rollup_starts_and_buckets(period):
+    if period is None:
+        return None, None, None
+    if period not in STATS_PERIODS:
+        raise TypeError("Invalid stats period")
+    seconds, buckets = STATS_PERIODS[period]
+    start = datetime.now(pytz.utc) - timedelta(seconds=seconds * buckets)
+    return seconds, start, buckets
+
+
+def get_release_health_data_overview(
+    project_releases, environments=None, summary_stats_period=None, health_stats_period=None
+):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
     tuples.  The return value is a set of all the project releases that have health
@@ -87,34 +131,23 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
     def _nan_as_none(val):
         return None if val != val else val
 
-    yesterday = datetime.now(pytz.utc) - timedelta(days=1)
+    _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
-    if stats_period == "24h":
-        stats_rollup = 3600
-        stats_start = yesterday
-        stats_buckets = 24
-    elif stats_period == "14d":
-        stats_rollup = 86400
-        stats_start = datetime.now(pytz.utc) - timedelta(days=14)
-        stats_buckets = 14
-    elif not stats_period:
-        stats_rollup = None
-        stats_start = None
-    else:
-        raise TypeError("Invalid stats period")
+    stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(health_stats_period)
 
-    total_users_24h = {}
+    total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["release", "users"],
         groupby=["release", "project_id"],
-        start=yesterday,
+        start=summary_start,
         conditions=conditions,
         filter_keys=filter_keys,
     )["data"]:
-        total_users_24h[x["project_id"]] = x["users"]
+        total_users[x["project_id"]] = x["users"]
 
+    missing_releases = set(project_releases)
     rv = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
@@ -129,11 +162,11 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             "users_crashed",
         ],
         groupby=["release", "project_id"],
-        start=yesterday,
+        start=summary_start,
         conditions=conditions,
         filter_keys=filter_keys,
     )["data"]:
-        total_users = total_users_24h.get(x["project_id"])
+        x_total_users = total_users.get(x["project_id"])
         rp = {
             "duration_p50": _nan_as_none(x["duration_quantiles"][0]),
             "duration_p90": _nan_as_none(x["duration_quantiles"][1]),
@@ -147,13 +180,38 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             "total_sessions": x["sessions"],
             "sessions_crashed": x["sessions_crashed"],
             "sessions_errored": x["sessions_errored"],
-            "adoption": x["users"] / total_users * 100 if total_users and x["users"] else None,
+            "adoption": x["users"] / x_total_users * 100 if x_total_users and x["users"] else None,
+            "has_health_data": True,
         }
-        if stats_period:
-            rp["stats"] = {stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)}
+        if health_stats_period:
+            rp["stats"] = {
+                health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
+            }
         rv[x["project_id"], x["release"]] = rp
+        missing_releases.discard((x["project_id"], x["release"]))
 
-    if stats_period:
+    # Add releases without data points
+    if missing_releases:
+        has_health_data = check_has_health_data(missing_releases)
+        for key in missing_releases:
+            rv[key] = {
+                "duration_p50": None,
+                "duration_p90": None,
+                "crash_free_users": None,
+                "crash_free_sessions": None,
+                "total_users": 0,
+                "total_sessions": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "adoption": None,
+                "has_health_data": key in has_health_data,
+            }
+            if health_stats_period:
+                rv[key]["stats"] = {
+                    health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
+                }
+
+    if health_stats_period:
         for x in raw_query(
             dataset=Dataset.Sessions,
             selected_columns=["release", "project_id", "bucketed_started", "sessions"],
@@ -167,6 +225,8 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
                 (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            rv[x["project_id"], x["release"]]["stats"][stats_period][time_bucket][1] = x["sessions"]
+            rv[x["project_id"], x["release"]]["stats"][health_stats_period][time_bucket][1] = x[
+                "sessions"
+            ]
 
     return rv

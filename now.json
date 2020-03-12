@@ -1,0 +1,21 @@
+{
+  "version": 2,
+
+  "rewrites": [
+    {"source": "/api/(.*)", "destination": "https://sentry.io/api/$1"},
+    {"source": "/_assets/(.*)", "destination": "/$1"},
+    {"source": "/(.*)", "destination": "/index.html"}
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
+    }
+  ],
+  "build": {
+    "env": {
+      "SENTRY_EXPERIMENTAL_SPA": "1"
+    }
+  },
+  "github": {"silent": true}
+}

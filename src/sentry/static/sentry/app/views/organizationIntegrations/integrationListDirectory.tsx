@@ -16,6 +16,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
+  getSortIntegrationsByWeightActive,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -28,6 +29,7 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 
+import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -188,22 +190,47 @@ export class OrganizationIntegrations extends AsyncComponent<
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
-    if (isSentryApp(integration)) {
-      const install = this.getAppInstall(integration);
-      if (install) {
-        return install.status === 'pending' ? 1 : 2;
-      }
-      return 0;
-    } else if (isPlugin(integration)) {
+
+    if (isPlugin(integration)) {
       return integration.projectList.length > 0 ? 2 : 0;
     }
-    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+
+    if (!isSentryApp(integration)) {
+      return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    }
+
+    const install = this.getAppInstall(integration);
+
+    if (install) {
+      return install.status === 'pending' ? 1 : 2;
+    }
+
+    return 0;
   }
 
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
+    POPULARITY_WEIGHT[integration.slug] ?? 1;
+
+  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    a.name.localeCompare(b.name);
+
+  sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+    const weightA = this.getPopularityWeight(a);
+    const weightB = this.getPopularityWeight(b);
+    return weightB - weightA;
+  };
+
+  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    this.getInstallValue(b) - this.getInstallValue(a);
+
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    return integrations
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+    if (getSortIntegrationsByWeightActive()) {
+      return integrations
+        .sort(this.sortByName)
+        .sort(this.sortByPopularity)
+        .sort(this.sortByInstalled);
+    }
+    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
   }
 
   async componentDidUpdate(_, prevState: State) {

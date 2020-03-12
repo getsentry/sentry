@@ -57,9 +57,12 @@ const ReleaseCard = ({release, project, location}: Props) => (
             <VersionWrapper>
               <Version
                 version={release.version}
-                preserveGlobalSelection
+                // TODO(releasesV2): we don't use this for now
+                // preserveGlobalSelection
                 tooltipRawVersion
                 truncate
+                projectId={String(release.projectId)}
+                v2
               />
               <TimeWithIcon date={release.dateReleased || release.dateCreated} />
             </VersionWrapper>

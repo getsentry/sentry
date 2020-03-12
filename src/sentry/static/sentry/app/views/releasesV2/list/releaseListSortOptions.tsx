@@ -1,19 +1,23 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+
+import ReleaseListDropdown from './releaseListDropdown';
 
 type Props = {
-  selected?: string;
+  selected: string;
   onSelect: (key: string) => void;
 };
 
-const ReleaseListSortOptions = ({selected = 'date', onSelect}: Props) => {
-  const filterOptions = [
+const ReleaseListSortOptions = ({selected, onSelect}: Props) => {
+  const options = [
     {
       key: 'date',
       label: t('Date Created'),
+    },
+    {
+      key: 'sessions',
+      label: t('Total Sessions'),
     },
     {
       key: 'crash_free_users',
@@ -23,38 +27,16 @@ const ReleaseListSortOptions = ({selected = 'date', onSelect}: Props) => {
       key: 'crash_free_sessions',
       label: t('Crash Free Sessions'),
     },
-    {
-      key: 'sessions_24h',
-      label: t('Sessions in 24 Hours'),
-    },
   ];
 
-  const label = (
-    <React.Fragment>
-      <LabelText>{t('Sort by')}: &nbsp; </LabelText>
-      {filterOptions.find(filterItem => filterItem.key === selected)?.label}
-    </React.Fragment>
-  );
-
   return (
-    <DropdownControl label={label}>
-      {filterOptions.map(filterItem => (
-        <DropdownItem
-          key={filterItem.key}
-          onSelect={onSelect}
-          eventKey={filterItem.key}
-          isActive={selected === filterItem.key}
-        >
-          {filterItem.label}
-        </DropdownItem>
-      ))}
-    </DropdownControl>
+    <ReleaseListDropdown
+      label={t('Sort by')}
+      options={options}
+      selected={selected}
+      onSelect={onSelect}
+    />
   );
 };
-
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray2};
-`;
 
 export default ReleaseListSortOptions;

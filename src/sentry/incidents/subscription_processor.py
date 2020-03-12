@@ -71,19 +71,9 @@ class SubscriptionProcessor(object):
     @property
     def active_incident(self):
         if not hasattr(self, "_active_incident"):
-            try:
-                # Fetch the active incident if one exists for this alert rule.
-                self._active_incident = (
-                    Incident.objects.filter(
-                        type=IncidentType.ALERT_TRIGGERED.value,
-                        alert_rule=self.alert_rule,
-                        projects=self.subscription.project,
-                    )
-                    .exclude(status=IncidentStatus.CLOSED.value)
-                    .order_by("-date_added")[0]
-                )
-            except IndexError:
-                self._active_incident = None
+            self._active_incident = Incident.objects.get_active_incident(
+                self.alert_rule, self.subscription.project
+            )
         return self._active_incident
 
     @active_incident.setter
@@ -152,6 +142,7 @@ class SubscriptionProcessor(object):
             if alert_operator(
                 aggregation_value, trigger.alert_threshold
             ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                 with transaction.atomic():
                     self.trigger_alert_threshold(trigger)
             elif (
@@ -159,6 +150,7 @@ class SubscriptionProcessor(object):
                 and resolve_operator(aggregation_value, trigger.resolve_threshold)
                 and self.check_trigger_status(trigger, TriggerStatus.ACTIVE)
             ):
+                metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                 with transaction.atomic():
                     self.trigger_resolve_threshold(trigger)
             else:
@@ -183,6 +175,7 @@ class SubscriptionProcessor(object):
         """
         self.trigger_alert_counts[trigger.id] += 1
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
+            metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.last_update
@@ -245,6 +238,7 @@ class SubscriptionProcessor(object):
         """
         self.trigger_resolve_counts[trigger.id] += 1
         if self.trigger_resolve_counts[trigger.id] >= self.alert_rule.threshold_period:
+            metrics.incr("incidents.alert_rules.trigger", tags={"type": "resolve"})
             incident_trigger = self.incident_triggers[trigger.id]
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()

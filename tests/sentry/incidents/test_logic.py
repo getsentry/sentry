@@ -98,7 +98,7 @@ class CreateIncidentTest(TestCase):
         self.record_event.reset_mock()
         incident = create_incident(
             self.organization,
-            type=incident_type,
+            type_=incident_type,
             title=title,
             query=query,
             aggregation=aggregation,

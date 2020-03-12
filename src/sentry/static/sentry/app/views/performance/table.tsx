@@ -208,12 +208,10 @@ class Table extends React.Component<Props, State> {
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
 
-    const columnOrder = eventView.getColumns();
-
-    return columnOrder.map((column, index) => (
+    return eventView.getColumns().map((column, index) => (
       <HeaderCell column={column} tableData={tableData} key={index}>
         {({align}) => {
-          const field = column.eventViewField;
+          const field = eventView.fields[index];
 
           function generateSortLink(): LocationDescriptorObject | undefined {
             if (!tableDataMeta) {

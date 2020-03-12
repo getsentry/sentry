@@ -147,7 +147,8 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
-    SubscriptionProcessor(subscription).process_update(subscription_update)
+    with metrics.timer("incidents.subscription_procesor.process_update"):
+        SubscriptionProcessor(subscription).process_update(subscription_update)
 
 
 @instrumented_task(
@@ -162,18 +163,23 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
         ).get(id=action_id)
     except AlertRuleTriggerAction.DoesNotExist:
-        metrics.incr("incidents.alert_rules.skipping_missing_action")
+        metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
     try:
         incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
-        metrics.incr("incidents.alert_rules.skipping_missing_incident")
+        metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
         return
 
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
-        metrics.incr("incidents.alert_rules.skipping_missing_project")
+        metrics.incr("incidents.alert_rules.action.skipping_missing_project")
         return
 
+    metrics.incr(
+        "incidents.alert_rules.action.{}.{}".format(
+            AlertRuleTriggerAction.Type(action.type).name.lower(), method
+        )
+    )
     getattr(action, method)(incident, project)

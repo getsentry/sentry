@@ -72,11 +72,6 @@ def get_users_for_authors(organization_id, authors, user=None):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
-        self.with_health_data = kwargs.pop("with_health_data", False)
-        self.stats_period = kwargs.pop("stats_period", None)
-        Serializer.__init__(self, *args, **kwargs)
-
     def _get_commit_metadata(self, item_list, user):
         """
         Returns a dictionary of release_id => commit metadata,
@@ -235,6 +230,10 @@ class ReleaseSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
         environment = kwargs.get("environment")
+        with_health_data = kwargs.get("with_health_data", False)
+        health_stats_period = kwargs.get("health_stats_period")
+        summary_stats_period = kwargs.get("summary_stats_period")
+
         if environment is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
@@ -256,10 +255,11 @@ class ReleaseSerializer(Serializer):
             "release_id", "release__version", "project__slug", "project__name", "project__id"
         )
 
-        if self.with_health_data:
+        if with_health_data:
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
-                stats_period=self.stats_period,
+                health_stats_period=health_stats_period,
+                summary_stats_period=summary_stats_period,
             )
         else:
             health_data = None
@@ -337,6 +337,7 @@ class ReleaseSerializer(Serializer):
                 "totalUsers": data["total_users"],
                 "adoption": data["adoption"],
                 "stats": data.get("stats"),
+                "hasHealthData": data["has_health_data"],
             }
 
         def expose_project(project):
