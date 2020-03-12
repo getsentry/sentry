@@ -1963,7 +1963,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         transaction_data = load_data("transaction")
         data["spans"] = transaction_data["spans"]
         data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
-        data["type"] = "transaction"
+        data["type"] = "error"
         data["transaction"] = "/error_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
@@ -1977,7 +1977,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         fields = [
             "http.method",
-            "device.charging",
             "http.referer",
             "http.url",
             "os.build",
@@ -1985,6 +1984,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "device.arch",
             "device.battery_level",
             "device.brand",
+            "device.charging",
             "device.locale",
             "device.model_id",
             "device.name",
@@ -1998,7 +1998,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"field": fields + ["count()"], "query": "event.type:transaction"},
+                data={"field": fields + ["count()"], "query": "event.type:error"},
             )
 
         assert response.status_code == 200, response.content
@@ -2009,13 +2009,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             key, value = field.split(".", 1)
             expected = data["contexts"][key][value]
 
-            # TODO (evanh) There appears to be some bug in how these values are returned from Snuba
-            # As far as I can tell, they're saved as the correct type in the tables, so I'm not sure why
-            # they are being stringifyed when returned from the results
+            # All context columns are treated as strings, regardless of the type of data they stored.
+            if isinstance(expected, six.integer_types):
+                expected = "{:g}".format(expected)
+
+            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
+            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
             if expected in (True, False):
-                expected = six.text_type(expected)
-            elif isinstance(expected, six.integer_types):
-                expected = "{:.1f}".format(expected)
+                expected = "1" if expected else "0"
 
             assert results[0][field] == expected
         assert results[0]["count"] == 1
+
+        assert False
