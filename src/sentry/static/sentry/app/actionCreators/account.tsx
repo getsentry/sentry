@@ -3,7 +3,12 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ConfigStore from 'app/stores/configStore';
 import {User} from 'app/types';
 
-export async function disconnectIdentity(identity: {id: string; providerLabel: string}) {
+type Identity = {
+  id: string;
+  providerLabel: string;
+};
+
+export async function disconnectIdentity(identity: Identity) {
   const api = new Client();
 
   try {
