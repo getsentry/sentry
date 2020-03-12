@@ -2880,47 +2880,55 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                 }
                                                               }
                                                             >
-                                                              <LetterAvatar
+                                                              <ForwardRef
                                                                 displayName="Jane Bloggs"
                                                                 identifier="janebloggs@example.com"
                                                                 round={true}
                                                               >
-                                                                <Component
-                                                                  className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                                                <LetterAvatar
                                                                   displayName="Jane Bloggs"
+                                                                  forwardedRef={null}
                                                                   identifier="janebloggs@example.com"
                                                                   round={true}
                                                                 >
-                                                                  <svg
+                                                                  <Component
                                                                     className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                                                    viewBox="0 0 120 120"
+                                                                    displayName="Jane Bloggs"
+                                                                    forwardedRef={null}
+                                                                    identifier="janebloggs@example.com"
+                                                                    round={true}
                                                                   >
-                                                                    <rect
-                                                                      fill="#4e3fb4"
-                                                                      height="120"
-                                                                      rx="15"
-                                                                      ry="15"
-                                                                      width="120"
-                                                                      x="0"
-                                                                      y="0"
-                                                                    />
-                                                                    <text
-                                                                      fill="#FFFFFF"
-                                                                      fontSize="65"
-                                                                      style={
-                                                                        Object {
-                                                                          "dominantBaseline": "central",
-                                                                        }
-                                                                      }
-                                                                      textAnchor="middle"
-                                                                      x="50%"
-                                                                      y="50%"
+                                                                    <svg
+                                                                      className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                                                      viewBox="0 0 120 120"
                                                                     >
-                                                                      JB
-                                                                    </text>
-                                                                  </svg>
-                                                                </Component>
-                                                              </LetterAvatar>
+                                                                      <rect
+                                                                        fill="#4e3fb4"
+                                                                        height="120"
+                                                                        rx="15"
+                                                                        ry="15"
+                                                                        width="120"
+                                                                        x="0"
+                                                                        y="0"
+                                                                      />
+                                                                      <text
+                                                                        fill="#FFFFFF"
+                                                                        fontSize="65"
+                                                                        style={
+                                                                          Object {
+                                                                            "dominantBaseline": "central",
+                                                                          }
+                                                                        }
+                                                                        textAnchor="middle"
+                                                                        x="50%"
+                                                                        y="50%"
+                                                                      >
+                                                                        JB
+                                                                      </text>
+                                                                    </svg>
+                                                                  </Component>
+                                                                </LetterAvatar>
+                                                              </ForwardRef>
                                                             </span>
                                                           </StyledBaseAvatar>
                                                         </span>
