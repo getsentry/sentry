@@ -31,7 +31,7 @@ export const POPULARITY_WEIGHT: {
   clubhouse: 9,
   rookout: 9,
   clickup: 9,
-  amixir: 9,
+  amixr: 9,
   split: 9,
 
   // Plugins
@@ -48,7 +48,7 @@ export const POPULARITY_WEIGHT: {
   teamwork: 5,
   victorops: 5,
   sessionstack: 5,
-  segment: 1,
-  'amazon-sqs': 1,
-  splunk: 1,
+  segment: 2,
+  'amazon-sqs': 2,
+  splunk: 2,
 } as const;
