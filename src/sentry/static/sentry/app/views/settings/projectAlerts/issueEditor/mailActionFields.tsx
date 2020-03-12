@@ -37,8 +37,10 @@ class MailActionFields extends React.PureComponent<Props> {
     if (e.value === action[attribute]) {
       return;
     }
-    const newAction = {...action};
-    newAction[attribute] = `${e.value}`;
+    const newAction = {
+      ...action,
+      [attribute]: `${e.value}`,
+    };
     /**
      * TargetIdentifiers between the targetTypes are not unique, and may wrongly map to something that has not been
      * selected. E.g. A member and project can both have the `targetIdentifier`, `'2'`. Hence we clear the identifier.
