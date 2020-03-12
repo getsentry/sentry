@@ -14,7 +14,7 @@ export async function updateOnboardingTask(
   updatedTask: Pick<OnboardingTask, 'task' | 'status' | 'data'>
 ) {
   if (api !== null) {
-    await api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
+    api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
       method: 'POST',
       data: updatedTask,
     });
