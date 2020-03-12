@@ -83,7 +83,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, selection}: Props) =>
             </ReleaseStat>
           )}
           <ReleaseStat label={t('Crashes')}>
-            <Count value={healthData?.sessionsCrashed ?? 10} />
+            <Count value={healthData?.sessionsCrashed ?? 0} />
           </ReleaseStat>
           {/* <ReleaseStat label={t('Errors')}>
             <Count value={healthData?.sessionsErrored ?? 0} />
