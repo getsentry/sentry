@@ -61,6 +61,7 @@ def assemble_download(data_export_id, limit=None):
                 )
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
+        # Error logging/metrics are handled where DataExportError originates, not here
         return data_export.email_failure(message=error)
     except BaseException as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
@@ -78,8 +79,8 @@ def process_issue_by_tag(data_export, file, limit):
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     # Get the pertaining project
+    payload = data_export.query_info
     try:
-        payload = data_export.query_info
         project = Project.objects.get(id=payload["project_id"])
     except Project.DoesNotExist as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
@@ -164,7 +165,12 @@ def process_discover(data_export, file, limit):
     payload = data_export.query_info
 
     start, end = get_date_range_from_params(payload)
-    project = Project.objects.get(id=payload["project"])
+    try:
+        project = Project.objects.get(id=payload["project"])
+    except Project.DoesNotExist as error:
+        metrics.incr("dataexport.error", instance=six.text_type(error))
+        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        raise DataExportError("Requested project does not exist")
 
     params = {
         "organization_id": data_export.organization_id,
