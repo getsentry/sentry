@@ -933,6 +933,7 @@ export type OnboardingTaskStatus = {
   status: 'skipped' | 'pending' | 'complete';
   user?: string | null;
   dateCompleted?: string;
+  completionSeen?: string;
   data?: object;
 };
 
