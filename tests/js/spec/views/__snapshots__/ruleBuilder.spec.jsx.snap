@@ -2862,6 +2862,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                         >
                                                           <StyledBaseAvatar
                                                             className="avatar"
+                                                            gravatarId="janebloggs@example.com"
+                                                            letterId="janebloggs@example.com"
                                                             loaded={true}
                                                             round={true}
                                                             style={
@@ -2870,6 +2872,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                 "width": "28px",
                                                               }
                                                             }
+                                                            title="Jane Bloggs"
+                                                            type="letter_avatar"
+                                                            uploadId=""
+                                                            uploadPath="avatar"
                                                           >
                                                             <span
                                                               className="avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
@@ -2879,6 +2885,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                                   "width": "28px",
                                                                 }
                                                               }
+                                                              title="Jane Bloggs"
+                                                              type="letter_avatar"
                                                             >
                                                               <ForwardRef
                                                                 displayName="Jane Bloggs"

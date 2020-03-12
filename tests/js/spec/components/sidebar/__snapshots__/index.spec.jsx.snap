@@ -226,6 +226,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               >
                 <StyledBaseAvatar
                   className="avatar"
+                  letterId="org-slug"
                   loaded={true}
                   round={false}
                   style={
@@ -234,6 +235,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       "width": "36px",
                     }
                   }
+                  title="org slug"
+                  type="letter_avatar"
+                  uploadPath="organization-avatar"
                 >
                   <span
                     className="avatar css-wr6j9i-StyledBaseAvatar e147uwb0"
@@ -243,6 +247,8 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         "width": "36px",
                       }
                     }
+                    title="org slug"
+                    type="letter_avatar"
                   >
                     <ForwardRef
                       displayName="org slug"
@@ -670,6 +676,8 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                 >
                                   <StyledBaseAvatar
                                     className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    gravatarId="foo@example.com"
+                                    letterId="foo@example.com"
                                     loaded={true}
                                     round={true}
                                     style={
@@ -678,6 +686,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         "width": "32px",
                                       }
                                     }
+                                    title="Foo Bar"
+                                    type="letter_avatar"
+                                    uploadId=""
+                                    uploadPath="avatar"
                                   >
                                     <span
                                       className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
@@ -687,6 +699,8 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                           "width": "32px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
                                     >
                                       <ForwardRef
                                         displayName="Foo Bar"
@@ -6311,6 +6325,8 @@ exports[`Sidebar renders without org and router 1`] = `
                                 >
                                   <StyledBaseAvatar
                                     className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    gravatarId="foo@example.com"
+                                    letterId="foo@example.com"
                                     loaded={true}
                                     round={true}
                                     style={
@@ -6319,6 +6335,10 @@ exports[`Sidebar renders without org and router 1`] = `
                                         "width": "32px",
                                       }
                                     }
+                                    title="Foo Bar"
+                                    type="letter_avatar"
+                                    uploadId=""
+                                    uploadPath="avatar"
                                   >
                                     <span
                                       className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
@@ -6328,6 +6348,8 @@ exports[`Sidebar renders without org and router 1`] = `
                                           "width": "32px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
                                     >
                                       <ForwardRef
                                         displayName="Foo Bar"
