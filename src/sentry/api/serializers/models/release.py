@@ -337,6 +337,7 @@ class ReleaseSerializer(Serializer):
                 "totalUsers": data["total_users"],
                 "adoption": data["adoption"],
                 "stats": data.get("stats"),
+                "hasHealthData": data["has_health_data"],
             }
 
         def expose_project(project):
