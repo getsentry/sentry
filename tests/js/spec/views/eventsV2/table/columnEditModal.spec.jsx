@@ -30,30 +30,32 @@ describe('EventsV2 -> ColumnEditModal', function() {
   const tagKeys = ['browser.name', 'custom-field'];
   const columns = [
     {
+      kind: 'field',
       field: 'event.type',
     },
     {
+      kind: 'field',
       field: 'browser.name',
     },
     {
-      field: 'id',
-      aggregation: 'count',
+      kind: 'function',
+      function: ['count', 'id'],
     },
     {
-      field: 'title',
-      aggregation: 'count_unique',
+      kind: 'function',
+      function: ['count_unique', 'title'],
     },
     {
-      field: '',
-      aggregation: 'p95',
+      kind: 'function',
+      function: ['p95', ''],
     },
     {
+      kind: 'field',
       field: 'issue.id',
-      aggregation: '',
     },
     {
-      field: 'issue.id',
-      aggregation: 'count_unique',
+      kind: 'function',
+      function: ['count_unique', 'issue.id'],
     },
   ];
 
@@ -89,8 +91,8 @@ describe('EventsV2 -> ColumnEditModal', function() {
     const wrapper = mountModal(
       {
         columns: [
-          {aggregation: 'count_unique', field: 'user-defined'},
-          {aggregation: '', field: 'user-def'},
+          {kind: 'function', function: ['count_unique', 'user-defined']},
+          {kind: 'field', field: 'user-def'},
         ],
         onApply: () => void 0,
         tagKeys,
@@ -119,9 +121,9 @@ describe('EventsV2 -> ColumnEditModal', function() {
     const wrapper = mountModal(
       {
         columns: [
-          {aggregation: 'count', field: 'id'},
-          {aggregation: 'count_unique', field: 'title'},
-          {aggregation: 'apdex', field: 'transaction.duration', refinement: 200},
+          {kind: 'function', function: ['count', 'id']},
+          {kind: 'function', function: ['count_unique', 'title']},
+          {kind: 'function', function: ['apdex', 'transaction.duration', 200]},
         ],
         onApply: () => void 0,
         tagKeys,
@@ -147,7 +149,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     const onApply = jest.fn();
     const wrapper = mountModal(
       {
-        columns: [{aggregation: '', field: 'p95'}],
+        columns: [{kind: 'field', field: 'p95'}],
         onApply,
         tagKeys,
       },
@@ -165,7 +167,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       selectByLabel(wrapper, 'p99()', {name: 'field', at: 0, control: true});
       wrapper.find('button[aria-label="Apply"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {aggregation: 'p99', field: '', refinement: undefined},
+        {kind: 'function', function: ['p99', '', undefined]},
       ]);
     });
   });
@@ -264,10 +266,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       wrapper.find('button[aria-label="Apply"]').simulate('click');
 
-      expect(onApply).toHaveBeenCalledWith([
-        columns[1],
-        {field: 'title', aggregation: '', refinement: undefined},
-      ]);
+      expect(onApply).toHaveBeenCalledWith([columns[1], {kind: 'field', field: 'title'}]);
     });
   });
 });

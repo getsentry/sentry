@@ -150,14 +150,11 @@ describe('decodeColumnOrder', function() {
     expect(results[0]).toEqual({
       key: 'title',
       name: 'title',
-      aggregation: '',
-      refinement: undefined,
-      field: 'title',
-      width: 123,
-      eventViewField: {
+      column: {
+        kind: 'field',
         field: 'title',
-        width: 123,
       },
+      width: 123,
       isSortable: false,
       type: 'string',
     });
@@ -170,14 +167,11 @@ describe('decodeColumnOrder', function() {
     expect(results[0]).toEqual({
       key: 'count()',
       name: 'count()',
-      aggregation: 'count',
-      field: '',
-      refinement: undefined,
-      width: 123,
-      eventViewField: {
-        field: 'count()',
-        width: 123,
+      column: {
+        kind: 'function',
+        function: ['count', '', undefined],
       },
+      width: 123,
       isSortable: true,
       type: 'number',
     });
@@ -197,11 +191,11 @@ describe('decodeColumnOrder', function() {
     expect(results[0]).toEqual({
       key: 'avg(transaction.duration)',
       name: 'avg(transaction.duration)',
-      aggregation: 'avg',
-      field: 'transaction.duration',
-      refinement: undefined,
+      column: {
+        kind: 'function',
+        function: ['avg', 'transaction.duration', undefined],
+      },
       width: COL_WIDTH_UNDEFINED,
-      eventViewField: {field: 'avg(transaction.duration)'},
       isSortable: true,
       type: 'duration',
     });
@@ -217,11 +211,11 @@ describe('decodeColumnOrder', function() {
     expect(results[0]).toEqual({
       key: 'percentile(transaction.duration, 0.65)',
       name: 'percentile(transaction.duration, 0.65)',
-      aggregation: 'percentile',
-      field: 'transaction.duration',
-      refinement: '0.65',
+      column: {
+        kind: 'function',
+        function: ['percentile', 'transaction.duration', '0.65'],
+      },
       width: COL_WIDTH_UNDEFINED,
-      eventViewField: {field: 'percentile(transaction.duration, 0.65)'},
       isSortable: true,
       type: 'duration',
     });
@@ -341,8 +335,8 @@ describe('getExpandedResults()', function() {
 
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
-    let result = getExpandedResults(view, {}, {});
 
+    let result = getExpandedResults(view, {}, {});
     expect(result.fields).toEqual([
       {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
@@ -364,7 +358,6 @@ describe('getExpandedResults()', function() {
     });
 
     result = getExpandedResults(view, {}, {});
-
     expect(result.fields).toEqual([
       {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
@@ -397,7 +390,6 @@ describe('getExpandedResults()', function() {
     });
 
     result = getExpandedResults(view, {}, {});
-
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
       {field: 'id', width: -1},
@@ -525,37 +517,32 @@ describe('getDiscoverLandingUrl', function() {
 describe('explodeField', function() {
   it('explodes fields', function() {
     expect(explodeField({field: 'foobar'})).toEqual({
-      aggregation: '',
+      kind: 'field',
       field: 'foobar',
-      width: -1,
     });
 
     // has width
     expect(explodeField({field: 'foobar', width: 123})).toEqual({
-      aggregation: '',
+      kind: 'field',
       field: 'foobar',
-      width: 123,
     });
 
     // has aggregation
     expect(explodeField({field: 'count(foobar)', width: 123})).toEqual({
-      aggregation: 'count',
-      field: 'foobar',
-      width: 123,
+      kind: 'function',
+      function: ['count', 'foobar', undefined],
     });
 
     // custom tag
     expect(explodeField({field: 'foo.bar.is-Enterprise_42', width: 123})).toEqual({
-      aggregation: '',
+      kind: 'field',
       field: 'foo.bar.is-Enterprise_42',
-      width: 123,
     });
 
     // custom tag with aggregation
     expect(explodeField({field: 'count(foo.bar.is-Enterprise_42)', width: 123})).toEqual({
-      aggregation: 'count',
-      field: 'foo.bar.is-Enterprise_42',
-      width: 123,
+      kind: 'function',
+      function: ['count', 'foo.bar.is-Enterprise_42', undefined],
     });
   });
 });

@@ -1080,10 +1080,10 @@ describe('EventView.withColumns()', function() {
 
   it('adds new columns, and replaces existing ones', function() {
     const newView = eventView.withColumns([
-      {field: 'title', aggregation: ''},
-      {field: '', aggregation: 'count'},
-      {field: 'project.id', aggregation: ''},
-      {field: 'culprit', aggregation: ''},
+      {kind: 'field', field: 'title'},
+      {kind: 'function', function: ['count', '']},
+      {kind: 'field', field: 'project.id'},
+      {kind: 'field', field: 'culprit'},
     ]);
     // Views should be different.
     expect(newView.isEqualTo(eventView)).toBe(false);
@@ -1097,9 +1097,11 @@ describe('EventView.withColumns()', function() {
 
   it('drops empty columns', function() {
     const newView = eventView.withColumns([
-      {field: 'issue', aggregation: ''},
-      {field: '', aggregation: 'count'},
-      {field: '', aggregation: ''},
+      {kind: 'field', field: 'issue'},
+      {kind: 'function', function: ['count', '']},
+      {kind: 'field', field: ''},
+      {kind: 'function', function: ['', '']},
+      {kind: 'function', function: ['', '', undefined]},
     ]);
     expect(newView.fields).toEqual([
       {field: 'issue', width: COL_WIDTH_UNDEFINED},
@@ -1109,10 +1111,10 @@ describe('EventView.withColumns()', function() {
 
   it('inherits widths from existing columns when names match', function() {
     const newView = eventView.withColumns([
-      {field: '', aggregation: 'count'},
-      {field: 'project.id', aggregation: ''},
-      {field: 'title', aggregation: ''},
-      {field: 'time', aggregation: ''},
+      {kind: 'function', function: ['count', '']},
+      {kind: 'field', field: 'project.id'},
+      {kind: 'field', field: 'title'},
+      {kind: 'field', field: 'time'},
     ]);
 
     expect(newView.fields).toEqual([
@@ -1125,8 +1127,8 @@ describe('EventView.withColumns()', function() {
 
   it('retains sorts when sorted field is included', function() {
     const newView = eventView.withColumns([
-      {field: 'title', aggregation: ''},
-      {field: '', aggregation: 'count'},
+      {kind: 'field', field: 'title'},
+      {kind: 'function', function: ['count', '']},
     ]);
     expect(newView.fields).toEqual([
       {field: 'title', width: COL_WIDTH_UNDEFINED},
@@ -1136,14 +1138,14 @@ describe('EventView.withColumns()', function() {
   });
 
   it('updates sorts when sorted field is removed', function() {
-    const newView = eventView.withColumns([{field: 'title', aggregation: ''}]);
+    const newView = eventView.withColumns([{kind: 'field', field: 'title'}]);
     expect(newView.fields).toEqual([{field: 'title', width: COL_WIDTH_UNDEFINED}]);
     // Should pick a sortable field.
     expect(newView.sorts).toEqual([{field: 'title', kind: 'desc'}]);
   });
 
   it('has no sort if no sortable fields remain', function() {
-    const newView = eventView.withColumns([{field: 'issue', aggregation: ''}]);
+    const newView = eventView.withColumns([{kind: 'field', field: 'issue'}]);
     expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
     expect(newView.sorts).toEqual([]);
   });
@@ -1169,7 +1171,7 @@ describe('EventView.withNewColumn()', function() {
   it('adds a field', function() {
     const eventView = new EventView(state);
     const newColumn = {
-      aggregation: '',
+      kind: 'field',
       field: 'title',
     };
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1186,8 +1188,8 @@ describe('EventView.withNewColumn()', function() {
   it('adds an aggregate function with no arguments', function() {
     const eventView = new EventView(state);
     const newColumn = {
-      aggregation: 'count',
-      field: '',
+      kind: 'function',
+      function: ['count', ''],
     };
 
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1204,8 +1206,8 @@ describe('EventView.withNewColumn()', function() {
   it('add an aggregate function with field', function() {
     const eventView = new EventView(state);
     const newColumn = {
-      aggregation: 'avg',
-      field: 'transaction.duration',
+      kind: 'function',
+      function: ['avg', 'transaction.duration'],
     };
     const eventView2 = eventView.withNewColumn(newColumn);
     expect(eventView2 !== eventView).toBeTruthy();
@@ -1221,15 +1223,41 @@ describe('EventView.withNewColumn()', function() {
   it('add an aggregate function with field & refinement', function() {
     const eventView = new EventView(state);
     const newColumn = {
-      aggregation: 'percentile',
-      field: 'transaction.duration',
-      refinement: '0.5',
+      kind: 'function',
+      function: ['percentile', 'transaction.duration', '0.5'],
     };
     const updated = eventView.withNewColumn(newColumn);
     expect(updated.fields).toEqual([
       ...state.fields,
       {field: 'percentile(transaction.duration,0.5)', width: COL_WIDTH_UNDEFINED},
     ]);
+  });
+});
+
+describe('EventView.withResizedColumn()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+  const view = new EventView(state);
+
+  it('updates a column that exists', function() {
+    const newView = view.withResizedColumn(0, 99);
+    expect(view.fields[0].width).toBeUndefined();
+    expect(newView.fields[0].width).toEqual(99);
+  });
+
+  it('ignores columns that do not exist', function() {
+    const newView = view.withResizedColumn(100, 99);
+    expect(view.fields).toEqual(newView.fields);
   });
 });
 
@@ -1256,8 +1284,8 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
-      aggregation: 'count',
-      field: '',
+      kind: 'function',
+      function: ['count', ''],
     };
 
     const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -1270,14 +1298,13 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
-      aggregation: '',
+      kind: 'field',
       field: 'title',
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
 
     expect(eventView2 !== eventView).toBeTruthy();
-
     expect(eventView).toMatchObject(state);
 
     const nextState = {
@@ -1292,8 +1319,8 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
-      aggregation: 'count',
-      field: '',
+      kind: 'function',
+      function: ['count', ''],
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1312,8 +1339,8 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
-      aggregation: 'avg',
-      field: 'transaction.duration',
+      kind: 'function',
+      function: ['avg', 'transaction.duration'],
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1332,9 +1359,8 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
-      aggregation: 'percentile',
-      field: 'transaction.duration',
-      refinement: '0.5',
+      kind: 'function',
+      function: ['percentile', 'transaction.duration', '0.5'],
     };
 
     const newView = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1349,7 +1375,7 @@ describe('EventView.withUpdatedColumn()', function() {
       const eventView = new EventView(state);
 
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'title',
       };
 
@@ -1375,7 +1401,7 @@ describe('EventView.withUpdatedColumn()', function() {
       const eventView = new EventView(modifiedState);
 
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'title',
       };
 
@@ -1404,7 +1430,7 @@ describe('EventView.withUpdatedColumn()', function() {
       };
 
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'title',
       };
 
@@ -1430,7 +1456,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
       // this column is expected to be non-sortable
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'project.id',
       };
 
@@ -1459,7 +1485,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
       // this column is expected to be non-sortable
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'project.id',
       };
 
@@ -2205,8 +2231,8 @@ describe('isAPIPayloadSimilar', function() {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn = {
-        aggregation: 'count',
-        field: '',
+        kind: 'function',
+        function: ['count', ''],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2224,7 +2250,7 @@ describe('isAPIPayloadSimilar', function() {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn = {
-        aggregation: '',
+        kind: 'field',
         field: 'title',
       };
 
@@ -2243,8 +2269,8 @@ describe('isAPIPayloadSimilar', function() {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn = {
-        aggregation: 'avg',
-        field: '',
+        kind: 'function',
+        function: ['avg', ''],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2262,8 +2288,8 @@ describe('isAPIPayloadSimilar', function() {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn = {
-        aggregation: 'count',
-        field: '',
+        kind: 'function',
+        function: ['count', ''],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -2325,8 +2351,8 @@ describe('isAPIPayloadSimilar', function() {
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const newColumn = {
-        aggregation: 'count',
-        field: '',
+        kind: 'function',
+        function: ['count', ''],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);

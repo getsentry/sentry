@@ -148,6 +148,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.setState({fieldOptions});
   }
 
+  keyForColumn(column: Column, isGhost: boolean): string {
+    if (column.kind === 'function') {
+      return [...column.function, isGhost].join(':');
+    }
+    return [...column.field, isGhost].join(':');
+  }
+
   cleanUpListeners() {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
@@ -157,11 +164,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   // Signal to the parent that a new column has been added.
   handleAddColumn = () => {
-    const newColumns = [
-      ...this.props.columns,
-      {aggregation: '', field: '', refinement: undefined},
-    ];
-    this.props.onChange(newColumns);
+    const newColumn: Column = {kind: 'field', field: ''};
+    this.props.onChange([...this.props.columns, newColumn]);
   };
 
   handleUpdateColumn = (index: number, column: Column) => {
@@ -305,7 +309,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     if (isDragging && isGhost === false && draggingTargetIndex === i) {
       placeholder = (
         <DragPlaceholder
-          key={`placeholder:${col.aggregation}:${col.field}:${col.refinement}`}
+          key={`placeholder:${this.keyForColumn(col, isGhost)}`}
           className={DRAG_CLASS}
         />
       );
@@ -323,9 +327,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         : PlaceholderPosition.BOTTOM;
 
     return (
-      <React.Fragment
-        key={`${i}:${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
-      >
+      <React.Fragment key={`${i}:${this.keyForColumn(col, isGhost)}`}>
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer className={isGhost ? '' : DRAG_CLASS}>
           {canDelete ? (
@@ -369,7 +371,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.
     const gridColumns = Math.max(
-      ...columns.map(col => (col.field && col.refinement !== undefined ? 3 : 2))
+      ...columns.map(col =>
+        col.kind === 'function' && col.function[2] !== undefined ? 3 : 2
+      )
     );
 
     return (
