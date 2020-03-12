@@ -18,7 +18,6 @@ import {
   getFieldRenderer,
   getExpandedResults,
   pushEventViewToLocation,
-  explodeField,
   MetaType,
 } from '../utils';
 import EventView, {Column, pickRelevantLocationQueryStrings} from '../eventView';
@@ -44,52 +43,33 @@ export type TableViewProps = {
 /**
  * The `TableView` is marked with leading _ in its method names. It consumes
  * the EventView object given in its props to generate new EventView objects
- * for actions such as creating new columns, updating columns, sorting columns,
- * and re-ordering columns.
+ * for actions like resizing column.
+
+ * The entire state of the table view (or event view) is co-located within
+ * the EventView object. This object is fed from the props.
+ *
+ * Attempting to modify the state, and therefore, modifying the given EventView
+ * object given from its props, will generate new instances of EventView objects.
+ *
+ * In most cases, the new EventView object differs from the previous EventView
+ * object. The new EventView object is pushed to the location object.
  */
 class TableView extends React.Component<TableViewProps> {
   /**
-   * The entire state of the table view (or event view) is co-located within
-   * the EventView object. This object is fed from the props.
-   *
-   * Attempting to modify the state, and therefore, modifying the given EventView
-   * object given from its props, will generate new instances of EventView objects.
-   *
-   * In most cases, the new EventView object differs from the previous EventView
-   * object. The new EventView object is pushed to the location object.
+   * Updates a column on resizing
    */
-  _updateColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView, tableData, organization} = this.props;
+  _resizeColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
+    const {location, eventView, organization} = this.props;
 
-    const payload = {
-      aggregation: String(nextColumn.aggregation),
-      field: String(nextColumn.field),
-      width: nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED,
-      refinement: nextColumn.refinement,
-    };
-
-    const tableMeta = (tableData && tableData.meta) || undefined;
-    const nextEventView = eventView.withUpdatedColumn(columnIndex, payload, tableMeta);
+    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
+    const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     if (nextEventView !== eventView) {
       const changed: string[] = [];
 
-      const prevField = explodeField(eventView.fields[columnIndex]);
-      const nextField = explodeField(nextEventView.fields[columnIndex]);
-
-      const aggregationChanged = prevField.aggregation !== nextField.aggregation;
-      const fieldChanged = prevField.field !== nextField.field;
-      const widthChanged = prevField.width !== nextField.width;
-
-      if (aggregationChanged) {
-        changed.push('aggregate');
-      }
-
-      if (fieldChanged) {
-        changed.push('field');
-      }
-
-      if (widthChanged) {
+      const prevField = eventView.fields[columnIndex];
+      const nextField = nextEventView.fields[columnIndex];
+      if (prevField.width !== nextField.width) {
         changed.push('width');
       }
 
@@ -99,7 +79,6 @@ class TableView extends React.Component<TableViewProps> {
         updated_at_index: columnIndex,
         changed,
         organization_id: parseInt(organization.id, 10),
-        ...payload,
       });
     }
 
@@ -148,10 +127,9 @@ class TableView extends React.Component<TableViewProps> {
     return (
       <HeaderCell column={column} tableData={tableData}>
         {({align}) => {
-          const field = column.eventViewField;
-
           const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
 
+          const field = {field: column.name, width: column.width};
           function generateSortLink(): LocationDescriptorObject | undefined {
             if (!tableDataMeta) {
               return undefined;
@@ -225,7 +203,7 @@ class TableView extends React.Component<TableViewProps> {
         {...modalProps}
         organization={organization}
         tagKeys={tagKeys}
-        columns={eventView.getColumns()}
+        columns={eventView.getColumns().map(col => col.column)}
         onApply={this.handleUpdateColumns}
       />
     ));
@@ -275,7 +253,7 @@ class TableView extends React.Component<TableViewProps> {
         grid={{
           renderHeadCell: this._renderGridHeaderCell as any,
           renderBodyCell: this._renderGridBodyCell as any,
-          onResizeColumn: this._updateColumn as any,
+          onResizeColumn: this._resizeColumn as any,
           renderPrependColumns: this._renderPrependColumns as any,
           prependColumnWidths: ['40px'],
         }}
@@ -297,10 +275,8 @@ const ExpandAggregateRow = (props: {
   tableMeta: MetaType;
 }) => {
   const {children, column, dataRow, eventView, location} = props;
-  const {eventViewField} = column;
-
-  const exploded = explodeField(eventViewField);
-  const {aggregation} = exploded;
+  const aggregation =
+    column.column.kind === 'function' ? column.column.function[0] : undefined;
 
   // count(column) drilldown
   if (aggregation === 'count') {
@@ -318,8 +294,8 @@ const ExpandAggregateRow = (props: {
   if (aggregation === 'count_unique') {
     // Drilldown into each distinct value and get a count() for each value.
     const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
-      field: '',
-      aggregation: 'count',
+      kind: 'function',
+      function: ['count', '', undefined],
     });
 
     const target = {

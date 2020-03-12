@@ -18,8 +18,6 @@ type Props = {
 function HeaderCell(props: Props) {
   const {children, column, tableData} = props;
 
-  const field = column.eventViewField;
-
   // establish alignment based on the type
   const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
   let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
@@ -28,7 +26,7 @@ function HeaderCell(props: Props) {
     // fallback to align the column based on the table metadata
     const maybeType =
       tableData && tableData.meta
-        ? tableData.meta[getAggregateAlias(field.field)]
+        ? tableData.meta[getAggregateAlias(column.name)]
         : undefined;
 
     if (maybeType === 'integer' || maybeType === 'number') {
