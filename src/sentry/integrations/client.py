@@ -139,7 +139,7 @@ class ApiClient(object):
 
         extra = {
             "integration": self.integration_name,
-            "status": code,
+            "status_string": six.text_type(code),
             "error": six.text_type(error)[:128] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
