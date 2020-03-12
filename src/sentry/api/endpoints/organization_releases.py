@@ -11,7 +11,6 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.release import ReleaseSerializer
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
@@ -236,16 +235,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 params=[filter_params["start"], filter_params["end"]],
             )
 
-        serializer = ReleaseSerializer(
-            with_health_data=with_health,
-            health_stats_period=health_stats_period,
-            summary_stats_period=summary_stats_period,
-        )
         return self.paginate(
             request=request,
             queryset=queryset,
             paginator_cls=paginator_cls,
-            on_results=lambda x: serialize(x, request.user, serializer=serializer),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                with_health_data=with_health,
+                health_stats_period=health_stats_period,
+                summary_stats_period=summary_stats_period,
+            ),
             **paginator_kwargs
         )
 
