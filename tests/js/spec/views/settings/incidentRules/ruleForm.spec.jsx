@@ -113,7 +113,7 @@ describe('Incident Rules Form', function() {
 
     it('edits metric', async function() {
       const wrapper = createWrapper({
-        incidentRuleId: rule.id,
+        ruleId: rule.id,
         rule,
       });
 

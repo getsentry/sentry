@@ -40,7 +40,7 @@ const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => 
 type Props = {
   organization: Organization;
   projects: Project[];
-  incidentRuleId?: string;
+  ruleId?: string;
   triggers: Trigger[];
   currentProject: string;
   availableActions: MetricActionTemplate[] | null;
