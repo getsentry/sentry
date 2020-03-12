@@ -1155,6 +1155,14 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_general_user_field(self):
+        conditions = get_filter("user:123").conditions
+        assert len(conditions) == 1
+        assert ["user.id", "=", "123"] in conditions[0]
+        assert ["user.username", "=", "123"] in conditions[0]
+        assert ["user.email", "=", "123"] in conditions[0]
+        assert ["user.ip", "=", "123"] in conditions[0]
+
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
         assert result.having == [["rpm", ">", 100]]
