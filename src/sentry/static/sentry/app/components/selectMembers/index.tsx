@@ -57,7 +57,7 @@ type Props = {
   onInputChange?: (value: any) => any;
   disabled?: boolean;
   placeholder?: string;
-  styles?: React.CSSProperties;
+  styles?: {control?: (provided: any) => any};
 };
 
 type State = {
@@ -84,7 +84,9 @@ class SelectMembers extends React.Component<Props, State> {
     onChange: PropTypes.func.isRequired,
     onInputChange: PropTypes.func,
     disabled: PropTypes.bool,
-    styles: PropTypes.object,
+    styles: PropTypes.shape({
+      control: PropTypes.func,
+    }),
   };
 
   state: State = {
