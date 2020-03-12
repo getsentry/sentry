@@ -136,6 +136,7 @@ class OrganizationOnboardingTask(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)  # user that completed
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
+    completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }

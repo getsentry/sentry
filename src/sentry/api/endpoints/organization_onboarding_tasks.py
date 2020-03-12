@@ -15,8 +15,15 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         except KeyError:
             return Response({"detail": "Invalid task key"}, status=422)
 
-        status = OrganizationOnboardingTask.STATUS_LOOKUP_BY_KEY.get(request.data["status"])
-        if status is None:
+        status_value = request.data.get("status")
+        completion_seen = request.data.get("completionSeen")
+
+        if status_value is None and completion_seen is None:
+            return Response({"detail": "completionSeen or status must be provided"}, status=422)
+
+        status = OrganizationOnboardingTask.STATUS_LOOKUP_BY_KEY.get(status_value)
+
+        if status_value and status is None:
             return Response({"detail": "Invalid status key"}, status=422)
 
         # Cannot skip unskippable tasks
@@ -26,11 +33,16 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         ):
             return Response(status=422)
 
+        values = {}
+
+        if status:
+            values["status"] = status
+            values["date_completed"] = timezone.now()
+        if completion_seen:
+            values["completion_seen"] = timezone.now()
+
         rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-            organization=organization,
-            user=request.user,
-            task=task_id,
-            values={"status": status, "date_completed": timezone.now()},
+            organization=organization, task=task_id, values=values, defaults={"user": request.user}
         )
 
         if rows_affected or created:
