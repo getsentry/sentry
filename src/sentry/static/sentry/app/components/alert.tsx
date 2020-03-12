@@ -16,7 +16,7 @@ export type Props = {
   icon?: string;
   alignTop?: boolean;
   system?: boolean;
-  thin?: boolean;
+  thinner?: boolean;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -64,11 +64,11 @@ const alertStyles = ({
   type = DEFAULT_TYPE,
   system,
   alignTop,
-  thin,
+  thinner,
 }: Props & {theme: any}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
-  padding: ${space(thin ? 1 : 2)};
+  padding: ${space(thinner ? 1 : 2)};
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
@@ -109,7 +109,7 @@ Alert.propTypes = {
   icon: PropTypes.string,
   alignTop: PropTypes.bool,
   system: PropTypes.bool,
-  thin: PropTypes.bool,
+  thinner: PropTypes.bool,
 };
 
 Alert.defaultProps = {

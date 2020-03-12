@@ -12,12 +12,11 @@ import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {
-  // eslint-disable-next-line import/no-named-default
-  default as MailActionFields,
+import {t, tct} from 'app/locale';
+import MailActionFields, {
   MailActionTargetType,
 } from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
+import ExternalLink from 'app/components/links/externalLink';
 import {Organization, Project} from 'app/types';
 
 type FormField = {
@@ -211,40 +210,41 @@ class RuleNode extends React.Component<Props> {
     switch (data.targetType) {
       case MailActionTargetType.IssueOwners:
         return (
-          <ThinAlert type="warning">
-            {t('If there are no matching ')}
-            <a
-              href="https://docs.sentry.io/workflow/issue-owners/"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t('issue owners')}
-            </a>
-            {t(', ownership is determined by the setting on ')}
-            <a
-              href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t('this page')}
-            </a>
-            {t('.')}
-          </ThinAlert>
+          // Using boolean attributes on styled components cases a warning
+          // https://github.com/styled-components/styled-components/issues/1198
+          // Preferring to use boolean attributes to respect TS typing.
+          <Alert thinner type="warning">
+            {tct(
+              'If there are no matching [issueOwners], ownership is determined by the setting on [thisPage].',
+              {
+                issueOwners: (
+                  <ExternalLink href="https://docs.sentry.io/workflow/issue-owners/">
+                    {t('issue owners')}
+                  </ExternalLink>
+                ),
+                thisPage: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                  >
+                    {t('this page')}
+                  </ExternalLink>
+                ),
+              }
+            )}
+          </Alert>
         );
       case MailActionTargetType.Team:
         return null;
       case MailActionTargetType.Member:
         return (
-          <Alert thin type="warning">
-            {t('Alerts sent directly to a member override their ')}
-            <a
-              href="/settings/account/notifications"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {t('personal project alert settings')}
-            </a>
-            {t('.')}
+          <Alert thinner type="warning">
+            {tct('Alerts sent directly to a member override their [alertSettings].', {
+              alertSettings: (
+                <ExternalLink href="/settings/account/notifications">
+                  {t('personal project alert settings')}
+                </ExternalLink>
+              ),
+            })}
           </Alert>
         );
       default:
@@ -312,8 +312,4 @@ const Rule = styled('div')`
 
 const DeleteButton = styled(Button)`
   flex-shrink: 0;
-`;
-
-const ThinAlert = styled(Alert)`
-  padding: ${space(1)};
 `;
