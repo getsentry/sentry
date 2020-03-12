@@ -14,7 +14,7 @@ describe('SettingsIndex', function() {
   });
 
   it('has loading when there is no organization', function() {
-    wrapper = shallow(<SettingsIndex organization={null} />);
+    wrapper = mountWithTheme(<SettingsIndex organization={null} />);
 
     expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
   });

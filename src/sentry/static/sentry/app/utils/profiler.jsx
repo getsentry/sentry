@@ -6,10 +6,10 @@ import getDisplayName from 'app/utils/getDisplayName';
 
 export default function profiler() {
   return WrappedComponent => {
-    const displayName = getDisplayName(WrappedComponent);
+    const componentDisplayName = getDisplayName(WrappedComponent);
 
     return class extends React.Component {
-      static displayName = displayName;
+      static displayName = `profiler(${componentDisplayName})`;
 
       static propTypes = {
         api: PropTypes.object,
@@ -20,11 +20,11 @@ export default function profiler() {
       }
 
       activity = Integrations.Tracing.pushActivity(
-        displayName,
+        componentDisplayName,
         {
           data: {},
           op: 'react',
-          description: `<${displayName}>`,
+          description: `<${componentDisplayName}>`,
         },
         {
           autoPopAfter: 500, // After this timeout we'll pop this activity regardless

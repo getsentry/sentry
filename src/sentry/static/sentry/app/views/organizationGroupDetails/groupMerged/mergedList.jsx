@@ -55,6 +55,7 @@ class MergedList extends React.Component {
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
+              orgId={orgId}
               disabled={items.length === 1}
               event={latestEvent}
               fingerprint={id}

@@ -12,7 +12,7 @@ exports[`Issues Similar View renders initially with loading component 1`] = `
      
     This is an experimental feature. Data may not be immediately available while we process merges.
   </div>
-  <LoadingIndicator />
+  <profiler(LoadingIndicator) />
 </div>
 `;
 
