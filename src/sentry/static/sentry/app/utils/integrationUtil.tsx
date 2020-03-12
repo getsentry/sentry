@@ -127,7 +127,6 @@ export const trackIntegrationEvent = (
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
-    integration_directory_active: true,
     ...analyticsParams,
   };
 
