@@ -128,17 +128,17 @@ class ApiClient(object):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
 
-    def track_response_data(self, integration, code, error=None):
+    def track_response_data(self, code, error=None):
         logger = logging.getLogger("sentry.integrations.client")
 
         metrics.incr(
             "integrations.http_response",
             sample_rate=1.0,
-            tags={"integration": integration, "status": code},
+            tags={"integration": self.integration_name, "status": code},
         )
 
         extra = {
-            "integration": integration,
+            "integration": self.integration_name,
             "status": code,
             "error": six.text_type(error[:128]) if error else None,
         }
@@ -200,23 +200,23 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            self.track_response_data(self.integration_name, "connection_error", six.text_type(e))
+            self.track_response_data("connection_error", e)
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            self.track_response_data(self.integration_name, "timeout", six.text_type(e))
+            self.track_response_data("timeout", e)
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                self.track_response_data(self.integration_name, "unknown", six.text_type(e))
+                self.track_response_data("unknown", e)
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            self.track_response_data(self.integration_name, resp.status_code, six.text_type(e))
+            self.track_response_data(resp.status_code, e)
             raise ApiError.from_response(resp)
 
-        self.track_response_data(self.integration_name, resp.status_code)
+        self.track_response_data(resp.status_code)
 
         if resp.status_code == 204:
             return {}

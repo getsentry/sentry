@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 import {Client} from 'app/api';
 
@@ -38,7 +38,7 @@ describe('Issues -> Merged View', function() {
   });
 
   it('renders initially with loading component', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
@@ -51,7 +51,7 @@ describe('Issues -> Merged View', function() {
   });
 
   it('renders with mocked data', async function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <GroupMergedView
         project={TestStubs.Project({slug: 'projectId'})}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
@@ -74,6 +74,7 @@ describe('Issues -> Merged View', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+
     expect(wrapper).toMatchSnapshot();
   });
 });

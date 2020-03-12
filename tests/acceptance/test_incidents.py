@@ -39,7 +39,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
 
         incident = create_incident(
             self.organization,
-            type=IncidentType.DETECTED,
+            type_=IncidentType.DETECTED,
             title="Incident #1",
             query="hello",
             aggregation=QueryAggregations.TOTAL,

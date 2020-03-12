@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel, PanelAlert} from 'app/components/panels';
+import {Panel, PanelItem, PanelBody, PanelAlert} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -331,7 +331,7 @@ class ProjectProcessingIssues extends React.Component {
     let processingRow = null;
     if (this.state.processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <div className="list-group-item alert-info">
+        <PanelItem className="alert-info">
           <div className="row row-flex row-center-vertically">
             <div className="col-sm-12">
               <span
@@ -345,7 +345,7 @@ class ProjectProcessingIssues extends React.Component {
               )}
             </div>
           </div>
-        </div>
+        </PanelItem>
       );
     }
 
@@ -376,10 +376,10 @@ class ProjectProcessingIssues extends React.Component {
               <div className="col-sm-2">{t('Last seen')}</div>
             </div>
           </div>
-          <div className="list-group">
+          <PanelBody>
             {processingRow}
             {this.state.processingIssues.issues.map((item, idx) => (
-              <div key={idx} className="list-group-item">
+              <PanelItem key={idx}>
                 <div className="row row-flex row-center-vertically">
                   <div className="col-sm-3">{this.renderProblem(item)}</div>
                   <div className="col-sm-5">{this.renderDetails(item)}</div>
@@ -388,9 +388,9 @@ class ProjectProcessingIssues extends React.Component {
                     <TimeSince date={item.lastSeen} />
                   </div>
                 </div>
-              </div>
+              </PanelItem>
             ))}
-          </div>
+          </PanelBody>
         </div>
       </div>
     );

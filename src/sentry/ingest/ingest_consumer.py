@@ -11,7 +11,7 @@ import multiprocessing as _multiprocessing
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.cache import default_cache
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
@@ -114,6 +114,11 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
+    if options.get("store.transactions-celery") is True:
+        for message in messages:
+            process_event(message, projects)
+        return
+
     jobs = []
     for message in messages:
         payload = message["payload"]

@@ -4,15 +4,22 @@ from collections import OrderedDict
 import logging
 import json
 import requests
+import six
 
 from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
-from requests.exceptions import ConnectionError, HTTPError
+from requests.exceptions import ConnectionError, Timeout, HTTPError
 
 from sentry.http import build_session
 from sentry.utils import metrics
 
-from .exceptions import ApiHostError, ApiError, ApiUnauthorized, UnsupportedResponseType
+from .exceptions import (
+    ApiHostError,
+    ApiTimeoutError,
+    ApiError,
+    ApiUnauthorized,
+    UnsupportedResponseType,
+)
 
 
 class BaseApiResponse(object):
@@ -109,10 +116,6 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_metric(plugin, code):
-    metrics.incr("sentry-plugins.http_response", tags={"status": code, "plugin": plugin})
-
-
 class ApiClient(object):
     base_url = None
 
@@ -124,8 +127,26 @@ class ApiClient(object):
 
     plugin_name = "undefined"
 
-    def __init__(self, verify_ssl=True):
+    def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
+        self.logging_context = logging_context
+
+    def track_response_data(self, code, error=None):
+        logger = logging.getLogger("sentry.plugins.client")
+
+        metrics.incr(
+            "sentry-plugins.http_response",
+            sample_rate=1.0,
+            tags={"plugin": self.plugin_name, "status": code},
+        )
+
+        extra = {
+            "plugin": self.plugin_name,
+            "status": code,
+            "error": six.text_type(error[:128]) if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        logger.info("plugins.http_response", extra=extra)
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -145,6 +166,7 @@ class ApiClient(object):
         json=True,
         allow_text=None,
         allow_redirects=None,
+        timeout=None,
     ):
 
         if allow_text is None:
@@ -155,6 +177,9 @@ class ApiClient(object):
 
         if allow_redirects is None:  # is still None
             allow_redirects = method.upper() == "GET"
+
+        if timeout is None:
+            timeout = 30
 
         full_url = self.build_url(path)
         metrics.incr("sentry-plugins.http_request", tags={"plugin": self.plugin_name})
@@ -170,22 +195,28 @@ class ApiClient(object):
                 auth=auth,
                 verify=self.verify_ssl,
                 allow_redirects=allow_redirects,
+                timeout=timeout,
             )
             resp.raise_for_status()
         except ConnectionError as e:
+            self.track_response_data("connection_error", e)
             raise ApiHostError.from_exception(e)
+        except Timeout as e:
+            self.track_response_data("timeout", e)
+            raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                track_response_metric(self.plugin_name, "unknown")
+                self.track_response_data("unknown", e)
                 self.logger.exception(
                     "request.error", extra={"plugin": self.plugin_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            track_response_metric(self.plugin_name, resp.status_code)
+            self.track_response_data(resp.status_code, e)
             raise ApiError.from_response(resp)
 
-        track_response_metric(self.plugin_name, resp.status_code)
+        self.track_response_data(resp.status_code)
+
         if resp.status_code == 204:
             return {}
 

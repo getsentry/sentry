@@ -299,7 +299,7 @@ function routes() {
             component={errorHandler(LazyLoad)}
             componentPromise={() =>
               import(
-                /* webpackChunkName: "ProjectAlertsIssueCreate" */ 'app/views/settings/projectAlerts/create'
+                /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
               )
             }
           />
@@ -308,7 +308,7 @@ function routes() {
             name="Edit Alert Rule"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "ProjectAlertRuleDetails" */ 'app/views/settings/projectAlerts/issueEditor'
+                /* webpackChunkName: "ProjectAlertsEdit" */ 'app/views/settings/projectAlerts/edit'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -322,17 +322,17 @@ function routes() {
             path="new/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "IncidentRulesCreate" */ 'app/views/settings/projectAlerts/create'
+                /* webpackChunkName: "ProjectAlertsCreate" */ 'app/views/settings/projectAlerts/create'
               )
             }
             component={errorHandler(LazyLoad)}
           />
           <Route
             name="Edit Alert Rule"
-            path=":incidentRuleId/"
+            path=":ruleId/"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "IncidentRulesDetails" */ 'app/views/settings/incidentRules/details'
+                /* webpackChunkName: "ProjectAlertsEdit" */ 'app/views/settings/projectAlerts/edit'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -1531,14 +1531,50 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path=":releaseSlug/"
+              path=":release/"
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
-            />
+            >
+              <IndexRoute
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="commits/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="artifacts/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="files-changed/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+            </Route>
           </Route>
           <Route
             path="/organizations/:orgId/alerts/"

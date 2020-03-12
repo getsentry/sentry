@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
+import profiler from 'app/utils/profiler';
+
 type Props = {
   overlay?: boolean;
   dark?: boolean;
@@ -79,4 +81,4 @@ LoadingIndicator.propTypes = {
   hideSpinner: PropTypes.bool,
 };
 
-export default LoadingIndicator;
+export default profiler()(LoadingIndicator);

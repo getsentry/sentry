@@ -29,7 +29,6 @@ import PanelAlert from 'app/components/panels/panelAlert';
 import PanelItem from 'app/components/panels/panelItem';
 import PanelSubHeader from 'app/views/settings/incidentRules/triggers/panelSubHeader';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TextField from 'app/views/settings/components/forms/textField';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
@@ -132,7 +131,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       delete rule.environment;
     }
 
-    addLoadingMessage(t('Saving...'));
+    addLoadingMessage();
 
     try {
       const resp = await this.api.requestPromise(endpoint, {
@@ -140,24 +139,26 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         data: rule,
       });
       this.setState({detailedError: null, rule: resp});
+
+      // The onboarding task will be completed on the server side when the alert
+      // is created
+      updateOnboardingTask(null, organization, {
+        task: OnboardingTaskKey.ALERT_RULE,
+        status: 'complete',
+      });
+
+      addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+
+      // When editing, there is an extra route to move back from
+      const stepBack = isNew ? -1 : -2;
+      browserHistory.replace(recreateRoute('', {...this.props, stepBack}));
     } catch (err) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
         loading: false,
       });
       addErrorMessage(t('An error occurred'));
-      return;
     }
-
-    // The onboarding task will be completed on the server side when the alert
-    // is created
-    updateOnboardingTask(null, organization, {
-      task: OnboardingTaskKey.ALERT_RULE,
-      status: 'complete',
-    });
-
-    addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
-    browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
   };
 
   handleDeleteRule = async () => {
@@ -301,7 +302,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {projectId, ruleId} = this.props.params;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -314,14 +314,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const title = ruleId ? t('Edit Alert') : t('New Alert');
-
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={title} objSlug={projectId} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}
@@ -329,17 +326,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
           submitLabel={t('Save Rule')}
           extraButton={
-            <Confirm
-              priority="danger"
-              confirmText={t('Delete Rule')}
-              onConfirm={this.handleDeleteRule}
-              header={t('Delete Rule')}
-              message={t('Are you sure you want to delete this rule?')}
-            >
-              <Button priority="danger" type="button">
-                {t('Delete Rule')}
-              </Button>
-            </Confirm>
+            isSavedAlertRule(rule) ? (
+              <Confirm
+                priority="danger"
+                confirmText={t('Delete Rule')}
+                onConfirm={this.handleDeleteRule}
+                header={t('Delete Rule')}
+                message={t('Are you sure you want to delete this rule?')}
+              >
+                <Button priority="danger" type="button">
+                  {t('Delete Rule')}
+                </Button>
+              </Confirm>
+            ) : null
           }
         >
           {this.state.loading && <SemiTransparentLoadingMask />}

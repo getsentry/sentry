@@ -125,6 +125,7 @@ export type ProjectRelease = {
   newGroups: number;
   healthData: Health | null;
   projectSlug: string;
+  projectId: number;
 };
 
 export type Health = {
@@ -777,8 +778,15 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string; healthData?: Health | null}[];
+  projects: ReleaseProject[];
 } & BaseRelease;
+
+type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  healthData?: Health | null;
+};
 
 export type BaseRelease = {
   dateReleased: string;
@@ -914,8 +922,18 @@ export type OnboardingTaskDescriptor = {
   title: string;
   description: string;
   detailedDescription?: string;
+  /**
+   * Can this task be skipped?
+   */
   skippable: boolean;
-  prereq: number[];
+  /**
+   * A list of require task keys that must have been completed before these
+   * tasks may be completed.
+   */
+  requisites: OnboardingTaskKey[];
+  /**
+   * Should the onboarding task currently be displayed
+   */
   display: boolean;
 } & (
   | {
@@ -933,6 +951,7 @@ export type OnboardingTaskStatus = {
   status: 'skipped' | 'pending' | 'complete';
   user?: string | null;
   dateCompleted?: string;
+  completionSeen?: string;
   data?: object;
 };
 

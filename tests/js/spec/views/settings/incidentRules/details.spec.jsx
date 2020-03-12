@@ -63,7 +63,7 @@ describe('Incident Rules Details', function() {
           params={{
             orgId: organization.slug,
             projectId: project.slug,
-            incidentRuleId: rule.id,
+            ruleId: rule.id,
           }}
           organization={organization}
         />

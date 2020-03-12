@@ -56,8 +56,54 @@ class IncidentSeen(Model):
 
 
 class IncidentManager(BaseManager):
+    CACHE_KEY = "incidents:active:%s:%s"
+
     def fetch_for_organization(self, organization, projects):
         return self.filter(organization=organization, projects__in=projects).distinct()
+
+    @classmethod
+    def _build_active_incident_cache_key(self, alert_rule_id, project_id):
+        return self.CACHE_KEY % (alert_rule_id, project_id)
+
+    def get_active_incident(self, alert_rule, project):
+        cache_key = self._build_active_incident_cache_key(alert_rule.id, project.id)
+        incident = cache.get(cache_key)
+        if incident is None:
+            try:
+                incident = (
+                    Incident.objects.filter(
+                        type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=alert_rule,
+                        projects=project,
+                    )
+                    .exclude(status=IncidentStatus.CLOSED.value)
+                    .order_by("-date_added")[0]
+                )
+            except IndexError:
+                # Set this to False so that we can have a negative cache as well.
+                incident = False
+            cache.set(cache_key, incident)
+            if incident is False:
+                incident = None
+        elif not incident:
+            # If we had a falsey not None value in the cache, then we stored that there
+            # are no current active incidents. Just set to None
+            incident = None
+
+        return incident
+
+    @classmethod
+    def clear_active_incident_cache(cls, instance, **kwargs):
+        for project in instance.projects.all():
+            cache.delete(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
+
+    @classmethod
+    def clear_active_incident_project_cache(cls, instance, **kwargs):
+        cache.delete(
+            cls._build_active_incident_cache_key(
+                instance.incident.alert_rule_id, instance.project_id
+            )
+        )
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization, **kwargs):
@@ -362,8 +408,39 @@ class TriggerStatus(Enum):
     RESOLVED = 1
 
 
+class IncidentTriggerManager(BaseManager):
+    CACHE_KEY = "incident:triggers:%s"
+
+    @classmethod
+    def _build_cache_key(self, incident_id):
+        return self.CACHE_KEY % incident_id
+
+    def get_for_incident(self, incident):
+        """
+        Fetches the IncidentTriggers associated with an Incident. Attempts to fetch from
+        cache then hits the database.
+        """
+        cache_key = self._build_cache_key(incident.id)
+        triggers = cache.get(cache_key)
+        if triggers is None:
+            triggers = list(IncidentTrigger.objects.filter(incident=incident))
+            cache.set(cache_key, triggers, 3600)
+
+        return triggers
+
+    @classmethod
+    def clear_incident_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_cache_key(instance.id))
+
+    @classmethod
+    def clear_incident_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_cache_key(instance.incident_id))
+
+
 class IncidentTrigger(Model):
     __core__ = True
+
+    objects = IncidentTriggerManager()
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
@@ -558,3 +635,11 @@ post_delete.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, send
 post_save.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
 post_save.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
 post_delete.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
+
+post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
+post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
+post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
+
+post_delete.connect(IncidentTriggerManager.clear_incident_cache, sender=Incident)
+post_save.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)
+post_delete.connect(IncidentTriggerManager.clear_incident_trigger_cache, sender=IncidentTrigger)

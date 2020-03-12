@@ -17,6 +17,7 @@ class BitbucketServerAPIPath(object):
     repository_hook = u"/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
     repository_hooks = u"/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
     repository_commits = u"/rest/api/1.0/projects/{project}/repos/{repo}/commits"
+    commit_changes = u"/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -142,6 +143,19 @@ class BitbucketServer(ApiClient):
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             auth=self.get_auth(),
             params={"since": fromHash, "until": toHash, "merges": "exclude"},
+        )
+
+    def get_last_commits(self, project, repo, limit=10):
+        return self.get(
+            BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
+            auth=self.get_auth(),
+            params={"merges": "exclude", "limit": limit},
+        )
+
+    def get_commit_filechanges(self, project, repo, commit):
+        return self.get(
+            BitbucketServerAPIPath.commit_changes.format(project=project, repo=repo, commit=commit),
+            auth=self.get_auth(),
         )
 
     def get_auth(self):
