@@ -38,6 +38,31 @@ describe('DataExport', function() {
     expect(wrapper.text()).toBe('Export All to CSV');
   });
 
+  it('should render custom children if provided', function() {
+    const testString = 'This is an example string';
+    const wrapper = mount(
+      <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    expect(wrapper.text()).toBe(testString);
+  });
+
+  it('should respect the disabled prop and not be clickable', function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    const postDataExport = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {id: 721},
+    });
+    const wrapper = mount(
+      <WrappedDataExport payload={mockPayload} disabled />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    expect(wrapper.find('button').prop('disabled')).toEqual(true);
+    wrapper.find('button').simulate('click');
+    expect(postDataExport).not.toHaveBeenCalled();
+  });
+
   it('should send a request and disable itself when clicked', async function() {
     const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
     const postDataExport = MockApiClient.addMockResponse({
