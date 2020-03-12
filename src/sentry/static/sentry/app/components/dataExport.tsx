@@ -17,7 +17,7 @@ type DataExportPayload = {
 
 type Props = {
   api: Client;
-  disabled: boolean;
+  disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
 };
@@ -77,7 +77,7 @@ class DataExport extends React.Component<Props, State> {
             <button
               className="btn btn-default btn-sm"
               onClick={this.startDataExport}
-              disabled={disabled}
+              disabled={disabled || false}
               {...this.props}
             >
               {children ? children : t('Export All to CSV')}
