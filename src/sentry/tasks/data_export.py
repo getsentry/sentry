@@ -199,9 +199,9 @@ def process_discover(data_export, file, limit):
             metrics.incr("dataexport.error", instance=message)
             logger.error("dataexport.error: {}".format(message))
             raise DataExportError(message)
-    # Example file name: DISCOVER_V2-project10__721.csv
+    # Example file name: Discover-project10__721.csv
     file_details = u"{}__{}".format(project.slug, data_export.id)
-    file_name = get_file_name(ExportQueryType.DISCOVER_V2_STR, file_details)
+    file_name = get_file_name(ExportQueryType.DISCOVER_STR, file_details)
 
     # Iterate through all the GroupTagValues
     writer = create_writer(file, sample[0].keys())
