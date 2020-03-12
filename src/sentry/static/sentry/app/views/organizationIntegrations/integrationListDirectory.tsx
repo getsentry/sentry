@@ -224,7 +224,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive()) {
+    if (getSortIntegrationsByWeightActive(this.props.organization)) {
       return integrations
         .sort(this.sortByName)
         .sort(this.sortByPopularity)
