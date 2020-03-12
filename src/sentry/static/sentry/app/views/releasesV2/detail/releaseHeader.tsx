@@ -8,7 +8,7 @@ import Link from 'app/components/links/link';
 import ListLink from 'app/components/links/listLink';
 import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
-import {Release, Deploy} from 'app/types';
+import {Release, Deploy, GlobalSelection} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
@@ -16,6 +16,7 @@ import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ReleaseStat from './releaseStat';
 import Breadcrumbs from './breadcrumbs';
@@ -26,10 +27,14 @@ type Props = {
   orgId: string;
   release: Release;
   deploys: Deploy[];
+  selection: GlobalSelection;
 };
 
-const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
+const ReleaseHeader = ({location, orgId, release, deploys, selection}: Props) => {
   const {version, newGroups, url} = release;
+
+  const healthData = release.projects.find(p => p.id === selection.projects[0])
+    ?.healthData;
 
   const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
     version
@@ -78,10 +83,10 @@ const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
             </ReleaseStat>
           )}
           <ReleaseStat label={t('Crashes')}>
-            <Count value={release.projects[0].healthData?.sessionsCrashed ?? 0} />
+            <Count value={healthData?.sessionsCrashed ?? 10} />
           </ReleaseStat>
           {/* <ReleaseStat label={t('Errors')}>
-            <Count value={release.projects[0].healthData?.sessionsErrored ?? 0} />
+            <Count value={healthData?.sessionsErrored ?? 0} />
           </ReleaseStat> */}
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
@@ -193,4 +198,4 @@ const StyledNavTabs = styled(NavTabs)`
   grid-column: 1 / 2;
 `;
 
-export default ReleaseHeader;
+export default withGlobalSelection(ReleaseHeader);
