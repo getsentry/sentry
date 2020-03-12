@@ -13,7 +13,6 @@ import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY' as const;
 const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
 
 export const startAnalyticsSession = () => {
@@ -28,17 +27,6 @@ export const clearAnalyticsSession = () => {
 
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-
-export const isIntegrationDirectoryActive = (organization?: Organization) => {
-  const variant = organization?.experiments?.IntegrationDirectoryExperiment;
-  if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1') {
-    return true;
-  } else if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '0') {
-    return false;
-  } else {
-    return variant && variant === '1';
-  }
-};
 
 export const getSortIntegrationsByWeightActive = () =>
   localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT) === '1';
@@ -139,7 +127,6 @@ export const trackIntegrationEvent = (
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
-    integration_directory_active: isIntegrationDirectoryActive(org),
     ...analyticsParams,
   };
 
