@@ -272,47 +272,55 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -444,47 +452,55 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -616,47 +632,55 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -788,47 +812,55 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -960,47 +992,55 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -1184,47 +1224,55 @@ exports[`AvatarList renders with user avatars 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -1356,47 +1404,55 @@ exports[`AvatarList renders with user avatars 1`] = `
                               }
                             }
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>

@@ -48,4 +48,6 @@ class Avatar extends React.Component<Props> {
   }
 }
 
-export default Avatar;
+export default React.forwardRef<HTMLSpanElement, Props>((props, ref) => (
+  <Avatar forwardedRef={ref} {...props} />
+));

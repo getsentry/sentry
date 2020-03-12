@@ -64,6 +64,8 @@ type Props = {
 
   className?: string;
 
+  forwardedRef?: React.Ref<HTMLSpanElement>;
+
   style?: React.CSSProperties;
 } & Partial<DefaultProps>;
 
@@ -204,6 +206,7 @@ class BaseAvatar extends React.Component<Props, State> {
       size,
       tooltip,
       tooltipOptions,
+      forwardedRef,
     } = this.props;
     let sizeStyle = {};
 
@@ -217,6 +220,7 @@ class BaseAvatar extends React.Component<Props, State> {
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
         <StyledBaseAvatar
+          ref={forwardedRef}
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
           round={!!round}

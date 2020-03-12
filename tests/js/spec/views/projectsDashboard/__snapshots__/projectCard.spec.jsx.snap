@@ -230,7 +230,10 @@ exports[`ProjectCard renders 1`] = `
                                 __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
-                                    "__emotion_base": [Function],
+                                    "__emotion_base": Object {
+                                      "$$typeof": Symbol(react.forward_ref),
+                                      "render": [Function],
+                                    },
                                     "__emotion_forwardProp": undefined,
                                     "__emotion_real": [Circular],
                                     "__emotion_styles": Array [
@@ -239,9 +242,7 @@ exports[`ProjectCard renders 1`] = `
                                       [Function],
                                       ";flex-shrink:0;",
                                     ],
-                                    "defaultProps": Object {
-                                      "hasTooltip": false,
-                                    },
+                                    "defaultProps": undefined,
                                     "displayName": "StyledAvatar",
                                     "render": [Function],
                                     "withComponent": [Function],
@@ -274,7 +275,6 @@ exports[`ProjectCard renders 1`] = `
                               >
                                 <StyledAvatar
                                   className="css-0"
-                                  hasTooltip={false}
                                   project={
                                     Object {
                                       "environments": Array [],
@@ -300,9 +300,8 @@ exports[`ProjectCard renders 1`] = `
                                   }
                                   size={18}
                                 >
-                                  <Avatar
+                                  <ForwardRef
                                     className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                    hasTooltip={false}
                                     project={
                                       Object {
                                         "environments": Array [],
@@ -328,8 +327,9 @@ exports[`ProjectCard renders 1`] = `
                                     }
                                     size={18}
                                   >
-                                    <ProjectAvatar
+                                    <Avatar
                                       className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                      forwardedRef={null}
                                       hasTooltip={false}
                                       project={
                                         Object {
@@ -356,73 +356,104 @@ exports[`ProjectCard renders 1`] = `
                                       }
                                       size={18}
                                     >
-                                      <Tooltip
-                                        containerDisplayMode="inline-block"
-                                        disabled={true}
-                                        position="top"
-                                      >
-                                        <PlatformList
-                                          className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                          consistentWidth={false}
-                                          direction="right"
-                                          max={1}
-                                          platforms={
-                                            Array [
-                                              "javascript",
-                                            ]
+                                      <ProjectAvatar
+                                        className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                        forwardedRef={null}
+                                        hasTooltip={false}
+                                        project={
+                                          Object {
+                                            "environments": Array [],
+                                            "hasAccess": true,
+                                            "id": "2",
+                                            "isBookmarked": false,
+                                            "isMember": true,
+                                            "name": "Project Name",
+                                            "platform": "javascript",
+                                            "slug": "project-slug",
+                                            "stats": Array [
+                                              Array [
+                                                1525042800,
+                                                1,
+                                              ],
+                                              Array [
+                                                1525046400,
+                                                2,
+                                              ],
+                                            ],
+                                            "teams": Array [],
                                           }
-                                          size={18}
+                                        }
+                                        size={18}
+                                      >
+                                        <Tooltip
+                                          containerDisplayMode="inline-block"
+                                          disabled={true}
+                                          position="top"
                                         >
-                                          <PlatformIcons
+                                          <PlatformList
                                             className="css-1neg7x4-StyledAvatar e165dl3i1"
                                             consistentWidth={false}
                                             direction="right"
+                                            forwardedRef={null}
                                             max={1}
+                                            platforms={
+                                              Array [
+                                                "javascript",
+                                              ]
+                                            }
                                             size={18}
                                           >
-                                            <div
-                                              className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                            <PlatformIcons
+                                              className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                              consistentWidth={false}
                                               direction="right"
                                               max={1}
                                               size={18}
                                             >
-                                              <StyledPlatformIcon
-                                                key="javascript"
-                                                platform="javascript"
+                                              <div
+                                                className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                                direction="right"
+                                                max={1}
                                                 size={18}
                                               >
-                                                <Component
-                                                  className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                <StyledPlatformIcon
+                                                  key="javascript"
                                                   platform="javascript"
                                                   size={18}
                                                 >
-                                                  <PlatformIcon
+                                                  <Component
                                                     className="css-d510pr-StyledPlatformIcon ezvce7z1"
                                                     platform="javascript"
-                                                    size="18px"
+                                                    size={18}
                                                   >
-                                                    <img
+                                                    <PlatformIcon
                                                       className="css-d510pr-StyledPlatformIcon ezvce7z1"
-                                                      height="18px"
-                                                      src={
-                                                        Object {
-                                                          "default": Object {
-                                                            "id": "test",
-                                                            "viewBox": Object {},
-                                                          },
+                                                      platform="javascript"
+                                                      size="18px"
+                                                    >
+                                                      <img
+                                                        className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                        height="18px"
+                                                        src={
+                                                          Object {
+                                                            "default": Object {
+                                                              "id": "test",
+                                                              "viewBox": Object {},
+                                                            },
+                                                          }
                                                         }
-                                                      }
-                                                      width="18px"
-                                                    />
-                                                  </PlatformIcon>
-                                                </Component>
-                                              </StyledPlatformIcon>
-                                            </div>
-                                          </PlatformIcons>
-                                        </PlatformList>
-                                      </Tooltip>
-                                    </ProjectAvatar>
-                                  </Avatar>
+                                                        width="18px"
+                                                      />
+                                                    </PlatformIcon>
+                                                  </Component>
+                                                </StyledPlatformIcon>
+                                              </div>
+                                            </PlatformIcons>
+                                          </PlatformList>
+                                        </Tooltip>
+                                      </ProjectAvatar>
+                                    </Avatar>
+                                  </ForwardRef>
                                 </StyledAvatar>
                               </EmotionCssPropInternal>
                               <DisplayNameAndDescription>
