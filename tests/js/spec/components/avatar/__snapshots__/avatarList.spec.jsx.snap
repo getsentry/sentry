@@ -254,6 +254,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -262,6 +264,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -271,6 +277,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -434,6 +442,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -442,6 +452,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -451,6 +465,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -614,6 +630,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -622,6 +640,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -631,6 +653,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -794,6 +818,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -802,6 +828,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -811,6 +841,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -974,6 +1006,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -982,6 +1016,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -991,6 +1029,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -1206,6 +1246,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -1214,6 +1256,10 @@ exports[`AvatarList renders with user avatars 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -1223,6 +1269,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"
@@ -1386,6 +1434,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -1394,6 +1444,10 @@ exports[`AvatarList renders with user avatars 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -1403,6 +1457,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
                             <ForwardRef
                               displayName="Foo Bar"

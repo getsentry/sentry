@@ -67,7 +67,8 @@ type Props = {
   forwardedRef?: React.Ref<HTMLSpanElement>;
 
   style?: React.CSSProperties;
-} & Partial<DefaultProps>;
+} & Partial<DefaultProps> &
+  React.HTMLAttributes<HTMLSpanElement>;
 
 type State = {
   showBackupAvatar: boolean;
@@ -207,6 +208,7 @@ class BaseAvatar extends React.Component<Props, State> {
       tooltip,
       tooltipOptions,
       forwardedRef,
+      ...props
     } = this.props;
     let sizeStyle = {};
 
@@ -228,6 +230,7 @@ class BaseAvatar extends React.Component<Props, State> {
             ...sizeStyle,
             ...style,
           }}
+          {...props}
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}

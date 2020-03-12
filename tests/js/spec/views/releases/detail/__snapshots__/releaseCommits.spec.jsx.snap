@@ -223,6 +223,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <StyledBaseAvatar
                                       className="avatar"
+                                      gravatarId="example@sentry.io"
+                                      letterId="example@sentry.io"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -231,6 +233,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           "width": "36px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
+                                      uploadId=""
+                                      uploadPath="avatar"
                                     >
                                       <span
                                         className="avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
@@ -240,6 +246,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                             "width": "36px",
                                           }
                                         }
+                                        title="Foo Bar"
+                                        type="letter_avatar"
                                       >
                                         <ForwardRef
                                           displayName="Foo Bar"
@@ -601,6 +609,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <StyledBaseAvatar
                                       className="avatar"
+                                      gravatarId="example@sentry.io"
+                                      letterId="example@sentry.io"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -609,6 +619,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           "width": "36px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
+                                      uploadId=""
+                                      uploadPath="avatar"
                                     >
                                       <span
                                         className="avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
@@ -618,6 +632,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                             "width": "36px",
                                           }
                                         }
+                                        title="Foo Bar"
+                                        type="letter_avatar"
                                       >
                                         <ForwardRef
                                           displayName="Foo Bar"
