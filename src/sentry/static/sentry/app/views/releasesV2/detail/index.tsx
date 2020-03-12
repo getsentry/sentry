@@ -2,18 +2,24 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import pick from 'lodash/pick';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Release, Deploy} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
+import {PageContent} from 'app/styles/organization';
+import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {formatVersion} from 'app/utils/formatters';
+
+import ReleaseHeader from './releaseHeader';
+
+const ReleaseContext = React.createContext<Release | undefined>(undefined);
 
 type Props = {
   organization: Organization;
@@ -22,11 +28,20 @@ type Props = {
   params: Params;
 } & AsyncView['props'];
 
-type State = {} & AsyncView['state'];
+type State = {
+  release: Release;
+  deploys: Deploy[];
+} & AsyncView['state'];
 
+// TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
-    return routeTitleGen(t('Releases v2 Detail'), this.props.organization.slug, false);
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
   }
 
   getDefaultState() {
@@ -35,60 +50,74 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
-    return [['dummy', '/organizations/sentry/projects/']];
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization, location, params} = this.props;
+
+    const query = {
+      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      health: 1,
+    };
+
+    const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
+      params.release
+    )}/`;
+
+    return [
+      ['release', basePath, {query}],
+      ['deploys', `${basePath}deploys/`],
+    ];
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  renderError(error: Error, disableLog = false, disableReport = false) {
+    const {errors} = this.state;
+    const has404Errors = Object.values(errors).find(e => e?.status === 404);
 
-  renderEmpty() {
-    return <EmptyStateWarning small>{t('There are no data.')}</EmptyStateWarning>;
-  }
-
-  renderInnerBody() {
-    const {loading, dummy} = this.state;
-
-    if (loading) {
-      return <LoadingIndicator />;
+    if (has404Errors) {
+      return (
+        <PageContent>
+          <Alert type="error" icon="icon-circle-exclamation">
+            {t('This release may not be in your selected project')}
+          </Alert>
+        </PageContent>
+      );
     }
 
-    if (!dummy.length) {
-      return this.renderEmpty();
-    }
-
-    return (
-      <p>
-        Results: Lorem, ipsum dolor sit amet consectetur adipisicing elit. Illo dicta
-        pariatur incidunt sit vitae laborum, suscipit ducimus atque dolor nostrum rem
-        minima reiciendis nihil omnis eius, consequuntur eos nobis molestias!
-      </p>
-    );
+    return super.renderError(error, disableLog, disableReport);
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+    const {release, deploys} = this.state;
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+      <NoProjectMessage organization={organization}>
+        <StyledPageContent>
+          <ReleaseHeader
+            location={location}
+            orgId={organization.slug}
+            release={release}
+            deploys={deploys}
+          />
 
-        <NoProjectMessage organization={organization}>
-          <PageContent>
-            <PageHeader>
-              <PageHeading withMargins>
-                {t('Releases v2 Detail')} {this.props.params.releaseSlug}
-              </PageHeading>
-            </PageHeader>
-
-            {this.renderInnerBody()}
-          </PageContent>
-        </NoProjectMessage>
-      </React.Fragment>
+          <ReleaseContext.Provider value={release}>
+            {this.props.children}
+          </ReleaseContext.Provider>
+        </StyledPageContent>
+      </NoProjectMessage>
     );
   }
 }
 
-export default withOrganization(ReleasesV2Detail);
-export {ReleasesV2Detail};
+const ReleasesV2DetailContainer = (props: Props) => (
+  <React.Fragment>
+    <GlobalSelectionHeader organization={props.organization} />
+    <ReleasesV2Detail {...props} />
+  </React.Fragment>
+);
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
+export {ReleasesV2DetailContainer, ReleaseContext};
+export default withOrganization(ReleasesV2DetailContainer);

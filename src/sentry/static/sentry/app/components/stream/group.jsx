@@ -1,4 +1,5 @@
 import $ from 'jquery';
+// eslint-disable-next-line no-restricted-imports
 import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -29,15 +30,17 @@ const StreamGroup = createReactClass({
     query: PropTypes.string,
     hasGuideAnchor: PropTypes.bool,
     memberList: PropTypes.array,
+    withChart: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getDefaultProps() {
     return {
-      canSelect: true,
       id: '',
       statsPeriod: '24h',
+      canSelect: true,
+      withChart: true,
     };
   },
 
@@ -92,7 +95,14 @@ const StreamGroup = createReactClass({
 
   render() {
     const {data} = this.state;
-    const {query, hasGuideAnchor, canSelect, memberList} = this.props;
+    const {
+      query,
+      hasGuideAnchor,
+      canSelect,
+      memberList,
+      withChart,
+      statsPeriod,
+    } = this.props;
 
     return (
       <Group data-test-id="group" onClick={this.toggleSelect}>
@@ -111,9 +121,11 @@ const StreamGroup = createReactClass({
           <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-        <Box width={160} mx={2} className="hidden-xs hidden-sm">
-          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
-        </Box>
+        {withChart && (
+          <Box width={160} mx={2} className="hidden-xs hidden-sm">
+            <GroupChart id={data.id} statsPeriod={statsPeriod} data={data} />
+          </Box>
+        )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <StyledCount value={data.count} />
         </Flex>

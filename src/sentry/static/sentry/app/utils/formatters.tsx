@@ -4,7 +4,7 @@ import {Release} from '@sentry/release-parser';
 import {t} from 'app/locale';
 import {CommitAuthor, User} from 'app/types';
 
-export function userDisplayName(user: User | CommitAuthor): string {
+export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(get(user, 'name', t('Unknown author'))).trim();
 
   if (displayName.length <= 0) {
@@ -13,7 +13,7 @@ export function userDisplayName(user: User | CommitAuthor): string {
 
   const email = String(get(user, 'email', '')).trim();
 
-  if (email.length > 0 && email !== displayName) {
+  if (email.length > 0 && email !== displayName && includeEmail) {
     displayName += ' (' + email + ')';
   }
   return displayName;
