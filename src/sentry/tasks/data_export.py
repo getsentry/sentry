@@ -193,13 +193,18 @@ def process_discover(data_export, file, limit):
 
     with snuba_error_handler():
         # Get a single entry to prepare the header row
-        sample = data_fn(0, 1)["data"][0]
+        sample = data_fn(0, 1)["data"]
+        if len(sample) == 0:
+            message = "No available data for the provided query"
+            metrics.incr("dataexport.error", instance=message)
+            logger.error("dataexport.error: {}".format(message))
+            raise DataExportError(message)
     # Example file name: DISCOVER_V2-project10__721.csv
     file_details = u"{}__{}".format(project.slug, data_export.id)
     file_name = get_file_name(ExportQueryType.DISCOVER_V2_STR, file_details)
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, sample.keys())
+    writer = create_writer(file, sample[0].keys())
     iteration = 0
     with snuba_error_handler():
         while True:
