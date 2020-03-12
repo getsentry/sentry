@@ -125,6 +125,7 @@ export type ProjectRelease = {
   newGroups: number;
   healthData: Health | null;
   projectSlug: string;
+  projectId: number;
 };
 
 export type Health = {
@@ -777,8 +778,15 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string; healthData?: Health | null}[];
+  projects: ReleaseProject[];
 } & BaseRelease;
+
+type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  healthData?: Health | null;
+};
 
 export type BaseRelease = {
   dateReleased: string;
