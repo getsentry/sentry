@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -13,8 +14,13 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Group, Release, ReleaseFile, Project
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.api.endpoints.organization_releases import (
+    SUMMARY_STATS_PERIOD,
+    HEALTH_STATS_PERIOD,
+    get_stats_period_detail,
+)
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
@@ -63,6 +69,19 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        project_id = request.GET.get("project")
+        with_health = request.GET.get("health") == "1"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "48h"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        if summary_stats_period not in SUMMARY_STATS_PERIOD:
+            raise ParseError(
+                detail=get_stats_period_detail("summaryStatsPeriod", SUMMARY_STATS_PERIOD)
+            )
+        if health_stats_period not in HEALTH_STATS_PERIOD:
+            raise ParseError(
+                detail=get_stats_period_detail("healthStatsPeriod", HEALTH_STATS_PERIOD)
+            )
+
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
@@ -71,7 +90,23 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        if with_health and project_id:
+            try:
+                project = Project.objects.get_from_cache(id=int(project_id))
+            except (ValueError, Project.DoesNotExist):
+                raise ParseError(detail="Invalid project")
+            release._for_project_id = project.id
+
+        return Response(
+            serialize(
+                release,
+                request.user,
+                project=project,
+                with_health_data=with_health,
+                summary_stats_period=summary_stats_period,
+                health_stats_period=health_stats_period,
+            )
+        )
 
     @attach_scenarios([update_organization_release_scenario])
     def put(self, request, organization, version):
