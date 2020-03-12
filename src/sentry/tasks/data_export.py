@@ -9,7 +9,14 @@ from django.db import transaction, IntegrityError
 
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData, File
-from sentry.processing.data_export import IssuesByTag, DataExportProcessingError
+from sentry.processing.base import ProcessingError
+from sentry.processing.issues_by_tag import (
+    get_project_and_group,
+    get_eventuser_callback,
+    get_fields,
+    get_issues_list,
+    serialize_issue,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
@@ -74,9 +81,6 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
         )
         return data_export.email_failure(message="Internal processing failure")
 
-    # TODO(Leander): Implement processing for Discover V2
-    raise NotImplementedError("Discover V2 processing has not been implemented yet")
-
 
 def process_billing_report(data_export, file):
     # TODO(Leander): Implement processing for Billing Reports
@@ -93,29 +97,27 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     key = payload["key"]
 
     try:
-        project, group = IssuesByTag.get_project_and_group(
-            payload["project_id"], payload["group_id"]
-        )
-    except DataExportProcessingError as error:
+        project, group = get_project_and_group(payload["project_id"], payload["group_id"])
+    except ProcessingError as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError(error)
 
-    # Create the fields/callback lists
-    callbacks = [IssuesByTag.get_eventuser_callback(group.project_id)] if key == "user" else []
+    # Create the fields/callback list
+    callbacks = [get_eventuser_callback(group.project_id)] if key == "user" else []
 
     # Example file name: Issues-by-Tag-project10-user__721.csv
-    file_details = six.text_type("{}-{}__{}").format(project.slug, key, data_export.id)
+    file_details = six.text_type("{}-{}__{}".format(project.slug, key, data_export.id))
     file_name = get_file_name(ExportQueryType.ISSUES_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, IssuesByTag.get_fields(key))
+    writer = create_writer(file, get_fields(key))
     iteration = 0
     with snuba_error_handler():
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            gtv_list = IssuesByTag.get_issues_list(
+            gtv_list = get_issues_list(
                 project_id=group.project_id,
                 group_id=group.id,
                 environment_id=None,
@@ -125,7 +127,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
             )
             if len(gtv_list) == 0:
                 break
-            gtv_list_raw = [IssuesByTag.serialize_issue(key, item) for item in gtv_list]
+            gtv_list_raw = [serialize_issue(item, key) for item in gtv_list]
             if limit and limit < next_offset:
                 # Since the next offset will pass the limit, write the remainder and quit
                 writer.writerows(gtv_list_raw[: limit % SNUBA_MAX_RESULTS])
@@ -148,7 +150,7 @@ def create_writer(file, fields):
 
 
 def get_file_name(export_type, custom_string, extension="csv"):
-    file_name = six.text_type("{}-{}.{}").format(export_type, custom_string, extension)
+    file_name = six.text_type("{}-{}.{}".format(export_type, custom_string, extension))
     return file_name
 
 

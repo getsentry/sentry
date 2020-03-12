@@ -6,8 +6,12 @@ from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.models import Environment, EventUser
 
-# TODO(Fix this shitß)
-from sentry.processing.data_export import IssuesByTag, DataExportProcessingError
+from sentry.processing.base import ProcessingError
+from sentry.processing.issues_by_tag import (
+    get_project_and_group,
+    get_eventuser_callback,
+    get_issues_list,
+)
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
 
@@ -72,8 +76,8 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
     def get(self, request, organization, project, group_id, key):
         try:
-            _, group = IssuesByTag.get_project_and_group(project.id, group_id)
-        except DataExportProcessingError:
+            _, group = get_project_and_group(project.id, group_id)
+        except ProcessingError:
             raise Http404
 
         if tagstore.is_reserved_key(key):
@@ -93,9 +97,9 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         except tagstore.TagKeyNotFound:
             raise Http404
 
-        callbacks = [IssuesByTag.get_eventuser_callback(group.project_id)] if key == "user" else []
+        callbacks = [get_eventuser_callback(group.project_id)] if key == "user" else []
 
-        gtv_iter = IssuesByTag.get_issues_list(
+        gtv_iter = get_issues_list(
             project_id=group.project_id,
             group_id=group_id,
             environment_id=environment_id,
