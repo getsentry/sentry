@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization, Release, Deploy} from 'app/types';
+import {Organization, Release, Deploy, Project} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -26,6 +26,7 @@ type Props = {
   location: Location;
   router: ReactRouter.InjectedRouter;
   params: Params;
+  project: Project;
 } & AsyncView['props'];
 
 type State = {
@@ -51,20 +52,27 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, location, params} = this.props;
+    const {organization, location, params, project} = this.props;
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
       health: 1,
     };
 
-    const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
-      params.release
-    )}/`;
-
     return [
-      ['release', basePath, {query}],
-      ['deploys', `${basePath}deploys/`],
+      [
+        'deploys',
+        `/organizations/${organization.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/deploys/`,
+      ],
+      [
+        'release',
+        `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/`,
+        {query},
+      ],
     ];
   }
 
@@ -108,12 +116,21 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-const ReleasesV2DetailContainer = (props: Props) => (
-  <React.Fragment>
-    <GlobalSelectionHeader organization={props.organization} />
-    <ReleasesV2Detail {...props} />
-  </React.Fragment>
-);
+const ReleasesV2DetailContainer = (props: Omit<Props, 'project'>) => {
+  const {organization, location} = props;
+  const project = organization.projects.find(p => p.id === location.query.project);
+
+  if (!project) {
+    return null;
+  }
+
+  return (
+    <React.Fragment>
+      <GlobalSelectionHeader organization={props.organization} />
+      <ReleasesV2Detail {...props} project={project} />
+    </React.Fragment>
+  );
+};
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
