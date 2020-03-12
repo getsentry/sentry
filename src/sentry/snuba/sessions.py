@@ -34,6 +34,22 @@ def get_changed_project_release_model_adoptions(project_ids):
     return rv
 
 
+def check_has_health_data(project_releases):
+    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
+    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    return set(
+        (x["project_id"], x["release"])
+        for x in raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["release", "project_id"],
+            groupby=["release", "project_id"],
+            start=datetime.utcnow() - timedelta(days=90),
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"]
+    )
+
+
 def get_project_releases_by_stability(
     project_ids, offset, limit, scope, stats_period=None, environments=None
 ):
@@ -131,6 +147,7 @@ def get_release_health_data_overview(
     )["data"]:
         total_users[x["project_id"]] = x["users"]
 
+    missing_releases = set(project_releases)
     rv = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
@@ -164,12 +181,35 @@ def get_release_health_data_overview(
             "sessions_crashed": x["sessions_crashed"],
             "sessions_errored": x["sessions_errored"],
             "adoption": x["users"] / x_total_users * 100 if x_total_users and x["users"] else None,
+            "has_health_data": True,
         }
         if health_stats_period:
             rp["stats"] = {
                 health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
             }
         rv[x["project_id"], x["release"]] = rp
+        missing_releases.discard((x["project_id"], x["release"]))
+
+    # Add releases without data points
+    if missing_releases:
+        has_health_data = check_has_health_data(missing_releases)
+        for key in missing_releases:
+            rv[key] = {
+                "duration_p50": None,
+                "duration_p90": None,
+                "crash_free_users": None,
+                "crash_free_sessions": None,
+                "total_users": 0,
+                "total_sessions": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "adoption": None,
+                "has_health_data": key in has_health_data,
+            }
+            if health_stats_period:
+                rv[key]["stats"] = {
+                    health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
+                }
 
     if health_stats_period:
         for x in raw_query(
