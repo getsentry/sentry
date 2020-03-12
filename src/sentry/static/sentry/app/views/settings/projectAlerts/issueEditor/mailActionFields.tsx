@@ -17,6 +17,11 @@ type Props = {
   onChange: (action: IssueAlertRuleAction) => void;
 };
 
+interface OptionRecord {
+  value: string;
+  label: string;
+}
+
 export enum MailActionTargetType {
   IssueOwners = 'IssueOwners',
   Team = 'Team',
@@ -24,7 +29,10 @@ export enum MailActionTargetType {
 }
 
 class MailActionFields extends React.PureComponent<Props> {
-  handleChange = (attribute: 'targetType' | 'targetIdentifier', e: HTMLInputElement) => {
+  handleChange = (
+    attribute: 'targetType' | 'targetIdentifier',
+    e: OptionRecord & {[key: string]: any}
+  ) => {
     const {onChange, action} = this.props;
     if (e.value === action[attribute]) {
       return;
@@ -47,11 +55,11 @@ class MailActionFields extends React.PureComponent<Props> {
     this.forceUpdate();
   };
 
-  handleChangeActorType = (e: HTMLInputElement) => {
+  handleChangeActorType = (e: OptionRecord) => {
     this.handleChange('targetType', e);
   };
 
-  handleChangeActorId = (e: HTMLInputElement) => {
+  handleChangeActorId = (e: OptionRecord & {[key: string]: any}) => {
     this.handleChange('targetIdentifier', e);
   };
 
