@@ -30,13 +30,14 @@ export const getAnalyticsSessionId = () =>
 
 export const getSortIntegrationsByWeightActive = (organization?: Organization) => {
   const variant = organization?.experiments?.IntegrationDirectorySortWeightExperiment;
-  if (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT) === '1') {
-    return true;
+  switch (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT)) {
+    case '1':
+      return true;
+    case '0':
+      return false;
+    default:
+      return variant && variant === '1';
   }
-  if (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT) === '0') {
-    return false;
-  }
-  return variant && variant === '1';
 };
 
 export type SingleIntegrationEvent = {
