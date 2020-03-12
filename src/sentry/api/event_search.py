@@ -174,6 +174,7 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
+USER_ALIAS = "user"
 
 
 class InvalidSearchQuery(Exception):
@@ -654,8 +655,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=N
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter):
-    name = search_filter.key.name
+def convert_search_filter_to_snuba_query(search_filter, key=None):
+    name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
     if name in no_conversion:
@@ -823,6 +824,14 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
+            elif name == USER_ALIAS:
+                # If the key is user, do an OR across all the different possible user fields
+                kwargs["conditions"].append(
+                    [
+                        convert_search_filter_to_snuba_query(term, key=field)
+                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                    ]
+                )
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
