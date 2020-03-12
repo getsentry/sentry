@@ -28,6 +28,7 @@ import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
+import {logExperiment} from 'app/utils/analytics';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -78,6 +79,16 @@ export class OrganizationIntegrations extends AsyncComponent<
   static propTypes = {
     organization: SentryTypes.Organization,
   };
+
+  componentDidMount() {
+    logExperiment({
+      organization: this.props.organization,
+      key: 'IntegrationDirectorySortWeightExperiment',
+      unitName: 'org_id',
+      unitId: parseInt(this.props.organization.id, 10),
+      param: 'variant',
+    });
+  }
 
   getDefaultState() {
     return {
@@ -224,7 +235,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive()) {
+    if (getSortIntegrationsByWeightActive(this.props.organization)) {
       return integrations
         .sort(this.sortByName)
         .sort(this.sortByPopularity)
