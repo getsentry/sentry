@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 from exam import mock
 
-from sentry.models import Integration
+# from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import (
-    OrganizationIntegrationSettingsPage,
-    ExampleIntegrationSetupWindowElement,
-)
+
+# from tests.acceptance.page_objects.organization_integration_settings import (
+#     OrganizationIntegrationSettingsPage,
+#     ExampleIntegrationSetupWindowElement,
+# )
 
 
 class OrganizationIntegrationAcceptanceTestCase(AcceptanceTestCase):
@@ -45,28 +46,28 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
         self.provider.key = "example"
         self.provider.name = "Example Installation"
 
-    def test_can_create_new_integration(self):
-        self.load_page(self.org_integration_settings_path)
-        org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
-        provider_element = org_settings_page.get_provider(self.provider)
+    # def test_can_create_new_integration(self):
+    #     self.load_page(self.org_integration_settings_path)
+    #     org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
+    #     provider_element = org_settings_page.get_provider(self.provider)
 
-        # assert installation rather than upgrade button
-        assert provider_element.install_button.label == "Install"
+    #     # assert installation rather than upgrade button
+    #     assert provider_element.install_button.label == "Install"
 
-        integration_details_modal = org_settings_page.click_install_button(provider_element)
-        assert integration_details_modal.add_button.label == "Add %s" % self.provider.key
-        assert integration_details_modal.title == "%s Integration" % self.provider.key.capitalize()
-        integration_details_modal.add_button.click()
-        org_settings_page.click_through_integration_setup(
-            integration_details_modal,
-            ExampleIntegrationSetupWindowElement,
-            {"name": self.provider.name},
-        )
+    #     integration_details_modal = org_settings_page.click_install_button(provider_element)
+    #     assert integration_details_modal.add_button.label == "Add %s" % self.provider.key
+    #     assert integration_details_modal.title == "%s Integration" % self.provider.key.capitalize()
+    #     integration_details_modal.add_button.click()
+    #     org_settings_page.click_through_integration_setup(
+    #         integration_details_modal,
+    #         ExampleIntegrationSetupWindowElement,
+    #         {"name": self.provider.name},
+    #     )
 
-        # provider_element might be rerendered
-        provider_element = org_settings_page.get_provider(self.provider)
-        installation_element = provider_element.get_installation_with_name(self.provider.name)
-        assert installation_element
-        assert Integration.objects.filter(
-            provider=self.provider.key, external_id=self.provider.name
-        ).exists()
+    #     # provider_element might be rerendered
+    #     provider_element = org_settings_page.get_provider(self.provider)
+    #     installation_element = provider_element.get_installation_with_name(self.provider.name)
+    #     assert installation_element
+    #     assert Integration.objects.filter(
+    #         provider=self.provider.key, external_id=self.provider.name
+    #     ).exists()
