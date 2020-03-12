@@ -36,11 +36,12 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {projectId, orgId, version} = this.props;
+    const {orgId, version} = this.props;
 
-    const commitsEndpoint = `/projects/${orgId}/${encodeURIComponent(
-      projectId
-    )}/releases/${encodeURIComponent(version)}/commits/`;
+    // TODO(releasesV2): we want to change this in Q2 2020 to fetch release commits filtered by project
+    const commitsEndpoint = `/organizations/${orgId}/releases/${encodeURIComponent(
+      version
+    )}/commits/`;
 
     return [['commits', commitsEndpoint]];
   }
