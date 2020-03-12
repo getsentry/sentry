@@ -101,7 +101,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             serialize(
                 release,
                 request.user,
-                project=project,
                 with_health_data=with_health,
                 summary_stats_period=summary_stats_period,
                 health_stats_period=health_stats_period,
