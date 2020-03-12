@@ -34,7 +34,7 @@ class EventOrGroupHeader extends React.Component {
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params, location} = this.props;
-    const {orgId} = params;
+    const orgId = params?.orgId;
 
     const {id, level, groupID} = data || {};
     const isEvent = !!data.eventID;

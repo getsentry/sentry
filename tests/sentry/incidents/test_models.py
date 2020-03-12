@@ -18,7 +18,9 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
+    IncidentTrigger,
     IncidentType,
+    TriggerStatus,
 )
 from sentry.incidents.logic import delete_alert_rule
 from sentry.testutils import TestCase
@@ -154,6 +156,124 @@ class AlertRuleTriggerClearCacheTest(TestCase):
         assert (
             cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
         ) is None
+
+
+class ActiveIncidentClearCacheTest(TestCase):
+    def setUp(self):
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+
+    def test_negative_cache(self):
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is False
+        )
+        self.create_incident(status=IncidentStatus.CLOSED.value)
+        self.alert_rule.save()
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+        ) is False
+
+    def test_cache(self):
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            == active_incident
+        )
+        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            == active_incident
+        )
+
+
+class IncidentTriggerClearCacheTest(TestCase):
+    def setUp(self):
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+        self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+
+    def test_deleted_incident(self):
+        incident_trigger = IncidentTrigger.objects.create(
+            incident=self.incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
+        )
+        IncidentTrigger.objects.get_for_incident(self.incident)
+        assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) == [
+            incident_trigger
+        ]
+        self.incident.delete()
+        assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) is None
+
+    def test_updated_incident_trigger(self):
+        IncidentTrigger.objects.get_for_incident(self.incident)
+        assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) == []
+        incident_trigger = IncidentTrigger.objects.create(
+            incident=self.incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
+        )
+        IncidentTrigger.objects.get_for_incident(self.incident)
+        assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) == [
+            incident_trigger
+        ]
+
+    def test_deleted_incident_trigger(self):
+        incident_trigger = IncidentTrigger.objects.create(
+            incident=self.incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
+        )
+        IncidentTrigger.objects.get_for_incident(self.incident)
+        assert cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id)) == [
+            incident_trigger
+        ]
+        self.trigger.delete()
+        assert (cache.get(IncidentTrigger.objects._build_cache_key(self.incident.id))) is None
 
 
 class IncidentCreationTest(TestCase):

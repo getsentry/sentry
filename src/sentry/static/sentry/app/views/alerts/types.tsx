@@ -19,7 +19,7 @@ export type Incident = {
   organizationId: string;
   projects: string[]; // Array of slugs
   seenBy: User[];
-  status: number;
+  status: IncidentStatus;
   title: string;
   totalEvents: number;
   uniqueUsers: number;
@@ -40,13 +40,13 @@ export type ActivityTypeDraft = {
   id: string;
   incidentIdentifier: string;
   type: IncidentActivityType;
-  user: User;
+  user: User | null;
 };
 
 export type ActivityType = ActivityTypeDraft & {
-  eventStats: {data: Data};
-  previousValue: null;
-  value: null;
+  eventStats?: {data: Data};
+  previousValue: string | null;
+  value: string | null;
 };
 
 export type NoteType = {

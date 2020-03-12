@@ -60,7 +60,11 @@ function getFormatter({
         utc,
         showTimeInTooltip
       );
-      const truncatedName = truncationFormatter(seriesParamsOrParam.seriesName, truncate);
+      // eCharts sets seriesName as null when `componentType` !== 'series'
+      const truncatedName = truncationFormatter(
+        seriesParamsOrParam.data.labelForValue,
+        truncate
+      );
       const formattedValue = valueFormatter(seriesParamsOrParam.data.coord[1]);
       return [
         '<div class="tooltip-series">',

@@ -35,3 +35,36 @@ def xfail_if_not_postgres(reason):
         )
 
     return decorator
+
+
+def skip_for_relay_store(reason):
+    """
+    Decorator factory will skip marked tests if Relay is enabled.
+    A test decorated with @skip_for_relay_store("this test has been moved in relay")
+    Will not be executed when the settings SENTRY_USE_RELAY = True
+    :param reason: the reason the test should be skipped
+
+    Note: Eventually, when Relay becomes compulsory, tests marked with this decorator will be deleted.
+    """
+
+    def decorator(function):
+        return pytest.mark.skipif(settings.SENTRY_USE_RELAY, reason=reason)(function)
+
+    return decorator
+
+
+def relay_is_available():
+    if "relay" in _service_status:
+        return _service_status["relay"]
+    try:
+        socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0)
+    except socket.error:
+        _service_status["relay"] = False
+    else:
+        _service_status["relay"] = True
+    return _service_status["relay"]
+
+
+requires_relay = pytest.mark.skipif(
+    not relay_is_available(), reason="requires relay server running"
+)

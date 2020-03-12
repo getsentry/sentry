@@ -30,30 +30,32 @@ describe('EventsV2 -> ColumnEditModal', function() {
   const tagKeys = ['browser.name', 'custom-field'];
   const columns = [
     {
+      kind: 'field',
       field: 'event.type',
     },
     {
+      kind: 'field',
       field: 'browser.name',
     },
     {
-      field: 'id',
-      aggregation: 'count',
+      kind: 'function',
+      function: ['count', 'id'],
     },
     {
-      field: 'title',
-      aggregation: 'count_unique',
+      kind: 'function',
+      function: ['count_unique', 'title'],
     },
     {
-      field: '',
-      aggregation: 'p95',
+      kind: 'function',
+      function: ['p95', ''],
     },
     {
+      kind: 'field',
       field: 'issue.id',
-      ggregation: '',
     },
     {
-      field: 'issue.id',
-      aggregation: 'count_unique',
+      kind: 'function',
+      function: ['count_unique', 'issue.id'],
     },
   ];
 
@@ -89,8 +91,8 @@ describe('EventsV2 -> ColumnEditModal', function() {
     const wrapper = mountModal(
       {
         columns: [
-          {aggregation: 'count_unique', field: 'user-defined'},
-          {aggregation: '', field: 'user-def'},
+          {kind: 'function', function: ['count_unique', 'user-defined']},
+          {kind: 'field', field: 'user-def'},
         ],
         onApply: () => void 0,
         tagKeys,
@@ -101,7 +103,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('renders unknown fields in field and field parameter controls', function() {
       const funcRow = wrapper.find('ColumnEditRow').first();
       expect(funcRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'count_unique(...)'
+        'count_unique(\u2026)'
       );
       expect(funcRow.find('SelectControl[name="parameter"] SingleValue').text()).toBe(
         'user-defined'
@@ -111,10 +113,35 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(fieldRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
         'user-def'
       );
+      expect(fieldRow.find('StyledInput[disabled]')).toHaveLength(1);
+    });
+  });
 
-      expect(fieldRow.find('SelectControl[name="parameter"]').props().isDisabled).toBe(
-        true
-      );
+  describe('rendering functions', function() {
+    const wrapper = mountModal(
+      {
+        columns: [
+          {kind: 'function', function: ['count', 'id']},
+          {kind: 'function', function: ['count_unique', 'title']},
+          {kind: 'function', function: ['apdex', 'transaction.duration', 200]},
+        ],
+        onApply: () => void 0,
+        tagKeys,
+      },
+      initialData
+    );
+
+    it('renders three columns when needed', function() {
+      const countRow = wrapper.find('ColumnEditRow').first();
+      // Has a select and 2 disabled inputs
+      expect(countRow.find('SelectControl')).toHaveLength(1);
+      expect(countRow.find('StyledInput[disabled]')).toHaveLength(2);
+
+      const apdexRow = wrapper.find('ColumnEditRow').last();
+      // two select fields, and one number input.
+      expect(apdexRow.find('SelectControl')).toHaveLength(2);
+      expect(apdexRow.find('StyledInput[disabled]')).toHaveLength(0);
+      expect(apdexRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
     });
   });
 
@@ -122,24 +149,26 @@ describe('EventsV2 -> ColumnEditModal', function() {
     const onApply = jest.fn();
     const wrapper = mountModal(
       {
-        columns: [{aggregation: '', field: 'p95'}],
+        columns: [{kind: 'field', field: 'p95'}],
         onApply,
         tagKeys,
       },
       initialData
     );
 
-    it('renders as an aggregate function', function() {
+    it('renders as an aggregate function with no parameters', function() {
       const row = wrapper.find('ColumnEditRow').first();
-      expect(row.find('SelectControl[name="field"] SingleValue').text()).toBe('p95(...)');
-      expect(row.find('SelectControl[name="parameter"]').props().isDisabled).toBe(true);
+      expect(row.find('SelectControl[name="field"] SingleValue').text()).toBe('p95()');
+      expect(row.find('StyledInput[disabled]')).toHaveLength(1);
     });
 
     it('updates correctly when the function is changed', function() {
       // Change the function to p99. We should not get p99(p95)
-      selectByLabel(wrapper, 'p99(...)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'p99()', {name: 'field', at: 0, control: true});
       wrapper.find('button[aria-label="Apply"]').simulate('click');
-      expect(onApply).toHaveBeenCalledWith([{aggregation: 'p99', field: ''}]);
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['p99', '', undefined]},
+      ]);
     });
   });
 
@@ -152,8 +181,9 @@ describe('EventsV2 -> ColumnEditModal', function() {
       },
       initialData
     );
+
     it('restricts column choices', function() {
-      selectByLabel(wrapper, 'avg(...)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'avg(\u2026)', {name: 'field', at: 0, control: true});
 
       openMenu(wrapper, {name: 'parameter', at: 0, control: true});
       const options = wrapper
@@ -165,11 +195,22 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
 
     it('shows no options for parameterless functions', function() {
-      selectByLabel(wrapper, 'p95(...)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
 
-      openMenu(wrapper, {name: 'parameter', at: 0, control: true});
-      const parameter = wrapper.find('ColumnEditRow SelectControl[name="parameter"]');
-      expect(parameter.props().isDisabled).toBe(true);
+      const parameter = wrapper.find('ColumnEditRow StyledInput[disabled]');
+      expect(parameter).toHaveLength(1);
+    });
+
+    it('shows additional inputs for multi-parameter functions', function() {
+      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+
+      // Parameter select should display and use the default value.
+      const field = wrapper.find('ColumnEditRow SelectControl[name="parameter"]');
+      expect(field.find('SingleValue').text()).toBe('transaction.duration');
+
+      // Input should show and have default value.
+      const refinement = wrapper.find('ColumnEditRow input[inputMode="numeric"]');
+      expect(refinement.props().value).toBe('300');
     });
   });
 
@@ -225,10 +266,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       wrapper.find('button[aria-label="Apply"]').simulate('click');
 
-      expect(onApply).toHaveBeenCalledWith([
-        columns[1],
-        {field: 'title', aggregation: ''},
-      ]);
+      expect(onApply).toHaveBeenCalledWith([columns[1], {kind: 'field', field: 'title'}]);
     });
   });
 });

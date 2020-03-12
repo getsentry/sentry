@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import space from 'app/styles/space';
 import Count from 'app/components/count';
@@ -18,9 +19,10 @@ import ReleaseHealth from './releaseHealth';
 type Props = {
   release: ProjectRelease;
   project?: Project | AvatarProject;
+  location: Location;
 };
 
-const ReleaseCard = ({release, project}: Props) => (
+const ReleaseCard = ({release, project, location}: Props) => (
   // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
   <Panel>
     <PanelBody>
@@ -55,9 +57,12 @@ const ReleaseCard = ({release, project}: Props) => (
             <VersionWrapper>
               <Version
                 version={release.version}
-                preserveGlobalSelection
+                // TODO(releasesV2): we don't use this for now
+                // preserveGlobalSelection
                 tooltipRawVersion
                 truncate
+                projectId={String(release.projectId)}
+                v2
               />
               <TimeWithIcon date={release.dateReleased || release.dateCreated} />
             </VersionWrapper>
@@ -86,7 +91,7 @@ const ReleaseCard = ({release, project}: Props) => (
       </StyledPanelItem>
     </PanelBody>
 
-    {release.healthData && <ReleaseHealth release={release} />}
+    {release.healthData && <ReleaseHealth release={release} location={location} />}
   </Panel>
 );
 
@@ -97,7 +102,7 @@ const StyledPanelItem = styled(PanelItem)`
 const Layout = styled('div')`
   display: grid;
   grid-template-areas: 'version projects commits created new-issues';
-  grid-template-columns: 3fr minmax(230px, 2fr) 4fr 1fr 1fr;
+  grid-template-columns: 3fr minmax(230px, 2fr) 4fr 160px 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;

@@ -125,15 +125,16 @@ export type ProjectRelease = {
   newGroups: number;
   healthData: Health | null;
   projectSlug: string;
+  projectId: number;
 };
 
 export type Health = {
-  crash_free_users: number | null;
-  total_users: number;
-  crash_free_sessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+  crashFreeSessions: number | null;
   stats: HealthGraphData;
-  crashes: number;
-  errors: number;
+  sessionsCrashed: number;
+  sessionsErrored: number;
   adoption: number | null;
 };
 export type HealthGraphData = {
@@ -263,7 +264,9 @@ export type YAxisEventsStats = {
   [yAxisName: string]: EventsStats;
 };
 
-// Avatars are a more primitive version of User.
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   id: string;
   name: string;
@@ -777,8 +780,15 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string; healthData?: Health | null}[];
+  projects: ReleaseProject[];
 } & BaseRelease;
+
+type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  healthData?: Health | null;
+};
 
 export type BaseRelease = {
   dateReleased: string;
@@ -828,8 +838,8 @@ export type SentryAppComponent = {
 
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  IntegrationDirectoryExperiment: '1' | '0';
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV1';
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
+  IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -914,8 +924,18 @@ export type OnboardingTaskDescriptor = {
   title: string;
   description: string;
   detailedDescription?: string;
+  /**
+   * Can this task be skipped?
+   */
   skippable: boolean;
-  prereq: number[];
+  /**
+   * A list of require task keys that must have been completed before these
+   * tasks may be completed.
+   */
+  requisites: OnboardingTaskKey[];
+  /**
+   * Should the onboarding task currently be displayed
+   */
   display: boolean;
 } & (
   | {
@@ -933,6 +953,7 @@ export type OnboardingTaskStatus = {
   status: 'skipped' | 'pending' | 'complete';
   user?: string | null;
   dateCompleted?: string;
+  completionSeen?: string;
   data?: object;
 };
 

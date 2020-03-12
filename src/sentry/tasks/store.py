@@ -10,7 +10,6 @@ from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
-from sentry.constants import DataCategory
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
@@ -20,7 +19,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
@@ -46,6 +44,9 @@ class RetrySymbolication(Exception):
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
+
+    if data.get("type") == "transaction":
+        return False
 
     for plugin in plugins.all(version=2):
         processors = safe_execute(
@@ -464,11 +465,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    from sentry.event_manager import HashDiscarded, EventManager
-    from sentry import quotas
-    from sentry.models import ProjectKey
-    from sentry.utils.outcomes import Outcome, track_outcome
-    from sentry.ingest.outcomes_consumer import mark_signal_sent
+    from sentry.event_manager import EventManager, HashDiscarded
 
     event_type = "none"
 
@@ -477,8 +474,6 @@ def _do_save_event(
             data = default_cache.get(cache_key)
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
-
-    data_category = DataCategory.from_event_type(event_type)
 
     with metrics.global_tags(event_type=event_type):
         if data is not None:
@@ -491,11 +486,6 @@ def _do_save_event(
         # the task.
         if project_id is None:
             project_id = data.pop("project")
-
-        key_id = None if data is None else data.get("key_id")
-        if key_id is not None:
-            key_id = int(key_id)
-        timestamp = to_datetime(start_time) if start_time is not None else None
 
         # We only need to delete raw events for events that support
         # reprocessing.  If the data cannot be found we want to assume
@@ -528,49 +518,12 @@ def _do_save_event(
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
-
-            with metrics.timer("tasks.store.do_save_event.track_outcome"):
-                # This is where we can finally say that we have accepted the event.
-                mark_signal_sent(event.project.id, event_id)
-                track_outcome(
-                    event.project.organization_id,
-                    event.project.id,
-                    key_id,
-                    Outcome.ACCEPTED,
-                    None,
-                    timestamp,
-                    event_id,
-                    data_category,
+                event = manager.save(
+                    project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
 
         except HashDiscarded:
-            project = Project.objects.get_from_cache(id=project_id)
-            reason = FilterStatKeys.DISCARDED_HASH
-            project_key = None
-            try:
-                if key_id is not None:
-                    project_key = ProjectKey.objects.get_from_cache(id=key_id)
-            except ProjectKey.DoesNotExist:
-                pass
-
-            quotas.refund(project, key=project_key, timestamp=start_time)
-
-            # This outcome corresponds to the event_discarded signal. The
-            # outcomes_consumer generically handles all FILTERED outcomes, but
-            # needs to skip this one.
-            mark_signal_sent(project_id, event_id)
-
-            track_outcome(
-                project.organization_id,
-                project_id,
-                key_id,
-                Outcome.FILTERED,
-                reason,
-                timestamp,
-                event_id,
-                data_category,
-            )
+            pass
 
         finally:
             if cache_key:

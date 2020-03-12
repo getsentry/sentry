@@ -27,6 +27,16 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
   ${p =>
     p.merged &&
     `
+    & > button,
+    & > a {
+      position: relative;
+    }
+
+    /* Raised buttons show borders on both sides. Useful to create pill bars */
+    & > .active {
+      z-index: 2;
+    }
+
     /* First button is square on the right side */
     & > button:first-child:not(:last-child),
     & > a:first-child:not(:last-child) {
@@ -42,13 +52,13 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
     /* Middle buttons only need one border so we don't get a double line */
     & > a:first-child + a:not(:last-child),
     & > button:first-child + button:not(:last-child) {
-      border-left: 0;
+      margin-left: -1px;
     }
 
     /* Middle buttons only need one border so we don't get a double line */
     & > button:not(:last-child):not(:first-child) + button,
     & > a:not(:last-child):not(:first-child) + a {
-      border-left: 0;
+      margin-left: -1px;
     }
 
     /* Last button is square on the left side */
@@ -56,6 +66,7 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
     & > a:last-child:not(:first-child) {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
+      margin-left: -1px;
     }
   `}
 `;
