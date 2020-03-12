@@ -907,7 +907,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-jlq0c6-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
+    className="css-jlq0c6-HelpMenu-SidebarDropdownMenu e6tkw732"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
