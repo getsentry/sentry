@@ -18,7 +18,6 @@ import {
   getFieldRenderer,
   getExpandedResults,
   pushEventViewToLocation,
-  explodeField,
   MetaType,
 } from '../utils';
 import EventView, {Column, pickRelevantLocationQueryStrings} from '../eventView';
