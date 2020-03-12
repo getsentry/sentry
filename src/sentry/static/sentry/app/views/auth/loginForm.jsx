@@ -11,7 +11,6 @@ import ConfigStore from 'app/stores/configStore';
 import Form from 'app/components/forms/form';
 import Link from 'app/components/links/link';
 import PasswordField from 'app/components/forms/passwordField';
-import {IconGithub, IconGoogle, IconVsts} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/components/forms/textField';
 import space from 'app/styles/space';
@@ -22,32 +21,17 @@ const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
     {googleLoginLink && (
-      <Button
-        align="left"
-        size="small"
-        icon={<IconGoogle size="xs" />}
-        href={googleLoginLink}
-      >
+      <Button align="left" size="small" icon="icon-google" href={googleLoginLink}>
         {t('Sign in with Google')}
       </Button>
     )}
     {githubLoginLink && (
-      <Button
-        align="left"
-        size="small"
-        icon={<IconGithub size="xs" />}
-        href={githubLoginLink}
-      >
+      <Button align="left" size="small" icon="icon-github" href={githubLoginLink}>
         {t('Sign in with GitHub')}
       </Button>
     )}
     {vstsLoginLink && (
-      <Button
-        align="left"
-        size="small"
-        icon={<IconVsts size="xs" />}
-        href={vstsLoginLink}
-      >
+      <Button align="left" size="small" icon="icon-vsts" href={vstsLoginLink}>
         {t('Sign in with Azure DevOps')}
       </Button>
     )}
