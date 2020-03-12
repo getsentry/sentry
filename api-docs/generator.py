@@ -137,6 +137,83 @@ def run_scenario(vars, scenario_ident, func):
     return runner.to_json()
 
 
+@click.command()
+@click.option("--output-path", type=click.Path())
+@click.option("--output-format", type=click.Choice(["json", "markdown", "both"]), default="both")
+def cli(output_path, output_format):
+    global OUTPUT_PATH
+    if output_path is not None:
+        OUTPUT_PATH = os.path.abspath(output_path)
+
+    utils = MockUtils()
+    report("org", "Creating user and organization")
+    user = utils.create_user("john@interstellar.invalid")
+    org = utils.create_org("The Interstellar Jurisdiction", owner=user)
+    report("auth", "Creating api token")
+    api_token = utils.create_api_token(user)
+
+    report("org", "Creating team")
+    team = utils.create_team("Powerful Abolitionist", org=org)
+    utils.join_team(team, user)
+
+    projects = []
+    for project_name in "Pump Station", "Prime Mover":
+        report("project", 'Creating project "%s"' % project_name)
+        project = utils.create_project(project_name, teams=[team], org=org)
+        release = utils.create_release(project=project, user=user)
+        report("event", 'Creating event for "%s"' % project_name)
+
+        event1 = utils.create_event(project=project, release=release, platform="python")
+        event2 = utils.create_event(project=project, release=release, platform="java")
+        projects.append({"project": project, "release": release, "events": [event1, event2]})
+
+    vars = {
+        "org": org,
+        "me": user,
+        "api_token": api_token,
+        "teams": [{"team": team, "projects": projects}],
+    }
+
+    scenario_map = {}
+    report("docs", "Collecting scenarios")
+    for scenario_ident, func in iter_scenarios():
+        scenario = run_scenario(vars, scenario_ident, func)
+        scenario_map[scenario_ident] = scenario
+
+    section_mapping = {}
+    report("docs", "Collecting endpoint documentation")
+    for endpoint in iter_endpoints():
+        report("endpoint", 'Collecting docs for "%s"' % endpoint["endpoint_name"])
+
+        section_mapping.setdefault(endpoint["section"], []).append(endpoint)
+    sections = get_sections()
+
+    if output_format in ("json", "both"):
+        output_json(sections, scenario_map, section_mapping)
+    if output_format in ("markdown", "both"):
+        output_markdown(sections, scenario_map, section_mapping)
+
+    # Delete all of our containers now. If it's not running, do nothing.
+    for name, options in containers.items():
+        try:
+            container = client.containers.get(options["name"])
+        except docker.errors.NotFound:
+            pass
+        else:
+            click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
+            container.stop()
+            container.remove()
+
+    if sentry is not None:
+        report("sentry", "Shutting down sentry server")
+        sentry.kill()
+        sentry.wait()
+
+    # Remove our network that we created.
+    click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
+    network.remove()
+
+
 def output_json(sections, scenarios, section_mapping):
     report("docs", "Generating JSON documents")
 
@@ -273,83 +350,6 @@ def format_response(endpoint, scenario_map):
 def format_headers(headers):
     """Format headers into a list."""
     return [u"{}: {}".format(key, value) for key, value in headers.items()]
-
-
-@click.command()
-@click.option("--output-path", type=click.Path())
-@click.option("--output-format", type=click.Choice(["json", "markdown", "both"]), default="both")
-def cli(output_path, output_format):
-    global OUTPUT_PATH
-    if output_path is not None:
-        OUTPUT_PATH = os.path.abspath(output_path)
-
-    utils = MockUtils()
-    report("org", "Creating user and organization")
-    user = utils.create_user("john@interstellar.invalid")
-    org = utils.create_org("The Interstellar Jurisdiction", owner=user)
-    report("auth", "Creating api token")
-    api_token = utils.create_api_token(user)
-
-    report("org", "Creating team")
-    team = utils.create_team("Powerful Abolitionist", org=org)
-    utils.join_team(team, user)
-
-    projects = []
-    for project_name in "Pump Station", "Prime Mover":
-        report("project", 'Creating project "%s"' % project_name)
-        project = utils.create_project(project_name, teams=[team], org=org)
-        release = utils.create_release(project=project, user=user)
-        report("event", 'Creating event for "%s"' % project_name)
-
-        event1 = utils.create_event(project=project, release=release, platform="python")
-        event2 = utils.create_event(project=project, release=release, platform="java")
-        projects.append({"project": project, "release": release, "events": [event1, event2]})
-
-    vars = {
-        "org": org,
-        "me": user,
-        "api_token": api_token,
-        "teams": [{"team": team, "projects": projects}],
-    }
-
-    scenario_map = {}
-    report("docs", "Collecting scenarios")
-    for scenario_ident, func in iter_scenarios():
-        scenario = run_scenario(vars, scenario_ident, func)
-        scenario_map[scenario_ident] = scenario
-
-    section_mapping = {}
-    report("docs", "Collecting endpoint documentation")
-    for endpoint in iter_endpoints():
-        report("endpoint", 'Collecting docs for "%s"' % endpoint["endpoint_name"])
-
-        section_mapping.setdefault(endpoint["section"], []).append(endpoint)
-    sections = get_sections()
-
-    if output_format in ("json", "both"):
-        output_json(sections, scenario_map, section_mapping)
-    if output_format in ("markdown", "both"):
-        output_markdown(sections, scenario_map, section_mapping)
-
-    # Delete all of our containers now. If it's not running, do nothing.
-    for name, options in containers.items():
-        try:
-            container = client.containers.get(options["name"])
-        except docker.errors.NotFound:
-            pass
-        else:
-            click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
-            container.stop()
-            container.remove()
-
-    if sentry is not None:
-        report("sentry", "Shutting down sentry server")
-        sentry.kill()
-        sentry.wait()
-
-    # Remove our network that we created.
-    click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
-    network.remove()
 
 
 if __name__ == "__main__":
