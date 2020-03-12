@@ -52,10 +52,11 @@ const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
 // Deploy previews are built using zeit. We can check if we're in zeit's
 // build process by checking the existence of the PULL_REQUEST env var.
-const DEPLOY_PREVIEW_CONFIG = env.PULL_REQUEST && {
-  commitRef: env.COMMIT_REF,
-  reviewId: env.REVIEW_ID,
-  repoUrl: env.REPOSITORY_URL,
+const DEPLOY_PREVIEW_CONFIG = env.NOW_GITHUB_DEPLOYMENT && {
+  branch: env.NOW_GITHUB_COMMIT_REF,
+  commitSha: env.NOW_GITHUB_COMMIT_SHA,
+  githubOrg: env.NOW_GITHUB_COMMIT_ORG,
+  githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
 
 // When deploy previews are enabled always enable experimental SPA mode --
