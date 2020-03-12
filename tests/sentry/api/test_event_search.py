@@ -576,6 +576,10 @@ class ParseSearchQueryTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
             parse_search_query("avg(transaction.duration):>..500s")
 
+    def test_invalid_aggregate_column_with_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
+            parse_search_query("avg(stack.colno):>500s")
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [

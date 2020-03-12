@@ -914,8 +914,12 @@ class QueryTransformTest(TestCase):
         test_cases = [
             ("1ms", 1),
             ("1.5s", 1500),
+            ("23.4m", 1000 * 60 * 23.4),
             ("1.00min", 1000 * 60),
             ("3.45hr", 1000 * 60 * 60 * 3.45),
+            ("1.23h", 1000 * 60 * 60 * 1.23),
+            ("3wk", 1000 * 60 * 60 * 24 * 7 * 3),
+            ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
         ]
         for query_string, value in test_cases:
             discover.query(
@@ -931,8 +935,10 @@ class QueryTransformTest(TestCase):
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
-                aggregations=[["quantile(0.95)(duration)", None, "p95"]],
-                having=[["p95", ">", value]],
+                aggregations=[
+                    ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]
+                ],
+                having=[["percentile_transaction_duration_0_95", ">", value]],
                 end=end_time,
                 start=start_time,
                 orderby=None,

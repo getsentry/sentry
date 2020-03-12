@@ -50,17 +50,19 @@ def parse_duration(value, interval):
         delta = timedelta(milliseconds=value)
     elif interval == "s":
         delta = timedelta(seconds=value)
-    elif interval == "min":
+    elif interval in ["min", "m"]:
         delta = timedelta(minutes=value)
-    elif interval == "hr":
+    elif interval in ["hr", "h"]:
         delta = timedelta(hours=value)
-    elif interval == "day":
+    elif interval in ["day", "d"]:
         delta = timedelta(days=value)
-    elif interval == "wk":
+    elif interval in ["wk", "w"]:
         delta = timedelta(days=value * 7)
     else:
         raise InvalidQuery(
-            u"{} is not a valid duration type, must be ms, s, min, hr, day or wk".format(interval)
+            u"{} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w".format(
+                interval
+            )
         )
 
     return delta.total_seconds() * 1000.0

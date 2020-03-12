@@ -141,7 +141,7 @@ quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|hr|day|wk)(?=\s|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -238,7 +238,7 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration", "p75", "p95", "p99"])
+    duration_keys = set(["transaction.duration"])
     numeric_keys = set(
         [
             "project_id",
@@ -403,8 +403,7 @@ class SearchVisitor(NodeVisitor):
                 _, agg_additions = resolve_field(search_key.name, None)
                 if len(agg_additions) > 0:
                     # Extract column and function name out so we can check if we should parse as duration
-                    column, function = agg_additions[0][-2:]
-                    if column in self.duration_keys or function in self.duration_keys:
+                    if agg_additions[0][-2] in self.duration_keys:
                         aggregate_value = parse_duration(*search_value.match.groups())
 
             if aggregate_value is None:
