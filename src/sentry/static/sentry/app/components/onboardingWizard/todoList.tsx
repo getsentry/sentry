@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
+import {getOnboardingTasks} from 'app/components/onboardingWizard/taskConfig';
 import TodoItem from 'app/components/onboardingWizard/toDoItem';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
