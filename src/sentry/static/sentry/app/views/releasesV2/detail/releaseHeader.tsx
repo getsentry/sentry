@@ -81,9 +81,9 @@ const ReleaseHeader = ({location, orgId, release, deploys}: Props) => {
             <Count value={/*release.healthData?.crashes ??*/ 0} />
           </ReleaseStat>
           {/* TODO(releasesV2): waiting for api */}
-          <ReleaseStat label={t('Errors')}>
-            <Count value={/*release.healthData?.errors ??*/ 0} />
-          </ReleaseStat>
+          {/* <ReleaseStat label={t('Errors')}>
+            <Count value={release.healthData?.errors ?? 0} />
+          </ReleaseStat> */}
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
