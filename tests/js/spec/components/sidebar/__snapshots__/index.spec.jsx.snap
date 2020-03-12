@@ -8,7 +8,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-pm8679-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a4"
+    className="css-pm8679-SwitchOrganizationMenu-SidebarDropdownMenu ev3suul4"
     data-test-id="sidebar-switch-org-menu"
     onClick={[Function]}
     onMouseEnter={[Function]}
@@ -16,7 +16,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   >
     <OrganizationList>
       <div
-        className="css-1tlc4cl-OrganizationList ejspo4a5"
+        className="css-1tlc4cl-OrganizationList ev3suul5"
       />
     </OrganizationList>
     <SidebarMenuItem
@@ -89,14 +89,14 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                   >
                     <MenuItemLabelWithIcon>
                       <span
-                        className="css-1l4bf1b-MenuItemLabelWithIcon ejspo4a1"
+                        className="css-8m01f9-MenuItemLabelWithIcon ev3suul1"
                       >
                         <StyledIconAdd>
                           <ForwardRef(IconAdd)
-                            className="css-4qjexj-StyledIconAdd ejspo4a0"
+                            className="css-4qjexj-StyledIconAdd ev3suul0"
                           >
                             <svg
-                              className="css-4qjexj-StyledIconAdd ejspo4a0"
+                              className="css-4qjexj-StyledIconAdd ev3suul0"
                               fill="currentColor"
                               height="16px"
                               viewBox="0 0 16 16"
@@ -137,7 +137,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -474,7 +474,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         }
                       >
                         <span
-                          className="css-lpolsh-SwitchOrganizationMenuActor ejspo4a3"
+                          className="css-lpolsh-SwitchOrganizationMenuActor ev3suul3"
                           data-test-id="sidebar-switch-org"
                           onClick={[Function]}
                           onKeyDown={[Function]}
@@ -489,7 +489,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                           Switch organization
                           <SubMenuCaret>
                             <span
-                              className="css-3ur4f5-SubMenuCaret ejspo4a2"
+                              className="css-3ur4f5-SubMenuCaret ev3suul2"
                             >
                               <i
                                 className="icon-arrow-right"
@@ -516,17 +516,17 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-j625pk-UserSummary e1fowdfw1"
+        className="css-j625pk-UserSummary e10773n31"
         to="/settings/account/details/"
       >
         <Link
-          className="css-j625pk-UserSummary e1fowdfw1"
+          className="css-j625pk-UserSummary e10773n31"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-j625pk-UserSummary e1fowdfw1"
+            className="css-j625pk-UserSummary e10773n31"
             onClick={[Function]}
             style={Object {}}
           >
@@ -552,7 +552,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -580,7 +580,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -600,10 +600,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
+                          className="e10773n32 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
                             gravatar={false}
@@ -6148,7 +6148,7 @@ exports[`Sidebar renders without org and router 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -6157,17 +6157,17 @@ exports[`Sidebar renders without org and router 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-j625pk-UserSummary e1fowdfw1"
+        className="css-j625pk-UserSummary e10773n31"
         to="/settings/account/details/"
       >
         <Link
-          className="css-j625pk-UserSummary e1fowdfw1"
+          className="css-j625pk-UserSummary e10773n31"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-j625pk-UserSummary e1fowdfw1"
+            className="css-j625pk-UserSummary e10773n31"
             onClick={[Function]}
             style={Object {}}
           >
@@ -6193,7 +6193,7 @@ exports[`Sidebar renders without org and router 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -6221,7 +6221,7 @@ exports[`Sidebar renders without org and router 1`] = `
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -6241,10 +6241,10 @@ exports[`Sidebar renders without org and router 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
+                          className="e10773n32 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
                             gravatar={false}
