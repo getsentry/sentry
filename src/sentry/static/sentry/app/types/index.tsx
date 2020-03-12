@@ -263,7 +263,9 @@ export type YAxisEventsStats = {
   [yAxisName: string]: EventsStats;
 };
 
-// Avatars are a more primitive version of User.
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   id: string;
   name: string;
