@@ -90,7 +90,7 @@ class SidebarItem extends React.Component {
     const placement = isTop ? 'bottom' : 'right';
 
     return (
-      <Tooltip disabled={!collapsed} title={label} placement={placement}>
+      <Tooltip disabled={!collapsed} title={label} position={placement}>
         <StyledSidebarItem
           data-test-id={this.props['data-test-id']}
           active={isActive ? 'true' : undefined}
