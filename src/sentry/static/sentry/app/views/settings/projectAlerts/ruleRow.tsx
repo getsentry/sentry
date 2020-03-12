@@ -4,31 +4,21 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import {IssueAlertRule} from 'app/types/alerts';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {
-  addSuccessMessage,
-  addErrorMessage,
-  addLoadingMessage,
-} from 'app/actionCreators/indicator';
+import {PanelItem} from 'app/components/panels';
+import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Duration from 'app/components/duration';
-import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
-type Props = {
-  api: Client;
-  orgId: string;
-  projectId: string;
-  data: IssueAlertRule;
+function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
+  return !data.hasOwnProperty('triggers');
+}
 
-  // Callback when deleting a rule
-  onDelete: () => void;
+type Props = {
+  data: IssueAlertRule | SavedIncidentRule;
+  type: 'issue' | 'metric';
 
   // Is the alert rule editable?
   canEdit?: boolean;
@@ -44,159 +34,170 @@ type State = {
 
 class RuleRow extends React.Component<Props, State> {
   static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    onDelete: PropTypes.func.isRequired,
     canEdit: PropTypes.bool,
   };
 
   state = {loading: false, error: false};
 
-  onDelete = () => {
-    if (this.state.loading) {
-      return;
-    }
-
-    addLoadingMessage();
-    const {api, orgId, projectId, data} = this.props;
-    api.request(`/projects/${orgId}/${projectId}/rules/${data.id}/`, {
-      method: 'DELETE',
-      success: () => {
-        this.props.onDelete();
-        addSuccessMessage(tct('Successfully deleted "[alert]"', {alert: data.name}));
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-        addErrorMessage(t('Unable to save changes. Please try again.'));
-      },
+  renderIssueRule(data: IssueAlertRule) {
+    const {params, routes, location, canEdit} = this.props;
+    const editLink = recreateRoute(`rules/${data.id}/`, {
+      params,
+      routes,
+      location,
     });
-  };
-
-  render() {
-    const {params, routes, location, data, canEdit} = this.props;
-    const editLink = recreateRoute(`${data.id}/`, {params, routes, location});
 
     const environmentName = data.environment
       ? getDisplayName({name: data.environment})
       : t('All Environments');
 
     return (
-      <Panel>
-        <PanelHeader hasButtons>
-          <TextColorLink to={editLink}>
-            {data.name} - {environmentName}
-          </TextColorLink>
+      <RuleItem>
+        <RuleType>{t('Issue')}</RuleType>
+        <div>
+          {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
+          <RuleDescription>
+            {t('Environment')}: {environmentName}
+          </RuleDescription>
+        </div>
+
+        <TriggerAndActions>
+          <div>
+            <MatchTypeHeader>
+              {tct('[matchType] of the following:', {
+                matchType: data.actionMatch,
+              })}
+            </MatchTypeHeader>
+            {data.conditions.length !== 0 && (
+              <Conditions>
+                {data.conditions.map((condition, i) => (
+                  <div key={i}>{condition.name}</div>
+                ))}
+              </Conditions>
+            )}
+          </div>
 
           <Actions>
-            <Tooltip
-              disabled={canEdit}
-              title={t('You do not have permission to edit alert rules.')}
-            >
-              <Button
-                data-test-id="edit-rule"
-                disabled={!canEdit}
-                size="xsmall"
-                to={editLink}
-              >
-                {t('Edit Rule')}
-              </Button>
-            </Tooltip>
-
-            <Tooltip
-              disabled={canEdit}
-              title={t('You do not have permission to edit alert rules.')}
-            >
-              <Confirm
-                message={t('Are you sure you want to remove this rule?')}
-                onConfirm={this.onDelete}
-                disabled={!canEdit}
-              >
-                <Button size="xsmall" icon="icon-trash" />
-              </Confirm>
-            </Tooltip>
+            {data.actions.map((action, i) => (
+              <div key={i}>{action.name}</div>
+            ))}
           </Actions>
-        </PanelHeader>
-
-        <PanelBody>
-          <RuleDescriptionRow>
-            <RuleDescriptionColumn>
-              {data.conditions.length !== 0 && (
-                <Condition>
-                  <h6>
-                    When <strong>{data.actionMatch}</strong> of these conditions are met:
-                  </h6>
-                  <table className="conditions-list table">
-                    <tbody>
-                      {data.conditions.map((condition, i) => (
-                        <tr key={i}>
-                          <td>{condition.name}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </Condition>
-              )}
-            </RuleDescriptionColumn>
-            <RuleDescriptionColumn>
-              {data.actions.length !== 0 && (
-                <Condition>
-                  <h6>
-                    Take these actions at most{' '}
-                    <strong>
-                      once every <Duration seconds={data.frequency * 60} />
-                    </strong>{' '}
-                    for an issue:
-                  </h6>
-                  <table className="actions-list table">
-                    <tbody>
-                      {data.actions.map((action, i) => (
-                        <tr key={i}>
-                          <td>{action.name}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </Condition>
-              )}
-            </RuleDescriptionColumn>
-          </RuleDescriptionRow>
-        </PanelBody>
-      </Panel>
+        </TriggerAndActions>
+      </RuleItem>
     );
+  }
+
+  renderMetricRule(data: SavedIncidentRule) {
+    const {params, routes, location, canEdit} = this.props;
+    const editLink = recreateRoute(`metric-rules/${data.id}/`, {
+      params,
+      routes,
+      location,
+    });
+
+    return (
+      <RuleItem>
+        <RuleType>{t('Metric')}</RuleType>
+        <div>
+          {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
+          <RuleDescription />
+        </div>
+
+        <div>
+          {data.triggers.length !== 0 &&
+            data.triggers.map((trigger, i) => (
+              <TriggerAndActions key={i}>
+                <Trigger>
+                  <StatusBadge>{trigger.label}</StatusBadge>
+                  <div>
+                    {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
+                    {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
+                    {trigger.alertThreshold}/{data.timeWindow}
+                    {t('min')}
+                  </div>
+                </Trigger>
+                <Actions>
+                  {trigger.actions?.map((action, j) => (
+                    <div key={j}>{action.desc}</div>
+                  ))}
+                </Actions>
+              </TriggerAndActions>
+            ))}
+        </div>
+      </RuleItem>
+    );
+  }
+
+  render() {
+    const {data} = this.props;
+
+    return isIssueAlert(data) ? this.renderIssueRule(data) : this.renderMetricRule(data);
   }
 }
 
 export default RuleRow;
 
-const TextColorLink = styled(Link)`
+const RuleItem = styled(PanelItem)`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: 1fr 3fr 6fr;
+  grid-auto-flow: column;
+`;
+
+const RuleType = styled('div')`
   color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
+  text-transform: uppercase;
 `;
 
-const RuleDescriptionRow = styled('div')`
-  display: flex;
+const RuleName = styled(Link)`
+  font-weight: bold;
 `;
 
-const RuleDescriptionColumn = styled('div')`
-  flex: 1;
-  padding: ${p => p.theme.grid * 2}px;
-  height: 100%;
-`;
-
-const Condition = styled('div')`
+const Conditions = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
 `;
 
-const Actions = styled('div')`
+// For tests
+const Actions = styled('div')``;
+
+const TriggerAndActions = styled('div')`
   display: grid;
+  grid-template-columns: 1fr 1fr;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(1)};
+`;
+
+const MatchTypeHeader = styled('div')`
+  font-weight: bold;
+  text-transform: uppercase;
+  color: ${p => p.theme.gray2};
+  margin-bottom: ${space(1)};
+`;
+
+const RuleDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: ${space(0.5)} 0;
+`;
+
+const Trigger = styled('div')`
+  display: flex;
   align-items: center;
+`;
+
+const StatusBadge = styled('div')`
+  background-color: ${p => p.theme.offWhite2};
+  color: ${p => p.theme.gray4};
+  text-transform: uppercase;
+  padding: ${space(0.25)} ${space(0.5)};
+  font-weight: 600;
+  margin-right: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

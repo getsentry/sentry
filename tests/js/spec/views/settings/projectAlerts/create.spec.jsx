@@ -32,21 +32,32 @@ describe('ProjectAlertsCreate', function() {
       indexRoute: {name: 'General'},
     },
     {
-      name: 'Alert Rules',
+      name: 'Alerts',
       path: 'alerts/',
       indexRoute: {},
-    },
-    {
-      path: 'rules/',
-      name: 'Rules',
-      component: null,
-      indexRoute: {},
       childRoutes: [
-        {path: 'new/', name: 'New'},
-        {path: ':ruleId/', name: 'Edit'},
+        {path: 'settings/', name: 'Settings'},
+        {path: 'new/', name: 'New Alert Rule'},
+        {
+          path: 'rules/',
+          indexRoute: {to: '/settings/:orgId/projects/:projectId/alerts/'},
+          childRoutes: [
+            {path: 'new/', name: 'New Alert Rule'},
+            {path: ':ruleId/', name: 'Edit Alert Rule'},
+          ],
+        },
+        {
+          path: 'metric-rules/',
+          component: null,
+          indexRoute: {to: '/settings/:orgId/projects/:projectId/alerts/'},
+          childRoutes: [
+            {name: 'New Alert Rule', path: 'new/'},
+            {name: 'Edit Alert Rule', path: ':ruleId/'},
+          ],
+        },
       ],
     },
-    {path: ':ruleId/', name: 'Edit Alert Rule'},
+    {path: 'new/', name: 'New Alert Rule'},
   ];
 
   beforeEach(async function() {

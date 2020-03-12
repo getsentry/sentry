@@ -43,11 +43,8 @@ type Props = {
   project: Project;
   routes: PlainRoute[];
   rule: IncidentRule;
-  incidentRuleId?: string;
-} & RouteComponentProps<
-  {orgId: string; projectId: string; incidentRuleId: string},
-  {}
-> & {
+  ruleId?: string;
+} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -298,17 +295,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     const {organization, params, rule, onSubmitSuccess} = this.props;
+    const {ruleId} = this.props.params;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
-      addLoadingMessage(t('Saving alert'));
+      addLoadingMessage();
       const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
         ...rule,
         ...model.getTransformedData(),
         triggers: this.state.triggers.map(sanitizeTrigger),
       });
-      addSuccessMessage(t('Successfully saved alert'));
+      addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
       if (onSubmitSuccess) {
         onSubmitSuccess(resp, model);
       }
@@ -359,11 +357,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleDeleteRule = async () => {
     const {params} = this.props;
-    const {orgId, projectId, incidentRuleId} = params;
+    const {orgId, projectId, ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/alert-rules/${incidentRuleId}/`,
+        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -383,23 +381,16 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      config,
-      organization,
-      incidentRuleId,
-      rule,
-      params,
-      onSubmitSuccess,
-    } = this.props;
+    const {config, organization, ruleId, rule, params, onSubmitSuccess} = this.props;
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <Form
-            apiMethod={incidentRuleId ? 'PUT' : 'POST'}
+            apiMethod={ruleId ? 'PUT' : 'POST'}
             apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-              incidentRuleId ? `${incidentRuleId}/` : ''
+              ruleId ? `${ruleId}/` : ''
             }`}
             submitDisabled={!hasAccess}
             initialData={{
@@ -458,7 +449,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               triggers={triggers}
               currentProject={params.projectId}
               organization={organization}
-              incidentRuleId={incidentRuleId}
+              ruleId={ruleId}
               availableActions={this.state.availableActions}
               onChange={this.handleChangeTriggers}
               onAdd={this.handleAddTrigger}

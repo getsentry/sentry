@@ -2,20 +2,27 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconAdd} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import RuleRow from 'app/views/settings/projectAlerts/ruleRowNew';
+import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tooltip from 'app/components/tooltip';
 import routeTitle from 'app/utils/routeTitle';
 import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 
-type Props = {organization: Organization} & RouteComponentProps<
+type Props = {
+  canEditRule: boolean;
+  organization: Organization;
+} & RouteComponentProps<
   {
     orgId: string;
     projectId: string;
@@ -49,9 +56,8 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {organization, params} = this.props;
+    const {canEditRule, params} = this.props;
     const {orgId, projectId} = params;
-    const canEditRule = organization.access.includes('project:write');
 
     return (
       <React.Fragment>
@@ -78,10 +84,40 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {canEditRule, location, organization, params} = this.props;
+    const {orgId, projectId} = params;
     const {loading, rules} = this.state;
+
+    const basePath = `/settings/${orgId}/projects/${projectId}/alerts/`;
 
     return (
       <React.Fragment>
+        <SettingsPageHeader
+          title={t('Alerts')}
+          action={
+            <HeaderActions>
+              <Button to={`${basePath}settings/`} size="small" icon="icon-settings">
+                {t('Settings')}
+              </Button>
+              <OnboardingHovercard organization={organization} location={location}>
+                <Tooltip
+                  disabled={canEditRule}
+                  title={t('You do not have permission to edit alert rules.')}
+                >
+                  <Button
+                    to={`${basePath}new/`}
+                    disabled={!canEditRule}
+                    priority="primary"
+                    size="small"
+                    icon={<IconAdd size="xs" circle />}
+                  >
+                    {t('New Alert Rule')}
+                  </Button>
+                </Tooltip>
+              </OnboardingHovercard>
+            </HeaderActions>
+          }
+        />
         <PermissionAlert />
 
         <Panel>
@@ -107,7 +143,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(ProjectAlertRules);
+export default ProjectAlertRules;
 
 const RuleHeader = styled(PanelHeader)`
   display: grid;
@@ -120,4 +156,10 @@ const TriggerAndActions = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-auto-flow: column;
+`;
+
+const HeaderActions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
 `;
