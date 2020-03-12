@@ -5,16 +5,14 @@ import click
 import docker
 import json
 import os
-from six.moves.urllib.parse import urlparse
 from sentry.runner.commands.devservices import get_docker_client, get_or_create
 from sentry.conf.server import SENTRY_DEVSERVICES
 from subprocess import Popen
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 OUTPUT_PATH = "/usr/src/output"
-SENTRY_CONFIG = os.environ["SENTRY_CONF"] = os.path.join(HERE, "sentry.apidocs.conf.py")
+SENTRY_CONFIG = os.environ["SENTRY_CONF"] = os.path.join(HERE, "sentry.conf.py")
 os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-HOST = urlparse("https://127.0.0.1").netloc
 
 client = get_docker_client()
 

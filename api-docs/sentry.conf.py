@@ -7,6 +7,7 @@ import getpass
 
 SENTRY_APIDOCS_REDIS_PORT = 12355
 SENTRY_APIDOCS_WEB_PORT = 12356
+SENTRY_APIDOCS_SNUBA_PORT = 1219
 
 SENTRY_URL_PREFIX = "https://sentry.io"
 
@@ -24,6 +25,7 @@ DATABASES = {
         "USER": "postgres",
         "PASSWORD": "",
         "HOST": "127.0.0.1",
+        "PORT": 5400,
     }
 }
 SENTRY_USE_BIG_INTS = True
@@ -31,12 +33,14 @@ SENTRY_USE_BIG_INTS = True
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
 CELERY_ALWAYS_EAGER = True
-BROKER_URL = "redis://127.0.0.1:%s" % SENTRY_APIDOCS_REDIS_PORT
+BROKER_URL = "redis://localhost:%s" % SENTRY_APIDOCS_REDIS_PORT
 
 SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
 SENTRY_BUFFER = "sentry.buffer.redis.RedisBuffer"
 SENTRY_QUOTAS = "sentry.quotas.redis.RedisQuota"
-SENTRY_TSDB = "sentry.tsdb.redis.RedisTSDB"
+SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
 LOGIN_REDIRECT_URL = SENTRY_URL_PREFIX + "/"
 
@@ -57,7 +61,7 @@ SENTRY_OPTIONS.update(
         "system.admin-email": "admin@sentry.io",
         "system.url-prefix": SENTRY_URL_PREFIX,
         "mail.backend": "django.core.mail.backends.smtp.EmailBackend",
-        "mail.host": "127.0.0.1",
+        "mail.host": "localhost",
         "mail.password": "",
         "mail.username": "",
         "mail.port": 25,
@@ -70,3 +74,5 @@ SENTRY_OPTIONS.update(
 
 # Enable feature flags so sample responses generate.
 SENTRY_FEATURES["projects:servicehooks"] = True
+
+SENTRY_SNUBA = "http://127.0.0.1:%d" % SENTRY_APIDOCS_SNUBA_PORT
