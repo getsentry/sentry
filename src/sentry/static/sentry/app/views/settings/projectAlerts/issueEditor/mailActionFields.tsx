@@ -28,7 +28,7 @@ export enum MailActionTargetType {
   Member = 'Member',
 }
 
-class MailActionFields extends React.PureComponent<Props> {
+class MailActionFields extends React.Component<Props> {
   handleChange = (
     attribute: 'targetType' | 'targetIdentifier',
     e: OptionRecord & {[key: string]: any}
@@ -49,12 +49,6 @@ class MailActionFields extends React.PureComponent<Props> {
       newAction.targetIdentifier = '';
     }
     onChange(newAction);
-    /**
-     * Force update is needed because parent component mutates its props with the new values that have changed.
-     * Effectively, this causes `action`, a nested prop from the parent, to be referentially the same even if a new
-     * `action` is passed to the change handler.
-     **/
-    this.forceUpdate();
   };
 
   handleChangeActorType = (e: OptionRecord) => {
