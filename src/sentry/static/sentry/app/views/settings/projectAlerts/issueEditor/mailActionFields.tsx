@@ -23,17 +23,14 @@ interface OptionRecord {
 }
 
 class MailActionFields extends React.Component<Props> {
-  handleChange = (
-    attribute: 'targetType' | 'targetIdentifier',
-    e: OptionRecord & {[key: string]: any}
-  ) => {
+  handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {
     const {onChange, action} = this.props;
-    if (e.value === action[attribute]) {
+    if (newValue === action[attribute]) {
       return;
     }
     const newAction = {
       ...action,
-      [attribute]: `${e.value}`,
+      [attribute]: newValue,
     };
     /**
      * TargetIdentifiers between the targetTypes are not unique, and may wrongly map to something that has not been
@@ -45,12 +42,12 @@ class MailActionFields extends React.Component<Props> {
     onChange(newAction);
   };
 
-  handleChangeActorType = (e: OptionRecord) => {
-    this.handleChange('targetType', e);
+  handleChangeActorType = (optionRecord: OptionRecord) => {
+    this.handleChange('targetType', optionRecord.value);
   };
 
-  handleChangeActorId = (e: OptionRecord & {[key: string]: any}) => {
-    this.handleChange('targetIdentifier', e);
+  handleChangeActorId = (optionRecord: OptionRecord & {[key: string]: any}) => {
+    this.handleChange('targetIdentifier', optionRecord.value);
   };
 
   render: () => React.ReactElement = () => {
