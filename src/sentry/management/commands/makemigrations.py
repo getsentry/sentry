@@ -26,6 +26,12 @@ class Command(makemigrations.Command):
     """
 
     def handle(self, *app_labels, **options):
+        if not options["name"]:
+            self.stderr.write(
+                "Please name your migrations using `-n <migration_name>`. "
+                "For example, `-n backfill_my_new_table`"
+            )
+            return
         super(Command, self).handle(*app_labels, **options)
         loader = MigrationLoader(None, ignore_no_migrations=True)
 

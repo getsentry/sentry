@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {components} from 'react-select';
+import cloneDeep from 'lodash/cloneDeep';
 
 import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
@@ -9,7 +10,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {FieldValueKind, FieldValue} from './types';
-import {FIELD_ALIASES, ColumnType, AggregateParameter} from '../eventQueryParams';
+import {
+  FIELD_ALIASES,
+  ColumnType,
+  Aggregation,
+  AggregateParameter,
+} from '../eventQueryParams';
 import {Column} from '../eventView';
 
 type FieldOptions = StringMap<SelectValue<FieldValue>>;
@@ -42,23 +48,31 @@ type Props = {
 
 class ColumnEditRow extends React.Component<Props> {
   handleFieldChange = ({value}) => {
-    const {column} = this.props;
-    let currentParams: [string, string, string | undefined] = [
-      column.aggregation,
-      column.field,
-      column.refinement,
-    ];
+    const current = this.props.column;
+    let column: Column = cloneDeep(this.props.column);
 
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.FIELD:
-        currentParams = ['', value.meta.name, undefined];
+        column = {kind: 'field', field: value.meta.name};
         break;
       case FieldValueKind.FUNCTION:
-        currentParams[0] = value.meta.name;
+        if (current.kind === 'field') {
+          column = {kind: 'function', function: [value.meta.name, '', undefined]};
+        } else if (current.kind === 'function') {
+          column = {
+            kind: 'function',
+            function: [value.meta.name, current.function[1], current.function[2]],
+          };
+        }
         // Backwards compatibility for field alias versions of functions.
-        if (currentParams[1] && FIELD_ALIASES.includes(currentParams[1])) {
-          currentParams = [currentParams[0], '', undefined];
+        if (
+          current.kind === 'function' &&
+          column.kind === 'function' &&
+          current.function[1] &&
+          FIELD_ALIASES.includes(current.function[1])
+        ) {
+          column.function = [column.function[1] as Aggregation, '', undefined];
         }
         break;
       default:
@@ -67,52 +81,57 @@ class ColumnEditRow extends React.Component<Props> {
 
     if (value.kind === FieldValueKind.FUNCTION) {
       value.meta.parameters.forEach((param: AggregateParameter, i: number) => {
+        if (column.kind !== 'function') {
+          return;
+        }
         if (param.kind === 'column') {
-          const field = this.getFieldOrTagValue(currentParams[i + 1]);
+          const field = this.getFieldOrTagValue(column.function[i + 1]);
           if (field === null) {
-            currentParams[i + 1] = param.defaultValue || '';
+            column.function[i + 1] = param.defaultValue || '';
           } else if (
             (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
             param.columnTypes.includes(field.meta.dataType)
           ) {
             // New function accepts current field.
-            currentParams[i + 1] = field.meta.name;
+            column.function[i + 1] = field.meta.name;
           } else {
             // field does not fit within new function requirements, use the default.
-            currentParams[i + 1] = param.defaultValue || '';
-            currentParams[i + 2] = '';
+            column.function[i + 1] = param.defaultValue || '';
+            column.function[i + 2] = undefined;
           }
         }
         if (param.kind === 'value') {
-          currentParams[i + 1] = param.defaultValue;
+          column.function[i + 1] = param.defaultValue;
         }
       });
 
-      if (value.meta.parameters.length === 0) {
-        currentParams = [currentParams[0], '', undefined];
+      if (column.kind === 'function' && value.meta.parameters.length === 0) {
+        column.function = [column.function[0], '', undefined];
       }
     }
 
-    this.triggerChange(...currentParams);
+    this.triggerChange(column);
   };
 
   handleFieldParameterChange = ({value}) => {
-    const {column} = this.props;
-    this.triggerChange(column.aggregation, value.meta.name, column.refinement);
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[1] = value.meta.name;
+    }
+    this.triggerChange(newColumn);
   };
 
   handleRefinementChange = (value: string) => {
-    const {column} = this.props;
-    this.triggerChange(column.aggregation, column.field, value);
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[2] = value;
+    }
+    this.triggerChange(newColumn);
   };
 
-  triggerChange(aggregation: string, field: string, refinement?: string) {
+  triggerChange(column: Column) {
     const {parentIndex} = this.props;
-    this.props.onChange(parentIndex, {
-      aggregation,
-      field,
-      refinement,
-    });
+    this.props.onChange(parentIndex, column);
   }
 
   getFieldOrTagValue(name: string | undefined): FieldValue | null {
@@ -151,20 +170,24 @@ class ColumnEditRow extends React.Component<Props> {
 
     const {column} = this.props;
     let {fieldOptions} = this.props;
-    const funcName = `function:${column.aggregation}`;
 
-    if (fieldOptions[funcName] !== undefined) {
-      field = fieldOptions[funcName].value;
-      // TODO move this closer to where it is used.
-      fieldParameter = this.getFieldOrTagValue(column.field);
-    } else if (!column.aggregation && FIELD_ALIASES.includes(column.field)) {
-      // Handle backwards compatible field aliases.
-      const aliasName = `function:${column.field}`;
-      if (fieldOptions[aliasName] !== undefined) {
-        field = fieldOptions[aliasName].value;
+    if (column.kind === 'function') {
+      const funcName = `function:${column.function[0]}`;
+      if (fieldOptions[funcName] !== undefined) {
+        field = fieldOptions[funcName].value;
+        // TODO move this closer to where it is used.
+        fieldParameter = this.getFieldOrTagValue(column.function[1]);
       }
-    } else {
-      field = this.getFieldOrTagValue(column.field);
+    } else if (column.kind === 'field') {
+      if (FIELD_ALIASES.includes(column.field)) {
+        // Handle backwards compatible field aliases.
+        const aliasName = `function:${column.field}`;
+        if (fieldOptions[aliasName] !== undefined) {
+          field = fieldOptions[aliasName].value;
+        }
+      } else {
+        field = this.getFieldOrTagValue(column.field);
+      }
     }
 
     // If our current field, or columnParameter is a virtual tag, add it to the option list.
@@ -195,7 +218,10 @@ class ColumnEditRow extends React.Component<Props> {
           }
           return {
             kind: 'value',
-            value: column.refinement || param.defaultValue || '',
+            value:
+              (column.kind === 'function' && column.function[2]) ||
+              param.defaultValue ||
+              '',
             dataType: param.dataType,
             required: param.required,
           };
@@ -368,16 +394,16 @@ type InputState = {value: string};
  * constraints better.
  */
 class BufferedInput extends React.Component<InputProps, InputState> {
+  constructor(props: InputProps) {
+    super(props);
+    this.input = React.createRef();
+  }
+
   state = {
     value: this.props.value,
   };
 
   private input: React.RefObject<HTMLInputElement>;
-
-  constructor(props: InputProps) {
-    super(props);
-    this.input = React.createRef();
-  }
 
   get isValid() {
     if (!this.input.current) {
@@ -418,6 +444,8 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled('input')`
   min-width: 50px;
+  /* Match the height of the select boxes */
+  height: 37px;
 
   &:not([disabled='true']):invalid {
     border-color: ${p => p.theme.red};

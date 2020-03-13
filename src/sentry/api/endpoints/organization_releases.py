@@ -22,14 +22,13 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
     get_project_releases_by_stability,
+    STATS_PERIODS,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 
 
-SUMMARY_STATS_PERIOD = ("24h", "48h", "7d", "14d")
-HEALTH_STATS_PERIOD = ("", "24h", "14d")
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
 
@@ -149,16 +148,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
-        summary_stats_period = request.GET.get("summaryStatsPeriod") or "48h"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
-        if summary_stats_period not in SUMMARY_STATS_PERIOD:
-            raise ParseError(
-                detail=get_stats_period_detail("summaryStatsPeriod", SUMMARY_STATS_PERIOD)
-            )
-        if health_stats_period not in HEALTH_STATS_PERIOD:
-            raise ParseError(
-                detail=get_stats_period_detail("healthStatsPeriod", HEALTH_STATS_PERIOD)
-            )
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
 
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}

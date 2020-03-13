@@ -1,9 +1,10 @@
-import {ECharts, EChartOption} from 'echarts';
+import {ECharts} from 'echarts';
 import React from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
@@ -17,10 +18,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  xAxis: EChartOption.XAxis;
   triggers: Trigger[];
   maxValue?: number;
-};
+} & Partial<GlobalSelection['datetime']>;
 
 type State = {
   width: number;
@@ -223,7 +223,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     this.chartRef && this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
 
   render() {
-    const {data, triggers, xAxis} = this.props;
+    const {data, triggers, period} = this.props;
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => ({
       ...restOfData,
       data: eventData.slice(0, -1),
@@ -233,9 +233,9 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       <LineChart
         isGroupedByDate
         showTimeInTooltip
+        period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
-        xAxis={xAxis}
         yAxis={{
           max: this.state.yAxisMax,
         }}
