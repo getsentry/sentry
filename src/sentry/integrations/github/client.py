@@ -30,7 +30,7 @@ class GitHubClientMixin(ApiClient):
         return self.get(u"/repos/{}/hooks".format(repo))
 
     def get_commits(self, repo):
-        return self.get_cached(u"/repos/{}/commits".format(repo))
+        return self.get(u"/repos/{}/commits".format(repo))
 
     def get_commit(self, repo, sha):
         return self.get_cached(u"/repos/{}/commits/{}".format(repo, sha))
