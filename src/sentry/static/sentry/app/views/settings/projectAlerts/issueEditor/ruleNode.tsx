@@ -127,11 +127,6 @@ class RuleNode extends React.Component<Props> {
     const {data, organization, project} = this.props;
     const isInitialized =
       data?.targetType !== undefined && `${data.targetType}`.length > 0;
-    if (!isInitialized) {
-      const newData: IssueAlertRuleAction = {...(data as IssueAlertRuleAction)};
-      newData.targetType = MailActionTargetType.IssueOwners;
-      this.handleMailActionChange(newData);
-    }
     return (
       <MailActionFields
         disabled={false}
