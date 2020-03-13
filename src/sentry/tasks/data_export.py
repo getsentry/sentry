@@ -12,6 +12,7 @@ from sentry.models import ExportedData, File
 from sentry.processing.base import ProcessingError
 from sentry.processing.issues_by_tag import (
     get_project_and_group,
+    get_lookup_key,
     get_eventuser_callback,
     get_fields,
     get_issues_list,
@@ -103,8 +104,9 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError(error)
 
-    # Create the fields/callback list
+    # Create the callback list and lookup key
     callbacks = [get_eventuser_callback(group.project_id)] if key == "user" else []
+    lookup_key = get_lookup_key(key)
 
     # Example file name: Issues-by-Tag-project10-user__721.csv
     file_details = six.text_type("{}-{}__{}".format(project.slug, key, data_export.id))
@@ -121,7 +123,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
                 project_id=group.project_id,
                 group_id=group.id,
                 environment_id=None,
-                key=key,
+                key=lookup_key,
                 callbacks=callbacks,
                 offset=offset,
             )

@@ -45,9 +45,22 @@ def get_eventuser_callback(project_id):
     return wrapper
 
 
-def get_issues_list(key, *args, **kwargs):
-    lookup_key = six.text_type("sentry:{}").format(key) if tagstore.is_reserved_key(key) else key
-    return tagstore.get_group_tag_value_iter(key=lookup_key, *args, **kwargs)
+def get_lookup_key(key):
+    return six.text_type("sentry:{}").format(key) if tagstore.is_reserved_key(key) else key
+
+
+def get_issues_list(*args, **kwargs):
+    return tagstore.get_group_tag_value_iter(*args, **kwargs)
+
+
+def validate_tag_key(project_id, environment_id, lookup_key):
+    """
+    Ensures the tag key exists, as it may have been deleted
+    """
+    try:
+        tagstore.get_tag_key(project_id, environment_id, lookup_key)
+    except tagstore.TagKeyNotFound:
+        raise ProcessingError("Requested key does not exist")
 
 
 def serialize_issue(item, key):
