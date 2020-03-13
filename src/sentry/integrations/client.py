@@ -8,12 +8,14 @@ import six
 from collections import OrderedDict
 from time import time
 
+from django.core.cache import cache
 from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
+from sentry.utils.hashlib import md5_text
 
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
@@ -124,9 +126,14 @@ class ApiClient(object):
     # Used in metrics and logging.
     integration_name = "undefined"
 
+    cache_time = 900
+
     def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
+
+    def get_cache_prefix(self):
+        return "integrations.client:"
 
     def track_response_data(self, code, error=None):
         logger = logging.getLogger("sentry.integrations.client")
@@ -229,6 +236,18 @@ class ApiClient(object):
 
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
+
+    def get_cached(self, path, *args, **kwargs):
+        query = ""
+        if kwargs.get("params", None):
+            query = json.dumps(kwargs.get("params"), sort_keys=True)
+        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
+
+        result = cache.get(key)
+        if result is None:
+            result = self.request("GET", path, *args, **kwargs)
+            cache.set(key, result, self.cache_time)
+        return result
 
     def get(self, *args, **kwargs):
         return self.request("GET", *args, **kwargs)

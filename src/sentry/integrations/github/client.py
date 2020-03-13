@@ -24,16 +24,16 @@ class GitHubClientMixin(ApiClient):
     def compare_commits(self, repo, start_sha, end_sha):
         # see https://developer.github.com/v3/repos/commits/#compare-two-commits
         # where start sha is oldest and end is most recent
-        return self.get(u"/repos/{}/compare/{}...{}".format(repo, start_sha, end_sha))
+        return self.get_cached(u"/repos/{}/compare/{}...{}".format(repo, start_sha, end_sha))
 
     def repo_hooks(self, repo):
         return self.get(u"/repos/{}/hooks".format(repo))
 
     def get_commits(self, repo):
-        return self.get(u"/repos/{}/commits".format(repo))
+        return self.get_cached(u"/repos/{}/commits".format(repo))
 
     def get_commit(self, repo, sha):
-        return self.get(u"/repos/{}/commits/{}".format(repo, sha))
+        return self.get_cached(u"/repos/{}/commits/{}".format(repo, sha))
 
     def get_repo(self, repo):
         return self.get(u"/repos/{}".format(repo))
