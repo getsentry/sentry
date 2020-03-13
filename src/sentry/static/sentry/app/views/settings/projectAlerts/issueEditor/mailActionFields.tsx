@@ -50,7 +50,7 @@ class MailActionFields extends React.Component<Props> {
     this.handleChange('targetIdentifier', optionRecord.value);
   };
 
-  render: () => React.ReactElement = () => {
+  render(): React.ReactElement {
     const {disabled, loading, project, organization, action} = this.props;
 
     const isIssueOwners = action.targetType === MailActionTargetType.IssueOwners;
@@ -99,7 +99,7 @@ class MailActionFields extends React.Component<Props> {
         )}
       </PanelItemGrid>
     );
-  };
+  }
 }
 
 const PanelItemGrid = styled(PanelItem)`
