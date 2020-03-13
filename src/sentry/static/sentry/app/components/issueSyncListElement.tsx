@@ -5,6 +5,14 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import InlineSvg from 'app/components/inlineSvg';
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 import space from 'app/styles/space';
 import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -45,20 +53,20 @@ class IssueSyncListElement extends React.Component<Props> {
   getIcon(): React.ReactNode {
     switch (this.props.integrationType) {
       case 'bitbucket':
-        return <IntegrationIcon src="icon-bitbucket" />;
+        return <IconBitbucket size="md" />;
       case 'gitlab':
-        return <IntegrationIcon src="icon-gitlab" />;
+        return <IconGitlab size="md" />;
       case 'github':
-        return <IntegrationIcon src="icon-github" />;
+        return <IconGithub size="md" />;
       case 'github_enterprise':
-        return <IntegrationIcon src="icon-github" />;
+        return <IconGithub size="md" />;
       case 'jira':
       case 'jira_server':
-        return <IntegrationIcon src="icon-jira" />;
+        return <IconJira size="md" />;
       case 'vsts':
-        return <IntegrationIcon src="icon-vsts" />;
+        return <IconVsts size="md" />;
       default:
-        return <IntegrationIcon src="icon-generic-box" />;
+        return <IconGeneric size="md" />;
     }
   }
 
@@ -145,14 +153,6 @@ export const IssueSyncListElementContainer = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${space(2)};
   }
-`;
-
-export const IntegrationIcon = styled(InlineSvg)`
-  color: ${p => p.theme.gray4};
-  width: ${space(3)};
-  height: ${space(3)};
-  cursor: pointer;
-  flex-shrink: 0;
 `;
 
 export const IntegrationLink = styled('a')`
