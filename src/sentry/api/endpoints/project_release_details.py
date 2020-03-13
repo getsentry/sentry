@@ -11,11 +11,8 @@ from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
-from sentry.api.endpoints.organization_releases import (
-    SUMMARY_STATS_PERIOD,
-    HEALTH_STATS_PERIOD,
-    get_stats_period_detail,
-)
+from sentry.snuba.sessions import STATS_PERIODS
+from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
@@ -41,14 +38,10 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         with_health = request.GET.get("health") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "48h"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
-        if summary_stats_period not in SUMMARY_STATS_PERIOD:
-            raise ParseError(
-                detail=get_stats_period_detail("summaryStatsPeriod", SUMMARY_STATS_PERIOD)
-            )
-        if health_stats_period not in HEALTH_STATS_PERIOD:
-            raise ParseError(
-                detail=get_stats_period_detail("healthStatsPeriod", HEALTH_STATS_PERIOD)
-            )
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
 
         try:
             release = Release.objects.get(
