@@ -7,7 +7,10 @@ import IncidentsList from 'app/views/alerts/list';
 describe('IncidentsList', function() {
   const {routerContext} = initializeOrg();
   let mock;
+  let projectMock;
   let wrapper;
+  const projects1 = ['a', 'b', 'c'];
+  const projects2 = ['c', 'd'];
 
   const createWrapper = async props => {
     wrapper = mountWithTheme(
@@ -28,8 +31,27 @@ describe('IncidentsList', function() {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({id: '123', identifier: '1', title: 'First incident'}),
-        TestStubs.Incident({id: '342', identifier: '2', title: 'Second incident'}),
+        TestStubs.Incident({
+          id: '123',
+          tidentifier: '1',
+          title: 'First incident',
+          projects: projects1,
+        }),
+        TestStubs.Incident({
+          id: '342',
+          identifier: '2',
+          title: 'Second incident',
+          projects: projects2,
+        }),
+      ],
+    });
+    projectMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [
+        TestStubs.Project({slug: 'a', platform: 'javascript'}),
+        TestStubs.Project({slug: 'b'}),
+        TestStubs.Project({slug: 'c'}),
+        TestStubs.Project({slug: 'd'}),
       ],
     });
   });
@@ -46,6 +68,21 @@ describe('IncidentsList', function() {
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
     expect(items.at(1).text()).toContain('Second incident');
+    expect(projectMock).toHaveBeenCalledTimes(1);
+    expect(projectMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {query: 'slug:a slug:b slug:c slug:d'},
+      })
+    );
+    expect(
+      items
+        .at(0)
+        .find('IdBadge')
+        .prop('project')
+    ).toMatchObject({
+      platform: 'javascript',
+    });
   });
 
   it('displays empty state', async function() {
