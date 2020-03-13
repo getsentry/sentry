@@ -273,7 +273,7 @@ def resolve_column(col):
 
 
 # TODO (evanh) Since we are assuming that all string values are columns,
-# this will get tricky if we every have complex columns where there are
+# this will get tricky if we ever have complex columns where there are
 # string arguments to the functions that aren't columns
 def resolve_complex_column(col):
     args = col[1]
