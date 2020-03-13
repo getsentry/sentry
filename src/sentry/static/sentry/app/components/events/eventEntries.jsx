@@ -269,7 +269,7 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
   & ${DataSection}:first-child {
     padding-top: 0;
-    border-top: none;
+    border-top: 0;
   }
 `;
 
