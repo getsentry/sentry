@@ -57,12 +57,12 @@ class UserStats extends React.Component<Props> {
 
     eventView = eventView.withColumns([
       {
-        aggregation: 'apdex',
-        field: '',
+        kind: 'function',
+        function: ['apdex', '', undefined],
       },
       {
-        aggregation: 'impact',
-        field: '',
+        kind: 'function',
+        function: ['impact', '', undefined],
       },
     ]);
 

@@ -53,7 +53,7 @@ class SummaryContentTable extends React.Component<Props> {
     return columnOrder.map((column, index) => (
       <HeaderCell column={column} tableData={tableData} key={index}>
         {({align}) => {
-          const field = column.eventViewField;
+          const field = {field: column.name, width: column.width};
 
           return (
             <GridHeadCell>

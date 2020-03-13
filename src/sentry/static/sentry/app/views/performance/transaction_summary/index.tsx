@@ -134,20 +134,20 @@ function generateSummaryEventView(
 
   eventView = eventView.withColumns([
     {
-      aggregation: '',
+      kind: 'field',
       field: 'transaction',
     },
     {
-      aggregation: 'rpm',
-      field: '',
+      kind: 'function',
+      function: ['rpm', '', undefined],
     },
     {
-      aggregation: '',
+      kind: 'field',
       field: 'transaction.duration',
     },
     {
-      aggregation: 'last_seen',
-      field: '',
+      kind: 'function',
+      function: ['last_seen', '', undefined],
     },
   ]);
 
