@@ -1,5 +1,4 @@
 import {keyframes} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 import styled from '@emotion/styled';
@@ -10,16 +9,21 @@ import EventWaiter from 'app/views/onboarding/projectSetup/eventWaiter';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import testablePose from 'app/utils/testablePose';
+import {Group, Organization} from 'app/types';
 
-const FirstEventIndicator = props => (
+type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
+type FirstIssue = null | true | Group;
+
+const FirstEventIndicator = (props: EventWaiterProps) => (
   <EventWaiter {...props}>
     {({firstIssue}) => <Indicator firstIssue={firstIssue} {...props} />}
   </EventWaiter>
 );
 
-FirstEventIndicator.propTypes = EventWaiter.propTypes;
-
-const Indicator = ({firstIssue, ...props}) => (
+const Indicator = ({
+  firstIssue,
+  ...props
+}: EventWaiterProps & {firstIssue: FirstIssue}) => (
   <PoseGroup preEnterPose="init">
     {!firstIssue ? (
       <Waiting key="waiting" />
@@ -29,22 +33,36 @@ const Indicator = ({firstIssue, ...props}) => (
   </PoseGroup>
 );
 
-Indicator.propTypes = {
-  firstIssue: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
-};
+const StatusWrapper = styled(posed.div(testablePose({enter: {staggerChildren: 350}})))`
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  grid-gap: ${space(1)};
+  align-items: center;
+  font-size: 0.9em;
+  /* This is a minor hack, but the line height is just *slightly* too low,
+  making the text appear off center, so we adjust it just a bit */
+  line-height: calc(0.9em + 1px);
+  /* Ensure the event waiter status is always the height of a button */
+  height: ${space(4)};
+`;
 
-const Waiting = props => (
+const Waiting = (props: React.ComponentProps<typeof StatusWrapper>) => (
   <StatusWrapper {...props}>
     <WaitingIndicator />
     <PosedText>{t('Waiting for verification event')}</PosedText>
   </StatusWrapper>
 );
 
-const Success = ({organization, firstIssue, ...props}) => (
+type SuccessProps = EventWaiterProps & {
+  firstIssue: FirstIssue;
+  organization: Organization;
+};
+
+const Success = ({organization, firstIssue, ...props}: SuccessProps) => (
   <StatusWrapper {...props}>
     <ReceivedIndicator src="icon-checkmark-sm" />
-    <PosedText>{t('First event was received!')}</PosedText>
-    {firstIssue !== true && (
+    <PosedText>{t('Event was received!')}</PosedText>
+    {firstIssue && firstIssue !== true && (
       <PosedButton
         size="small"
         priority="primary"
@@ -56,8 +74,6 @@ const Success = ({organization, firstIssue, ...props}) => (
   </StatusWrapper>
 );
 
-Success.propTypes = FirstEventIndicator.propTypes;
-
 const indicatorPoses = testablePose({
   init: {opacity: 0, y: -10},
   enter: {opacity: 1, y: 0},
@@ -65,17 +81,6 @@ const indicatorPoses = testablePose({
 });
 
 const PosedText = posed.div(indicatorPoses);
-
-const StatusWrapper = styled(posed.div(testablePose({enter: {staggerChildren: 350}})))`
-  display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  grid-gap: ${space(1)};
-  align-items: center;
-  font-size: 0.9em;
-  /* This is a minor hack, but the line height is just *slightly* too low,
-  making the text appear off center, so we adjust it just a bit */
-  line-height: calc(0.9em + 1px);
-`;
 
 const pulse = keyframes`
   0% {
@@ -112,9 +117,7 @@ const WaitingIndicator = styled(posed.div(indicatorPoses))`
   }
 `;
 
-const PosedReceivedIndicator = posed(
-  React.forwardRef((props, ref) => <InlineSvg {...props} ref={ref} />)
-)(indicatorPoses);
+const PosedReceivedIndicator = posed(InlineSvg)(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`
   color: #fff;
@@ -127,7 +130,7 @@ const ReceivedIndicator = styled(PosedReceivedIndicator)`
 `;
 
 const PosedButton = posed(
-  React.forwardRef((props, ref) => (
+  React.forwardRef<HTMLDivElement>((props, ref) => (
     <div ref={ref}>
       <Button {...props} />
     </div>
