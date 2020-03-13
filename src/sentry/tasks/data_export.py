@@ -108,9 +108,12 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     callbacks = [get_eventuser_callback(group.project_id)] if key == "user" else []
     lookup_key = get_lookup_key(key)
 
-    # Example file name: Issues-by-Tag-project10-user__721.csv
-    file_details = six.text_type("{}-{}__{}".format(project.slug, key, data_export.id))
-    file_name = get_file_name(ExportQueryType.ISSUES_BY_TAG_STR, file_details)
+    # Example file name: Issues-by-Tag_project10-user_721.csv
+    file_name = get_file_name(
+        export_type=ExportQueryType.ISSUES_BY_TAG_STR,
+        info_string=six.text_type("{}-{}".format(project.slug, key)),
+        data_export_id=data_export.id,
+    )
 
     # Iterate through all the GroupTagValues
     writer = create_writer(file, get_fields(key))
@@ -151,8 +154,10 @@ def create_writer(file, fields):
     return writer
 
 
-def get_file_name(export_type, custom_string, extension="csv"):
-    file_name = six.text_type("{}-{}.{}".format(export_type, custom_string, extension))
+def get_file_name(export_type, info_string, data_export_id, extension="csv"):
+    file_name = six.text_type(
+        "{}_{}_{}.{}".format(export_type, info_string, data_export_id, extension)
+    )
     return file_name
 
 
