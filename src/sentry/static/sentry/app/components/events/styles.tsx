@@ -15,6 +15,15 @@ const COLORS = {
   },
 } as const;
 
+export const DataSection = styled('div')`
+  padding: ${space(3)} ${space(4)} 0 40px;
+  border-top: 1px solid ${p => p.theme.borderLight};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} 0;
+  }
+`;
+
 type BannerProps = {
   priority: 'default' | 'danger';
 };
@@ -25,6 +34,11 @@ export const BannerContainer = styled('div')<BannerProps>`
   background: ${p => COLORS[p.priority].background};
   border-top: 1px solid ${p => COLORS[p.priority].border};
   border-bottom: 1px solid ${p => COLORS[p.priority].border};
+
+  /* Muted box & processing errors are in different parts of the DOM */
+  & + ${DataSection}, & + div > ${DataSection} {
+    border-top: 0;
+  }
 `;
 
 export const BannerSummary = styled('p')`
@@ -37,6 +51,7 @@ export const BannerSummary = styled('p')`
   & > .icon,
   & > svg {
     flex-shrink: 0;
+    flex-grow: 0;
     margin-right: ${space(1)};
     margin-top: ${space(0.5)};
   }
@@ -47,15 +62,6 @@ export const BannerSummary = styled('p')`
 
   & > a {
     align-self: flex-end;
-  }
-`;
-
-export const DataSection = styled('div')`
-  padding: ${space(3)} ${space(4)} 0 40px;
-  border-top: 1px solid ${p => p.theme.borderLight};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} 0;
   }
 `;
 
