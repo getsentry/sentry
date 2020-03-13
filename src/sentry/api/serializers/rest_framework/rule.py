@@ -53,6 +53,7 @@ class RuleNodeField(serializers.Field):
                 "Ensure at least one action is enabled and all required fields are filled in."
             )
 
+        # TODO(jeff): Update form.cleaned_data for each rule
         # Update data from cleaned form values
         data.update(form.cleaned_data)
 

@@ -19,6 +19,21 @@ def _generate_rule_label(project, rule, data):
 
 @register(Rule)
 class RuleSerializer(Serializer):
+
+    # TODO(jeff): Inspect this bit of code and find out where to serialize issue alerts actions
+    def human_desc(self, action):
+        # Returns a human readable description to display in the UI
+        if action.type == action.Type.EMAIL.value:
+            if action.target:
+                if action.target_type == action.TargetType.USER.value:
+                    return "Send an email to " + action.target.email
+                elif action.target_type == action.TargetType.TEAM.value:
+                    return "Send an email to members of #" + action.target.slug
+        elif action.type == action.Type.PAGERDUTY.value:
+            return "Send a PagerDuty notification to " + action.target_display
+        elif action.type == action.Type.SLACK.value:
+            return "Send a Slack notificaiton to " + action.target_display
+
     def get_attrs(self, item_list, user, **kwargs):
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]
