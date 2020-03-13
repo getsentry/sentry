@@ -1,5 +1,4 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
+import * as ReactRouter from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
@@ -9,121 +8,127 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
 
-import Link from '../links/link';
-import TextOverflow from '../textOverflow';
+import {SidebarOrientation} from './types';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
   defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
 });
 
-class SidebarItem extends React.Component {
-  static propTypes = {
-    ...Link.propTypes,
-    router: PropTypes.object,
-    href: PropTypes.string,
-    id: PropTypes.string,
-    to: PropTypes.string,
-    onClick: PropTypes.func,
+type Props = ReactRouter.WithRouterProps & {
+  onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
+  className?: string;
 
-    // Is sidebar item active
-    active: PropTypes.bool,
+  // TODO(ts): Replace with React.ComponentProps<typeof Link> when possible
+  index?: boolean;
+  href?: string;
+  to?: string;
 
-    // Is sidebar in a collapsed state
-    collapsed: PropTypes.bool,
+  /**
+   * Key of the sidebar item. Used for label hooks
+   */
+  id: string;
+  /**
+   * Is this sidebar item active
+   */
+  active?: boolean;
+  /**
+   * Is sidebar in a collapsed state
+   */
+  collapsed?: boolean;
+  /**
+   * Sidebar has a panel open
+   */
+  hasPanel?: boolean;
+  /**
+   * Icon to display
+   */
+  icon: React.ReactNode;
+  /**
+   * Label to display (only when expanded)
+   */
+  label: React.ReactNode;
+  /**
+   * Additional badge to display after label
+   */
+  badge?: number;
+  /**
+   * Additional badge letting users know a tab is new.
+   */
+  isNew?: boolean;
+  /**
+   * Sidebar is at "top" or "left" of screen
+   */
+  orientation: SidebarOrientation;
+};
 
-    // Sidebar has a panel open
-    hasPanel: PropTypes.bool,
+const SidebarItem = ({
+  router,
+  id,
+  href,
+  to,
+  icon,
+  label,
+  badge,
+  active,
+  hasPanel,
+  isNew,
+  collapsed,
+  className,
+  orientation,
+  onClick,
+  ...props
+}: Props) => {
+  // If there is no active panel open and if path is active according to react-router
+  const isActiveRouter =
+    (!hasPanel && router && to && location.pathname.startsWith(to)) ||
+    (label === 'Discover' && location.pathname.includes('/discover/')) ||
+    // TODO: this won't be necessary once we remove settingsHome
+    (label === 'Settings' && location.pathname.startsWith('/settings/'));
 
-    // Icon to display
-    icon: PropTypes.node,
+  const isActive = active || isActiveRouter;
+  const isTop = orientation === 'top';
+  const placement = isTop ? 'bottom' : 'right';
 
-    // Label to display (only when expanded)
-    label: PropTypes.node,
+  return (
+    <Tooltip disabled={!collapsed} title={label} position={placement}>
+      <StyledSidebarItem
+        data-test-id={props['data-test-id']}
+        active={isActive ? 'true' : undefined}
+        href={href}
+        to={to}
+        className={className}
+        onClick={(e: React.MouseEvent<HTMLAnchorElement>) =>
+          typeof onClick === 'function' && onClick(id, e)
+        }
+      >
+        <SidebarItemWrapper>
+          <SidebarItemIcon>{icon}</SidebarItemIcon>
+          {!collapsed && !isTop && (
+            <SidebarItemLabel>
+              <LabelHook id={id}>
+                <TextOverflow>{label}</TextOverflow>
+                {isNew && (
+                  <StyledTag priority="beta" size="small">
+                    {t('New')}
+                  </StyledTag>
+                )}
+              </LabelHook>
+            </SidebarItemLabel>
+          )}
+          {badge !== undefined && badge > 0 && (
+            <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
+          )}
+        </SidebarItemWrapper>
+      </StyledSidebarItem>
+    </Tooltip>
+  );
+};
 
-    // Additional badge to display after label
-    badge: PropTypes.number,
-
-    // Additional badge letting users know a tab is new.
-    isNew: PropTypes.bool,
-
-    // Sidebar is at "top" or "left" of screen
-    orientation: PropTypes.oneOf(['top', 'left']),
-  };
-
-  handleClick = e => {
-    const {id, onClick} = this.props;
-
-    if (typeof onClick !== 'function') {
-      return;
-    }
-
-    onClick(id, e);
-  };
-
-  render() {
-    const {
-      router,
-      href,
-      to,
-      icon,
-      label,
-      badge,
-      active,
-      hasPanel,
-      isNew,
-      collapsed,
-      className,
-      orientation,
-    } = this.props;
-
-    // If there is no active panel open and if path is active according to react-router
-    const isActiveRouter =
-      (!hasPanel && router && to && location.pathname.startsWith(to)) ||
-      (label === 'Discover' && location.pathname.includes('/discover/')) ||
-      // TODO: this won't be necessary once we remove settingsHome
-      (label === 'Settings' && location.pathname.startsWith('/settings/'));
-
-    const isActive = active || isActiveRouter;
-    const isTop = orientation === 'top';
-    const placement = isTop ? 'bottom' : 'right';
-
-    return (
-      <Tooltip disabled={!collapsed} title={label} position={placement}>
-        <StyledSidebarItem
-          data-test-id={this.props['data-test-id']}
-          active={isActive ? 'true' : undefined}
-          href={href}
-          to={to}
-          className={className}
-          onClick={this.handleClick}
-        >
-          <SidebarItemWrapper>
-            <SidebarItemIcon>{icon}</SidebarItemIcon>
-            {!collapsed && !isTop && (
-              <SidebarItemLabel>
-                <LabelHook id={this.props.id}>
-                  <TextOverflow>{label}</TextOverflow>
-                  {isNew && (
-                    <StyledTag priority="beta" size="small">
-                      {t('New')}
-                    </StyledTag>
-                  )}
-                </LabelHook>
-              </SidebarItemLabel>
-            )}
-            {badge > 0 && (
-              <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
-            )}
-          </SidebarItemWrapper>
-        </StyledSidebarItem>
-      </Tooltip>
-    );
-  }
-}
-
-export default withRouter(SidebarItem);
+export default ReactRouter.withRouter(SidebarItem);
 
 const getActiveStyle = ({active, theme}) => {
   if (!active) {
