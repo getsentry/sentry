@@ -2134,8 +2134,79 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 5
-        expected = [(1000, 5), (2000, 4), (4000, 3), (7000, 2), (10000, 1)]
+        assert len(data) == 10
+        expected = [
+            (1000, 5),
+            (2000, 4),
+            (3000, 0),
+            (4000, 3),
+            (5000, 0),
+            (6000, 0),
+            (7000, 2),
+            (8000, 0),
+            (9000, 0),
+            (10000, 1),
+        ]
+        for idx, datum in enumerate(data):
+            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["count"] == expected[idx][1]
+
+    def test_histogram_function_with_filters(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        start = before_now(minutes=2).replace(microsecond=0)
+        latencies = [
+            (1, 999, 5),
+            (1000, 1999, 4),
+            (3000, 3999, 3),
+            (6000, 6999, 2),
+            (10000, 10000, 1),  # just to make the math easy
+        ]
+        for bucket in latencies:
+            for i in range(bucket[2]):
+                milliseconds = random.randint(bucket[0], bucket[1])
+                data = load_data("transaction")
+                data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
+                data["timestamp"] = iso_format(start)
+                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                self.store_event(data, project_id=project.id)
+
+        # Add a transaction that totally throws off the buckets
+        milliseconds = random.randint(bucket[0], bucket[1])
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/hamurai"
+        data["timestamp"] = iso_format(start)
+        data["start_timestamp"] = iso_format(start - timedelta(milliseconds=1000000))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["histogram(transaction.duration, 10)", "count()"],
+                    "query": "event.type:transaction transaction:/error_rate/sleepy_gary*",
+                    "sort": "histogram_transaction_duration_10",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 10
+        expected = [
+            (1000, 5),
+            (2000, 4),
+            (3000, 0),
+            (4000, 3),
+            (5000, 0),
+            (6000, 0),
+            (7000, 2),
+            (8000, 0),
+            (9000, 0),
+            (10000, 1),
+        ]
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]

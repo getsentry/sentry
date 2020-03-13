@@ -139,7 +139,7 @@ def create_reference_event_conditions(reference_event):
 # TODO (evanh) This whole function is here because we are using the max value to
 # calculate the entire bucket width. If we could do that in a smarter way,
 # we could avoid this whole calculation.
-def find_histogram_buckets(field, params):
+def find_histogram_buckets(field, params, conditions):
     match = is_function(field)
     if not match:
         raise InvalidSearchQuery(u"received {}, expected histogram function".format(field))
@@ -171,16 +171,26 @@ def find_histogram_buckets(field, params):
 
     alias = u"max_{}".format(column)
 
+    conditions = deepcopy(conditions) if conditions else []
+    found = False
+    for cond in conditions:
+        if (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
+            found = True
+    if not found:
+        conditions.append(["event.type", "=", "transaction"])
+    translated_args, _ = resolve_discover_aliases({"conditions": conditions})
+
     results = raw_query(
         filter_keys={"project_id": params.get("project_id")},
         start=params.get("start"),
         end=params.get("end"),
         dataset=Dataset.Discover,
-        conditions=[["type", "=", "transaction"]],
+        conditions=translated_args["conditions"],
         aggregations=[["max", "duration", alias]],
     )
-    if "error" in results or len(results["data"]) != 1:
-        raise InvalidSearchQuery("Invalid histogram bucket call")
+    if len(results["data"]) != 1:
+        # If there are no transactions, so no max duration, return one empty bucket
+        return "histogram({}, 1, 1)".format(column)
 
     bucket_max = results["data"][0][alias]
     if bucket_max == 0:
@@ -189,6 +199,56 @@ def find_histogram_buckets(field, params):
     bucket_number = bucket_max / float(num_buckets)
 
     return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_number)
+
+
+def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
+    parts = snuba_function_alias.split("_")
+    if len(parts) < 2:
+        raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
+
+    bucket_size, num_buckets = int(parts[-1]), int(parts[-2])
+    if len(results) == num_buckets:
+        return results
+
+    dummy_data = {}
+    for column in column_meta:
+        dummy_data[column["name"]] = "" if column.get("type") == "String" else 0
+
+    def build_new_bucket_row(bucket):
+        row = {key: value for key, value in six.iteritems(dummy_data)}
+        row[sentry_function_alias] = bucket
+        return row
+
+    bucket_map = {r[sentry_function_alias]: r for r in results}
+    new_results = []
+    is_sorted, is_reversed = False, False
+    if orderby:
+        for o in orderby:
+            if o.lstrip("-") == snuba_function_alias:
+                is_sorted = True
+                is_reversed = o.startswith("-")
+                break
+
+    for i in range(num_buckets):
+        bucket = bucket_size * (i + 1)
+        if bucket not in bucket_map:
+            bucket_map[bucket] = build_new_bucket_row(bucket)
+
+    # If the list was sorted, pull results out in sorted order, else concat the results
+    if is_sorted:
+        i, diff, end = (0, 1, num_buckets - 1) if not is_reversed else (num_buckets - 1, -1, 0)
+        while i <= end:
+            bucket = bucket_size * (i + 1)
+            new_results.append(bucket_map[bucket])
+            i += diff
+    else:
+        new_results = results
+        exists = set(r[sentry_function_alias] for r in results)
+        for bucket in bucket_map:
+            if bucket not in exists:
+                new_results.append(bucket_map[bucket])
+
+    return new_results
 
 
 def resolve_column(col):
@@ -347,6 +407,20 @@ def transform_results(result, translated_columns, snuba_args):
             result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
         )
 
+    for col in result["meta"]:
+        if col["name"].startswith("histogram"):
+            # The column name here has been translated, we need the original name
+            for snuba_name, sentry_name in six.iteritems(translated_columns):
+                if sentry_name == col["name"]:
+                    result["data"] = zerofill_histogram(
+                        result["data"],
+                        result["meta"],
+                        snuba_args["orderby"],
+                        sentry_name,
+                        snuba_name,
+                    )
+            break
+
     return result
 
 
@@ -462,7 +536,7 @@ def query(
     idx = 0
     for col in selected_columns:
         if col.startswith("histogram("):
-            histogram_column = find_histogram_buckets(col, params)
+            histogram_column = find_histogram_buckets(col, params, snuba_filter.conditions)
             selected_columns[idx] = histogram_column
             function_translations[get_function_alias(histogram_column)] = get_function_alias(col)
             break
