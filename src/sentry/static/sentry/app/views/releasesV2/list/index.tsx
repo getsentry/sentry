@@ -166,7 +166,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <GlobalSelectionHeader organization={organization} showAbsolute={false} />
+        <GlobalSelectionHeader
+          organization={organization}
+          showAbsolute={false}
+          timeRangeHint={t(
+            'Changing this date range will recalculate the release metrics.'
+          )}
+        />
 
         <NoProjectMessage organization={organization}>
           <PageContent>
