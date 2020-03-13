@@ -19,7 +19,7 @@ class GitHubClientMixin(ApiClient):
         # return api request that fetches last ~30 commits
         # see https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
         # using end_sha as parameter
-        return self.get(u"/repos/{}/commits".format(repo), params={"sha": end_sha})
+        return self.get_cached(u"/repos/{}/commits".format(repo), params={"sha": end_sha})
 
     def compare_commits(self, repo, start_sha, end_sha):
         # see https://developer.github.com/v3/repos/commits/#compare-two-commits

@@ -133,7 +133,7 @@ class ApiClient(object):
         self.logging_context = logging_context
 
     def get_cache_prefix(self):
-        return "integrations.client:"
+        return "%s.client:" % six.text_type(self.integration_name)
 
     def track_response_data(self, code, error=None):
         logger = logging.getLogger("sentry.integrations.client")

@@ -101,6 +101,7 @@ class JiraClient(ApiClient):
         jql = 'project="%s" AND %s' % (project, jql)
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
+    # Steve(XXX): Might consider moving this method to the base plugin API client
     def get_cached(self, full_url):
         """
         Basic Caching mechanism for requests and responses. It only caches responses
