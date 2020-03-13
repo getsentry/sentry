@@ -1,4 +1,5 @@
 import {ModalBody, ModalHeader} from 'react-bootstrap';
+import ReactSelect from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
@@ -98,8 +99,8 @@ class ContextPickerModal extends React.Component<Props> {
     }
   }
 
-  orgSelect: Element | null = null;
-  projectSelect: Element | null | any = null;
+  orgSelect: ReactSelect | null = null;
+  projectSelect: ReactSelect | null = null;
 
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
@@ -145,7 +146,7 @@ class ContextPickerModal extends React.Component<Props> {
     );
   };
 
-  doFocus = (ref: Element | null) => {
+  doFocus = (ref: ReactSelect | null) => {
     if (!ref || this.props.loading) {
       return;
     }
@@ -221,7 +222,7 @@ class ContextPickerModal extends React.Component<Props> {
       return null;
     }
 
-    const shouldShowProjectSelector = organization && needProject && projects;
+    const shouldShowProjectSelector = organization && needProject && projects.length;
 
     const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
@@ -236,7 +237,7 @@ class ContextPickerModal extends React.Component<Props> {
           {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
             <StyledSelectControl
-              ref={ref => {
+              ref={(ref: ReactSelect) => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
                   return;
@@ -252,9 +253,9 @@ class ContextPickerModal extends React.Component<Props> {
             />
           )}
 
-          {organization && needProject && projects.length && (
+          {shouldShowProjectSelector && (
             <StyledSelectControl
-              ref={ref => {
+              ref={(ref: ReactSelect) => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
               }}
@@ -265,9 +266,11 @@ class ContextPickerModal extends React.Component<Props> {
               options={projectChoices}
               onChange={this.handleSelectProject}
               onMenuOpen={() => {
+                // Hacky way to pre-focus to an item with newer versions of react select
                 // See https://github.com/JedWatson/react-select/issues/3648
                 setTimeout(() => {
-                  if (this.projectSelect) {
+                  const ref = this.projectSelect;
+                  if (ref) {
                     const projectToBeFocused = projects.find(
                       ({id}) => id === comingFromProjectId
                     );
@@ -276,9 +279,9 @@ class ContextPickerModal extends React.Component<Props> {
                     );
                     if (selectedIndex >= 0 && projectToBeFocused) {
                       // Focusing selected option only if it exists
-                      this.projectSelect.select.scrollToFocusedOptionOnUpdate = true;
-                      this.projectSelect.select.inputIsHiddenAfterUpdate = false;
-                      this.projectSelect.select.setState({
+                      ref.select.scrollToFocusedOptionOnUpdate = true;
+                      ref.select.inputIsHiddenAfterUpdate = false;
+                      ref.select.setState({
                         focusedValue: null,
                         focusedOption: projectChoices[selectedIndex],
                       });
