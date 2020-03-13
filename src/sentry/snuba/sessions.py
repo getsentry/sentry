@@ -100,6 +100,7 @@ def _make_stats(start, rollup, buckets):
 
 
 STATS_PERIODS = {
+    "1h": (3600, 1),
     "24h": (3600, 24),
     "1d": (3600, 24),
     "48h": (3600, 48),
