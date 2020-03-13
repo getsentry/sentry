@@ -55,6 +55,21 @@ describe('InviteMembersModal', function() {
     expect(wrapper.find('RoleSelectControl Value').text()).toBe('Member');
   });
 
+  it('renders without organization.access', async function() {
+    const organization = TestStubs.Organization({access: undefined});
+    const wrapper = mountWithTheme(
+      <InviteMembersModal
+        Body={Modal.Body}
+        Header={Modal.Header}
+        Footer={Modal.Footer}
+        organization={organization}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(wrapper.find('StyledInviteRow').exists()).toBe(true);
+  });
+
   it('can add a second row', async function() {
     const wrapper = mountWithTheme(
       <InviteMembersModal
