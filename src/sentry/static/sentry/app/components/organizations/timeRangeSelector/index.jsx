@@ -116,6 +116,11 @@ class TimeRangeSelector extends React.PureComponent {
      * Allow user to clear the time range selection
      */
     allowClearTimeRange: PropTypes.bool,
+
+    /**
+     * Small info icon with tooltip hint text
+     */
+    hint: PropTypes.string,
   };
 
   static defaultProps = {
@@ -300,7 +305,13 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {showAbsolute, showRelative, organization, allowClearTimeRange} = this.props;
+    const {
+      showAbsolute,
+      showRelative,
+      organization,
+      allowClearTimeRange,
+      hint,
+    } = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -338,6 +349,7 @@ class TimeRangeSelector extends React.PureComponent {
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
               allowClear={allowClear}
+              hint={hint}
               {...getActorProps()}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}

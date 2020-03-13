@@ -100,12 +100,15 @@ def _make_stats(start, rollup, buckets):
 
 
 STATS_PERIODS = {
+    "1h": (3600, 1),
     "24h": (3600, 24),
     "1d": (3600, 24),
     "48h": (3600, 48),
     "2d": (3600, 48),
     "7d": (86400, 7),
     "14d": (86400, 14),
+    "30d": (86400, 30),
+    "90d": (259200, 30),
 }
 
 
@@ -192,7 +195,12 @@ def get_release_health_data_overview(
 
     # Add releases without data points
     if missing_releases:
-        has_health_data = check_has_health_data(missing_releases)
+        # If we're already looking at a 90 day horizont we don't need to
+        # fire another query, we can already assume there is no data.
+        if summary_stats_period != "90d":
+            has_health_data = check_has_health_data(missing_releases)
+        else:
+            has_health_data = ()
         for key in missing_releases:
             rv[key] = {
                 "duration_p50": None,

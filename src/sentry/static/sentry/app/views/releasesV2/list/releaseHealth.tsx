@@ -5,7 +5,7 @@ import {Location} from 'history';
 import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
@@ -30,7 +30,7 @@ const ReleaseHealth = ({release, location}: Props) => {
     crashFreeUsers,
     crashFreeSessions,
     sessionsCrashed,
-    // sessionsErrored,
+    totalUsers,
   } = release.healthData!;
 
   const healthStatsPeriods = [
@@ -87,22 +87,26 @@ const ReleaseHealth = ({release, location}: Props) => {
             </DailyUsersColumn>
 
             <AdoptionColumn>
-              {defined(adoption) ? (
-                <ScoreBar
-                  score={convertAdoptionToProgress(adoption)}
-                  size={14}
-                  thickness={14}
-                  palette={[
-                    theme.red,
-                    theme.yellowOrange,
-                    theme.yellowOrange,
-                    theme.green,
-                    theme.green,
-                  ]}
-                />
-              ) : (
-                '-'
-              )}
+              <AdoptionWrapper>
+                {defined(adoption) && (
+                  <StyledScoreBar
+                    score={convertAdoptionToProgress(adoption)}
+                    size={14}
+                    thickness={14}
+                    palette={[
+                      theme.red,
+                      theme.yellowOrange,
+                      theme.yellowOrange,
+                      theme.green,
+                      theme.green,
+                    ]}
+                  />
+                )}
+                <div>
+                  <Count value={totalUsers} /> &nbsp;
+                  {tn('user', 'users', totalUsers)}
+                </div>
+              </AdoptionWrapper>
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
@@ -230,6 +234,17 @@ const ErrorsColumn = styled(RightColumn)`
 const StyledPanelItem = styled(PanelItem)`
   background: ${p => p.theme.offWhite};
   padding-top: 0;
+`;
+
+const AdoptionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap-reverse;
+`;
+
+const StyledScoreBar = styled(ScoreBar)`
+  margin-right: ${space(1)};
 `;
 
 const StyledProgressRing = styled(ProgressRing)`

@@ -125,6 +125,11 @@ class GlobalSelectionHeader extends React.Component {
      */
     allowClearTimeRange: PropTypes.bool,
 
+    /**
+     * Small info icon with tooltip hint text
+     */
+    timeRangeHint: PropTypes.string,
+
     // Callbacks //
     onChangeProjects: PropTypes.func,
     onUpdateProjects: PropTypes.func,
@@ -563,6 +568,7 @@ class GlobalSelectionHeader extends React.Component {
       showDateSelector,
       showEnvironmentSelector,
       allowClearTimeRange,
+      timeRangeHint,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -650,6 +656,7 @@ class GlobalSelectionHeader extends React.Component {
                 onUpdate={this.handleUpdateTime}
                 organization={organization}
                 allowClearTimeRange={allowClearTimeRange}
+                hint={timeRangeHint}
               />
             </HeaderItemPosition>
           </React.Fragment>
