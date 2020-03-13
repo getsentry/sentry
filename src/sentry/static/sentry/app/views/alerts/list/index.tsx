@@ -60,6 +60,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     ];
   }
 
+  /**
+   * Memoized function to find a project from a list of projects
+   */
   getProject = memoize((slug, projects) =>
     projects.find(project => project.slug === slug)
   );
