@@ -11,6 +11,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -197,9 +198,6 @@ class IncidentsListContainer extends React.Component<Props> {
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
-              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
-                {t('Send feedback')}
-              </FeedbackLink>
             </StyledPageHeading>
 
             <Actions>
@@ -238,6 +236,13 @@ class IncidentsListContainer extends React.Component<Props> {
             </Actions>
           </PageHeader>
 
+          <Alert type="info" icon="icon-circle-info">
+            {t('This feature is in beta and currently shows only metric alerts. ')}
+
+            <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+              {t('Please contact us if you have any feedback.')}
+            </FeedbackLink>
+          </Alert>
           <IncidentsList {...this.props} />
         </PageContent>
       </DocumentTitle>
