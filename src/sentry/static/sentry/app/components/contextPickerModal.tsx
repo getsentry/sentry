@@ -99,7 +99,7 @@ class ContextPickerModal extends React.Component<Props> {
   }
 
   orgSelect: Element | null = null;
-  projectSelect: Element | null = null;
+  projectSelect: Element | null | any = null;
 
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
@@ -168,21 +168,6 @@ class ContextPickerModal extends React.Component<Props> {
     this.doFocus(this.orgSelect);
   };
 
-  focusProjectOption = (projectId: string, projects: Project[]) => {
-    if (!this.projectSelect || this.props.loading) {
-      return;
-    }
-
-    const projectToBeFocused = projects.find(({id}) => id === projectId);
-
-    if (projectToBeFocused) {
-      (this.projectSelect as SelectControl).focusOption({
-        label: projectToBeFocused.slug,
-        value: projectToBeFocused.slug,
-      });
-    }
-  };
-
   handleSelectOrganization = ({value}: {value: string}) => {
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
@@ -242,6 +227,8 @@ class ContextPickerModal extends React.Component<Props> {
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
 
+    const projectChoices = projects.map(({slug}) => ({label: slug, value: slug}));
+
     return (
       <React.Fragment>
         <Header closeButton>{this.headerText}</Header>
@@ -249,7 +236,6 @@ class ContextPickerModal extends React.Component<Props> {
           {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
             <StyledSelectControl
-              deprecatedSelectControl
               ref={ref => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
@@ -260,27 +246,46 @@ class ContextPickerModal extends React.Component<Props> {
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              openOnFocus
+              openMenuOnFocus
               value={organization}
               onChange={this.handleSelectOrganization}
             />
           )}
 
-          {organization && needProject && projects && (
+          {organization && needProject && projects.length && (
             <StyledSelectControl
-              deprecatedSelectControl
               ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
-                comingFromProjectId &&
-                  this.focusProjectOption(comingFromProjectId, projects);
               }}
               placeholder={t('Select a Project')}
               name="project"
               value=""
-              openOnFocus
-              options={projects.map(({slug}) => ({label: slug, value: slug}))}
+              openMenuOnFocus
+              options={projectChoices}
               onChange={this.handleSelectProject}
+              onMenuOpen={() => {
+                // See https://github.com/JedWatson/react-select/issues/3648
+                setTimeout(() => {
+                  if (this.projectSelect) {
+                    const projectToBeFocused = projects.find(
+                      ({id}) => id === comingFromProjectId
+                    );
+                    const selectedIndex = projectChoices.findIndex(
+                      option => option.value === projectToBeFocused?.slug
+                    );
+                    if (selectedIndex >= 0 && projectToBeFocused) {
+                      // Focusing selected option only if it exists
+                      this.projectSelect.select.scrollToFocusedOptionOnUpdate = true;
+                      this.projectSelect.select.inputIsHiddenAfterUpdate = false;
+                      this.projectSelect.select.setState({
+                        focusedValue: null,
+                        focusedOption: projectChoices[selectedIndex],
+                      });
+                    }
+                  }
+                });
+              }}
             />
           )}
         </Body>
@@ -317,7 +322,7 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
     return (
       <ContextPickerModal
         {...this.props}
-        projects={projects}
+        projects={projects || []}
         loading={fetching}
         organizations={this.state.organizations}
         organization={this.state.selectedOrganization}
