@@ -91,7 +91,9 @@ const ReleaseCard = ({release, project, location}: Props) => (
       </StyledPanelItem>
     </PanelBody>
 
-    {release.healthData && <ReleaseHealth release={release} location={location} />}
+    {release.healthData?.hasHealthData && (
+      <ReleaseHealth release={release} location={location} />
+    )}
   </Panel>
 );
 

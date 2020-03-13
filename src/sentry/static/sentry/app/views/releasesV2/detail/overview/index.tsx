@@ -4,7 +4,8 @@ import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {Organization, GlobalSelection} from 'app/types';
 import space from 'app/styles/space';
 
 import HealthChart from './healthChart';
@@ -19,12 +20,13 @@ type Props = {
   organization: Organization;
   params: Params;
   location: Location;
+  selection: GlobalSelection;
 };
 
-const ReleaseOverview = ({organization, params, location}: Props) => {
-  const projectId =
-    typeof location.query.project === 'string' ? location.query.project : undefined;
+const ReleaseOverview = ({organization, params, selection}: Props) => {
+  const projectId = String(selection.projects[0]);
 
+  // TODO(releasesV2): we will handle this later with forced project selector
   if (!projectId) {
     return null;
   }
@@ -44,7 +46,7 @@ const ReleaseOverview = ({organization, params, location}: Props) => {
                 <CommitAuthorBreakdown
                   version={version}
                   orgId={organization.slug}
-                  projectId={location.query.project as string}
+                  projectId={projectId}
                   commitCount={commitCount}
                 />
               )}
@@ -78,4 +80,4 @@ const Sidebar = styled('div')`
   grid-column: 2 / 3;
 `;
 
-export default withOrganization(ReleaseOverview);
+export default withGlobalSelection(withOrganization(ReleaseOverview));
