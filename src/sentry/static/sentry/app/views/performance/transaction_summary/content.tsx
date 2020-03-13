@@ -38,7 +38,7 @@ class SummaryContent extends React.Component<Props> {
               transactionName={transactionName}
             />
           </div>
-          <TransactionName transactionName={transactionName} />
+          <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
           <EventsV2
@@ -78,23 +78,15 @@ class SummaryContent extends React.Component<Props> {
   }
 }
 
-const TransactionName = (props: {transactionName: string}) => (
-  <StyledTitleHeader>
-    <StyledTitle>{props.transactionName}</StyledTitle>
-  </StyledTitleHeader>
-);
-
-const StyledTitleHeader = styled('div')`
+const StyledTitleHeader = styled('h2')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray2};
+  font-weight: normal;
+  line-height: 1.2;
+
+  color: ${p => p.theme.gray4};
   grid-column: 1/2;
   align-self: center;
   ${overflowEllipsis};
-`;
-
-const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray4};
-  margin-right: ${space(1)};
 `;
 
 const Side = styled('div')`
