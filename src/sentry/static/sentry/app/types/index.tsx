@@ -1010,3 +1010,15 @@ export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
 };
+
+export type Broadcast = {
+  id: string;
+  message: string;
+  title: string;
+  link: string;
+  cta: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateExpires: string;
+  hasSeen: boolean;
+};
