@@ -16,7 +16,7 @@ export default class SentryAppIcon extends React.Component<Props> {
     switch (this.props.slug) {
       case 'clickup':
         return <IconClickup size="xs" />;
-      case 'clickhouse':
+      case 'clubhouse':
         return <IconClubhouse size="xs" />;
       case 'rookout':
         return <IconRookout size="xs" />;
