@@ -145,9 +145,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
                 <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                  {({fetching, initiallyLoaded, projects}) =>
+                  {({initiallyLoaded, projects}) =>
                     incidentList.map(incident =>
-                      this.renderListItem({incident, initiallyLoaded, fetching, projects})
+                      this.renderListItem({incident, initiallyLoaded, projects})
                     )
                   }
                 </Projects>
