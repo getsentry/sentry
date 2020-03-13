@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import SelectMembers from 'app/components/selectMembers';
 import SelectControl from 'app/components/forms/selectControl';
 import {Organization, Project} from 'app/types';
-import {IssueAlertRuleAction} from 'app/types/alerts';
+import {IssueAlertRuleAction, MailActionTargetType} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 
@@ -20,12 +20,6 @@ type Props = {
 interface OptionRecord {
   value: string;
   label: string;
-}
-
-export enum MailActionTargetType {
-  IssueOwners = 'IssueOwners',
-  Team = 'Team',
-  Member = 'Member',
 }
 
 class MailActionFields extends React.Component<Props> {

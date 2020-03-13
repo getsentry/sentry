@@ -6,6 +6,7 @@ import {
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
+  MailActionTargetType,
 } from 'app/types/alerts';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -13,9 +14,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-import MailActionFields, {
-  MailActionTargetType,
-} from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
+import MailActionFields from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
 import ExternalLink from 'app/components/links/externalLink';
 import {Organization, Project} from 'app/types';
 
