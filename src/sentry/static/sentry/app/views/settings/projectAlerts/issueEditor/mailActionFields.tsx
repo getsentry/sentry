@@ -63,7 +63,7 @@ class MailActionFields extends React.Component<Props> {
       <PanelItemGrid>
         <SelectControl
           isClearable={false}
-          disabled={disabled || loading}
+          isDisabled={disabled || loading}
           value={action.targetType}
           styles={{
             control: provided => ({
