@@ -136,7 +136,9 @@ const organizationSecurityAndPrivacy: Array<JsonFormObject> = [
         help: tct(
           'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. This list of rules can be extended on a per-project level, but never overridden. [learn_more:Learn more]',
           {
-            learn_more: <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />,
+            learn_more: (
+              <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />
+            ),
           }
         ),
         visible: ({features}) => features.has('datascrubbers-v2'),
