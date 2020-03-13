@@ -206,9 +206,6 @@ class RuleNode extends React.Component<Props> {
     switch (data.targetType) {
       case MailActionTargetType.IssueOwners:
         return (
-          // Using boolean attributes on styled components cases a warning
-          // https://github.com/styled-components/styled-components/issues/1198
-          // Preferring to use boolean attributes to respect TS typing.
           <Alert thinner type="warning">
             {tct(
               'If there are no matching [issueOwners], ownership is determined by the setting on [thisPage].',
