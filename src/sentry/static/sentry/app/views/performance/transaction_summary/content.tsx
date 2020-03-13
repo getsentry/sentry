@@ -82,7 +82,7 @@ class SummaryContent extends React.Component<Props, State> {
         method: 'GET',
         includeAllArgs: true,
         query: {
-          ...apiPayload,
+          ...(apiPayload as any),
           per_page: TOP_SLOWEST_TRANSACTIONS,
         },
       })

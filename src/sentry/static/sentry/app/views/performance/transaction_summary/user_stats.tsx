@@ -102,7 +102,7 @@ class UserStats extends React.Component<Props> {
         method: 'GET',
         includeAllArgs: true,
         query: {
-          ...apiPayload,
+          ...(apiPayload as any),
           // we only expect one result
           per_page: 1,
         },
