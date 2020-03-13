@@ -29,9 +29,8 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-github');
+    const icon = wrapper.find('IconGithub');
+    expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
     expect(link).toHaveLength(1);
@@ -49,9 +48,8 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-github');
+    const icon = wrapper.find('IconGithub');
+    expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
     expect(link).toHaveLength(1);
@@ -69,9 +67,8 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-gitlab');
+    const icon = wrapper.find('IconGitlab');
+    expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
     expect(link).toHaveLength(1);
@@ -89,9 +86,8 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('InlineSvg');
-    expect(icon).toHaveLength(1);
-    expect(icon.props().src).toEqual('icon-gitlab');
+    const icon = wrapper.find('IconGitlab');
+    expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
     expect(link).toHaveLength(1);
