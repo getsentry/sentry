@@ -9,7 +9,7 @@ from django.conf import settings
 
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing
+from sentry import features, reprocessing, options
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
@@ -258,8 +258,10 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # XXX(markus): Javascript event error translation is happening after this block
     # because it uses `get_event_preprocessors` instead of
     # `get_event_enhancers`, possibly move?
-    if has_changed and features.has(
-        "organizations:datascrubbers-v2", project.organization, actor=None
+    if (
+        has_changed
+        and options.get("processing.can-use-scrubbers")
+        and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
     ):
         with metrics.timer("tasks.store.datascrubbers.scrub"):
             project_config = get_project_config(project)
