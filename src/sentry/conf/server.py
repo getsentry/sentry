@@ -797,7 +797,7 @@ SENTRY_FEATURES = {
     # is not enabled).
     "organizations:create": True,
     # Enable the 'data-export' interface.
-    "organizations:data-export": True,
+    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
@@ -811,9 +811,9 @@ SENTRY_FEATURES = {
     # Enable events v2 instead of the events stream
     "organizations:events-v2": False,
     # Enable discover 2 basic functions
-    "organizations:discover-basic": True,
+    "organizations:discover-basic": False,
     # Enable discover 2 custom queries and saved queries
-    "organizations:discover-query": True,
+    "organizations:discover-query": False,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
