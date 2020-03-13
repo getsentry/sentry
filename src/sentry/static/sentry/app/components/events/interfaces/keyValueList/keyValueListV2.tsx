@@ -41,38 +41,42 @@ const KeyValueList = ({
     <table className="table key-value" onClick={onClick}>
       <tbody>
         {getData().map(
-          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => (
-            <tr key={key}>
-              <TableSubject className="key" wide={longKeys}>
-                {subject}
-              </TableSubject>
-              <td className="val" data-test-id={subjectDataTestId}>
-                {isContextData ? (
-                  <ContextData
-                    data={!raw ? value : JSON.stringify(value)}
-                    meta={meta}
-                    withAnnotatedText
-                  >
-                    {subjectIcon}
-                  </ContextData>
-                ) : (
-                  <pre className="val-string">
-                    {meta ? (
-                      <AnnotatedText
-                        value={value}
-                        chunks={meta.chunks}
-                        remarks={meta.rem}
-                        errors={meta.err}
-                      />
-                    ) : (
-                      value
-                    )}
-                    {subjectIcon}
-                  </pre>
-                )}
-              </td>
-            </tr>
-          )
+          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
+            const dataValue =
+              typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+            return (
+              <tr key={key}>
+                <TableSubject className="key" wide={longKeys}>
+                  {subject}
+                </TableSubject>
+                <td className="val" data-test-id={subjectDataTestId}>
+                  {isContextData ? (
+                    <ContextData
+                      data={!raw ? value : JSON.stringify(value)}
+                      meta={meta}
+                      withAnnotatedText
+                    >
+                      {subjectIcon}
+                    </ContextData>
+                  ) : (
+                    <pre className="val-string">
+                      {meta ? (
+                        <AnnotatedText
+                          value={dataValue}
+                          chunks={meta.chunks}
+                          remarks={meta.rem}
+                          errors={meta.err}
+                        />
+                      ) : (
+                        dataValue
+                      )}
+                      {subjectIcon}
+                    </pre>
+                  )}
+                </td>
+              </tr>
+            );
+          }
         )}
       </tbody>
     </table>
