@@ -122,7 +122,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
             gtv_list = get_issues_list(
                 project_id=group.project_id,
                 group_id=group.id,
-                environment_id=None,
+                environment_id=environment_id,
                 key=lookup_key,
                 callbacks=callbacks,
                 offset=offset,
