@@ -10,14 +10,7 @@ from django.db import transaction, IntegrityError
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData, File
 from sentry.processing.base import ProcessingError
-from sentry.processing.issues_by_tag import (
-    get_project_and_group,
-    get_lookup_key,
-    get_eventuser_callback,
-    get_fields,
-    get_issues_list,
-    serialize_issue,
-)
+from sentry.processing.issues_by_tag import IssuesByTagProcessor
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
@@ -95,50 +88,41 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     payload = data_export.query_info
-    key = payload["key"]
-
     try:
-        project, group = get_project_and_group(payload["project_id"], payload["group_id"])
+        processor = IssuesByTagProcessor(
+            project_id=payload["project_id"],
+            group_id=payload["group_id"],
+            key=payload["key"],
+            environment_id=environment_id,
+        )
     except ProcessingError as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise DataExportError(error)
 
-    # Create the callback list and lookup key
-    callbacks = [get_eventuser_callback(group.project_id)] if key == "user" else []
-    lookup_key = get_lookup_key(key)
-
     # Example file name: Issues-by-Tag_project10-user_721.csv
     file_name = get_file_name(
         export_type=ExportQueryType.ISSUES_BY_TAG_STR,
-        info_string=six.text_type("{}-{}".format(project.slug, key)),
+        info_string=six.text_type("{}-{}".format(processor.project.slug, processor.key)),
         data_export_id=data_export.id,
     )
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, get_fields(key))
+    writer = create_writer(file, processor.fields)
     iteration = 0
     with snuba_error_handler():
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            gtv_list = get_issues_list(
-                project_id=group.project_id,
-                group_id=group.id,
-                environment_id=environment_id,
-                key=lookup_key,
-                callbacks=callbacks,
-                offset=offset,
-            )
+            gtv_list = processor.get_serialized_data(offset=offset)
             if len(gtv_list) == 0:
                 break
-            gtv_list_raw = [serialize_issue(item, key) for item in gtv_list]
             if limit and limit < next_offset:
                 # Since the next offset will pass the limit, write the remainder and quit
-                writer.writerows(gtv_list_raw[: limit % SNUBA_MAX_RESULTS])
+                writer.writerows(gtv_list[: limit % SNUBA_MAX_RESULTS])
                 break
             else:
-                writer.writerows(gtv_list_raw)
+                writer.writerows(gtv_list)
                 iteration += 1
     return file_name
 

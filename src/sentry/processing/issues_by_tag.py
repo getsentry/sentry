@@ -85,14 +85,14 @@ class IssuesByTagProcessor(BaseProcessor):
         self.group = self.get_group(group_id)
         self.key = key
         self.environment_id = environment_id
-        self.fields = self.get_fields(key)
-        self.lookup_key = self.get_lookup_key(key)
+        self.fields = self.get_fields(self.key)
+        self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
-            tagstore.get_tag_key(project_id, environment_id, self.lookup_key)
+            tagstore.get_tag_key(self.project.id, environment_id, self.lookup_key)
         except tagstore.TagKeyNotFound:
             raise ProcessingError("Requested key does not exist")
-        self.callbacks = self.get_callbacks(key, self.group.project_id)
+        self.callbacks = self.get_callbacks(self.key, self.group.project_id)
 
     def get_group(self, group_id):
         try:
@@ -119,7 +119,7 @@ class IssuesByTagProcessor(BaseProcessor):
             return ["value", "times_seen", "last_seen", "first_seen"]
 
     def get_lookup_key(self, key):
-        return six.text_type("sentry:{}").format(key) if tagstore.is_reserved_key(key) else key
+        return six.text_type("sentry:{}".format(key)) if tagstore.is_reserved_key(key) else key
 
     def get_eventuser_callback(self, project_id):
         def attach_eventuser(items):
