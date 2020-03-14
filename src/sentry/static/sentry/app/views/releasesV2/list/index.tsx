@@ -25,7 +25,6 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import Projects from 'app/utils/projects';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
-import ReleaseListPeriod from './releaseListPeriod';
 
 type Props = {
   params: Params;
@@ -57,9 +56,9 @@ class ReleasesList extends AsyncView<Props, State> {
         'cursor',
         'query',
         'sort',
-        'summaryStatsPeriod',
         'healthStatsPeriod',
       ]),
+      summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
       health: 1,
       flatten: 1,
@@ -80,12 +79,6 @@ class ReleasesList extends AsyncView<Props, State> {
     return typeof sort === 'string' ? sort : 'date';
   }
 
-  getPeriod() {
-    const {summaryStatsPeriod} = this.props.location.query;
-
-    return typeof summaryStatsPeriod === 'string' ? summaryStatsPeriod : '48h';
-  }
-
   handleSearch = (query: string) => {
     const {location, router} = this.props;
 
@@ -101,15 +94,6 @@ class ReleasesList extends AsyncView<Props, State> {
     router.push({
       ...location,
       query: {...location.query, cursor: undefined, sort},
-    });
-  };
-
-  handlePeriod = (summaryStatsPeriod: string) => {
-    const {location, router} = this.props;
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, summaryStatsPeriod},
     });
   };
 
@@ -182,7 +166,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false} />
+        <GlobalSelectionHeader
+          organization={organization}
+          showAbsolute={false}
+          timeRangeHint={t(
+            'Changing this date range will recalculate the release metrics.'
+          )}
+        />
 
         <NoProjectMessage organization={organization}>
           <PageContent>
@@ -191,10 +181,6 @@ class ReleasesList extends AsyncView<Props, State> {
                 {t('Releases v2')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
-                <ReleaseListPeriod
-                  selected={this.getPeriod()}
-                  onSelect={this.handlePeriod}
-                />
                 <ReleaseListSortOptions
                   selected={this.getSort()}
                   onSelect={this.handleSort}

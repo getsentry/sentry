@@ -457,7 +457,7 @@ export type Config = {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   isOnPremise: boolean;
-  lastOrganization: string;
+  lastOrganization: string | null;
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
@@ -470,7 +470,10 @@ export type Config = {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage: string | null;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -1009,4 +1012,16 @@ export type ResolutionStatusDetails = {
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
+};
+
+export type Broadcast = {
+  id: string;
+  message: string;
+  title: string;
+  link: string;
+  cta: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateExpires: string;
+  hasSeen: boolean;
 };
