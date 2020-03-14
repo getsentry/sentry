@@ -30,7 +30,7 @@ class IssuesByTagProcessor(BaseProcessor):
             )
             return group
         except Group.DoesNotExist:
-            raise ProcessingError("Requested group does not exist")
+            raise ProcessingError("Requested issue does not exist")
 
     @staticmethod
     def get_fields(key):

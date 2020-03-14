@@ -28,34 +28,13 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert assemble_download.name == "sentry.tasks.data_export.assemble_download"
 
     def test_get_file_name(self):
-        file_name = get_file_name("TESTING", "proj1_user1_test", "ext")
-        assert file_name == "TESTING-proj1_user1_test.ext"
-        file_name = get_file_name("TESTING", "proj1_user1_test")
-        assert file_name == "TESTING-proj1_user1_test.csv"
+        file_name = get_file_name("TESTING", "proj1-user1-test", 1, "ext")
+        assert file_name == "TESTING_proj1-user1-test_1.ext"
+        file_name = get_file_name("TESTING", "proj1-user1-test", 2)
+        assert file_name == "TESTING_proj1-user1-test_2.csv"
 
     def test_issue_by_tag(self):
-        de1 = ExportedData.objects.create(
-            user=self.user,
-            organization=self.org,
-            query_type=0,
-            query_info={
-                "project_id": self.project.id,
-                "group_id": self.event.group_id,
-                "key": "user",
-            },
-        )
-        with self.tasks():
-            assemble_download(de1.id)
-        de1 = ExportedData.objects.get(id=de1.id)
-        assert de1.date_finished is not None
-        assert de1.date_expired is not None
-        assert de1.file is not None
-        f1 = de1.file
-        assert isinstance(f1, File)
-        assert f1.headers == {"Content-Type": "text/csv"}
-        raw1 = f1.getfile().read()
-        assert raw1 == "value,id,email,username,ip_address,times_seen,last_seen,first_seen\r\n"
-        de2 = ExportedData.objects.create(
+        de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
             query_type=0,
@@ -66,10 +45,15 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             },
         )
         with self.tasks():
-            assemble_download(de2.id)
-        de2 = ExportedData.objects.get(id=de2.id)
+            assemble_download(de.id)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = de2.file.getfile().read().strip().split("\r\n")
+        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
         assert header == "value,times_seen,last_seen,first_seen"
 
         raw1, raw2 = sorted([raw1, raw2])
