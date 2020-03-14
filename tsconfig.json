@@ -19,7 +19,7 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "pretty": true,
+    "pretty": false,
     "sourceMap": true,
     "strict": true,
     "target": "es5",
