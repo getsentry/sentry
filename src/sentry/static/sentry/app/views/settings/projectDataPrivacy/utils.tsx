@@ -1,58 +1,46 @@
 import {t} from 'app/locale';
 
-enum DATA_TYPE {
-  CREDIT_CARD_NUMBERS = 'credit_card_number',
-  BANK_ACCOUNTS = 'bank_accounts',
-  PASSWORD = 'passwords',
-  PHONE_NUMBERS = 'phone_numbers',
-  IP_ADDRESSES = 'ip_addresses',
-  CUSTOM_REGULAR_EXPRESSION = 'custom_regular_expression',
-}
+export type DataType = 'creditcard' | 'iban' | 'password' | 'ip' | 'pattern';
+const ALL_DATA_TYPES: DataType[] = ['creditcard', 'iban', 'password', 'ip', 'pattern'];
 
-enum ACTION_TYPE {
-  MASK = 'mask',
-  REMOVE = 'remove',
-  HASH = 'hash',
-  REPLACE = 'replace',
-}
+export type ActionType = 'mask' | 'remove' | 'hash' | 'replace';
+const ALL_ACTION_TYPES: ActionType[] = ['mask', 'remove', 'hash', 'replace'];
 
-function getDataSelectorFieldLabel(labelType: DATA_TYPE): string {
+function getDataSelectorFieldLabel(labelType: DataType): string {
   switch (labelType) {
-    case DATA_TYPE.CREDIT_CARD_NUMBERS:
+    case 'creditcard':
       return t('Credit Card Number');
-    case DATA_TYPE.BANK_ACCOUNTS:
-      return t('Bank accounts');
-    case DATA_TYPE.PASSWORD:
+    case 'iban':
+      return t('IBAN bank accounts');
+    case 'password':
       return t('Passwords');
-    case DATA_TYPE.PHONE_NUMBERS:
-      return t('Phone Numbers');
-    case DATA_TYPE.IP_ADDRESSES:
+    case 'ip':
       return t('IP Addresses');
-    case DATA_TYPE.CUSTOM_REGULAR_EXPRESSION:
+    case 'pattern':
       return t('Custom Regular Expression');
     default:
-      return '';
+      return labelType;
   }
 }
 
-function getActionTypeSelectorFieldLabel(labelType: ACTION_TYPE): string {
+function getActionTypeSelectorFieldLabel(labelType: ActionType): string {
   switch (labelType) {
-    case ACTION_TYPE.MASK:
+    case 'mask':
       return t('Mask');
-    case ACTION_TYPE.HASH:
+    case 'hash':
       return t('Hash');
-    case ACTION_TYPE.REMOVE:
+    case 'remove':
       return t('Remove');
-    case ACTION_TYPE.REPLACE:
+    case 'replace':
       return t('Replace');
     default:
-      return '';
+      return labelType;
   }
 }
 
 export {
-  DATA_TYPE,
+  ALL_DATA_TYPES,
   getDataSelectorFieldLabel,
-  ACTION_TYPE,
+  ALL_ACTION_TYPES,
   getActionTypeSelectorFieldLabel,
 };

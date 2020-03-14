@@ -11,14 +11,16 @@ import Button from 'app/components/button';
 import {
   getDataSelectorFieldLabel,
   getActionTypeSelectorFieldLabel,
-  DATA_TYPE,
-  ACTION_TYPE,
+  DataType,
+  ALL_DATA_TYPES,
+  ALL_ACTION_TYPES,
+  ActionType,
 } from './utils';
 
 type Rule = {
   id: number;
-  action: ACTION_TYPE;
-  data: DATA_TYPE;
+  action: ActionType;
+  data: DataType;
   from: string;
   customRegularExpression?: string;
 };
@@ -84,8 +86,8 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
           <StyledSelectControl
             placeholder={t('Select an action')}
             name="action"
-            options={Object.entries(ACTION_TYPE).map(([key, value]) => ({
-              label: getActionTypeSelectorFieldLabel(ACTION_TYPE[key]),
+            options={ALL_ACTION_TYPES.map(value => ({
+              label: getActionTypeSelectorFieldLabel(value),
               value,
             }))}
             height={40}
@@ -98,8 +100,8 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
           <StyledSelectControl
             placeholder={t('Select data')}
             name="data"
-            options={Object.entries(DATA_TYPE).map(([key, value]) => ({
-              label: getDataSelectorFieldLabel(DATA_TYPE[key]),
+            options={ALL_DATA_TYPES.map(value => ({
+              label: getDataSelectorFieldLabel(value),
               value,
             }))}
             height={40}
@@ -122,7 +124,7 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
             onBlur={this.handleValidation('from')}
             error={errors.from}
           />
-          {data === DATA_TYPE.CUSTOM_REGULAR_EXPRESSION && (
+          {data === 'pattern' && (
             <CustomRegularExpression
               name="customRegularExpression"
               placeholder={t('Enter custom regular expression')}

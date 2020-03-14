@@ -72,7 +72,11 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
             ]}
           />
         </Form>
-        <ProjectDataPrivacyRulesPanel />
+        <ProjectDataPrivacyRulesPanel
+          initialData={project}
+          apiMethod="PUT"
+          apiEndpoint={endpoint}
+        />
       </React.Fragment>
     );
   }
