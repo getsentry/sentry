@@ -11,11 +11,13 @@ import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import {PageContent} from 'app/styles/organization';
-import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
+import {openModal} from 'app/actionCreators/modal';
+import ContextPickerModal from 'app/components/contextPickerModal';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -55,6 +57,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
+      // TODO(releasesV2): summaryStatsPeriod + healthStatsPeriod?
       health: 1,
     };
 
@@ -68,21 +71,23 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  renderError(error: Error, disableLog = false, disableReport = false) {
+  renderError() {
     const {errors} = this.state;
-    const has404Errors = Object.values(errors).find(e => e?.status === 404);
+    const {router, location} = this.props;
+    const possiblyWrongProject = Object.values(errors).find(
+      e => e?.status === 404 || e?.status === 403
+    );
 
-    if (has404Errors) {
-      return (
-        <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
-            {t('This release may not be in your selected project')}
-          </Alert>
-        </PageContent>
-      );
+    if (possiblyWrongProject) {
+      addErrorMessage(t('This release may not be in your selected project.'));
+      // refreshing this page without project ID will bring up a project selector
+      router.replace({
+        ...location,
+        query: {...location.query, project: undefined},
+      });
     }
 
-    return super.renderError(error, disableLog, disableReport);
+    return null;
   }
 
   renderBody() {
@@ -108,15 +113,59 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-const ReleasesV2DetailContainer = (props: Props) => (
-  <React.Fragment>
-    <GlobalSelectionHeader organization={props.organization} />
-    <ReleasesV2Detail {...props} />
-  </React.Fragment>
-);
+const ReleasesV2DetailContainer = (props: Props) => {
+  const {organization, location, router, params} = props;
+
+  const projectId = location.query.project;
+
+  // if there is no project in url, present a project selector
+  if (!projectId) {
+    openModal(
+      ({Header, Body}) => (
+        <ContextPickerModal
+          Header={Header}
+          Body={Body}
+          needOrg={false}
+          needProject
+          nextPath={`/organizations/${organization.slug}/releases-v2/${encodeURIComponent(
+            params.release
+          )}/`}
+          onFinish={(pathname, project) => {
+            router.replace({pathname, query: {project: project?.id}});
+          }}
+        />
+      ),
+      {
+        onClose() {
+          // if a user closes the modal (either via button, Ecs, clicking outside)
+          router.goBack();
+        },
+      }
+    );
+
+    return <ContextPickerBackground />;
+  }
+
+  // otherwhise business as usual
+  return (
+    <React.Fragment>
+      <GlobalSelectionHeader
+        organization={organization}
+        shouldForceProject
+        forceProject={organization.projects.find(p => p.id === projectId)}
+      />
+      <ReleasesV2Detail {...props} />
+    </React.Fragment>
+  );
+};
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const ContextPickerBackground = styled('div')`
+  height: 100vh;
+  width: 100%;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};
