@@ -1,33 +1,41 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {t} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/sentryTypes';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'app/icons/iconBroadcast';
 import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import {Organization, Broadcast} from 'app/types';
+
+import {SidebarOrientation, SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
-class Broadcasts extends React.Component {
-  static propTypes = {
-    orientation: PropTypes.oneOf(['top', 'left']),
-    collapsed: PropTypes.bool,
-    showPanel: PropTypes.bool,
-    currentPanel: PropTypes.string,
-    hidePanel: PropTypes.func,
-    onShowPanel: PropTypes.func.isRequired,
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+  orientation: SidebarOrientation;
+  collapsed: boolean;
+  showPanel: boolean;
+  currentPanel: SidebarPanelKey;
+  hidePanel: () => void;
+  onShowPanel: () => void;
+};
 
-  state = {
+type State = {
+  broadcasts: Broadcast[];
+  loading: boolean;
+  error: boolean;
+};
+
+class Broadcasts extends React.Component<Props, State> {
+  state: State = {
     broadcasts: [],
     loading: true,
     error: false,
@@ -51,72 +59,58 @@ class Broadcasts extends React.Component {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  }
+  poller: number | null = null;
+  timer: number | null = null;
 
   startPoll() {
     this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
   }
 
   stopPoll() {
-    window.clearTimeout(this.poller);
-    this.poller = null;
+    if (this.poller) {
+      window.clearTimeout(this.poller);
+      this.poller = null;
+    }
   }
 
-  fetchData = () => {
+  fetchData = async () => {
     if (this.poller) {
       this.stopPoll();
     }
 
-    return getAllBroadcasts(this.props.api, this.props.organization.slug)
-      .then(data => {
-        this.setState({
-          broadcasts: data || [],
-          loading: false,
-        });
-        this.startPoll();
-      })
-      .catch(() => {
-        this.setState({
-          loading: false,
-          error: true,
-        });
-        this.startPoll();
-      });
+    try {
+      const data = await getAllBroadcasts(this.props.api, this.props.organization.slug);
+      this.setState({loading: false, broadcasts: data || []});
+    } catch {
+      this.setState({loading: false, error: true});
+    }
+
+    this.startPoll();
   };
 
   /**
-   * If tab/window loses visiblity (note: this is different than focus), stop polling for broadcasts data, otherwise,
-   * if it gains visibility, start polling again.
+   * If tab/window loses visiblity (note: this is different than focus), stop
+   * polling for broadcasts data, otherwise, if it gains visibility, start
+   * polling again.
    */
-  handleVisibilityChange = () => {
-    if (document.hidden) {
-      this.stopPoll();
-    } else {
-      this.startPoll();
-    }
-  };
+  handleVisibilityChange = () => (document.hidden ? this.stopPoll() : this.startPoll());
 
   handleShowPanel = () => {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   };
 
-  markSeen = () => {
+  markSeen = async () => {
     const unseenBroadcastIds = this.unseenIds;
     if (unseenBroadcastIds.length === 0) {
       return;
     }
 
-    markBroadcastsAsSeen(this.props.api, unseenBroadcastIds).then(() => {
-      this.setState(state => ({
-        broadcasts: state.broadcasts.map(item => {
-          item.hasSeen = true;
-          return item;
-        }),
-      }));
-    });
+    await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
+
+    this.setState(state => ({
+      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
+    }));
   };
 
   get unseenIds() {
