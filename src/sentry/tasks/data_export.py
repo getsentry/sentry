@@ -85,7 +85,6 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     """
     Convert the tag query to a CSV, writing it to the provided file.
     Returns the suggested file name.
-    (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     payload = data_export.query_info
     try:
