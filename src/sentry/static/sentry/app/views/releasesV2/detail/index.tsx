@@ -119,7 +119,7 @@ const ReleasesV2DetailContainer = (props: Props) => {
   const projectId = location.query.project;
 
   // if there is no project in url, present a project selector
-  if (!projectId) {
+  if (!projectId || typeof projectId !== 'string') {
     openModal(
       ({Header, Body}) => (
         <ContextPickerModal
@@ -129,9 +129,9 @@ const ReleasesV2DetailContainer = (props: Props) => {
           needProject
           nextPath={`/organizations/${organization.slug}/releases-v2/${encodeURIComponent(
             params.release
-          )}/`}
-          onFinish={(pathname, project) => {
-            router.replace({pathname, query: {project: project?.id}});
+          )}/?project=:project`}
+          onFinish={pathname => {
+            router.replace(pathname);
           }}
         />
       ),

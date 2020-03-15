@@ -58,7 +58,7 @@ type Props = {
   /**
    * Finish callback
    */
-  onFinish: (path: string, project?: Project) => void;
+  onFinish: (path: string) => void;
 
   /**
    * Callback for when organization is selected
@@ -141,8 +141,8 @@ class ContextPickerModal extends React.Component<Props> {
       replaceRouterParams(nextPath, {
         orgId: org,
         projectId: projects[0].slug,
-      }),
-      this.props.projects.find(p => p.slug === projects[0].slug)
+        project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+      })
     );
   };
 

@@ -93,7 +93,7 @@ describe('ContextPickerModal', function() {
     await tick();
     wrapper.update();
 
-    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/', project2);
+    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
 
     await tick();
     wrapper.unmount();
@@ -221,10 +221,7 @@ describe('ContextPickerModal', function() {
       .at(1)
       .simulate('mouseDown');
 
-    expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/', {
-      ...project,
-      slug: 'project3',
-    });
+    expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
 
     await tick();
     wrapper.unmount();
