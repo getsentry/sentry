@@ -5,4 +5,11 @@ module.exports = {
   extends: ['sentry-app'],
 
   rules: {},
+
+  overrides: [
+    {
+      files: ['*.ts', '*.tsx'],
+      rules: {},
+    },
+  ],
 };
