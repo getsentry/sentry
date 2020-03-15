@@ -79,7 +79,7 @@ describe('ProjectFilters', function() {
   });
 
   it('can toggle filters: localhost, web crawlers', function() {
-    ['localhost', 'web-crawlers'].map((filter, i) => {
+    ['localhost', 'web-crawlers'].map(filter => {
       const mock = createFilterMock(filter);
       const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
