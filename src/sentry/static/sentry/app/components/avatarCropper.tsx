@@ -17,8 +17,10 @@ const resizerPositions = {
 
 type Position = keyof typeof resizerPositions;
 
+type Model = Pick<AvatarUser, 'avatar'>;
+
 type Props = {
-  model: AvatarUser;
+  model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
   type: 'user' | 'team' | 'organization' | 'project';
   savedDataUrl: string;
@@ -334,7 +336,7 @@ class AvatarCropper extends React.Component<Props, State> {
 
   get imageSrc() {
     const {savedDataUrl, model, type} = this.props;
-    const uuid = model && model.avatar && model.avatar.avatarUuid;
+    const uuid = model.avatar?.avatarUuid;
     const photoUrl = uuid && `/${AVATAR_URL_MAP[type] || 'avatar'}/${uuid}/`;
 
     return savedDataUrl || this.state.objectURL || photoUrl;
