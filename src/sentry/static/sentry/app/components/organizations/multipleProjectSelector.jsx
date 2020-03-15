@@ -29,6 +29,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
     multi: PropTypes.bool,
     shouldForceProject: PropTypes.bool,
     forceProject: SentryTypes.Project,
+    showIssueStreamLink: PropTypes.bool,
+    showProjectSettingsLink: PropTypes.bool,
+    lockedMessageSubject: PropTypes.string,
   };
 
   static contextTypes = {
@@ -37,6 +40,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
   static defaultProps = {
     multi: true,
+    lockedMessageSubject: t('page'),
   };
 
   constructor() {
@@ -136,9 +140,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
   renderProjectName() {
     const {location} = this.context.router;
-    const {forceProject, multi, organization} = this.props;
+    const {forceProject, multi, organization, showIssueStreamLink} = this.props;
 
-    if (forceProject && multi) {
+    if (showIssueStreamLink && forceProject && multi) {
       return (
         <Tooltip title={t('Issues Stream')} position="bottom">
           <StyledLink
@@ -160,6 +164,20 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return '';
   }
 
+  getLockedMessage() {
+    const {forceProject, lockedMessageSubject} = this.props;
+
+    if (forceProject) {
+      return t(
+        'This %s is unique to the %s project',
+        lockedMessageSubject,
+        forceProject.slug
+      );
+    }
+
+    return t('This %s is unique to a project', lockedMessageSubject);
+  }
+
   render() {
     const {
       value,
@@ -170,6 +188,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       organization,
       shouldForceProject,
       forceProject,
+      showProjectSettingsLink,
     } = this.props;
     const selectedProjectIds = new Set(value);
 
@@ -186,13 +205,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
         locked
-        lockedMessage={
-          forceProject
-            ? t(`This issue is unique to the ${forceProject.slug} project`)
-            : t('This issue is unique to a project')
-        }
+        lockedMessage={this.getLockedMessage()}
         settingsLink={
-          forceProject && `/settings/${organization.slug}/projects/${forceProject.slug}/`
+          forceProject &&
+          showProjectSettingsLink &&
+          `/settings/${organization.slug}/projects/${forceProject.slug}/`
         }
       >
         {this.renderProjectName()}

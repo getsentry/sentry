@@ -132,6 +132,23 @@ class GlobalSelectionHeader extends React.Component {
     onUpdateEnvironments: PropTypes.func,
     onChangeTime: PropTypes.func,
     onUpdateTime: PropTypes.func,
+
+    /**
+     * If true, there will be a back to issues stream icon link
+     */
+    showIssueStreamLink: PropTypes.bool,
+
+    /**
+     * If true, there will be a project settings icon link
+     * (forceProject prop needs to be present to know the right project slug)
+     */
+    showProjectSettingsLink: PropTypes.bool,
+
+    /**
+     * Subject that will be used in a tooltip that is shown on a lock icon hover
+     * E.g. This 'issue' is unique to a project
+     */
+    lockedMessageSubject: PropTypes.string,
   };
 
   static defaultProps = {
@@ -563,6 +580,9 @@ class GlobalSelectionHeader extends React.Component {
       showDateSelector,
       showEnvironmentSelector,
       allowClearTimeRange,
+      showIssueStreamLink,
+      showProjectSettingsLink,
+      lockedMessageSubject,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -575,7 +595,7 @@ class GlobalSelectionHeader extends React.Component {
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          {shouldForceProject && this.getBackButton()}
+          {showIssueStreamLink && this.getBackButton()}
           <Projects orgId={organization.slug} limit={PROJECTS_PER_PAGE} globalSelection>
             {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
               const paginatedProjectSelectorCallbacks = {
@@ -611,6 +631,9 @@ class GlobalSelectionHeader extends React.Component {
                   onUpdate={this.handleUpdateProjects}
                   multi={this.hasMultipleProjectSelection()}
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                  showIssueStreamLink={showIssueStreamLink}
+                  showProjectSettingsLink={showProjectSettingsLink}
+                  lockedMessageSubject={lockedMessageSubject}
                 />
               );
             }}

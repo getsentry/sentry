@@ -138,7 +138,7 @@ const ReleasesV2DetailContainer = (props: Props) => {
       {
         onClose() {
           // if a user closes the modal (either via button, Ecs, clicking outside)
-          router.goBack();
+          router.push(`/organizations/${organization.slug}/releases-v2/`);
         },
       }
     );
@@ -152,6 +152,7 @@ const ReleasesV2DetailContainer = (props: Props) => {
       <GlobalSelectionHeader
         organization={organization}
         shouldForceProject
+        lockedMessageSubject={t('release')}
         forceProject={organization.projects.find(p => p.id === projectId)}
       />
       <ReleasesV2Detail {...props} />
