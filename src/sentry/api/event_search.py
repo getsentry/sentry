@@ -872,7 +872,13 @@ def get_json_meta_type(field, snuba_type):
     alias_definition = FIELD_ALIASES.get(field)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    if "duration" in field:
+    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    if function_match:
+        function_definition = FUNCTIONS.get(function_match.group(1))
+        if function_definition and function_definition.get("result_type"):
+            return function_definition.get("result_type")
+    # TODO remove this check when field aliases are removed.
+    if "duration" in field or field in ("p75", "p95", "p99"):
         return "duration"
     if field == "transaction.status":
         return "string"
@@ -985,27 +991,37 @@ FUNCTIONS = {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "result_type": "duration",
     },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
+        "result_type": "number",
     },
     "rpm": {
         "name": "rpm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
+        "result_type": "number",
     },
-    "last_seen": {"name": "last_seen", "args": [], "aggregate": ["max", "timestamp", "last_seen"]},
+    "last_seen": {
+        "name": "last_seen",
+        "args": [],
+        "aggregate": ["max", "timestamp", "last_seen"],
+        "result_type": "timestamp",
+    },
     "latest_event": {
         "name": "latest_event",
         "args": [],
         "aggregate": ["argMax", ["id", "timestamp"], "latest_event"],
+        "result_type": "string",
     },
     "apdex": {
         "name": "apdex",
         "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
         "transform": u"apdex({column}, {satisfaction:g})",
+        "result_type": "number",
     },
     "impact": {
         "name": "impact",
@@ -1016,42 +1032,57 @@ FUNCTIONS = {
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
         "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "result_type": "number",
     },
     "error_rate": {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "result_type": "number",
     },
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
         "aggregate": ["uniq", u"{column}", None],
+        "result_type": "integer",
     },
     # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
     # for backwards compatibility. Once we've migrated existing queries this should get
     # changed to accept no parameters.
-    "count": {"name": "count", "args": [CountColumn("column")], "aggregate": ["count", None, None]},
+    "count": {
+        "name": "count",
+        "args": [CountColumn("column")],
+        "aggregate": ["count", None, None],
+        "result_type": "integer",
+    },
     "min": {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
+        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
+        "result_type": "number",
     },
     "avg": {
         "name": "avg",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["avg", u"{column}", None],
+        "result_type": "duration",
     },
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["sum", u"{column}", None],
+        "result_type": "duration",
     },
 }
+
+
+FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
 def is_function(field):

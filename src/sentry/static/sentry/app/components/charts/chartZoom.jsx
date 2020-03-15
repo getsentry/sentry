@@ -3,8 +3,6 @@ import React from 'react';
 import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {getFormattedDate} from 'app/utils/dates';
-import {useShortInterval} from 'app/components/charts/utils';
 import {updateParams} from 'app/actionCreators/globalSelection';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
@@ -32,8 +30,6 @@ class ChartZoom extends React.Component {
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
     disabled: PropTypes.bool,
-    // Use short date formatting for xAxis
-    useShortDate: PropTypes.bool,
 
     xAxis: SentryTypes.EChartsXAxis,
 
@@ -197,10 +193,8 @@ class ChartZoom extends React.Component {
   render() {
     const {
       utc,
-      xAxis,
       disabled,
       children,
-      useShortDate,
 
       onZoom, // eslint-disable-line no-unused-vars
       onRestore, // eslint-disable-line no-unused-vars
@@ -213,21 +207,6 @@ class ChartZoom extends React.Component {
     if (disabled) {
       return children(props);
     }
-
-    const dateFormat = useShortDate ? 'MMM Do' : 'MMM D LT';
-    const hasShortInterval = useShortInterval(this.props);
-    const xAxisOptions = {
-      axisLabel: {
-        showMaxLabel: false,
-        showMinLabel: false,
-        formatter: (value, index) => {
-          const firstItem = index === 0;
-          const format = hasShortInterval && !firstItem ? 'LT' : dateFormat;
-          return getFormattedDate(value, format, {local: !utc});
-        },
-      },
-      ...xAxis,
-    };
 
     const renderProps = {
       // Zooming only works when grouped by date
@@ -256,7 +235,6 @@ class ChartZoom extends React.Component {
       onRestore: this.handleZoomRestore,
       onFinished: this.handleChartFinished,
       ...props,
-      xAxis: xAxisOptions,
     };
 
     return children(renderProps);

@@ -136,6 +136,7 @@ export type Health = {
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
+  hasHealthData: boolean;
 };
 export type HealthGraphData = {
   [key: string]: [number, number][];
@@ -264,7 +265,9 @@ export type YAxisEventsStats = {
   [yAxisName: string]: EventsStats;
 };
 
-// Avatars are a more primitive version of User.
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   id: string;
   name: string;
@@ -454,7 +457,7 @@ export type Config = {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   isOnPremise: boolean;
-  lastOrganization: string;
+  lastOrganization: string | null;
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
@@ -467,7 +470,10 @@ export type Config = {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage: string | null;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -836,8 +842,8 @@ export type SentryAppComponent = {
 
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  IntegrationDirectoryExperiment: '1' | '0';
   AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
+  IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -949,7 +955,7 @@ export type OnboardingTaskDescriptor = {
 export type OnboardingTaskStatus = {
   task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user?: string | null;
+  user?: AvatarUser | null;
   dateCompleted?: string;
   completionSeen?: string;
   data?: object;
@@ -1006,4 +1012,16 @@ export type ResolutionStatusDetails = {
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
+};
+
+export type Broadcast = {
+  id: string;
+  message: string;
+  title: string;
+  link: string;
+  cta: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateExpires: string;
+  hasSeen: boolean;
 };
