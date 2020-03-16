@@ -745,6 +745,7 @@ def aliased_query(
     having=None,
     dataset=None,
     orderby=None,
+    condition_resolver=None,
     **kwargs
 ):
     """
@@ -775,7 +776,8 @@ def aliased_query(
             derived_columns.append(aggregation[2])
 
     if conditions:
-        column_resolver = functools.partial(resolve_column, dataset=dataset)
+        condition_resolver = condition_resolver or resolve_column
+        column_resolver = functools.partial(condition_resolver, dataset=dataset)
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement

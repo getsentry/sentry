@@ -1,8 +1,10 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
-import omit from 'lodash/omit';
 import React from 'react';
+import flatten from 'lodash/flatten';
+import memoize from 'lodash/memoize';
 import moment from 'moment';
+import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -16,12 +18,14 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ExternalLink from 'app/components/links/externalLink';
+import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Projects from 'app/utils/projects';
 import getDynamicText from 'app/utils/getDynamicText';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import {Incident} from '../types';
@@ -56,12 +60,20 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     ];
   }
 
-  renderListItem(incident: Incident) {
+  /**
+   * Memoized function to find a project from a list of projects
+   */
+  getProject = memoize((slug, projects) =>
+    projects.find(project => project.slug === slug)
+  );
+
+  renderListItem({incident, initiallyLoaded, projects}) {
     const {orgId} = this.props.params;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
+    const slug = incident.projects[0];
 
     return (
       <IncidentPanelItem key={incident.id}>
@@ -72,6 +84,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             </TitleLink>
             <SparkLine incident={incident} />
           </TitleAndSparkLine>
+          <ProjectColumn>
+            <IdBadge
+              project={!initiallyLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectColumn>
           <Status incident={incident} />
           <div>
             {started.format('L')}
@@ -91,7 +108,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Alerts yet")}</p>
+        <p>{t("You don't have any Metric Alerts yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -102,6 +119,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   renderBody() {
     const {loading, incidentList, incidentListPageLinks} = this.state;
+    const {orgId} = this.props.params;
+
+    const allProjectsFromIncidents = new Set(
+      flatten(incidentList?.map(({projects}) => projects))
+    );
 
     return (
       <React.Fragment>
@@ -112,6 +134,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 <div>{t('Alert')}</div>
                 <div>{t('Trend')}</div>
               </TitleAndSparkLine>
+              <div>{t('Project')}</div>
               <div>{t('Status')}</div>
               <div>{t('Start time (duration)')}</div>
               <NumericColumn>{t('Users affected')}</NumericColumn>
@@ -124,7 +147,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             {!loading && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
-                {incidentList.map(incident => this.renderListItem(incident))}
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    incidentList.map(incident =>
+                      this.renderListItem({incident, initiallyLoaded, projects})
+                    )
+                  }
+                </Projects>
               </React.Fragment>
             )}
           </PanelBody>
@@ -235,7 +264,7 @@ const Actions = styled('div')`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 4fr 1fr 2fr 1fr 1fr;
+  grid-template-columns: 4fr 1fr 1fr 2fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -261,6 +290,10 @@ const TitleLink = styled(Link)`
 
 const IncidentPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
+`;
+
+const ProjectColumn = styled('div')`
+  overflow: hidden;
 `;
 
 const NumericColumn = styled('div')`

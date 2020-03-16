@@ -2,9 +2,9 @@ import 'zrender/lib/svg/svg';
 
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
+import styled from '@emotion/styled';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import SentryTypes from 'app/sentryTypes';
@@ -129,8 +129,14 @@ class BaseChart extends React.Component {
      */
     showTimeInTooltip: PropTypes.bool,
 
-    // Should we render hours on xaxis instead of day?
-    shouldXAxisRenderTimeOnly: PropTypes.bool,
+    // Use short date formatting for xAxis
+    useShortDate: PropTypes.bool,
+
+    // These are optional and are used to determine how xAxis is formatted
+    // if `isGroupedByDate == true`
+    start: PropTypes.instanceOf(Date),
+    end: PropTypes.instanceOf(Date),
+    period: PropTypes.string,
 
     // Formats dates as UTC?
     utc: PropTypes.bool,
@@ -149,7 +155,6 @@ class BaseChart extends React.Component {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
-    shouldXAxisRenderTimeOnly: false,
   };
 
   getEventsMap = {
@@ -206,8 +211,11 @@ class BaseChart extends React.Component {
 
       isGroupedByDate,
       showTimeInTooltip,
-      shouldXAxisRenderTimeOnly,
+      useShortDate,
       previousPeriod,
+      start,
+      end,
+      period,
       utc,
       yAxes,
 
@@ -267,7 +275,10 @@ class BaseChart extends React.Component {
               xAxis !== null
                 ? XAxis({
                     ...xAxis,
-                    shouldRenderTimeOnly: shouldXAxisRenderTimeOnly,
+                    useShortDate,
+                    start,
+                    end,
+                    period,
                     isGroupedByDate,
                     utc,
                   })

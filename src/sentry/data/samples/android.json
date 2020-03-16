@@ -24,6 +24,7 @@
       "screen_density": 3,
       "type": "device",
       "charging": true,
+      "locale": "US",
       "model_id": "NYC",
       "brand": "google",
       "storage_size": 817143808,
@@ -33,6 +34,7 @@
       "name": "Android SDK built for x86",
       "free_storage": 508784640,
       "model": "Android SDK built for x86",
+      "uuid": "abadcade-feed-dead-beef-baddadfeeded",
       "archs": [
         "x86"
       ]

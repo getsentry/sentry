@@ -7,7 +7,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {getInterval, useShortInterval} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import {
   getFormattedDate,
   getUtcDateString,
@@ -177,28 +177,11 @@ type LineGraphProps = {
  */
 const LineGraph = (props: LineGraphProps) => {
   const {api, organization, location, selection, currentEvent, eventView} = props;
-
   const isUtc = selection.datetime.utc;
-  const dateFormat = 'lll';
-
   const interval = getInterval(selection.datetime, true);
-  const hasShortInterval = useShortInterval(selection.datetime);
-
-  const xAxisOptions = {
-    type: 'time',
-    axisLabel: {
-      formatter: (value, index) => {
-        const firstItem = index === 0;
-        const format = hasShortInterval && !firstItem ? 'LT' : dateFormat;
-        return getFormattedDate(value, format, {local: !isUtc});
-      },
-    },
-  };
-
   const tooltip = {
     formatAxisLabel: value => getFormattedDate(value, 'lll', {local: !isUtc}),
   };
-
   const queryString = eventView.getQuery(location.query.query);
   const referenceEvent = `${currentEvent.projectSlug}:${currentEvent.eventID}`;
 
@@ -222,6 +205,8 @@ const LineGraph = (props: LineGraphProps) => {
       >
         {({loading, reloading, timeseriesData}) => (
           <LineChart
+            {...selection.datetime}
+            isGroupedByDate
             loading={loading}
             reloading={reloading}
             series={[...timeseriesData, getCurrentEventMarker(currentEvent)]}
@@ -241,7 +226,6 @@ const LineGraph = (props: LineGraphProps) => {
               })
             }
             tooltip={tooltip}
-            xAxis={xAxisOptions}
             grid={{
               left: '24px',
               right: '24px',
