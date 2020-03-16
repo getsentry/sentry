@@ -28,8 +28,17 @@ export const clearAnalyticsSession = () => {
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
-export const getSortIntegrationsByWeightActive = () =>
-  localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT) === '1';
+export const getSortIntegrationsByWeightActive = (organization?: Organization) => {
+  const variant = organization?.experiments?.IntegrationDirectorySortWeightExperiment;
+  switch (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT)) {
+    case '1':
+      return true;
+    case '0':
+      return false;
+    default:
+      return variant && variant === '1';
+  }
+};
 
 export type SingleIntegrationEvent = {
   eventKey:

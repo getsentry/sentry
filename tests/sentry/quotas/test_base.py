@@ -140,7 +140,7 @@ def test_quotas_to_json_legacy(obj, json):
                 window=1,
                 reason_code="go_away",
             ),
-            {"id": "p", "scope": "project", "scope_id": "1", "window": 1, "reasonCode": "go_away"},
+            {"id": "p", "scope": "project", "scopeId": "1", "window": 1, "reasonCode": "go_away"},
         ),
         (
             QuotaConfig(limit=0, reason_code="go_away"),

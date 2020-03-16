@@ -112,20 +112,16 @@ storiesOf('UI|Buttons', module)
           <div style={{display: 'flex', alignItems: 'center'}}>
             <Item>
               <Button>
-                <InlineSvg
-                  src="icon-github"
-                  size="14"
-                  style={{marginRight: space(0.5)}}
-                />
+                <InlineSvg src="icon-trash" size="14" style={{marginRight: space(0.5)}} />
                 Not-icon-props Button
               </Button>
             </Item>
             <Item>
-              <Button icon="icon-github">Icon Button</Button>
+              <Button icon="icon-trash">Icon Button</Button>
             </Item>
             <Item>
-              <Button size="small" icon="icon-github">
-                View on GitHub
+              <Button size="small" icon="icon-trash">
+                Delete
               </Button>
             </Item>
             <Item>

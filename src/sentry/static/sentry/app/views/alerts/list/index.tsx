@@ -1,10 +1,13 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
-import omit from 'lodash/omit';
 import React from 'react';
+import flatten from 'lodash/flatten';
+import memoize from 'lodash/memoize';
 import moment from 'moment';
+import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
+import {IconAdd, IconSettings} from 'app/icons';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -12,16 +15,19 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ExternalLink from 'app/components/links/externalLink';
+import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Projects from 'app/utils/projects';
 import getDynamicText from 'app/utils/getDynamicText';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 import {Incident} from '../types';
@@ -56,12 +62,20 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     ];
   }
 
-  renderListItem(incident: Incident) {
+  /**
+   * Memoized function to find a project from a list of projects
+   */
+  getProject = memoize((slug, projects) =>
+    projects.find(project => project.slug === slug)
+  );
+
+  renderListItem({incident, initiallyLoaded, projects}) {
     const {orgId} = this.props.params;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
+    const slug = incident.projects[0];
 
     return (
       <IncidentPanelItem key={incident.id}>
@@ -72,6 +86,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             </TitleLink>
             <SparkLine incident={incident} />
           </TitleAndSparkLine>
+          <ProjectColumn>
+            <IdBadge
+              project={!initiallyLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectColumn>
           <Status incident={incident} />
           <div>
             {started.format('L')}
@@ -91,7 +110,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Alerts yet")}</p>
+        <p>{t("You don't have any Metric Alerts yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -102,6 +121,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   renderBody() {
     const {loading, incidentList, incidentListPageLinks} = this.state;
+    const {orgId} = this.props.params;
+
+    const allProjectsFromIncidents = new Set(
+      flatten(incidentList?.map(({projects}) => projects))
+    );
 
     return (
       <React.Fragment>
@@ -112,6 +136,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 <div>{t('Alert')}</div>
                 <div>{t('Trend')}</div>
               </TitleAndSparkLine>
+              <div>{t('Project')}</div>
               <div>{t('Status')}</div>
               <div>{t('Start time (duration)')}</div>
               <NumericColumn>{t('Users affected')}</NumericColumn>
@@ -124,7 +149,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             {!loading && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
-                {incidentList.map(incident => this.renderListItem(incident))}
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    incidentList.map(incident =>
+                      this.renderListItem({incident, initiallyLoaded, projects})
+                    )
+                  }
+                </Projects>
               </React.Fragment>
             )}
           </PanelBody>
@@ -136,6 +167,17 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 }
 
 class IncidentsListContainer extends React.Component<Props> {
+  /**
+   * Incidents list is currently at the organization level, but the link needs to
+   * go down to a specific project scope.
+   */
+  handleAddAlertRule = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
+    e.preventDefault();
+
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+  };
+
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -175,15 +217,25 @@ class IncidentsListContainer extends React.Component<Props> {
 
             <Actions>
               <Button
+                onClick={this.handleAddAlertRule}
+                priority="primary"
+                href="#"
+                size="small"
+                icon={<IconAdd circle size="xs" />}
+              >
+                {t('Add Alert Rule')}
+              </Button>
+
+              <Button
                 onClick={this.handleNavigateToSettings}
                 href="#"
                 size="small"
-                icon="icon-settings"
+                icon={<IconSettings size="xs" />}
               >
                 {t('Settings')}
               </Button>
 
-              <div className="btn-group">
+              <ButtonBar merged>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
@@ -205,7 +257,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 >
                   {t('All')}
                 </Button>
-              </div>
+              </ButtonBar>
             </Actions>
           </PageHeader>
 
@@ -235,7 +287,7 @@ const Actions = styled('div')`
 
 const TableLayout = styled('div')`
   display: grid;
-  grid-template-columns: 4fr 1fr 2fr 1fr 1fr;
+  grid-template-columns: 4fr 1fr 1fr 2fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -261,6 +313,10 @@ const TitleLink = styled(Link)`
 
 const IncidentPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
+`;
+
+const ProjectColumn = styled('div')`
+  overflow: hidden;
 `;
 
 const NumericColumn = styled('div')`

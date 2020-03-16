@@ -41,6 +41,12 @@ def test_get_json_meta_type():
     assert get_json_meta_type("other", "") == "string"
     assert get_json_meta_type("avg_duration", "number") == "duration"
     assert get_json_meta_type("duration", "number") == "duration"
+    assert get_json_meta_type("p75", "number") == "duration"
+    assert get_json_meta_type("p95", "number") == "duration"
+    assert get_json_meta_type("p99", "number") == "duration"
+    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
+    assert get_json_meta_type("impact_300", "number") == "number"
+    assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -1148,6 +1154,14 @@ class GetSnubaQueryArgsTest(TestCase):
             get_filter("transaction.status:lol")
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
+
+    def test_general_user_field(self):
+        conditions = get_filter("user:123").conditions
+        assert len(conditions) == 1
+        assert ["user.id", "=", "123"] in conditions[0]
+        assert ["user.username", "=", "123"] in conditions[0]
+        assert ["user.email", "=", "123"] in conditions[0]
+        assert ["user.ip", "=", "123"] in conditions[0]
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})

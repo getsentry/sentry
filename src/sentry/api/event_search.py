@@ -174,6 +174,7 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
+USER_ALIAS = "user"
 
 
 class InvalidSearchQuery(Exception):
@@ -239,10 +240,6 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "device.battery_level",
-            "device.charging",
-            "device.online",
-            "device.simulator",
             "error.handled",
             "stack.colno",
             "stack.in_app",
@@ -654,8 +651,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=N
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter):
-    name = search_filter.key.name
+def convert_search_filter_to_snuba_query(search_filter, key=None):
+    name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
     if name in no_conversion:
@@ -823,6 +820,14 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
+            elif name == USER_ALIAS:
+                # If the key is user, do an OR across all the different possible user fields
+                kwargs["conditions"].append(
+                    [
+                        convert_search_filter_to_snuba_query(term, key=field)
+                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                    ]
+                )
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -872,7 +877,13 @@ def get_json_meta_type(field, snuba_type):
     alias_definition = FIELD_ALIASES.get(field)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    if "duration" in field:
+    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    if function_match:
+        function_definition = FUNCTIONS.get(function_match.group(1))
+        if function_definition and function_definition.get("result_type"):
+            return function_definition.get("result_type")
+    # TODO remove this check when field aliases are removed.
+    if "duration" in field or field in ("p75", "p95", "p99"):
         return "duration"
     if field == "transaction.status":
         return "string"
@@ -985,27 +996,37 @@ FUNCTIONS = {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "result_type": "duration",
     },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
+        "result_type": "number",
     },
     "rpm": {
         "name": "rpm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
+        "result_type": "number",
     },
-    "last_seen": {"name": "last_seen", "args": [], "aggregate": ["max", "timestamp", "last_seen"]},
+    "last_seen": {
+        "name": "last_seen",
+        "args": [],
+        "aggregate": ["max", "timestamp", "last_seen"],
+        "result_type": "timestamp",
+    },
     "latest_event": {
         "name": "latest_event",
         "args": [],
         "aggregate": ["argMax", ["id", "timestamp"], "latest_event"],
+        "result_type": "string",
     },
     "apdex": {
         "name": "apdex",
         "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
         "transform": u"apdex({column}, {satisfaction:g})",
+        "result_type": "number",
     },
     "impact": {
         "name": "impact",
@@ -1016,42 +1037,57 @@ FUNCTIONS = {
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
         "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "result_type": "number",
     },
     "error_rate": {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "result_type": "number",
     },
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
         "aggregate": ["uniq", u"{column}", None],
+        "result_type": "integer",
     },
     # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
     # for backwards compatibility. Once we've migrated existing queries this should get
     # changed to accept no parameters.
-    "count": {"name": "count", "args": [CountColumn("column")], "aggregate": ["count", None, None]},
+    "count": {
+        "name": "count",
+        "args": [CountColumn("column")],
+        "aggregate": ["count", None, None],
+        "result_type": "integer",
+    },
     "min": {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
+        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
+        "result_type": "number",
     },
     "avg": {
         "name": "avg",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["avg", u"{column}", None],
+        "result_type": "duration",
     },
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["sum", u"{column}", None],
+        "result_type": "duration",
     },
 }
+
+
+FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
 def is_function(field):
