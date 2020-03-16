@@ -19,12 +19,13 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
+import {ChartsContainer} from './styles';
 import Chart from './chart';
 import Footer from './footer';
 
 const YAXIS_OPTIONS = [
-  {label: 'apdex()', value: 'apdex(transaction.duration, 300)'},
-  {label: 'rpm()', value: 'rpm()'},
+  {label: 'Apdex', value: 'apdex(transaction.duration, 300)'},
+  {label: 'Throughput', value: 'rpm()'},
 ];
 
 type Props = {
@@ -158,10 +159,6 @@ class Container extends React.Component<Props, State> {
     );
   }
 }
-
-export const ChartsContainer = styled('div')`
-  display: flex;
-`;
 
 const ErrorPanel = styled('div')`
   display: flex;
