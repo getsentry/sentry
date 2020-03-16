@@ -25,6 +25,14 @@ type DefaultProps = {
 
 type Props = (PropsWithHref | PropsWithTo) & OtherProps & DefaultProps;
 
+// TODO(Priscila): Improve it as soon as we merge this PR: https://github.com/getsentry/sentry/pull/17346
+type StyledLinkProps = PropsWithHref &
+  PropsWithTo &
+  Omit<DefaultProps, 'openInNewTab'> &
+  Pick<OtherProps, 'onClick'> & {
+    target: '_blank' | '_self';
+  };
+
 export default class AlertLink extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     priority: 'warning',
@@ -61,7 +69,7 @@ export default class AlertLink extends React.Component<Props> {
   }
 }
 
-const StyledLink = styled((props: Omit<DefaultProps, 'openInNewTab'>) => (
+const StyledLink = styled((props: StyledLinkProps) => (
   <Link {...omit(props, ['withoutMarginBottom', 'priority', 'size'])} />
 ))`
   display: flex;
