@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 from six import string_types
 import zlib
 
@@ -13,8 +12,6 @@ ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 
 UNINITIALIZED_DATA = object()
-
-logger = logging.getLogger(__name__)
 
 
 class MissingChunks(Exception):
