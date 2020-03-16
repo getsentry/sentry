@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -9,18 +10,16 @@ import {IconDelete} from 'app/icons/iconDelete';
 import Button from 'app/components/button';
 
 import {
-  getDataSelectorFieldLabel,
-  getActionTypeSelectorFieldLabel,
-  DataType,
-  ALL_DATA_TYPES,
-  ALL_ACTION_TYPES,
-  ActionType,
+  RULE_TYPE,
+  METHOD_TYPE,
+  getRuleTypeSelectorFieldLabel,
+  getMethodTypeSelectorFieldLabel,
 } from './utils';
 
 type Rule = {
   id: number;
-  action: ActionType;
-  data: DataType;
+  type: RULE_TYPE;
+  method: METHOD_TYPE;
   from: string;
   customRegularExpression?: string;
 };
@@ -42,9 +41,17 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
-    this.props.onChange({
-      ...this.props.rule,
+    const rule: Rule = {
+      ...omit(this.props.rule, 'customRegularExpression'),
       [stateProperty]: value,
+    };
+
+    if (stateProperty === 'type' && value === RULE_TYPE.PATTERN) {
+      rule.customRegularExpression = this.props.rule.customRegularExpression || '';
+    }
+
+    this.props.onChange({
+      ...rule,
     });
   };
 
@@ -78,35 +85,36 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
 
   render() {
     const {onDelete, rule} = this.props;
-    const {action, from, customRegularExpression, data} = rule;
+    const {from, customRegularExpression, type, method} = rule;
     const {errors} = this.state;
+
     return (
       <Wrapper hasError={Object.keys(errors).length > 0}>
         <WrapperFields>
           <StyledSelectControl
-            placeholder={t('Select an action')}
-            name="action"
-            options={ALL_ACTION_TYPES.map(value => ({
-              label: getActionTypeSelectorFieldLabel(value),
+            placeholder={t('Select type')}
+            name="type"
+            options={Object.values(RULE_TYPE).map(value => ({
+              label: getRuleTypeSelectorFieldLabel(value),
               value,
             }))}
             height={40}
-            value={action}
-            onChange={({value}) => this.handleChange('action', value)}
+            value={type}
+            onChange={({value}) => this.handleChange('type', value)}
             openOnFocus
             required
           />
 
           <StyledSelectControl
-            placeholder={t('Select data')}
-            name="data"
-            options={ALL_DATA_TYPES.map(value => ({
-              label: getDataSelectorFieldLabel(value),
+            placeholder={t('Select method')}
+            name="method"
+            options={Object.values(METHOD_TYPE).map(value => ({
+              label: getMethodTypeSelectorFieldLabel(value),
               value,
             }))}
             height={40}
-            value={data}
-            onChange={({value}) => this.handleChange('data', value)}
+            value={method}
+            onChange={({value}) => this.handleChange('method', value)}
             openOnFocus
             required
           />
@@ -124,7 +132,7 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
             onBlur={this.handleValidation('from')}
             error={errors.from}
           />
-          {data === 'pattern' && (
+          {type === RULE_TYPE.PATTERN && (
             <CustomRegularExpression
               name="customRegularExpression"
               placeholder={t('Enter custom regular expression')}
@@ -186,6 +194,7 @@ const From = styled('div')`
 
 const StyledSelectControl = styled(SelectControl)`
   width: 100%;
+  height: 100%;
 `;
 
 const StyledTextField = styled(TextField)<{error?: string}>`

@@ -1,97 +1,122 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
-import {Client, APIRequestMethod} from 'app/api';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons/iconAdd';
 import ButtonBar from 'app/components/buttonBar';
+import {Client} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
-  clearIndicators,
 } from 'app/actionCreators/indicator';
 
 import ProjectDataPrivacyRulesForm from './projectDataPrivacyRulesForm';
-import {DataType, ActionType} from './utils';
+import {RULE_TYPE, METHOD_TYPE} from './utils';
 
 const INDICATORS_DURATION = 500;
+const DEFAULT_RULE_FROM_VALUE = '$string';
 
 type Rule = React.ComponentProps<typeof ProjectDataPrivacyRulesForm>['rule'];
+
+type PiiConfig = {
+  type: RULE_TYPE;
+  pattern: string;
+  redaction?: {
+    method?: METHOD_TYPE;
+  };
+};
+
+type PiiConfigRule = {
+  [key: string]: PiiConfig;
+};
+
+type Applications = {[key: string]: Array<string>};
+
+type Props = {
+  orgId: string;
+  projectId: string;
+  relayPiiConfig?: string;
+};
 
 type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
-};
-
-type Props = {
-  initialData: any;
-  apiMethod: APIRequestMethod;
-  apiEndpoint: string;
+  relayPiiConfig?: string;
 };
 
 class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
-  constructor(props, context) {
-    super(props, context);
-    this.api = new Client();
-  }
-
   state: State = {
     rules: [],
     savedRules: [],
+    relayPiiConfig: this.props.relayPiiConfig,
   };
 
   componentDidMount() {
     this.loadRules();
   }
 
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
+      this.loadRules();
+    }
+  }
+
   componentWillUnmount() {
     this.api.clear();
   }
 
-  api: Client;
+  api = new Client();
 
   loadRules() {
-    const piiConfig = JSON.parse(this.props.initialData.relayPiiConfig) || {};
-    const applications = piiConfig.applications || {};
-    const rules = piiConfig.rules || {};
-    const convertedRules: Rule[] = [];
+    try {
+      const relayPiiConfig = this.state.relayPiiConfig;
+      const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
+      const rules: PiiConfigRule = piiConfig.rules || {};
+      const applications: Applications = piiConfig.applications || {};
+      const convertedRules: Array<Rule> = [];
 
-    for (const selector in applications) {
-      for (const rule of applications[selector]) {
-        if (rules[rule]) {
+      for (const application in applications) {
+        for (const rule of applications[application]) {
+          if (!rules[rule]) {
+            if (rule[0] === '@') {
+              const [type, method] = rule.slice(1).split(':');
+              convertedRules.push({
+                id: convertedRules.length,
+                type: type as RULE_TYPE,
+                method: method as METHOD_TYPE,
+                from: application,
+              });
+            }
+            continue;
+          }
+
           const resolvedRule = rules[rule];
-
-          if (resolvedRule.type === 'pattern' && resolvedRule.pattern) {
-            const redactionMethod = (resolvedRule.redaction || {}).method;
+          if (resolvedRule.type === RULE_TYPE.PATTERN && resolvedRule.pattern) {
+            const method = resolvedRule?.redaction?.method;
 
             convertedRules.push({
               id: convertedRules.length,
-              action: redactionMethod as ActionType,
-              data: 'pattern',
-              customRegularExpression: resolvedRule.pattern as string,
-              from: selector,
+              type: RULE_TYPE.PATTERN,
+              method: method as METHOD_TYPE,
+              from: application,
+              customRegularExpression: resolvedRule.pattern,
             });
           }
-        } else if (rule[0] === '@') {
-          const [ruleType, redactionMethod] = rule.slice(1).split(':');
-          convertedRules.push({
-            id: convertedRules.length,
-            action: redactionMethod as ActionType,
-            data: ruleType as DataType,
-            from: selector,
-          });
         }
       }
-    }
 
-    this.setState({
-      rules: convertedRules,
-      savedRules: convertedRules,
-    });
+      this.setState({
+        rules: convertedRules,
+        savedRules: convertedRules,
+      });
+    } catch {
+      addErrorMessage(t('Unable to load the rules'));
+    }
   }
 
   handleAddRule = () => {
@@ -100,9 +125,9 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
         ...prevState.rules,
         {
           id: prevState.rules.length + 1,
-          action: 'replace',
-          data: 'iban',
-          from: '$string',
+          type: RULE_TYPE.IBAN,
+          method: METHOD_TYPE.MASK,
+          from: DEFAULT_RULE_FROM_VALUE,
         },
       ],
     }));
@@ -126,29 +151,35 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleSubmit = async () => {
-    const customRules = {};
+    const {orgId, projectId} = this.props;
+    const {rules} = this.state;
     let customRulesCounter = 0;
-    const applications = {};
+    const applications: Applications = {};
+    const customRules: PiiConfigRule = {};
 
-    for (const rule of this.state.rules) {
-      let ruleName;
-      if (rule.data === 'pattern') {
+    for (const rule of rules) {
+      let ruleName = `@${rule.type}:${rule.method}`;
+      if (rule.type === RULE_TYPE.PATTERN && rule.customRegularExpression) {
         ruleName = `customRule${customRulesCounter}`;
+
         customRulesCounter += 1;
 
         customRules[ruleName] = {
-          type: 'pattern',
+          type: RULE_TYPE.PATTERN,
           pattern: rule.customRegularExpression,
           redaction: {
-            method: rule.action,
+            method: rule.method,
           },
         };
-      } else {
-        ruleName = `@${rule.data}:${rule.action}`;
       }
 
-      applications[rule.from] = applications[rule.from] || [];
-      applications[rule.from].push(ruleName);
+      if (!applications[rule.from]) {
+        applications[rule.from] = [];
+      }
+
+      if (!applications[rule.from].includes(ruleName)) {
+        applications[rule.from].push(ruleName);
+      }
     }
 
     const piiConfig = {
@@ -156,35 +187,37 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
       applications,
     };
 
-    this.api.request(this.props.apiEndpoint, {
-      method: this.props.apiMethod,
-      data: {relayPiiConfig: JSON.stringify(piiConfig)},
-      success: (..._args) => {
-        clearIndicators();
+    const relayPiiConfig = JSON.stringify(piiConfig);
+
+    await this.api
+      .requestPromise(`/projects/${orgId}/${projectId}/`, {
+        method: 'PUT',
+        data: {relayPiiConfig},
+      })
+      .then(() => {
+        this.setState({
+          relayPiiConfig,
+        });
+      })
+      .then(() => {
         addSuccessMessage(t('Successfully saved data scrubbing rules'), {
           duration: INDICATORS_DURATION,
         });
-      },
-      error: (..._args) => {
-        clearIndicators();
+      })
+      .catch(() => {
         addErrorMessage(t('An error occurred while saving data scrubbing rules'), {
           duration: INDICATORS_DURATION,
         });
-      },
-    });
+      });
   };
 
   handleValidation = () => {
     const {rules} = this.state;
-    const isAnyRuleFieldEmpty = rules.find(rule =>
-      Object.keys(rule).find(ruleKey => {
-        if (ruleKey === 'customRegularExpression' && rule.data !== 'pattern') {
-          return false;
-        }
-
-        return !rule[ruleKey];
-      })
-    );
+    const isAnyRuleFieldEmpty = rules.find(rule => {
+      const ruleKeys = Object.keys(omit(rule, 'id'));
+      const anyEmptyField = ruleKeys.find(ruleKey => !rule[ruleKey]);
+      return !!anyEmptyField;
+    });
 
     const isFormValid = !isAnyRuleFieldEmpty;
 
@@ -200,14 +233,15 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleCancelForm = () => {
-    addLoadingMessage(t('Cancelling...'), {duration: INDICATORS_DURATION, append: true});
+    addLoadingMessage(t('Cancelling...'), {duration: INDICATORS_DURATION});
     this.setState(prevState => ({
       rules: prevState.savedRules,
     }));
   };
 
   render() {
-    const {rules} = this.state;
+    const {rules, savedRules} = this.state;
+    const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
@@ -232,7 +266,7 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
             </PanelAction>
           </PanelBody>
         </Panel>
-        {rules.length > 0 && (
+        {!hideButtonBar && (
           <StyledButtonBar gap={1.5}>
             <Button onClick={this.handleCancelForm}>{t('Cancel')}</Button>
             <Button priority="primary" onClick={this.handleSaveForm}>

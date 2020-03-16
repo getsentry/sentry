@@ -35,11 +35,13 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
   renderBody() {
     const {organization} = this.context;
-    const project = this.state.data;
+    const initialData = this.state.data;
     const {orgId, projectId} = this.props.params;
     const endpoint = `/projects/${orgId}/${projectId}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
+    const relayPiiConfig = initialData?.relayPiiConfig;
+    const apiMethod = 'PUT';
 
     return (
       <React.Fragment>
@@ -47,8 +49,8 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
         <Form
           saveOnBlur
           allowUndo
-          initialData={project}
-          apiMethod="PUT"
+          initialData={initialData}
+          apiMethod={apiMethod}
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
             // This will update our project context
@@ -73,9 +75,9 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           />
         </Form>
         <ProjectDataPrivacyRulesPanel
-          initialData={project}
-          apiMethod="PUT"
-          apiEndpoint={endpoint}
+          orgId={orgId}
+          projectId={projectId}
+          relayPiiConfig={relayPiiConfig}
         />
       </React.Fragment>
     );

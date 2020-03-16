@@ -1,6 +1,7 @@
 import React from 'react';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import AlertMessage from 'app/components/alertMessage';
 
 export const FieldType = [
   'array',
@@ -44,6 +45,22 @@ type BaseField = {
   extraHelp?: string;
   choices?: (props: {[key: string]: any}) => void;
   formatLabel?: (value: number | '') => React.ReactNode;
+  transformInput?: (str: any) => string;
+  // TODO(Priscila): replace it with Alertmessage Props as soon as we have this PR (https://github.com/getsentry/sentry/pull/17675) merged
+  saveMessageAlertType?: 'success' | 'error' | 'warning' | 'info';
+  saveMessage?: string;
+  selectionInfoFunction?: (...args: Array<any>) => null | React.ReactElement;
+  resolveAge?: {
+    name: string;
+    type: string;
+    allowedValues: number[];
+    label: string;
+    help: string;
+    formatLabel: (val: string) => string;
+    saveOnBlur: boolean;
+    saveMessage: string;
+    saveMessageAlertType: string;
+  };
 
   /**
    * Function to format the value displayed in the undo toast. May also be

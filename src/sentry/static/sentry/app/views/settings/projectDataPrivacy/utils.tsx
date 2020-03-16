@@ -1,46 +1,82 @@
 import {t} from 'app/locale';
 
-export type DataType = 'creditcard' | 'iban' | 'password' | 'ip' | 'pattern';
-const ALL_DATA_TYPES: DataType[] = ['creditcard', 'iban', 'password', 'ip', 'pattern'];
+enum RULE_TYPE {
+  PATTERN = 'pattern',
+  CREDITCARD = 'creditcard',
+  IBAN = 'iban',
+  PASSWORD = 'password',
+  IP = 'ip',
+  IMEI = 'imei',
+  EMAIL = 'email',
+  UUID = 'uuid',
+  PEMKEY = 'pemkey',
+  URLAUTH = 'urlauth',
+  USSSN = 'usssn',
+  USER_PATH = 'userpath',
+  MAC = 'mac',
+  ANYTHING = 'anything',
+}
 
-export type ActionType = 'mask' | 'remove' | 'hash' | 'replace';
-const ALL_ACTION_TYPES: ActionType[] = ['mask', 'remove', 'hash', 'replace'];
+enum METHOD_TYPE {
+  MASK = 'mask',
+  REMOVE = 'remove',
+  HASH = 'hash',
+  REPLACE = 'replace',
+}
 
-function getDataSelectorFieldLabel(labelType: DataType): string {
+function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
   switch (labelType) {
-    case 'creditcard':
+    case RULE_TYPE.ANYTHING:
+      return t('Anything');
+    case RULE_TYPE.IMEI:
+      return t('IMEI Numbers');
+    case RULE_TYPE.MAC:
+      return t('MAC addresses');
+    case RULE_TYPE.EMAIL:
+      return t('Email Addresses');
+    case RULE_TYPE.PEMKEY:
+      return t('PEM keys');
+    case RULE_TYPE.URLAUTH:
+      return t('Auth in URLs');
+    case RULE_TYPE.USSSN:
+      return t('US social security numbers');
+    case RULE_TYPE.USER_PATH:
+      return t('Usernames in filepaths');
+    case RULE_TYPE.UUID:
+      return t('UUIDs');
+    case RULE_TYPE.CREDITCARD:
       return t('Credit Card Number');
-    case 'iban':
+    case RULE_TYPE.IBAN:
       return t('IBAN bank accounts');
-    case 'password':
-      return t('Passwords');
-    case 'ip':
+    case RULE_TYPE.PASSWORD:
+      return t('Password fields');
+    case RULE_TYPE.IP:
       return t('IP Addresses');
-    case 'pattern':
+    case RULE_TYPE.PATTERN:
       return t('Custom Regular Expression');
     default:
-      return labelType;
+      return '';
   }
 }
 
-function getActionTypeSelectorFieldLabel(labelType: ActionType): string {
+function getMethodTypeSelectorFieldLabel(labelType: METHOD_TYPE): string {
   switch (labelType) {
-    case 'mask':
+    case METHOD_TYPE.MASK:
       return t('Mask');
-    case 'hash':
+    case METHOD_TYPE.HASH:
       return t('Hash');
-    case 'remove':
+    case METHOD_TYPE.REMOVE:
       return t('Remove');
-    case 'replace':
+    case METHOD_TYPE.REPLACE:
       return t('Replace');
     default:
-      return labelType;
+      return '';
   }
 }
 
 export {
-  ALL_DATA_TYPES,
-  getDataSelectorFieldLabel,
-  ALL_ACTION_TYPES,
-  getActionTypeSelectorFieldLabel,
+  RULE_TYPE,
+  METHOD_TYPE,
+  getRuleTypeSelectorFieldLabel,
+  getMethodTypeSelectorFieldLabel,
 };
