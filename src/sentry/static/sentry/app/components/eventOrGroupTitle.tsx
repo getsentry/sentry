@@ -7,7 +7,7 @@ import {getTitle} from 'app/utils/events';
 
 type Props = {
   data: Event | Group;
-  style: React.CSSProperties;
+  style?: React.CSSProperties;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
