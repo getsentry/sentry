@@ -68,7 +68,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveExperiments>;
+  experiments: Partial<ActiveOrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -321,6 +321,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
+  experiments: Partial<ActiveUserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -847,11 +848,13 @@ export type SentryAppComponent = {
   };
 };
 
-export type ActiveExperiments = {
+export type ActiveOrgExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
   AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
   IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
+
+export type ActiveUserExperiments = {};
 
 type SavedQueryVersions = 1 | 2;
 
