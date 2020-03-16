@@ -14,7 +14,7 @@ ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 UNINITIALIZED_DATA = object()
 
 
-class MissingChunks(Exception):
+class MissingAttachmentChunks(Exception):
     pass
 
 
@@ -148,7 +148,7 @@ class BaseAttachmentCache(object):
         for key in attachment.chunk_keys:
             raw_data = self.inner.get(key, raw=True)
             if raw_data is None:
-                raise MissingChunks()
+                raise MissingAttachmentChunks()
             data.append(zlib.decompress(raw_data))
 
         return b"".join(data)

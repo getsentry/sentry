@@ -14,7 +14,7 @@ from django.db.models import Func
 from django.utils.encoding import force_text
 
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
-from sentry.attachments import attachment_cache
+from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DataCategory,
     DEFAULT_STORE_NORMALIZER_ARGS,
@@ -601,10 +601,17 @@ class EventManager(object):
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure.
-        attachments = get_attachments(cache_key, job["event"])
-        for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
-            job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(attachment.data)
+        attachments = []
+        for attachment in get_attachments(cache_key, job["event"]):
+            try:
+                key = "bytes.stored.%s" % (attachment.type,)
+                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
+                    attachment.data
+                )
+            except MissingAttachmentChunks:
+                logger.exception("Missing chunks for cache_key=%s", cache_key)
+            else:
+                attachments.append(attachment)
 
         _nodestore_save_many(jobs)
 

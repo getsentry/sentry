@@ -11,7 +11,6 @@ from sentry.ingest.ingest_consumer import (
     process_individual_attachment,
     process_userreport,
 )
-from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
 from sentry.models import EventAttachment, UserReport, EventUser
 
@@ -63,70 +62,75 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
 
 
 @pytest.mark.django_db
-def test_with_attachments(default_project, task_runner, preprocess_event):
+@pytest.mark.parametrize("missing_chunks", (True, False))
+def test_with_attachments(default_project, task_runner, missing_chunks, monkeypatch):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
     start_time = time.time() - 3600
 
-    process_attachment_chunk(
-        {
-            "payload": b"Hello ",
-            "event_id": event_id,
-            "project_id": project_id,
-            "id": attachment_id,
-            "chunk_index": 0,
-        },
-        projects={default_project.id: default_project},
+    if not missing_chunks:
+        process_attachment_chunk(
+            {
+                "payload": b"Hello ",
+                "event_id": event_id,
+                "project_id": project_id,
+                "id": attachment_id,
+                "chunk_index": 0,
+            },
+            projects={default_project.id: default_project},
+        )
+
+        process_attachment_chunk(
+            {
+                "payload": b"World!",
+                "event_id": event_id,
+                "project_id": project_id,
+                "id": attachment_id,
+                "chunk_index": 1,
+            },
+            projects={default_project.id: default_project},
+        )
+
+    with task_runner():
+        process_event(
+            {
+                "payload": json.dumps(payload),
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project_id,
+                "remote_addr": "127.0.0.1",
+                "attachments": [
+                    {
+                        "id": attachment_id,
+                        "name": "lol.txt",
+                        "content_type": "text/plain",
+                        "attachment_type": "custom.attachment",
+                        "chunks": 2,
+                    }
+                ],
+            },
+            projects={default_project.id: default_project},
+        )
+
+    persisted_attachments = list(
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
+            "file"
+        )
     )
 
-    process_attachment_chunk(
-        {
-            "payload": b"World!",
-            "event_id": event_id,
-            "project_id": project_id,
-            "id": attachment_id,
-            "chunk_index": 1,
-        },
-        projects={default_project.id: default_project},
-    )
-
-    process_event(
-        {
-            "payload": json.dumps(payload),
-            "start_time": start_time,
-            "event_id": event_id,
-            "project_id": project_id,
-            "remote_addr": "127.0.0.1",
-            "attachments": [
-                {
-                    "id": attachment_id,
-                    "name": "lol.txt",
-                    "content_type": "text/plain",
-                    "attachment_type": "custom.attachment",
-                    "chunks": 2,
-                }
-            ],
-        },
-        projects={default_project.id: default_project},
-    )
-
-    kwargs, = preprocess_event
-    cache_key = u"e:{event_id}:{project_id}".format(event_id=event_id, project_id=project_id)
-    assert kwargs == {
-        "cache_key": cache_key,
-        "data": payload,
-        "event_id": event_id,
-        "project": default_project,
-        "start_time": start_time,
-    }
-
-    att, = attachment_cache.get(cache_key)
-    assert att.data == b"Hello World!"
-    assert att.name == "lol.txt"
-    assert att.content_type == "text/plain"
-    assert att.type == "custom.attachment"
+    if not missing_chunks:
+        attachment, = persisted_attachments
+        assert attachment.file.type == "custom.attachment"
+        assert attachment.file.headers == {"Content-Type": "text/plain"}
+        file = attachment.file.getfile()
+        assert file.read() == b"Hello World!"
+        assert file.name == "lol.txt"
+    else:
+        assert not persisted_attachments
 
 
 @pytest.mark.django_db
