@@ -15,6 +15,7 @@ import Projects from 'app/utils/projects';
 import SelectControl from 'app/components/forms/selectControl';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
+import Link from 'app/components/links/link';
 
 type Props = {
   /**
@@ -188,6 +189,32 @@ class ContextPickerModal extends React.Component<Props> {
 
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
+
+  onProjectMenuOpen = () => {
+    const {projects, comingFromProjectId} = this.props;
+    // Hacky way to pre-focus to an item with newer versions of react select
+    // See https://github.com/JedWatson/react-select/issues/3648
+    setTimeout(() => {
+      const ref = this.projectSelect;
+      if (ref) {
+        const projectChoices = ref.select.state.menuOptions.focusable;
+        const projectToBeFocused = projects.find(({id}) => id === comingFromProjectId);
+        const selectedIndex = projectChoices.findIndex(
+          option => option.value === projectToBeFocused?.slug
+        );
+        if (selectedIndex >= 0 && projectToBeFocused) {
+          // Focusing selected option only if it exists
+          ref.select.scrollToFocusedOptionOnUpdate = true;
+          ref.select.inputIsHiddenAfterUpdate = false;
+          ref.select.setState({
+            focusedValue: null,
+            focusedOption: projectChoices[selectedIndex],
+          });
+        }
+      }
+    });
+  };
+
   get headerText() {
     const {needOrg, needProject} = this.props;
     if (needOrg && needProject) {
@@ -203,17 +230,42 @@ class ContextPickerModal extends React.Component<Props> {
     return '';
   }
 
+  renderProjectSelectOrMessage() {
+    const {organization, projects} = this.props;
+    if (!projects.length) {
+      return (
+        <div>
+          You have no projects. Click{' '}
+          <Link href={`/organizations/${organization}/projects/new/`}>here</Link> to make
+          one.
+        </div>
+      );
+    }
+    return (
+      <StyledSelectControl
+        ref={(ref: ReactSelect) => {
+          this.projectSelect = ref;
+          this.focusProjectSelector();
+        }}
+        placeholder={t('Select a Project')}
+        name="project"
+        openMenuOnFocus
+        options={projects.map(({slug}) => ({label: slug, value: slug}))}
+        onChange={this.handleSelectProject}
+        onMenuOpen={this.onProjectMenuOpen}
+      />
+    );
+  }
+
   render() {
     const {
       needOrg,
       needProject,
       organization,
       organizations,
-      projects,
       loading,
       Header,
       Body,
-      comingFromProjectId,
     } = this.props;
 
     const shouldShowPicker = needOrg || needProject;
@@ -222,13 +274,11 @@ class ContextPickerModal extends React.Component<Props> {
       return null;
     }
 
-    const shouldShowProjectSelector = organization && needProject && projects.length;
+    const shouldShowProjectSelector = organization && needProject && !loading;
 
     const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
-
-    const projectChoices = projects.map(({slug}) => ({label: slug, value: slug}));
 
     return (
       <React.Fragment>
@@ -252,44 +302,7 @@ class ContextPickerModal extends React.Component<Props> {
             />
           )}
 
-          {shouldShowProjectSelector && (
-            <StyledSelectControl
-              ref={(ref: ReactSelect) => {
-                this.projectSelect = ref;
-                this.focusProjectSelector();
-              }}
-              placeholder={t('Select a Project')}
-              name="project"
-              value=""
-              openMenuOnFocus
-              options={projectChoices}
-              onChange={this.handleSelectProject}
-              onMenuOpen={() => {
-                // Hacky way to pre-focus to an item with newer versions of react select
-                // See https://github.com/JedWatson/react-select/issues/3648
-                setTimeout(() => {
-                  const ref = this.projectSelect;
-                  if (ref) {
-                    const projectToBeFocused = projects.find(
-                      ({id}) => id === comingFromProjectId
-                    );
-                    const selectedIndex = projectChoices.findIndex(
-                      option => option.value === projectToBeFocused?.slug
-                    );
-                    if (selectedIndex >= 0 && projectToBeFocused) {
-                      // Focusing selected option only if it exists
-                      ref.select.scrollToFocusedOptionOnUpdate = true;
-                      ref.select.inputIsHiddenAfterUpdate = false;
-                      ref.select.setState({
-                        focusedValue: null,
-                        focusedOption: projectChoices[selectedIndex],
-                      });
-                    }
-                  }
-                });
-              }}
-            />
-          )}
+          {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
         </Body>
       </React.Fragment>
     );
@@ -320,12 +333,12 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
     this.setState({selectedOrganization: organizationSlug});
   },
 
-  renderModal({projects, fetching}) {
+  renderModal({projects, initiallyLoaded}) {
     return (
       <ContextPickerModal
         {...this.props}
         projects={projects || []}
-        loading={fetching}
+        loading={!initiallyLoaded}
         organizations={this.state.organizations}
         organization={this.state.selectedOrganization}
         onSelectOrganization={this.handleSelectOrganization}
