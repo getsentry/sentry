@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Params} from 'react-router/lib/Router';
+import {Params, InjectedRouter} from 'react-router/lib/Router';
 import {Location} from 'history';
 
 import withOrganization from 'app/utils/withOrganization';
@@ -8,7 +8,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Organization, GlobalSelection} from 'app/types';
 import space from 'app/styles/space';
 
-import HealthChart from './healthChart';
+import HealthChart from './chart';
 import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
@@ -21,45 +21,48 @@ type Props = {
   params: Params;
   location: Location;
   selection: GlobalSelection;
+  router: InjectedRouter;
 };
 
-const ReleaseOverview = ({organization, params, selection}: Props) => {
-  const projectId = String(selection.projects[0]);
-
-  // TODO(releasesV2): we will handle this later with forced project selector
-  if (!projectId) {
-    return null;
-  }
-
-  return (
-    <ReleaseContext.Consumer>
-      {release => {
-        const {commitCount, version} = release!; // if release is undefined, this will not be rendered at all
-        return (
-          <ContentBox>
-            <Main>
-              <HealthChart />
-              <Issues orgId={organization.slug} version={params.release} />
-            </Main>
-            <Sidebar>
-              {commitCount > 0 && (
-                <CommitAuthorBreakdown
-                  version={version}
-                  orgId={organization.slug}
-                  projectId={projectId}
-                  commitCount={commitCount}
-                />
-              )}
-              <ProjectReleaseDetails release={release!} />
-              <TotalCrashFreeUsers />
-              <SessionDuration />
-            </Sidebar>
-          </ContentBox>
-        );
-      }}
-    </ReleaseContext.Consumer>
-  );
-};
+const ReleaseOverview = ({organization, params, selection, router, location}: Props) => (
+  <ReleaseContext.Consumer>
+    {release => {
+      const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
+      const project = projects.find(p => p.id === selection.projects[0]);
+      // TODO(releasesV2): we will handle this later with forced project selector
+      if (!project) {
+        return null;
+      }
+      return (
+        <ContentBox>
+          <Main>
+            <HealthChart
+              version={version}
+              orgId={organization.slug}
+              projectSlug={project.slug}
+              router={router}
+              selection={selection}
+              location={location}
+            />
+            <Issues orgId={organization.slug} version={params.release} />
+          </Main>
+          <Sidebar>
+            {commitCount > 0 && (
+              <CommitAuthorBreakdown
+                version={version}
+                orgId={organization.slug}
+                commitCount={commitCount}
+              />
+            )}
+            <ProjectReleaseDetails release={release!} />
+            <TotalCrashFreeUsers />
+            <SessionDuration />
+          </Sidebar>
+        </ContentBox>
+      );
+    }}
+  </ReleaseContext.Consumer>
+);
 
 const ContentBox = styled('div')`
   padding: ${space(4)};

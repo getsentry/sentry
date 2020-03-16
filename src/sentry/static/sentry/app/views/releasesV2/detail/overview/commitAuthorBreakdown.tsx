@@ -18,7 +18,6 @@ type GroupedAuthorCommits = {
 };
 
 type Props = {
-  projectId: string;
   orgId: string;
   version: string;
   commitCount: number;

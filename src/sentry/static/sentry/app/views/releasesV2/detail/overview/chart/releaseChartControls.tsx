@@ -1,80 +1,79 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withRouter} from 'react-router';
 
-import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import {EventsChart} from 'app/views/events/eventsChart';
-import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
 
-// VERY ROUGH MOCK, MORE LIKE VISUAL PLACEHOLDER, this will be changed completely
+import {YAxis} from '.';
 
-const HealthChart = ({organization, router}: any) => (
-  <Panel>
-    <ChartWrapper>
-      <EventsChart
-        {...{
-          api: new Client(),
-          router,
-          query: '',
-          organization,
-          showLegend: true,
-          yAxis: 'count(id)',
-          projects: [],
-          environments: [],
-          period: '24h',
-          utc: false,
-        }}
-      />
-    </ChartWrapper>
+type Props = {
+  summary: number;
+  yAxis: YAxis;
+  onYAxisChange: (value: YAxis) => void;
+};
 
+const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
+  const yAxisOptions = [
+    {
+      value: 'sessions',
+      label: t('Sessions'),
+    },
+    {
+      value: 'users',
+      label: t('Users'),
+    },
+  ];
+
+  const getSummaryHeading = () => {
+    switch (yAxis) {
+      case 'users':
+        return t('Total Active Users');
+      case 'sessions':
+      default:
+        return t('Total Sessions');
+    }
+  };
+
+  return (
     <ChartControls>
       <InlineContainer>
-        <SectionHeading key="total-label">{t('Total Active Users')}</SectionHeading>
-        <Value key="total-value">{(1234).toLocaleString()}</Value>
+        <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
+        <Value key="total-value">{summary.toLocaleString()}</Value>
       </InlineContainer>
 
+      {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
       <InlineContainer>
         <SectionHeading>{t('Y-Axis')}</SectionHeading>
         <DropdownControl
-          menuWidth="auto"
           alignRight
           button={({getActorProps}) => (
             <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
-              Active User Count
+              {yAxisOptions.find(option => option.value === yAxis)?.label}
             </StyledDropdownButton>
           )}
         >
-          {[{value: 'activeUserCount', label: t('Active User Count')}].map(
-            (opt, index) => (
-              <DropdownItem
-                key={opt.value}
-                onSelect={() => {}}
-                eventKey={opt.value}
-                isActive={index === 1}
-              >
-                {opt.label}
-              </DropdownItem>
-            )
-          )}
+          {yAxisOptions.map(option => (
+            <DropdownItem
+              key={option.value}
+              onSelect={onYAxisChange}
+              eventKey={option.value}
+              isActive={option.value === yAxis}
+            >
+              {option.label}
+            </DropdownItem>
+          ))}
         </DropdownControl>
       </InlineContainer>
     </ChartControls>
-  </Panel>
-);
+  );
+};
 
 const InlineContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-`;
-
-const ChartWrapper = styled('div')`
-  padding: ${space(1)} ${space(3)};
 `;
 
 const ChartControls = styled('div')`
@@ -110,4 +109,4 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
 `;
 
-export default withOrganization(withRouter(HealthChart));
+export default ReleaseChartControls;
