@@ -1,8 +1,20 @@
+import React from 'react';
+
+import {t} from 'app/locale';
+
+import {ChartControls, SectionHeading} from './styles';
+
 type Props = {
-  totals: null | number;
+  totals: number | null;
 };
 
-export default function ChartFooter(_props: Props) {
-  // TODO: implement later
-  return null;
+export default function ChartFooter({totals}: Props) {
+  return (
+    <ChartControls>
+      <SectionHeading>
+        {t('Total Events')}
+        {totals}
+      </SectionHeading>
+    </ChartControls>
+  );
 }
