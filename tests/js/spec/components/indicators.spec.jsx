@@ -112,14 +112,14 @@ describe('Indicators', function() {
 
   it('adds and replaces toasts by calling action creators helpers', function() {
     // Old indicator gets replaced when a new one is added
-    addSuccessMessage('success', null);
+    addSuccessMessage('success');
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('ToastIndicator')).toHaveLength(1);
     expect(wrapper.find('Message').text()).toBe('success');
 
     clearIndicators();
-    addErrorMessage('error', null);
+    addErrorMessage('error');
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('ToastIndicator')).toHaveLength(1);
