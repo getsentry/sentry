@@ -873,19 +873,19 @@ FIELD_ALIASES = {
 }
 
 
-def get_json_meta_type(field, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field)
+def get_json_meta_type(field_alias, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    function_match = is_function(field)
+    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
     if function_match:
-        function_definition = FUNCTIONS.get(function_match.group("function"))
+        function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
     # TODO remove this check when field aliases are removed.
-    if "duration" in field or field in ("p75", "p95", "p99"):
+    if "duration" in field_alias or field_alias in ("p75", "p95", "p99"):
         return "duration"
-    if field == "transaction.status":
+    if field_alias == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
 
@@ -1103,6 +1103,9 @@ FUNCTIONS = {
         "result_type": "duration",
     },
 }
+
+
+FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
 def is_function(field):
