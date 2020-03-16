@@ -298,6 +298,7 @@ class ContextPickerModal extends React.Component<Props> {
               name="organization"
               options={orgChoices}
               openMenuOnFocus
+              value={organization}
               onChange={this.handleSelectOrganization}
             />
           )}
