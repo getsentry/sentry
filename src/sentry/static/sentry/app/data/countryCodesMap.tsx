@@ -249,6 +249,6 @@ const countryCodesMap = {
   Ukraine: 'UA',
   Qatar: 'QA',
   Mozambique: 'MZ',
-};
+} as const;
 
 export default countryCodesMap;
