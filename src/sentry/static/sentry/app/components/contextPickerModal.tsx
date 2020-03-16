@@ -7,7 +7,7 @@ import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -235,9 +235,9 @@ class ContextPickerModal extends React.Component<Props> {
     if (!projects.length) {
       return (
         <div>
-          You have no projects. Click{' '}
-          <Link href={`/organizations/${organization}/projects/new/`}>here</Link> to make
-          one.
+          {tct('You have no projects. Click [link] to make one.', {
+            link: <Link href={`/organizations/${organization}/projects/new/`}>here</Link>,
+          })}
         </div>
       );
     }
