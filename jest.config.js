@@ -16,6 +16,7 @@ module.exports = {
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
+  modulePathIgnorePatterns: ['<rootDir>/src/sentry/static/sentry/dist'],
   setupFiles: [
     '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.js',
     '<rootDir>/tests/js/throw-on-react-error.js',
