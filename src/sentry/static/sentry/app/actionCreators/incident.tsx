@@ -1,17 +1,28 @@
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import {Client} from 'app/api';
+import {NoteType} from 'app/views/alerts/types';
 
 /**
  * Fetches a list of activities for an incident
  */
-export async function fetchIncidentActivities(api, orgId, alertId) {
+export async function fetchIncidentActivities(
+  api: Client,
+  orgId: string,
+  alertId: string
+) {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/activity/`);
 }
 
 /**
  * Creates a note for an incident
  */
-export async function createIncidentNote(api, orgId, alertId, note) {
+export async function createIncidentNote(
+  api: Client,
+  orgId: string,
+  alertId: string,
+  note: NoteType
+) {
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${alertId}/comments/`,
@@ -34,7 +45,12 @@ export async function createIncidentNote(api, orgId, alertId, note) {
 /**
  * Deletes a note for an incident
  */
-export async function deleteIncidentNote(api, orgId, alertId, noteId) {
+export async function deleteIncidentNote(
+  api: Client,
+  orgId: string,
+  alertId: string,
+  noteId: string
+) {
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${alertId}/comments/${noteId}/`,
@@ -53,7 +69,13 @@ export async function deleteIncidentNote(api, orgId, alertId, noteId) {
 /**
  * Updates a note for an incident
  */
-export async function updateIncidentNote(api, orgId, alertId, noteId, note) {
+export async function updateIncidentNote(
+  api: Client,
+  orgId: string,
+  alertId: string,
+  noteId: string,
+  note: NoteType
+) {
   try {
     const result = await api.requestPromise(
       `/organizations/${orgId}/incidents/${alertId}/comments/${noteId}/`,
@@ -75,7 +97,7 @@ export async function updateIncidentNote(api, orgId, alertId, noteId, note) {
 
 // This doesn't return anything because you shouldn't need to do anything with
 // the result success or fail
-export async function markIncidentAsSeen(api, orgId, incident) {
+export async function markIncidentAsSeen(api: Client, orgId: string, incident) {
   if (!incident || incident.hasSeen) {
     return;
   }

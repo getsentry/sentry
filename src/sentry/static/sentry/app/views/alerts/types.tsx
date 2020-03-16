@@ -23,6 +23,7 @@ export type Incident = {
   title: string;
   totalEvents: number;
   uniqueUsers: number;
+  hasSeen: boolean;
   alertRule: IncidentRule;
 };
 
