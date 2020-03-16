@@ -739,7 +739,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -828,7 +828,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -858,7 +858,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -889,7 +889,7 @@ class QueryTransformTest(TestCase):
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -920,7 +920,7 @@ class QueryTransformTest(TestCase):
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -951,7 +951,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
