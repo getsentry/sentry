@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
+from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Group
@@ -493,3 +494,36 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["nextEventID"] == format_project_event(self.project.slug, "d" * 32)
         assert response.data["previousEventID"] == format_project_event(self.project.slug, "f" * 32)
+
+    def test_long_trace_description(self):
+        data = load_data("transaction")
+        data["event_id"] = "d" * 32
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1) - timedelta(seconds=5))
+        data["contexts"]["trace"]["description"] = "b" * 512
+        self.store_event(data=data, project_id=self.project.id)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "d" * 32,
+            },
+        )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "field": ["important", "count()", "p95()"],
+                    "query": "transaction.duration:>2 p95():>0",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        trace = response.data["contexts"]["trace"]
+        original_trace = data["contexts"]["trace"]
+        assert trace["trace_id"] == original_trace["trace_id"]
+        assert trace["span_id"] == original_trace["span_id"]
+        assert trace["parent_span_id"] == original_trace["parent_span_id"]
