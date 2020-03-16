@@ -67,7 +67,7 @@ const alertStyles = ({
   thinner,
 }: Props & {theme: any}) => css`
   display: flex;
-  margin: 0 0 ${space(thinner ? 0 : 3)};
+  margin: 0 0 ${space(3)};
   padding: ${space(thinner ? 1 : 2)};
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
