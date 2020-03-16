@@ -64,6 +64,7 @@ export {IconSliders} from './iconSliders';
 export {IconStack} from './iconStack';
 export {IconStar} from './iconStar';
 export {IconStats} from './iconStats';
+export {IconStatus} from './iconStatus';
 export {IconSubtract} from './iconSubtract';
 export {IconSupport} from './iconSupport';
 export {IconSync} from './iconSync';
