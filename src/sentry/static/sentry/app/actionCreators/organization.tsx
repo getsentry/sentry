@@ -13,14 +13,18 @@ import TeamStore from 'app/stores/teamStore';
  * Fetches an organization's details with an option for the detailed representation
  * with teams and projects
  *
- * @param {Object} api A reference to the api client
- * @param {String} slug The organization slug
- * @param {boolean} detailed Whether or not the detailed org details should be
- *                           retrieved
- * @param {boolean} silent Should we silently update the organization (do not
- *                         clear the current organization in the store)
+ * @param api A reference to the api client
+ * @param slug The organization slug
+ * @param detailed Whether or not the detailed org details should be retrieved
+ * @param silent Should we silently update the organization (do not clear the
+ *               current organization in the store)
  */
-export async function fetchOrganizationDetails(api, slug, detailed, silent) {
+export async function fetchOrganizationDetails(
+  api: Client,
+  slug: string,
+  detailed: boolean,
+  silent: boolean
+) {
   if (!silent) {
     OrganizationActions.fetchOrg();
     ProjectActions.reset();
