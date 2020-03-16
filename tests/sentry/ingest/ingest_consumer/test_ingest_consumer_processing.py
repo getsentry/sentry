@@ -284,3 +284,36 @@ def test_userreport_reverse_order(default_project, monkeypatch):
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
     assert evtuser.name is None
+
+
+@pytest.mark.django_db
+def test_individual_attachments_missing_chunks(default_project, factories, monkeypatch):
+    monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
+
+    event_id = "515539018c9b4260a6f999572f1661ee"
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    project_id = default_project.id
+
+    process_individual_attachment(
+        {
+            "type": "attachment",
+            "attachment": {
+                "attachment_type": "event.attachment",
+                "chunks": 123,
+                "content_type": "application/octet-stream",
+                "id": attachment_id,
+                "name": "foo.txt",
+            },
+            "event_id": event_id,
+            "project_id": project_id,
+        },
+        projects={default_project.id: default_project},
+    )
+
+    attachments = list(
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
+            "file"
+        )
+    )
+
+    assert not attachments

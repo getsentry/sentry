@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 from six import string_types
 import zlib
 
@@ -12,6 +13,12 @@ ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
 ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
 
 UNINITIALIZED_DATA = object()
+
+logger = logging.getLogger(__name__)
+
+
+class MissingChunks(Exception):
+    pass
 
 
 class CachedAttachment(object):
@@ -142,7 +149,10 @@ class BaseAttachmentCache(object):
         data = []
 
         for key in attachment.chunk_keys:
-            data.append(zlib.decompress(self.inner.get(key, raw=True)))
+            raw_data = self.inner.get(key, raw=True)
+            if raw_data is None:
+                raise MissingChunks()
+            data.append(zlib.decompress(raw_data))
 
         return b"".join(data)
 

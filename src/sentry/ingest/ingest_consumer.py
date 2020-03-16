@@ -21,7 +21,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.attachments import CachedAttachment, MissingChunks, attachment_cache
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.event_manager import save_transaction_events
 
@@ -245,7 +245,13 @@ def process_individual_attachment(message, projects):
         headers={"Content-Type": attachment.content_type},
     )
 
-    file.putfile(BytesIO(attachment.data))
+    try:
+        data = attachment.data
+    except MissingChunks:
+        logger.exception("Missing chunks for cache_key=%s", cache_key)
+        return
+
+    file.putfile(BytesIO(data))
     EventAttachment.objects.create(
         project_id=project.id, group_id=group_id, event_id=event_id, name=attachment.name, file=file
     )
