@@ -124,7 +124,7 @@ class QuotaConfig(object):
         data = {
             "id": six.text_type(self.id) if self.id is not None else None,
             "scope": self.scope.api_name(),
-            "scope_id": self.scope_id,
+            "scopeId": self.scope_id,
             "categories": categories,
             "limit": self.limit,
             "window": self.window,
