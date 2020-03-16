@@ -208,18 +208,18 @@ class RuleNode extends React.Component<Props> {
         return (
           <Alert thinner type="warning">
             {tct(
-              'If there are no matching [issueOwners], ownership is determined by the setting on [thisPage].',
+              'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
               {
                 issueOwners: (
                   <ExternalLink href="https://docs.sentry.io/workflow/issue-owners/">
                     {t('issue owners')}
                   </ExternalLink>
                 ),
-                thisPage: (
+                ownershipSettings: (
                   <ExternalLink
                     href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
                   >
-                    {t('this page')}
+                    {t('ownership settings')}
                   </ExternalLink>
                 ),
               }
