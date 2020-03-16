@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import six
+import pytest
+import random
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
@@ -295,6 +299,65 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response.data["detail"]
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
+
+    def test_user_search(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"] = {
+            "email": "foo@example.com",
+            "id": "123",
+            "ip_address": "127.0.0.1",
+            "username": "foo",
+        }
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            for value in data["user"].values():
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "field": ["project", "user"],
+                        "query": "user:{}".format(value),
+                        "statsPeriod": "14d",
+                    },
+                )
+
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user.email"] == data["user"]["email"]
+                assert response.data["data"][0]["user.id"] == data["user"]["id"]
+                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
+                assert response.data["data"][0]["user.username"] == data["user"]["username"]
+
+    def test_has_user(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            for value in data["user"].values():
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={"field": ["project", "user"], "query": "has:user", "statsPeriod": "14d"},
+                )
+
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
 
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
@@ -1823,7 +1886,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["event.type", "percentile(transaction.duration, 0.99)"],
-                    "sort": "-percentile(transaction.duration, 0.99)",
+                    "sort": "-percentile_transaction_duration_0_99",
                     "query": "event.type:transaction",
                 },
             )
@@ -1930,10 +1993,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 },
             )
 
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 1
-            assert data[0]["count_unique_issue"] == 2
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count_unique_issue"] == 2
 
     def test_deleted_issue_in_results(self):
         self.login_as(user=self.user)
@@ -1956,8 +2019,250 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url, format="json", data={"field": ["issue", "count()"], "sort": "issue"}
             )
 
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert data[0]["issue"] == event1.group.qualified_short_id
-            assert data[1]["issue"] == "unknown"
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["issue"] == event1.group.qualified_short_id
+        assert data[1]["issue"] == "unknown"
+
+    def test_context_fields(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("android")
+        transaction_data = load_data("transaction")
+        data["spans"] = transaction_data["spans"]
+        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        data["type"] = "transaction"
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        data["contexts"]["http"] = {
+            "method": "GET",
+            "referer": "something.something",
+            "url": "https://areyouasimulation.com",
+        }
+        self.store_event(data, project_id=project.id)
+
+        fields = [
+            "http.method",
+            "http.referer",
+            "http.url",
+            "os.build",
+            "os.kernel_version",
+            "device.arch",
+            "device.battery_level",
+            "device.brand",
+            "device.charging",
+            "device.locale",
+            "device.model_id",
+            "device.name",
+            "device.online",
+            "device.orientation",
+            "device.simulator",
+            "device.uuid",
+        ]
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": fields + ["count()"], "query": "event.type:transaction"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        results = response.data["data"]
+
+        for field in fields:
+            key, value = field.split(".", 1)
+            expected = data["contexts"][key][value]
+
+            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
+            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
+            if expected in (True, False):
+                expected = six.text_type(expected)
+            # All context columns are treated as strings, regardless of the type of data they stored.
+            elif isinstance(expected, six.integer_types):
+                expected = "{:.1f}".format(expected)
+
+            assert results[0][field] == expected
+        assert results[0]["count"] == 1
+
+    @pytest.mark.xfail(reason="these fields behave differently between the types of events")
+    def test_context_fields_in_errors(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("android")
+        transaction_data = load_data("transaction")
+        data["spans"] = transaction_data["spans"]
+        data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
+        data["type"] = "error"
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
+        data["contexts"]["http"] = {
+            "method": "GET",
+            "referer": "something.something",
+            "url": "https://areyouasimulation.com",
+        }
+        self.store_event(data, project_id=project.id)
+
+        fields = [
+            "http.method",
+            "http.referer",
+            "http.url",
+            "os.build",
+            "os.kernel_version",
+            "device.arch",
+            "device.battery_level",
+            "device.brand",
+            "device.charging",
+            "device.locale",
+            "device.model_id",
+            "device.name",
+            "device.online",
+            "device.orientation",
+            "device.simulator",
+            "device.uuid",
+        ]
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": fields + ["count()"], "query": "event.type:error"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        results = response.data["data"]
+
+        for field in fields:
+            key, value = field.split(".", 1)
+            expected = data["contexts"][key][value]
+
+            # TODO (evanh) There is a bug in snuba right now where if a promoted column is used for a boolean
+            # value, it returns "1" or "0" instead of "True" and "False" (not that those make more sense)
+            if expected in (True, False):
+                expected = six.text_type(expected)
+            # All context columns are treated as strings, regardless of the type of data they stored.
+            elif isinstance(expected, six.integer_types):
+                expected = "{:.1f}".format(expected)
+
+            assert results[0][field] == expected
+
+        assert results[0]["count"] == 1
+
+    def test_histogram_function(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        start = before_now(minutes=2).replace(microsecond=0)
+        latencies = [
+            (1, 999, 5),
+            (1000, 1999, 4),
+            (3000, 3999, 3),
+            (6000, 6999, 2),
+            (10000, 10000, 1),  # just to make the math easy
+        ]
+        for bucket in latencies:
+            for i in range(bucket[2]):
+                milliseconds = random.randint(bucket[0], bucket[1])
+                data = load_data("transaction")
+                data["transaction"] = "/error_rate/{}".format(milliseconds)
+                data["timestamp"] = iso_format(start)
+                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["histogram(transaction.duration, 10)", "count()"],
+                    "query": "event.type:transaction",
+                    "sort": "histogram_transaction_duration_10",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 10
+        expected = [
+            (1000, 5),
+            (2000, 4),
+            (3000, 0),
+            (4000, 3),
+            (5000, 0),
+            (6000, 0),
+            (7000, 2),
+            (8000, 0),
+            (9000, 0),
+            (10000, 1),
+        ]
+        for idx, datum in enumerate(data):
+            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["count"] == expected[idx][1]
+
+    def test_histogram_function_with_filters(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        start = before_now(minutes=2).replace(microsecond=0)
+        latencies = [
+            (1, 999, 5),
+            (1000, 1999, 4),
+            (3000, 3999, 3),
+            (6000, 6999, 2),
+            (10000, 10000, 1),  # just to make the math easy
+        ]
+        for bucket in latencies:
+            for i in range(bucket[2]):
+                milliseconds = random.randint(bucket[0], bucket[1])
+                data = load_data("transaction")
+                data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
+                data["timestamp"] = iso_format(start)
+                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                self.store_event(data, project_id=project.id)
+
+        # Add a transaction that totally throws off the buckets
+        milliseconds = random.randint(bucket[0], bucket[1])
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/hamurai"
+        data["timestamp"] = iso_format(start)
+        data["start_timestamp"] = iso_format(start - timedelta(milliseconds=1000000))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["histogram(transaction.duration, 10)", "count()"],
+                    "query": "event.type:transaction transaction:/error_rate/sleepy_gary*",
+                    "sort": "histogram_transaction_duration_10",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 10
+        expected = [
+            (1000, 5),
+            (2000, 4),
+            (3000, 0),
+            (4000, 3),
+            (5000, 0),
+            (6000, 0),
+            (7000, 2),
+            (8000, 0),
+            (9000, 0),
+            (10000, 1),
+        ]
+        for idx, datum in enumerate(data):
+            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["count"] == expected[idx][1]

@@ -289,6 +289,33 @@ class Project(Model, PendingDeletionMixin):
             is_enabled = bool(is_enabled)
         return is_enabled
 
+    def filter_to_subscribed_users(self, users):
+        """
+        Filters a list of users down to the users who are subscribed to email alerts. We
+        check both the project level settings and global default settings.
+        """
+        from sentry.models import UserOption
+
+        project_options = UserOption.objects.filter(
+            user__in=users, project=self, key="mail:alert"
+        ).values_list("user_id", "value")
+
+        user_settings = {user_id: value for user_id, value in project_options}
+        users_without_project_setting = [user for user in users if user.id not in user_settings]
+        if users_without_project_setting:
+            user_default_settings = {
+                user_id: value
+                for user_id, value in UserOption.objects.filter(
+                    user__in=users_without_project_setting,
+                    key="subscribe_by_default",
+                    project__isnull=True,
+                ).values_list("user_id", "value")
+            }
+            for user in users_without_project_setting:
+                user_settings[user.id] = int(user_default_settings.get(user.id, "1"))
+
+        return [user for user in users if bool(user_settings[user.id])]
+
     def transfer_to(self, team=None, organization=None):
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in

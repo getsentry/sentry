@@ -430,4 +430,4 @@ export default [
   ['Pacific/Chatham', '(UTC+1345) Pacific/Chatham'],
   ['Pacific/Apia', '(UTC+1400) Pacific/Apia'],
   ['Pacific/Kiritimati', '(UTC+1400) Pacific/Kiritimati'],
-];
+] as const;
