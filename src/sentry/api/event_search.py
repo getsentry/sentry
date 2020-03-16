@@ -1053,6 +1053,7 @@ FUNCTIONS = {
             [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
             None,
         ],
+        "result_type": "number",
     },
     "count_unique": {
         "name": "count_unique",
