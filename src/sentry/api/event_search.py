@@ -866,7 +866,6 @@ def get_filter(query=None, params=None):
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
@@ -1014,7 +1013,7 @@ FUNCTIONS = {
         "name": "last_seen",
         "args": [],
         "aggregate": ["max", "timestamp", "last_seen"],
-        "result_type": "timestamp",
+        "result_type": "date",
     },
     "latest_event": {
         "name": "latest_event",
