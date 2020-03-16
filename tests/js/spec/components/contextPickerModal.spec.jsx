@@ -5,6 +5,7 @@ import ContextPickerModal from 'app/components/contextPickerModal';
 import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import {selectByValue} from 'sentry-test/select-new';
 
 jest.mock('jquery');
 
@@ -107,14 +108,7 @@ describe('ContextPickerModal', function() {
       body: [],
     });
 
-    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
-
-    expect(wrapper.find('Select[name="organization"] .Select-menu')).toHaveLength(1);
-
-    wrapper
-      .find('Select[name="organization"] Option')
-      .first()
-      .simulate('mouseDown');
+    selectByValue(wrapper, 'org-slug', {control: true});
 
     await tick();
     wrapper.update();
@@ -194,14 +188,7 @@ describe('ContextPickerModal', function() {
     );
 
     // Select org2
-    wrapper
-      .find('StyledSelectControl[name="organization"]')
-      .simulate('change', {value: org2.slug, label: org2.slug});
-    wrapper.find('StyledSelectControl[name="organization"] input').simulate('focus');
-    wrapper
-      .find('Select[name="organization"] Option')
-      .at(1)
-      .simulate('mouseDown');
+    selectByValue(wrapper, org2.slug, {control: true});
 
     await tick();
     wrapper.update();
@@ -215,11 +202,7 @@ describe('ContextPickerModal', function() {
     ]);
 
     // Select project3
-    wrapper.find('StyledSelectControl[name="project"] input').simulate('focus');
-    wrapper
-      .find('Select[name="project"] Option')
-      .at(1)
-      .simulate('mouseDown');
+    selectByValue(wrapper, 'project3', {control: true, name: 'project'});
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
 
