@@ -6,6 +6,11 @@ from sentry.rules.base import RuleBase
 class EventAction(RuleBase):
     rule_type = "action/event"
 
+
+    def human_desc(self):
+        # Returns a human readable description to display in the UI
+        raise NotImplementedError
+
     def after(self, event, state):
         """
         Executed after a Rule matches.

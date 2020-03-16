@@ -56,6 +56,8 @@ class RuleNodeField(serializers.Field):
         # TODO(jeff): Update form.cleaned_data for each rule
         # Update data from cleaned form values
         data.update(form.cleaned_data)
+        if issubclass(EventAction, node):
+
 
         if getattr(form, "_pending_save", False):
             data["pending_save"] = True

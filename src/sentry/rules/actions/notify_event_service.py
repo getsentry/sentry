@@ -25,6 +25,10 @@ class NotifyEventServiceForm(forms.Form):
         self.fields["service"].choices = service_choices
         self.fields["service"].widget.choices = self.fields["service"].choices
 
+    def human_desc(self):
+        if self.is_valid():
+        
+        return ''
 
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
@@ -38,6 +42,9 @@ class NotifyEventServiceAction(EventAction):
                 "choices": [[i.slug, i.title] for i in self.get_services()],
             }
         }
+
+    def human_desc(self):
+
 
     def after(self, event, state):
         service = self.get_option("service")
