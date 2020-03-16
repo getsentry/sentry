@@ -4,7 +4,9 @@ exports[`AlertLink renders 1`] = `
 <StyledLink
   priority="warning"
   size="normal"
+  target="_self"
   to="/settings/accounts/notifications"
+  withoutMarginBottom={false}
 >
   <AlertLinkText>
     This is an external link button
@@ -20,7 +22,9 @@ exports[`AlertLink renders with icon 1`] = `
 <StyledLink
   priority="warning"
   size="normal"
+  target="_self"
   to="/settings/accounts/notifications"
+  withoutMarginBottom={false}
 >
   <StyledInlineSvg
     size="1.5em"

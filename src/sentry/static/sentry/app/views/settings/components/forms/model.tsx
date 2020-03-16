@@ -554,7 +554,7 @@ class FormModel {
             Array.isArray(resp.responseJSON.non_field_errors) &&
             resp.responseJSON.non_field_errors.length
           ) {
-            addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
+            addErrorMessage(resp.responseJSON.non_field_errors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else {
@@ -685,7 +685,7 @@ class FormModel {
         Array.isArray(resp.non_field_errors) &&
         resp.non_field_errors.length
       ) {
-        addErrorMessage(resp.non_field_errors[0], 10000);
+        addErrorMessage(resp.non_field_errors[0], {duration: 10000});
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
         this.setError(id, resp[id][0]);
