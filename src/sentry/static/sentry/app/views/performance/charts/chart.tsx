@@ -43,8 +43,8 @@ class Chart extends React.Component<Props> {
         showSymbol: false,
       },
       grid: {
-        left: '8px',
-        right: '8px',
+        left: '10px',
+        right: '10px',
         top: '16px',
         bottom: '0px',
       },
