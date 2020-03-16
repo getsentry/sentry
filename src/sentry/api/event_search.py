@@ -897,6 +897,11 @@ class InvalidFunctionArgument(Exception):
     pass
 
 
+class ArgValue(object):
+    def __init__(self, arg):
+        self.arg = arg
+
+
 class FunctionArg(object):
     def __init__(self, name):
         self.name = name
@@ -1045,6 +1050,20 @@ FUNCTIONS = {
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
         "result_type": "number",
     },
+    "histogram": {
+        "name": "histogram",
+        "args": [
+            DurationColumnNoLookup("column"),
+            NumberRange("num_buckets", 1, 500),
+            NumberRange("bucket", 0, None),
+        ],
+        "column": [
+            "multiply",
+            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            None,
+        ],
+        "result_type": "number",
+    },
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
@@ -1107,6 +1126,17 @@ def get_function_alias(field):
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
+
+
+def format_column_arguments(column, arguments):
+    args = column[1]
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            format_column_arguments(args[i], arguments)
+        elif isinstance(args[i], six.string_types):
+            args[i] = args[i].format(**arguments)
+        elif isinstance(args[i], ArgValue):
+            args[i] = arguments[args[i].arg]
 
 
 def resolve_function(field, match=None, params=None):
@@ -1177,6 +1207,21 @@ def resolve_function(field, match=None, params=None):
             )
 
         return ([], [aggregate])
+    elif "column" in function:
+        # These can be very nested functions, so we need to iterate through all the layers
+        addition = deepcopy(function["column"])
+        format_column_arguments(addition, arguments)
+        if len(addition) < 3:
+            addition.append(
+                get_function_alias_with_columns(
+                    function["name"], columns if not used_default else []
+                )
+            )
+        elif len(addition) == 3 and addition[2] is None:
+            addition[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+        return ([addition], [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1210,6 +1255,11 @@ def resolve_orderby(orderby, fields, aggregations):
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
+
+        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        if found:
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + bare_column)
 
     if len(validated) == len(orderby):
         return validated
@@ -1322,7 +1372,11 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(columns)
+        for column in columns:
+            if isinstance(column, (list, tuple)):
+                groupby.append(column[2])
+            else:
+                groupby.append(column)
 
     return {
         "selected_columns": columns,
