@@ -1,5 +1,5 @@
 import {ModalBody, ModalHeader} from 'react-bootstrap';
-import ReactSelect from 'react-select';
+import ReactSelect, {components} from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
@@ -16,6 +16,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
+import IdBadge from 'app/components/idBadge';
 
 type Props = {
   /**
@@ -215,6 +216,24 @@ class ContextPickerModal extends React.Component<Props> {
     });
   };
 
+  //TODO(TS): Fix typings
+  customOptionProject = ({label, ...props}: any) => {
+    const project = this.props.projects.find(({slug}) => props.value === slug);
+    if (!project) {
+      return null;
+    }
+    return (
+      <components.Option label={label} {...props}>
+        <IdBadge
+          project={project}
+          avatarSize={20}
+          displayName={label}
+          avatarProps={{consistentWidth: true}}
+        />
+      </components.Option>
+    );
+  };
+
   get headerText() {
     const {needOrg, needProject} = this.props;
     if (needOrg && needProject) {
@@ -253,6 +272,7 @@ class ContextPickerModal extends React.Component<Props> {
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
+        components={{Option: this.customOptionProject}}
       />
     );
   }
