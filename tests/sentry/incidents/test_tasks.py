@@ -17,6 +17,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
+    INCIDENT_STATUS,
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
@@ -133,7 +134,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             activity,
             expected_username=activity.user.name,
             expected_action="changed status from %s to %s"
-            % (IncidentStatus.WARNING.name.lower(), IncidentStatus.CLOSED.name.lower()),
+            % (INCIDENT_STATUS[IncidentStatus.WARNING], INCIDENT_STATUS[IncidentStatus.CLOSED]),
             expected_comment=activity.comment,
             expected_recipient=recipient,
         )
