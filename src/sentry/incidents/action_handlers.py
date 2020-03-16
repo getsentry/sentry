@@ -12,6 +12,7 @@ from sentry.incidents.models import (
     QueryAggregations,
     TriggerStatus,
     IncidentStatus,
+    INCIDENT_STATUS,
 )
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -20,12 +21,6 @@ from sentry.utils.http import absolute_uri
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-    incident_status = {
-        IncidentStatus.OPEN: "Open",
-        IncidentStatus.CLOSED: "Resolved",
-        IncidentStatus.CRITICAL: "Critical",
-        IncidentStatus.WARNING: "Warning",
-    }
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -147,7 +142,7 @@ class EmailActionHandler(ActionHandler):
             # if alert threshold and threshold type is above then show '>'
             # if resolve threshold and threshold type is *BELOW* then show '>'
             "threshold_direction_string": ">" if show_greater_than_string else "<",
-            "status": self.incident_status[IncidentStatus(self.incident.status)],
+            "status": INCIDENT_STATUS[IncidentStatus(self.incident.status)],
             "is_critical": self.incident.status == IncidentStatus.CRITICAL,
             "is_warning": self.incident.status == IncidentStatus.WARNING,
             "unsubscribe_link": None,

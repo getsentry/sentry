@@ -20,6 +20,9 @@ class DebugIncidentActivityEmailView(View):
         activity = IncidentActivity(
             incident=incident, user=user, type=IncidentActivityType.COMMENT.value, comment="hi"
         )
+        # activity = IncidentActivity(
+        #     incident=incident, user=user, type=IncidentActivityType.STATUS_CHANGE.value, value=2, previous_value=10
+        # )
         email = generate_incident_activity_email(activity, user)
         return MailPreview(
             html_template=email.html_template, text_template=email.template, context=email.context

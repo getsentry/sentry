@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-# New Incident Activity
+# New Alert Activity
 
 {{ user_name }} {{ action }}:
 {% if enhanced_privacy %}
@@ -8,7 +8,7 @@ Details about this activity are not shown in this email since enhanced privacy
 controls are enabled. For more details about this activity, view on Sentry:
 {{ link }}.
 {% else %}
-Incident: {{ link }}
+Alert: {{ link }}
 {% if comment %}
 Comment Details:
 {{ comment }}

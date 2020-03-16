@@ -79,7 +79,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         recipient = self.create_user()
         message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == "Activity on Incident {} (#{})".format(
+        assert message.subject == "Activity on Alert {} (#{})".format(
             incident.title, incident.identifier
         )
         assert message.type == "incident.activity"
