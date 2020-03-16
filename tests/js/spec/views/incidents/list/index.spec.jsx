@@ -101,7 +101,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('.btn-group')
+        .find('ButtonBar')
         .find('a')
         .at(0)
         .hasClass('active')
@@ -118,7 +118,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('.btn-group')
+        .find('ButtonBar')
         .find('Button')
         .at(2)
         .hasClass('active')

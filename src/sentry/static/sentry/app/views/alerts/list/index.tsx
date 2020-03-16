@@ -15,6 +15,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -234,7 +235,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 {t('Settings')}
               </Button>
 
-              <div className="btn-group">
+              <ButtonBar merged>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
@@ -256,7 +257,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 >
                   {t('All')}
                 </Button>
-              </div>
+              </ButtonBar>
             </Actions>
           </PageHeader>
 
