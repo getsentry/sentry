@@ -508,7 +508,7 @@ export type Group = {
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
   lastSeen: string;
-  level: string;
+  level: Level;
   logger: string;
   metadata: EventMetadata;
   numComments: number;
@@ -573,6 +573,7 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+
 export enum RepositoryStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
@@ -580,6 +581,12 @@ export enum RepositoryStatus {
   PENDING_DELETION = 'pending_deletion',
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
+
+export type PullRequest = {
+  id: string;
+  title: string;
+  externalUrl: string;
+};
 
 type BaseIntegrationProvider = {
   key: string;
@@ -1006,6 +1013,8 @@ export enum ResolutionStatus {
   UNRESOLVED = 'unresolved',
 }
 export type ResolutionStatusDetails = {
+  actor?: AvatarUser;
+  inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
 };
