@@ -24,12 +24,6 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
   testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).js?(x)'],
-  testEnvironment: '<rootDir>/tests/js/env',
-  testEnvironmentOptions: {
-    SENTRY_DSN: !!process.env.CI
-      ? 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230'
-      : null,
-  },
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   testRunner: 'jest-circus/runner',
 
