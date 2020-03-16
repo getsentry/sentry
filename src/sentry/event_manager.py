@@ -604,13 +604,14 @@ class EventManager(object):
         attachments = []
         for attachment in get_attachments(cache_key, job["event"]):
             try:
-                key = "bytes.stored.%s" % (attachment.type,)
-                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
-                    attachment.data
-                )
+                attachment_data = attachment.data
             except MissingAttachmentChunks:
                 logger.exception("Missing chunks for cache_key=%s", cache_key)
             else:
+                key = "bytes.stored.%s" % (attachment.type,)
+                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
+                    attachment_data
+                )
                 attachments.append(attachment)
 
         _nodestore_save_many(jobs)
