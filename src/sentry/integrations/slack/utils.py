@@ -37,7 +37,7 @@ RESOLVED_COLOR = "#0cbd4d"
 LEVEL_TO_COLOR = {
     "debug": "#fbe14f",
     "info": "#2788ce",
-    "warning": "#f18500",
+    "warning": "#DAA038",
     "error": "#E03E2F",
     "fatal": "#d20f2a",
 }
