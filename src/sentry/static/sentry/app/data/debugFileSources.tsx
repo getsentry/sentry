@@ -5,13 +5,13 @@ export const DEBUG_SOURCE_LAYOUTS = {
   ssqp: 'Microsoft SSQP',
   unified: 'Unified Symbol Server Layout',
   debuginfod: 'debuginfod',
-};
+} as const;
 
 export const DEBUG_SOURCE_CASINGS = {
   default: 'Default (mixed case)',
   uppercase: 'Uppercase',
   lowercase: 'Lowercase',
-};
+} as const;
 
 export const AWS_REGIONS = [
   ['us-east-2', 'US East (Ohio)'],
@@ -36,14 +36,14 @@ export const AWS_REGIONS = [
   ['sa-east-1', 'South America (São Paulo)'],
   ['us-gov-east-1', 'AWS GovCloud (US-East)'],
   ['us-gov-west-1', 'AWS GovCloud (US)'],
-];
+] as const;
 
 export const DEBUG_SOURCE_TYPES = {
   gcs: 'Google Cloud Storage',
   http: 'SymbolServer (HTTP)',
   s3: 'Amazon S3',
-};
+} as const;
 
-export function getDebugSourceName(type) {
-  return DEBUG_SOURCE_TYPES[type] || 'Unknown';
+export function getDebugSourceName(type: keyof typeof DEBUG_SOURCE_TYPES) {
+  return DEBUG_SOURCE_TYPES[type] ?? 'Unknown';
 }
