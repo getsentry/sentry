@@ -1,12 +1,9 @@
 from __future__ import absolute_import
 
-<<<<<<< HEAD
 import six
 import pytest
-=======
 import random
 from datetime import timedelta
->>>>>>> 1c8adc3c4c... feat(discover) Add histogram function
 
 from django.core.urlresolvers import reverse
 
