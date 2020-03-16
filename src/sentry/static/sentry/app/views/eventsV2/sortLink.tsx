@@ -29,7 +29,7 @@ class SortLink extends React.Component<Props> {
     return eventView.isFieldSorted(field, tableDataMeta);
   }
 
-  renderChevron() {
+  renderArrow() {
     const currentSort = this.isCurrentColumnSorted();
 
     if (!currentSort) {
@@ -53,7 +53,7 @@ class SortLink extends React.Component<Props> {
 
     return (
       <StyledLink align={align} to={target}>
-        {field.field} {this.renderChevron()}
+        {field.field} {this.renderArrow()}
       </StyledLink>
     );
   }
