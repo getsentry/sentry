@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
-import {IconChevron} from 'app/icons';
+import {IconArrow} from 'app/icons/iconArrow';
 import Link from 'app/components/links/link';
 
 import EventView, {Field, Sort, isFieldSortable} from './eventView';
@@ -29,7 +29,7 @@ class SortLink extends React.Component<Props> {
     return eventView.isFieldSorted(field, tableDataMeta);
   }
 
-  renderChevron() {
+  renderArrow() {
     const currentSort = this.isCurrentColumnSorted();
 
     if (!currentSort) {
@@ -37,9 +37,9 @@ class SortLink extends React.Component<Props> {
     }
 
     if (currentSort.kind === 'desc') {
-      return <IconChevron size="xs" direction="down" />;
+      return <StyledIconArrow size="xs" direction="down" />;
     }
-    return <IconChevron size="xs" direction="up" />;
+    return <StyledIconArrow size="xs" direction="up" />;
   }
 
   render() {
@@ -53,7 +53,7 @@ class SortLink extends React.Component<Props> {
 
     return (
       <StyledLink align={align} to={target}>
-        {field.field} {this.renderChevron()}
+        {field.field} {this.renderArrow()}
       </StyledLink>
     );
   }
@@ -85,6 +85,10 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
   width: 100%;
   white-space: nowrap;
   ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  vertical-align: top;
 `;
 
 export default SortLink;
