@@ -4,7 +4,6 @@ import space from 'app/styles/space';
 
 export const HeaderTitle = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray4};
   padding: 0 ${space(1)};
 `;
 
@@ -19,7 +18,7 @@ export const SectionHeading = styled('h4')`
 export const ChartsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${space(1)};
   padding: ${space(2)} ${space(1.5)};
 `;
 
