@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import AlertLink from 'app/components/alertLink';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
@@ -246,6 +247,16 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
       <React.Fragment>
         <Panel>
           <PanelHeader>{t('Data Privacy Rules')}</PanelHeader>
+          <AlertLink
+            priority="info"
+            icon="icon-docs"
+            href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
+            size="small"
+            openInNewTab
+            withoutMarginBottom
+          >
+            {t('Check out how to use advanced datascrubbing')}
+          </AlertLink>
           <PanelBody>
             {rules.map(rule => (
               <ProjectDataPrivacyRulesForm

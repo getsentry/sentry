@@ -21,7 +21,8 @@ enum METHOD_TYPE {
   MASK = 'mask',
   REMOVE = 'remove',
   HASH = 'hash',
-  REPLACE = 'replace',
+  // TODO(Priscila): reactivate METHOD_TYPE.REPLACE
+  // REPLACE = 'replace',
 }
 
 function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
@@ -67,8 +68,9 @@ function getMethodTypeSelectorFieldLabel(labelType: METHOD_TYPE): string {
       return t('Hash');
     case METHOD_TYPE.REMOVE:
       return t('Remove');
-    case METHOD_TYPE.REPLACE:
-      return t('Replace');
+    // TODO(Priscila): reactivate METHOD_TYPE.REPLACE
+    // case METHOD_TYPE.REPLACE:
+    //   return t('Replace');
     default:
       return '';
   }

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import React from 'react';
 import {LocationDescriptor} from 'history';
+import omit from 'lodash/omit';
 
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
@@ -18,6 +19,8 @@ type OtherProps = {
 type DefaultProps = {
   size: Size;
   priority: Priority;
+  withoutMarginBottom: boolean;
+  openInNewTab: boolean;
 };
 
 type Props = (PropsWithHref | PropsWithTo) & OtherProps & DefaultProps;
@@ -26,10 +29,20 @@ export default class AlertLink extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     priority: 'warning',
     size: 'normal',
+    withoutMarginBottom: false,
+    openInNewTab: false,
   };
 
   render() {
-    const {size, priority, icon, children, onClick} = this.props;
+    const {
+      size,
+      priority,
+      icon,
+      children,
+      onClick,
+      withoutMarginBottom,
+      openInNewTab,
+    } = this.props;
     return (
       <StyledLink
         to={(this.props as PropsWithTo).to}
@@ -37,6 +50,8 @@ export default class AlertLink extends React.Component<Props> {
         onClick={onClick}
         size={size}
         priority={priority}
+        withoutMarginBottom={withoutMarginBottom}
+        target={openInNewTab ? '_blank' : '_self'}
       >
         {icon && <StyledInlineSvg src={icon} size="1.5em" spacingSize={size} />}
         <AlertLinkText>{children}</AlertLinkText>
@@ -46,14 +61,16 @@ export default class AlertLink extends React.Component<Props> {
   }
 }
 
-const StyledLink = styled(Link)<{priority: Priority; size: Size}>`
+const StyledLink = styled((props: Omit<DefaultProps, 'openInNewTab'>) => (
+  <Link {...omit(props, ['withoutMarginBottom', 'priority', 'size'])} />
+))`
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
   padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
