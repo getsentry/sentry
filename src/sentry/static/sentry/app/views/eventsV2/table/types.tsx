@@ -1,14 +1,7 @@
 import {GridColumnOrder, GridColumnSortBy} from 'app/components/gridEditable';
 
-import {
-  ColumnType,
-  ColumnValueType,
-  AggregateParameter,
-  Aggregation,
-  Field,
-  AggregationRefinement,
-} from '../eventQueryParams';
-import {Field as FieldType} from '../eventView';
+import {ColumnType, ColumnValueType, AggregateParameter} from '../eventQueryParams';
+import {Column} from '../eventView';
 import {MetaType} from '../utils';
 
 /**
@@ -17,10 +10,8 @@ import {MetaType} from '../utils';
 export type TableColumn<K> = GridColumnOrder<K> & {
   // key: K                     From GridColumn
   // name: string               From GridColumnHeader
-  aggregation: Aggregation;
-  field: Field;
-  refinement: AggregationRefinement;
-  eventViewField: Readonly<FieldType>;
+  column: Readonly<Column>;
+  width?: number;
 
   type: ColumnValueType;
   isSortable: boolean;

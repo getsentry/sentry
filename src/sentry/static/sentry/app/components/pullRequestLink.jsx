@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconBitbucket, IconGithub, IconGitlab} from 'app/icons';
 
 class PullRequestLink extends React.Component {
   static propTypes = {
@@ -23,21 +23,24 @@ class PullRequestLink extends React.Component {
     return id;
   }
 
+  renderIcon() {
+    const providerId = this.providerId;
+
+    switch (providerId) {
+      case 'github':
+        return <IconGithub size="xs" />;
+      case 'gitlab':
+        return <IconGitlab size="xs" />;
+      case 'bitbucket':
+        return <IconBitbucket size="xs" />;
+      default:
+        return null;
+    }
+  }
+
   render() {
     const {pullRequest, repository} = this.props;
-    const providerId = this.providerId;
     const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
-
-    let icon = '';
-    if (['github', 'gitlab', 'bitbucket'].indexOf(providerId) > -1) {
-      icon = (
-        <InlineSvg
-          src={`icon-${providerId}`}
-          style={{verticalAlign: 'text-top'}}
-          size="14px"
-        />
-      );
-    }
 
     return pullRequest.externalUrl ? (
       <ExternalLink
@@ -45,7 +48,8 @@ class PullRequestLink extends React.Component {
         href={pullRequest.externalUrl}
         target="_blank"
       >
-        {icon}&nbsp; {this.props.inline ? '' : ' '}
+        {this.renderIcon()}
+        {this.props.inline ? '' : ' '}
         {displayId}
       </ExternalLink>
     ) : (

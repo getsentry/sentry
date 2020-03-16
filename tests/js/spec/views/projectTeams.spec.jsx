@@ -247,7 +247,7 @@ describe('ProjectTeams', function() {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: {},
     });
     MockApiClient.addMockResponse({

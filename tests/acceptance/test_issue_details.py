@@ -150,3 +150,18 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.browser.wait_until_test_id("activity-item")
         self.browser.snapshot("issue activity python")
+
+    def test_resolved(self):
+        event = self.create_sample_event(platform="python")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.page.resolve_issue()
+
+        self.browser.snapshot("issue details resolved")
+
+    def test_ignored(self):
+        event = self.create_sample_event(platform="python")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.page.ignore_issue()
+
+        self.browser.snapshot("issue details ignored")
+        self.browser.save_screenshot("test.png")
