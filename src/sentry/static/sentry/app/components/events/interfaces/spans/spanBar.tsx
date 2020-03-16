@@ -741,6 +741,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         ref={this.spanRowDOMRef}
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
+        data-test-id="span-row"
         onClick={() => {
           this.toggleDisplayDetail();
         }}

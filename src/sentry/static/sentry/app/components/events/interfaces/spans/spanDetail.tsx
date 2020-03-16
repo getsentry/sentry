@@ -121,7 +121,7 @@ class SpanDetail extends React.Component<Props, State> {
       };
 
       return (
-        <StyledButton size="xsmall" to={to}>
+        <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
           {t('View Child')}
         </StyledButton>
       );
@@ -152,7 +152,11 @@ class SpanDetail extends React.Component<Props, State> {
     });
 
     return (
-      <StyledButton size="xsmall" to={eventView.getResultsViewUrlTarget(orgId)}>
+      <StyledButton
+        data-test-id="view-child-transactions"
+        size="xsmall"
+        to={eventView.getResultsViewUrlTarget(orgId)}
+      >
         {t('View Children')}
       </StyledButton>
     );
