@@ -9,10 +9,13 @@ from django.utils.http import urlquote
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.base import LINK_HEADER
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.event_search import get_json_meta_type
+from sentry.api.bases import (
+    OrganizationEventsEndpointBase,
+    OrganizationEventsV2EndpointBase,
+    OrganizationEventsError,
+    NoProjects,
+)
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
@@ -21,7 +24,6 @@ from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
-from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +94,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         return results
 
 
-class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
+class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def build_cursor_link(self, request, name, cursor):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
@@ -188,55 +190,3 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 message = "Internal error. Your query failed to run."
 
             raise ParseError(detail=message)
-
-    def handle_results_with_meta(self, request, organization, project_ids, results):
-        data = self.handle_data(request, organization, project_ids, results.get("data"))
-        if not data:
-            return {"data": [], "meta": {}}
-
-        meta = {
-            value["name"]: get_json_meta_type(value["name"], value["type"])
-            for value in results["meta"]
-        }
-        # Ensure all columns in the result have types.
-        for key in data[0]:
-            if key not in meta:
-                meta[key] = "string"
-        return {"meta": meta, "data": data}
-
-    def handle_data(self, request, organization, project_ids, results):
-        if not results:
-            return results
-
-        first_row = results[0]
-
-        # TODO(mark) move all of this result formatting into discover.query()
-        # once those APIs are used across the application.
-        if "transaction.status" in first_row:
-            for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
-
-        fields = request.GET.getlist("field")
-        issues = {}
-        if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row["issue.id"] for row in results)
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
-                )
-            }
-            for result in results:
-                if "issue.id" in result:
-                    result["issue"] = issues.get(result["issue.id"], "unknown")
-
-        if not ("project.id" in first_row or "projectid" in first_row):
-            return results
-
-        for result in results:
-            for key in ("projectid", "project.id"):
-                if key in result:
-                    if key not in fields:
-                        del result[key]
-
-        return results
