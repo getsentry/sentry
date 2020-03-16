@@ -20,6 +20,11 @@ describe('ProjectPluginDetails', function() {
     jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
+  afterAll(function() {
+    // eslint-disable-next-line no-console
+    console.info.mockRestore();
+  });
+
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
@@ -56,11 +61,6 @@ describe('ProjectPluginDetails', function() {
       />,
       routerContext
     );
-  });
-
-  afterAll(function() {
-    // eslint-disable-next-line no-console
-    console.info.restore();
   });
 
   it('renders', function() {

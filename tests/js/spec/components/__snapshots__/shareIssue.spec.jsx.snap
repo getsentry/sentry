@@ -18,13 +18,13 @@ exports[`ShareIssue renders when busy 1`] = `
         }
       }
     >
-      <ForwardRef(render)
+      <FlowLayout
         center={true}
         truncate={true}
       >
         <IndicatorDot />
         Share
-      </ForwardRef(render)>
+      </FlowLayout>
     </div>
   }
 >
@@ -72,7 +72,7 @@ exports[`ShareIssue renders when not shared 1`] = `
         }
       }
     >
-      <ForwardRef(render)
+      <FlowLayout
         center={true}
         truncate={true}
       >
@@ -80,7 +80,7 @@ exports[`ShareIssue renders when not shared 1`] = `
           active={false}
         />
         Share
-      </ForwardRef(render)>
+      </FlowLayout>
     </div>
   }
 >
@@ -129,7 +129,7 @@ exports[`ShareIssue renders when shared  1`] = `
         }
       }
     >
-      <ForwardRef(render)
+      <FlowLayout
         center={true}
         truncate={true}
       >
@@ -137,7 +137,7 @@ exports[`ShareIssue renders when shared  1`] = `
           active={true}
         />
         Share
-      </ForwardRef(render)>
+      </FlowLayout>
     </div>
   }
 >

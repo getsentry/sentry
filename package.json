@@ -158,6 +158,7 @@
     "eslint-plugin-emotion": "^10.0.14",
     "jest": "24.9.0",
     "jest-canvas-mock": "^2.2.0",
+    "jest-circus": "^25.1.0",
     "jest-junit": "^9.0.0",
     "mockdate": "2.0.5",
     "object.fromentries": "^2.0.0",

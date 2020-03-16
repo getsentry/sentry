@@ -1345,11 +1345,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                               avatarProps={Object {}}
                                               avatarSize={14}
                                               displayName={
-                                                <ForwardRef(render)
+                                                <BadgeDisplayName
                                                   hideOverflow={true}
                                                 >
                                                   project-slug
-                                                </ForwardRef(render)>
+                                                </BadgeDisplayName>
                                               }
                                               hideAvatar={false}
                                               hideName={true}

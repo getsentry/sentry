@@ -839,10 +839,10 @@ exports[`RuleBuilder renders 1`] = `
                                       "type": "team",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)
+                                    "label": <Styled(div)
                                       justifyContent="space-between"
                                     >
-                                      <ForwardRef(render)>
+                                      <DisabledLabel>
                                         <Tooltip
                                           containerDisplayMode="inline-block"
                                           position="left"
@@ -860,13 +860,13 @@ exports[`RuleBuilder renders 1`] = `
                                             }
                                           />
                                         </Tooltip>
-                                      </ForwardRef(render)>
+                                      </DisabledLabel>
                                       <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="top"
                                         title="Add #team-not-in-project to project"
                                       >
-                                        <ForwardRef(render)
+                                        <AddToProjectButton
                                           borderless={true}
                                           disabled={false}
                                           icon={
@@ -878,7 +878,7 @@ exports[`RuleBuilder renders 1`] = `
                                           size="zero"
                                         />
                                       </Tooltip>
-                                    </ForwardRef(render)>,
+                                    </Styled(div)>,
                                     "searchKey": "#team-not-in-project",
                                     "value": "team:4",
                                   },
@@ -889,7 +889,7 @@ exports[`RuleBuilder renders 1`] = `
                                       "type": "user",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)>
+                                    "label": <DisabledLabel>
                                       <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="left"
@@ -908,7 +908,7 @@ exports[`RuleBuilder renders 1`] = `
                                           }
                                         />
                                       </Tooltip>
-                                    </ForwardRef(render)>,
+                                    </DisabledLabel>,
                                     "searchKey": "johnsmith@example.com john smith",
                                     "value": "user:2",
                                   },
@@ -2553,10 +2553,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       "type": "team",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)
+                                    "label": <Styled(div)
                                       justifyContent="space-between"
                                     >
-                                      <ForwardRef(render)>
+                                      <DisabledLabel>
                                         <Tooltip
                                           containerDisplayMode="inline-block"
                                           position="left"
@@ -2574,13 +2574,13 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                             }
                                           />
                                         </Tooltip>
-                                      </ForwardRef(render)>
+                                      </DisabledLabel>
                                       <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="top"
                                         title="Add #team-not-in-project to project"
                                       >
-                                        <ForwardRef(render)
+                                        <AddToProjectButton
                                           borderless={true}
                                           disabled={false}
                                           icon={
@@ -2592,7 +2592,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           size="zero"
                                         />
                                       </Tooltip>
-                                    </ForwardRef(render)>,
+                                    </Styled(div)>,
                                     "searchKey": "#team-not-in-project",
                                     "value": "team:4",
                                   },
@@ -2603,7 +2603,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       "type": "user",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)>
+                                    "label": <DisabledLabel>
                                       <Tooltip
                                         containerDisplayMode="inline-block"
                                         position="left"
@@ -2622,7 +2622,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           }
                                         />
                                       </Tooltip>
-                                    </ForwardRef(render)>,
+                                    </DisabledLabel>,
                                     "searchKey": "johnsmith@example.com john smith",
                                     "value": "user:2",
                                   },

@@ -62,7 +62,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
         <div>
           <StyledSettingsPageHeading
             action={
-              <ForwardRef
+              <forwardRef<Button>
                 disabled={false}
                 icon={
                   <ForwardRef(IconAdd)
@@ -75,14 +75,14 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                 to="/organizations/org-slug/projects/new/"
               >
                 Create Project
-              </ForwardRef>
+              </forwardRef<Button>>
             }
             noTitleStyles={false}
             title="Projects"
           >
             <SettingsPageHeading
               action={
-                <ForwardRef
+                <forwardRef<Button>
                   disabled={false}
                   icon={
                     <ForwardRef(IconAdd)
@@ -95,7 +95,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                   to="/organizations/org-slug/projects/new/"
                 >
                   Create Project
-                </ForwardRef>
+                </forwardRef<Button>>
               }
               className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
               noTitleStyles={false}

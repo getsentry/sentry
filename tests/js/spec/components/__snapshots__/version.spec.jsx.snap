@@ -108,26 +108,26 @@ exports[`Version renders 1`] = `
         isHoverable={true}
         position="top"
         title={
-          <ForwardRef(render)
+          <TooltipContent
             onClick={[Function]}
           >
-            <ForwardRef(render)>
+            <TooltipVersionWrapper>
               foo.bar.Baz@1.0.0+20200101
-            </ForwardRef(render)>
+            </TooltipVersionWrapper>
             <Clipboard
               errorMessage="Error copying to clipboard"
               hideMessages={false}
               successMessage="Copied to clipboard"
               value="foo.bar.Baz@1.0.0+20200101"
             >
-              <ForwardRef(render)>
+              <TooltipClipboardIconWrapper>
                 <ForwardRef(IconCopy)
                   color="white"
                   size="xs"
                 />
-              </ForwardRef(render)>
+              </TooltipClipboardIconWrapper>
             </Clipboard>
-          </ForwardRef(render)>
+          </TooltipContent>
         }
       >
         <Link

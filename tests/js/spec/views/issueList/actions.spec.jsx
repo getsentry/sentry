@@ -275,7 +275,7 @@ describe('IssueListActions', function() {
     });
 
     afterAll(function() {
-      SelectedGroupStore.mockRestore();
+      SelectedGroupStore.deselectAll.mockRestore();
     });
 
     describe('for all items', function() {

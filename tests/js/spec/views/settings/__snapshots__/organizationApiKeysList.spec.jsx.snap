@@ -45,7 +45,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
   <div>
     <StyledSettingsPageHeading
       action={
-        <ForwardRef
+        <forwardRef<Button>
           icon={
             <ForwardRef(IconAdd)
               circle={true}
@@ -56,14 +56,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
           size="small"
         >
           New API Key
-        </ForwardRef>
+        </forwardRef<Button>>
       }
       noTitleStyles={false}
       title="API Keys"
     >
       <SettingsPageHeading
         action={
-          <ForwardRef
+          <forwardRef<Button>
             icon={
               <ForwardRef(IconAdd)
                 circle={true}
@@ -74,7 +74,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
             size="small"
           >
             New API Key
-          </ForwardRef>
+          </forwardRef<Button>>
         }
         className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
         noTitleStyles={false}

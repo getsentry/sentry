@@ -80,16 +80,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 items={
                   Array [
                     Object {
-                      "label": <ForwardRef(render)>
+                      "label": <ProjectListElement>
                         project-slug
-                      </ForwardRef(render)>,
+                      </ProjectListElement>,
                       "searchKey": "project-slug",
                       "value": "2",
                     },
                     Object {
-                      "label": <ForwardRef(render)>
+                      "label": <ProjectListElement>
                         project-slug-2
-                      </ForwardRef(render)>,
+                      </ProjectListElement>,
                       "searchKey": "project-slug-2",
                       "value": "3",
                     },
@@ -105,16 +105,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   items={
                     Array [
                       Object {
-                        "label": <ForwardRef(render)>
+                        "label": <ProjectListElement>
                           project-slug
-                        </ForwardRef(render)>,
+                        </ProjectListElement>,
                         "searchKey": "project-slug",
                         "value": "2",
                       },
                       Object {
-                        "label": <ForwardRef(render)>
+                        "label": <ProjectListElement>
                           project-slug-2
-                        </ForwardRef(render)>,
+                        </ProjectListElement>,
                         "searchKey": "project-slug-2",
                         "value": "3",
                       },

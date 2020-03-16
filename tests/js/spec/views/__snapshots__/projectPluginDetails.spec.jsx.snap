@@ -359,7 +359,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                       <div
                         className="pull-right"
                       >
-                        <ForwardRef
+                        <forwardRef<Button>
                           disabled={false}
                           onClick={[Function]}
                           size="small"
@@ -370,13 +370,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                           }
                         >
                           Enable Plugin
-                        </ForwardRef>
-                        <ForwardRef
+                        </forwardRef<Button>>
+                        <forwardRef<Button>
                           onClick={[Function]}
                           size="small"
                         >
                           Reset Configuration
-                        </ForwardRef>
+                        </forwardRef<Button>>
                       </div>
                     }
                     noTitleStyles={false}
@@ -387,7 +387,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                         <div
                           className="pull-right"
                         >
-                          <ForwardRef
+                          <forwardRef<Button>
                             disabled={false}
                             onClick={[Function]}
                             size="small"
@@ -398,13 +398,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                             }
                           >
                             Enable Plugin
-                          </ForwardRef>
-                          <ForwardRef
+                          </forwardRef<Button>>
+                          <forwardRef<Button>
                             onClick={[Function]}
                             size="small"
                           >
                             Reset Configuration
-                          </ForwardRef>
+                          </forwardRef<Button>>
                         </div>
                       }
                       className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
