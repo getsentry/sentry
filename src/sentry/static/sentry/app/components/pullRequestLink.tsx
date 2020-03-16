@@ -10,7 +10,7 @@ function renderIcon(repo: Repository) {
   }
 
   const {id} = repo.provider;
-  const providerId = id.indexOf(':') > -1 ? id.split(':').pop() : id;
+  const providerId = id.includes(':') ? id.split(':').pop() : id;
 
   switch (providerId) {
     case 'github':
