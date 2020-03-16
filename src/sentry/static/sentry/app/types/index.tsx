@@ -508,7 +508,7 @@ export type Group = {
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
   lastSeen: string;
-  level: string;
+  level: Level;
   logger: string;
   metadata: EventMetadata;
   numComments: number;
