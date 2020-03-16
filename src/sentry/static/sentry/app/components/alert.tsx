@@ -86,8 +86,8 @@ const alertStyles = ({
 const StyledTextBlock = styled(TextBlock)`
   line-height: 1.4;
   margin-bottom: 0;
-  flex: 1;
   align-self: center;
+  width: 100%;
 `;
 
 const Alert = styled(

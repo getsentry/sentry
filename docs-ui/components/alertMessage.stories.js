@@ -17,7 +17,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Info message with a url',
             type: 'info',
-            url: 'url',
+            url: '#',
           }}
         />
 
@@ -34,7 +34,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Warning Message',
             type: 'warning',
-            url: 'url',
+            url: '#',
           }}
         />
 
@@ -43,7 +43,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Error Message',
             type: 'error',
-            url: 'url',
+            url: '#',
           }}
         />
       </Grid>
@@ -58,7 +58,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Info message with a url',
             type: 'info',
-            url: 'url',
+            url: '#',
           }}
           system
         />
@@ -88,7 +88,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             message:
               "Background workers haven't checked in recently. This can mean an issue with your configuration or a serious backlog in tasks.",
             type: 'error',
-            url: 'url',
+            url: '#',
           }}
           system
         />

@@ -7,9 +7,15 @@ import AlertStore from 'app/stores/alertStore';
 import AlertMessage from 'app/components/alertMessage';
 import theme from 'app/utils/theme';
 
-const Alerts = createReactClass({
+type Alert = React.ComponentProps<typeof AlertMessage>['alert'];
+
+type State = {
+  alerts: Array<Alert>;
+};
+
+const Alerts = createReactClass<{}, State>({
   displayName: 'Alerts',
-  mixins: [Reflux.connect(AlertStore, 'alerts')],
+  mixins: [Reflux.connect(AlertStore, 'alerts') as any],
 
   getInitialState() {
     return {
@@ -18,12 +24,13 @@ const Alerts = createReactClass({
   },
 
   render() {
+    const alerts = this.state.alerts as Array<Alert>;
     return (
       <ThemeProvider theme={theme}>
         <div {...this.props}>
-          {this.state.alerts.map(function(alert) {
-            return <AlertMessage alert={alert} key={alert.key} system />;
-          })}
+          {alerts.map(alert => (
+            <AlertMessage alert={alert} key={alert.id} system />
+          ))}
         </div>
       </ThemeProvider>
     );
