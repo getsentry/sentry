@@ -4,7 +4,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {createTeam} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
-import CreateTeamForm from 'app/components/createTeam/createTeamForm';
+import CreateTeamForm from 'app/components/createTeamForm';
 import SentryTypes from 'app/sentryTypes';
 
 class CreateTeamModal extends React.Component {
