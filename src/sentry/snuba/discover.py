@@ -481,6 +481,7 @@ def query(
     referrer=None,
     auto_fields=False,
     use_aggregate_conditions=False,
+    conditions=None,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -502,6 +503,8 @@ def query(
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
+    conditions (Sequence[any]) List of conditions that are passed directly to snuba without
+                    any additional processing.
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -583,6 +586,9 @@ def query(
                     having_clause[0]
                 )
             )
+
+    if conditions is not None:
+        snuba_args["conditions"].extend(conditions)
 
     result = raw_query(
         start=snuba_args.get("start"),

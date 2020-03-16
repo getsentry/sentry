@@ -300,6 +300,65 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
+    def test_user_search(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"] = {
+            "email": "foo@example.com",
+            "id": "123",
+            "ip_address": "127.0.0.1",
+            "username": "foo",
+        }
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            for value in data["user"].values():
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "field": ["project", "user"],
+                        "query": "user:{}".format(value),
+                        "statsPeriod": "14d",
+                    },
+                )
+
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user.email"] == data["user"]["email"]
+                assert response.data["data"][0]["user.id"] == data["user"]["id"]
+                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
+                assert response.data["data"][0]["user.username"] == data["user"]["username"]
+
+    def test_has_user(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            for value in data["user"].values():
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={"field": ["project", "user"], "query": "has:user", "statsPeriod": "14d"},
+                )
+
+                assert response.status_code == 200, response.content
+                assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
+
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
         project1 = self.create_project()
