@@ -873,19 +873,19 @@ FIELD_ALIASES = {
 }
 
 
-def get_json_meta_type(field, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field)
+def get_json_meta_type(field_alias, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
     if function_match:
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
     # TODO remove this check when field aliases are removed.
-    if "duration" in field or field in ("p75", "p95", "p99"):
+    if "duration" in field_alias or field_alias in ("p75", "p95", "p99"):
         return "duration"
-    if field == "transaction.status":
+    if field_alias == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
 
@@ -1003,6 +1003,24 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p75": {
+        "name": "p75",
+        "args": [],
+        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p95": {
+        "name": "p95",
+        "args": [],
+        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p99": {
+        "name": "p99",
+        "args": [],
+        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
@@ -1029,19 +1047,19 @@ FUNCTIONS = {
     },
     "apdex": {
         "name": "apdex",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex({column}, {satisfaction:g})",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex(duration, {satisfaction:g})",
         "result_type": "number",
     },
     "impact": {
         "name": "impact",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
         # in a format Snuba can parse so query optimizations can be applied.
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "error_rate": {

@@ -101,7 +101,7 @@ class ColumnEditRow extends React.Component<Props> {
           }
         }
         if (param.kind === 'value') {
-          column.function[i + 1] = param.defaultValue;
+          column.function[i + 1] = param.defaultValue || '';
         }
       });
 
