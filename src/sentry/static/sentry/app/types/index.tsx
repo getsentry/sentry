@@ -829,6 +829,16 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
+};
+
 export type MemberRole = {
   id: string;
   name: string;
