@@ -16,7 +16,7 @@ import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSele
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-import {IconWindow} from 'app/icons/iconWindow';
+import {IconWindow} from 'app/icons';
 
 /**
  * Environment Selector
