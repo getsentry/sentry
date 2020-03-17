@@ -10,7 +10,7 @@ class ApiClient(BaseApiClient):
 
     datadog_prefix = "sentry-plugins"
 
-    log_path = "sentry.plugins"
+    log_path = "sentry.plugins.client"
 
     plugin_name = "undefined"
 
