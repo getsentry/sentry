@@ -28,43 +28,43 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}>
 
 class IncidentRulesList extends AsyncView<Props, State> {
   getEndpoints() {
-    const {orgId} = this.props.params;
+    const {orgId} = this.props.params
 
-    return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]];
+    return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]]
   }
 
   handleRemoveRule = async (rule: SavedIncidentRule) => {
-    const {orgId} = this.props.params;
+    const {orgId} = this.props.params
 
     // Optimistic update
-    const oldRules = this.state.rules.slice(0);
+    const oldRules = this.state.rules.slice(0)
 
-    const newRules = this.state.rules.filter(({id}) => id !== rule.id);
+    const newRules = this.state.rules.filter(({id}) => id !== rule.id)
 
     try {
       this.setState({
         rules: newRules,
-      });
+      })
 
-      await deleteRule(this.api, orgId, rule);
+      await deleteRule(this.api, orgId, rule)
     } catch (_err) {
       this.setState({
         rules: oldRules,
-      });
+      })
     }
-  };
+  }
 
   renderLoading() {
-    return this.renderBody();
+    return this.renderBody()
   }
 
   renderBody() {
-    const isLoading = this.state.loading;
-    const isEmpty = !isLoading && !this.state.rules.length;
+    const isLoading = this.state.loading
+    const isEmpty = !isLoading && !this.state.rules.length
 
     return (
       <Panel>
