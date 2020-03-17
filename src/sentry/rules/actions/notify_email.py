@@ -465,7 +465,6 @@ class NotifyEmailForm(forms.Form):
 
         self.cleaned_data["targetType"] = targetType
         self.cleaned_data["targetIdentifier"] = targetIdentifier
-        return
 
 
 class NotifyEmailAction(EventAction):
