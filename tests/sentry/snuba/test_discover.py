@@ -11,6 +11,7 @@ from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 
@@ -739,7 +740,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -828,7 +829,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=[],
             dataset=Dataset.Discover,
@@ -858,7 +859,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -889,7 +890,7 @@ class QueryTransformTest(TestCase):
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -920,7 +921,7 @@ class QueryTransformTest(TestCase):
 
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -951,7 +952,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            conditions=[["http_method", "=", "GET"]],
+            conditions=[["contexts[http.method]", "=", "GET"]],
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
@@ -1026,6 +1027,246 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_translations(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+            },
+        ]
+        discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+        mock_query.assert_called_with(
+            selected_columns=[
+                [
+                    "multiply",
+                    [["floor", [["divide", ["duration", 1000]]]], 1000],
+                    "histogram_transaction_duration_10_1000",
+                ]
+            ],
+            aggregations=[
+                ["count", None, "count"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+                [
+                    "transform(projectid, array({}), array('{}'), '')".format(
+                        six.text_type(self.project.id), six.text_type(self.project.slug)
+                    ),
+                    None,
+                    "project.name",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["histogram_transaction_duration_10_1000"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_bad_histogram_translations(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+            },
+        ]
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(transaction.duration)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert "histogram(...) expects 2 column arguments, received 1 arguments" in six.text_type(
+            err
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(stack.colno, 10)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert (
+            "histogram(...) can only be used with the transaction.duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(transaction.duration, 1000)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert (
+            "histogram(...) requires a bucket value between 1 and 500, not 1000"
+            in six.text_type(err)
+        )
+
+    # empty results
+    # full results
+    # missing results
+    # missing results sorted asc
+    # missing results sorted desc
+    # missing results sorted otherwise
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_empty_results(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [i * 1000 for i in range(1, 10)]
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_full_results(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    for i in range(1, 10)
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [i * 1000 for i in range(1, 10)]
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+            assert result["count"] == exp / 1000
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_missing_results_asc_sort(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    for i in range(1, 10, 2)
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [i * 1000 for i in range(1, 10)]
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
+        seed = range(1, 10, 2)
+        seed.reverse()
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i} for i in seed
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="-histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [i * 1000 for i in range(1, 10)]
+        expected.reverse()
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_missing_results_no_sort(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    for i in range(1, 10, 2)
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="count",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [1000, 3000, 5000, 7000, 9000]
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+            assert result["count"] == exp / 1000
+
+        expected_extra_buckets = set([2000, 4000, 6000, 8000, 10000])
+        extra_buckets = set(r["histogram_transaction_duration_10"] for r in results["data"][5:])
+        assert expected_extra_buckets == extra_buckets
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):

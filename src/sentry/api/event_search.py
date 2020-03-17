@@ -174,6 +174,7 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
+USER_ALIAS = "user"
 
 
 class InvalidSearchQuery(Exception):
@@ -239,10 +240,6 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "device.battery_level",
-            "device.charging",
-            "device.online",
-            "device.simulator",
             "error.handled",
             "stack.colno",
             "stack.in_app",
@@ -654,8 +651,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=N
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter):
-    name = search_filter.key.name
+def convert_search_filter_to_snuba_query(search_filter, key=None):
+    name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
     if name in no_conversion:
@@ -823,6 +820,14 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
+            elif name == USER_ALIAS:
+                # If the key is user, do an OR across all the different possible user fields
+                kwargs["conditions"].append(
+                    [
+                        convert_search_filter_to_snuba_query(term, key=field)
+                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                    ]
+                )
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -890,6 +895,11 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 class InvalidFunctionArgument(Exception):
     pass
+
+
+class ArgValue(object):
+    def __init__(self, arg):
+        self.arg = arg
 
 
 class FunctionArg(object):
@@ -1040,6 +1050,20 @@ FUNCTIONS = {
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
         "result_type": "number",
     },
+    "histogram": {
+        "name": "histogram",
+        "args": [
+            DurationColumnNoLookup("column"),
+            NumberRange("num_buckets", 1, 500),
+            NumberRange("bucket", 0, None),
+        ],
+        "column": [
+            "multiply",
+            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            None,
+        ],
+        "result_type": "number",
+    },
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
@@ -1102,6 +1126,17 @@ def get_function_alias(field):
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
+
+
+def format_column_arguments(column, arguments):
+    args = column[1]
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            format_column_arguments(args[i], arguments)
+        elif isinstance(args[i], six.string_types):
+            args[i] = args[i].format(**arguments)
+        elif isinstance(args[i], ArgValue):
+            args[i] = arguments[args[i].arg]
 
 
 def resolve_function(field, match=None, params=None):
@@ -1172,6 +1207,21 @@ def resolve_function(field, match=None, params=None):
             )
 
         return ([], [aggregate])
+    elif "column" in function:
+        # These can be very nested functions, so we need to iterate through all the layers
+        addition = deepcopy(function["column"])
+        format_column_arguments(addition, arguments)
+        if len(addition) < 3:
+            addition.append(
+                get_function_alias_with_columns(
+                    function["name"], columns if not used_default else []
+                )
+            )
+        elif len(addition) == 3 and addition[2] is None:
+            addition[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+        return ([addition], [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1205,6 +1255,11 @@ def resolve_orderby(orderby, fields, aggregations):
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
+
+        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        if found:
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + bare_column)
 
     if len(validated) == len(orderby):
         return validated
@@ -1317,7 +1372,11 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(columns)
+        for column in columns:
+            if isinstance(column, (list, tuple)):
+                groupby.append(column[2])
+            else:
+                groupby.append(column)
 
     return {
         "selected_columns": columns,

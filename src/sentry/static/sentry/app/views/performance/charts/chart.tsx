@@ -1,12 +1,11 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 
 import {TimeSeriesData} from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 
-import {HeaderTitle} from './styles';
+import {HeaderTitle, ChartContainer} from './styles';
 
 type Props = {
   yAxis: string;
@@ -44,10 +43,10 @@ class Chart extends React.Component<Props> {
         showSymbol: false,
       },
       grid: {
-        left: '24px',
-        right: '48px',
-        top: '24px',
-        bottom: '12px',
+        left: '10px',
+        right: '10px',
+        top: '16px',
+        bottom: '0px',
       },
       utc,
       isGroupedByDate: true,
@@ -56,15 +55,15 @@ class Chart extends React.Component<Props> {
 
     if (loading) {
       return (
-        <Container key="loading">
+        <ChartContainer key="loading">
           <HeaderTitle>{yAxis}</HeaderTitle>
           <AreaChart series={[]} {...areaChartProps} />
-        </Container>
+        </ChartContainer>
       );
     }
 
     return (
-      <Container key="loaded">
+      <ChartContainer key="loaded">
         <HeaderTitle>{yAxis}</HeaderTitle>
         <ChartZoom
           router={router}
@@ -77,15 +76,9 @@ class Chart extends React.Component<Props> {
             <AreaChart {...zoomRenderProps} series={timeseriesData} {...areaChartProps} />
           )}
         </ChartZoom>
-      </Container>
+      </ChartContainer>
     );
   }
 }
-
-const Container = styled('div')`
-  min-width: 50%;
-  max-width: 50%;
-  width: 50%;
-`;
 
 export default Chart;

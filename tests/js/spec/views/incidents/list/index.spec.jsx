@@ -93,7 +93,7 @@ describe('IncidentsList', function() {
 
     wrapper = await createWrapper();
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any Alerts yet");
+    expect(wrapper.text()).toContain("You don't have any Metric Alerts yet");
   });
 
   it('toggles all/open', async function() {
@@ -101,7 +101,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('.btn-group')
+        .find('ButtonBar')
         .find('a')
         .at(0)
         .hasClass('active')
@@ -118,7 +118,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('.btn-group')
+        .find('ButtonBar')
         .find('Button')
         .at(2)
         .hasClass('active')
