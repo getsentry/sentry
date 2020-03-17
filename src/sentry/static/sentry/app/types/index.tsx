@@ -6,6 +6,7 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {PlatformKey} from 'app/data/platformCategories';
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -97,7 +98,7 @@ export type Organization = LightWeightOrganization & {
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
-  platform?: string;
+  platform?: PlatformKey;
 };
 
 export type Project = {
@@ -225,7 +226,7 @@ type SentryEventBase = {
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: string;
+  platform?: PlatformKey;
   dateCreated?: string;
   endTimestamp?: number;
   entries: EntryType[];
@@ -369,7 +370,7 @@ export type PluginProjectItem = {
   projectId: string;
   projectSlug: string;
   projectName: string;
-  projectPlatform: string | null;
+  projectPlatform: PlatformKey;
   enabled: boolean;
   configured: boolean;
 };
@@ -515,7 +516,7 @@ export type Group = {
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
-  platform: string;
+  platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)

@@ -18,7 +18,7 @@ const popular = [
   'node',
   'react-native',
   'javascript-angular',
-];
+] as const;
 
 const frontend = [
   'javascript',
@@ -28,9 +28,15 @@ const frontend = [
   'javascript-backbone',
   'javascript-ember',
   'javascript-vue',
-];
+] as const;
 
-const mobile = ['cocoa-objc', 'cocoa-swift', 'java-android', 'cordova', 'react-native'];
+const mobile = [
+  'cocoa-objc',
+  'cocoa-swift',
+  'java-android',
+  'cordova',
+  'react-native',
+] as const;
 
 const backend = [
   'csharp',
@@ -67,9 +73,9 @@ const backend = [
   'ruby-rails',
   'ruby-rack',
   'rust',
-];
+] as const;
 
-const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'];
+const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump', 'native'] as const;
 
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},
@@ -77,8 +83,20 @@ const categoryList = [
   {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
+] as const;
+
+export const sourceMaps: PlatformKey[] = [
+  ...frontend,
+  'react-native',
+  'cordova',
+  'electron',
 ];
 
-export const sourceMaps = [...frontend, 'react-native', 'cordova', 'electron'];
+export type PlatformKey =
+  | typeof popular[number]
+  | typeof frontend[number]
+  | typeof mobile[number]
+  | typeof backend[number]
+  | typeof desktop[number];
 
 export default categoryList;

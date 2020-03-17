@@ -4,10 +4,12 @@ import {sourceMaps} from 'app/data/platformCategories';
 import {Organization, OnboardingTaskDescriptor, OnboardingTaskKey} from 'app/types';
 
 function hasPlatformWithSourceMaps(organization: Organization): boolean {
-  if (!organization || !organization.projects) {
+  const projects = organization?.projects;
+  if (!projects) {
     return false;
   }
-  return organization.projects.some(({platform}) => sourceMaps.includes(platform));
+
+  return projects.some(({platform}) => platform && sourceMaps.includes(platform));
 }
 
 export default function getOnboardingTasks(
