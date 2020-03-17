@@ -20,7 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = React.ComponentProps<typeof Button> & {
   api: Client;
   organization: Organization;
-  project: Project;
+  project?: Project;
   source: string;
 };
 
@@ -81,6 +81,10 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     // TODO(dena): swap out for action creator
     const {api, organization, project, source} = this.props;
     let eventData;
+
+    if (!project) {
+      return;
+    }
 
     addLoadingMessage(t('Processing sample event...'));
     this.setState({creating: true});
