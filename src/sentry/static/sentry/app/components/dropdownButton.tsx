@@ -1,26 +1,27 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 
-class DropdownButton extends React.Component {
-  static propTypes = {
-    isOpen: PropTypes.bool,
-    showChevron: PropTypes.bool,
-    forwardRef: PropTypes.any,
-  };
-  render() {
-    const {isOpen, showChevron, children, forwardRef, ...otherProps} = this.props;
-    return (
-      <StyledButton type="button" isOpen={isOpen} ref={forwardRef} {...otherProps}>
-        {children}
-        {showChevron && <StyledChevronDown />}
-      </StyledButton>
-    );
-  }
-}
+type Props = React.ComponentProps<typeof Button> & {
+  isOpen?: boolean;
+  showChevron?: boolean;
+  forwardedRef?: React.Ref<typeof Button>;
+};
+
+const DropdownButton = ({
+  isOpen,
+  children,
+  forwardedRef,
+  showChevron = false,
+  ...props
+}: Props) => (
+  <StyledButton type="button" isOpen={isOpen} ref={forwardedRef} {...props}>
+    {children}
+    {showChevron && <StyledChevronDown />}
+  </StyledButton>
+);
 
 DropdownButton.defaultProps = {
   showChevron: true,
@@ -32,7 +33,7 @@ const StyledChevronDown = styled(props => (
   margin-left: 0.33em;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(Button)<Pick<Props, 'isOpen' | 'disabled'>>`
   border-bottom-right-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   border-bottom-left-radius: ${p => (p.isOpen ? 0 : p.theme.borderRadius)};
   position: relative;
@@ -47,6 +48,6 @@ const StyledButton = styled(Button)`
   }
 `;
 
-export default React.forwardRef((props, ref) => (
-  <DropdownButton forwardRef={ref} {...props} />
+export default React.forwardRef<typeof Button, Props>((props, ref) => (
+  <DropdownButton forwardedRef={ref} {...props} />
 ));
