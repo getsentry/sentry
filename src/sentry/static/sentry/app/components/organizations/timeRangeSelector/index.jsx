@@ -25,7 +25,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {IconCalendar} from 'app/icons/iconCalendar';
+import {IconCalendar} from 'app/icons';
 
 // Strips timezone from local date, creates a new moment date object with timezone
 // Then returns as a Date object

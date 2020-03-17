@@ -8,7 +8,7 @@ import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconCalendar} from 'app/icons/iconCalendar';
+import {IconCalendar} from 'app/icons';
 import space from 'app/styles/space';
 
 import InputField from './inputField';
