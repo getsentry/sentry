@@ -20,7 +20,7 @@ const omitIgnoredProps = (props: Props) =>
 type Series = {
   seriesName: string;
   data: {
-    name: string;
+    name: string | number;
     value: string;
   }[];
 };
@@ -138,11 +138,12 @@ class ReleaseChartRequest extends React.Component<Props, State> {
 
     data.forEach(entry => {
       const [timeframe, values] = entry;
+      const date = timeframe * 1000;
       summary += values[yAxis];
-      chartData.crashed.data.push({name: timeframe, value: values[`${yAxis}_crashed`]});
-      chartData.abnormal.data.push({name: timeframe, value: values[`${yAxis}_abnormal`]});
-      chartData.errored.data.push({name: timeframe, value: values[`${yAxis}_errored`]});
-      chartData.total.data.push({name: timeframe, value: values[yAxis]});
+      chartData.crashed.data.push({name: date, value: values[`${yAxis}_crashed`]});
+      chartData.abnormal.data.push({name: date, value: values[`${yAxis}_abnormal`]});
+      chartData.errored.data.push({name: date, value: values[`${yAxis}_errored`]});
+      chartData.total.data.push({name: date, value: values[yAxis]});
     });
 
     this.props.onSummaryChange(summary);
