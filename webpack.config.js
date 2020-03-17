@@ -75,7 +75,7 @@ const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
  */
 if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins.push([
-    'babel-gettext-extractor',
+    'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
       baseDirectory: path.join(__dirname, 'src/sentry'),
