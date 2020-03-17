@@ -881,8 +881,7 @@ def get_json_meta_type(field_alias, snuba_type):
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
-    # TODO remove this check when field aliases are removed.
-    if "duration" in field_alias or field_alias in ("p75", "p95", "p99"):
+    if "duration" in field_alias:
         return "duration"
     if field_alias == "transaction.status":
         return "string"
@@ -1297,11 +1296,9 @@ def resolve_field(field, params=None):
     if match:
         return resolve_function(field, match, params)
 
-    sans_parens = field.strip("()")
-    if sans_parens in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[sans_parens])
-        return (special_field.get("fields", []), special_field.get("aggregations", []))
-
+    if field in FIELD_ALIASES:
+        special_field = deepcopy(FIELD_ALIASES[field])
+        return (special_field.get("fields", []), None)
     return ([field], None)
 
 
