@@ -1634,7 +1634,7 @@ SENTRY_BUILTIN_SOURCES = {
         "name": "Electron",
         "layout": {"type": "native"},
         "url": "https://electron-symbols.githubapp.com/",
-        "filters": {"filetypes": ["pdb", "breakpad"]},
+        "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
         "is_public": True,
     },
 }
