@@ -3,23 +3,6 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Abilon Dias <abilonds@hotmail.com>, 2014
-# Abilon Dias <abilonds@hotmail.com>, 2017
-# Allisson Azevedo <allisson@gmail.com>, 2013
-# Ayrton Ricardo <ayrtonricardo@hotmail.com>, 2015
-# bruno.devpod <bruno.devpod@gmail.com>, 2014
-# Bruno Garcia <github@brunogarcia.com>, 2019
-# Bruno Guimarães <brunobastosg@gmail.com>, 2019
-# Claudio Rogerio Carvalho Filho <excriptbrasil@gmail.com>, 2018
-# Diego Nobre <contato@diegonobre.net>, 2015
-# Fábio C. Barrionuevo da Luz <bnafta@gmail.com>, 2014
-# Hugo Tácito <hugotacito@gmail.com>, 2017-2018
-# Luan Fonseca de Farias <luanfonceca@gmail.com>, 2014
-# Luiz Fernando Barbosa Vital <luiz.vital@znc.com.br>, 2014
-# Marcel Dias <marceldiass@gmail.com>, 2016
-# Marcelo Moro Brondani <mbrondani@inf.ufsm.br>, 2018
-# Melcon Moraes <melcon@gmail.com>, 2013
-# Paulo Cereigido <paulocereigido@gmail.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
@@ -27,73 +10,73 @@ msgstr ""
 "POT-Creation-Date: 2020-03-17 19:33+0000\n"
 "PO-Revision-Date: 2020-03-17 19:33+0000\n"
 "Last-Translator: Billy Vong <billy@sentry.io>\n"
-"Language-Team: Portuguese (Brazil) (http://www.transifex.com/getsentry/sentry/language/pt_BR/)\n"
+"Language-Team: Acoli (http://www.transifex.com/getsentry/sentry/language/ach/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
-"Language: pt_BR\n"
+"Language: ach\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: admin.py:163 admin.py:177 web/forms/accounts.py:326
 msgid "Username"
-msgstr "Nome de usuário"
+msgstr ""
 
 #: admin.py:166 admin.py:180
 msgid "Required. 128 characters or fewer. Letters, digits and @/./+/-/_ only."
-msgstr "Requeridos. 128 caracteres ou menos. Letras, dígitos e @ /. / + / - / _ apenas."
+msgstr ""
 
 #: admin.py:169 admin.py:183
 msgid "This value may contain only letters, numbers and @/./+/-/_ characters."
-msgstr "Este valor deve conter apenas letras, números e caracteres @/./+/-/_."
+msgstr ""
 
 #: admin.py:194
 msgid "Personal info"
-msgstr "Dados pessoais"
+msgstr ""
 
 #: admin.py:195
 msgid "Permissions"
-msgstr "Permissões"
+msgstr ""
 
 #: admin.py:196
 msgid "Important dates"
-msgstr "Datas importantes"
+msgstr ""
 
 #: admin.py:275
 msgid "Password changed successfully."
-msgstr "Senha modificada com sucesso."
+msgstr ""
 
 #: admin.py:285
 #, python-format
 msgid "Change password: %s"
-msgstr "Mudar senha: %s"
+msgstr ""
 
 #: api/endpoints/organization_auth_provider_send_reminders.py:12
 #: web/frontend/organization_auth_settings.py:21
 msgid "The SSO feature is not enabled for this organization."
-msgstr "A funcionalidade SSO não está habilitada para esta organização."
+msgstr ""
 
 #: api/endpoints/organization_teams.py:63
 #: api/endpoints/sentry_app_installations.py:22
 msgid ""
 "Enter a valid slug consisting of lowercase letters, numbers, underscores or "
 "hyphens."
-msgstr "Digite um slug válido contendo letras minúsculas, números, sublinhados ou hífens."
+msgstr ""
 
 #: api/endpoints/user_appearance.py:37 api/endpoints/user_details.py:48
 #: web/forms/accounts.py:479
 msgid "Default (let Sentry decide)"
-msgstr "Padrão (deixar o Sentry decidir)"
+msgstr ""
 
 #: api/endpoints/user_appearance.py:38 api/endpoints/user_details.py:49
 #: web/forms/accounts.py:480
 msgid "Most recent call last"
-msgstr "Chamada mais recente por último"
+msgstr ""
 
 #: api/endpoints/user_appearance.py:39 api/endpoints/user_details.py:50
 #: web/forms/accounts.py:481
 msgid "Most recent call first"
-msgstr "Chamada mais recente primeiro"
+msgstr ""
 
 #: api/serializers/rest_framework/json.py:14
 msgid "Value must be valid JSON."
@@ -114,7 +97,7 @@ msgstr ""
 
 #: assistant/guides.py:36
 msgid "Stacktrace"
-msgstr "Stacktrace"
+msgstr ""
 
 #: assistant/guides.py:38
 msgid ""
@@ -124,7 +107,7 @@ msgstr ""
 
 #: assistant/guides.py:44
 msgid "Breadcrumbs"
-msgstr "Breadcrumbs"
+msgstr ""
 
 #: assistant/guides.py:46
 msgid ""
@@ -132,11 +115,11 @@ msgid ""
 "similar to traditional logs but can record more rich structured data. When "
 "Sentry is used with web frameworks, breadcrumbs are automatically captured "
 "for events like database calls and network requests."
-msgstr "Breadcrumbs são rastros de eventos que aconteceram antes do erro. Eles são similares aos logs mas podem guardar mais dados ricamente estruturados. Quando o Sentry é usado com frameworks web, os breadcrumbs são automaticamente capturados para eventos como chamadas a bancos de dados e requisições de rede.."
+msgstr ""
 
 #: assistant/guides.py:54
 msgid "Tags"
-msgstr "Etiquetas"
+msgstr ""
 
 #: assistant/guides.py:56
 msgid ""
@@ -146,7 +129,7 @@ msgstr ""
 
 #: assistant/guides.py:62
 msgid "Resolve"
-msgstr "Resolver"
+msgstr ""
 
 #: assistant/guides.py:64
 msgid ""
@@ -168,7 +151,7 @@ msgstr ""
 
 #: assistant/guides.py:79
 msgid "Issue Number"
-msgstr "Número da Issue"
+msgstr ""
 
 #: assistant/guides.py:81
 msgid ""
@@ -192,7 +175,7 @@ msgstr ""
 
 #: assistant/guides.py:103
 msgid "Issues"
-msgstr "Questões"
+msgstr ""
 
 #: assistant/guides.py:105
 msgid ""
@@ -215,21 +198,21 @@ msgstr ""
 
 #: auth/helper.py:48
 msgid "You have successfully linked your account to your SSO provider."
-msgstr "Você associou sua conta ao seu provedor SSO com sucesso."
+msgstr ""
 
 #: auth/helper.py:51
 msgid ""
 "SSO has been configured for your organization and any existing members have "
 "been sent an email to link their accounts."
-msgstr "Sua organização configurou o SSO e um email foi enviado a todos os membros existentes para associar suas contas."
+msgstr ""
 
 #: auth/helper.py:54
 msgid "There was an error encountered during authentication."
-msgstr "Houve um erro durante a autenticação."
+msgstr ""
 
 #: auth/helper.py:56
 msgid "You must be authenticated to link accounts."
-msgstr "Você precisa estar autenticado para vincular as contas."
+msgstr ""
 
 #: auth/helper.py:58
 msgid "The provider did not return a valid user identity."
@@ -243,15 +226,15 @@ msgid ""
 msgid_plural ""
 "This password is too short. It must contain at least %(min_length)d "
 "characters."
-msgstr[0] "Esta senha é muito curta. Ela deve conter pelo menos %(min_length)d caracter."
-msgstr[1] "Esta senha é muito curta. Ela deve conter pelo menos %(min_length)d caracteres."
+msgstr[0] ""
+msgstr[1] ""
 
 #: auth/password_validation.py:101
 #, python-format
 msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
-msgstr[0] "Sua senha deve conter pelo menos %(min_length)d caracter."
-msgstr[1] "Sua senha deve conter pelo menos %(min_length)d caracteres."
+msgstr[0] ""
+msgstr[1] ""
 
 #: auth/password_validation.py:119
 #, python-format
@@ -274,11 +257,11 @@ msgstr[1] ""
 
 #: auth/password_validation.py:143
 msgid "This password is entirely numeric."
-msgstr "Essa senha contém somente números."
+msgstr ""
 
 #: auth/password_validation.py:147
 msgid "Your password can't be entirely numeric."
-msgstr "Sua senha não pode conter somente números."
+msgstr ""
 
 #: auth/providers/saml2/auth0/templates/sentry_auth_auth0/select-idp.html:8
 #: auth/providers/saml2/auth0/templates/sentry_auth_auth0/select-idp.html:11
@@ -293,7 +276,7 @@ msgstr ""
 #: templates/sentry/login.html:113 templates/sentry/login.html:138
 #: templates/sentry/twofactor.html:39
 msgid "Continue"
-msgstr "Continue"
+msgstr ""
 
 #: auth/providers/saml2/forms.py:107
 msgid ""
@@ -370,334 +353,334 @@ msgstr ""
 
 #: conf/server.py:166
 msgid "Afrikaans"
-msgstr "Africano"
+msgstr ""
 
 #: conf/server.py:167
 msgid "Arabic"
-msgstr "Árabe"
+msgstr ""
 
 #: conf/server.py:168
 msgid "Azerbaijani"
-msgstr "Azerbaijano"
+msgstr ""
 
 #: conf/server.py:169
 msgid "Bulgarian"
-msgstr "Búlgaro"
+msgstr ""
 
 #: conf/server.py:170
 msgid "Belarusian"
-msgstr "Bielo-russo"
+msgstr ""
 
 #: conf/server.py:171
 msgid "Bengali"
-msgstr "Bengalês"
+msgstr ""
 
 #: conf/server.py:172
 msgid "Breton"
-msgstr "Bretão"
+msgstr ""
 
 #: conf/server.py:173
 msgid "Bosnian"
-msgstr "Bosniano"
+msgstr ""
 
 #: conf/server.py:174
 msgid "Catalan"
-msgstr "Catalão"
+msgstr ""
 
 #: conf/server.py:175
 msgid "Czech"
-msgstr "Tcheco"
+msgstr ""
 
 #: conf/server.py:176
 msgid "Welsh"
-msgstr "Galês"
+msgstr ""
 
 #: conf/server.py:177
 msgid "Danish"
-msgstr "Dinamarquês"
+msgstr ""
 
 #: conf/server.py:178
 msgid "German"
-msgstr "Alemão"
+msgstr ""
 
 #: conf/server.py:179
 msgid "Greek"
-msgstr "Grego"
+msgstr ""
 
 #: conf/server.py:180
 msgid "English"
-msgstr "Inglês"
+msgstr ""
 
 #: conf/server.py:181
 msgid "Esperanto"
-msgstr "Esperanto"
+msgstr ""
 
 #: conf/server.py:182
 msgid "Spanish"
-msgstr "Espanhol"
+msgstr ""
 
 #: conf/server.py:183
 msgid "Estonian"
-msgstr "Estoniano"
+msgstr ""
 
 #: conf/server.py:184
 msgid "Basque"
-msgstr "Basco"
+msgstr ""
 
 #: conf/server.py:185
 msgid "Persian"
-msgstr "Persa"
+msgstr ""
 
 #: conf/server.py:186
 msgid "Finnish"
-msgstr "Finlandês"
+msgstr ""
 
 #: conf/server.py:187
 msgid "French"
-msgstr "Francês"
+msgstr ""
 
 #: conf/server.py:188
 msgid "Irish"
-msgstr "Irlandês"
+msgstr ""
 
 #: conf/server.py:189
 msgid "Galician"
-msgstr "Galego"
+msgstr ""
 
 #: conf/server.py:190
 msgid "Hebrew"
-msgstr "Hebreu"
+msgstr ""
 
 #: conf/server.py:191
 msgid "Hindi"
-msgstr "Hindi"
+msgstr ""
 
 #: conf/server.py:192
 msgid "Croatian"
-msgstr "Croata"
+msgstr ""
 
 #: conf/server.py:193
 msgid "Hungarian"
-msgstr "Húngaro"
+msgstr ""
 
 #: conf/server.py:194
 msgid "Interlingua"
-msgstr "Interlingua"
+msgstr ""
 
 #: conf/server.py:195
 msgid "Indonesian"
-msgstr "Indonésio"
+msgstr ""
 
 #: conf/server.py:196
 msgid "Icelandic"
-msgstr "Islandês"
+msgstr ""
 
 #: conf/server.py:197
 msgid "Italian"
-msgstr "Italiano"
+msgstr ""
 
 #: conf/server.py:198
 msgid "Japanese"
-msgstr "Japonês"
+msgstr ""
 
 #: conf/server.py:199
 msgid "Georgian"
-msgstr "Georgian"
+msgstr ""
 
 #: conf/server.py:200
 msgid "Kazakh"
-msgstr "Casaque"
+msgstr ""
 
 #: conf/server.py:201
 msgid "Khmer"
-msgstr "Cambojano"
+msgstr ""
 
 #: conf/server.py:202
 msgid "Kannada"
-msgstr "Canarês"
+msgstr ""
 
 #: conf/server.py:203
 msgid "Korean"
-msgstr "Coreano"
+msgstr ""
 
 #: conf/server.py:204
 msgid "Luxembourgish"
-msgstr "Luxemburguês"
+msgstr ""
 
 #: conf/server.py:205
 msgid "Lithuanian"
-msgstr "Lituano"
+msgstr ""
 
 #: conf/server.py:206
 msgid "Latvian"
-msgstr "Letão"
+msgstr ""
 
 #: conf/server.py:207
 msgid "Macedonian"
-msgstr "Macedônio"
+msgstr ""
 
 #: conf/server.py:208
 msgid "Malayalam"
-msgstr "Malaiala"
+msgstr ""
 
 #: conf/server.py:209
 msgid "Mongolian"
-msgstr "Mongol"
+msgstr ""
 
 #: conf/server.py:210
 msgid "Burmese"
-msgstr "Birmanês"
+msgstr ""
 
 #: conf/server.py:211
 msgid "Norwegian Bokmal"
-msgstr "Bokmål Norueguês"
+msgstr ""
 
 #: conf/server.py:212
 msgid "Nepali"
-msgstr "Nepalês"
+msgstr ""
 
 #: conf/server.py:213
 msgid "Dutch"
-msgstr "Holandês"
+msgstr ""
 
 #: conf/server.py:214
 msgid "Norwegian Nynorsk"
-msgstr "Novo Norueguês"
+msgstr ""
 
 #: conf/server.py:215
 msgid "Ossetic"
-msgstr "Osseto"
+msgstr ""
 
 #: conf/server.py:216
 msgid "Punjabi"
-msgstr "Punjabi"
+msgstr ""
 
 #: conf/server.py:217
 msgid "Polish"
-msgstr "Polonês"
+msgstr ""
 
 #: conf/server.py:218
 msgid "Portuguese"
-msgstr "Português"
+msgstr ""
 
 #: conf/server.py:219
 msgid "Brazilian Portuguese"
-msgstr "Português Brasileiro"
+msgstr ""
 
 #: conf/server.py:220
 msgid "Romanian"
-msgstr "Romeno"
+msgstr ""
 
 #: conf/server.py:221
 msgid "Russian"
-msgstr "Russo"
+msgstr ""
 
 #: conf/server.py:222
 msgid "Slovak"
-msgstr "Eslovaco"
+msgstr ""
 
 #: conf/server.py:223
 msgid "Slovenian"
-msgstr "Esloveno"
+msgstr ""
 
 #: conf/server.py:224
 msgid "Albanian"
-msgstr "Albanês"
+msgstr ""
 
 #: conf/server.py:225
 msgid "Serbian"
-msgstr "Servio"
+msgstr ""
 
 #: conf/server.py:226
 msgid "Swedish"
-msgstr "Sueco"
+msgstr ""
 
 #: conf/server.py:227
 msgid "Swahili"
-msgstr "Suáile"
+msgstr ""
 
 #: conf/server.py:228
 msgid "Tamil"
-msgstr "Tamil"
+msgstr ""
 
 #: conf/server.py:229
 msgid "Telugu"
-msgstr "Telugo"
+msgstr ""
 
 #: conf/server.py:230
 msgid "Thai"
-msgstr "Tailandês"
+msgstr ""
 
 #: conf/server.py:231
 msgid "Turkish"
-msgstr "Turco"
+msgstr ""
 
 #: conf/server.py:232
 msgid "Tatar"
-msgstr "Tártaro"
+msgstr ""
 
 #: conf/server.py:233
 msgid "Udmurt"
-msgstr "Udmurte"
+msgstr ""
 
 #: conf/server.py:234
 msgid "Ukrainian"
-msgstr "Ucraniano"
+msgstr ""
 
 #: conf/server.py:235
 msgid "Urdu"
-msgstr "Urdu"
+msgstr ""
 
 #: conf/server.py:236
 msgid "Vietnamese"
-msgstr "Vietnamita"
+msgstr ""
 
 #: conf/server.py:237
 msgid "Simplified Chinese"
-msgstr "Chinês Simplificado"
+msgstr ""
 
 #: conf/server.py:238
 msgid "Traditional Chinese"
-msgstr "Chinês Tradicional"
+msgstr ""
 
 #: constants.py:45
 msgid "Priority"
-msgstr "Prioridade"
+msgstr ""
 
 #: constants.py:46 constants.py:53
 msgid "Last Seen"
-msgstr "Visto pela última vez"
+msgstr ""
 
 #: constants.py:47 constants.py:53
 msgid "First Seen"
-msgstr "Vista pela primeira vez"
+msgstr ""
 
 #: constants.py:48
 msgid "Frequency"
-msgstr "Frequência"
+msgstr ""
 
 #: constants.py:53
 msgid "Score"
-msgstr "Pontuação"
+msgstr ""
 
 #: constants.py:233
 #, python-brace-format
 msgid "The {name} integration has been enabled."
-msgstr "A integração {name} foi habilitada."
+msgstr ""
 
 #: constants.py:235
 #, python-brace-format
 msgid "The {name} integration has been disabled."
-msgstr "A integração {name} foi desabilitada."
+msgstr ""
 
 #: constants.py:237
 #, python-brace-format
 msgid "Configuration for the {name} integration has been saved."
-msgstr "As configurações para a integração {name} foram salvas."
+msgstr ""
 
 #: db/models/fields/bounded.py:49 db/models/fields/bounded.py:63
 msgid "Big Integer"
-msgstr "Inteiro Grande"
+msgstr ""
 
 #: db/models/fields/jsonfield.py:48
 #, python-format
@@ -720,7 +703,7 @@ msgstr ""
 #: integrations/pagerduty/integration.py:48
 #: integrations/vsts/integration.py:85
 msgid "Installation"
-msgstr "Instalação"
+msgstr ""
 
 #: integrations/bitbucket_server/integration.py:75
 msgid "Bitbucket URL"
@@ -737,7 +720,7 @@ msgstr ""
 #: integrations/gitlab/integration.py:147
 #: integrations/jira_server/integration.py:91
 msgid "Verify SSL"
-msgstr "Verificar SSL"
+msgstr ""
 
 #: integrations/bitbucket_server/integration.py:85
 msgid ""
@@ -888,7 +871,7 @@ msgstr ""
 
 #: integrations/jira/integration.py:78
 msgid "Instance"
-msgstr "Instância"
+msgstr ""
 
 #: integrations/jira/integration.py:109
 msgid "Sync Sentry Status to Jira"
@@ -927,7 +910,7 @@ msgstr ""
 
 #: integrations/jira/integration.py:127
 msgid "Jira Project"
-msgstr "Projeto Jira"
+msgstr ""
 
 #: integrations/jira/integration.py:132
 msgid "Sync Sentry Assignment to Jira"
@@ -975,7 +958,7 @@ msgstr ""
 
 #: integrations/jira/integration.py:183 integrations/vsts/integration.py:247
 msgid "Your organization does not have access to this feature"
-msgstr "Sua organização não possui acesso a esta funcionalidade"
+msgstr ""
 
 #: integrations/jira_server/integration.py:85
 msgid "Jira URL"
@@ -1089,7 +1072,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:76
 msgid "Project"
-msgstr "Projeto"
+msgstr ""
 
 #: integrations/vsts/issues.py:77
 msgid "MyProject"
@@ -1097,40 +1080,40 @@ msgstr ""
 
 #: interfaces/http.py:172
 msgid "Request"
-msgstr "Requisição"
+msgstr ""
 
 #: interfaces/stacktrace.py:508
 msgid "Stacktrace (most recent call first):"
-msgstr "Stacktrace (chamada mais recente primeiro):"
+msgstr ""
 
 #: interfaces/stacktrace.py:510
 msgid "Stacktrace (most recent call last):"
-msgstr "Stacktrace (chamada mais recente por último):"
+msgstr ""
 
 #: models/apiapplication.py:46 models/apikey.py:57 models/project.py:96
 #: models/projectkey.py:56 models/team.py:110
 msgid "Active"
-msgstr "Ativo"
+msgstr ""
 
 #: models/apiapplication.py:47 models/apikey.py:57 models/projectkey.py:57
 msgid "Inactive"
-msgstr "Inativo"
+msgstr ""
 
 #: models/authenticator.py:172
 msgid "Enroll"
-msgstr "Inscrição"
+msgstr ""
 
 #: models/authenticator.py:173
 msgid "Info"
-msgstr "Informações"
+msgstr ""
 
 #: models/authenticator.py:174
 msgid "Remove"
-msgstr "Remover"
+msgstr ""
 
 #: models/authenticator.py:271
 msgid "Recovery Codes"
-msgstr "Códigos de recuperação"
+msgstr ""
 
 #: models/authenticator.py:273
 msgid ""
@@ -1140,33 +1123,33 @@ msgstr ""
 
 #: models/authenticator.py:277
 msgid "Activate"
-msgstr "Ativar"
+msgstr ""
 
 #: models/authenticator.py:278
 msgid "View Codes"
-msgstr "Visualizar códigos"
+msgstr ""
 
 #: models/authenticator.py:380
 msgid "Authenticator App"
-msgstr "Aplicativo Autenticador"
+msgstr ""
 
 #: models/authenticator.py:382
 msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to conveniently secure your account.  A new token "
 "is generated every 30 seconds."
-msgstr "Um aplicação autenticadora que suporte o padrão TOTP (como Google Authenticator ou 1Password) pode ser usada para guarda sua conta convenientemente. Um novo token é gerado a cada 30 segundos. "
+msgstr ""
 
 #: models/authenticator.py:398
 msgid "Text Message"
-msgstr "Mensagem de texto"
+msgstr ""
 
 #: models/authenticator.py:400
 msgid ""
 "This authenticator sends you text messages for verification.  It's useful as"
 " a backup method or when you do not have a phone that supports an "
 "authenticator application."
-msgstr "O autenticador envia mensagem de texto para você para verificação. É útil como um método de backup ou quando você não tem um telefone que suporte uma aplicação autenticadora."
+msgstr ""
 
 #: models/authenticator.py:438
 #, python-format
@@ -1179,99 +1162,99 @@ msgstr ""
 msgid ""
 "Error: we failed to send a text message to you. You can try again later or "
 "sign in with a different method."
-msgstr "Erro: nós falhamos ao enviar uma mensagem de texto para você. Você pode tentar novamente mais tarde, ou tentar entrar com um método diferente."
+msgstr ""
 
 #: models/authenticator.py:456
 #, python-format
 msgid ""
 "%(code)s is your Sentry two-factor enrollment code. You are about to set up "
 "text message based two-factor authentication."
-msgstr "%(code)s é seu código de inscrição no sistema de dois fatores do Sentry.  Você está tentando configurar o sistema de dois fatores de autenticação baseado em mensagens de texto."
+msgstr ""
 
 #: models/authenticator.py:461
 #, python-format
 msgid "%(code)s is your Sentry authentication code."
-msgstr "%(code)s é o seu código de autenticação no Sentry."
+msgstr ""
 
 #: models/authenticator.py:464
 #, python-format
 msgid "Requested from %(ip)s"
-msgstr "Solicitador por %(ip)s "
+msgstr ""
 
 #: models/authenticator.py:474
 msgid "Configure"
-msgstr "Configurar"
+msgstr ""
 
 #: models/authenticator.py:475
 msgid "U2F (Universal 2nd Factor)"
-msgstr "U2F (Universal 2nd Factor)"
+msgstr ""
 
 #: models/authenticator.py:477
 msgid ""
 "Authenticate with a U2F hardware device. This is a device like a Yubikey or "
 "something similar which supports FIDO's U2F specification. This also "
 "requires a browser which supports this system (like Google Chrome)."
-msgstr "Autenticar com um dispositivo U2F. Este é um dispositivo como um Yubikey ou algo simitar que suporte a especificação FIDO U2F. Também é necessário um browser que suporte este sistema (como Google Chrome)."
+msgstr ""
 
 #: models/authenticator.py:590
 msgid "created at"
-msgstr "criado em"
+msgstr ""
 
 #: models/authenticator.py:591
 msgid "last used at"
-msgstr "último uso em"
+msgstr ""
 
 #: models/authenticator.py:603
 msgid "authenticator"
-msgstr "autenticador"
+msgstr ""
 
 #: models/authenticator.py:604
 msgid "authenticators"
-msgstr "autenticadores"
+msgstr ""
 
 #: models/email.py:19 models/user.py:51 models/useremail.py:24
 msgid "email address"
-msgstr "endereço de email"
+msgstr ""
 
 #: models/group.py:265
 msgid "Unresolved"
-msgstr "Não Resolvido"
+msgstr ""
 
 #: models/group.py:266 models/groupresolution.py:36
 msgid "Resolved"
-msgstr "Resolvido"
+msgstr ""
 
 #: models/group.py:267
 msgid "Ignored"
-msgstr "Ignorado"
+msgstr ""
 
 #: models/group.py:291
 msgid "grouped messages"
-msgstr "mensagens agrupadas"
+msgstr ""
 
 #: models/group.py:292
 msgid "grouped message"
-msgstr "mensagem agrupada"
+msgstr ""
 
 #: models/group.py:449
 msgid "error"
-msgstr "erro"
+msgstr ""
 
 #: models/grouphash.py:21
 msgid "Locked (Migration in Progress)"
-msgstr "Bloqueado (migração em andamento)"
+msgstr ""
 
 #: models/grouplink.py:39
 msgid "Commit"
-msgstr "Commit"
+msgstr ""
 
 #: models/grouplink.py:40
 msgid "Pull Request"
-msgstr "Pull Request"
+msgstr ""
 
 #: models/grouplink.py:41
 msgid "Tracker Issue"
-msgstr "Tracker Issue"
+msgstr ""
 
 #: models/grouplink.py:47
 msgid "Resolves"
@@ -1283,7 +1266,7 @@ msgstr ""
 
 #: models/groupresolution.py:36
 msgid "Pending"
-msgstr "Pendente"
+msgstr ""
 
 #: models/organizationmember.py:110
 msgid "Approved"
@@ -1299,57 +1282,57 @@ msgstr ""
 
 #: models/project.py:97 models/team.py:111
 msgid "Pending Deletion"
-msgstr "Exclusão Pendente"
+msgstr ""
 
 #: models/project.py:98 models/team.py:112
 msgid "Deletion in Progress"
-msgstr "Exclusão em Progresso"
+msgstr ""
 
 #: models/user.py:47
 msgid "username"
-msgstr "nome de usuário"
+msgstr ""
 
 #: models/user.py:50
 msgid "name"
-msgstr "nome"
+msgstr ""
 
 #: models/user.py:53
 msgid "staff status"
-msgstr "status de membro da equipe"
+msgstr ""
 
 #: models/user.py:55
 msgid "Designates whether the user can log into this admin site."
-msgstr "Determina se o usuário pode entrar neste site administrativo."
+msgstr ""
 
 #: models/user.py:58
 msgid "active"
-msgstr "ativo"
+msgstr ""
 
 #: models/user.py:61
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
-msgstr "Designa se este usuário deve ser tratado como ativo. Desmarque isso em vez de excluir contas."
+msgstr ""
 
 #: models/user.py:66
 msgid "superuser status"
-msgstr "status de superusuário"
+msgstr ""
 
 #: models/user.py:69
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
-msgstr "Determina que este usuário tem todas as permissões, sem atribuir explicitamente elas."
+msgstr ""
 
 #: models/user.py:73
 msgid "managed"
-msgstr "gerenciado"
+msgstr ""
 
 #: models/user.py:76
 msgid ""
 "Designates whether this user should be treated as managed. Select this to "
 "disallow the user from modifying their account (username, password, etc)."
-msgstr "Designa se este usuário deve ser tratado como gerenciado. Selecione esta opção para não permitir que o usuário modifique a sua conta (nome de usuário, senha, etc)."
+msgstr ""
 
 #: models/user.py:82
 msgid "is sentry app"
@@ -1363,123 +1346,123 @@ msgstr ""
 
 #: models/user.py:92
 msgid "password expired"
-msgstr "senha expirada"
+msgstr ""
 
 #: models/user.py:95
 msgid ""
 "If set to true then the user needs to change the password on next sign in."
-msgstr "Se habilitado então o usuário precisa mudar sua senha no próximo login."
+msgstr ""
 
 #: models/user.py:99
 msgid "date of last password change"
-msgstr "data da última mudança de senha"
+msgstr ""
 
 #: models/user.py:101
 msgid "The date the password was changed last."
-msgstr "A data da última alteração da senha."
+msgstr ""
 
 #: models/user.py:114
 msgid "date joined"
-msgstr "data de ingresso"
+msgstr ""
 
 #: models/user.py:115
 msgid "last active"
-msgstr "ativo pela última vez"
+msgstr ""
 
 #: models/user.py:125
 msgid "user"
-msgstr "usuário"
+msgstr ""
 
 #: models/user.py:126
 msgid "users"
-msgstr "usuários"
+msgstr ""
 
 #: models/useremail.py:28
 msgid "verified"
-msgstr "verificado"
+msgstr ""
 
 #: models/useremail.py:30
 msgid "Designates whether this user has confirmed their email."
-msgstr "Define se este usuário confirmou seu email."
+msgstr ""
 
 #: plugins/base/configuration.py:79
 msgid "Your settings were saved successfully."
-msgstr "Suas configurações foram salvas com êxito."
+msgstr ""
 
 #: plugins/sentry_webhooks/plugin.py:41
 msgid "Callback URLs"
-msgstr "URL's de retorno"
+msgstr ""
 
 #: plugins/sentry_webhooks/plugin.py:45
 msgid "Enter callback URLs to POST new events to (one per line)."
-msgstr "Informe URL de retorno para criar novos eventos para (uma por linha)."
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
 msgid "CSRF Verification Failed"
-msgstr "Falou a verificação de CSRF"
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:13
 msgid "A required security token was not found or was invalid."
-msgstr "O token de segurança obrigatório não foi encontrado ou é inválido"
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:15
 msgid "If you're continually seeing this issue, try the following:"
-msgstr "Se você esta vendo este erro frequentemente, tente o seguinte:"
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:18
 msgid "Clear cookies (at least for Sentry's domain)."
-msgstr "Limpe os cookies (pelo menos para o domínio do Sentry)"
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:19
 msgid "Reload the page you're trying to submit (don't re-submit data)."
-msgstr "Recarregue a página que você está tentando submeter (não reenvie os dados)."
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:20
 msgid "Re-enter the information, and submit the form again."
-msgstr "Redigite as informações e envie novamente o formulário"
+msgstr ""
 
 #: templates/sentry/404.html:5
 msgid "Page Not Found"
-msgstr "Página Não Encontrada"
+msgstr ""
 
 #: templates/sentry/404.html:14
 msgid "The page you are looking for was not found."
-msgstr "A página que você está procurando não foi encontrada."
+msgstr ""
 
 #: templates/sentry/404.html:15
 msgid "You may wish to try the following:"
-msgstr "Talvez você queria tentar o seguinte:"
+msgstr ""
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
-msgstr "Voltar para o painel de controle"
+msgstr ""
 
 #: templates/sentry/500.html:5
 msgid "Internal Server Error"
-msgstr "Erro Interno"
+msgstr ""
 
 #: templates/sentry/account/email_unsubscribe_project.html:7
 #: templates/sentry/account/email_unsubscribe_project.html:22
 #: templates/sentry/unsubscribe-notifications.html:7
 #: templates/sentry/unsubscribe-notifications.html:16
 msgid "Unsubscribe"
-msgstr "Cancelar Inscrição"
+msgstr ""
 
 #: templates/sentry/account/email_unsubscribe_project.html:14
 msgid ""
 "You are about to unsubscribe from project notifications for the following "
 "project:"
-msgstr "Você está tentando cancelar o recebimento de novas notificações para o seguinte projeto:"
+msgstr ""
 
 #: templates/sentry/account/email_unsubscribe_project.html:18
 msgid "You can subscribe to it again by going to your account settings."
-msgstr "Você pode se inscrever novamente acessando as configurações da sua conta."
+msgstr ""
 
 #: templates/sentry/account/email_unsubscribe_project.html:23
 #: templates/sentry/unsubscribe-notifications.html:17
 msgid "Cancel"
-msgstr "Cancelar"
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:6
 #: templates/sentry/account/recover/confirm.html:9
@@ -1490,31 +1473,31 @@ msgstr "Cancelar"
 #: templates/sentry/account/recover/sent.html:6
 #: templates/sentry/account/recover/sent.html:9
 msgid "Recover Account"
-msgstr "Recuperar Conta"
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:11
 msgid "You have confirmed your email, and may now update your password below."
-msgstr "Você confirmou o seu email, e agora pode atualizar sua senha abaixo."
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
-msgstr "Alterar Senha"
+msgstr ""
 
 #: templates/sentry/account/recover/expired.html:6
 #: templates/sentry/account/recover/expired.html:10
 msgid "Password Expired"
-msgstr "Senha Expirada"
+msgstr ""
 
 #: templates/sentry/account/recover/expired.html:11
 msgid "The password on your account expired."
-msgstr "A senha da sua conta expirou."
+msgstr ""
 
 #: templates/sentry/account/recover/expired.html:13
 #: templates/sentry/account/recover/sent.html:11
 msgid ""
 "We have sent an email to the address registered with this account containing"
 " further instructions to reset your password."
-msgstr "Enviamos um email para o endereço associado com esta conta contendo instruções sobre como recriar sua senha."
+msgstr ""
 
 #: templates/sentry/account/recover/failure.html:11
 #, python-format
@@ -1522,15 +1505,15 @@ msgid ""
 "We were unable to confirm your identity. Either the link you followed is "
 "invalid, or it has expired. You can always <a href=\"%(link)s\">try "
 "again</a>."
-msgstr "Não foi possível confirmar a sua identidade. O link utilizado é inválido ou expirou. Você sempre pode <a href=\"%(link)s\">tentar novamente</a>."
+msgstr ""
 
 #: templates/sentry/account/recover/index.html:10
 msgid "We will send a confirmation email to this address:"
-msgstr "Nós enviaremos um email de confirmação para o seguinte endereço:"
+msgstr ""
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
-msgstr "Enviar Email"
+msgstr ""
 
 #: templates/sentry/account/set_password/confirm.html:6
 #: templates/sentry/account/set_password/confirm.html:9
@@ -1552,7 +1535,7 @@ msgstr ""
 
 #: templates/sentry/account/sudo.html:7
 msgid "Confirm Password"
-msgstr "Confirmação de Senha"
+msgstr ""
 
 #: templates/sentry/account/sudo.html:26
 msgid "Confirm your Identity"
@@ -1564,19 +1547,19 @@ msgstr ""
 
 #: templates/sentry/account/sudo.html:35
 msgid "Your password was not valid."
-msgstr "Sua senha não era válida."
+msgstr ""
 
 #: templates/sentry/account/sudo.html:57
 #: templates/sentry/auth-confirm-identity.html:41
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:46
 #: templates/sentry/organization-login.html:89
 msgid "Lost your password?"
-msgstr "Esqueceu sua senha?"
+msgstr ""
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
 msgid "Confirm Identity"
-msgstr "Confirmar identidade"
+msgstr ""
 
 #: templates/sentry/auth-confirm-identity.html:40
 #: templates/sentry/auth-link-login.html:7
@@ -1585,20 +1568,20 @@ msgstr "Confirmar identidade"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Login"
-msgstr "Login"
+msgstr ""
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
-msgstr "Identidade de Ligação"
+msgstr ""
 
 #: templates/sentry/bases/modal.html:16 templates/sentry/logout.html:6
 #: templates/sentry/logout.html:9 templates/sentry/logout.html:14
 msgid "Sign out"
-msgstr "Sair"
+msgstr ""
 
 #: templates/sentry/error-page-embed.html:282
 msgid "Crash reports powered by <a href=\\"
-msgstr "Relatórios de Erros Fatais produzidos por <a href=\\"
+msgstr ""
 
 #: templates/sentry/integrations/bitbucket-server-config.html:26
 msgid "Bitbucket-Server Setup"
@@ -1628,7 +1611,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-server-config.html:53
 #: templates/sentry/integrations/vsts-config.html:36
 msgid "Submit"
-msgstr "Enviar"
+msgstr ""
 
 #: templates/sentry/integrations/dialog-complete.html:8
 msgid "Integration Setup Complete"
@@ -1705,7 +1688,7 @@ msgstr ""
 
 #: templates/sentry/integrations/gitlab-config.html:72
 msgid "Next"
-msgstr "Próximo"
+msgstr ""
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
@@ -1739,19 +1722,19 @@ msgstr ""
 
 #: templates/sentry/layout.html:71
 msgid "API"
-msgstr "API"
+msgstr ""
 
 #: templates/sentry/layout.html:72
 msgid "Docs"
-msgstr "Documentação"
+msgstr ""
 
 #: templates/sentry/layout.html:73
 msgid "Contribute"
-msgstr "Contribuir"
+msgstr ""
 
 #: templates/sentry/layout.html:74
 msgid "Migrate to SaaS"
-msgstr "Migrar para SaaS"
+msgstr ""
 
 #: templates/sentry/login.html:14
 msgid "Sign in to continue"
@@ -1760,11 +1743,11 @@ msgstr ""
 #: templates/sentry/login.html:21 templates/sentry/organization-login.html:58
 #: templates/sentry/organization-login.html:130
 msgid "Register"
-msgstr "Registrar"
+msgstr ""
 
 #: templates/sentry/login.html:25
 msgid "Single Sign-On"
-msgstr "Single Sign-On"
+msgstr ""
 
 #: templates/sentry/login.html:115
 #: templates/sentry/organization-login.html:132
@@ -1778,25 +1761,25 @@ msgstr ""
 #: templates/sentry/no-organization-access.html:5
 #: templates/sentry/no-organization-access.html:12
 msgid "No Organization Access"
-msgstr "Sem acesso a organização"
+msgstr ""
 
 #: templates/sentry/no-organization-access.html:14
 msgid ""
 "You don't have access to any organizations within Sentry. Talk to a Sentry "
 "administrator about getting access."
-msgstr "Você não tem acesso a todos os projetos. Peça a um administrador para adicioná-lo como um membro."
+msgstr ""
 
 #: templates/sentry/oauth-authorize.html:7
 msgid "Authorize Application"
-msgstr "Autorizar aplicativo"
+msgstr ""
 
 #: templates/sentry/oauth-authorize.html:35
 msgid "Approve"
-msgstr "Aprovar"
+msgstr ""
 
 #: templates/sentry/oauth-authorize.html:36
 msgid "Deny"
-msgstr "Negar"
+msgstr ""
 
 #: templates/sentry/oauth-error.html:6
 msgid "Authorization Error"
@@ -1804,7 +1787,7 @@ msgstr ""
 
 #: templates/sentry/organization-auth-provider-settings.html:6
 msgid "Auth"
-msgstr "Autenticar"
+msgstr ""
 
 #: templates/sentry/organization-login.html:65
 msgid "Request to Join"
@@ -1812,47 +1795,47 @@ msgstr ""
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
-msgstr "Configuração de Teste"
+msgstr ""
 
 #: templates/sentry/partial/_form.html:17
 msgid "Save Changes"
-msgstr "Guardar Mudanças"
+msgstr ""
 
 #: templates/sentry/partial/form_base.html:5
 msgid "Please correct the errors below."
-msgstr "Por favor corrija os erros abaixo."
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:9
 msgid "URL"
-msgstr "URL"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:15
 msgid "Method"
-msgstr "Método"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:21
 msgid "Query"
-msgstr "Query"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:29
 msgid "Fragment"
-msgstr "Fragmento"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:14
 msgid "ID:"
-msgstr "ID:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:20
 msgid "IP Address:"
-msgstr "Endereço IP:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:26
 msgid "Username:"
-msgstr "Nome de usuário:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:32
 msgid "Email:"
-msgstr "Email:"
+msgstr ""
 
 #: templates/sentry/pipeline-error.html:6
 msgid "Setup Error"
@@ -1860,33 +1843,33 @@ msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:37
 msgid "Create New"
-msgstr "Criar Novo"
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:40
 msgid "Link Existing"
-msgstr "Ligar Existente"
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:66
 msgid "Create Issue"
-msgstr "Criar Questão"
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/create_issue.html:84
 msgid "Link Issue"
-msgstr "Ligar Questões"
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
 msgid ""
 "You still need to <a href=\"%(link)s\">associate an identity</a> with %(title)s before you can\n"
 "        create issues with this service."
-msgstr "Você ainda precisa <a href=\"%(link)s\">associar uma identidade</a> com %(title)s antes que você possa\n            criar questões com esse serviço."
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:13
 #, python-format
 msgid ""
 "Your server administrator will need to configure authentication with\n"
 "            <strong>%(auth_provider)s</strong> before you can use this plugin."
-msgstr "O administrador do seu servidor precisará configurar a autenticação com \n<strong>%(auth_provider)s</strong> antes de você poder usar este plugin."
+msgstr ""
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:22
 #, python-format
@@ -1897,17 +1880,17 @@ msgstr ""
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr "As alterações de configuração foram salvas com êxito."
+msgstr ""
 
 #: templates/sentry/reactivate-account.html:5
 #: templates/sentry/reactivate-account.html:18
 msgid "Reactivate Account"
-msgstr "Reativar Conta"
+msgstr ""
 
 #: templates/sentry/restore-organization.html:5
 #: templates/sentry/restore-organization.html:15
 msgid "Restore Organization"
-msgstr "Restaurar Organização"
+msgstr ""
 
 #: templates/sentry/restore-organization.html:9
 msgid "Deletion Scheduled"
@@ -1929,7 +1912,7 @@ msgstr ""
 msgid ""
 "Sorry, but this organization is currently in progress of being deleted. No "
 "turning back."
-msgstr "Desculpe, mas esta organização está sendo apagada. Não há mais volta."
+msgstr ""
 
 #: templates/sentry/setup-wizard.html:8
 msgid "Sentry - Setup Wizard"
@@ -1947,97 +1930,97 @@ msgstr ""
 
 #: templates/sentry/twofactor.html:6
 msgid "Two-Factor Authentication"
-msgstr "Autenticação de Dois-Fatores"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "b"
-msgstr "b"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "m"
-msgstr "m"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "k"
-msgstr "k"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:211
 msgid "never"
-msgstr "nunca"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:215
 msgid "0 minutes"
-msgstr "0 minutos"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:216
 msgid "just now"
-msgstr "neste instante"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:217
 msgid "1 day"
-msgstr "1 dia"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:218
 msgid "yesterday"
-msgstr "ontem"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:219
 #, python-format
 msgid "%s ago"
-msgstr "%s atrás"
+msgstr ""
 
 #: web/decorators.py:11
 msgid "The link you followed is invalid or expired."
-msgstr "O link que você acessou é inválido ou expirou."
+msgstr ""
 
 #: web/forms/accounts.py:43 web/forms/accounts.py:251
 msgid "Account"
-msgstr "Conta"
+msgstr ""
 
 #: web/forms/accounts.py:45 web/forms/accounts.py:253
 msgid "username or email"
-msgstr "Usuário ou email"
+msgstr ""
 
 #: web/forms/accounts.py:48
 msgid "Password"
-msgstr "Senha"
+msgstr ""
 
 #: web/forms/accounts.py:49
 msgid "password"
-msgstr "Senha"
+msgstr ""
 
 #: web/forms/accounts.py:54
 #, python-format
 msgid ""
 "Please enter a correct %(username)s and password. Note that both fields may "
 "be case-sensitive."
-msgstr "Por favor entre com um %(username)s e senha corretos. Observe que ambos os campos devem ser sensíveis a maiúsculas e minúsculas."
+msgstr ""
 
 #: web/forms/accounts.py:58
 msgid ""
 "You have made too many failed authentication attempts. Please try again "
 "later."
-msgstr "Você fez muitas tentativas de autenticação falhas. Por favor, tente novamente mais tarde."
+msgstr ""
 
 #: web/forms/accounts.py:61
 msgid ""
 "Your Web browser doesn't appear to have cookies enabled. Cookies are "
 "required for logging in."
-msgstr "Seu navegador da Web não parece ter ativados os cookies. São necessários cookies para iniciar sessão."
+msgstr ""
 
 #: web/forms/accounts.py:64
 msgid "This account is inactive."
-msgstr "Esta conta está inativa."
+msgstr ""
 
 #: web/forms/accounts.py:160 web/forms/accounts.py:325
 #: web/frontend/error_page_embed.py:30
 msgid "Name"
-msgstr "Nome"
+msgstr ""
 
 #: web/forms/accounts.py:166 web/forms/accounts.py:327
 #: web/frontend/error_page_embed.py:31
 msgid "Email"
-msgstr "Email"
+msgstr ""
 
 #: web/forms/accounts.py:173
 msgid "Email updates"
@@ -2045,37 +2028,37 @@ msgstr ""
 
 #: web/forms/accounts.py:211
 msgid "An account is already registered with that email address."
-msgstr "Uma conta já está registrada com esse endereço de email."
+msgstr ""
 
 #: web/forms/accounts.py:275
 msgid ""
 "The account you are trying to recover is managed and does not support "
 "password recovery."
-msgstr "A conta que você está tentando recuperar é gerenciada e não permite a recuperação de senha."
+msgstr ""
 
 #: web/forms/accounts.py:292
 msgid "New Email"
-msgstr "Novo Email"
+msgstr ""
 
 #: web/forms/accounts.py:298 web/forms/accounts.py:338
 msgid "Current password"
-msgstr "Senha atual"
+msgstr ""
 
 #: web/forms/accounts.py:300
 msgid "You will need to enter your current account password to make changes."
-msgstr "Você precisará inserir a senha da sua conta atual para fazer alterações."
+msgstr ""
 
 #: web/forms/accounts.py:316 web/forms/accounts.py:790
 msgid "The password you entered is not correct."
-msgstr "A senha que você digitou não está correta."
+msgstr ""
 
 #: web/forms/accounts.py:319 web/forms/accounts.py:793
 msgid "You must confirm your current password to make changes."
-msgstr "Você deve confirmar sua senha atual para fazer mudanças."
+msgstr ""
 
 #: web/forms/accounts.py:329
 msgid "New password"
-msgstr "Nova senha"
+msgstr ""
 
 #: web/forms/accounts.py:335
 msgid "Verify new password"
@@ -2088,27 +2071,27 @@ msgstr ""
 
 #: web/forms/accounts.py:403
 msgid "That username is already in use."
-msgstr "Esse nome de usuário já está em uso"
+msgstr ""
 
 #: web/forms/accounts.py:471
 msgid "Language"
-msgstr "Idioma"
+msgstr ""
 
 #: web/forms/accounts.py:477
 msgid "Stacktrace order"
-msgstr "Ordem do Stacktrace"
+msgstr ""
 
 #: web/forms/accounts.py:483
 msgid "Choose the default ordering of frames in stacktraces."
-msgstr "Escolha a ordenação padrão de quadros em stacktraces."
+msgstr ""
 
 #: web/forms/accounts.py:488
 msgid "Time zone"
-msgstr "fuso horário"
+msgstr ""
 
 #: web/forms/accounts.py:493
 msgid "Use a 24-hour clock"
-msgstr "Use um relógio no formato 24 horas."
+msgstr ""
 
 #: web/forms/accounts.py:559
 msgid "All deploys"
@@ -2124,13 +2107,13 @@ msgstr ""
 
 #: web/forms/accounts.py:591
 msgid "Automatically subscribe to alerts for new projects"
-msgstr "Receber automaticamente alertas de novos projetos"
+msgstr ""
 
 #: web/forms/accounts.py:593
 msgid ""
 "When enabled, you'll automatically subscribe to alerts when you create or "
 "join a project."
-msgstr "Quando habilitado, você automaticamente receberá alertas quando você criar ou participar de um projeto."
+msgstr ""
 
 #: web/forms/accounts.py:599
 msgid "Preferred workflow subscription level for new projects"
@@ -2144,13 +2127,13 @@ msgstr ""
 
 #: web/forms/accounts.py:615
 msgid "Receive notifications about my own activity"
-msgstr "Receber notificações sobre minhas próprias atividades"
+msgstr ""
 
 #: web/forms/accounts.py:617
 msgid ""
 "Enable this if you wish to receive emails for your own actions, as well as "
 "others."
-msgstr "Habilite isto se você deseja receber emails para suas próprias ações, assim como dos outros."
+msgstr ""
 
 #: web/forms/accounts.py:623
 msgid "Claim unassigned issues when resolving them"
@@ -2172,57 +2155,57 @@ msgstr ""
 
 #: web/forms/accounts.py:772
 msgid "Sentry account password"
-msgstr "Senha da conta Sentry"
+msgstr ""
 
 #: web/forms/fields.py:53
 msgid "Invalid username"
-msgstr "Nome de usuário inválido"
+msgstr ""
 
 #: web/forms/fields.py:60
 msgid "Not set"
-msgstr "Não definido"
+msgstr ""
 
 #: web/frontend/accounts.py:165
 msgid "There was an error confirming your email."
-msgstr "Surgiu um erro ao confirmar o seu email."
+msgstr ""
 
 #: web/frontend/accounts.py:169 web/frontend/accounts.py:176
 #, python-format
 msgid "A verification email has been sent to %s."
-msgstr "A verificação de email foi enviada para %s."
+msgstr ""
 
 #: web/frontend/accounts.py:187
 #, python-format
 msgid "Your email (%s) has already been verified."
-msgstr "Seu email (%s) já foi verificado."
+msgstr ""
 
 #: web/frontend/accounts.py:193
 msgid "Thanks for confirming your email"
-msgstr "Obrigado por confirmar seu email"
+msgstr ""
 
 #: web/frontend/accounts.py:202
 msgid ""
 "There was an error confirming your email. Please try again or visit your "
 "Account Settings to resend the verification email."
-msgstr "Existe um erro ao confirmar seu email. Por favor tente novamente ou visite as Configurações da Conta para reenviar um email de verificação."
+msgstr ""
 
 #: web/frontend/auth_login.py:23
 msgid ""
 "The organization does not exist or does not have Single Sign-On enabled."
-msgstr "A organização não existe ou não tem um Single Sign-On habilitado."
+msgstr ""
 
 #: web/frontend/error_page_embed.py:22
 msgid ""
 "An unknown error occurred while submitting your report. Please try again."
-msgstr "Um erro desconhecido ocorreu ao tentar enviar um relatório. Por favor tente novamente."
+msgstr ""
 
 #: web/frontend/error_page_embed.py:23
 msgid "Some fields were invalid. Please correct the errors and try again."
-msgstr "Alguns campos estão inválidos. Corrija os erros e tente novamente."
+msgstr ""
 
 #: web/frontend/error_page_embed.py:24
 msgid "Your feedback has been sent. Thank you!"
-msgstr "Seu parecer foi enviado. Obrigado!"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:26
 msgid "It looks like we're having issues."
@@ -2230,23 +2213,23 @@ msgstr ""
 
 #: web/frontend/error_page_embed.py:27
 msgid "Our team has been notified."
-msgstr "Nossa equipe foi notificada."
+msgstr ""
 
 #: web/frontend/error_page_embed.py:28
 msgid "If you'd like to help, tell us what happened below."
-msgstr "Se você gostaria de ajudar, diga-nos o que aconteceu abaixo"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:32
 msgid "What happened?"
-msgstr "O que aconteceu?"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:34
 msgid "Close"
-msgstr "Fechar"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:35
 msgid "Submit Crash Report"
-msgstr "Submeta Relatórios de Erros Fatais"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:54
 msgid "Jane Bloggs"
@@ -2254,40 +2237,40 @@ msgstr ""
 
 #: web/frontend/error_page_embed.py:58
 msgid "jane@example.com"
-msgstr "jane@example.com"
+msgstr ""
 
 #: web/frontend/error_page_embed.py:61
 msgid "I clicked on 'X' and then hit 'Confirm'"
-msgstr "Eu cliquei no 'X' e então cliquei 'Confirmar'"
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:23
 msgid "SSO authentication has been disabled."
-msgstr "A autenticação SSO foi desabilitada."
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:26
 msgid ""
 "A reminder email has been sent to members who have not yet linked their "
 "accounts."
-msgstr "Um lembrete por email foi enviado para os membros que você ainda não ligou suas contas."
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:32
 msgid "Require SSO"
-msgstr "Necessita de SSO"
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:33
 msgid ""
 "Require members use a valid linked SSO account to access this organization"
-msgstr "Necessita que os membros usem uma ligação válida de contas SSO para acessar esta organização."
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:38
 msgid "Default Role"
-msgstr "Papel Padrão"
+msgstr ""
 
 #: web/frontend/organization_auth_settings.py:41
 msgid ""
 "The default role new members will receive when logging in for the first "
 "time."
-msgstr "O papel padrão que novos membros irão receber quando entrarem pela primeira vez."
+msgstr ""
 
 #: web/frontend/pipeline_advancer.py:50
 msgid "Invalid request."
@@ -2295,19 +2278,19 @@ msgstr ""
 
 #: web/frontend/restore_organization.py:16
 msgid "Deletion already canceled."
-msgstr "A remoção já foi cancelada."
+msgstr ""
 
 #: web/frontend/restore_organization.py:17
 msgid "Deletion cannot be canceled, already in progress"
-msgstr "A remoção não pode ser cancelada, já em andamento"
+msgstr ""
 
 #: web/frontend/restore_organization.py:20
 msgid "Organization restored successfully."
-msgstr "Organização restaurada com êxito."
+msgstr ""
 
 #: web/frontend/twofactor.py:42
 msgid "Invalid confirmation code. Try again."
-msgstr "Código de confirmação inválido. Tente novamente."
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:147
 msgid ""
@@ -2319,11 +2302,11 @@ msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:167
 msgid "Support"
-msgstr "Suporte"
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:172
 msgid "Error: "
-msgstr "Erro:"
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:175
 msgid "There was an unknown problem, please try again"
@@ -2331,15 +2314,15 @@ msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:176
 msgid "Your U2F device reported an error."
-msgstr "Seu dispositivo U2F relatou um erro."
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:177
 msgid "This device is already in use."
-msgstr "Este dispositivo já está em uso."
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:178
 msgid "The device you used for sign-in is unknown."
-msgstr "O dispositivo que você usou para entrar é desconhecido."
+msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:179
 msgid ""
@@ -2351,4 +2334,4 @@ msgstr ""
 
 #: static/sentry/app/components/u2f/u2finterface.jsx:197
 msgid "Try Again"
-msgstr "Tente Novamente"
+msgstr ""
