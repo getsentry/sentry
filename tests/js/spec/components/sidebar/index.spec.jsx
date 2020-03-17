@@ -189,12 +189,13 @@ describe('Sidebar', function() {
       jest.useRealTimers();
     });
 
-    it('has can logout', function() {
+    it('has can logout', async function() {
       const mock = MockApiClient.addMockResponse({
         url: '/auth/',
         method: 'DELETE',
         status: 204,
       });
+      jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
       let org = TestStubs.Organization();
       org = {
@@ -209,6 +210,10 @@ describe('Sidebar', function() {
       wrapper.find('SidebarDropdownActor').simulate('click');
       wrapper.find('SidebarMenuItem[data-test-id="sidebarSignout"]').simulate('click');
       expect(mock).toHaveBeenCalled();
+
+      await tick();
+      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+      window.location.assign.mockRestore();
     });
   });
 
