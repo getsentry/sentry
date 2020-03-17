@@ -36,7 +36,7 @@ const RichHttpContent = ({data}: RichHttpContentData) => (
     )}
     {defined(data.cookies) && Object.keys(data.cookies).length > 0 && (
       <RichHttpContentClippedBoxKeyValueList
-        defaultCollapsed
+        defaultClipped
         title={t('Cookies')}
         data={data.cookies}
         meta={getMeta(data, 'cookies')}
@@ -51,7 +51,7 @@ const RichHttpContent = ({data}: RichHttpContentData) => (
     )}
     {defined(data.env) && (
       <RichHttpContentClippedBoxKeyValueList
-        defaultCollapsed
+        defaultClipped
         title={t('Environment')}
         data={data.env}
         meta={getMeta(data, 'env')}

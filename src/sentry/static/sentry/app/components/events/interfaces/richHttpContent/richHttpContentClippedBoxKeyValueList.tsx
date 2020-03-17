@@ -11,7 +11,7 @@ import {Data} from './types';
 type Props = {
   title: string;
   data: Data[keyof Data];
-  defaultCollapsed?: boolean;
+  defaultClipped?: boolean;
   isContextData?: boolean;
   meta?: Meta;
 };
@@ -19,7 +19,7 @@ type Props = {
 const RichHttpContentClippedBoxKeyValueList = ({
   data,
   title,
-  defaultCollapsed = false,
+  defaultClipped = false,
   isContextData = false,
   meta,
 }: Props) => {
@@ -50,7 +50,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
   }
 
   return (
-    <ClippedBox title={title} defaultCollapsed={defaultCollapsed}>
+    <ClippedBox title={title} defaultClipped={defaultClipped}>
       <ErrorBoundary mini>{getContent(transformedData)}</ErrorBoundary>
     </ClippedBox>
   );
