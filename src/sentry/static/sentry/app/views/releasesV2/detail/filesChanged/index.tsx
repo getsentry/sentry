@@ -65,6 +65,12 @@ const ContentBox = styled('div')`
   padding: ${space(4)};
   flex: 1;
   background-color: ${p => p.theme.white};
+
+  h5 {
+    color: ${p => p.theme.gray3};
+    font-size: ${p => p.theme.fontSizeMedium};
+    margin-bottom: ${space(1.5)};
+  }
 `;
 
 export default FilesChanged;
