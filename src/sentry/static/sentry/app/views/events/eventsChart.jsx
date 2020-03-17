@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
@@ -26,6 +27,8 @@ class EventsAreaChart extends React.Component {
     timeseriesData: PropTypes.array,
     showLegend: PropTypes.bool,
     previousTimeseriesData: PropTypes.object,
+    currentSeriesName: PropTypes.string,
+    previousSeriesName: PropTypes.string,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -53,12 +56,14 @@ class EventsAreaChart extends React.Component {
       timeseriesData,
       previousTimeseriesData,
       showLegend,
+      currentSeriesName,
+      previousSeriesName,
       ...props
     } = this.props;
 
     const legend = showLegend && {
       right: 16,
-      top: 16,
+      top: 12,
       selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
@@ -70,7 +75,7 @@ class EventsAreaChart extends React.Component {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: ['Current', 'Previous'],
+      data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
     return (
@@ -126,6 +131,7 @@ class EventsChart extends React.Component {
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
+    const previousSeriesName = yAxis ? t('previous %s', yAxis) : undefined;
 
     return (
       <ChartZoom
@@ -149,6 +155,8 @@ class EventsChart extends React.Component {
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
+            currentSeriesName={yAxis}
+            previousSeriesName={previousSeriesName}
             yAxis={yAxis}
           >
             {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => (
@@ -175,6 +183,8 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
+                          currentSeriesName={yAxis}
+                          previousSeriesName={previousSeriesName}
                         />
                       </React.Fragment>
                     </TransitionChart>
