@@ -19,7 +19,7 @@ from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.constants import ERR_UNAUTHORIZED, ERR_INTERNAL
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import GitHubClient, GitHubAppsClient
