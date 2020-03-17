@@ -55,7 +55,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     os.environ["SENTRY_ENVIRONMENT"] = environment
     # NODE_ENV *must* use production for any prod-like environment as third party libraries look
     # for this magic constant
-    os.environ["NODE_ENV"] = 'production' if environment.startswith('prod') else environment
+    os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
     from django.conf import settings
     from sentry import options
@@ -171,7 +171,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         if eventstream.requires_post_process_forwarder():
             daemons += [
                 (
-                    "relay",
+                    "post-process-forwarder",
                     [
                         "sentry",
                         "run",
@@ -181,6 +181,9 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
                     ],
                 )
             ]
+
+    if settings.SENTRY_USE_RELAY:
+        daemons += [("ingest", ["sentry", "run", "ingest-consumer"])]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)

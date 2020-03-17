@@ -279,13 +279,15 @@ def process_userreport(message, projects):
         return False
 
 
-def get_ingest_consumer(consumer_type, once=False, concurrency=None, **options):
+def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options):
     """
     Handles events coming via a kafka queue.
 
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
-    topic_name = ConsumerType.get_topic_name(consumer_type)
+    topic_names = set(
+        ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
+    )
     return create_batching_kafka_consumer(
-        topic_name=topic_name, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(concurrency=concurrency), **options
     )
