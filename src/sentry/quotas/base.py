@@ -6,7 +6,8 @@ from django.conf import settings
 from django.core.cache import cache
 from enum import IntEnum, unique
 
-from sentry import options
+from sentry import features, options
+from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
@@ -227,7 +228,15 @@ class Quota(Service):
                         only project and organization quotas are used.
         :param keys:    Similar to ``key``, except for multiple keys.
         """
-        return []
+        quotas = []
+
+        if not features.has("organizations:releases-v2", project.organization):
+            quota = QuotaConfig(
+                limit=0, categories=[DataCategory.SESSION], reason_code="sessions_unavailable"
+            )
+            quotas.append(quota)
+
+        return quotas
 
     def is_rate_limited(self, project, key=None):
         """
