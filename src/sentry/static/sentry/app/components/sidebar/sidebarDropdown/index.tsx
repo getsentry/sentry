@@ -35,7 +35,7 @@ type Props = {
 const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props) => {
   const handleLogout = async () => {
     await logout(api);
-    window.location.assign('/auth/login');
+    window.location.assign('/auth/login/');
   };
 
   const hasOrganization = !!org;
