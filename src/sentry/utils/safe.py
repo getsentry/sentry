@@ -74,7 +74,7 @@ def trim(
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k in sorted(value.keys(), key=lambda x: (len(value[x]), x)):
+        for k in sorted(value.keys(), key=lambda x: (len(force_text(value[x])), x)):
             v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
