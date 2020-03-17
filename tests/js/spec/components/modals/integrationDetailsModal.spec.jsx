@@ -50,7 +50,7 @@ describe('IntegrationDetailsModal', function() {
 
   it('disables the button via a hookstore IntegrationFeatures component', function() {
     HookStore.add('integrations:feature-gates', () => ({
-      FeatureList: p => null,
+      FeatureList: () => null,
       IntegrationFeatures: p =>
         p.children({
           disabled: true,

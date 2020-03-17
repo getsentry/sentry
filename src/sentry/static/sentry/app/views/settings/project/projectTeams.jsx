@@ -49,13 +49,13 @@ class ProjectTeams extends AsyncView {
   };
 
   handleRemovedTeam = teamSlug => {
-    this.setState(prevState => ({
+    this.setState(() => ({
       projectTeams: this.state.projectTeams.filter(team => team.slug !== teamSlug),
     }));
   };
 
   handleAddedTeam = team => {
-    this.setState(prevState => ({
+    this.setState(() => ({
       projectTeams: this.state.projectTeams.concat([team]),
     }));
   };

@@ -25,7 +25,7 @@ class EventErrorItem extends React.Component {
     };
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, nextState) {
     return this.state.isOpen !== nextState.isOpen;
   }
 
@@ -54,7 +54,7 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    return mapKeys(data, (value, key) => t(keyMapping[key] || startCase(key)));
+    return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
   }
 
   renderPath() {

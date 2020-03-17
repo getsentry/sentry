@@ -1,4 +1,4 @@
-function PhabricatorPlugin(params) {
+function PhabricatorPlugin() {
   return {
     status: 'unknown',
     description:
@@ -35,7 +35,7 @@ function PhabricatorPlugin(params) {
   };
 }
 
-function PhabricatorCreate(params) {
+function PhabricatorCreate() {
   return [
     {
       default: 'ApiException: Authentication failed, token expired!',

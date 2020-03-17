@@ -98,7 +98,7 @@ class CommandSource extends React.Component {
       (this.state.fuzzy &&
         this.state.fuzzy
           .search(query)
-          .filter(({item, ...rest}) => !item.requiresSuperuser || isSuperuser)
+          .filter(({item}) => !item.requiresSuperuser || isSuperuser)
           .map(({item, ...rest}) => ({
             item: {
               ...item,

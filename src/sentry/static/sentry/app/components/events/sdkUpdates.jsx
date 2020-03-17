@@ -96,7 +96,7 @@ class EventSdkUpdateSuggestion extends React.Component {
         {title}
         {t(' so you can')}
         <AlertUl>
-          {suggestion.enables.map((suggestion2, i) => (
+          {suggestion.enables.map(suggestion2 => (
             <li key={getSuggestionComponentKey(suggestion2)}>
               <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
             </li>

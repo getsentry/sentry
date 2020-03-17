@@ -91,7 +91,7 @@ export const _debouncedLoadStats = debounce((api, projectSet, params) => {
         results.reduce((acc, result) => acc.concat(result), [])
       );
     })
-    .catch(err => {
+    .catch(() => {
       addErrorMessage(t('Unable to fetch all project stats'));
     });
 

@@ -34,7 +34,7 @@ class SplitDiff extends React.Component {
       baseLines.length > targetLines.length
         ? [baseLines, targetLines]
         : [targetLines, baseLines];
-    const results = largerArray.map((line, index) =>
+    const results = largerArray.map((_line, index) =>
       diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
     );
 

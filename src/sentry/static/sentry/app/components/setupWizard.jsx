@@ -32,13 +32,13 @@ class SetupWizard extends React.Component {
   }
 
   pollFinished() {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       this.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
-        success: data => {
+        success: () => {
           setTimeout(() => this.pollFinished(), 1000);
         },
-        error: err => {
+        error: () => {
           resolve();
           this.setState({
             finished: true,

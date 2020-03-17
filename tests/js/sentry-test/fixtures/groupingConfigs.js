@@ -1,4 +1,4 @@
-export function GroupingConfigs(params) {
+export function GroupingConfigs() {
   return [
     {
       id: 'default:XXXX',

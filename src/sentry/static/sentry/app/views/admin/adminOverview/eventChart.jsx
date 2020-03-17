@@ -61,7 +61,7 @@ const EventChart = createReactClass({
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });

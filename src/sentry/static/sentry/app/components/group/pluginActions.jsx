@@ -46,11 +46,11 @@ class PluginActions extends React.Component {
     // doesn't think the plugin still has an issue linked
     const endpoint = `/issues/${this.props.group.id}/plugins/${plugin.slug}/unlink/`;
     this.props.api.request(endpoint, {
-      success: data => {
+      success: () => {
         this.loadPlugin(plugin);
         addSuccessMessage(t('Successfully unlinked issue.'));
       },
-      error: error => {
+      error: () => {
         addErrorMessage(t('Unable to unlink issue'));
       },
     });
