@@ -453,6 +453,26 @@ class NotifyEmailForm(forms.Form):
         super(NotifyEmailForm, self).__init__(*args, **kwargs)
         self.project = project
 
+    def human_desc(self):
+        def format_label(target):
+            return "Send an email to {target}".format(target=target)
+
+        if not self.is_valid():
+            return ""
+
+        target_type = self.cleaned_data["targetType"]
+        target_identifier = self.cleaned_data.get("targetIdentifier")
+        if target_type == NotifyEmailActionTargetType.ISSUE_OWNERS.value:
+            return format_label("issue owners")
+        elif target_type == NotifyEmailActionTargetType.TEAM.value:
+            team = Team.objects.get(id=int(target_identifier))
+            return format_label("#{slug}".format(slug=team.slug))
+        elif target_type == NotifyEmailActionTargetType.MEMBER.value:
+            user = User.objects.get(id=int(target_identifier))
+            return format_label(user.email)
+
+        return ""
+
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
         targetType = cleaned_data.get("targetType")
@@ -496,6 +516,10 @@ class NotifyEmailAction(EventAction):
     def __init__(self, *args, **kwargs):
         super(NotifyEmailAction, self).__init__(*args, **kwargs)
         self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
+
+    def human_desc(self):
+        form = NotifyEmailAction.form_cls(self.project, self.data)
+        return form.human_desc()
 
     def after(self, event, state):
         extra = {"event_id": event.event_id}

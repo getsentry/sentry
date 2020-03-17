@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from sentry.models import Environment
 from sentry.rules import rules
+from sentry.rules.actions.base import EventAction
 
 from . import ListField
 
@@ -54,10 +55,18 @@ class RuleNodeField(serializers.Field):
             )
 
         # TODO(jeff): Update form.cleaned_data for each rule
+        # TODO(jeff): The problem with forcing every event action to have a human_desc is that the name suffices for
+        # soem of them.
         # Update data from cleaned form values
         data.update(form.cleaned_data)
-        if issubclass(EventAction, node):
+        # import pdb; pdb.set_trace()
+        # TODO: It'll probably make more sense to have the rules write to the human desc to the label directly?
+        # Wait this is not working i d k what is going on ? Some assumptions are wrong
+        if hasattr(node, "human_desc"):
+            import pdb
 
+            pdb.set_trace()
+            data["desc"] = node.human_desc()
 
         if getattr(form, "_pending_save", False):
             data["pending_save"] = True

@@ -27,8 +27,11 @@ class NotifyEventServiceForm(forms.Form):
 
     def human_desc(self):
         if self.is_valid():
-        
-        return ''
+            service = self.cleaned_data["service"]
+            return u"Send a notification via {service}".format(service=service)
+
+        return ""
+
 
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
@@ -44,7 +47,7 @@ class NotifyEventServiceAction(EventAction):
         }
 
     def human_desc(self):
-
+        return self.get_form_instance().human_desc()
 
     def after(self, event, state):
         service = self.get_option("service")
