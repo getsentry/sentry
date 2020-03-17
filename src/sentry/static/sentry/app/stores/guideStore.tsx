@@ -9,8 +9,6 @@ import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 
-const guidesContent: GuidesContent = getGuidesContent();
-
 type GuideStoreState = {
   /**
    * All tooltip guides
@@ -98,6 +96,9 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     if (!data || !Array.isArray(data)) {
       return;
     }
+
+    const user = ConfigStore.get('user');
+    const guidesContent: GuidesContent = getGuidesContent(user);
 
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.map(guideContent => ({

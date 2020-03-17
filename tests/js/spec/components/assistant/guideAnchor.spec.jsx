@@ -4,9 +4,10 @@ import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';
 import ConfigStore from 'app/stores/configStore';
+import theme from 'app/utils/theme';
 
 describe('GuideAnchor', function() {
-  let wrapper1, wrapper2;
+  let wrapper, wrapper2;
   const serverGuide = [
     {
       guide: 'issue',
@@ -24,32 +25,34 @@ describe('GuideAnchor', function() {
       },
     };
 
-    wrapper1 = mountWithTheme(<GuideAnchor target="issue_title" />, routerContext);
+    wrapper = mountWithTheme(<GuideAnchor target="issue_title" />, routerContext);
     wrapper2 = mountWithTheme(<GuideAnchor target="exception" />, routerContext);
   });
 
   afterEach(function() {
-    wrapper1.unmount();
+    wrapper.unmount();
     wrapper2.unmount();
   });
 
   it('renders, advances, and finishes', async function() {
     GuideActions.fetchSucceeded(serverGuide);
     await tick();
-    wrapper1.update();
+    wrapper.update();
 
-    expect(wrapper1.find('Hovercard').exists()).toBe(true);
-    expect(wrapper1.find('StyledTitle').text()).toBe('Issue Details');
+    // has old content and design without experiment
+    expect(wrapper.find('Hovercard').exists()).toBe(true);
+    expect(wrapper.find('StyledTitle').text()).toBe('Issue Details');
+    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.greenDark);
 
     // Clicking on next should deactivate the current card and activate the next one.
-    wrapper1
+    wrapper
       .find('Button')
       .first()
       .simulate('click');
     await tick();
-    wrapper1.update();
+    wrapper.update();
     wrapper2.update();
-    expect(wrapper1.state('active')).toBeFalsy();
+    expect(wrapper.state('active')).toBeFalsy();
     expect(wrapper2.state('active')).toBeTruthy();
     expect(wrapper2.find('Hovercard').exists()).toBe(true);
     expect(wrapper2.find('StyledTitle').text()).toBe('Stacktrace');
@@ -78,13 +81,13 @@ describe('GuideAnchor', function() {
   it('dismisses', async function() {
     GuideActions.fetchSucceeded(serverGuide);
     await tick();
-    wrapper1.update();
+    wrapper.update();
 
     const dismissMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/assistant/',
     });
-    wrapper1
+    wrapper
       .find('[data-test-id="close-button"]')
       .first()
       .simulate('click');
@@ -99,18 +102,37 @@ describe('GuideAnchor', function() {
       })
     );
     await tick();
-    expect(wrapper1.state('active')).toBeFalsy();
+    expect(wrapper.state('active')).toBeFalsy();
   });
 
   it('renders no container when inactive', function() {
-    const wrapper = shallow(
+    wrapper = shallow(
       <GuideAnchor target="target 1">
         <span>A child</span>
       </GuideAnchor>
     );
+
     const component = wrapper.instance();
     wrapper.update();
     expect(component.state).toMatchObject({active: false});
     expect(wrapper.find('Hovercard').exists()).toBe(false);
+  });
+
+  it('has new content and design with experiment', async function() {
+    ConfigStore.config = {
+      user: {
+        isSuperuser: false,
+        dateJoined: new Date(2020, 0, 1),
+        experiments: {AssistantGuideExperiment: 1},
+      },
+    };
+
+    GuideActions.fetchSucceeded(serverGuide);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Hovercard').exists()).toBe(true);
+    expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
+    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple);
   });
 });
