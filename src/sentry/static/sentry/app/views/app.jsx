@@ -1,12 +1,12 @@
 import $ from 'jquery';
+import {Global, css} from '@emotion/core';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
-import isEqual from 'lodash/isEqual';
-import get from 'lodash/get';
-import {Global, css} from '@emotion/core';
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
+import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
 
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';

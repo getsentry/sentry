@@ -1,3 +1,4 @@
+/* eslint import/no-unresolved:0 import/order:0 */
 import {platforms} from 'integration-docs-platforms';
 import {t} from 'app/locale';
 
