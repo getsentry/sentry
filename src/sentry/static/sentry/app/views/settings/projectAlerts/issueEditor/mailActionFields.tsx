@@ -56,19 +56,21 @@ class MailActionFields extends React.Component<Props> {
     const isIssueOwners = action.targetType === MailActionTargetType.IssueOwners;
     const isTeam = action.targetType === MailActionTargetType.Team;
 
+    const selectControlStyles = {
+      control: provided => ({
+        ...provided,
+        minHeight: '28px',
+        height: '28px',
+      }),
+    };
+
     return (
       <PanelItemGrid>
         <SelectControl
           isClearable={false}
           isDisabled={disabled || loading}
           value={action.targetType}
-          styles={{
-            control: provided => ({
-              ...provided,
-              minHeight: '28px',
-              height: '28px',
-            }),
-          }}
+          styles={selectControlStyles}
           options={[
             {value: MailActionTargetType.IssueOwners, label: 'Issue Owners'},
             {value: MailActionTargetType.Team, label: 'Team'},
@@ -85,13 +87,7 @@ class MailActionFields extends React.Component<Props> {
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
             value={`${action.targetIdentifier}`}
-            styles={{
-              control: provided => ({
-                ...provided,
-                minHeight: '28px',
-                height: '28px',
-              }),
-            }}
+            styles={selectControlStyles}
             onChange={this.handleChangeActorId}
           />
         ) : (
