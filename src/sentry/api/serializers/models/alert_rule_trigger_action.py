@@ -19,7 +19,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         elif action.type == action.Type.PAGERDUTY.value:
             return "Send a PagerDuty notification to " + action.target_display
         elif action.type == action.Type.SLACK.value:
-            return "Send a Slack notificaiton to " + action.target_display
+            return "Send a Slack notification to " + action.target_display
 
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
