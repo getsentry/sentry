@@ -5,6 +5,7 @@ import six
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
+from math import ceil
 
 from sentry import options
 from sentry.api.event_search import (
@@ -196,7 +197,7 @@ def find_histogram_buckets(field, params, conditions):
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
 
-    bucket_number = bucket_max / float(num_buckets)
+    bucket_number = ceil(bucket_max / float(num_buckets))
 
     return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_number)
 
