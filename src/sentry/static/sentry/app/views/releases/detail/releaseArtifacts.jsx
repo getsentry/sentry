@@ -1,7 +1,7 @@
-import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import PropTypes from 'prop-types';
 import React from 'react';
 import omit from 'lodash/omit';
+import styled from '@emotion/styled';
 
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -21,6 +21,7 @@ import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import space from 'app/styles/space';
 
 class ReleaseArtifacts extends React.Component {
   static propTypes = {
@@ -123,28 +124,22 @@ class ReleaseArtifacts extends React.Component {
       <div>
         <Panel>
           <PanelHeader>
-            <Flex flex="7" pr={2}>
-              {t('Name')}
-            </Flex>
-            <Flex flex="2">{t('Distribution')}</Flex>
-            <Flex flex="3">{t('Size')}</Flex>
+            <NameColumn>{t('Name')}</NameColumn>
+            <DistributionColumn>{t('Distribution')}</DistributionColumn>
+            <SizeAndActionsColumn>{t('Size')}</SizeAndActionsColumn>
           </PanelHeader>
           <PanelBody>
             {this.state.fileList.map(file => (
               <PanelItem key={file.id}>
-                <Flex
-                  flex="7"
-                  pr={2}
-                  style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
-                >
+                <NameColumn>
                   <strong>{file.name || '(empty)'}</strong>
-                </Flex>
-                <Flex flex="2">
+                </NameColumn>
+                <DistributionColumn>
                   {file.dist || <span className="text-light">{t('None')}</span>}
-                </Flex>
-                <Flex flex="3" justifyContent="space-between">
+                </DistributionColumn>
+                <SizeAndActionsColumn>
                   <FileSize bytes={file.size} />
-                  <Flex alignItems="center">
+                  <AlignCenter>
                     {access.has('project:write') ? (
                       <a
                         href={
@@ -177,8 +172,8 @@ class ReleaseArtifacts extends React.Component {
                         <span className="icon icon-trash" />
                       </LinkWithConfirmation>
                     </div>
-                  </Flex>
-                </Flex>
+                  </AlignCenter>
+                </SizeAndActionsColumn>
               </PanelItem>
             ))}
           </PanelBody>
@@ -188,6 +183,28 @@ class ReleaseArtifacts extends React.Component {
     );
   }
 }
+
+const NameColumn = styled('div')`
+  display: flex;
+  flex: 7;
+  padding-right: ${space(2)};
+  word-wrap: break-word;
+  word-break: break-all;
+`;
+const DistributionColumn = styled('div')`
+  display: flex;
+  flex: 2;
+  padding-right: ${space(2)};
+`;
+const SizeAndActionsColumn = styled('div')`
+  display: flex;
+  flex: 3;
+  justify-content: space-between;
+`;
+const AlignCenter = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 export {ReleaseArtifacts};
 export default withOrganization(withApi(ReleaseArtifacts));
