@@ -9,35 +9,65 @@ import Button from 'app/components/button';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
 
+type AlertType = 'success' | 'error' | 'warning' | 'info' | 'doc';
+
 type Alert = {
   id: string;
   message: React.ReactNode;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: AlertType;
   url?: string;
 };
 
 type Props = {
   alert: Alert;
   system: boolean;
+  withoutCloseButton?: boolean;
+  openURLInNewTab?: boolean;
 };
 
-const AlertMessage = ({alert, system}: Props) => {
+const getAlertMessageIcon = (type: AlertType): string => {
+  switch (type) {
+    case 'success':
+      return 'icon-circle-check';
+    case 'doc':
+      return 'icon-docs';
+    default:
+      return 'icon-circle-exclamation';
+  }
+};
+
+const AlertMessage = ({
+  alert,
+  system,
+  withoutCloseButton = false,
+  openURLInNewTab = false,
+}: Props) => {
   const handleCloseAlert = () => {
     AlertActions.closeAlert(alert);
   };
 
   const {url, message, type} = alert;
-  const icon = type === 'success' ? 'icon-circle-check' : 'icon-circle-exclamation';
+  const icon = getAlertMessageIcon(type);
+  const alertType = type === 'doc' ? 'info' : type;
+  const target = openURLInNewTab ? '_blank' : '_self';
 
   return (
-    <StyledAlert type={type} icon={icon} system={system}>
-      <StyledCloseButton
-        icon={<IconClose circle />}
-        aria-label={t('Close')}
-        onClick={handleCloseAlert}
-        borderless
-      />
-      {url ? <Link href={url}>{message}</Link> : message}
+    <StyledAlert type={alertType} icon={icon} system={system}>
+      {!withoutCloseButton && (
+        <StyledCloseButton
+          icon={<IconClose circle />}
+          aria-label={t('Close')}
+          onClick={handleCloseAlert}
+          borderless
+        />
+      )}
+      {url ? (
+        <Link href={url} target={target}>
+          {message}
+        </Link>
+      ) : (
+        message
+      )}
     </StyledAlert>
   );
 };

@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import AlertLink from 'app/components/alertLink';
+import AlertMessage from 'app/components/alertMessage';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
@@ -16,13 +16,13 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 
-import ProjectDataPrivacyRulesForm from './projectDataPrivacyRulesForm';
+import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
 
 const INDICATORS_DURATION = 500;
 const DEFAULT_RULE_FROM_VALUE = '$string';
 
-type Rule = React.ComponentProps<typeof ProjectDataPrivacyRulesForm>['rule'];
+type Rule = React.ComponentProps<typeof DataPrivacyRulesPanelForm>['rule'];
 
 type PiiConfig = {
   type: RULE_TYPE;
@@ -39,9 +39,9 @@ type PiiConfigRule = {
 type Applications = {[key: string]: Array<string>};
 
 type Props = {
-  orgId: string;
-  projectId: string;
+  endpoint: string;
   relayPiiConfig?: string;
+  panelHeaderSubTitle?: React.ReactNode;
 };
 
 type State = {
@@ -50,7 +50,7 @@ type State = {
   relayPiiConfig?: string;
 };
 
-class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
+class DataPrivacyRulesPanel extends React.Component<Props, State> {
   state: State = {
     rules: [],
     savedRules: [],
@@ -152,7 +152,7 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleSubmit = async () => {
-    const {orgId, projectId} = this.props;
+    const {endpoint} = this.props;
     const {rules} = this.state;
     let customRulesCounter = 0;
     const applications: Applications = {};
@@ -191,7 +191,7 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
     const relayPiiConfig = JSON.stringify(piiConfig);
 
     await this.api
-      .requestPromise(`/projects/${orgId}/${projectId}/`, {
+      .requestPromise(endpoint, {
         method: 'PUT',
         data: {relayPiiConfig},
       })
@@ -241,25 +241,32 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   render() {
+    const {panelHeaderSubTitle} = this.props;
     const {rules, savedRules} = this.state;
     const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
-          <PanelHeader>{t('Data Privacy Rules')}</PanelHeader>
-          <AlertLink
-            priority="info"
-            icon="icon-docs"
-            href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
-            size="small"
-            openInNewTab
-            withoutMarginBottom
-          >
-            {t('Check out how to use advanced datascrubbing')}
-          </AlertLink>
+          <StyledPanelHeader>
+            {t('Data Privacy Rules')}
+            {panelHeaderSubTitle && (
+              <PanelHeaderSubTitle>{panelHeaderSubTitle}</PanelHeaderSubTitle>
+            )}
+          </StyledPanelHeader>
+          <AlertMessage
+            alert={{
+              id: 'data-privacy-rules-panel-alert-message',
+              message: t('Check out how to use advanced datascrubbing'),
+              type: 'doc',
+              url: 'https://docs.sentry.io/data-management/advanced-datascrubbing/',
+            }}
+            withoutCloseButton
+            openURLInNewTab
+            system
+          />
           <PanelBody>
             {rules.map(rule => (
-              <ProjectDataPrivacyRulesForm
+              <DataPrivacyRulesPanelForm
                 key={rule.id}
                 onDelete={this.handleDeleteRule}
                 onChange={this.handleChange}
@@ -290,7 +297,20 @@ class ProjectDataPrivacyRulesPanel extends React.Component<Props, State> {
   }
 }
 
-export default ProjectDataPrivacyRulesPanel;
+export default DataPrivacyRulesPanel;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: grid;
+  grid-gap: ${space(1)};
+`;
+
+const PanelHeaderSubTitle = styled('div')`
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.4;
+  text-transform: initial;
+  font-weight: normal;
+`;
 
 const PanelAction = styled('div')`
   padding: ${space(2)} ${space(3)};
