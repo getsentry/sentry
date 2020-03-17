@@ -196,9 +196,9 @@ type AnalyticsTrackAdhocEvent = (
  */
 type AnalyticsLogExperiment = (opts: {
   /**
-   * The organiation with the experiment
+   * The organization for org based experiments
    */
-  organization: Organization;
+  organization?: Organization;
   /**
    * The experiment key
    */

@@ -39,7 +39,7 @@ class LazyLoad extends React.Component {
     this.fetchComponent();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps, nextState) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // No need to refetch when component does not change
     if (nextProps.component && nextProps.component === this.props.component) {
       return;
@@ -67,7 +67,7 @@ class LazyLoad extends React.Component {
     );
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error) {
     Sentry.captureException(error);
     this.handleError(error);
   }

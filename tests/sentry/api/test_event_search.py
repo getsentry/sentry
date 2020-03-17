@@ -1176,12 +1176,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
     def test_function_with_float_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", 0.5]]
+        result = get_filter("apdex(300):>0.5")
+        assert result.having == [["apdex_300", ">", 0.5]]
 
     def test_function_with_negative_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>-0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", -0.5]]
+        result = get_filter("apdex(300):>-0.5")
+        assert result.having == [["apdex_300", ">", -0.5]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1223,8 +1223,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "avg(transaction.duration)",
             "latest_event()",
             "last_seen()",
-            "apdex(transaction.duration, 300)",
-            "impact(transaction.duration, 300)",
+            "apdex(300)",
+            "impact(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -1236,11 +1236,11 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
-            ["apdex(duration, 300)", None, "apdex_transaction_duration_300"],
+            ["apdex(duration, 300)", None, "apdex_300"],
             [
                 "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
-                "impact_transaction_duration_300",
+                "impact_300",
             ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
@@ -1450,6 +1450,45 @@ class ResolveFieldListTest(unittest.TestCase):
             result = resolve_field_list(fields, {})
         assert (
             "rps(0): interval argument invalid: 0 must be greater than or equal to 1"
+            in six.text_type(err)
+        )
+
+    def test_histogram_function(self):
+        fields = ["histogram(transaction.duration, 10, 1000)", "count()"]
+        result = resolve_field_list(fields, {})
+        assert result["selected_columns"] == [
+            [
+                "multiply",
+                [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
+                "histogram_transaction_duration_10_1000",
+            ]
+        ]
+        assert result["aggregations"] == [
+            ["count", None, "count"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
+        ]
+        assert result["groupby"] == ["histogram_transaction_duration_10_1000"]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(stack.colno, 10, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(stack.colno, 10, 1000): column argument invalid: stack.colno is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 10)"]
+            resolve_field_list(fields, {})
+        assert "histogram(transaction.duration, 10): expected 3 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 1000, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(transaction.duration, 1000, 1000): num_buckets argument invalid: 1000 must be less than 500"
             in six.text_type(err)
         )
 

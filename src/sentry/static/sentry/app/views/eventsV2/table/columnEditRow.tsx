@@ -87,7 +87,7 @@ class ColumnEditRow extends React.Component<Props> {
           }
         }
         if (param.kind === 'value') {
-          column.function[i + 1] = param.defaultValue;
+          column.function[i + 1] = param.defaultValue || '';
         }
       });
 
@@ -327,7 +327,8 @@ class ColumnEditRow extends React.Component<Props> {
           {...selectProps}
           components={{
             Option: ({label, value, ...props}) => (
-              <components.Option label={label} {...props}>
+              //TODO(TS): stop typing props as any
+              <components.Option label={label} {...(props as any)}>
                 <Label>
                   {label}
                   {value.kind === FieldValueKind.TAG && <Badge text="tag" />}

@@ -872,19 +872,19 @@ FIELD_ALIASES = {
 }
 
 
-def get_json_meta_type(field, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field)
+def get_json_meta_type(field_alias, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
     if function_match:
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
     # TODO remove this check when field aliases are removed.
-    if "duration" in field or field in ("p75", "p95", "p99"):
+    if "duration" in field_alias or field_alias in ("p75", "p95", "p99"):
         return "duration"
-    if field == "transaction.status":
+    if field_alias == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
 
@@ -894,6 +894,11 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 class InvalidFunctionArgument(Exception):
     pass
+
+
+class ArgValue(object):
+    def __init__(self, arg):
+        self.arg = arg
 
 
 class FunctionArg(object):
@@ -997,6 +1002,24 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p75": {
+        "name": "p75",
+        "args": [],
+        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p95": {
+        "name": "p95",
+        "args": [],
+        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p99": {
+        "name": "p99",
+        "args": [],
+        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
@@ -1023,25 +1046,39 @@ FUNCTIONS = {
     },
     "apdex": {
         "name": "apdex",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex({column}, {satisfaction:g})",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex(duration, {satisfaction:g})",
         "result_type": "number",
     },
     "impact": {
         "name": "impact",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
         # in a format Snuba can parse so query optimizations can be applied.
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "error_rate": {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "result_type": "number",
+    },
+    "histogram": {
+        "name": "histogram",
+        "args": [
+            DurationColumnNoLookup("column"),
+            NumberRange("num_buckets", 1, 500),
+            NumberRange("bucket", 0, None),
+        ],
+        "column": [
+            "multiply",
+            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            None,
+        ],
         "result_type": "number",
     },
     "count_unique": {
@@ -1106,6 +1143,17 @@ def get_function_alias(field):
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
+
+
+def format_column_arguments(column, arguments):
+    args = column[1]
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            format_column_arguments(args[i], arguments)
+        elif isinstance(args[i], six.string_types):
+            args[i] = args[i].format(**arguments)
+        elif isinstance(args[i], ArgValue):
+            args[i] = arguments[args[i].arg]
 
 
 def resolve_function(field, match=None, params=None):
@@ -1176,6 +1224,21 @@ def resolve_function(field, match=None, params=None):
             )
 
         return ([], [aggregate])
+    elif "column" in function:
+        # These can be very nested functions, so we need to iterate through all the layers
+        addition = deepcopy(function["column"])
+        format_column_arguments(addition, arguments)
+        if len(addition) < 3:
+            addition.append(
+                get_function_alias_with_columns(
+                    function["name"], columns if not used_default else []
+                )
+            )
+        elif len(addition) == 3 and addition[2] is None:
+            addition[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+        return ([addition], [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1209,6 +1272,11 @@ def resolve_orderby(orderby, fields, aggregations):
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
+
+        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        if found:
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + bare_column)
 
     if len(validated) == len(orderby):
         return validated
@@ -1321,7 +1389,11 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(columns)
+        for column in columns:
+            if isinstance(column, (list, tuple)):
+                groupby.append(column[2])
+            else:
+                groupby.append(column)
 
     return {
         "selected_columns": columns,
