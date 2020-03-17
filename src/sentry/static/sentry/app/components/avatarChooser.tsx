@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -7,35 +6,41 @@ import {t} from 'app/locale';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import withApi from 'app/utils/withApi';
 import Well from 'app/components/well';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Avatar from 'app/components/avatar';
+import AvatarCropper from 'app/components/avatarCropper';
+import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Client} from 'app/api';
+import {AvatarUser, Organization, Team} from 'app/types';
 
-import {Panel, PanelBody, PanelHeader} from './panels';
-import Avatar from './avatar';
-import AvatarCropper from './avatarCropper';
-import Button from './button';
-import ExternalLink from './links/externalLink';
-import LoadingError from './loadingError';
-import LoadingIndicator from './loadingIndicator';
+type Model = Pick<AvatarUser, 'avatar'>;
+type AvatarType = Required<Model>['avatar']['avatarType'];
 
-class AvatarChooser extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    endpoint: PropTypes.string.isRequired,
-    allowGravatar: PropTypes.bool,
-    allowLetter: PropTypes.bool,
-    allowUpload: PropTypes.bool,
-    type: PropTypes.oneOf(['user', 'team', 'organization', 'project']),
-    model: PropTypes.shape({
-      avatar: PropTypes.shape({
-        avatarType: PropTypes.oneOf(['upload', 'letter_avatar', 'gravatar']),
-      }),
-    }),
-    // Is this a chooser for a User account?
-    isUser: PropTypes.bool,
-    savedDataUrl: PropTypes.string,
-    onSave: PropTypes.func,
-    disabled: PropTypes.bool,
-  };
+type Props = {
+  api: Client;
+  endpoint: string;
+  allowGravatar?: boolean;
+  allowLetter?: boolean;
+  allowUpload?: boolean;
+  type: 'user' | 'team' | 'organization';
+  model: Model;
+  isUser: boolean;
+  savedDataUrl: string;
+  onSave: (model: Model) => void;
+  disabled: boolean;
+};
 
+type State = {
+  model: Model;
+  hasError: boolean;
+  savedDataUrl?: string | null;
+  dataUrl?: string | null;
+};
+
+class AvatarChooser extends React.Component<Props, State> {
   static defaultProps = {
     allowGravatar: true,
     allowLetter: true,
@@ -43,43 +48,36 @@ class AvatarChooser extends React.Component {
     onSave: () => {},
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      model: this.props.model,
-      savedDataUrl: null,
-      dataUrl: null,
-      hasError: false,
-    };
-  }
+  state: State = {
+    model: this.props.model,
+    savedDataUrl: null,
+    dataUrl: null,
+    hasError: false,
+  };
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // Update local state if defined in props
     if (typeof nextProps.model !== 'undefined') {
       this.setState({model: nextProps.model});
     }
   }
 
-  updateState(model) {
+  updateState(model: Model) {
     this.setState({model});
   }
 
-  updateDataUrlState = dataUrlState => {
-    this.setState(dataUrlState);
-  };
-
-  handleError(msg) {
+  handleError(msg: string) {
     addErrorMessage(msg);
   }
 
-  handleSuccess(model) {
+  handleSuccess(model: Model) {
     const {onSave} = this.props;
     this.setState({model});
     onSave(model);
     addSuccessMessage(t('Successfully saved avatar preferences'));
   }
 
-  handleSaveSettings = ev => {
+  handleSaveSettings = (ev: React.MouseEvent) => {
     const {endpoint, api} = this.props;
     const {model, dataUrl} = this.state;
     ev.preventDefault();
@@ -103,11 +101,11 @@ class AvatarChooser extends React.Component {
     });
   };
 
-  handleChange(id) {
-    const model = {...this.state.model};
-    model.avatar.avatarType = id;
-    this.updateState(model);
-  }
+  handleChange = (id: AvatarType) =>
+    this.updateState({
+      ...this.state.model,
+      avatar: {avatarUuid: this.state.model.avatar?.avatarUuid ?? '', avatarType: id},
+    });
 
   render() {
     const {
@@ -128,22 +126,21 @@ class AvatarChooser extends React.Component {
       return <LoadingIndicator />;
     }
 
-    const avatarType = (model.avatar && model.avatar.avatarType) || 'letter_avatar';
+    const avatarType = model.avatar?.avatarType ?? 'letter_avatar';
     const isLetter = avatarType === 'letter_avatar';
-    // let isUpload = avatarType === 'upload';
+
     const isTeam = type === 'team';
     const isOrganization = type === 'organization';
-    const isProject = type === 'project';
-    const choices = [];
+    const choices: [AvatarType, string][] = [];
 
     if (allowLetter) {
-      choices.push(['letter_avatar', 'Use initials']);
+      choices.push(['letter_avatar', t('Use initials')]);
     }
     if (allowUpload) {
-      choices.push(['upload', 'Upload an image']);
+      choices.push(['upload', t('Upload an image')]);
     }
     if (allowGravatar) {
-      choices.push(['gravatar', 'Use Gravatar']);
+      choices.push(['gravatar', t('Use Gravatar')]);
     }
 
     return (
@@ -157,7 +154,7 @@ class AvatarChooser extends React.Component {
                 choices={choices}
                 value={avatarType}
                 label="Avatar Type"
-                onChange={id => this.handleChange(id)}
+                onChange={this.handleChange}
                 disabled={disabled}
               />
 
@@ -165,10 +162,9 @@ class AvatarChooser extends React.Component {
                 <Avatar
                   gravatar={false}
                   style={{width: 90, height: 90}}
-                  user={isUser ? model : null}
-                  organization={isOrganization ? model : null}
-                  project={isProject ? model : null}
-                  team={isTeam ? model : null}
+                  user={isUser ? (model as AvatarUser) : undefined}
+                  organization={isOrganization ? (model as Organization) : undefined}
+                  team={isTeam ? (model as Team) : undefined}
                 />
               )}
             </AvatarGroup>
@@ -181,12 +177,12 @@ class AvatarChooser extends React.Component {
                 </Well>
               )}
 
-              {avatarType === 'upload' && (
+              {model.avatar && avatarType === 'upload' && (
                 <AvatarCropper
                   {...this.props}
                   model={model}
                   savedDataUrl={savedDataUrl}
-                  updateDataUrlState={this.updateDataUrlState}
+                  updateDataUrlState={dataState => this.setState(dataState)}
                 />
               )}
               <AvatarSubmit className="form-actions">
@@ -207,7 +203,7 @@ class AvatarChooser extends React.Component {
   }
 }
 
-const AvatarGroup = styled('div')`
+const AvatarGroup = styled('div')<{inline: boolean}>`
   display: flex;
   flex-direction: ${p => (p.inline ? 'row' : 'column')};
 `;
