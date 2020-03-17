@@ -1788,4 +1788,6 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
     "sentry.web.frontend",
     "sentry.api.endpoints",
+    "sentry.discover.endpoints",
+    "sentry.incidents.endpoints",
 )
