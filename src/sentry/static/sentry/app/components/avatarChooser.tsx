@@ -18,20 +18,24 @@ import {AvatarUser, Organization, Team} from 'app/types';
 
 type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];
+type AvatarChooserType = 'user' | 'team' | 'organization';
+
+type DefaultProps = {
+  allowGravatar?: boolean;
+  allowLetter?: boolean;
+  allowUpload?: boolean;
+  onSave: (model: Model) => void;
+  type?: AvatarChooserType;
+};
 
 type Props = {
   api: Client;
   endpoint: string;
-  allowGravatar?: boolean;
-  allowLetter?: boolean;
-  allowUpload?: boolean;
-  type: 'user' | 'team' | 'organization';
   model: Model;
-  isUser: boolean;
-  savedDataUrl: string;
-  onSave: (model: Model) => void;
-  disabled: boolean;
-};
+  disabled?: boolean;
+  savedDataUrl?: string;
+  isUser?: boolean;
+} & DefaultProps;
 
 type State = {
   model: Model;
@@ -41,10 +45,11 @@ type State = {
 };
 
 class AvatarChooser extends React.Component<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     allowGravatar: true,
     allowLetter: true,
     allowUpload: true,
+    type: 'user',
     onSave: () => {},
   };
 
@@ -145,7 +150,7 @@ class AvatarChooser extends React.Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader>Avatar</PanelHeader>
+        <PanelHeader>{t('Avatar')}</PanelHeader>
         <PanelBody>
           <AvatarForm>
             <AvatarGroup inline={isLetter}>
@@ -153,11 +158,10 @@ class AvatarChooser extends React.Component<Props, State> {
                 style={{flex: 1}}
                 choices={choices}
                 value={avatarType}
-                label="Avatar Type"
+                label={t('Avatar Type')}
                 onChange={this.handleChange}
                 disabled={disabled}
               />
-
               {isLetter && (
                 <Avatar
                   gravatar={false}
@@ -180,6 +184,7 @@ class AvatarChooser extends React.Component<Props, State> {
               {model.avatar && avatarType === 'upload' && (
                 <AvatarCropper
                   {...this.props}
+                  type={type!}
                   model={model}
                   savedDataUrl={savedDataUrl}
                   updateDataUrlState={dataState => this.setState(dataState)}
