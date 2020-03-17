@@ -136,12 +136,6 @@ export const AGGREGATIONS = {
   apdex: {
     parameters: [
       {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: 'transaction.duration',
-        required: true,
-      },
-      {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
@@ -153,12 +147,6 @@ export const AGGREGATIONS = {
   },
   impact: {
     parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: 'transaction.duration',
-        required: true,
-      },
       {
         kind: 'value',
         dataType: 'number',

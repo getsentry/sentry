@@ -1176,12 +1176,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
     def test_function_with_float_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", 0.5]]
+        result = get_filter("apdex(300):>0.5")
+        assert result.having == [["apdex_300", ">", 0.5]]
 
     def test_function_with_negative_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>-0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", -0.5]]
+        result = get_filter("apdex(300):>-0.5")
+        assert result.having == [["apdex_300", ">", -0.5]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1223,8 +1223,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "avg(transaction.duration)",
             "latest_event()",
             "last_seen()",
-            "apdex(transaction.duration, 300)",
-            "impact(transaction.duration, 300)",
+            "apdex(300)",
+            "impact(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -1236,11 +1236,11 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
-            ["apdex(duration, 300)", None, "apdex_transaction_duration_300"],
+            ["apdex(duration, 300)", None, "apdex_300"],
             [
                 "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
-                "impact_transaction_duration_300",
+                "impact_300",
             ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],

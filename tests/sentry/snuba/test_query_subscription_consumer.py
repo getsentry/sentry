@@ -52,7 +52,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     metrics = patcher("sentry.snuba.query_subscription_consumer.metrics")
 
     def test_no_subscription(self):
-        with mock.patch("sentry.snuba.subscriptions._snuba_pool") as pool:
+        with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
             pool.urlopen.return_value.status = 202
             self.consumer.handle_message(
                 self.build_mock_message(
