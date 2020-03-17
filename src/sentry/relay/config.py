@@ -265,7 +265,7 @@ class ProjectConfig(_ConfigBase):
 
 def _get_pii_config(project):
     def _decode(value):
-        if value is not None:
+        if value:
             return safe_execute(utils.json.loads, value)
 
     # Order of merging is important here. We want to apply organization rules
