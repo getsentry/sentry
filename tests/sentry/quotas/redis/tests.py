@@ -8,6 +8,7 @@ import time
 
 from exam import fixture, patcher
 
+from sentry.constants import DataCategory
 from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import is_rate_limited, RedisQuota
 from sentry.testutils import TestCase
@@ -87,15 +88,30 @@ class RedisQuotaTest(TestCase):
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
-        quotas = self.quota.get_quotas(self.project)
+        with self.feature("organizations:releases-v2"):
+            quotas = self.quota.get_quotas(self.project)
+
         assert quotas[0].id == u"p"
+        assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id == six.text_type(self.project.id)
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
         assert quotas[1].id == u"o"
+        assert quotas[1].scope == QuotaScope.ORGANIZATION
         assert quotas[1].scope_id == six.text_type(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
+
+    def test_sessions_quota(self):
+        self.get_project_quota.return_value = (200, 60)
+        self.get_organization_quota.return_value = (300, 60)
+        with self.feature({"organizations:releases-v2": False}):
+            quotas = self.quota.get_quotas(self.project)
+
+        assert quotas[0].id is None  # should not be counted
+        assert quotas[0].categories == set([DataCategory.SESSION])
+        assert quotas[0].scope == QuotaScope.ORGANIZATION
+        assert quotas[0].limit == 0
 
     @mock.patch("sentry.quotas.redis.is_rate_limited")
     @mock.patch.object(RedisQuota, "get_quotas", return_value=[])
@@ -175,16 +191,16 @@ class RedisQuotaTest(TestCase):
             self.quota.is_rate_limited(self.project, timestamp=timestamp)
 
         quotas = self.quota.get_quotas(self.project)
+        all_quotas = quotas + [
+            QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
+            QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
+        ]
 
-        assert self.quota.get_usage(
-            self.project.organization_id,
-            quotas
-            + [
-                QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
-                QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
-            ],
-            timestamp=timestamp,
-        ) == [n for _ in quotas] + [0, 0]
+        usage = self.quota.get_usage(self.project.organization_id, all_quotas, timestamp=timestamp)
+
+        # Only quotas with an ID are counted in Redis (via this ID). Assume the
+        # count for these quotas and None for the others.
+        assert usage == [n if q.id else None for q in quotas] + [0, 0]
 
     @mock.patch.object(RedisQuota, "get_quotas")
     def test_refund(self, mock_get_quotas):
@@ -234,14 +250,14 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(self.project, timestamp=timestamp)
 
         quotas = self.quota.get_quotas(self.project)
+        all_quotas = quotas + [
+            QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
+            QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
+        ]
 
-        assert self.quota.get_usage(
-            self.project.organization_id,
-            quotas
-            + [
-                QuotaConfig(id="unlimited", limit=None, window=60, reason_code="unlimited"),
-                QuotaConfig(id="dummy", limit=10, window=60, reason_code="dummy"),
-            ],
-            timestamp=timestamp,
-            # the - 1 is because we refunded once
-        ) == [n - 1 for _ in quotas] + [0, 0]
+        usage = self.quota.get_usage(self.project.organization_id, all_quotas, timestamp=timestamp)
+
+        # Only quotas with an ID are counted in Redis (via this ID). Assume the
+        # count for these quotas and None for the others.
+        # The ``- 1`` is because we refunded once.
+        assert usage == [n - 1 if q.id else None for q in quotas] + [0, 0]
