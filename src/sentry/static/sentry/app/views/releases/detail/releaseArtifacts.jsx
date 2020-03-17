@@ -1,4 +1,4 @@
-import {Flex} from 'reflexbox';
+import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import PropTypes from 'prop-types';
 import React from 'react';
 import omit from 'lodash/omit';
@@ -26,6 +26,7 @@ class ReleaseArtifacts extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     api: PropTypes.object,
+    projectId: PropTypes.string,
   };
 
   constructor() {
@@ -43,11 +44,13 @@ class ReleaseArtifacts extends React.Component {
   }
 
   getFilesEndpoint() {
-    const {orgId, projectId, version} = this.props.params;
-    const encodedVersion = encodeURIComponent(version);
+    // ?? to temporarily support releases V1 and V2
+    const {orgId, projectId, version, release} = this.props.params;
+    const encodedVersion = encodeURIComponent(version ?? release);
+    const project = projectId ?? this.props.projectId;
 
-    return projectId
-      ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/files/`
+    return project
+      ? `/projects/${orgId}/${project}/releases/${encodedVersion}/files/`
       : `/organizations/${orgId}/releases/${encodedVersion}/files/`;
   }
 
