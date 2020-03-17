@@ -178,7 +178,7 @@ describe('DropdownMenu', function() {
 
     wrapper = mount(
       <DropdownMenu alwaysRenderMenu>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+        {({getRootProps, getActorProps, getMenuProps}) => (
           <span
             {...getRootProps({
               className: 'root',

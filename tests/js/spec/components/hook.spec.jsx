@@ -58,7 +58,7 @@ describe('Hook', function() {
 
     expect(wrapper.find('Wrapper')).toHaveLength(1);
 
-    HookStore.add('footer', ({organization} = {}) => (
+    HookStore.add('footer', () => (
       <Wrapper key="new" organization={null}>
         New Hook
       </Wrapper>
@@ -86,7 +86,7 @@ describe('Hook', function() {
       routerContext
     );
 
-    HookStore.add('footer', ({organization} = {}) => (
+    HookStore.add('footer', () => (
       <Wrapper key="new" organization={null}>
         New Hook
       </Wrapper>
