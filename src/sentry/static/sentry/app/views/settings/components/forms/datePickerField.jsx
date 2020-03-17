@@ -8,7 +8,7 @@ import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 import DropdownMenu from 'app/components/dropdownMenu';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCalendar} from 'app/icons/iconCalendar';
 import space from 'app/styles/space';
 
 import InputField from './inputField';
@@ -38,7 +38,7 @@ export default class DatePickerField extends React.Component {
                   <InputWrapper name={id} id={id} {...getActorProps()} isOpen={isOpen}>
                     <StyledInput readOnly value={dateString} />
                     <CalendarIcon>
-                      <InlineSvg src="icon-calendar" />
+                      <IconCalendar />
                     </CalendarIcon>
                   </InputWrapper>
 
