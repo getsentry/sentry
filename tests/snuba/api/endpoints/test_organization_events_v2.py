@@ -1643,7 +1643,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         "p75",
                         "p95()",
                         "percentile(transaction.duration, 0.99)",
-                        "apdex(transaction.duration,300)",
+                        "apdex(300)",
                         "impact()",
                         "error_rate()",
                     ],
@@ -1656,7 +1656,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["p75"] == "duration"
             assert meta["p95"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
-            assert meta["apdex_transaction_duration_300"] == "number"
+            assert meta["apdex_300"] == "number"
             assert meta["impact"] == "number"
 
             data = response.data["data"]
@@ -1664,7 +1664,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["p75"] == 5000
             assert data[0]["p95"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
-            assert data[0]["apdex_transaction_duration_300"] == 0.0
+            assert data[0]["apdex_300"] == 0.0
             assert data[0]["impact"] == 1.0
             assert data[0]["error_rate"] == 0.5
 
