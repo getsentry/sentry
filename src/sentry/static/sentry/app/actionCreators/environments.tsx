@@ -1,11 +1,15 @@
 import EnvironmentActions from 'app/actions/environmentActions';
+import {Client} from 'app/api';
 
 /**
  * Fetches all environments for an organization
  *
- * @param {String} organizationSlug The organization slug
+ * @param organizationSlug The organization slug
  */
-export async function fetchOrganizationEnvironments(api, organizationSlug) {
+export async function fetchOrganizationEnvironments(
+  api: Client,
+  organizationSlug: string
+) {
   EnvironmentActions.fetchEnvironments();
   try {
     const environments = await api.requestPromise(
