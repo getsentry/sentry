@@ -15,8 +15,11 @@ import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
+import {getDuration} from 'app/utils/formatters';
 
 import EventsRequest from './utils/eventsRequest';
+
+const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -133,6 +136,19 @@ class EventsChart extends React.Component {
     const includePrevious = !start && !end;
     const previousSeriesName = yAxis ? t('previous %s', yAxis) : undefined;
 
+    const tooltip = {
+      valueFormatter(value) {
+        if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
+          return getDuration(value / 1000, 2);
+        }
+        if (typeof value === 'number') {
+          return value.toLocaleString();
+        }
+
+        return value;
+      },
+    };
+
     return (
       <ChartZoom
         router={router}
@@ -176,6 +192,7 @@ class EventsChart extends React.Component {
                         <TransparentLoadingMask visible={reloading} />
                         <EventsAreaChart
                           {...zoomRenderProps}
+                          tooltip={tooltip}
                           loading={loading}
                           reloading={reloading}
                           utc={utc}
