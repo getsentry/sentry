@@ -13,6 +13,7 @@ import six
 import time
 import urllib3
 import sentry_sdk
+from sentry_sdk.tracing import Span
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -542,26 +543,35 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     def snuba_query(params):
         query_params, forward, reverse = params
         try:
-            with timer("snuba_query"):
-                body = json.dumps(query_params)
-                with sentry_sdk.start_span(
-                    op="snuba", description=u"query {}".format(body)
-                ) as span:
-                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
-                    return (
-                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
-                        forward,
-                        reverse,
-                    )
+            parent_span = Span.from_traceparent(traceparent)
+            with timer("snuba_query"), sentry_sdk.start_span(
+                span=parent_span.new_span(op="snuba_query", transaction="snuba_query")
+            ) as transaction:
+                with timer("snuba_query"):
+                    body = json.dumps(query_params)
+                    with sentry_sdk.start_span(
+                        span=transaction.new_span(op="snuba", description=u"query {}".format(body))
+                    ) as span:
+                        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                        return (
+                            _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                            forward,
+                            reverse,
+                        )
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 
-    if len(snuba_param_list) > 1:
-        query_results = _query_thread_pool.map(snuba_query, query_param_list)
-    else:
-        # No need to submit to the thread pool if we're just performing a
-        # single query
-        query_results = [snuba_query(query_param_list[0])]
+    with sentry_sdk.start_span(
+        op="start_snuba_query", description="running {} snuba queries".format(len(snuba_param_list))
+    ) as span:
+        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        traceparent = span.to_traceparent()
+        if len(snuba_param_list) > 1:
+            query_results = list(_query_thread_pool.map(snuba_query, query_param_list))
+        else:
+            # No need to submit to the thread pool if we're just performing a
+            # single query
+            query_results = [snuba_query(query_param_list[0])]
 
     results = []
     for response, _, reverse in query_results:
