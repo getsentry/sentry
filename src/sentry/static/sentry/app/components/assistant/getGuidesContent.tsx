@@ -173,7 +173,7 @@ export default function getGuidesContent(user): GuidesContent {
           target: 'issue_stream',
           description: tct(
             `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stacktrace and other factors. [link:Learn more]`,
+            determined by stacktrace and other factors. [link:Learn more].`,
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/data-management/rollups/" />

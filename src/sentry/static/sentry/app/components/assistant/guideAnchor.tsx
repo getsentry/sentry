@@ -145,6 +145,7 @@ const GuideAnchor = createReactClass<Props, State>({
                 <DismissButton
                   priority="primary"
                   size="small"
+                  href="#" // to clear `#assistant` from the url
                   onClick={this.handleDismiss}
                 >
                   {t('Dismiss')}
@@ -158,7 +159,7 @@ const GuideAnchor = createReactClass<Props, State>({
 
           {hasManySteps && (
             <StepCount>
-              {tct('[currentStepCount] OF [totalStepCount]', {
+              {tct('[currentStepCount] of [totalStepCount]', {
                 currentStepCount,
                 totalStepCount,
               })}
@@ -346,6 +347,7 @@ const DismissButton = styled(StyledButton)`
 const StepCount = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
+  text-transform: uppercase;
 `;
 
 const StyledHovercard = styled(Hovercard)`
