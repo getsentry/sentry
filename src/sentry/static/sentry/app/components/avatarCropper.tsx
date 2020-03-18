@@ -23,7 +23,7 @@ type Props = {
   model: Model;
   updateDataUrlState: (opts: {savedDataUrl?: string | null; dataUrl?: string}) => void;
   type: 'user' | 'team' | 'organization' | 'project';
-  savedDataUrl: string;
+  savedDataUrl?: string;
 };
 
 type State = {
