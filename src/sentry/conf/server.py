@@ -571,6 +571,7 @@ CELERY_QUEUES = [
     Queue("search", routing_key="search"),
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
+    Queue("subscriptions", routing_key="subscriptions"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
 ]
@@ -1783,4 +1784,10 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 # process_event might backlog and affect events from other platforms.
 SYMBOLICATOR_POLL_TIMEOUT = 4
 
-SENTRY_REQUEST_METRIC_ALLOWED_PATHS = ("sentry.web.api", "sentry.web.frontend", "sentry.api.endpoints")
+SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
+    "sentry.web.api",
+    "sentry.web.frontend",
+    "sentry.api.endpoints",
+    "sentry.discover.endpoints",
+    "sentry.incidents.endpoints",
+)

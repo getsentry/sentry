@@ -832,6 +832,16 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
+};
+
 export type MemberRole = {
   id: string;
   name: string;
@@ -1038,4 +1048,18 @@ export type Broadcast = {
   dateCreated: string;
   dateExpires: string;
   hasSeen: boolean;
+};
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
 };
