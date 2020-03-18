@@ -1,10 +1,11 @@
 import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/teams/:teamId/settings/';
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Team Settings',

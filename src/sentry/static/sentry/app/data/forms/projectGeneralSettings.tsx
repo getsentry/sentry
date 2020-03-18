@@ -15,13 +15,14 @@ import {
 } from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
+import {Field} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
-  const values = [];
+  const values: number[] = [];
   while (i <= 720) {
     values.push(i);
     if (i < 12) {
@@ -48,7 +49,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export const fields = {
+export const fields: {[key: string]: Field} = {
   slug: {
     name: 'slug',
     type: 'string',
@@ -95,14 +96,17 @@ export const fields = {
       "Automatically resolve an issue if it hasn't been seen for this amount of time"
     ),
     formatLabel: val => {
-      val = parseInt(val, 10);
+      val = Number(val);
       if (val === 0) {
         return t('Disabled');
-      } else if (val > 23 && val % 24 === 0) {
+      }
+
+      if (val > 23 && val % 24 === 0) {
         // Based on allowed values, val % 24 should always be true
         val = val / 24;
         return tn('%s day', '%s days', val);
       }
+
       return tn('%s hour', '%s hours', val);
     },
     saveOnBlur: false,

@@ -1,9 +1,10 @@
 // Export route to make these forms searchable by label/help
 import {t} from 'app/locale';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 export const route = '/settings/:orgId/projects/:projectId/csp/';
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'CSP Settings',
@@ -16,12 +17,11 @@ const formGroups = [
         help: t(
           'Our default list will attempt to ignore common issues and reduce noise.'
         ),
-        getData: data => ({
-          options: data,
-        }),
+        getData: data => ({options: data}),
       },
 
-      // XXX: Org details endpoints accept these multiline inputs as a list, where as it looks like project details accepts it as a string with newlines
+      // XXX: Org details endpoints accept these multiline inputs as a list,
+      // where as it looks like project details accepts it as a string with newlines
       {
         name: 'sentry:csp_ignored_sources',
         type: 'string',
@@ -33,9 +33,7 @@ const formGroups = [
           'Discard reports about requests from the given sources. Separate multiple entries with a newline.'
         ),
         extraHelp: t('Separate multiple entries with a newline.'),
-        getData: data => ({
-          options: data,
-        }),
+        getData: data => ({options: data}),
       },
     ],
   },

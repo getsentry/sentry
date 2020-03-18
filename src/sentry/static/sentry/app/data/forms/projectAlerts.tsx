@@ -1,14 +1,15 @@
 import {t, tn} from 'app/locale';
+import {Field} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/alerts/';
 
-const formatMinutes = value => {
-  value = value / 60;
+const formatMinutes = (value: number | '') => {
+  value = Number(value) / 60;
   return tn('%s minute', '%s minutes', value);
 };
 
-export const fields = {
+export const fields: {[key: string]: Field} = {
   subjectTemplate: {
     name: 'subjectTemplate',
     type: 'string',

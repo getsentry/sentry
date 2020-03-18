@@ -1,9 +1,11 @@
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
+
 export const route = '/settings/account/details/';
 
 // For fields that are
 const getUserIsManaged = ({user}) => user.isManaged;
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Account Details',

@@ -1,9 +1,10 @@
 import {t, tct} from 'app/locale';
+import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/notifications/';
 
-export const fields = {
+export const fields: {[key: string]: Field} = {
   subscribeByDefault: {
     name: 'subscribeByDefault',
     type: 'boolean',
@@ -21,9 +22,9 @@ export const fields = {
     type: 'radio',
     label: t('Send Me Workflow Notifications'),
     choices: [
-      [0, 'Always'],
-      [1, 'Only On Issues I Subscribe To'],
-      [2, 'Never'],
+      [0, t('Always')],
+      [1, t('Only On Issues I Subscribe To')],
+      [2, t('Never')],
     ],
     help: t('E.g. changes in issue assignment, resolution status, and comments.'),
   },
@@ -40,9 +41,9 @@ export const fields = {
     type: 'radio',
     label: t('Send Me Deploy Notifications'),
     choices: [
-      [2, 'Always'],
-      [3, 'Only On Deploys With My Commits'],
-      [4, 'Never'],
+      [2, t('Always')],
+      [3, t('Only On Deploys With My Commits')],
+      [4, t('Never')],
     ],
     help: t('Deploy emails include release, environment and commit overviews.'),
   },
@@ -60,7 +61,7 @@ export const fields = {
   },
 };
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     title: t('Alerts'),
     fields: [fields.subscribeByDefault],
