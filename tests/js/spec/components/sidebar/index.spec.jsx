@@ -1,9 +1,11 @@
 import React from 'react';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
-import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
+import * as incidentActions from 'app/actionCreators/serviceIncidents';
+
+jest.mock('app/actionCreators/serviceIncidents');
 
 describe('Sidebar', function() {
   let wrapper;
@@ -299,14 +301,16 @@ describe('Sidebar', function() {
       // This advances timers enough so that mark as seen should be called if it wasn't unmounted
       jest.advanceTimersByTime(600);
       expect(apiMocks.broadcastsMarkAsSeen).not.toHaveBeenCalled();
+      jest.useRealTimers();
     });
 
     it('can show Incidents in Sidebar Panel', async function() {
+      incidentActions.loadIncidents = jest.fn(() => ({
+        incidents: [TestStubs.ServiceIncident()],
+      }));
+
       wrapper = createWrapper();
-      ServiceIncidentStore.onUpdateSuccess({
-        status: {incidents: [TestStubs.ServiceIncident()]},
-      });
-      wrapper.update();
+      await tick();
 
       wrapper.find('ServiceIncidents').simulate('click');
       wrapper.update();

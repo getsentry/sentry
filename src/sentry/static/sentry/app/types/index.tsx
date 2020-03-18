@@ -1048,3 +1048,17 @@ export type Broadcast = {
   dateExpires: string;
   hasSeen: boolean;
 };
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
+};

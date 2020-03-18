@@ -27,7 +27,6 @@ import {
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
-import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
@@ -75,8 +74,6 @@ class Sidebar extends React.Component {
   componentDidMount() {
     document.body.classList.add('body-sidebar');
     document.addEventListener('click', this.flyoutCloseHandler);
-
-    loadIncidents();
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);

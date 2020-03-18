@@ -1,55 +1,55 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
 import InlineSvg from 'app/components/inlineSvg';
+import {loadIncidents} from 'app/actionCreators/serviceIncidents';
+import {SentryServiceStatus} from 'app/types';
+import space from 'app/styles/space';
 
+import {SidebarOrientation, SidebarPanelKey} from './types';
+import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
-import SidebarPanelEmpty from './sidebarPanelEmpty';
 
-const ServiceIncidents = createReactClass({
-  displayName: 'ServiceIncidents',
+type Props = {
+  orientation: SidebarOrientation;
+  collapsed: boolean;
+  showPanel: boolean;
+  currentPanel: SidebarPanelKey;
+  hidePanel: () => void;
+  onShowPanel: () => void;
+};
 
-  propTypes: {
-    orientation: PropTypes.oneOf(['top', 'left']),
-    collapsed: PropTypes.bool,
-    showPanel: PropTypes.bool,
-    currentPanel: PropTypes.string,
-    hidePanel: PropTypes.func,
-    onShowPanel: PropTypes.func.isRequired,
-  },
+type State = {
+  status: SentryServiceStatus | null;
+};
 
-  mixins: [Reflux.listenTo(ServiceIncidentStore, 'onIncidentChange')],
+class ServiceIncidents extends React.Component<Props, State> {
+  state: State = {
+    status: null,
+  };
 
-  getInitialState() {
-    return {
-      status: null,
-    };
-  },
+  componentDidMount() {
+    this.fetchData();
+  }
 
-  onIncidentChange(status) {
-    this.setState({
-      status: {...status},
-    });
-  },
+  async fetchData() {
+    this.setState({status: await loadIncidents()});
+  }
 
   render() {
     const {
-      orientation,
-      collapsed,
       currentPanel,
       showPanel,
-      hidePanel,
       onShowPanel,
+      hidePanel,
+      collapsed,
+      orientation,
     } = this.props;
-
     const {status} = this.state;
+
     if (!status) {
       return null;
     }
@@ -92,7 +92,7 @@ const ServiceIncidents = createReactClass({
             <IncidentList className="incident-list">
               {status.incidents.map(incident => (
                 <IncidentItem key={incident.id}>
-                  <IncidentTitle>{incident.title}</IncidentTitle>
+                  <IncidentTitle>{incident.name}</IncidentTitle>
                   {incident.updates ? (
                     <div>
                       <StatusHeader>{t('Latest updates:')}</StatusHeader>
@@ -115,33 +115,33 @@ const ServiceIncidents = createReactClass({
         )}
       </React.Fragment>
     );
-  },
-});
+  }
+}
 
 export default ServiceIncidents;
 
 const IncidentList = styled('ul')`
-  list-style: none;
-  padding: 20px 20px 0;
   font-size: 13px;
+  list-style: none;
+  padding: ${space(3)} ${space(3)} 0;
 `;
 
 const IncidentItem = styled('li')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin-bottom: 20px;
-  padding-bottom: 5px;
+  margin-bottom: ${space(3)};
+  padding-bottom: ${space(0.75)};
 `;
 
 const IncidentTitle = styled('div')`
-  font-size: 18px;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: 600;
   line-height: 1.2;
-  margin-bottom: 15px;
+  margin-bottom: ${space(2)};
 `;
 const StatusHeader = styled('div')`
   color: #7c6a8e;
-  margin-bottom: 15px;
-  font-size: 14px;
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 600;
   line-height: 1;
 `;
@@ -150,6 +150,6 @@ const StatusList = styled('ul')`
   padding: 0;
 `;
 const StatusItem = styled('li')`
-  margin-bottom: 15px;
+  margin-bottom: ${space(2)};
   line-height: 1.5;
 `;
