@@ -202,7 +202,7 @@ type AnalyticsLogExperiment = (opts: {
   /**
    * The experiment key
    */
-  key: string;
+  key: keyof Organization['experiments'] | keyof User['experiments'];
   /**
    * The name of the exposed unit
    */
