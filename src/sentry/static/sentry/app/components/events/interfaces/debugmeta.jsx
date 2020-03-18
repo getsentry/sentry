@@ -21,7 +21,7 @@ import {
   getImageRange,
 } from 'app/components/events/interfaces/utils';
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
 const IMAGE_ADDR_LEN = 12;
@@ -348,6 +348,10 @@ class DebugMetaInterface extends React.PureComponent {
     this.setState({showUnused});
   };
 
+  handleShowUnused = () => {
+    this.setState({showUnused: true});
+  };
+
   handleChangeShowDetails = e => {
     const showDetails = e.target.checked;
     this.setState({showDetails});
@@ -387,6 +391,25 @@ class DebugMetaInterface extends React.PureComponent {
     return filtered;
   }
 
+  getNoImagesMessage(images) {
+    const {filter, showUnused} = this.state;
+
+    if (images.length === 0) {
+      return t('No loaded images available.');
+    }
+
+    if (!showUnused && !filter) {
+      return tct(
+        'No images are referenced in the stack trace. [toggle: Show Unreferenced]',
+        {
+          toggle: <Button size="large" priority="link" onClick={this.handleShowUnused} />,
+        }
+      );
+    }
+
+    return t('Sorry, no images match your query.');
+  }
+
   renderToolbar() {
     const {filter, showDetails, showUnused} = this.state;
     return (
@@ -419,9 +442,6 @@ class DebugMetaInterface extends React.PureComponent {
   render() {
     // skip null values indicating invalid debug images
     const images = this.getDebugImages();
-    if (images.length === 0) {
-      return null;
-    }
 
     const filteredImages = images.filter(image => this.filterImage(image));
 
@@ -465,7 +485,7 @@ class DebugMetaInterface extends React.PureComponent {
             ) : (
               <EmptyItem>
                 <ImageIcon type="muted" src="icon-circle-exclamation" />{' '}
-                {t('Sorry, no images match your query.')}
+                {this.getNoImagesMessage(images)}
               </EmptyItem>
             )}
           </PanelBody>

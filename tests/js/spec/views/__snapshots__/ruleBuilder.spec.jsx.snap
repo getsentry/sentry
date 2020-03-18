@@ -1266,7 +1266,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
-              className="css-usqo6f-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-hmonbk-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               a/bar
             </div>
@@ -1318,7 +1318,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
-              className="css-usqo6f-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-hmonbk-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               a/foo
             </div>
@@ -1370,7 +1370,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
-              className="css-usqo6f-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-hmonbk-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               example.com/a
             </div>
@@ -1422,7 +1422,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
-              className="css-usqo6f-TextOverflow-StyledTextOverflow e1hyuoc72"
+              className="css-hmonbk-TextOverflow-StyledTextOverflow e1hyuoc72"
             >
               example.com/a/foo
             </div>
