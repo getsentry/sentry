@@ -14,6 +14,12 @@ describe('OrganizationSecurityAndPrivacy', function() {
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'GET',
+    });
+
     organization.features = ['datascrubbers-v2'];
   });
 
@@ -121,10 +127,10 @@ describe('OrganizationSecurityAndPrivacy', function() {
 
     await tick();
     wrapper.update();
+
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
     wrapper.find('Switch[name="require2FA"]').simulate('click');
     expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
-
     // Confirm
     wrapper
       .find(
