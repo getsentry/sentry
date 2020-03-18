@@ -980,7 +980,7 @@ function routes() {
         path="/share/issue/:shareId/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails'
+            /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails/sharedGroupDetails'
           )
         }
         component={errorHandler(LazyLoad)}
