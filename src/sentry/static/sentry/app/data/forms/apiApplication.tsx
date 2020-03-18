@@ -1,7 +1,8 @@
 import {extractMultilineFields} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
-const forms = [
+const forms: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Application Details',

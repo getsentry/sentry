@@ -2,6 +2,7 @@ import React from 'react';
 
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
+import {JsonFormObject, Field} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/filters/';
@@ -10,11 +11,10 @@ const newLineHelpText = t('Separate multiple entries with a newline.');
 const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
 });
-const getOptionsData = data => ({
-  options: data,
-});
 
-const formGroups = [
+const getOptionsData = (data: object) => ({options: data});
+
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('Custom Filters'),
@@ -43,7 +43,7 @@ const formGroups = [
 export default formGroups;
 
 // These require a feature flag
-export const customFilterFields = [
+export const customFilterFields: Field[] = [
   {
     name: 'filters:releases',
     type: 'string',

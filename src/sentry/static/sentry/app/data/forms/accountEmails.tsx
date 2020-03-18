@@ -1,7 +1,9 @@
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
+
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/emails/';
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Add Secondary Emails',
