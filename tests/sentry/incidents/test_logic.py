@@ -261,8 +261,8 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
             kwargs["end"] = end
 
         result = get_incident_event_stats(incident, **kwargs)
-        # Duration of 300s / 200 data points
-        assert result.rollup == 1
+        # Duration of 300s / 50 data points
+        assert result.rollup == 6
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
         assert result.start == expected_start
@@ -271,8 +271,8 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
         # A prewindow version of the same test:
         result = get_incident_event_stats(incident, prewindow=True, **kwargs)
-        # Duration of 300s / 200 data points
-        assert result.rollup == 1
+        # Duration of 300s / 50 data points
+        assert result.rollup == 6
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
         expected_start = expected_start - calculate_incident_prewindow(
