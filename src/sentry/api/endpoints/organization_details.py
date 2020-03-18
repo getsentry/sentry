@@ -140,6 +140,7 @@ class OrganizationSerializer(serializers.Serializer):
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=serializers.CharField(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
+    relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     @memoize
     def _has_legacy_rate_limits(self):
