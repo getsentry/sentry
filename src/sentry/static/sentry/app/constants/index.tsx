@@ -227,11 +227,20 @@ export const DEFAULT_PER_PAGE = 50;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 // eslint-disable-next-line no-undef
-export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
+export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unknown) as
+  | undefined
+  | {
+      branch: string;
+      commitSha: string;
+      githubOrg: string;
+      githubRepo: string;
+    };
 
 // Webpack configures EXPERIMENTAL_SPA.
 // eslint-disable-next-line no-undef
-export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
+export const EXPERIMENTAL_SPA = (process.env.EXPERIMENTAL_SPA as unknown) as
+  | undefined
+  | boolean;
 
 // so we don't use filtered values in certain display contexts
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
