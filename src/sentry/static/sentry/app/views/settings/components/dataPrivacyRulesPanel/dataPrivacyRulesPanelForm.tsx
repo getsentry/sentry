@@ -35,7 +35,7 @@ type State = {
     [key: string]: string;
   };
 };
-class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
+class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   state: State = {
     errors: {},
   };
@@ -92,20 +92,6 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
       <Wrapper hasError={Object.keys(errors).length > 0}>
         <WrapperFields>
           <StyledSelectControl
-            placeholder={t('Select type')}
-            name="type"
-            options={Object.values(RULE_TYPE).map(value => ({
-              label: getRuleTypeSelectorFieldLabel(value),
-              value,
-            }))}
-            height={40}
-            value={type}
-            onChange={({value}) => this.handleChange('type', value)}
-            openOnFocus
-            required
-          />
-
-          <StyledSelectControl
             placeholder={t('Select method')}
             name="method"
             options={Object.values(METHOD_TYPE).map(value => ({
@@ -115,6 +101,19 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
             height={40}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
+            openOnFocus
+            required
+          />
+          <StyledSelectControl
+            placeholder={t('Select type')}
+            name="type"
+            options={Object.values(RULE_TYPE).map(value => ({
+              label: getRuleTypeSelectorFieldLabel(value),
+              value,
+            }))}
+            height={40}
+            value={type}
+            onChange={({value}) => this.handleChange('type', value)}
             openOnFocus
             required
           />
@@ -158,7 +157,7 @@ class ProjectDataPrivacyRulesForm extends React.PureComponent<Props, State> {
   }
 }
 
-export default ProjectDataPrivacyRulesForm;
+export default DataPrivacyRulesForm;
 
 const Wrapper = styled('div')<{hasError?: boolean}>`
   padding: ${p => `${space(p.hasError ? 4 : 2)} ${space(3)}`};
