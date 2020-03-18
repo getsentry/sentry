@@ -3,7 +3,6 @@ import {t} from 'app/locale';
 enum RULE_TYPE {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
-  IBAN = 'iban',
   PASSWORD = 'password',
   IP = 'ip',
   IMEI = 'imei',
@@ -47,8 +46,6 @@ function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
       return t('UUIDs');
     case RULE_TYPE.CREDITCARD:
       return t('Credit Card Number');
-    case RULE_TYPE.IBAN:
-      return t('IBAN bank accounts');
     case RULE_TYPE.PASSWORD:
       return t('Password fields');
     case RULE_TYPE.IP:
