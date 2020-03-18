@@ -8,6 +8,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import DeviceName from 'app/components/deviceName';
 import space from 'app/styles/space';
+import {ParagraphOverflow} from 'app/components/textOverflow';
 
 import generateClassName from './generateClassName';
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
@@ -88,7 +89,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       <span className="context-item-icon" />
       <h3>{renderName()}</h3>
       {subTitle && (
-        <p>
+        <ParagraphOverflow>
           <Subject>{subTitle.subject}</Subject>
           {subTitle.meta ? (
             <AnnotatedText
@@ -100,7 +101,7 @@ const ContextSummaryDevice = ({data}: Props) => {
           ) : (
             subTitle.value
           )}
-        </p>
+        </ParagraphOverflow>
       )}
     </div>
   );
