@@ -1,5 +1,6 @@
 import {Client} from 'app/api';
 import {CommitFile, Commit} from 'app/types';
+import {t} from 'app/locale';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
@@ -46,7 +47,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
  */
 export function getCommitsByRepository(commitList: Commit[]): CommitsByRepository {
   return commitList.reduce((commitsByRepository, commit) => {
-    const repositoryName = commit.repository?.name ?? 'unknown';
+    const repositoryName = commit.repository?.name ?? t('unknown');
 
     if (!commitsByRepository.hasOwnProperty(repositoryName)) {
       commitsByRepository[repositoryName] = [];
