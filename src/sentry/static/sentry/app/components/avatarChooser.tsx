@@ -21,10 +21,10 @@ type AvatarType = Required<Model>['avatar']['avatarType'];
 type AvatarChooserType = 'user' | 'team' | 'organization';
 
 type DefaultProps = {
+  onSave: (model: Model) => void;
   allowGravatar?: boolean;
   allowLetter?: boolean;
   allowUpload?: boolean;
-  onSave: (model: Model) => void;
   type?: AvatarChooserType;
 };
 
