@@ -39,6 +39,7 @@ type PiiConfigRule = {
 type Applications = {[key: string]: Array<string>};
 
 type Props = {
+  disabled?: boolean;
   endpoint: string;
   relayPiiConfig?: string;
   panelHeaderSubTitle?: React.ReactNode;
@@ -241,7 +242,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   render() {
-    const {panelHeaderSubTitle} = this.props;
+    const {panelHeaderSubTitle, disabled} = this.props;
     const {rules, savedRules} = this.state;
     const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
@@ -268,10 +269,12 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 onDelete={this.handleDeleteRule}
                 onChange={this.handleChange}
                 rule={rule}
+                disabled={disabled}
               />
             ))}
             <PanelAction>
               <StyledButton
+                disabled={disabled}
                 icon={<IconAdd circle />}
                 onClick={this.handleAddRule}
                 borderless
@@ -283,8 +286,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         </Panel>
         {!hideButtonBar && (
           <StyledButtonBar gap={1.5}>
-            <Button onClick={this.handleCancelForm}>{t('Cancel')}</Button>
-            <Button priority="primary" onClick={this.handleSaveForm}>
+            <Button onClick={this.handleCancelForm} disabled={disabled}>
+              {t('Cancel')}
+            </Button>
+            <Button priority="primary" onClick={this.handleSaveForm} disabled={disabled}>
               {t('Save Rules')}
             </Button>
           </StyledButtonBar>
@@ -315,9 +320,9 @@ const PanelAction = styled('div')`
 
 // TODO(style): color #2c58a8 not yet in the theme
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.blue};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.blue)};
   :hover {
-    color: #2c58a8;
+    color: ${p => (p.disabled ? p.theme.disabled : '#2c58a8')};
   }
   > *:first-child {
     padding: 0;

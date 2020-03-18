@@ -28,6 +28,7 @@ type Props = {
   onDelete: (ruleId: Rule['id']) => void;
   onChange: (rule: Rule) => void;
   rule: Rule;
+  disabled?: boolean;
 };
 
 type State = {
@@ -84,7 +85,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {onDelete, rule} = this.props;
+    const {onDelete, rule, disabled} = this.props;
     const {from, customRegularExpression, type, method} = rule;
     const {errors} = this.state;
 
@@ -101,6 +102,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             height={40}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
+            isDisabled={disabled}
             openOnFocus
             required
           />
@@ -114,10 +116,11 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             height={40}
             value={type}
             onChange={({value}) => this.handleChange('type', value)}
+            isDisabled={disabled}
             openOnFocus
             required
           />
-          <From>{t('from')}</From>
+          <From disabled={disabled}>{t('from')}</From>
           <StyledTextField
             name="from"
             placeholder={t('ex. strings, numbers, custom')}
@@ -130,6 +133,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             }}
             onBlur={this.handleValidation('from')}
             error={errors.from}
+            disabled={disabled}
           />
           {type === RULE_TYPE.PATTERN && (
             <CustomRegularExpression
@@ -144,11 +148,12 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               }}
               onBlur={this.handleValidation('customRegularExpression')}
               error={errors.customRegularExpression}
+              disabled={disabled}
             />
           )}
         </WrapperFields>
         {onDelete && (
-          <StyledIconTrash onClick={this.handleDelete}>
+          <StyledIconTrash disabled={disabled} onClick={this.handleDelete}>
             <IconDelete />
           </StyledIconTrash>
         )}
@@ -185,15 +190,22 @@ const WrapperFields = styled('div')`
   }
 `;
 
-const From = styled('div')`
+const From = styled('div')<{disabled?: boolean}>`
   height: 40px;
   display: flex;
   align-items: center;
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
 `;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   width: 100%;
   height: 100%;
+  ${p =>
+    p.isDisabled &&
+    `
+      cursor: not-allowed;
+      pointer-events: auto;
+    `}
 `;
 
 const StyledTextField = styled(TextField)<{error?: string}>`
