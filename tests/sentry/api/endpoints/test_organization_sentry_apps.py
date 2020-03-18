@@ -54,6 +54,12 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "allowedOrigins": [],
                     "schema": {},
                     "owner": {"id": self.org.id, "slug": self.org.slug},
+                    "featureData": [
+                        {
+                            "featureGate": "integrations-api",
+                            "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                        }
+                    ],
                 }
             ],
         )
