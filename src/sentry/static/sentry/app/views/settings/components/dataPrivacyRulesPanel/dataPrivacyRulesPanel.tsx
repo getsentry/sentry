@@ -2,10 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import AlertMessage from 'app/components/alertMessage';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons/iconAdd';
 import ButtonBar from 'app/components/buttonBar';
@@ -15,6 +14,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import Link from 'app/components/links/link';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
@@ -253,17 +253,14 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               <PanelHeaderSubTitle>{panelHeaderSubTitle}</PanelHeaderSubTitle>
             )}
           </StyledPanelHeader>
-          <AlertMessage
-            alert={{
-              id: 'data-privacy-rules-panel-alert-message',
-              message: t('Check out how to use advanced datascrubbing'),
-              type: 'doc',
-              url: 'https://docs.sentry.io/data-management/advanced-datascrubbing/',
-            }}
-            withoutCloseButton
-            openURLInNewTab
-            system
-          />
+          <PanelAlert type="info" icon="icon-docs">
+            <Link
+              href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
+              target="_blank"
+            >
+              {t('Check out how to use advanced datascrubbing')}
+            </Link>
+          </PanelAlert>
           <PanelBody>
             {rules.map(rule => (
               <DataPrivacyRulesPanelForm

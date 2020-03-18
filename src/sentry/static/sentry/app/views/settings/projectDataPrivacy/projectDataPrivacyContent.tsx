@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Form from 'app/views/settings/components/forms/form';
@@ -79,10 +79,16 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
         <DataPrivacyRulesPanel
           panelHeaderSubTitle={
             <PanelHeaderSubTitle>
-              {t('This can also be configured organization-wide in')}
-              <Link to={`/settings/${orgId}/security-and-privacy/`}>
-                {t('Organization Security and Privacy')}
-              </Link>
+              {tct(
+                'This can also be configured organization-wide in [linkToOrganizationSecurityAndPrivacy]',
+                {
+                  linkToOrganizationSecurityAndPrivacy: (
+                    <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                      {t('Organization Security and Privacy')}
+                    </Link>
+                  ),
+                }
+              )}
             </PanelHeaderSubTitle>
           }
           endpoint={endpoint}
