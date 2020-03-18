@@ -67,7 +67,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             interval = timedelta(hours=1)
 
         date_range = params["end"] - params["start"]
-        if date_range.total_seconds() / interval.total_seconds() > snuba.MAX_DATA_POINTS:
+        if date_range.total_seconds() / interval.total_seconds() > snuba.MAX_TIMESERIES_RESULTS:
             raise InvalidSearchQuery(
                 "Your interval and date range would create too many results. "
                 "Use a larger interval, or a smaller date range."

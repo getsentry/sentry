@@ -43,7 +43,7 @@ MAX_HASHES = 5000
 # Maximum number of results we are willing to fetch.
 # Clients should adapt the interval width based on their
 # display width.
-MAX_DATA_POINTS = 4500
+MAX_TIMESERIES_RESULTS = 4500
 
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")

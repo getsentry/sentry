@@ -41,7 +41,12 @@ from sentry.snuba.subscriptions import (
     bulk_update_snuba_subscriptions,
     query_aggregation_to_snuba,
 )
-from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult, MAX_DATA_POINTS
+from sentry.utils.snuba import (
+    bulk_raw_query,
+    SnubaQueryParams,
+    SnubaTSResult,
+    MAX_TIMESERIES_RESULTS,
+)
 from sentry.utils.compat import zip
 
 
@@ -335,7 +340,7 @@ def calculate_incident_rollup(incident):
     stat's on a graph. It prioritized a rollup at the rule's time_window,
     to be consistent with the builder and more easily understand when/where
     thresholds are passed. This works for most cases, except for incidents
-    with a long duration and small time window (Results are more than MAX_DATA_POINTS - bad)
+    with a long duration and small time window (Results are more than MAX_TIMESERIES_RESULTS - bad)
     or a short duration and long time window (Very few to no data points - bad).
     In those cases, we just choose a rollup that results in a reasonable graph.
     Note: time_window is in minutes, rollup is in seconds.
@@ -344,10 +349,10 @@ def calculate_incident_rollup(incident):
     if alert_rule:
         # When we persist a rule's time_window, switch to using the persisted data.
         rollup = alert_rule.time_window * 60
-        while ((incident.duration.total_seconds()) / rollup) > MAX_DATA_POINTS:
+        while ((incident.duration.total_seconds()) / rollup) > MAX_TIMESERIES_RESULTS:
             rollup = rollup * 2
     else:
-        rollup = max(int(incident.duration.total_seconds() / 200), 1)
+        rollup = max(int(incident.duration.total_seconds() / 50), 1)
 
     return rollup
 

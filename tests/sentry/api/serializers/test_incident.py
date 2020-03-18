@@ -21,7 +21,9 @@ class IncidentSerializerTest(TestCase):
     def test_simple(self):
         incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
         result = serialize(incident)
-
+        print ("incident:", incident)
+        print ("incident:", incident.alert_rule)
+        print ("incident:", incident.duration.total_seconds())
         assert result["id"] == six.text_type(incident.id)
         assert result["identifier"] == six.text_type(incident.identifier)
         assert result["organizationId"] == six.text_type(incident.organization_id)

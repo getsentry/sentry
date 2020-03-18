@@ -298,8 +298,8 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         )
         results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 200 data points
-            assert result.rollup == 1
+            # Duration of 300s / 50 data points
+            assert result.rollup == 6
             expected_start = start if start else incident.date_started
             expected_end = end if end else incident.current_end_date
             assert result.start == expected_start
@@ -312,8 +312,8 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         )
         results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 200 data points
-            assert result.rollup == 1
+            # Duration of 300s / 50 data points
+            assert result.rollup == 6
             expected_start = start if start else incident.date_started
             expected_end = end if end else incident.current_end_date
             expected_start = expected_start - calculate_incident_prewindow(
@@ -384,8 +384,8 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
             projects=[other_project],
             groups=[],
         )
-        # Should work off duration to provide a rollup with 200 datapoints:
-        assert calculate_incident_rollup(no_rule_incident) == 129600
+        # Should work off duration to provide a rollup with 50 datapoints:
+        assert calculate_incident_rollup(no_rule_incident) == 518400
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
