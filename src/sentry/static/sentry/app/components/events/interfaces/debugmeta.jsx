@@ -426,7 +426,7 @@ class DebugMetaInterface extends React.PureComponent {
     const filteredImages = images.filter(image => this.filterImage(image));
 
     const titleElement = (
-      <GuideAnchor target="packages" position="top">
+      <GuideAnchor target="packages" position="bottom">
         <h3>{t('Images Loaded')}</h3>
       </GuideAnchor>
     );

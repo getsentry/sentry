@@ -185,13 +185,19 @@ exports[`SharedGroupDetails renders 1`] = `
                               <div
                                 className="css-j0hue0-StyledEventMessage e1vuddz00"
                               >
-                                <Message>
-                                  <span
-                                    className="css-136mfoi-Message e1vuddz02"
-                                  >
-                                    fetchData(app/components/group/suggestedOwners)
-                                  </span>
-                                </Message>
+                                <GuideAnchor
+                                  disabled={true}
+                                  position="bottom"
+                                  target="issue_title"
+                                >
+                                  <Message>
+                                    <span
+                                      className="css-136mfoi-Message e1vuddz02"
+                                    >
+                                      fetchData(app/components/group/suggestedOwners)
+                                    </span>
+                                  </Message>
+                                </GuideAnchor>
                               </div>
                             </EventMessage>
                           </StyledEventMessage>
