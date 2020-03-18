@@ -361,7 +361,7 @@ def calculate_incident_prewindow(start, end, incident=None):
     return prewindow
 
 
-def get_incident_event_stats(incident, start=None, end=None, data_points=50, prewindow=False):
+def get_incident_event_stats(incident, start=None, end=None, prewindow=False):
     """
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
@@ -369,10 +369,10 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50, pre
     query_params = bulk_build_incident_query_params(
         [incident], start=start, end=end, prewindow=prewindow
     )
-    return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
+    return bulk_get_incident_event_stats([incident], query_params)[0]
 
 
-def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
+def bulk_get_incident_event_stats(incidents, query_params_list):
     snuba_params_list = [
         SnubaQueryParams(
             aggregations=[

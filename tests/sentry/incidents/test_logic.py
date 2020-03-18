@@ -49,6 +49,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger,
     update_incident_status,
     calculate_incident_prewindow,
+    calculate_incident_rollup,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -259,9 +260,9 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         if end is not None:
             kwargs["end"] = end
 
-        result = get_incident_event_stats(incident, data_points=20, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
+        result = get_incident_event_stats(incident, **kwargs)
+        # Duration of 300s / 200 data points
+        assert result.rollup == 1
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
         assert result.start == expected_start
@@ -269,9 +270,9 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         assert [r["count"] for r in result.data["data"]] == expected_results
 
         # A prewindow version of the same test:
-        result = get_incident_event_stats(incident, data_points=20, prewindow=True, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
+        result = get_incident_event_stats(incident, prewindow=True, **kwargs)
+        # Duration of 300s / 200 data points
+        assert result.rollup == 1
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
         expected_start = expected_start - calculate_incident_prewindow(
@@ -295,10 +296,10 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         query_params_list = bulk_build_incident_query_params(
             incidents, start=start, end=end, prewindow=False
         )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
+            # Duration of 300s / 200 data points
+            assert result.rollup == 1
             expected_start = start if start else incident.date_started
             expected_end = end if end else incident.current_end_date
             assert result.start == expected_start
@@ -309,10 +310,10 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         query_params_list = bulk_build_incident_query_params(
             incidents, start=start, end=end, prewindow=True
         )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
+            # Duration of 300s / 200 data points
+            assert result.rollup == 1
             expected_start = start if start else incident.date_started
             expected_end = end if end else incident.current_end_date
             expected_start = expected_start - calculate_incident_prewindow(
@@ -345,6 +346,46 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         )
 
         self.run_test([self.group_incident, other_incident], [[1, 1], []])
+
+    def test_rollup_calculation(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "hello",
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
+        other_project = self.create_project(fire_project_created=True)
+        short_incident = self.create_incident(
+            date_started=self.now - timedelta(minutes=5),
+            query="",
+            projects=[other_project],
+            groups=[],
+            alert_rule=alert_rule,
+        )
+        # Should work off alert_rule's time window for a short incident
+        assert calculate_incident_rollup(short_incident) == 600  # 10 minutes, matches alert rule
+
+        long_incident = self.create_incident(
+            date_started=self.now - timedelta(days=300),
+            query="",
+            projects=[other_project],
+            groups=[],
+            alert_rule=alert_rule,
+        )
+        # Should work off alert_rule's time window for a long incident
+        assert calculate_incident_rollup(long_incident) == 9600
+
+        no_rule_incident = self.create_incident(
+            date_started=self.now - timedelta(days=300),
+            query="",
+            projects=[other_project],
+            groups=[],
+        )
+        # Should work off duration to provide a rollup with 200 datapoints:
+        assert calculate_incident_rollup(no_rule_incident) == 129600
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
