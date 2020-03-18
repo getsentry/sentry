@@ -49,3 +49,4 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["id"] == six.text_type(organization.id)
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
+        assert result["relayPiiConfig"] is None

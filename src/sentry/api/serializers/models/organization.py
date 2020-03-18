@@ -206,9 +206,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": six.text_type(
-                    obj.get_option("sentry:relay_pii_config")
-                ),
+                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
+                or None,
             }
         )
         context["access"] = access.scopes
