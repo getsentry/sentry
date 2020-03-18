@@ -5,8 +5,9 @@ import {
   formatStoreCrashReports,
 } from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import {MemberRole} from 'app/types';
 
-const organizationSecurityAndPrivacy: Array<JsonFormObject> = [
+const organizationSecurityAndPrivacy: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -147,9 +148,7 @@ const organizationSecurityAndPrivacy: Array<JsonFormObject> = [
         name: 'attachmentsRole',
         type: 'array',
         choices: ({initialData = {}}) =>
-          (initialData.availableRoles &&
-            initialData.availableRoles.map(r => [r.id, r.name])) ||
-          [],
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
           'Permissions required to download event attachments, such as native crash reports or log files'

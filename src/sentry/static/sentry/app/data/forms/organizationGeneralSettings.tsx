@@ -1,10 +1,12 @@
 import {t} from 'app/locale';
 import slugify from 'app/utils/slugify';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import {MemberRole} from 'app/types';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('General'),
@@ -50,9 +52,7 @@ const formGroups = [
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
-          (initialData.availableRoles &&
-            initialData.availableRoles.map(r => [r.id, r.name])) ||
-          [],
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },

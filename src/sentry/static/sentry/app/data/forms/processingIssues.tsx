@@ -1,9 +1,10 @@
 // Export route to make these forms searchable by label/help
 import {t} from 'app/locale';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 export const route = '/settings/:orgId/projects/:projectId/processing-issues/';
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Settings',
@@ -26,9 +27,7 @@ const formGroups = [
             ? t('Reprocessing applies to future events only.')
             : t(`All events with errors will be flushed into your issues stream.
                 Beware that this process may take some time and cannot be undone.`),
-        getData: form => ({
-          options: form,
-        }),
+        getData: form => ({options: form}),
       },
     ],
   },

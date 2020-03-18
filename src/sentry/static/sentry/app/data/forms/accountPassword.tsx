@@ -1,6 +1,8 @@
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
+
 const getUserIsNotManaged = ({user}) => !user.isManaged;
 
-const formGroups = [
+const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: 'Password',
@@ -8,7 +10,6 @@ const formGroups = [
       {
         name: 'password',
         type: 'secret',
-
         autoComplete: 'current-password',
         label: 'Current Password',
         placeholder: '',
@@ -19,25 +20,17 @@ const formGroups = [
       {
         name: 'passwordNew',
         type: 'secret',
-
         autoComplete: 'new-password',
         label: 'New Password',
         placeholder: '',
         help: '',
         required: true,
         visible: getUserIsNotManaged,
-        validate: ({id, form}) => {
-          if (form[id] !== form.passwordVerify) {
-            return [[id, '']];
-          }
-
-          return [];
-        },
+        validate: ({id, form}) => (form[id] !== form.passwordVerify ? [[id, '']] : []),
       },
       {
         name: 'passwordVerify',
         type: 'secret',
-
         autoComplete: 'new-password',
         label: 'Verify New Password',
         placeholder: '',
