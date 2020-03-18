@@ -8,7 +8,6 @@ from six import BytesIO
 import multiprocessing.dummy
 import multiprocessing as _multiprocessing
 
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import eventstore, features, options
@@ -22,6 +21,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.event_manager import save_transaction_events
 
@@ -29,26 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 CACHE_TIMEOUT = 3600
-
-
-class ConsumerType(object):
-    """
-    Defines the types of ingestion consumers
-    """
-
-    Events = "events"  # consumes simple events ( from the Events topic)
-    Attachments = "attachments"  # consumes events with attachments ( from the Attachments topic)
-    Transactions = "transactions"  # consumes transaction events ( from the Transactions topic)
-
-    @staticmethod
-    def get_topic_name(consumer_type):
-        if consumer_type == ConsumerType.Events:
-            return settings.KAFKA_INGEST_EVENTS
-        elif consumer_type == ConsumerType.Attachments:
-            return settings.KAFKA_INGEST_ATTACHMENTS
-        elif consumer_type == ConsumerType.Transactions:
-            return settings.KAFKA_INGEST_TRANSACTIONS
-        raise ValueError("Invalid consumer type", consumer_type)
 
 
 class IngestConsumerWorker(AbstractBatchWorker):

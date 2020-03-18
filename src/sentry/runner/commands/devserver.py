@@ -183,7 +183,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [("ingest", ["sentry", "run", "ingest-consumer"])]
+        daemons += [("ingest", ["sentry", "run", "ingest-consumer", "--all-consumer-types"])]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
