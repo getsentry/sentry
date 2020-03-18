@@ -38,9 +38,10 @@ jobs:
         - name: Install dependencies
           run: yarn install --frozen-lockfile
 
-        - name: eslint
-          run:
-            yarn lint -c .eslintrc.relax.js
+        - name: eslint + fix
+          uses: getsentry/action-eslint-fix@v1
+          with:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
         # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
         - name: tsc
