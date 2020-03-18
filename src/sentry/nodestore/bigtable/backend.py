@@ -279,4 +279,8 @@ class BigtableNodeStorage(NodeStorage):
         else:
             gc_rule = None
 
-        table.create(column_families={self.column_family: gc_rule})
+        from google.api_core import exceptions
+        from google.api_core import retry
+
+        retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
+        retry_504(table.create)(column_families={self.column_family: gc_rule})
