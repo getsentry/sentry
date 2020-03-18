@@ -77,14 +77,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             elif query_status == "closed":
                 incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
 
-        projects = request.GET.get("projects")
-        if projects is not None:
-            incidents = incidents.filter(projects__in=projects)
-
-        environments = request.GET.get("environments")
-        if environments is not None:
-            incidents = incidents.filter(environments__in=environments)
-
         return self.paginate(
             request,
             queryset=incidents,
