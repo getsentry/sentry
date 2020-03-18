@@ -1,5 +1,10 @@
 import {Client} from 'app/api';
-import {CommitFile} from 'app/types';
+import {CommitFile, Commit} from 'app/types';
+import {t} from 'app/locale';
+
+export type CommitsByRepository = {
+  [key: string]: Commit[];
+};
 
 export const deleteRelease = (orgId: string, version: string) => {
   const api = new Client();
@@ -34,5 +39,22 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     filesByRepository[repoName][filename].types.add(type);
 
     return filesByRepository;
+  }, {});
+}
+
+/**
+ * Convert list of individual commits into a summary grouped by repository
+ */
+export function getCommitsByRepository(commitList: Commit[]): CommitsByRepository {
+  return commitList.reduce((commitsByRepository, commit) => {
+    const repositoryName = commit.repository?.name ?? t('unknown');
+
+    if (!commitsByRepository.hasOwnProperty(repositoryName)) {
+      commitsByRepository[repositoryName] = [];
+    }
+
+    commitsByRepository[repositoryName].push(commit);
+
+    return commitsByRepository;
   }, {});
 }
