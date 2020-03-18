@@ -6,14 +6,16 @@ import AsyncComponent from 'app/components/asyncComponent';
 import CommitRow from 'app/components/commitRow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Repository, Commit} from 'app/types';
+import {Repository, Commit, GlobalSelection} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
+import {ReleaseContext} from '../';
 
 const ALL_REPOSITORIES_LABEL = t('All Repositories');
 
@@ -22,7 +24,9 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  selection: GlobalSelection;
+};
 
 type State = {
   commits: Commit[];
@@ -31,6 +35,8 @@ type State = {
 } & AsyncComponent['state'];
 
 class ReleaseCommits extends AsyncComponent<Props, State> {
+  static contextType = ReleaseContext;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -39,14 +45,17 @@ class ReleaseCommits extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, release} = this.props.params;
+    const {params, selection} = this.props;
+    const {orgId, release} = params;
 
-    // TODO(releasesV2): we want to change this in Q2 2020 to fetch release commits filtered by project
-    // `/projects/${orgId}/myproject/releases/${encodeURIComponent(release)}/commits/`,
+    const project = this.context.projects.find(p => p.id === selection.projects[0]);
+
     return [
       [
         'commits',
-        `/organizations/${orgId}/releases/${encodeURIComponent(release)}/commits/`,
+        `/projects/${orgId}/${project.slug}/releases/${encodeURIComponent(
+          release
+        )}/commits/`,
       ],
       ['repos', `/organizations/${orgId}/repos/`],
     ];
@@ -151,4 +160,4 @@ const RepoLabel = styled('div')`
   ${overflowEllipsisLeft}
 `;
 
-export default ReleaseCommits;
+export default withGlobalSelection(ReleaseCommits);
