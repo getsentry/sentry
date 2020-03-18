@@ -24,7 +24,7 @@ import Chart from './chart';
 import Footer from './footer';
 
 const YAXIS_OPTIONS = [
-  {label: 'Apdex', value: 'apdex(transaction.duration, 300)'},
+  {label: 'Apdex', value: 'apdex(300)'},
   {label: 'Throughput', value: 'rpm()'},
 ];
 
