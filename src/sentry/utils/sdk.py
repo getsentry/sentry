@@ -22,16 +22,7 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = (
-    "sentry/web/api.py",
-    "sentry/event_manager.py",
-    "sentry/tasks/process_buffer.py",
-    "sentry/tasks/post_process.py",
-    "sentry/tasks/store.py",
-    "sentry/ingest/ingest_consumer.py",
-    "sentry/ingest/outcomes_consumer.py",
-    "sentry/eventstream/kafka/backend.py",
-)
+UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -43,10 +34,31 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
+
+    with configure_scope() as scope:
+        project_id = scope._tags.get("project")
+
+        if project_id and project_id == settings.SENTRY_PROJECT:
+            return False
+
     for _, filename, _, _, _, _ in inspect.stack():
         if filename.endswith(UNSAFE_FILES):
             return False
+
     return True
+
+
+def set_current_project(project_id):
+    """
+    Set the current project on the SDK scope for outgoing crash reports.
+
+    This is a dedicated function because it is also important for the recursion
+    breaker to work. You really should set the project in every task that is
+    relevant to event processing, or that task may crash ingesting
+    sentry-internal errors, causing infinite recursion.
+    """
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
 
 def get_project_key():
@@ -143,7 +155,11 @@ def configure_sdk():
         if relay_transport:
             rate = options.get("store.use-relay-dsn-sample-rate")
             if rate and random.random() < rate:
-                relay_transport.capture_event(event)
+                if is_current_event_safe():
+                    relay_transport.capture_event(event)
+                else:
+                    metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                    sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
                 return
 
         if internal_transport:
@@ -165,7 +181,7 @@ def configure_sdk():
 def _create_noop_hub():
     def transport(event):
         with capture_internal_exceptions():
-            metrics.incr("internal.uncaptured.events", skip_internal=False)
+            metrics.incr("internal.uncaptured.events.noop-hub", skip_internal=False)
             sdk_logger.warn("internal-error.noop-hub")
 
     return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))

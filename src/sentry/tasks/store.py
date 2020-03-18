@@ -23,7 +23,7 @@ from sentry.stacktraces.processing import process_stacktraces, should_process_fo
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import set_current_project
 from sentry.models import ProjectOption, Activity, Project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -94,9 +94,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     original_data = data
     data = CanonicalKeyDict(data)
     project_id = data["project"]
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    set_current_project(project_id)
 
     if project is None:
         project = Project.objects.get_from_cache(id=project_id)
@@ -189,12 +187,11 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
+    set_current_project(project_id)
+
     event_id = data["event_id"]
 
     project = Project.objects.get_from_cache(id=project_id)
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
 
     has_changed = False
 
@@ -354,9 +351,12 @@ def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, *
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
+    set_current_project(project_id)
+
     if event_id is None:
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
+
     from sentry.models import RawEvent, ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -383,6 +383,8 @@ def create_failed_event(
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
+    set_current_project(project_id)
+
     # We can only create failed events for events that can potentially
     # create failed events.
     if not reprocessing.event_supports_reprocessing(data):
@@ -464,6 +466,8 @@ def _do_save_event(
     Saves an event to the database.
     """
 
+    set_current_project(project_id)
+
     from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas
     from sentry.models import ProjectKey
@@ -491,6 +495,7 @@ def _do_save_event(
         # the task.
         if project_id is None:
             project_id = data.pop("project")
+            set_current_project(project_id)
 
         key_id = None if data is None else data.get("key_id")
         if key_id is not None:
@@ -519,9 +524,6 @@ def _do_save_event(
                 "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
             )
             return
-
-        with configure_scope() as scope:
-            scope.set_tag("project", project_id)
 
         event = None
         try:
