@@ -86,6 +86,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
     def test_users_filter_on_internal_apps(self):
@@ -112,6 +118,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
+            "featureData": [],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -148,6 +155,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "clientId": self.internal_app.application.client_id,
             "clientSecret": self.internal_app.application.client_secret,
             "owner": {"id": self.internal_org.id, "slug": self.internal_org.slug},
+            "featureData": [],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -180,6 +188,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Test can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -221,6 +235,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Testin can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
         response_uuids = set(o["uuid"] for o in response.data)
@@ -266,6 +286,12 @@ class GetSentryAppsTest(SentryAppsTest):
             "allowedOrigins": [],
             "schema": {},
             "owner": {"id": self.org.id, "slug": self.org.slug},
+            "featureData": [
+                {
+                    "featureGate": "integrations-api",
+                    "description": "Boo Far can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
+                }
+            ],
         } in json.loads(response.content)
 
     def test_users_dont_see_unpublished_apps_their_org_owns(self):
