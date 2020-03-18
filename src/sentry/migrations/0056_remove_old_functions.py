@@ -22,6 +22,12 @@ FUNCTION_CHANGE = {
     "latest_event": "latest_event()",
 }
 COUNT_REGEX = re.compile(".*(count\([a-zA-Z\._]+\)).*")
+FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+
+
+def get_function_alias_with_columns(function_name, columns):
+    columns = "_".join(columns).replace(".", "_")
+    return "{}_{}".format(function_name, columns).rstrip("_")
 
 
 def get_function_alias(field):
