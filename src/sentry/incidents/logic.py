@@ -342,13 +342,12 @@ def calculate_incident_rollup(incident):
     """
     alert_rule = incident.alert_rule
     if alert_rule:
-        rollup = (
-            alert_rule.time_window * 60
-        )  # When we persist a rule's time_window, switch to using the persisted data.
+        # When we persist a rule's time_window, switch to using the persisted data.
+        rollup = alert_rule.time_window * 60
         while ((incident.duration.total_seconds()) / rollup) > MAX_DATA_POINTS:
             rollup = rollup * 2
     else:
-        rollup = max(int((incident.duration.total_seconds())) / 100, 1)
+        rollup = max(int(incident.duration.total_seconds() / 200), 1)
 
     return rollup
 

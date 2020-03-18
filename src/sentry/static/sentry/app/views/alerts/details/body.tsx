@@ -36,6 +36,19 @@ type Props = {
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
+  /**
+   *  Return a string representing the time in seconds between two incident data points
+   */
+  calculateTimeWindowString(incident: Incident) {
+    if (incident.eventStats.data.length >= 2) {
+      return `${incident.eventStats.data[1][0] - incident.eventStats.data[0][0]}s`;
+    } else if (incident.alertRule) {
+      return `${incident.alertRule.timeWindow}m`;
+    } else {
+      return '10m';
+    }
+  }
+
   getDiscoverUrl(projects: Project[]) {
     const {incident, params} = this.props;
     const {orgId} = params;
@@ -44,7 +57,7 @@ export default class DetailsBody extends React.Component<Props> {
       return '';
     }
 
-    const timeWindowString = `${incident.alertRule.timeWindow}m`;
+    const timeWindowString = this.calculateTimeWindowString(incident);
     const timeWindowInMs = intervalToMilliseconds(timeWindowString);
     const startBeforeTimeWindow = moment(incident.dateStarted).subtract(
       timeWindowInMs,
