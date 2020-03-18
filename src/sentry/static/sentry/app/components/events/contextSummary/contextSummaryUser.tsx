@@ -8,6 +8,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
+import {ParagraphOverflow} from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 
@@ -47,7 +48,7 @@ const ContextSummaryUser = ({data}: Props) => {
     }
 
     return (
-      <p>
+      <ParagraphOverflow>
         <Subject>{userDetails.subject}</Subject>
         {userDetails.meta ? (
           <AnnotatedText
@@ -59,7 +60,7 @@ const ContextSummaryUser = ({data}: Props) => {
         ) : (
           userDetails.value
         )}
-      </p>
+      </ParagraphOverflow>
     );
   };
 
