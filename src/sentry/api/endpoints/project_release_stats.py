@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission, ProjectEventsError
 from sentry.api.serializers import serialize
 from sentry.utils.dates import parse_stats_period
-from sentry.snuba.sessions import get_project_release_stats
+from sentry.snuba.sessions import get_project_release_stats, get_crash_free_breakdown
 
 # Maximum number of results we are willing to fetch.
 # Clients should adapt the interval width based on their
@@ -55,7 +55,22 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             environments=params.get("environment"),
         )
 
-        return Response(serialize({"stats": stats}), status=200)
+        users_breakdown = {}
+        for timespan, data in six.iteritems(
+            get_crash_free_breakdown(
+                project_id=params["project_id"][0],
+                release=version,
+                environments=params.get("environment"),
+            )
+        ):
+            users_breakdown[timespan] = {
+                "totalUsers": data["total_users"],
+                "crashFreeUsers": data["crash_free_users"],
+                "totalSessions": data["total_sessions"],
+                "crashFreeSessions": data["crash_free_sessions"],
+            }
+
+        return Response(serialize({"stats": stats, "usersBreakdown": users_breakdown}), status=200)
 
     def get_rollup(self, request, params):
         interval = parse_stats_period(request.GET.get("interval", "24h"))
