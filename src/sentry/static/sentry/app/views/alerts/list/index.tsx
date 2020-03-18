@@ -46,6 +46,7 @@ type State = {
 function getQueryStatus(status: any) {
   return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
 }
+
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
@@ -200,6 +201,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
     const status = getQueryStatus(query.status);
+
+    const isOpenActive = status === 'open';
+    const isClosedActive = status === 'closed';
+    const isAllActive = status === 'all';
+
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
@@ -237,21 +243,21 @@ class IncidentsListContainer extends React.Component<Props> {
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'open' ? ' active' : '')}
+                  priority={isOpenActive ? 'primary' : 'default'}
                 >
                   {t('Active')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'closed' ? ' active' : '')}
+                  priority={isClosedActive ? 'primary' : 'default'}
                 >
                   {t('Resolved')}
                 </Button>
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'all' ? ' active' : '')}
+                  priority={isAllActive ? 'primary' : 'default'}
                 >
                   {t('All')}
                 </Button>
