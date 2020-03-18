@@ -43,6 +43,7 @@ const indicatorStyles = ({padding: _padding, ...provided}) => ({
 
 const defaultStyles = {
   control: (_, state) => ({
+    height: '100%',
     fontSize: '15px',
     color: theme.gray5,
     display: 'flex',

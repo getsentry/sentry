@@ -18,7 +18,7 @@ type GroupedAuthorCommits = {
 };
 
 type Props = {
-  projectId: string;
+  projectSlug: string;
   orgId: string;
   version: string;
   commitCount: number;
@@ -36,10 +36,9 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, version} = this.props;
+    const {orgId, projectSlug, version} = this.props;
 
-    // TODO(releasesV2): we want to change this in Q2 2020 to fetch release commits filtered by project
-    const commitsEndpoint = `/organizations/${orgId}/releases/${encodeURIComponent(
+    const commitsEndpoint = `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(
       version
     )}/commits/`;
 

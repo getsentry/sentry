@@ -7,13 +7,16 @@ import moment from 'moment';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
+import {IconAdd, IconSettings} from 'app/icons';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -108,7 +111,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Alerts yet")}</p>
+        <p>{t("You don't have any Metric Alerts yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -169,6 +172,17 @@ class IncidentsListContainer extends React.Component<Props> {
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
+  handleAddAlertRule = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
+    e.preventDefault();
+
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+  };
+
+  /**
+   * Incidents list is currently at the organization level, but the link needs to
+   * go down to a specific project scope.
+   */
   handleNavigateToSettings = (e: React.MouseEvent) => {
     const {router, params} = this.props;
     e.preventDefault();
@@ -197,22 +211,29 @@ class IncidentsListContainer extends React.Component<Props> {
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
-              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
-                {t('Send feedback')}
-              </FeedbackLink>
             </StyledPageHeading>
 
             <Actions>
               <Button
+                onClick={this.handleAddAlertRule}
+                priority="primary"
+                href="#"
+                size="small"
+                icon={<IconAdd circle size="xs" />}
+              >
+                {t('Add Alert Rule')}
+              </Button>
+
+              <Button
                 onClick={this.handleNavigateToSettings}
                 href="#"
                 size="small"
-                icon="icon-settings"
+                icon={<IconSettings size="xs" />}
               >
                 {t('Settings')}
               </Button>
 
-              <div className="btn-group">
+              <ButtonBar merged>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
@@ -234,10 +255,17 @@ class IncidentsListContainer extends React.Component<Props> {
                 >
                   {t('All')}
                 </Button>
-              </div>
+              </ButtonBar>
             </Actions>
           </PageHeader>
 
+          <Alert type="info" icon="icon-circle-info">
+            {t('This feature is in beta and currently shows only metric alerts. ')}
+
+            <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+              {t('Please contact us if you have any feedback.')}
+            </FeedbackLink>
+          </Alert>
           <IncidentsList {...this.props} />
         </PageContent>
       </DocumentTitle>

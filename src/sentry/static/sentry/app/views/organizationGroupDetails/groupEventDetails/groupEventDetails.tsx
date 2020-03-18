@@ -191,18 +191,14 @@ class GroupEventDetails extends React.Component<Props, State> {
                 location={location}
               />
             )}
-            {group.status !== 'unresolved' && (
-              <div className="issue-status">
-                {group.status === 'ignored' && (
-                  <MutedBox statusDetails={group.statusDetails} />
-                )}
-                {group.status === 'resolved' && (
-                  <ResolutionBox
-                    statusDetails={group.statusDetails}
-                    orgId={organization.slug}
-                  />
-                )}
-              </div>
+            {group.status === 'ignored' && (
+              <MutedBox statusDetails={group.statusDetails} />
+            )}
+            {group.status === 'resolved' && (
+              <ResolutionBox
+                statusDetails={group.statusDetails}
+                orgId={organization.slug}
+              />
             )}
             {this.state.loading ? (
               <LoadingIndicator />

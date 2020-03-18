@@ -115,8 +115,9 @@ export default class ProjectServiceHooks extends AsyncView {
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
           <PanelAlert type="info" icon="icon-circle-exclamation">
-            Service Hooks are an early adopter preview feature and will change in the
-            future.
+            {t(
+              'Service Hooks are an early adopter preview feature and will change in the future.'
+            )}
           </PanelAlert>
           {this.state.hookList.map(hook => (
             <ServiceHookRow

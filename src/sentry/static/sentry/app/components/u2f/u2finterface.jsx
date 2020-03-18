@@ -82,7 +82,7 @@ class U2fInterface extends React.Component {
                   response: u2fResponse,
                   challenge,
                 })
-                .catch(err => {
+                .catch(() => {
                   // This is kind of gross but I want to limit the amount of changes to this component
                   this.setState({
                     deviceFailure: 'UNKNOWN_ERROR',

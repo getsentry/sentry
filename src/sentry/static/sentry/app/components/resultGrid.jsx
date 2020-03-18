@@ -164,7 +164,7 @@ const ResultGrid = createReactClass({
       keyForRow: function(row) {
         return row.id;
       },
-      columnsForRow: function(row) {
+      columnsForRow: function() {
         return [];
       },
       defaultParams: {

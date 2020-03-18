@@ -14,7 +14,7 @@ def backfill_group_ids(model):
     for attachment in RangeQuerySetWrapper(query, step=1000):
         event = eventstore.get_event_by_id(attachment.project_id, attachment.event_id)
         if event:
-            attachment.update(group_id=event.group_id)
+            model.objects.filter(id=attachment.id).update(group_id=event.group_id)
 
 
 def forwards(apps, schema_editor):
@@ -37,11 +37,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = True
 
-
     dependencies = [
-        ('sentry', '0019_auto_20191114_2040'),
+        ("sentry", "0019_auto_20191114_2040"),
     ]
 
-    operations = [
-        migrations.RunPython(forwards, migrations.RunPython.noop)
-    ]
+    operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]

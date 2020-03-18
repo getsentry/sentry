@@ -13,6 +13,8 @@ import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
 import SentryTypes from 'app/sentryTypes';
 
+import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
+
 type Props = {
   organization: Organization;
   params: {
@@ -30,7 +32,10 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
-    return [['authProvider', `/organizations/${orgId}/auth-provider/`]];
+    return [
+      ['data', `/organizations/${orgId}/`],
+      ['authProvider', `/organizations/${orgId}/auth-provider/`],
+    ];
   }
 
   handleSave = (data: Organization) => {
@@ -47,6 +52,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     const endpoint = `/organizations/${orgId}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
+    const relayPiiConfig = this.state.data?.relayPiiConfig;
 
     return (
       <React.Fragment>
@@ -70,6 +76,12 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
             disabled={!access.has('org:write')}
           />
         </Form>
+        <DataPrivacyRulesPanel
+          panelHeaderSubTitle={t('This can also be configured per-project')}
+          endpoint={endpoint}
+          relayPiiConfig={relayPiiConfig}
+          disabled={!access.has('org:write')}
+        />
       </React.Fragment>
     );
   }

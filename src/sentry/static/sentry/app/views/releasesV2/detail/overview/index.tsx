@@ -24,17 +24,13 @@ type Props = {
 };
 
 const ReleaseOverview = ({organization, params, selection}: Props) => {
-  const projectId = String(selection.projects[0]);
-
-  // TODO(releasesV2): we will handle this later with forced project selector
-  if (!projectId) {
-    return null;
-  }
+  const projectId = selection.projects[0];
 
   return (
     <ReleaseContext.Consumer>
       {release => {
-        const {commitCount, version} = release!; // if release is undefined, this will not be rendered at all
+        const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
+        const projectSlug = projects.find(p => p.id === projectId)?.slug;
         return (
           <ContentBox>
             <Main>
@@ -42,11 +38,11 @@ const ReleaseOverview = ({organization, params, selection}: Props) => {
               <Issues orgId={organization.slug} version={params.release} />
             </Main>
             <Sidebar>
-              {commitCount > 0 && (
+              {commitCount > 0 && projectSlug && (
                 <CommitAuthorBreakdown
                   version={version}
                   orgId={organization.slug}
-                  projectId={projectId}
+                  projectSlug={projectSlug}
                   commitCount={commitCount}
                 />
               )}

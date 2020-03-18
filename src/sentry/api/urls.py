@@ -286,6 +286,7 @@ from .endpoints.useravatar import UserAvatarEndpoint
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.discover.endpoints.discover_key_transactions import KeyTransactionEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -646,6 +647,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
                     OrganizationDashboardDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-dashboard-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
+                    KeyTransactionEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions",
                 ),
                 # Dashboards
                 url(

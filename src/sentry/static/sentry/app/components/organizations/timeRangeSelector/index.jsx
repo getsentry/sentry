@@ -19,13 +19,13 @@ import DateSummary from 'app/components/organizations/timeRangeSelector/dateSumm
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import HookOrDefault from 'app/components/hookOrDefault';
-import InlineSvg from 'app/components/inlineSvg';
 import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {IconCalendar} from 'app/icons';
 
 // Strips timezone from local date, creates a new moment date object with timezone
 // Then returns as a Date object
@@ -123,13 +123,13 @@ class TimeRangeSelector extends React.PureComponent {
     hint: PropTypes.string,
   };
 
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   static defaultProps = {
     showAbsolute: true,
     showRelative: true,
-  };
-
-  static contextTypes = {
-    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -340,7 +340,7 @@ class TimeRangeSelector extends React.PureComponent {
           <TimeRangeRoot {...getRootProps()}>
             <StyledHeaderItem
               data-test-id="global-header-timerange-selector"
-              icon={<StyledInlineSvg src="icon-calendar" />}
+              icon={<IconCalendar />}
               isOpen={isOpen}
               hasSelected={
                 (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
@@ -406,12 +406,6 @@ const TimeRangeRoot = styled('div')`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  transform: translateY(-2px);
-  height: 17px;
-  width: 17px;
 `;
 
 const Menu = styled('div')`
