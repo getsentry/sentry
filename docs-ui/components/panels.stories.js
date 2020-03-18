@@ -3,7 +3,13 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import {
+  Panel,
+  PanelHeader,
+  PanelBody,
+  PanelItem,
+  PanelTable,
+} from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
 storiesOf('UI|Panels', module)
@@ -22,6 +28,25 @@ storiesOf('UI|Panels', module)
           <PanelItem>Panel Item</PanelItem>
         </PanelBody>
       </Panel>
+    ))
+  )
+  .add(
+    'Table Panel',
+    withInfo({
+      text: 'A Panel for "tabular" data',
+    })(() => (
+      <PanelTable columns={3}>
+        <div>Header #1</div>
+        <div>Header #2</div>
+        <div>Header #900000</div>
+
+        <div>Panel Item with really long content</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
+      </PanelTable>
     ))
   )
   .add(
