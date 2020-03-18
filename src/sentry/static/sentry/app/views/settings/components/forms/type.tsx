@@ -54,7 +54,7 @@ type BaseField = {
   transformInput?: (value: FieldValue) => FieldValue;
   getData?: (data: object) => object;
   /**
-   * ff false, disable saveOnBlur for field, instead show a save/cancel button
+   * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
   saveOnBlur?: boolean;
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
