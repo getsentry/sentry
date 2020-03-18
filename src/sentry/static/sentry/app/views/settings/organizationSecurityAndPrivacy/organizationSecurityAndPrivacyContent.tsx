@@ -80,6 +80,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           panelHeaderSubTitle={t('This can also be configured per-project')}
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
+          disabled={!access.has('org:write')}
         />
       </React.Fragment>
     );
