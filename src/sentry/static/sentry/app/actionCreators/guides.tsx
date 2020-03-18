@@ -1,4 +1,5 @@
 import {Client} from 'app/api';
+import ConfigStore from 'app/stores/configStore';
 import GuideActions from 'app/actions/guideActions';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -42,11 +43,18 @@ export function recordFinish(guide: string, orgId: string) {
       status: 'viewed',
     },
   });
+
+  const user = ConfigStore.get('user');
+  if (!user) {
+    return;
+  }
+
   const data = {
     eventKey: 'assistant.guide_finished',
     eventName: 'Assistant Guide Finished',
     guide,
     organization_id: orgId,
+    user_id: parseInt(user.id, 10),
   };
   trackAnalyticsEvent(data);
 }
@@ -59,12 +67,19 @@ export function recordDismiss(guide: string, step: number, orgId: string) {
       status: 'dismissed',
     },
   });
+
+  const user = ConfigStore.get('user');
+  if (!user) {
+    return;
+  }
+
   const data = {
     eventKey: 'assistant.guide_dismissed',
     eventName: 'Assistant Guide Dismissed',
     guide,
     step,
     organization_id: orgId,
+    user_id: parseInt(user.id, 10),
   };
   trackAnalyticsEvent(data);
 }

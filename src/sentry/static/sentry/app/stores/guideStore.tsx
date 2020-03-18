@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 
 import {Client} from 'app/api';
 import {Guide, GuidesServerData, GuidesContent} from 'app/components/assistant/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {logExperiment, trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
@@ -136,13 +136,26 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 
   recordCue(guide) {
+    const user = ConfigStore.get('user');
+    if (!user) {
+      return;
+    }
+
     const data = {
       guide,
       eventKey: 'assistant.guide_cued',
       eventName: 'Assistant Guide Cued',
       organization_id: this.state.orgId,
+      user_id: user.id,
     };
     trackAnalyticsEvent(data);
+
+    logExperiment({
+      key: 'AssistantGuideExperiment',
+      unitName: 'user_id',
+      unitId: parseInt(user.id, 10),
+      param: 'variant',
+    });
   },
 
   updatePrevGuide(nextGuide) {

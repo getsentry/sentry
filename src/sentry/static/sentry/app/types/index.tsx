@@ -866,7 +866,9 @@ export type ActiveOrgExperiments = {
   IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
 
-export type ActiveUserExperiments = {};
+export type ActiveUserExperiments = {
+  AssistantGuideExperiment: 0 | 1 | 1;
+};
 
 type SavedQueryVersions = 1 | 2;
 
