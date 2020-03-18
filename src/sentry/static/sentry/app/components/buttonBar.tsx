@@ -1,4 +1,5 @@
 import React from 'react';
+import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import space, {ValidSize} from 'app/styles/space';
@@ -7,13 +8,41 @@ type ButtonBarProps = {
   className?: string;
   gap?: ValidSize;
   merged?: boolean;
+  active?: string | number;
   children: React.ReactNode;
 };
 
-function ButtonBar({children, className, merged = false, gap = 0}: ButtonBarProps) {
+function ButtonBar({
+  children,
+  className,
+  active,
+  merged = false,
+  gap = 0,
+}: ButtonBarProps) {
+  const shouldCheckActive = typeof active !== 'undefined';
   return (
     <ButtonGrid merged={merged} gap={gap} className={className}>
-      {children}
+      {!shouldCheckActive
+        ? children
+        : React.Children.map(children, child => {
+            if (!React.isValidElement(child)) {
+              return child;
+            }
+
+            const {props: childProps, ...childWithoutProps} = child;
+
+            // We do not want to pass `id` to <Button>`
+            const {id, ...props} = childProps;
+            const isActive = active === id;
+            const priority = isActive ? 'primary' : childProps.priority || 'default';
+
+            return React.cloneElement(childWithoutProps as React.ReactElement, {
+              ...props,
+              className: classNames(className, {active: isActive}),
+              // This could be customizable with a prop, but let's just enforce one "active" type for now
+              priority,
+            });
+          })}
     </ButtonGrid>
   );
 }
