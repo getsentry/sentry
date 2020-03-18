@@ -135,4 +135,20 @@ describe('GuideAnchor', function() {
     expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
     expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple);
   });
+
+  it('renders children when disabled', async function() {
+    const wrapper3 = mountWithTheme(
+      <GuideAnchor disabled target="exception">
+        <div data-test-id="child-div" />
+      </GuideAnchor>,
+      routerContext
+    );
+
+    GuideActions.fetchSucceeded(serverGuide);
+    await tick();
+    wrapper3.update();
+
+    expect(wrapper3.find('Hovercard').exists()).toBe(false);
+    expect(wrapper3.find('[data-test-id="child-div"]').exists()).toBe(true);
+  });
 });

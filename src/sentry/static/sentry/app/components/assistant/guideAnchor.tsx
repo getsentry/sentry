@@ -16,7 +16,7 @@ import {
 } from 'app/actionCreators/guides';
 import {CloseIcon} from 'app/components/assistant/styles';
 import {Guide} from 'app/components/assistant/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import GuideStore from 'app/stores/guideStore';
@@ -27,6 +27,7 @@ import theme from 'app/utils/theme';
 type Props = {
   target?: string;
   position?: string;
+  disabled?: boolean;
 };
 
 type State = {
@@ -46,6 +47,7 @@ const GuideAnchor = createReactClass<Props, State>({
   propTypes: {
     target: PropTypes.string,
     position: PropTypes.string,
+    disabled: PropTypes.bool,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
@@ -133,30 +135,34 @@ const GuideAnchor = createReactClass<Props, State>({
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
-          {lastStep ? (
-            <div>
+          <div>
+            {lastStep ? (
               <StyledButton size="small" onClick={this.handleFinish}>
                 {hasManySteps ? t('Enough Already') : t('Got It')}
               </StyledButton>
-            </div>
-          ) : (
-            <div>
-              <DismissButton
-                priority="primary"
-                size="small"
-                onClick={this.handleDismiss}
-                href="#"
-              >
-                {t('Dismiss')}
-              </DismissButton>
-              <StyledButton size="small" onClick={this.handleNextStep}>
-                {t('Next')}
-              </StyledButton>
-            </div>
-          )}
+            ) : (
+              <React.Fragment>
+                <DismissButton
+                  priority="primary"
+                  size="small"
+                  onClick={this.handleDismiss}
+                >
+                  {t('Dismiss')}
+                </DismissButton>
+                <StyledButton size="small" onClick={this.handleNextStep}>
+                  {t('Next')}
+                </StyledButton>
+              </React.Fragment>
+            )}
+          </div>
 
           {hasManySteps && (
-            <StepCount>{`${currentStepCount} OF ${totalStepCount}`}</StepCount>
+            <StepCount>
+              {tct('[currentStepCount] OF [totalStepCount]', {
+                currentStepCount,
+                totalStepCount,
+              })}
+            </StepCount>
           )}
         </GuideAction>
       </GuideExpContainer>
@@ -164,10 +170,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   getHovercardBody() {
-    const {active, currentGuide, step} = this.state;
-    if (!active) {
-      return this.props.children ? this.props.children : null;
-    }
+    const {currentGuide, step} = this.state;
 
     return (
       <GuideContainer>
@@ -215,13 +218,14 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   render() {
+    const {disabled, children, position} = this.props;
     const {active} = this.state;
-    const {children, position} = this.props;
-    if (!active) {
+    const user = ConfigStore.get('user');
+
+    if (!active || disabled || !user) {
       return children ? children : null;
     }
 
-    const user = ConfigStore.get('user');
     const hasExperiment = user?.experiments?.AssistantGuideExperiment === 1;
 
     return hasExperiment ? (
