@@ -1,5 +1,5 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -17,9 +17,12 @@ import ReleaseNoCommitData from '../releaseNoCommitData';
 
 const ALL_REPOSITORIES_LABEL = t('All Repositories');
 
-type Props = {
-  params: Params;
-} & AsyncComponent['props'];
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}>;
 
 type State = {
   commits: Commit[];
