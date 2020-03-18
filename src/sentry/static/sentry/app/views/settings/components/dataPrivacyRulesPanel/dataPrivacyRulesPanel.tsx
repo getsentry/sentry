@@ -19,7 +19,6 @@ import Link from 'app/components/links/link';
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
 
-const INDICATORS_DURATION = 500;
 const DEFAULT_RULE_FROM_VALUE = '$string';
 
 type Rule = React.ComponentProps<typeof DataPrivacyRulesPanelForm>['rule'];
@@ -201,14 +200,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         });
       })
       .then(() => {
-        addSuccessMessage(t('Successfully saved data scrubbing rules'), {
-          duration: INDICATORS_DURATION,
-        });
+        addSuccessMessage(t('Successfully saved data scrubbing rules'));
       })
       .catch(() => {
-        addErrorMessage(t('An error occurred while saving data scrubbing rules'), {
-          duration: INDICATORS_DURATION,
-        });
+        addErrorMessage(t('An error occurred while saving data scrubbing rules'));
       });
   };
 
@@ -225,7 +220,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     if (isFormValid) {
       this.handleSubmit();
     } else {
-      addErrorMessage(t("Invalid rule's form"), {duration: INDICATORS_DURATION});
+      addErrorMessage(t("Invalid rule's form"));
     }
   };
 
@@ -234,7 +229,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleCancelForm = () => {
-    addLoadingMessage(t('Cancelling...'), {duration: INDICATORS_DURATION});
+    addLoadingMessage(t('Cancelling...'));
     this.setState(prevState => ({
       rules: prevState.savedRules,
     }));
