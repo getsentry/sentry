@@ -15,13 +15,13 @@ export default class SentryAppIcon extends React.Component<Props> {
   render() {
     switch (this.props.slug) {
       case 'clickup':
-        return <IconClickup size="xs" />;
+        return <IconClickup size="md" />;
       case 'clubhouse':
-        return <IconClubhouse size="xs" />;
+        return <IconClubhouse size="md" />;
       case 'rookout':
-        return <IconRookout size="xs" />;
+        return <IconRookout size="md" />;
       default:
-        return <IconGeneric size="xs" />;
+        return <IconGeneric size="md" />;
     }
   }
 }
