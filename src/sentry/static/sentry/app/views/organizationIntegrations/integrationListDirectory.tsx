@@ -16,6 +16,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
+  getSortIntegrationsByWeightActive,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -27,7 +28,9 @@ import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
+import {logExperiment} from 'app/utils/analytics';
 
+import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -76,6 +79,16 @@ export class OrganizationIntegrations extends AsyncComponent<
   static propTypes = {
     organization: SentryTypes.Organization,
   };
+
+  componentDidMount() {
+    logExperiment({
+      organization: this.props.organization,
+      key: 'IntegrationDirectorySortWeightExperiment',
+      unitName: 'org_id',
+      unitId: parseInt(this.props.organization.id, 10),
+      param: 'variant',
+    });
+  }
 
   getDefaultState() {
     return {
@@ -188,22 +201,47 @@ export class OrganizationIntegrations extends AsyncComponent<
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
-    if (isSentryApp(integration)) {
-      const install = this.getAppInstall(integration);
-      if (install) {
-        return install.status === 'pending' ? 1 : 2;
-      }
-      return 0;
-    } else if (isPlugin(integration)) {
+
+    if (isPlugin(integration)) {
       return integration.projectList.length > 0 ? 2 : 0;
     }
-    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+
+    if (!isSentryApp(integration)) {
+      return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    }
+
+    const install = this.getAppInstall(integration);
+
+    if (install) {
+      return install.status === 'pending' ? 1 : 2;
+    }
+
+    return 0;
   }
 
+  getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
+    POPULARITY_WEIGHT[integration.slug] ?? 1;
+
+  sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    a.name.localeCompare(b.name);
+
+  sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+    const weightA = this.getPopularityWeight(a);
+    const weightB = this.getPopularityWeight(b);
+    return weightB - weightA;
+  };
+
+  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    this.getInstallValue(b) - this.getInstallValue(a);
+
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    return integrations
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
+    if (getSortIntegrationsByWeightActive(this.props.organization)) {
+      return integrations
+        .sort(this.sortByName)
+        .sort(this.sortByPopularity)
+        .sort(this.sortByInstalled);
+    }
+    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
   }
 
   async componentDidUpdate(_, prevState: State) {
@@ -342,7 +380,7 @@ export class OrganizationIntegrations extends AsyncComponent<
               <SearchInput
                 value={this.state.searchInput || ''}
                 onChange={this.onSearchChange}
-                placeholder="Search Integrations..."
+                placeholder="Filter Integrations..."
                 width="25em"
               />
             }

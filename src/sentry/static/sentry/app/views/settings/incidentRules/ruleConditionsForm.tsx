@@ -111,15 +111,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <FormField
             name="query"
             label={t('Filter')}
-            defaultValue=""
             placeholder="error.type:TypeError"
             help={t(
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown, value}) => (
+            {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
-                defaultQuery={value}
+                defaultQuery={initialData?.query ?? ''}
                 disabled={disabled}
                 useFormWrapper={false}
                 organization={organization}

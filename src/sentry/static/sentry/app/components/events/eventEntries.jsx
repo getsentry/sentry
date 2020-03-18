@@ -228,13 +228,6 @@ class EventEntries extends React.Component {
             location={location}
           />
         )}
-        {!isShare && features.has('event-attachments') && (
-          <RRWebIntegration
-            event={event}
-            orgId={organization.slug}
-            projectId={project.slug}
-          />
-        )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
@@ -258,6 +251,13 @@ class EventEntries extends React.Component {
             showSelector={features.has('set-grouping-config')}
           />
         )}
+        {!isShare && features.has('event-attachments') && (
+          <RRWebIntegration
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+          />
+        )}
       </div>
     );
   }
@@ -269,7 +269,7 @@ const BorderlessEventEntries = styled(EventEntries)`
   }
   & ${DataSection}:first-child {
     padding-top: 0;
-    border-top: none;
+    border-top: 0;
   }
 `;
 

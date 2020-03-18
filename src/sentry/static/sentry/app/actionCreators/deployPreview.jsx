@@ -10,27 +10,25 @@ export function displayDeployPreviewAlert() {
     return;
   }
 
-  const {commitRef, reviewId, repoUrl} = DEPLOY_PREVIEW_CONFIG;
-  const repoName = repoUrl.match(/\w+\/\w+\/?$/)[0];
+  const {branch, commitSha, githubOrg, githubRepo} = DEPLOY_PREVIEW_CONFIG;
+  const repoUrl = `https://github.com/${githubOrg}/${githubRepo}`;
 
-  const pullLink = (
-    <ExternalLink href={`${repoUrl}/pull/${reviewId}`}>
-      {t('%s#%s', repoName, reviewId)}
+  const commitLink = (
+    <ExternalLink href={`${repoUrl}/commit/${commitSha}`}>
+      {t('%s@%s', `${githubOrg}/${githubRepo}`, commitSha.slice(0, 6))}
     </ExternalLink>
   );
 
-  const sha = (
-    <ExternalLink href={`${repoUrl}/commit/${commitRef}`}>
-      @{commitRef.slice(0, 6)}
-    </ExternalLink>
+  const branchLink = (
+    <ExternalLink href={`${repoUrl}/tree/${branch}`}>{branch}</ExternalLink>
   );
 
   AlertActions.addAlert({
-    message: tct('You are viewing a frontend deploy preview of [pullLink] ([sha])', {
-      pullLink,
-      sha,
-    }),
-    type: 'info',
+    message: tct(
+      'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
+      {commitLink, branchLink}
+    ),
+    type: 'warning',
     neverExpire: true,
   });
 }

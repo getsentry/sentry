@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -34,11 +34,16 @@ class StatusItem extends React.Component<Props> {
     const isClosed =
       activity.type === IncidentActivityType.STATUS_CHANGE &&
       activity.value === `${IncidentStatus.CLOSED}`;
+    const isTriggerChange =
+      activity.type === IncidentActivityType.STATUS_CHANGE && !isClosed;
 
     // Unknown activity, don't render anything
-    if (!isDetected && !isClosed) {
+    if (!isDetected && !isClosed && !isTriggerChange) {
       return null;
     }
+
+    const currentTrigger = getTriggerName(activity.value);
+    const previousTrigger = getTriggerName(activity.previousValue);
 
     return (
       <ActivityItem
@@ -49,17 +54,28 @@ class StatusItem extends React.Component<Props> {
         }}
         header={
           <div>
+            {isTriggerChange &&
+              previousTrigger &&
+              tct('Alert status changed from [previousTrigger] to [currentTrigger]', {
+                previousTrigger,
+                currentTrigger: <StatusValue>{currentTrigger}</StatusValue>,
+              })}
+            {isTriggerChange &&
+              !previousTrigger &&
+              tct('Alert status changed to [currentTrigger]', {
+                currentTrigger: <StatusValue>{currentTrigger}</StatusValue>,
+              })}
             {isClosed &&
               tct('[user] resolved the alert', {
-                user: <AuthorName>{authorName}</AuthorName>,
+                user: <StatusValue>{authorName}</StatusValue>,
               })}
             {isDetected &&
               (incident?.alertRule
                 ? tct('[user] was triggered', {
-                    user: <AuthorName>{incident.alertRule.name}</AuthorName>,
+                    user: <StatusValue>{incident.alertRule.name}</StatusValue>,
                   })
                 : tct('[user] created an alert', {
-                    user: <AuthorName>{authorName}</AuthorName>,
+                    user: <StatusValue>{authorName}</StatusValue>,
                   }))}
           </div>
         }
@@ -71,6 +87,19 @@ class StatusItem extends React.Component<Props> {
 
 export default StatusItem;
 
-const AuthorName = styled('span')`
+const StatusValue = styled('span')`
   font-weight: bold;
 `;
+
+function getTriggerName(value: string | null) {
+  if (value === `${IncidentStatus.WARNING}`) {
+    return t('Warning');
+  }
+
+  if (value === `${IncidentStatus.CRITICAL}`) {
+    return t('Critical');
+  }
+
+  // Otherwise, activity type is not status change
+  return '';
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -6,6 +7,7 @@ import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+import space from 'app/styles/space';
 
 import {Column} from '../eventView';
 import ColumnEditCollection from './columnEditCollection';
@@ -13,7 +15,7 @@ import ColumnEditCollection from './columnEditCollection';
 type Props = {
   columns: Column[];
   organization: OrganizationSummary;
-  tagKeys: string[];
+  tagKeys: null | string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
 } & ModalRenderProps;
@@ -44,6 +46,11 @@ class ColumnEditModal extends React.Component<Props, State> {
           <h4>{t('Edit Columns')}</h4>
         </Header>
         <Body>
+          <Instruction>
+            {t(
+              'To group events, add functions that may take in additional parameters. Tag and field columns will help you view more details about the events.'
+            )}
+          </Instruction>
           <ColumnEditCollection
             organization={organization}
             columns={this.state.columns}
@@ -53,10 +60,10 @@ class ColumnEditModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
-            <Button priority="default" to={DISCOVER2_DOCS_URL}>
+            <Button priority="default" href={DISCOVER2_DOCS_URL}>
               {t('Read the Docs')}
             </Button>
-            <Button priority="primary" onClick={this.handleApply}>
+            <Button label={t('Apply')} priority="primary" onClick={this.handleApply}>
               {t('Apply')}
             </Button>
           </ButtonBar>
@@ -65,5 +72,9 @@ class ColumnEditModal extends React.Component<Props, State> {
     );
   }
 }
+
+const Instruction = styled('div')`
+  margin-bottom: ${space(3)};
+`;
 
 export default ColumnEditModal;

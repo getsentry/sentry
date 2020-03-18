@@ -10,3 +10,4 @@ class Dataset(Enum):
     Discover = "discover"
     Outcomes = "outcomes"
     OutcomesRaw = "outcomes_raw"
+    Sessions = "sessions"

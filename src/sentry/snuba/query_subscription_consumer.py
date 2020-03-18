@@ -12,7 +12,7 @@ from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
-from sentry.snuba.subscriptions import _delete_from_snuba
+from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -46,14 +46,14 @@ class QuerySubscriptionConsumer(object):
     These values are passed along to a callback associated with the subscription.
     """
 
-    topic_to_dataset = {settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: QueryDatasets.EVENTS}
+    topic_to_dataset = {settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS}
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
     ):
         self.group_id = group_id
         if not topic:
-            topic = settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS
+            topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.topic = topic
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
         self.bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
@@ -102,7 +102,7 @@ class QuerySubscriptionConsumer(object):
                         transaction="query_subscription_consumer_process_message",
                         sampled=True,
                     )
-                ):
+                ), metrics.timer("snuba_query_subscriber.handle_message"):
                     self.handle_message(message)
 
                 # Track latest completed message here, for use in `shutdown` handler.
@@ -140,7 +140,8 @@ class QuerySubscriptionConsumer(object):
         """
         with sentry_sdk.push_scope() as scope:
             try:
-                contents = self.parse_message_value(message.value())
+                with metrics.timer("snuba_query_subscriber.parse_message_value"):
+                    contents = self.parse_message_value(message.value())
             except InvalidMessageError:
                 # If the message is in an invalid format, just log the error
                 # and continue
@@ -156,9 +157,13 @@ class QuerySubscriptionConsumer(object):
             scope.set_tag("query_subscription_id", contents["subscription_id"])
 
             try:
-                subscription = QuerySubscription.objects.get_from_cache(
-                    subscription_id=contents["subscription_id"]
-                )
+                with metrics.timer("snuba_query_subscriber.fetch_subscription"):
+                    subscription = QuerySubscription.objects.get_from_cache(
+                        subscription_id=contents["subscription_id"]
+                    )
+                    if subscription.status != QuerySubscription.Status.ACTIVE.value:
+                        metrics.incr("snuba_query_subscriber.subscription_inactive")
+                        return
             except QuerySubscription.DoesNotExist:
                 metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
                 logger.error(
@@ -175,7 +180,6 @@ class QuerySubscriptionConsumer(object):
                     )
                 except Exception:
                     logger.exception("Failed to delete unused subscription from snuba.")
-
                 return
 
             if subscription.type not in subscriber_registry:
@@ -216,12 +220,15 @@ class QuerySubscriptionConsumer(object):
         :param value: A json formatted string
         :return: A dict with the parsed message
         """
-        wrapper = loads(value)
-        try:
-            jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
-        except jsonschema.ValidationError:
-            metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
-            raise InvalidSchemaError("Message wrapper does not match schema")
+        with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
+            wrapper = loads(value)
+
+        with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
+            try:
+                jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
+            except jsonschema.ValidationError:
+                metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
+                raise InvalidSchemaError("Message wrapper does not match schema")
 
         schema_version = wrapper["version"]
         if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
@@ -229,11 +236,12 @@ class QuerySubscriptionConsumer(object):
             raise InvalidMessageError("Version specified in wrapper has no schema")
 
         payload = wrapper["payload"]
-        try:
-            jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
-        except jsonschema.ValidationError:
-            metrics.incr("snuba_query_subscriber.message_payload_invalid")
-            raise InvalidSchemaError("Message payload does not match schema")
+        with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
+            try:
+                jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
+            except jsonschema.ValidationError:
+                metrics.incr("snuba_query_subscriber.message_payload_invalid")
+                raise InvalidSchemaError("Message payload does not match schema")
 
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         return payload

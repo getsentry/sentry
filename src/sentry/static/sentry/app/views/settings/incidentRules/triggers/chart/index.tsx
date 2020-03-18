@@ -1,14 +1,13 @@
 import React from 'react';
 import maxBy from 'lodash/maxBy';
-import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Config, Organization, Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
-import {getFormattedDate} from 'app/utils/dates';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
@@ -18,7 +17,6 @@ import ThresholdsChart from './thresholdsChart';
 
 type Props = {
   api: Client;
-  config: Config;
   organization: Organization;
   projects: Project[];
 
@@ -36,7 +34,6 @@ class TriggersChart extends React.PureComponent<Props> {
   render() {
     const {
       api,
-      config,
       organization,
       projects,
       timeWindow,
@@ -45,6 +42,8 @@ class TriggersChart extends React.PureComponent<Props> {
       triggers,
     } = this.props;
 
+    const period = getPeriodForTimeWindow(timeWindow);
+
     return (
       <EventsRequest
         api={api}
@@ -52,9 +51,10 @@ class TriggersChart extends React.PureComponent<Props> {
         query={query}
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}m`}
-        period={getPeriodForTimeWindow(timeWindow)}
+        period={period}
         yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
+        currentSeriesName={getDisplayForAlertRuleAggregation(aggregation)}
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;
@@ -71,20 +71,7 @@ class TriggersChart extends React.PureComponent<Props> {
                   <React.Fragment>
                     <TransparentLoadingMask visible={reloading} />
                     <ThresholdsChart
-                      xAxis={{
-                        axisLabel: {
-                          formatter: (value: moment.MomentInput, index: number) => {
-                            const firstItem = index === 0;
-                            const format =
-                              timeWindow <= TimeWindow.FIVE_MINUTES && !firstItem
-                                ? 'LT'
-                                : 'MMM Do';
-                            return getFormattedDate(value, format, {
-                              local: config.user.options.timezone !== 'UTC',
-                            });
-                          },
-                        },
-                      }}
+                      period={period}
                       maxValue={maxValue ? maxValue.value : maxValue}
                       data={timeseriesData}
                       triggers={triggers}

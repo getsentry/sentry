@@ -23,7 +23,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Projects from 'app/utils/projects';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 
@@ -51,9 +50,18 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, location} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor', 'query', 'sort']),
+      ...pick(location.query, [
+        'project',
+        'environment',
+        'cursor',
+        'query',
+        'sort',
+        'healthStatsPeriod',
+      ]),
+      summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
       health: 1,
+      flatten: 1,
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
@@ -68,7 +76,7 @@ class ReleasesList extends AsyncView<Props, State> {
   getSort() {
     const {sort} = this.props.location.query;
 
-    return typeof sort === 'string' ? sort : undefined;
+    return typeof sort === 'string' ? sort : 'date';
   }
 
   handleSearch = (query: string) => {
@@ -105,7 +113,7 @@ class ReleasesList extends AsyncView<Props, State> {
           lastEvent,
           newGroups,
         } = release;
-        const {slug, healthData} = project;
+        const {slug, id, healthData} = project;
         return {
           version,
           dateCreated,
@@ -116,6 +124,7 @@ class ReleasesList extends AsyncView<Props, State> {
           newGroups,
           healthData: healthData!,
           projectSlug: slug,
+          projectId: id,
           // TODO(releasesv2): make api send also project platform
         };
       })
@@ -123,7 +132,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const {loading, releases} = this.state;
 
     if (loading) {
@@ -144,6 +153,7 @@ class ReleasesList extends AsyncView<Props, State> {
               key={`${release.version}-${release.dateCreated}`}
               release={release}
               project={projects.find(p => p.slug === release.projectSlug)}
+              location={location}
             />
           ))
         }
@@ -156,7 +166,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+        <GlobalSelectionHeader
+          organization={organization}
+          showAbsolute={false}
+          timeRangeHint={t(
+            'Changing this date range will recalculate the release metrics.'
+          )}
+        />
 
         <NoProjectMessage organization={organization}>
           <PageContent>
@@ -198,9 +214,15 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-column-gap: ${space(2)};
+  grid-template-columns: auto auto 1fr;
+  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
+  /* TODO(releasesV2): this could use some responsive love, but not yet sure if we are keeping it */
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+    grid-template-columns: none;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
 `;
 
 export default withOrganization(ReleasesList);

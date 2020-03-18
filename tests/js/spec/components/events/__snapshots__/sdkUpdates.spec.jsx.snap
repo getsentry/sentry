@@ -38,7 +38,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       className=""
     >
       <div
-        className=" css-1tpn1lm-DataSection e1z0bih42"
+        className=" css-1tpn1lm-DataSection e1z0bih40"
       >
         <SectionContents>
           <div
@@ -83,7 +83,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                   </StyledInlineSvg>
                   <StyledTextBlock>
                     <div
-                      className="css-c2j570-TextBlock-StyledTextBlock ejthpj81"
+                      className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
                     >
                       We recommend you 
                       <EventSdkUpdateSuggestion

@@ -8,12 +8,14 @@ import six
 from collections import OrderedDict
 from time import time
 
+from django.core.cache import cache
 from bs4 import BeautifulSoup
 from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, Timeout, HTTPError
 from sentry.exceptions import InvalidIdentity
 from sentry.http import build_session
 from sentry.utils import metrics
+from sentry.utils.hashlib import md5_text
 
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
@@ -124,23 +126,28 @@ class ApiClient(object):
     # Used in metrics and logging.
     integration_name = "undefined"
 
+    cache_time = 900
+
     def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
 
-    def track_response_data(self, integration, code, error=None):
+    def get_cache_prefix(self):
+        return "%s.client:" % six.text_type(self.integration_name)
+
+    def track_response_data(self, code, error=None):
         logger = logging.getLogger("sentry.integrations.client")
 
         metrics.incr(
             "integrations.http_response",
             sample_rate=1.0,
-            tags={"integration": integration, "status": code},
+            tags={"integration": self.integration_name, "status": code},
         )
 
         extra = {
-            "integration": integration,
-            "status": code,
-            "error": six.text_type(error[:128]) if error else None,
+            "integration": self.integration_name,
+            "status_string": six.text_type(code),
+            "error": six.text_type(error)[:128] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
         logger.info("integrations.http_response", extra=extra)
@@ -200,23 +207,23 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            self.track_response_data(self.integration_name, "connection_error", e.message)
+            self.track_response_data("connection_error", e)
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            self.track_response_data(self.integration_name, "timeout", e.message)
+            self.track_response_data("timeout", e)
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                self.track_response_data(self.integration_name, "unknown", e.message)
+                self.track_response_data("unknown", e)
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            self.track_response_data(self.integration_name, resp.status_code, e.message)
+            self.track_response_data(resp.status_code, e)
             raise ApiError.from_response(resp)
 
-        self.track_response_data(self.integration_name, resp.status_code)
+        self.track_response_data(resp.status_code)
 
         if resp.status_code == 204:
             return {}
@@ -229,6 +236,18 @@ class ApiClient(object):
 
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
+
+    def get_cached(self, path, *args, **kwargs):
+        query = ""
+        if kwargs.get("params", None):
+            query = json.dumps(kwargs.get("params"), sort_keys=True)
+        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
+
+        result = cache.get(key)
+        if result is None:
+            result = self.request("GET", path, *args, **kwargs)
+            cache.set(key, result, self.cache_time)
+        return result
 
     def get(self, *args, **kwargs):
         return self.request("GET", *args, **kwargs)

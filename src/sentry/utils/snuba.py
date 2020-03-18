@@ -80,6 +80,11 @@ DATASET_FIELDS = {
 }
 
 
+def parse_snuba_datetime(value):
+    """Parses a datetime value from snuba."""
+    return parse_datetime(value)
+
+
 class SnubaError(Exception):
     pass
 
@@ -307,7 +312,7 @@ def get_arrayjoin(column):
         return match.groups()[0]
 
 
-def get_query_params_to_update_for_projects(query_params):
+def get_query_params_to_update_for_projects(query_params, with_org=False):
     """
     Get the project ID and query params that need to be updated for project
     based datasets, before we send the query to Snuba.
@@ -334,7 +339,11 @@ def get_query_params_to_update_for_projects(query_params):
     # any project will do, as they should all be from the same organization
     organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
 
-    return organization_id, {"project": project_ids}
+    params = {"project": project_ids}
+    if with_org:
+        params["organization"] = organization_id
+
+    return organization_id, params
 
 
 def get_query_params_to_update_for_organizations(query_params):
@@ -375,8 +384,10 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Discover]:
-        (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
+    if query_params.dataset in [Dataset.Events, Dataset.Discover, Dataset.Sessions]:
+        (organization_id, params_to_update) = get_query_params_to_update_for_projects(
+            query_params, with_org=query_params.dataset == Dataset.Sessions
+        )
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
             query_params
@@ -734,6 +745,7 @@ def aliased_query(
     having=None,
     dataset=None,
     orderby=None,
+    condition_resolver=None,
     **kwargs
 ):
     """
@@ -764,7 +776,8 @@ def aliased_query(
             derived_columns.append(aggregation[2])
 
     if conditions:
-        column_resolver = functools.partial(resolve_column, dataset=dataset)
+        condition_resolver = condition_resolver or resolve_column
+        column_resolver = functools.partial(condition_resolver, dataset=dataset)
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement

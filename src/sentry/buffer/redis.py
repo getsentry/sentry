@@ -33,17 +33,22 @@ def batch_buffers_incr():
         assert _local_buffers is None
         _local_buffers = {}
 
-    try:
-        yield
-    finally:
+    yield
+
+    with _local_buffers_lock:
         from sentry.app import buffer
 
-        with _local_buffers_lock:
-            buffers_to_flush = _local_buffers
-            _local_buffers = None
+        buffers_to_flush = _local_buffers
+        _local_buffers = None
 
-            for (filters, model), (columns, extra) in buffers_to_flush.items():
-                buffer.incr(model=model, columns=columns, filters=dict(filters), extra=extra)
+        for (filters, model), (columns, extra, signal_only) in buffers_to_flush.items():
+            buffer.incr(
+                model=model,
+                columns=columns,
+                filters=dict(filters),
+                extra=extra,
+                signal_only=signal_only,
+            )
 
 
 class PendingBuffer(object):
@@ -172,13 +177,14 @@ class RedisBuffer(Buffer):
         else:
             raise TypeError("invalid type: {}".format(type_))
 
-    def incr(self, model, columns, filters, extra=None):
+    def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
             - Perform an incrby on counters
             - Perform a set (last write wins) on extra
+            - Perform a set on signal_only (only if True)
         - Add hashmap key to pending flushes
         """
 
@@ -188,7 +194,9 @@ class RedisBuffer(Buffer):
                     frozen_filters = tuple(sorted(filters.items()))
                     key = (frozen_filters, model)
 
-                    stored_columns, stored_extra = _local_buffers.get(key, ({}, None))
+                    stored_columns, stored_extra, stored_signal_only = _local_buffers.get(
+                        key, ({}, None, None)
+                    )
 
                     for k, v in columns.items():
                         stored_columns[k] = stored_columns.get(k, 0) + v
@@ -196,7 +204,10 @@ class RedisBuffer(Buffer):
                     if extra is not None:
                         stored_extra = extra
 
-                    _local_buffers[key] = stored_columns, stored_extra
+                    if signal_only is not None:
+                        stored_signal_only = signal_only
+
+                    _local_buffers[key] = stored_columns, stored_extra, stored_signal_only
                     return
 
         # TODO(dcramer): longer term we'd rather not have to serialize values
@@ -225,6 +236,10 @@ class RedisBuffer(Buffer):
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+
+        if signal_only is True:
+            pipe.hset(key, "s", "1")
+
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
@@ -322,6 +337,7 @@ class RedisBuffer(Buffer):
 
             incr_values = {}
             extra_values = {}
+            signal_only = None
             for k, v in six.iteritems(values):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
@@ -331,7 +347,9 @@ class RedisBuffer(Buffer):
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(v)
+                elif k == "s":
+                    signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

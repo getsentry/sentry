@@ -426,6 +426,22 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="priority:%s" % priority, sort_by="priority")
         assert list(results) == [self.group1, self.group2]
 
+    def test_search_tag_overlapping_with_internal_fields(self):
+        # Using a tag of email overlaps with the promoted user.email column in events.
+        # We don't want to bypass public schema limits in issue search.
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "timestamp": iso_format(self.group2.first_seen + timedelta(days=1)),
+                "stacktrace": {"frames": [{"module": "group2"}]},
+                "message": "group2",
+                "tags": {"email": "tags@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(search_filter_query="email:tags@example.com")
+        assert set(results) == set([self.group2])
+
     def test_project(self):
         results = self.make_query([self.create_project(name="other")])
         assert set(results) == set([])

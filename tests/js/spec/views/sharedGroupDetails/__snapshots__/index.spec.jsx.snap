@@ -160,48 +160,51 @@ exports[`SharedGroupDetails renders 1`] = `
                     }
                   }
                 >
-                  <div
-                    className="group-detail"
-                    style={
-                      Object {
-                        "paddingBottom": 20,
-                      }
-                    }
-                  >
+                  <Wrapper>
                     <div
-                      className="details"
+                      className="css-rl8raw-Wrapper ew9ysh20"
                     >
-                      <h3>
-                        ZeroDivisionError
-                      </h3>
-                      <StyledEventMessage
-                        message="fetchData(app/components/group/suggestedOwners)"
-                      >
-                        <EventMessage
-                          className="css-j0hue0-StyledEventMessage e1vuddz00"
-                          message="fetchData(app/components/group/suggestedOwners)"
+                      <Details>
+                        <div
+                          className="css-104np2h-Details ew9ysh21"
                         >
-                          <div
-                            className="css-j0hue0-StyledEventMessage e1vuddz00"
+                          <Title>
+                            <h3
+                              className="css-1n7up4s-Title ew9ysh22"
+                            >
+                              ZeroDivisionError
+                            </h3>
+                          </Title>
+                          <StyledEventMessage
+                            message="fetchData(app/components/group/suggestedOwners)"
                           >
-                            <Message>
-                              <span
-                                className="css-136mfoi-Message e1vuddz02"
+                            <EventMessage
+                              className="css-j0hue0-StyledEventMessage e1vuddz00"
+                              message="fetchData(app/components/group/suggestedOwners)"
+                            >
+                              <div
+                                className="css-j0hue0-StyledEventMessage e1vuddz00"
                               >
-                                fetchData(app/components/group/suggestedOwners)
-                              </span>
-                            </Message>
-                          </div>
-                        </EventMessage>
-                      </StyledEventMessage>
+                                <Message>
+                                  <span
+                                    className="css-136mfoi-Message e1vuddz02"
+                                  >
+                                    fetchData(app/components/group/suggestedOwners)
+                                  </span>
+                                </Message>
+                              </div>
+                            </EventMessage>
+                          </StyledEventMessage>
+                        </div>
+                      </Details>
                     </div>
-                  </div>
+                  </Wrapper>
                 </SharedGroupHeader>
                 <Container
                   className="group-overview event-details-container"
                 >
                   <div
-                    className="group-overview event-details-container css-nhk5x7-Container e3jpxgb0"
+                    className="group-overview event-details-container css-nhk5x7-Container eh4dpye0"
                   >
                     <BorderlessEventEntries
                       event={
@@ -344,7 +347,7 @@ exports[`SharedGroupDetails renders 1`] = `
                       showTagSummary={true}
                     >
                       <EventEntries
-                        className="css-gv2wnj-BorderlessEventEntries enep45q0"
+                        className="css-1pvkuk1-BorderlessEventEntries enep45q0"
                         event={
                           Object {
                             "dateCreated": "2019-05-21T18:01:48.762Z",
@@ -485,7 +488,7 @@ exports[`SharedGroupDetails renders 1`] = `
                         showTagSummary={true}
                       >
                         <div
-                          className="css-gv2wnj-BorderlessEventEntries enep45q0"
+                          className="css-1pvkuk1-BorderlessEventEntries enep45q0"
                           data-test-id="event-entries"
                         >
                            
@@ -575,13 +578,13 @@ exports[`SharedGroupDetails renders 1`] = `
                                 className=""
                               >
                                 <div
-                                  className=" css-1tpn1lm-DataSection e1z0bih42"
+                                  className=" css-1tpn1lm-DataSection e1z0bih40"
                                 >
                                   <SectionHeader
                                     id="message"
                                   >
                                     <div
-                                      className="css-mxpc8d-SectionHeader e1fbjd861"
+                                      className="css-zang02-SectionHeader e1fbjd861"
                                       id="message"
                                     >
                                       <Permalink

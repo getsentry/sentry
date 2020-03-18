@@ -33,11 +33,18 @@ type QueryValue = string | string[] | undefined | null;
 export function appendTagCondition(
   query: QueryValue,
   key: string,
-  value: string
+  value: null | string
 ): string {
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
-  if (isString(value) && value.indexOf(' ') > -1) {
+  // The user key values have additional key data inside them.
+  if (key === 'user' && isString(value) && value.includes(':')) {
+    const parts = value.split(':', 2);
+    key = [key, parts[0]].join('.');
+    value = parts[1];
+  }
+
+  if (isString(value) && value.includes(' ')) {
     value = `"${value}"`;
   }
   if (currentQuery) {

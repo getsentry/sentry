@@ -69,14 +69,12 @@ def generate_transaction():
     end_datetime = start_datetime + timedelta(milliseconds=500)
 
     def generate_timestamp(date_time):
-
         return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
 
     event_data["start_timestamp"] = generate_timestamp(start_datetime)
     event_data["timestamp"] = generate_timestamp(end_datetime)
 
     # generate and build up span tree
-
     reference_span = event_data["spans"][0]
     parent_span_id = reference_span["parent_span_id"]
 
@@ -101,9 +99,7 @@ def generate_transaction():
     }
 
     def build_span_tree(span_tree, spans, parent_span_id):
-
         for span_id, child in span_tree.items():
-
             span = copy.deepcopy(reference_span)
             # non-leaf node span
             span["parent_span_id"] = parent_span_id.ljust(16, "0")
@@ -211,11 +207,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click_when_visible('[data-test-id="grid-edit-enable"]')
             self.browser.snapshot(
                 "events-v2 - errors query - empty state - querybuilder - column edit state"
-            )
-
-            self.browser.click_when_visible('[data-test-id="grid-add-column"]')
-            self.browser.snapshot(
-                "events-v2 - errors query - empty state - querybuilder - add column"
             )
 
     @patch("django.utils.timezone.now")
@@ -360,19 +351,39 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         event_data = generate_transaction()
-
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+
+        # Create a child event that is linked to the parent.
+        child_event = generate_transaction()
+        child_event["event_id"] = "b" * 32
+        child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][5]["span_id"]
+        child_event["transaction"] = "z-child-transaction"
+        child_event["spans"] = child_event["spans"][0:3]
+        self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
+            self.browser.save_screenshot("./index.png")
 
             # Click the event link to open the event detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            self.browser.find_elements_by_css_selector('[data-test-id="view-events"]')[0].click()
             self.wait_until_loaded()
+            self.browser.save_screenshot("./details.png")
 
+            # Open a span detail so we can check the search by trace link.
+            # Click on the 6th one as a missing instrumentation span is inserted.
+            self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
+            self.browser.save_screenshot("./span.png")
+
+            # Click on the child transaction.
+            child_button = '[data-test-id="view-child-transaction"]'
+            self.browser.wait_until(child_button)
             self.browser.snapshot("events-v2 - transactions event detail view")
+
+            self.browser.click(child_button)
+            self.wait_until_loaded()
 
     def test_create_saved_query(self):
         # Simulate a custom query

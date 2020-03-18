@@ -112,20 +112,16 @@ storiesOf('UI|Buttons', module)
           <div style={{display: 'flex', alignItems: 'center'}}>
             <Item>
               <Button>
-                <InlineSvg
-                  src="icon-github"
-                  size="14"
-                  style={{marginRight: space(0.5)}}
-                />
+                <InlineSvg src="icon-trash" size="14" style={{marginRight: space(0.5)}} />
                 Not-icon-props Button
               </Button>
             </Item>
             <Item>
-              <Button icon="icon-github">Icon Button</Button>
+              <Button icon="icon-trash">Icon Button</Button>
             </Item>
             <Item>
-              <Button size="small" icon="icon-github">
-                View on GitHub
+              <Button size="small" icon="icon-trash">
+                Delete
               </Button>
             </Item>
             <Item>
@@ -222,8 +218,10 @@ storiesOf('UI|Buttons', module)
         <Section>
           <h3>Merged Buttons</h3>
           <ButtonBar merged>
-            <Button>Left Button</Button>
-            <Button priority="primary">Right Button</Button>
+            <Button priority="primary" className="active">
+              Left Button
+            </Button>
+            <Button>Right Button</Button>
           </ButtonBar>
         </Section>
 
@@ -231,7 +229,9 @@ storiesOf('UI|Buttons', module)
           <h3>Multiple Merged Buttons</h3>
           <ButtonBar merged>
             <Button>First Button</Button>
-            <Button>Second Button</Button>
+            <Button priority="primary" className="active">
+              Second Button
+            </Button>
             <Button>Third Button</Button>
             <Button>Fourth Button</Button>
           </ButtonBar>

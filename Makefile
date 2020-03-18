@@ -80,7 +80,7 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev: ensure-venv
+install-sentry-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -93,20 +93,23 @@ build-js-po: node-version-check
 
 build: locale
 
-locale: build-js-po
+merge-locale-catalogs: build-js-po
+	$(PIP) install Babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
+
+compile-locale:
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-update-transifex: build-js-po
+locale: merge-locale-catalogs compile-locale
+
+sync-transifex: merge-locale-catalogs
 	$(PIP) install transifex-client
-	cd src/sentry && sentry django makemessages -i static -l en
-	./bin/merge-catalogs en
 	tx push -s
 	tx pull -a
-	./bin/find-good-catalogs src/sentry/locale/catalogs.json
-	cd src/sentry && sentry django compilemessages
+
+update-transifex: sync-transifex compile-locale
 
 build-platform-assets:
 	@echo "--> Building platform assets"
@@ -181,6 +184,11 @@ test-plugins:
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
 	@echo ""
 
+test-relay-integration:
+	@echo "--> Running Relay integration tests"
+	pytest tests/relay_integration -vv
+	@echo ""
+
 lint: lint-python lint-js
 
 # configuration for flake8 can be found in setup.cfg
@@ -207,7 +215,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
@@ -221,7 +229,8 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js
+.PHONY: travis-test-cli travis-test-relay-integration
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
@@ -229,8 +238,10 @@ travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
+travis-test-relay-integration: test-relay-integration
 
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-lint
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator
+.PHONY: travis-scan-js travis-scan-cli travis-scan-lint travis-scan-relay-integration
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -245,3 +256,4 @@ travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop
+travis-scan-relay-integration: travis-noop

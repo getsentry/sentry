@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import six
 from django.db import transaction
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry import analytics
@@ -33,12 +34,11 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
-    query_aggregation_to_snuba,
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
@@ -54,7 +54,7 @@ class InvalidTriggerActionError(Exception):
 
 def create_incident(
     organization,
-    type,
+    type_,
     title,
     query,
     aggregation,
@@ -81,7 +81,7 @@ def create_incident(
             organization=organization,
             detection_uuid=detection_uuid,
             status=IncidentStatus.OPEN.value,
-            type=type.value,
+            type=type_.value,
             title=title,
             query=query,
             aggregation=aggregation.value,
@@ -90,9 +90,16 @@ def create_incident(
             alert_rule=alert_rule,
         )
         if projects:
-            IncidentProject.objects.bulk_create(
-                [IncidentProject(incident=incident, project=project) for project in projects]
-            )
+            incident_projects = [
+                IncidentProject(incident=incident, project=project) for project in projects
+            ]
+            IncidentProject.objects.bulk_create(incident_projects)
+            # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
+            for incident_project in incident_projects:
+                post_save.send(
+                    sender=type(incident_project), instance=incident_project, created=True
+                )
+
         if groups:
             IncidentGroup.objects.bulk_create(
                 [IncidentGroup(incident=incident, group=group) for group in groups]
@@ -103,7 +110,7 @@ def create_incident(
             "incident.created",
             incident_id=incident.id,
             organization_id=incident.organization_id,
-            incident_type=type.value,
+            incident_type=type_.value,
         )
 
     return incident
@@ -238,14 +245,15 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def create_incident_snapshot(incident):
+def create_incident_snapshot(incident, prewindow=True):
     """
     Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
+
     event_stats_snapshot = create_event_stat_snapshot(
-        incident, incident.date_started, incident.date_closed
+        incident, incident.date_started, incident.date_closed, prewindow
     )
     aggregates = get_incident_aggregates(incident)
     return IncidentSnapshot.objects.create(
@@ -256,10 +264,13 @@ def create_incident_snapshot(incident):
     )
 
 
-def create_event_stat_snapshot(incident, start, end):
+def create_event_stat_snapshot(incident, start, end, prewindow):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
+    if prewindow:
+        start = start - calculate_incident_prewindow(start, end, incident)
+
     event_stats = get_incident_event_stats(incident, start, end)
     return TimeSeriesSnapshot.objects.create(
         start=start,
@@ -321,18 +332,18 @@ def calculate_incident_prewindow(start, end, incident=None):
     # Make the a bit earlier to show more relevant data from before the incident started:
     prewindow = (end - start) / 5
     if incident and incident.alert_rule is not None:
-        alert_rule_time_window = incident.alert_rule.time_window
+        alert_rule_time_window = timedelta(minutes=incident.alert_rule.time_window)
         prewindow = max(alert_rule_time_window, prewindow)
     return prewindow
 
 
-def get_incident_event_stats(incident, start=None, end=None, data_points=50):
+def get_incident_event_stats(incident, start=None, end=None, data_points=50, prewindow=False):
     """
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
     query_params = bulk_build_incident_query_params(
-        [incident], start=start, end=end, prewindow=True
+        [incident], start=start, end=end, prewindow=prewindow
     )
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
@@ -362,10 +373,6 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     ]
 
 
-def get_alert_rule_environment_names(alert_rule):
-    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
-
-
 def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
@@ -389,10 +396,12 @@ def bulk_get_incident_aggregates(query_params_list):
     return [result["data"][0] for result in results]
 
 
-def bulk_get_incident_stats(incidents):
+def bulk_get_incident_stats(incidents, prewindow=False):
     """
     Returns bulk stats for a list of incidents. This includes unique user count,
     total event count and event stats.
+    Note that even though this function accepts a prewindow parameter, it does not
+    affect the snapshots if they were created using a prewindow. Only the live fetched stats.
     """
     closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
     incident_stats = {}
@@ -409,7 +418,7 @@ def bulk_get_incident_stats(incidents):
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=True)
+        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=prewindow)
         all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
@@ -661,7 +670,7 @@ def update_alert_rule(
                 QueryAggregations(alert_rule.aggregation),
                 timedelta(minutes=alert_rule.time_window),
                 timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-                get_alert_rule_environment_names(alert_rule),
+                list(alert_rule.environment.all()),
             )
 
     return alert_rule
@@ -680,7 +689,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
-        get_alert_rule_environment_names(alert_rule),
+        list(alert_rule.environment.all()),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)

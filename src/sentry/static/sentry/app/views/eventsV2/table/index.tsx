@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Organization, Tag} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
@@ -82,6 +83,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     setError(undefined);
 
     this.setState({isLoading: true, tableFetchID});
+    metric.mark(`discover-events-start-${apiPayload.query}`);
 
     this.props.api
       .requestPromise(url, {
@@ -90,6 +92,14 @@ class Table extends React.PureComponent<TableProps, TableState> {
         query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
+        // We want to measure this metric regardless of whether we use the result
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: jqXHR && jqXHR.status,
+          },
+        });
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
           return;
@@ -104,6 +114,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
         }));
       })
       .catch(err => {
+        metric.measure({
+          name: 'app.api.discover-query',
+          start: `discover-events-start-${apiPayload.query}`,
+          data: {
+            status: err.status,
+          },
+        });
         this.setState({
           isLoading: false,
           tableFetchID: undefined,

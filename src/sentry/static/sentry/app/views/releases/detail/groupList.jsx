@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import {browserHistory} from 'react-router';
 import qs from 'query-string';
 
 import {Panel, PanelBody} from 'app/components/panels';
@@ -15,6 +16,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
+import Pagination from 'app/components/pagination';
 
 import GroupListHeader from './groupListHeader';
 
@@ -25,7 +27,9 @@ const GroupList = createReactClass({
     api: PropTypes.object.isRequired,
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,
+    withChart: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
+    endpointPath: PropTypes.string,
   },
 
   contextTypes: {
@@ -37,6 +41,7 @@ const GroupList = createReactClass({
   getDefaultProps() {
     return {
       canSelectGroups: true,
+      withChart: true,
     };
   },
 
@@ -54,12 +59,20 @@ const GroupList = createReactClass({
     this.fetchData();
   },
 
-  shouldComponentUpdate(_nextProps, nextState) {
-    return !isEqual(this.state, nextState);
+  shouldComponentUpdate(nextProps, nextState) {
+    return (
+      !isEqual(this.state, nextState) ||
+      nextProps.endpointPath !== this.props.endpointPath ||
+      nextProps.query !== this.props.query
+    );
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.orgId !== this.props.orgId) {
+    if (
+      prevProps.orgId !== this.props.orgId ||
+      prevProps.endpointPath !== this.props.endpointPath ||
+      prevProps.query !== this.props.query
+    ) {
       this.fetchData();
     }
   },
@@ -101,8 +114,8 @@ const GroupList = createReactClass({
   },
 
   getGroupListEndpoint() {
-    const {orgId} = this.props;
-    const path = `/organizations/${orgId}/issues/`;
+    const {orgId, endpointPath} = this.props;
+    const path = endpointPath ?? `/organizations/${orgId}/issues/`;
 
     return `${path}?${qs.stringify(this.getQueryParams())}`;
   },
@@ -118,6 +131,24 @@ const GroupList = createReactClass({
     return queryParams;
   },
 
+  onCursorChange(cursor, path, query, pageDiff) {
+    const queryPageInt = parseInt(query.page, 10);
+    let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
+
+    // unset cursor and page when we navigate back to the first page
+    // also reset cursor if somehow the previous button is enabled on
+    // first page and user attempts to go backwards
+    if (nextPage <= 0) {
+      cursor = undefined;
+      nextPage = undefined;
+    }
+
+    browserHistory.push({
+      pathname: path,
+      query: {...query, cursor},
+    });
+  },
+
   onGroupChange() {
     const groups = this._streamManager.getAllItems();
 
@@ -129,11 +160,14 @@ const GroupList = createReactClass({
   },
 
   render() {
-    if (this.state.loading) {
+    const {orgId, canSelectGroups, withChart} = this.props;
+    const {loading, error, groups, memberList, pageLinks} = this.state;
+
+    if (loading) {
       return <LoadingIndicator />;
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
-    } else if (this.state.groups.length === 0) {
+    } else if (groups.length === 0) {
       return (
         <Panel>
           <PanelBody>
@@ -145,30 +179,32 @@ const GroupList = createReactClass({
       );
     }
 
-    const {orgId} = this.props;
-
     return (
-      <Panel>
-        <GroupListHeader />
-        <PanelBody>
-          {this.state.groups.map(({id, project}) => {
-            const members =
-              this.state.memberList && this.state.memberList.hasOwnProperty(project.slug)
-                ? this.state.memberList[project.slug]
-                : null;
+      <React.Fragment>
+        <Panel>
+          <GroupListHeader withChart={withChart} />
+          <PanelBody>
+            {groups.map(({id, project}) => {
+              const members =
+                memberList && memberList.hasOwnProperty(project.slug)
+                  ? memberList[project.slug]
+                  : null;
 
-            return (
-              <StreamGroup
-                key={id}
-                id={id}
-                orgId={orgId}
-                canSelect={this.props.canSelectGroups}
-                memberList={members}
-              />
-            );
-          })}
-        </PanelBody>
-      </Panel>
+              return (
+                <StreamGroup
+                  key={id}
+                  id={id}
+                  orgId={orgId}
+                  canSelect={canSelectGroups}
+                  withChart={withChart}
+                  memberList={members}
+                />
+              );
+            })}
+          </PanelBody>
+        </Panel>
+        <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+      </React.Fragment>
     );
   },
 });

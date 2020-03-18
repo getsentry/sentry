@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
 from sentry.models import ExportedData
+from sentry.utils import metrics
 
 
 class DataExportDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationEventPermission,)
+    permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request, organization, **kwargs):
         """
@@ -31,6 +32,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
     def download(self, data_export):
+        metrics.incr("dataexport.download")
         file = data_export.file
         raw_file = file.getfile()
         response = StreamingHttpResponse(

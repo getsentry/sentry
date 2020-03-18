@@ -1,10 +1,9 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconArrow} from 'app/icons/iconArrow';
 import Link from 'app/components/links/link';
 
 import EventView, {Field, Sort, isFieldSortable} from './eventView';
@@ -15,20 +14,12 @@ export type Alignments = 'left' | 'right' | undefined;
 type Props = {
   align: Alignments;
   field: Field;
-  location: Location;
   eventView: EventView;
   tableDataMeta?: MetaType; // Will not be defined if data is not loaded
+  generateSortLink: () => LocationDescriptorObject | undefined;
 };
 
 class SortLink extends React.Component<Props> {
-  static propTypes = {
-    align: PropTypes.string,
-    field: PropTypes.object.isRequired,
-    location: PropTypes.object.isRequired,
-    eventView: PropTypes.object.isRequired,
-    tableDataMeta: PropTypes.object,
-  };
-
   isCurrentColumnSorted(): Sort | undefined {
     const {eventView, field, tableDataMeta} = this.props;
     if (!tableDataMeta) {
@@ -38,22 +29,7 @@ class SortLink extends React.Component<Props> {
     return eventView.isFieldSorted(field, tableDataMeta);
   }
 
-  getTarget() {
-    const {location, field, eventView, tableDataMeta} = this.props;
-    if (!tableDataMeta) {
-      return undefined;
-    }
-
-    const nextEventView = eventView.sortOnField(field, tableDataMeta);
-    const queryStringObject = nextEventView.generateQueryStringObject();
-
-    return {
-      ...location,
-      query: queryStringObject,
-    };
-  }
-
-  renderChevron() {
+  renderArrow() {
     const currentSort = this.isCurrentColumnSorted();
 
     if (!currentSort) {
@@ -61,22 +37,23 @@ class SortLink extends React.Component<Props> {
     }
 
     if (currentSort.kind === 'desc') {
-      return <InlineSvg src="icon-chevron-down" />;
+      return <StyledIconArrow size="xs" direction="down" />;
     }
-
-    return <InlineSvg src="icon-chevron-up" />;
+    return <StyledIconArrow size="xs" direction="up" />;
   }
 
   render() {
-    const {align, field, tableDataMeta} = this.props;
+    const {align, field, tableDataMeta, generateSortLink} = this.props;
 
-    if (!isFieldSortable(field, tableDataMeta)) {
+    const target = generateSortLink();
+
+    if (!target || !isFieldSortable(field, tableDataMeta)) {
       return <StyledNonLink align={align}>{field.field}</StyledNonLink>;
     }
 
     return (
-      <StyledLink align={align} to={this.getTarget()}>
-        {field.field} {this.renderChevron()}
+      <StyledLink align={align} to={target}>
+        {field.field} {this.renderArrow()}
       </StyledLink>
     );
   }
@@ -89,13 +66,29 @@ const StyledLink = styled((props: StyledLinkProps) => {
   return <Link {...forwardProps} />;
 })`
   display: block;
+  width: 100%;
   white-space: nowrap;
+  color: inherit;
+
+  &:hover,
+  &:active,
+  &:focus,
+  &:visited {
+    color: inherit;
+  }
+
   ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
 `;
 
 const StyledNonLink = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
   white-space: nowrap;
   ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+`;
+
+const StyledIconArrow = styled(IconArrow)`
+  vertical-align: top;
 `;
 
 export default SortLink;

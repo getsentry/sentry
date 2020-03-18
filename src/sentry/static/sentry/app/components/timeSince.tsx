@@ -80,13 +80,13 @@ class TimeSince extends React.PureComponent<Props, State> {
     const {date, suffix: _suffix, className, ...props} = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
-    const format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const options = user ? user.options : null;
+    const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
       <time
         dateTime={dateObj.toISOString()}
-        title={moment.tz(dateObj, options.timezone).format(format)}
+        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
         className={className}
         {...props}
       >

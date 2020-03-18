@@ -164,10 +164,12 @@ class GroupEventDetails extends React.Component<Props, State> {
   };
 
   get showExampleCommit() {
+    const {project} = this.props;
     const {releasesCompletion} = this.state;
     return (
-      releasesCompletion &&
-      releasesCompletion.some(({step, complete}) => step === 'commit' && !complete)
+      project?.isMember &&
+      project?.firstEvent &&
+      releasesCompletion?.some(({step, complete}) => step === 'commit' && !complete)
     );
   }
 
@@ -189,18 +191,14 @@ class GroupEventDetails extends React.Component<Props, State> {
                 location={location}
               />
             )}
-            {group.status !== 'unresolved' && (
-              <div className="issue-status">
-                {group.status === 'ignored' && (
-                  <MutedBox statusDetails={group.statusDetails} />
-                )}
-                {group.status === 'resolved' && (
-                  <ResolutionBox
-                    statusDetails={group.statusDetails}
-                    orgId={organization.slug}
-                  />
-                )}
-              </div>
+            {group.status === 'ignored' && (
+              <MutedBox statusDetails={group.statusDetails} />
+            )}
+            {group.status === 'resolved' && (
+              <ResolutionBox
+                statusDetails={group.statusDetails}
+                orgId={organization.slug}
+              />
             )}
             {this.state.loading ? (
               <LoadingIndicator />

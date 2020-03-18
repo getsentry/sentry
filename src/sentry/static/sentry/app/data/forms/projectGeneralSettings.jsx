@@ -342,12 +342,16 @@ export const fields = {
     label: t('Advanced datascrubber configuration'),
     placeholder: t('Paste a JSON configuration here.'),
     multiline: true,
+    monospace: true,
     autosize: true,
+    inline: false,
     maxRows: 20,
     help: tct(
       'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
       {
-        learn_more: <a href="https://getsentry.github.io/relay/pii-config/" />,
+        learn_more: (
+          <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />
+        ),
       }
     ),
     visible: ({features}) => features.has('datascrubbers-v2'),

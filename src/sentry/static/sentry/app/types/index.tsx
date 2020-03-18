@@ -6,6 +6,7 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {PlatformKey} from 'app/data/platformCategories';
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -68,7 +69,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveExperiments>;
+  experiments: Partial<ActiveOrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -97,7 +98,7 @@ export type Organization = LightWeightOrganization & {
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
-  platform?: string;
+  platform?: PlatformKey;
 };
 
 export type Project = {
@@ -109,6 +110,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  firstEvent: 'string' | null;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
@@ -124,16 +126,18 @@ export type ProjectRelease = {
   newGroups: number;
   healthData: Health | null;
   projectSlug: string;
+  projectId: number;
 };
 
 export type Health = {
-  crash_free_users: number | null;
-  total_users: number;
-  crash_free_sessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+  crashFreeSessions: number | null;
   stats: HealthGraphData;
-  crashes: number;
-  errors: number;
+  sessionsCrashed: number;
+  sessionsErrored: number;
   adoption: number | null;
+  hasHealthData: boolean;
 };
 export type HealthGraphData = {
   [key: string]: [number, number][];
@@ -222,7 +226,7 @@ type SentryEventBase = {
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: string;
+  platform?: PlatformKey;
   dateCreated?: string;
   endTimestamp?: number;
   entries: EntryType[];
@@ -262,7 +266,9 @@ export type YAxisEventsStats = {
   [yAxisName: string]: EventsStats;
 };
 
-// Avatars are a more primitive version of User.
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   id: string;
   name: string;
@@ -316,6 +322,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
+  experiments: Partial<ActiveUserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -363,7 +370,7 @@ export type PluginProjectItem = {
   projectId: string;
   projectSlug: string;
   projectName: string;
-  projectPlatform: string | null;
+  projectPlatform: PlatformKey;
   enabled: boolean;
   configured: boolean;
 };
@@ -452,7 +459,7 @@ export type Config = {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   isOnPremise: boolean;
-  lastOrganization: string;
+  lastOrganization: string | null;
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
@@ -465,7 +472,10 @@ export type Config = {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage: string | null;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
   sentryConfig: {
     dsn: string;
     release: string;
@@ -500,13 +510,13 @@ export type Group = {
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
   lastSeen: string;
-  level: string;
+  level: Level;
   logger: string;
   metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
-  platform: string;
+  platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)
@@ -565,6 +575,7 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+
 export enum RepositoryStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
@@ -572,6 +583,12 @@ export enum RepositoryStatus {
   PENDING_DELETION = 'pending_deletion',
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
+
+export type PullRequest = {
+  id: string;
+  title: string;
+  externalUrl: string;
+};
 
 type BaseIntegrationProvider = {
   key: string;
@@ -776,8 +793,15 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string; healthData?: Health | null}[];
+  projects: ReleaseProject[];
 } & BaseRelease;
+
+type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  healthData?: Health | null;
+};
 
 export type BaseRelease = {
   dateReleased: string;
@@ -807,6 +831,16 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
+};
+
 export type MemberRole = {
   id: string;
   name: string;
@@ -825,9 +859,13 @@ export type SentryAppComponent = {
   };
 };
 
-export type ActiveExperiments = {
+export type ActiveOrgExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
+  IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
+
+export type ActiveUserExperiments = {};
 
 type SavedQueryVersions = 1 | 2;
 
@@ -864,6 +902,10 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+export type StringMap<T> = {
+  [key: string]: T;
 };
 
 /**
@@ -907,8 +949,18 @@ export type OnboardingTaskDescriptor = {
   title: string;
   description: string;
   detailedDescription?: string;
+  /**
+   * Can this task be skipped?
+   */
   skippable: boolean;
-  prereq: number[];
+  /**
+   * A list of require task keys that must have been completed before these
+   * tasks may be completed.
+   */
+  requisites: OnboardingTaskKey[];
+  /**
+   * Should the onboarding task currently be displayed
+   */
   display: boolean;
 } & (
   | {
@@ -924,8 +976,9 @@ export type OnboardingTaskDescriptor = {
 export type OnboardingTaskStatus = {
   task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user?: string | null;
+  user?: AvatarUser | null;
   dateCompleted?: string;
+  completionSeen?: string;
   data?: object;
 };
 
@@ -974,10 +1027,38 @@ export enum ResolutionStatus {
   UNRESOLVED = 'unresolved',
 }
 export type ResolutionStatusDetails = {
+  actor?: AvatarUser;
+  inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
 };
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
+};
+
+export type Broadcast = {
+  id: string;
+  message: string;
+  title: string;
+  link: string;
+  cta: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateExpires: string;
+  hasSeen: boolean;
+};
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
 };

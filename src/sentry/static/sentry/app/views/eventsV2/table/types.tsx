@@ -1,7 +1,7 @@
 import {GridColumnOrder, GridColumnSortBy} from 'app/components/gridEditable';
 
-import {ColumnValueType, Aggregation, Field} from '../eventQueryParams';
-import {Field as FieldType} from '../eventView';
+import {ColumnType, ColumnValueType, AggregateParameter} from '../eventQueryParams';
+import {Column} from '../eventView';
 import {MetaType} from '../utils';
 
 /**
@@ -10,9 +10,8 @@ import {MetaType} from '../utils';
 export type TableColumn<K> = GridColumnOrder<K> & {
   // key: K                     From GridColumn
   // name: string               From GridColumnHeader
-  aggregation: Aggregation;
-  field: Field;
-  eventViewField: Readonly<FieldType>;
+  column: Readonly<Column>;
+  width?: number;
 
   type: ColumnValueType;
   isSortable: boolean;
@@ -34,3 +33,37 @@ export type TableData = {
   meta?: MetaType;
   data: Array<TableDataRow>;
 };
+
+export enum FieldValueKind {
+  TAG = 'tag',
+  FIELD = 'field',
+  FUNCTION = 'function',
+}
+
+// Payload of select options in the column editor.
+// The first column contains a union of tags, fields and functions,
+// and we need ways to disambiguate them.
+export type FieldValue =
+  | {
+      kind: FieldValueKind.TAG;
+      meta: {
+        name: string;
+        dataType: ColumnType;
+        // Set to true for tag values we invent at runtime.
+        unknown?: boolean;
+      };
+    }
+  | {
+      kind: FieldValueKind.FIELD;
+      meta: {
+        name: string;
+        dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.FUNCTION;
+      meta: {
+        name: string;
+        parameters: AggregateParameter[];
+      };
+    };

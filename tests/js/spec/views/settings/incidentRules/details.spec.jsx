@@ -2,7 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
+import {selectByValue} from 'sentry-test/select-new';
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 
@@ -63,7 +63,7 @@ describe('Incident Rules Details', function() {
           params={{
             orgId: organization.slug,
             projectId: project.slug,
-            incidentRuleId: rule.id,
+            ruleId: rule.id,
           }}
           organization={organization}
         />
@@ -103,7 +103,7 @@ describe('Incident Rules Details', function() {
       .simulate('change', {target: {value: 12}});
 
     // Add an action
-    selectByValue(wrapper, 'email', {
+    selectByValue(wrapper, 'email-null', {
       control: true,
       name: 'add-action',
     });
@@ -127,6 +127,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
@@ -195,6 +196,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',

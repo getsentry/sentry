@@ -437,31 +437,35 @@ class SentryAppInstallationStatus(object):
 
 
 class ExportQueryType(object):
-    DISCOVER_V2 = 0
-    BILLING_REPORT = 1
-    ISSUE_BY_TAG = 2
-    # Add additional query types here...
-    DISCOVER_V2_STR = "DISCOVER_V2"
-    BILLING_REPORT_STR = "BILLING_REPORT"
-    ISSUE_BY_TAG_STR = "ISSUE_BY_TAG"
-    # Add their corresponding strings (sent from browser) here...
+    ISSUES_BY_TAG = 0
+    DISCOVER = 1
+    ISSUES_BY_TAG_STR = "Issues-by-Tag"
+    DISCOVER_STR = "Discover"
 
     @classmethod
     def as_choices(cls):
+        return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
+
+    @classmethod
+    def as_str_choices(cls):
         return (
-            (cls.DISCOVER_V2, cls.DISCOVER_V2_STR),
-            (cls.BILLING_REPORT, cls.BILLING_REPORT_STR),
-            (cls.ISSUE_BY_TAG, cls.ISSUE_BY_TAG_STR),
+            (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
+            (cls.DISCOVER_STR, cls.DISCOVER_STR),
         )
 
     @classmethod
-    def as_str(cls, status):
-        if status == cls.DISCOVER_V2:
-            return cls.DISCOVER_V2_STR
-        elif status == cls.BILLING_REPORT:
-            return cls.BILLING_REPORT_STR
-        elif status == cls.ISSUE_BY_TAG:
-            return cls.ISSUE_BY_TAG_STR
+    def as_str(cls, integer):
+        if integer == cls.ISSUES_BY_TAG:
+            return cls.ISSUES_BY_TAG_STR
+        elif integer == cls.DISCOVER:
+            return cls.DISCOVER_STR
+
+    @classmethod
+    def from_str(cls, string):
+        if string == cls.ISSUES_BY_TAG_STR:
+            return cls.ISSUES_BY_TAG
+        elif string == cls.DISCOVER_STR:
+            return cls.DISCOVER
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

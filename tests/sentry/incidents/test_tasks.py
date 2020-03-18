@@ -159,18 +159,24 @@ class HandleTriggerActionTest(TestCase):
     def test_missing_trigger_action(self):
         with self.tasks():
             handle_trigger_action.delay(1000, 1001, self.project.id, "hello")
-        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_action")
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.action.skipping_missing_action"
+        )
 
     def test_missing_incident(self):
         with self.tasks():
             handle_trigger_action.delay(self.action.id, 1001, self.project.id, "hello")
-        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_incident")
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.action.skipping_missing_incident"
+        )
 
     def test_missing_project(self):
         incident = self.create_incident()
         with self.tasks():
             handle_trigger_action.delay(self.action.id, incident.id, 1002, "hello")
-        self.metrics.incr.assert_called_once_with("incidents.alert_rules.skipping_missing_project")
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.action.skipping_missing_project"
+        )
 
     def test(self):
         with patch.object(AlertRuleTriggerAction, "_type_registrations", new={}):

@@ -1,156 +1,456 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {components} from 'react-select';
+import cloneDeep from 'lodash/cloneDeep';
 
+import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import {OrganizationSummary, SelectValue} from 'app/types';
+import {SelectValue, StringMap} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
+import {FieldValueKind, FieldValue} from './types';
 import {
-  AGGREGATIONS,
-  FIELDS,
-  TRACING_FIELDS,
-  Field,
+  FIELD_ALIASES,
+  ColumnType,
   Aggregation,
+  AggregateParameter,
 } from '../eventQueryParams';
 import {Column} from '../eventView';
-import {AGGREGATE_ALIASES} from '../data';
+
+type FieldOptions = StringMap<SelectValue<FieldValue>>;
+
+// Intermediate type that combines the current column
+// data with the AggregateParameter type.
+type ParameterDescription =
+  | {
+      kind: 'value';
+      value: string;
+      dataType: ColumnType;
+      required: boolean;
+    }
+  | {
+      kind: 'column';
+      value: FieldValue | null;
+      options: SelectValue<FieldValue>[];
+      required: boolean;
+    };
 
 type Props = {
   className?: string;
-  organization: OrganizationSummary;
+  takeFocus: boolean;
   parentIndex: number;
   column: Column;
-  tagKeys: string[];
+  gridColumns: number;
+  fieldOptions: FieldOptions;
   onChange: (index: number, column: Column) => void;
 };
 
-type State = {
-  fields: SelectValue<string>[];
-  aggregations: string[];
-};
-
-class ColumnEditRow extends React.Component<Props, State> {
-  state = {
-    fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    aggregations: filterAggregations(this.props.organization, this.props.column.field),
-  };
-
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.tagKeys !== this.props.tagKeys) {
-      this.syncFields();
-    }
-  }
-
+class ColumnEditRow extends React.Component<Props> {
   handleFieldChange = ({value}) => {
-    this.setState((state: State, props: Props) => {
-      const newAggregates = filterAggregations(props.organization, value);
-      const newState = {...state, aggregations: newAggregates};
-      let aggregation = props.column.aggregation;
+    const current = this.props.column;
+    let column: Column = cloneDeep(this.props.column);
 
-      // If the new field makes the aggregation invalid, we should clear that state.
-      if (aggregation && !newAggregates.includes(aggregation as Aggregation)) {
-        aggregation = '';
+    switch (value.kind) {
+      case FieldValueKind.TAG:
+      case FieldValueKind.FIELD:
+        column = {kind: 'field', field: value.meta.name};
+        break;
+      case FieldValueKind.FUNCTION:
+        if (current.kind === 'field') {
+          column = {kind: 'function', function: [value.meta.name, '', undefined]};
+        } else if (current.kind === 'function') {
+          column = {
+            kind: 'function',
+            function: [value.meta.name, current.function[1], current.function[2]],
+          };
+        }
+        // Backwards compatibility for field alias versions of functions.
+        if (
+          current.kind === 'function' &&
+          column.kind === 'function' &&
+          current.function[1] &&
+          FIELD_ALIASES.includes(current.function[1])
+        ) {
+          column.function = [column.function[1] as Aggregation, '', undefined];
+        }
+        break;
+      default:
+        throw new Error('Invalid field type found in column picker');
+    }
+
+    if (value.kind === FieldValueKind.FUNCTION) {
+      value.meta.parameters.forEach((param: AggregateParameter, i: number) => {
+        if (column.kind !== 'function') {
+          return;
+        }
+        if (param.kind === 'column') {
+          const field = this.getFieldOrTagValue(column.function[i + 1]);
+          if (field === null) {
+            column.function[i + 1] = param.defaultValue || '';
+          } else if (
+            (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
+            param.columnTypes.includes(field.meta.dataType)
+          ) {
+            // New function accepts current field.
+            column.function[i + 1] = field.meta.name;
+          } else {
+            // field does not fit within new function requirements, use the default.
+            column.function[i + 1] = param.defaultValue || '';
+            column.function[i + 2] = undefined;
+          }
+        }
+        if (param.kind === 'value') {
+          column.function[i + 1] = param.defaultValue || '';
+        }
+      });
+
+      if (column.kind === 'function' && value.meta.parameters.length === 0) {
+        column.function = [column.function[0], '', undefined];
       }
-      this.triggerChange(value, aggregation as string);
+    }
 
-      return newState;
-    });
+    this.triggerChange(column);
   };
 
-  handleFunctionChange = ({value}) => {
-    // TODO(mark) When we add improved tracing function support also clear
-    // the function parameter as necessary.
-    this.triggerChange(this.props.column.field, value);
+  handleFieldParameterChange = ({value}) => {
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[1] = value.meta.name;
+    }
+    this.triggerChange(newColumn);
   };
 
-  triggerChange(field: string, aggregation: string) {
+  handleRefinementChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[2] = value;
+    }
+    this.triggerChange(newColumn);
+  };
+
+  triggerChange(column: Column) {
     const {parentIndex} = this.props;
-    this.props.onChange(parentIndex, {
-      field,
-      aggregation,
-    });
+    this.props.onChange(parentIndex, column);
   }
 
-  syncFields() {
-    this.setState({
-      fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
+  getFieldOrTagValue(name: string | undefined): FieldValue | null {
+    const {fieldOptions} = this.props;
+    if (name === undefined) {
+      return null;
+    }
+
+    const fieldName = `field:${name}`;
+    const tagName = `tag:${name}`;
+    if (fieldOptions[fieldName]) {
+      return fieldOptions[fieldName].value;
+    }
+    if (fieldOptions[tagName]) {
+      return fieldOptions[tagName].value;
+    }
+
+    // Likely a tag that was deleted but left behind in a saved query
+    // Cook up a tag option so select control works.
+    if (name.length > 0) {
+      return {
+        kind: FieldValueKind.TAG,
+        meta: {
+          name,
+          dataType: 'string',
+          unknown: true,
+        },
+      };
+    }
+    return null;
+  }
+
+  getFieldData() {
+    let field: FieldValue | null = null,
+      fieldParameter: FieldValue | null = null;
+
+    const {column} = this.props;
+    let {fieldOptions} = this.props;
+
+    if (column.kind === 'function') {
+      const funcName = `function:${column.function[0]}`;
+      if (fieldOptions[funcName] !== undefined) {
+        field = fieldOptions[funcName].value;
+        // TODO move this closer to where it is used.
+        fieldParameter = this.getFieldOrTagValue(column.function[1]);
+      }
+    } else if (column.kind === 'field') {
+      if (FIELD_ALIASES.includes(column.field)) {
+        // Handle backwards compatible field aliases.
+        const aliasName = `function:${column.field}`;
+        if (fieldOptions[aliasName] !== undefined) {
+          field = fieldOptions[aliasName].value;
+        }
+      } else {
+        field = this.getFieldOrTagValue(column.field);
+      }
+    }
+
+    // If our current field, or columnParameter is a virtual tag, add it to the option list.
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+    fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+
+    let parameterDescriptions: ParameterDescription[] = [];
+    // Generate options and values for each parameter.
+    if (
+      field &&
+      field.kind === FieldValueKind.FUNCTION &&
+      field.meta.parameters.length > 0
+    ) {
+      parameterDescriptions = field.meta.parameters.map(
+        (param): ParameterDescription => {
+          if (param.kind === 'column') {
+            return {
+              kind: 'column',
+              value: fieldParameter,
+              required: param.required,
+              options: Object.values(fieldOptions).filter(
+                ({value}) =>
+                  (value.kind === FieldValueKind.FIELD ||
+                    value.kind === FieldValueKind.TAG) &&
+                  param.columnTypes.includes(value.meta.dataType)
+              ),
+            };
+          }
+          return {
+            kind: 'value',
+            value:
+              (column.kind === 'function' && column.function[2]) ||
+              param.defaultValue ||
+              '',
+            dataType: param.dataType,
+            required: param.required,
+          };
+        }
+      );
+    }
+
+    return {field, fieldOptions, parameterDescriptions};
+  }
+
+  appendFieldIfUnknown(
+    fieldOptions: FieldOptions,
+    field: FieldValue | null
+  ): FieldOptions {
+    if (!field) {
+      return fieldOptions;
+    }
+
+    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+      // Clone the options so we don't mutate other rows.
+      fieldOptions = Object.assign({}, fieldOptions);
+      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+    }
+
+    return fieldOptions;
+  }
+
+  renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
+    const {gridColumns} = this.props;
+    const inputs = parameters.map((descriptor: ParameterDescription) => {
+      if (descriptor.kind === 'column' && descriptor.options.length > 0) {
+        return (
+          <SelectControl
+            key="select"
+            name="parameter"
+            placeholder={t('Select value')}
+            options={descriptor.options}
+            value={descriptor.value}
+            required={descriptor.required}
+            onChange={this.handleFieldParameterChange}
+          />
+        );
+      }
+      if (descriptor.kind === 'value') {
+        const inputProps = {
+          required: descriptor.required,
+          value: descriptor.value,
+          onUpdate: this.handleRefinementChange,
+        };
+        switch (descriptor.dataType) {
+          case 'number':
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*(\.[0-9]*)?"
+                {...inputProps}
+              />
+            );
+          case 'integer':
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:integer"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                {...inputProps}
+              />
+            );
+          default:
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:text"
+                type="text"
+                {...inputProps}
+              />
+            );
+        }
+      }
+      throw new Error(`Unknown parameter type encountered for ${this.props.column}`);
     });
+
+    // Add enough disabled inputs to fill the grid up.
+    // We always have 1 input.
+    const requiredInputs = gridColumns - inputs.length - 1;
+    if (requiredInputs > 0) {
+      for (let i = 0; i < requiredInputs; i++) {
+        inputs.push(
+          <StyledInput
+            className="form-control"
+            key={`disabled:${i}`}
+            placeholder={t('N/A')}
+            disabled
+          />
+        );
+      }
+    }
+
+    return inputs;
   }
 
   render() {
-    const {fields, aggregations} = this.state;
-    const {column, className} = this.props;
+    const {className, takeFocus, gridColumns} = this.props;
+    const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
+
+    const selectProps: React.ComponentProps<SelectControl> = {
+      name: 'field',
+      options: Object.values(fieldOptions),
+      placeholder: t('(Required)'),
+      value: field,
+      onChange: this.handleFieldChange,
+    };
+    if (takeFocus && field === null) {
+      selectProps.autoFocus = true;
+    }
 
     return (
-      <Container className={className}>
+      <Container className={className} gridColumns={gridColumns}>
         <SelectControl
-          options={fields}
-          value={column.field}
-          onChange={this.handleFieldChange}
+          {...selectProps}
+          components={{
+            Option: ({label, value, ...props}) => (
+              //TODO(TS): stop typing props as any
+              <components.Option label={label} {...(props as any)}>
+                <Label>
+                  {label}
+                  {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                </Label>
+              </components.Option>
+            ),
+          }}
         />
-        <SelectControl
-          options={generateOptions(aggregations)}
-          value={column.aggregation}
-          onChange={this.handleFunctionChange}
-        />
+        {this.renderParameterInputs(parameterDescriptions)}
       </Container>
     );
   }
 }
 
-function generateOptions(values: string[]): SelectValue<string>[] {
-  return values.map(item => ({label: item, value: item}));
-}
-
-function filterAggregations(organization: OrganizationSummary, f?: Field): Aggregation[] {
-  let functionList = Object.keys(AGGREGATIONS);
-  if (!organization.features.includes('transaction-events')) {
-    functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
-  }
-
-  // sort list in ascending order
-  functionList.sort();
-
-  if (!f) {
-    return functionList as Aggregation[];
-  }
-  // Unknown fields are likely tag keys and thus strings.
-  const fieldType = FIELDS[f] || 'string';
-
-  if (fieldType === 'never') {
-    return [];
-  }
-
-  // Aggregate aliases cannot be aggregated again.
-  if (AGGREGATE_ALIASES.includes(f)) {
-    return [];
-  }
-
-  functionList = functionList.reduce((accumulator, a) => {
-    if (
-      AGGREGATIONS[a].type.includes(fieldType) ||
-      AGGREGATIONS[a].type === '*' ||
-      fieldType === '*'
-    ) {
-      accumulator.push(a as Aggregation);
-    }
-
-    return accumulator;
-  }, [] as Aggregation[]);
-
-  // sort list in ascending order
-  functionList.sort();
-
-  return functionList as Aggregation[];
-}
-
-const Container = styled('div')`
+const Container = styled('div')<{gridColumns: number}>`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
   grid-column-gap: ${space(1)};
   align-items: center;
 
   flex-grow: 1;
 `;
 
-export default ColumnEditRow;
+const Label = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+type InputProps = React.HTMLProps<HTMLInputElement> & {
+  onUpdate: (value: string) => void;
+  value: string;
+};
+type InputState = {value: string};
+
+/**
+ * Because controlled inputs fire onChange on every key stroke,
+ * we can't update the ColumnEditRow that often as it would re-render
+ * the input elements causing focus to be lost.
+ *
+ * Using a buffered input lets us throttle rendering and enforce data
+ * constraints better.
+ */
+class BufferedInput extends React.Component<InputProps, InputState> {
+  constructor(props: InputProps) {
+    super(props);
+    this.input = React.createRef();
+  }
+
+  state = {
+    value: this.props.value,
+  };
+
+  private input: React.RefObject<HTMLInputElement>;
+
+  get isValid() {
+    if (!this.input.current) {
+      return true;
+    }
+    return this.input.current.validity.valid;
+  }
+
+  handleBlur = () => {
+    if (this.isValid) {
+      this.props.onUpdate(this.state.value);
+    } else {
+      this.setState({value: this.props.value});
+    }
+  };
+
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (this.isValid) {
+      this.setState({value: event.target.value});
+    }
+  };
+
+  render() {
+    const {onUpdate, ...props} = this.props;
+    return (
+      <StyledInput
+        {...props}
+        ref={this.input}
+        className="form-control"
+        value={this.state.value}
+        onChange={this.handleChange}
+        onBlur={this.handleBlur}
+      />
+    );
+  }
+}
+
+// Set a min-width to allow shrinkage in grid.
+const StyledInput = styled('input')`
+  min-width: 50px;
+  /* Match the height of the select boxes */
+  height: 37px;
+
+  &:not([disabled='true']):invalid {
+    border-color: ${p => p.theme.red};
+  }
+`;
+
+export {ColumnEditRow};

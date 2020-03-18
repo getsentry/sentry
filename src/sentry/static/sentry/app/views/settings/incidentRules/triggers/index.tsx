@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
@@ -12,8 +11,9 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+import {IconAdd} from 'app/icons/iconAdd';
 
-import {Trigger} from '../types';
+import {MetricActionTemplate, Trigger} from '../types';
 
 type DeleteButtonProps = {
   triggerIndex: number;
@@ -40,10 +40,10 @@ const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => 
 type Props = {
   organization: Organization;
   projects: Project[];
-  incidentRuleId?: string;
+  ruleId?: string;
   triggers: Trigger[];
   currentProject: string;
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
 
   errors: Map<number, {[fieldName: string]: string}>;
@@ -150,7 +150,7 @@ class Triggers extends React.Component<Props> {
               disabled={disabled}
               type="button"
               size="small"
-              icon="icon-circle-add"
+              icon={<IconAdd size="xs" circle />}
               onClick={onAdd}
             >
               {t('Add Warning Trigger')}

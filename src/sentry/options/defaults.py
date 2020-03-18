@@ -174,6 +174,10 @@ register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZ
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
+# Toggles between processing transactions directly in the ingest consumer
+# (``False``) and spawning a save_event task (``True``).
+register("store.transactions-celery", default=False)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused
@@ -214,6 +218,10 @@ register("discover2.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
+
+# Killswitch for datascrubbing after stacktrace processing. Set to False to
+# disable datascrubbers.
+register("processing.can-use-scrubbers", default=True)
 
 # Sampling option to move over from reporting using the internal transport to
 # using a separate DSN

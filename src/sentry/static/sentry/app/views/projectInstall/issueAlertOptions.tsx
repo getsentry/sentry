@@ -19,8 +19,8 @@ enum MetricValues {
 }
 enum Actions {
   ALERT_ON_EVERY_ISSUE,
-  CREATE_ALERT_LATER,
   CUSTOMIZED_ALERTS,
+  CREATE_ALERT_LATER,
 }
 
 const UNIQUE_USER_FREQUENCY_CONDITION: string =
@@ -34,7 +34,7 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
-const DEFAULT_THRESHOLD_VALUE: string = '10';
+const DEFAULT_PLACEHOLDER_VALUE: string = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
@@ -104,10 +104,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
+      alertSetting: `${Actions.CREATE_ALERT_LATER}`,
       metric: MetricValues.ERRORS,
       interval: '',
-      threshold: DEFAULT_THRESHOLD_VALUE,
+      threshold: '',
     };
   }
 
@@ -127,11 +127,11 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [string, string | ReactElement][] {
     const options: [string, React.ReactNode][] = [
-      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
       [`${Actions.CREATE_ALERT_LATER}`, t("I'll create my own alerts later")],
+      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
     ];
     if (hasProperlyLoadedConditions) {
-      options.unshift([
+      options.push([
         `${Actions.CUSTOMIZED_ALERTS}`,
         <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
           {t('When there are more than')}
@@ -139,7 +139,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             type="number"
             min="0"
             name=""
-            placeholder={DEFAULT_THRESHOLD_VALUE}
+            placeholder={DEFAULT_PLACEHOLDER_VALUE}
             value={this.state.threshold}
             key={name}
             onChange={threshold =>
@@ -241,7 +241,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     );
 
     if (!conditions || conditions.length === 0) {
-      this.setStateAndUpdateParents({conditions: undefined});
+      this.setStateAndUpdateParents({
+        conditions: undefined,
+      });
       return;
     }
 
@@ -254,7 +256,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           new Error('Interval choices or sent from API endpoint is inconsistent or empty')
         );
       });
-      this.setStateAndUpdateParents({conditions: undefined});
+      this.setStateAndUpdateParents({
+        conditions: undefined,
+      });
       return;
     }
 
@@ -272,7 +276,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <PageHeadingWithTopMargins withMargins>
-          {t('Create an alert')}
+          {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
         <RadioGroupWithPadding
           choices={issueAlertOptionsChoices}

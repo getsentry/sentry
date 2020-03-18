@@ -3,13 +3,9 @@ from __future__ import absolute_import
 import datetime
 import jwt
 import re
-import json
 import logging
-from hashlib import md5 as _md5
 from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
-from sentry.utils.cache import cache
-from django.utils.encoding import force_bytes
 
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.exceptions import ApiError
@@ -20,10 +16,6 @@ logger = logging.getLogger("sentry.integrations.jira")
 
 JIRA_KEY = "%s.jira" % (urlparse(absolute_uri()).hostname,)
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
-
-
-def md5(*bits):
-    return _md5(":".join((force_bytes(bit, errors="replace") for bit in bits)))
 
 
 class JiraCloud(object):
@@ -91,6 +83,11 @@ class JiraApiClient(ApiClient):
 
     integration_name = "jira"
 
+    # This timeout is completely arbitrary. Jira doesn't give us any
+    # caching headers to work with. Ideally we want a duration that
+    # lets the user make their second jira issue with cached data.
+    cache_time = 240
+
     def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
         self.base_url = base_url
         # `jira_style` encapsulates differences between jira server & jira cloud.
@@ -98,6 +95,9 @@ class JiraApiClient(ApiClient):
         # authentication mechanisms and caching.
         self.jira_style = jira_style
         super(JiraApiClient, self).__init__(verify_ssl, logging_context)
+
+    def get_cache_prefix(self):
+        return self.jira_style.cache_prefix
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """
@@ -119,23 +119,6 @@ class JiraApiClient(ApiClient):
 
     def query_field(self):
         return self.jira_style.query_field()
-
-    def get_cached(self, url, params=None):
-        """
-        Basic Caching mechanism for Jira metadata which changes infrequently
-        """
-        query = ""
-        if params:
-            query = json.dumps(params, sort_keys=True)
-        key = self.jira_style.cache_prefix + md5(url, query, self.base_url).hexdigest()
-        cached_result = cache.get(key)
-        if not cached_result:
-            cached_result = self.get(url, params=params)
-            # This timeout is completely arbitrary. Jira doesn't give us any
-            # caching headers to work with. Ideally we want a duration that
-            # lets the user make their second jira issue with cached data.
-            cache.set(key, cached_result, 240)
-        return cached_result
 
     def get_issue(self, issue_id):
         return self.get(self.ISSUE_URL % (issue_id,))

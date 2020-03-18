@@ -15,6 +15,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {IconAdd} from 'app/icons/iconAdd';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -349,7 +350,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 {t('Tokens')}
                 <Button
                   size="xsmall"
-                  icon="icon-circle-add"
+                  icon={<IconAdd size="xs" circle />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
                   type="button"
