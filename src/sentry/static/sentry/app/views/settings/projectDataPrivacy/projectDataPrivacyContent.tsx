@@ -79,7 +79,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
         <DataPrivacyRulesPanel
           panelHeaderSubTitle={
             <PanelHeaderSubTitle>
-              {t('this can also be configured org-wide in')}
+              {t('This can also be configured organization-wide in')}
               <Link to={`/settings/${orgId}/security-and-privacy/`}>
                 {t('Organization Security and Privacy')}
               </Link>
