@@ -16,11 +16,6 @@ from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.compat import zip
 
-# Maximum number of results we are willing to fetch.
-# Clients should adapt the interval width based on their
-# display width.
-MAX_POINTS = 4500
-
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
@@ -72,7 +67,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             interval = timedelta(hours=1)
 
         date_range = params["end"] - params["start"]
-        if date_range.total_seconds() / interval.total_seconds() > MAX_POINTS:
+        if date_range.total_seconds() / interval.total_seconds() > snuba.MAX_DATA_POINTS:
             raise InvalidSearchQuery(
                 "Your interval and date range would create too many results. "
                 "Use a larger interval, or a smaller date range."
