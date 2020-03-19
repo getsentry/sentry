@@ -8,8 +8,10 @@ from sentry.utils.dates import to_timestamp
 from sentry.snuba.dataset import Dataset
 
 
-def _nan_as_none(val):
-    return None if val != val else val
+def _convert_duration(val):
+    if val != val:
+        return None
+    return val / 1000.0
 
 
 def _get_conditions_and_filter_keys(project_releases, environments):
@@ -172,8 +174,8 @@ def get_release_health_data_overview(
     )["data"]:
         x_total_users = total_users.get(x["project_id"])
         rp = {
-            "duration_p50": _nan_as_none(x["duration_quantiles"][0]),
-            "duration_p90": _nan_as_none(x["duration_quantiles"][1]),
+            "duration_p50": _convert_duration(x["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(x["duration_quantiles"][1]),
             "crash_free_users": (
                 100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
             ),
@@ -310,8 +312,8 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
             stat + "_errored": rv[stat + "_errored"] - rv[stat + "_crashed"],
-            "duration_p50": _nan_as_none(rv["duration_quantiles"][0]),
-            "duration_p90": _nan_as_none(rv["duration_quantiles"][1]),
+            "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
 
     for idx, bucket in enumerate(stats):
