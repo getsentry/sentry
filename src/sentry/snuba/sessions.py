@@ -8,6 +8,10 @@ from sentry.utils.dates import to_timestamp
 from sentry.snuba.dataset import Dataset
 
 
+def _nan_as_none(val):
+    return None if val != val else val
+
+
 def _get_conditions_and_filter_keys(project_releases, environments):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
     if environments is not None:
@@ -90,11 +94,11 @@ def get_project_releases_by_stability(
     return rv
 
 
-def _make_stats(start, rollup, buckets):
+def _make_stats(start, rollup, buckets, default=0):
     rv = []
     start = int(to_timestamp(start) // rollup) * rollup
     for x in range(buckets):
-        rv.append([start, 0])
+        rv.append([start, default])
         start += rollup
     return rv
 
@@ -130,9 +134,6 @@ def get_release_health_data_overview(
     tuples.  The return value is a set of all the project releases that have health
     data.
     """
-
-    def _nan_as_none(val):
-        return None if val != val else val
 
     _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
@@ -238,3 +239,90 @@ def get_release_health_data_overview(
             ]
 
     return rv
+
+
+def get_crash_free_breakdown(project_id, release, environments=None):
+    filter_keys = {"project_id": [project_id]}
+    conditions = [["release", "=", release]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    def _query_stats(start_delta):
+        row = raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["users", "users_crashed", "sessions", "sessions_crashed"],
+            start=datetime.now(pytz.utc) - start_delta,
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"][0]
+        return {
+            "total_users": row["users"],
+            "crash_free_users": row["users_crashed"] / float(row["users"]) * 100
+            if row["users"]
+            else None,
+            "total_sessions": row["sessions"],
+            "crash_free_sessions": row["sessions_crashed"] / float(row["sessions"]) * 100
+            if row["sessions"]
+            else None,
+        }
+
+    return {
+        "1d": _query_stats(timedelta(days=1)),
+        "1w": _query_stats(timedelta(days=7)),
+        "2w": _query_stats(timedelta(days=14)),
+        "4w": _query_stats(timedelta(days=28)),
+    }
+
+
+def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
+    assert stat in ("users", "sessions")
+
+    filter_keys = {"project_id": [project_id]}
+    conditions = [["release", "=", release]]
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+
+    buckets = int((end - start).total_seconds() / rollup)
+    stats = _make_stats(start, rollup, buckets, default=None)
+
+    for rv in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "bucketed_started",
+            "release",
+            stat,
+            stat + "_crashed",
+            stat + "_abnormal",
+            stat + "_errored",
+            "duration_quantiles",
+        ],
+        groupby=["bucketed_started", "release", "project_id"],
+        start=start,
+        end=end,
+        rollup=rollup,
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]:
+        ts = parse_snuba_datetime(rv["bucketed_started"])
+        bucket = int((end - ts).total_seconds() / rollup)
+        stats[bucket][1] = {
+            stat: rv[stat],
+            stat + "_crashed": rv[stat + "_crashed"],
+            stat + "_abnormal": rv[stat + "_abnormal"],
+            stat + "_errored": rv[stat + "_errored"] - rv[stat + "_crashed"],
+            "duration_p50": _nan_as_none(rv["duration_quantiles"][0]),
+            "duration_p90": _nan_as_none(rv["duration_quantiles"][1]),
+        }
+
+    for idx, bucket in enumerate(stats):
+        if bucket[1] is None:
+            stats[idx][1] = {
+                stat: 0,
+                stat + "_crashed": 0,
+                stat + "_abnormal": 0,
+                stat + "_errored": 0,
+                "duration_p50": None,
+                "duration_p90": None,
+            }
+
+    return stats
