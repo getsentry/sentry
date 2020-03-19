@@ -302,6 +302,7 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
     ProjectCombinedRuleIndexEndpoint,
 )
+from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -607,6 +608,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
                     OrganizationIncidentDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/stats/$",
+                    OrganizationIncidentStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-incident-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/$",
