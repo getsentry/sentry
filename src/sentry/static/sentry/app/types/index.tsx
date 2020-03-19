@@ -6,6 +6,7 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {PlatformKey} from 'app/data/platformCategories';
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -68,7 +69,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveExperiments>;
+  experiments: Partial<ActiveOrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -97,7 +98,7 @@ export type Organization = LightWeightOrganization & {
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
-  platform?: string;
+  platform?: PlatformKey;
 };
 
 export type Project = {
@@ -225,7 +226,7 @@ type SentryEventBase = {
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: string;
+  platform?: PlatformKey;
   dateCreated?: string;
   endTimestamp?: number;
   entries: EntryType[];
@@ -233,6 +234,7 @@ type SentryEventBase = {
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+  projectID: string;
 
   tags: EventTag[];
 
@@ -321,6 +323,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
+  experiments: Partial<ActiveUserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -368,7 +371,7 @@ export type PluginProjectItem = {
   projectId: string;
   projectSlug: string;
   projectName: string;
-  projectPlatform: string | null;
+  projectPlatform: PlatformKey;
   enabled: boolean;
   configured: boolean;
 };
@@ -514,7 +517,7 @@ export type Group = {
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
-  platform: string;
+  platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)
@@ -829,6 +832,16 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
+};
+
 export type MemberRole = {
   id: string;
   name: string;
@@ -847,11 +860,13 @@ export type SentryAppComponent = {
   };
 };
 
-export type ActiveExperiments = {
+export type ActiveOrgExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
   AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
   IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
+
+export type ActiveUserExperiments = {};
 
 type SavedQueryVersions = 1 | 2;
 
@@ -1033,4 +1048,18 @@ export type Broadcast = {
   dateCreated: string;
   dateExpires: string;
   hasSeen: boolean;
+};
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
 };

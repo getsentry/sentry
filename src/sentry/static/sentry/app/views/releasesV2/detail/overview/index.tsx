@@ -14,7 +14,8 @@ import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import SessionDuration from './sessionDuration';
-import {ReleaseContext} from '../index';
+
+import {ReleaseContext} from '..';
 
 type Props = {
   organization: Organization;
@@ -28,9 +29,9 @@ const ReleaseOverview = ({organization, params, selection, router, location}: Pr
   <ReleaseContext.Consumer>
     {release => {
       const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
-      const project = projects.find(p => p.id === selection.projects[0]);
-      // TODO(releasesV2): we will handle this later with forced project selector
-      if (!project) {
+      const projectSlug = projects.find(p => p.id === selection.projects[0])?.slug;
+      // TODO(releasesV2): we will handle this with locked projects later
+      if (!projectSlug) {
         return null;
       }
       return (
@@ -39,7 +40,7 @@ const ReleaseOverview = ({organization, params, selection, router, location}: Pr
             <HealthChart
               version={version}
               orgId={organization.slug}
-              projectSlug={project.slug}
+              projectSlug={projectSlug}
               router={router}
               selection={selection}
               location={location}
@@ -52,6 +53,7 @@ const ReleaseOverview = ({organization, params, selection, router, location}: Pr
                 version={version}
                 orgId={organization.slug}
                 commitCount={commitCount}
+                projectSlug={projectSlug}
               />
             )}
             <ProjectReleaseDetails release={release!} />

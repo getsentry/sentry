@@ -1,4 +1,4 @@
-export function ProviderList(params = {}) {
+export function ProviderList() {
   return {
     providers: [
       {
@@ -33,7 +33,7 @@ export function ProviderList(params = {}) {
   };
 }
 
-export function IntegrationConfig(params = {}) {
+export function IntegrationConfig() {
   return [
     {
       accountType: null,
@@ -58,7 +58,7 @@ export function IntegrationConfig(params = {}) {
   ];
 }
 
-export function OrgOwnedApps(params = {}) {
+export function OrgOwnedApps() {
   return [
     {
       allowedOrigins: [],
@@ -122,7 +122,7 @@ export function OrgOwnedApps(params = {}) {
   ];
 }
 
-export function PublishedApps(params = {}) {
+export function PublishedApps() {
   return [
     {
       allowedOrigins: [],
@@ -146,7 +146,7 @@ export function PublishedApps(params = {}) {
   ];
 }
 
-export function SentryAppInstalls(params = {}) {
+export function SentryAppInstalls() {
   return [
     {
       app: {
@@ -161,7 +161,7 @@ export function SentryAppInstalls(params = {}) {
   ];
 }
 
-export function PluginListConfig(params = {}) {
+export function PluginListConfig() {
   return [
     {
       assets: [],

@@ -6,6 +6,21 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <StyledSettingsPageHeading
+      action={
+        <ForwardRef
+          size="small"
+          to={
+            Object {
+              "pathname": "/organizations/org-slug/issues/",
+              "query": Object {
+                "project": "2",
+              },
+            }
+          }
+        >
+          View Issues
+        </ForwardRef>
+      }
       noTitleStyles={false}
       title="Issue Owners"
     />

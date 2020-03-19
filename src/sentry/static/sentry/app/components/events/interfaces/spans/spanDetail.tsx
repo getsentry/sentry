@@ -17,6 +17,7 @@ import {
   generateEventDetailsRoute,
 } from 'app/views/eventsV2/eventDetails/utils';
 import EventView from 'app/views/eventsV2/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
 import {assert} from 'app/types/utils';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
@@ -232,16 +233,26 @@ class SpanDetail extends React.Component<Props, State> {
             <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
             <Row title="Description">{get(span, 'description', '')}</Row>
             <Row title="Start Date">
-              <React.Fragment>
-                <DateTime date={startTimestamp * 1000} />
-                {` (${startTimestamp})`}
-              </React.Fragment>
+              {getDynamicText({
+                fixed: 'Mar 16, 2020 9:10:12 AM UTC',
+                value: (
+                  <React.Fragment>
+                    <DateTime date={startTimestamp * 1000} />
+                    {` (${startTimestamp})`}
+                  </React.Fragment>
+                ),
+              })}
             </Row>
             <Row title="End Date">
-              <React.Fragment>
-                <DateTime date={endTimestamp * 1000} />
-                {` (${endTimestamp})`}
-              </React.Fragment>
+              {getDynamicText({
+                fixed: 'Mar 16, 2020 9:10:13 AM UTC',
+                value: (
+                  <React.Fragment>
+                    <DateTime date={endTimestamp * 1000} />
+                    {` (${endTimestamp})`}
+                  </React.Fragment>
+                ),
+              })}
             </Row>
             <Row title="Duration">{durationString}</Row>
             <Row title="Operation">{span.op || ''}</Row>

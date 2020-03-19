@@ -1,4 +1,4 @@
-function AsanaPlugin(params) {
+function AsanaPlugin() {
   return {
     status: 'unknown',
     description: 'Integrate Asana issues by linking a repository to a project.',
@@ -26,7 +26,7 @@ function AsanaPlugin(params) {
   };
 }
 
-function AsanaCreate(params) {
+function AsanaCreate() {
   return [
     {
       name: 'workspace',

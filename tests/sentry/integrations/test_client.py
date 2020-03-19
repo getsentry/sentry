@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import responses
 
+from sentry.utils.compat import mock
 from time import time
 from sentry.testutils import TestCase
 
@@ -46,6 +47,52 @@ class ApiClientTest(TestCase):
 
         resp = ApiClient().patch("http://example.com")
         assert resp.status_code == 200
+
+    @mock.patch("django.core.cache.cache.set")
+    @mock.patch("django.core.cache.cache.get")
+    @responses.activate
+    def test_cache_mocked(self, cache_get, cache_set):
+        cache_get.return_value = None
+        responses.add(responses.GET, "http://example.com", json={"key": "value1"})
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
+
+        key = "undefined.client:a9b9f04336ce0181a08e774e01113b31"
+        cache_get.assert_called_with(key)
+        cache_set.assert_called_with(key, {"key": "value1"}, 900)
+
+    @responses.activate
+    def test_get_cached_basic(self):
+        responses.add(responses.GET, "http://example.com", json={"key": "value1"})
+
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
+        assert len(responses.calls) == 1
+
+        # should still return old value
+        responses.replace(responses.GET, "http://example.com", json={"key": "value2"})
+        resp = ApiClient().get_cached("http://example.com")
+        assert resp == {"key": "value1"}
+        assert len(responses.calls) == 1
+
+        # make sure normal get isn't impacted
+        resp = ApiClient().get("http://example.com")
+        assert resp == {"key": "value2"}
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_get_cached_query_param(self):
+        responses.add(responses.GET, "http://example.com?param=val", json={})
+        responses.add(responses.GET, "http://example.com?param=different", json={})
+
+        ApiClient().get_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().get_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().get_cached("http://example.com", params={"param": "different"})
+        assert len(responses.calls) == 2
 
 
 class OAuthProvider(OAuth2Provider):

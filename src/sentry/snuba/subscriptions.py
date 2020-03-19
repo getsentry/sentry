@@ -1,24 +1,14 @@
 from __future__ import absolute_import
 
-import json
 import logging
 
-from django.db import transaction
-
-from sentry.api.event_search import get_filter
-from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import (
-    QueryAggregations,
-    QueryDatasets,
-    QuerySubscription,
-    QuerySubscriptionEnvironment,
+from sentry.snuba.models import QuerySubscription, QuerySubscriptionEnvironment
+from sentry.snuba.tasks import (
+    create_subscription_in_snuba,
+    delete_subscription_from_snuba,
+    update_subscription_in_snuba,
 )
-from sentry.utils.snuba import _snuba_pool, SnubaError
 
-query_aggregation_to_snuba = {
-    QueryAggregations.TOTAL: ("count()", "", "count"),
-    QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
-}
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +31,7 @@ def bulk_create_snuba_subscriptions(
     :return: A list of QuerySubscriptions
     """
     subscriptions = []
-    # TODO: Batch this up properly once we move to tasks.
+    # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
         subscriptions.append(
             create_snuba_subscription(
@@ -76,17 +66,10 @@ def create_snuba_subscription(
     :param environments: List of environments to filter by
     :return: The QuerySubscription representing the subscription
     """
-    # TODO: Move this call to snuba into a task. This lets us successfully create a
-    # subscription in postgres and rollback as needed without having to create/delete
-    # from Snuba
-    subscription_id = _create_in_snuba(
-        project, dataset, query, aggregation, time_window, resolution, environments
-    )
-
     subscription = QuerySubscription.objects.create(
+        status=QuerySubscription.Status.CREATING.value,
         project=project,
         type=subscription_type,
-        subscription_id=subscription_id,
         dataset=dataset.value,
         query=query,
         aggregation=aggregation.value,
@@ -98,6 +81,10 @@ def create_snuba_subscription(
         for env in environments
     ]
     QuerySubscriptionEnvironment.objects.bulk_create(sub_envs)
+
+    create_subscription_in_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    )
 
     return subscription
 
@@ -118,7 +105,7 @@ def bulk_update_snuba_subscriptions(
     :return: A list of QuerySubscriptions
     """
     updated_subscriptions = []
-    # TODO: Batch this up properly once we move to tasks.
+    # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
         updated_subscriptions.append(
             update_snuba_subscription(
@@ -142,16 +129,8 @@ def update_snuba_subscription(
     :param environments: List of environments to filter by
     :return: The QuerySubscription representing the subscription
     """
-    # TODO: Move this call to snuba into a task. This lets us successfully update a
-    # subscription in postgres and rollback as needed without having to create/delete
-    # from snuba
-    dataset = QueryDatasets(subscription.dataset)
-    _delete_from_snuba(dataset, subscription.subscription_id)
-    subscription_id = _create_in_snuba(
-        subscription.project, dataset, query, aggregation, time_window, resolution, environments
-    )
     subscription.update(
-        subscription_id=subscription_id,
+        status=QuerySubscription.Status.UPDATING.value,
         query=query,
         aggregation=aggregation.value,
         time_window=int(time_window.total_seconds()),
@@ -165,6 +144,10 @@ def update_snuba_subscription(
             query_subscription=subscription, environment=e
         )
 
+    update_subscription_in_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    )
+
     return subscription
 
 
@@ -175,7 +158,7 @@ def bulk_delete_snuba_subscriptions(subscriptions):
     :return:
     """
     for subscription in subscriptions:
-        # TODO: Batch this up properly once we move to tasks.
+        # TODO: Batch this up properly once we care about multi-project rules.
         delete_snuba_subscription(subscription)
 
 
@@ -185,45 +168,7 @@ def delete_snuba_subscription(subscription):
     :param subscription: The subscription to delete
     :return:
     """
-    with transaction.atomic():
-        subscription.delete()
-        # TODO: Move this call to snuba into a task. This lets us successfully delete a
-        # subscription in postgres and rollback as needed without having to create/delete
-        # from snuba
-        _delete_from_snuba(QueryDatasets(subscription.dataset), subscription.subscription_id)
-
-
-def _create_in_snuba(project, dataset, query, aggregation, time_window, resolution, environments):
-    conditions = resolve_discover_aliases({"conditions": get_filter(query).conditions})[0][
-        "conditions"
-    ]
-    if environments:
-        conditions.append(["environment", "IN", [env.name for env in environments]])
-    response = _snuba_pool.urlopen(
-        "POST",
-        "/%s/subscriptions" % (dataset.value,),
-        body=json.dumps(
-            {
-                "project_id": project.id,
-                "dataset": dataset.value,
-                # We only care about conditions here. Filter keys only matter for
-                # filtering to project and groups. Projects are handled with an
-                # explicit param, and groups can't be queried here.
-                "conditions": conditions,
-                "aggregations": [query_aggregation_to_snuba[aggregation]],
-                "time_window": int(time_window.total_seconds()),
-                "resolution": int(resolution.total_seconds()),
-            }
-        ),
+    subscription.update(status=QuerySubscription.Status.DELETING.value)
+    delete_subscription_from_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
-    if response.status != 202:
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
-    return json.loads(response.data)["subscription_id"]
-
-
-def _delete_from_snuba(dataset, subscription_id):
-    response = _snuba_pool.urlopen(
-        "DELETE", "/%s/subscriptions/%s" % (dataset.value, subscription_id)
-    )
-    if response.status != 202:
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)

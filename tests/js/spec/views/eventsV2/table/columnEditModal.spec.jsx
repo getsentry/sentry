@@ -123,7 +123,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
         columns: [
           {kind: 'function', function: ['count', 'id']},
           {kind: 'function', function: ['count_unique', 'title']},
-          {kind: 'function', function: ['apdex', 'transaction.duration', 200]},
+          {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
         ],
         onApply: () => void 0,
         tagKeys,
@@ -137,11 +137,11 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(countRow.find('SelectControl')).toHaveLength(1);
       expect(countRow.find('StyledInput[disabled]')).toHaveLength(2);
 
-      const apdexRow = wrapper.find('ColumnEditRow').last();
+      const percentileRow = wrapper.find('ColumnEditRow').last();
       // two select fields, and one number input.
-      expect(apdexRow.find('SelectControl')).toHaveLength(2);
-      expect(apdexRow.find('StyledInput[disabled]')).toHaveLength(0);
-      expect(apdexRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
+      expect(percentileRow.find('SelectControl')).toHaveLength(2);
+      expect(percentileRow.find('StyledInput[disabled]')).toHaveLength(0);
+      expect(percentileRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
     });
   });
 
@@ -202,7 +202,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
 
     it('shows additional inputs for multi-parameter functions', function() {
-      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
       const field = wrapper.find('ColumnEditRow SelectControl[name="parameter"]');
@@ -210,7 +210,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       // Input should show and have default value.
       const refinement = wrapper.find('ColumnEditRow input[inputMode="numeric"]');
-      expect(refinement.props().value).toBe('300');
+      expect(refinement.props().value).toBe('0.5');
     });
   });
 
