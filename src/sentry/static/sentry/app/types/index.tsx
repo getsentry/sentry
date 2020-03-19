@@ -867,7 +867,7 @@ export type ActiveOrgExperiments = {
 };
 
 export type ActiveUserExperiments = {
-  AssistantGuideExperiment: 0 | 1 | 1;
+  AssistantGuideExperiment: 0 | 1 | -1;
 };
 
 type SavedQueryVersions = 1 | 2;
