@@ -13,6 +13,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent} from 'app/utils';
 import {Series} from 'app/types/echarts';
 
+import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
 import {YAxis} from '.';
 
 const omitIgnoredProps = (props: Props) =>
@@ -212,14 +213,14 @@ class ReleaseChartRequest extends React.Component<Props, State> {
         const [timeframe, values] = entry;
         const date = timeframe * 1000;
 
-        const crashFreePercent = Math.round(
+        const crashFreePercent = getCrashFreePercent(
           100 - percent(values[`${subject}_crashed`], values[subject])
         );
 
         return {name: date, value: crashFreePercent};
       });
 
-      const averagePercent = Math.round(meanBy(percentageData, 'value'));
+      const averagePercent = displayCrashFreePercent(meanBy(percentageData, 'value'));
 
       return {averagePercent, percentageData};
     };
@@ -231,7 +232,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
     chartData.sessions.data = sessionsPercentages.percentageData;
 
     this.props.onSummaryChange(
-      tct('[usersPercent]% users, [sessionsPercent]% sessions', {
+      tct('[usersPercent] users, [sessionsPercent] sessions', {
         usersPercent: usersPercentages.averagePercent,
         sessionsPercent: sessionsPercentages.averagePercent,
       })
