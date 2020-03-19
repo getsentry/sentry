@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.pipeline import PipelineView

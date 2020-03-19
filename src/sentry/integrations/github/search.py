@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.github.integration import build_repository_query
 from sentry.models import Integration
 

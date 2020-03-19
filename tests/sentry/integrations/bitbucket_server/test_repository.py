@@ -10,7 +10,7 @@ from exam import fixture
 from sentry.models import Integration, Repository, IdentityProvider, Identity, IdentityStatus
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from .testutils import EXAMPLE_PRIVATE_KEY, COMPARE_COMMITS_EXAMPLE, REPO, COMMIT_CHANGELIST_EXAMPLE
 
 
@@ -82,26 +82,11 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "sentryuser/newsdiffs",
                 "patch_set": [
-                    {
-                        "path": "a.txt",
-                        "type": "M"
-                    },
-                    {
-                        "path": "b.txt",
-                        "type": "A"
-                    },
-                    {
-                        "path": "c.txt",
-                        "type": "D"
-                    },
-                    {
-                        "path": "e.txt",
-                        "type": "D"
-                    },
-                    {
-                        "path": "d.txt",
-                        "type": "A"
-                    }
+                    {"path": "a.txt", "type": "M"},
+                    {"path": "b.txt", "type": "A"},
+                    {"path": "c.txt", "type": "D"},
+                    {"path": "e.txt", "type": "D"},
+                    {"path": "d.txt", "type": "A"},
                 ],
                 "timestamp": datetime.datetime(2019, 12, 19, 13, 56, 56, tzinfo=timezone.utc),
             }

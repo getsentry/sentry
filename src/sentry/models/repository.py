@@ -87,7 +87,7 @@ def on_delete(instance, actor=None, **kwargs):
     def handle_exception(e):
         import six
         from sentry.exceptions import InvalidIdentity, PluginError
-        from sentry.integrations.exceptions import IntegrationError
+        from sentry.shared_integrations.exceptions import IntegrationError
 
         if isinstance(e, (IntegrationError, PluginError, InvalidIdentity)):
             error = six.text_type(e)

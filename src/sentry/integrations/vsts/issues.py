@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import IntegrationExternalProject, OrganizationIntegration, User
 from sentry.integrations.issues import IssueSyncMixin
 
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError
+from sentry.shared_integrations.exceptions import ApiUnauthorized, ApiError
 from django.utils.translation import ugettext as _
 
 

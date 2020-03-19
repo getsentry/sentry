@@ -8,7 +8,7 @@ from exam import fixture
 from django.test import RequestFactory
 from time import time
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts.integration import VstsIntegration
 
 from sentry.models import (

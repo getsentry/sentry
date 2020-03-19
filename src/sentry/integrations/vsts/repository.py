@@ -4,7 +4,7 @@ import six
 
 from sentry.plugins import providers
 from sentry.models import Integration
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90
 

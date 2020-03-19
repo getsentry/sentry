@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.models import Integration
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 
 

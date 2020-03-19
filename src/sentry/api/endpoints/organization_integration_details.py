@@ -7,7 +7,7 @@ from django.http import Http404
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Integration, ObjectStatus, OrganizationIntegration
 from sentry.tasks.deletion import delete_organization_integration
 

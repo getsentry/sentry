@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.serializers import serialize
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
 

@@ -16,7 +16,7 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Repository
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri

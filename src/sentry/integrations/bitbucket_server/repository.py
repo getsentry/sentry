@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.models.integration import Integration
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.utils.http import absolute_uri
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import md5_text
 
 
@@ -104,7 +104,9 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "author_name": c["author"].get("displayName", c["author"]["name"]),
                 "message": c["message"],
                 "timestamp": datetime.fromtimestamp(c["authorTimestamp"] / 1000, timezone.utc),
-                "patch_set": self._get_patchset(client, repo.config["project"], repo.config["repo"], c["id"]),
+                "patch_set": self._get_patchset(
+                    client, repo.config["project"], repo.config["repo"], c["id"]
+                ),
             }
             for c in commit_list["values"]
         ]
