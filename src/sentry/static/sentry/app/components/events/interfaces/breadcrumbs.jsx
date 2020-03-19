@@ -168,9 +168,11 @@ class BreadcrumbsInterface extends React.Component {
     const data = this.props.data;
 
     const title = (
-      <GuideAnchor target="breadcrumbs" position="top">
-        <h3>{t('Breadcrumbs')}</h3>
-      </GuideAnchor>
+      <h3>
+        <GuideAnchor target="breadcrumbs" position="bottom">
+          {t('Breadcrumbs')}
+        </GuideAnchor>
+      </h3>
     );
 
     let all = data.values;
