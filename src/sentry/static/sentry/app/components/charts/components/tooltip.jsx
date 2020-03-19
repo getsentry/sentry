@@ -71,7 +71,7 @@ function getFormatter({
         '<div class="tooltip-series">',
         `<div>
           <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
-          ${truncatedName}: ${formattedValue}${appendToValue ?? ''}
+          ${truncatedName}: ${formattedValue}
         </div>`,
         '</div>',
         `<div class="tooltip-date">${label}</div>`,
@@ -97,10 +97,7 @@ function getFormatter({
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
           const value = valueFormatter(s.data[1]);
-          return `<div><span class="tooltip-label">${
-            s.marker
-          } <strong>${formattedLabel}</strong></span> ${value}${appendToValue ??
-            ''}</div>`;
+          return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',

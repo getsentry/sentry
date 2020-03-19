@@ -82,7 +82,7 @@ class ReleaseChart extends React.Component<Props> {
               }
             : undefined
         }
-        tooltip={crashFreeChart ? {appendToValue: '%'} : undefined}
+        tooltip={crashFreeChart ? {valueFormatter: value => `${value}%`} : undefined}
       />
     );
   }
