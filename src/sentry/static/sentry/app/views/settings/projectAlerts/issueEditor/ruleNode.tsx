@@ -6,12 +6,17 @@ import {
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
+  MailActionTargetType,
 } from 'app/types/alerts';
-import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+import {t, tct} from 'app/locale';
+import MailActionFields from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
+import ExternalLink from 'app/components/links/externalLink';
+import {Organization, Project} from 'app/types';
 
 type FormField = {
   // Type of form fields
@@ -24,6 +29,8 @@ type Props = {
   index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data?: IssueAlertRuleAction | IssueAlertRuleCondition;
+  project: Project;
+  organization: Organization;
   onDelete: (rowIndex: number) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
@@ -32,6 +39,12 @@ class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
+  };
+
+  handleMailActionChange = (action: IssueAlertRuleAction) => {
+    const {index, onPropertyChange} = this.props;
+    onPropertyChange(index, 'targetType', `${action.targetType}`);
+    onPropertyChange(index, 'targetIdentifier', `${action.targetIdentifier}`);
   };
 
   getChoiceField = (name: string, fieldConfig: FormField) => {
@@ -110,11 +123,28 @@ class RuleNode extends React.Component<Props> {
     );
   };
 
+  getMailActionFields = (_: string, __: FormField) => {
+    const {data, organization, project} = this.props;
+    const isInitialized =
+      data?.targetType !== undefined && `${data.targetType}`.length > 0;
+    return (
+      <MailActionFields
+        disabled={false}
+        project={project}
+        organization={organization}
+        loading={!isInitialized}
+        action={data as IssueAlertRuleAction}
+        onChange={this.handleMailActionChange}
+      />
+    );
+  };
+
   getField = (name: string, fieldConfig: FormField) => {
     const getFieldTypes = {
       choice: this.getChoiceField,
       number: this.getNumberField,
       string: this.getTextField,
+      mailAction: this.getMailActionFields,
     };
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
@@ -161,21 +191,78 @@ class RuleNode extends React.Component<Props> {
     );
   }
 
+  conditionallyRenderHelpfulBanner() {
+    const {data, project, organization} = this.props;
+    /**
+     * Would prefer to check if data is of `IssueAlertRuleAction` type, however we can't do typechecking at runtime as
+     * user defined types are erased through transpilation.
+     * Instead, we apply duck typing semantics here.
+     * See: https://stackoverflow.com/questions/51528780/typescript-check-typeof-against-custom-type
+     */
+    if (!data?.targetType) {
+      return null;
+    }
+
+    switch (data.targetType) {
+      case MailActionTargetType.IssueOwners:
+        return (
+          <MarginlessAlert thinner type="warning">
+            {tct(
+              'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
+              {
+                issueOwners: (
+                  <ExternalLink href="https://docs.sentry.io/workflow/issue-owners/">
+                    {t('issue owners')}
+                  </ExternalLink>
+                ),
+                ownershipSettings: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                  >
+                    {t('ownership settings')}
+                  </ExternalLink>
+                ),
+              }
+            )}
+          </MarginlessAlert>
+        );
+      case MailActionTargetType.Team:
+        return null;
+      case MailActionTargetType.Member:
+        return (
+          <MarginlessAlert thinner type="warning">
+            {tct('Alerts sent directly to a member override their [alertSettings].', {
+              alertSettings: (
+                <ExternalLink href="/settings/account/notifications/">
+                  {t('personal project alert settings')}
+                </ExternalLink>
+              ),
+            })}
+          </MarginlessAlert>
+        );
+      default:
+        return null;
+    }
+  }
+
   render() {
     const {data} = this.props;
 
     return (
-      <RuleRow>
-        {data && <input type="hidden" name="id" value={data.id} />}
-        {this.renderRow()}
-        <DeleteButton
-          label={t('Delete Node')}
-          onClick={this.handleDelete}
-          type="button"
-          size="small"
-          icon="icon-trash"
-        />
-      </RuleRow>
+      <RuleRowContainer>
+        <RuleRow>
+          {data && <input type="hidden" name="id" value={data.id} />}
+          {this.renderRow()}
+          <DeleteButton
+            label={t('Delete Node')}
+            onClick={this.handleDelete}
+            type="button"
+            size="small"
+            icon="icon-trash"
+          />
+        </RuleRow>
+        {this.conditionallyRenderHelpfulBanner()}
+      </RuleRowContainer>
     );
   }
 }
@@ -201,7 +288,9 @@ const RuleRow = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)};
+`;
 
+const RuleRowContainer = styled('div')`
   &:nth-child(odd) {
     background-color: ${p => p.theme.offWhite};
   }
@@ -216,4 +305,8 @@ const Rule = styled('div')`
 
 const DeleteButton = styled(Button)`
   flex-shrink: 0;
+`;
+
+const MarginlessAlert = styled(Alert)`
+  margin: 0;
 `;

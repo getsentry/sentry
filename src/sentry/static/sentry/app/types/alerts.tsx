@@ -63,3 +63,9 @@ export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;
   id: string;
 };
+
+export enum MailActionTargetType {
+  IssueOwners = 'IssueOwners',
+  Team = 'Team',
+  Member = 'Member',
+}

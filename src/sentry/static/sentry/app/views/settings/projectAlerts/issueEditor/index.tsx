@@ -302,6 +302,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {project, organization} = this.props;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -407,6 +408,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   onPropertyChange={this.handleChangeConditionProperty}
                   onAddRow={this.handleAddCondition}
                   onDeleteRow={this.handleDeleteCondition}
+                  organization={organization}
+                  project={project}
                 />
               </PanelRuleItem>
 
@@ -426,6 +429,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   onPropertyChange={this.handleChangeActionProperty}
                   onAddRow={this.handleAddAction}
                   onDeleteRow={this.handleDeleteAction}
+                  organization={organization}
+                  project={project}
                 />
               </PanelRuleItem>
             </PanelBody>
