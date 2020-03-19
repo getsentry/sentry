@@ -63,13 +63,18 @@ export const HeaderButton = styled('div')<{disabled?: boolean}>`
   }
 `;
 
-export const HeaderExportButton = styled(DataExport)<{disabled: boolean}>`
+export const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
   border: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: normal;
+  box-shadow: none;
   color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
-  background: transparent;
-  > svg {
+  svg {
     margin-right: ${space(0.5)};
+  }
+  &:hover,
+  &:active {
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+    box-shadow: none;
   }
 `;
 

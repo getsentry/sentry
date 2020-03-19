@@ -22,7 +22,7 @@ import {
   HeaderTitle,
   HeaderButton,
   HeaderButtonContainer,
-  HeaderExportButton,
+  HeaderDownloadButton,
   Body,
   Grid,
   GridRow,
@@ -322,16 +322,16 @@ class GridEditable<
   renderDownloadButton(canEdit: boolean) {
     const disabled = this.props.isLoading || canEdit === false;
     return (
-      <HeaderExportButton
+      <HeaderDownloadButton
         payload={{
           queryType: 'Discover',
           queryInfo: this.props.location.query,
         }}
         disabled={disabled}
       >
-        <IconDownload />
+        <IconDownload size="xs" />
         {t('Export All')}
-      </HeaderExportButton>
+      </HeaderDownloadButton>
     );
   }
   renderDownloadCsvButton(canEdit: boolean) {
@@ -344,7 +344,7 @@ class GridEditable<
         onClick={onClick}
         data-test-id="grid-download-csv"
       >
-        <IconDownload />
+        <IconDownload size="xs" />
         {t('Export Page')}
       </HeaderButton>
     );

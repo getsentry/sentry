@@ -3,7 +3,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
-import Tooltip from 'app/components/tooltip';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -67,22 +67,26 @@ class DataExport extends React.Component<Props, State> {
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <Tooltip title={TooltipMessages.progress}>
-            <button className="btn btn-default btn-sm" disabled {...this.props}>
-              {t('Queued up!')}
-            </button>
-          </Tooltip>
+          <Button
+            size="small"
+            priority="default"
+            title={TooltipMessages.progress}
+            {...this.props}
+            disabled
+          >
+            {t('Queued up!')}
+          </Button>
         ) : (
-          <Tooltip title={TooltipMessages.start}>
-            <button
-              className="btn btn-default btn-sm"
-              onClick={this.startDataExport}
-              disabled={disabled || false}
-              {...this.props}
-            >
-              {children ? children : t('Export All to CSV')}
-            </button>
-          </Tooltip>
+          <Button
+            onClick={this.startDataExport}
+            disabled={disabled || false}
+            size="small"
+            priority="default"
+            title={TooltipMessages.start}
+            {...this.props}
+          >
+            {children ? children : t('Export All to CSV')}
+          </Button>
         )}
       </Feature>
     );
