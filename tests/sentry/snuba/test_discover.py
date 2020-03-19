@@ -905,6 +905,50 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_duration_aliases(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("23.4m", 1000 * 60 * 23.4),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+            ("1.23h", 1000 * 60 * 60 * 1.23),
+            ("3wk", 1000 * 60 * 60 * 24 * 7 * 3),
+            ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "p95"],
+                query="http.method:GET p95:>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["http_method", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[
+                    ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]
+                ],
+                having=[["percentile_transaction_duration_0_95", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_alias_aggregate_conditions_with_brackets(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -968,6 +1012,47 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_duration_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                query="http.method:GET avg(transaction.duration):>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["http_method", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[
+                    ["avg", "duration", "avg_transaction_duration"],
+                    ["max", "time", "max_time"],
+                ],
+                having=[["avg_transaction_duration", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
 
     @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_condition_missing_selected_column(self, mock_query):
