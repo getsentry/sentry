@@ -35,11 +35,10 @@ storiesOf('UI|Panels', module)
     withInfo({
       text: 'A Panel for "tabular" data',
     })(() => (
-      <PanelTable columns={3}>
-        <div>Header #1</div>
-        <div>Header #2</div>
-        <div>Header #900000</div>
-
+      <PanelTable
+        // eslint-disable-next-line react/jsx-key
+        headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+      >
         <div>Panel Item with really long content</div>
         <div>Panel Item</div>
         <div>Panel Item</div>
