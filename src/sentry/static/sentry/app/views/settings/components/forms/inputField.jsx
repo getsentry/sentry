@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import omit from 'lodash/omit';
 
 import FormField from 'app/views/settings/components/forms/formField';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -26,11 +27,7 @@ export default class InputField extends React.Component {
 
     return (
       <FormField className={className} {...this.props}>
-        {({children, ...formFieldProps}) =>
-          field({
-            ...formFieldProps,
-          })
-        }
+        {formFieldProps => field(omit(formFieldProps, 'children'))}
       </FormField>
     );
   }

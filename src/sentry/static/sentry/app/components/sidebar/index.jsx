@@ -1,21 +1,13 @@
-import isEqual from 'lodash/isEqual';
-import {withRouter, browserHistory} from 'react-router';
+import {css} from '@emotion/core';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import isEqual from 'lodash/isEqual';
 import queryString from 'query-string';
+import styled from '@emotion/styled';
 
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
-import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
-import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import Feature from 'app/components/acl/feature';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import HookStore from 'app/stores/hookStore';
 import {
   IconActivity,
   IconChevron,
@@ -32,25 +24,31 @@ import {
   IconSupport,
   IconTelescope,
 } from 'app/icons';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
+import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
+import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
+import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import localStorage from 'app/utils/localStorage';
-import withLatestContext from 'app/utils/withLatestContext';
-import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
+import withOrganization from 'app/utils/withOrganization';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
-import ServiceIncidents from './serviceIncidents';
 import OnboardingStatus from './onboardingStatus';
+import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
 
 class Sidebar extends React.Component {
   static propTypes = {
-    router: PropTypes.object,
     organization: SentryTypes.Organization,
     collapsed: PropTypes.bool,
     location: PropTypes.object,
@@ -76,8 +74,6 @@ class Sidebar extends React.Component {
   componentDidMount() {
     document.body.classList.add('body-sidebar');
     document.addEventListener('click', this.flyoutCloseHandler);
-
-    loadIncidents();
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
@@ -124,11 +120,6 @@ class Sidebar extends React.Component {
     if (this.mq) {
       this.mq.removeListener(this.handleMediaQueryChange);
       this.mq = null;
-    }
-
-    // Unlisten to router changes
-    if (this.routerListener) {
-      this.routerListener();
     }
   }
 
@@ -610,34 +601,37 @@ class Sidebar extends React.Component {
   }
 }
 
-const SidebarContainer = withRouter(
-  createReactClass({
-    displayName: 'SidebarContainer',
-    mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
-    getInitialState() {
-      return {
-        collapsed: PreferencesStore.getInitialState().collapsed,
-      };
-    },
+const SidebarContainer = createReactClass({
+  displayName: 'SidebarContainer',
+  contextTypes: {
+    location: PropTypes.any,
+  },
+  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
+  getInitialState() {
+    return {
+      collapsed: PreferencesStore.getInitialState().collapsed,
+    };
+  },
 
-    onPreferenceChange(store) {
-      if (store.collapsed === this.state.collapsed) {
-        return;
-      }
+  onPreferenceChange(store) {
+    if (store.collapsed === this.state.collapsed) {
+      return;
+    }
 
-      this.setState({
-        collapsed: store.collapsed,
-      });
-    },
+    this.setState({
+      collapsed: store.collapsed,
+    });
+  },
 
-    render() {
-      return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
-    },
-  })
-);
+  render() {
+    return (
+      <Sidebar {...this.props} collapsed={this.state.collapsed} location={location} />
+    );
+  },
+});
 
 export {Sidebar};
-export default withLatestContext(SidebarContainer);
+export default withOrganization(SidebarContainer);
 
 const responsiveFlex = css`
   display: flex;

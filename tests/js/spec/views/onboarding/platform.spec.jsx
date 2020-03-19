@@ -65,7 +65,7 @@ describe('OnboardingWelcome', function() {
 
     let resolveProjectCreate;
     createProject.mockReturnValue(
-      new Promise((resolve, reject) => (resolveProjectCreate = resolve))
+      new Promise(resolve => (resolveProjectCreate = resolve))
     );
 
     // Create the project

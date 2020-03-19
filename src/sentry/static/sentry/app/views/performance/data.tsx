@@ -2,6 +2,7 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {NewQuery} from 'app/types';
+import EventView from 'app/views/eventsV2/eventView';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -47,4 +48,8 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
   }
 
   return Object.assign({}, PERFORMANCE_EVENT_VIEW, extra);
+}
+
+export function generatePerformanceEventView(location: Location): EventView {
+  return EventView.fromNewQueryWithLocation(generatePerformanceQuery(location), location);
 }

@@ -6,7 +6,7 @@ export type ColumnType =
   | 'integer'
   | 'number'
   | 'duration'
-  | 'timestamp'
+  | 'date'
   | 'boolean';
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
@@ -36,7 +36,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['string', 'integer', 'number', 'duration', 'timestamp', 'boolean'],
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
         required: true,
       },
     ],
@@ -47,7 +47,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'timestamp'],
+        columnTypes: ['integer', 'number', 'duration', 'date'],
         required: true,
       },
     ],
@@ -58,7 +58,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration', 'timestamp'],
+        columnTypes: ['integer', 'number', 'duration', 'date'],
         required: true,
       },
     ],
@@ -89,7 +89,7 @@ export const AGGREGATIONS = {
   },
   last_seen: {
     parameters: [],
-    outputType: 'timestamp',
+    outputType: 'date',
     isSortable: true,
   },
 
@@ -136,12 +136,6 @@ export const AGGREGATIONS = {
   apdex: {
     parameters: [
       {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: 'transaction.duration',
-        required: true,
-      },
-      {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
@@ -153,12 +147,6 @@ export const AGGREGATIONS = {
   },
   impact: {
     parameters: [
-      {
-        kind: 'column',
-        columnTypes: ['duration'],
-        defaultValue: 'transaction.duration',
-        required: true,
-      },
       {
         kind: 'value',
         dataType: 'number',
@@ -204,8 +192,8 @@ export const FIELDS = {
   id: 'string',
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
-  timestamp: 'timestamp',
-  time: 'timestamp',
+  timestamp: 'date',
+  time: 'date',
 
   culprit: 'string',
   location: 'string',
@@ -291,18 +279,4 @@ export const TRACING_FIELDS = [
   'impact',
   'rps',
   'rpm',
-];
-
-// In the early days of discover2 these functions were exposed
-// as simple fields. Until we clean up all the saved queries we
-// need this for backwards compatibility.
-export const FIELD_ALIASES = [
-  'apdex',
-  'impact',
-  'p99',
-  'p95',
-  'p75',
-  'error_rate',
-  'last_seen',
-  'latest_event',
 ];

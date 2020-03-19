@@ -138,7 +138,16 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <SelectField
             name="timeWindow"
             label={t('Time Window')}
-            help={t('The time window to use when evaluating the Metric')}
+            help={
+              <React.Fragment>
+                <div>{t('The time window to use when evaluating the Metric')}</div>
+                <div>
+                  {t(
+                    'Note: Triggers are evaluated every minute regardless of this value.'
+                  )}
+                </div>
+              </React.Fragment>
+            }
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
             isDisabled={disabled}

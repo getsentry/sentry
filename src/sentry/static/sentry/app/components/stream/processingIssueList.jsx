@@ -31,7 +31,7 @@ class ProcessingIssueList extends React.Component {
     this.fetchIssues();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (!isEqual(prevProps.projectIds, this.props.projectIds)) {
       this.fetchIssues();
     }
@@ -55,7 +55,7 @@ class ProcessingIssueList extends React.Component {
           this.setState({issues: data});
         }
       },
-      error => {
+      () => {
         // this is okay. it's just a ui hint
       }
     );

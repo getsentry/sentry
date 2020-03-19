@@ -1,6 +1,7 @@
 import React from 'react';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import Alert from 'app/components/alert';
 
 export const FieldType = [
   'array',
@@ -25,10 +26,13 @@ export type FieldValue = any;
 
 type ConfirmKeyType = 'true' | 'false';
 
+// TODO(ts): A lot of these attribuets are missing correct types. We'll likely
+// need to introduce some generics in here to get rid of some of these anys.
+
 type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name?: string;
-  help?: React.ReactNode | (() => React.ReactNode);
+  help?: React.ReactNode | ((props: any) => React.ReactNode);
   required?: boolean;
   placeholder?: string | (() => string);
   multiline?: boolean;
@@ -42,26 +46,30 @@ type BaseField = {
   autosize?: boolean;
   maxRows?: number;
   extraHelp?: string;
-  choices?: (props: {[key: string]: any}) => void;
-  formatLabel?: (value: number | '') => React.ReactNode;
+  choices?:
+    | ((props: {[key: string]: any}) => void)
+    | readonly Readonly<[number | string, React.ReactNode]>[];
 
+  formatLabel?: (value: number | '') => React.ReactNode;
+  transformInput?: (value: FieldValue) => FieldValue;
+  getData?: (data: object) => object;
+  /**
+   * If false, disable saveOnBlur for field, instead show a save/cancel button
+   */
+  saveOnBlur?: boolean;
+  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
   /**
    * Function to format the value displayed in the undo toast. May also be
    * specified as false to disable showing the changed fields in the toast.
    */
   formatMessageValue?: Function | false;
-
   /**
    * Should show a "return key" icon in input?
    */
   showReturnButton?: boolean;
-
-  /**
-   * Iff false, disable saveOnBlur for field, instead show a save/cancel button
-   */
-  saveOnBlur?: boolean;
   getValue?: (value: FieldValue) => any;
-  setValue?: (value: FieldValue) => any;
+  setValue?: (value: FieldValue, props?: any) => any;
 
   onChange?: (value: FieldValue) => void;
 
@@ -72,16 +80,22 @@ type BaseField = {
 
   // TODO(ts): used in sentryAppPublishRequestModal
   meta?: string;
+
+  selectionInfoFunction?: (props: any) => React.ReactNode;
 };
+
+// TODO(ts): These are field specific props. May not be needed as we convert
+// the fields as we can grab the props from them
 
 type CustomType = {type: 'custom'} & {
   Component: (arg: BaseField) => React.ReactNode;
 };
 
-// TODO(ts): These are field specific props
-// May not be needed as we convert the fields
+type InputType = {type: 'string' | 'secret'} & {
+  autoComplete?: string;
+};
+
 type SelectControlType = {type: 'choice' | 'select'} & {
-  choices: [number | string, number | string][];
   multiple?: boolean;
 };
 
@@ -97,6 +111,7 @@ type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
 export type Field = (
   | CustomType
   | SelectControlType
+  | InputType
   | TextareaType
   | RangeType
   | {type: typeof FieldType[number]}

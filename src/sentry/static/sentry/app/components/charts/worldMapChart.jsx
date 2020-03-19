@@ -100,7 +100,7 @@ export default class WorldMapChart extends React.Component {
         xAxis={null}
         series={processedSeries}
         tooltip={{
-          formatter: ({marker, name, value, seriesName}) => {
+          formatter: ({marker, name, value}) => {
             // If value is NaN, don't show anything because we won't have a country code either
             if (isNaN(value)) {
               return '';
@@ -111,7 +111,12 @@ export default class WorldMapChart extends React.Component {
               typeof value === 'number' ? value.toLocaleString() : '';
             const countryOrCode = this.state.codeToCountryMap[name] || name;
 
-            return `<div>${marker} ${countryOrCode}: ${formattedValue}</div>`;
+            return [
+              `<div class="tooltip-series">
+                 <div><span class="tooltip-label">${marker} <strong>${countryOrCode}</strong></span> ${formattedValue}</div>
+              </div>`,
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
           },
         }}
       />

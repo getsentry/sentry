@@ -437,8 +437,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_95"}],
-            "data": [{"transaction": "api.do_things", "percentile_transaction_duration_0_95": 200}],
+            "meta": [{"name": "transaction"}, {"name": "p95"}],
+            "data": [{"transaction": "api.do_things", "p95": 200}],
         }
         discover.query(
             selected_columns=["transaction", "p95", "count_unique(transaction)"],
@@ -449,7 +449,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"],
+                ["quantile(0.95)", "duration", "p95"],
                 ["uniq", "transaction", "count_unique_transaction"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
@@ -477,8 +477,8 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_95"}],
-            "data": [{"transaction": "api.do_things", "percentile_transaction_duration_0_95": 200}],
+            "meta": [{"name": "transaction"}, {"name": "p95"}],
+            "data": [{"transaction": "api.do_things", "p95": 200}],
         }
         discover.query(
             selected_columns=["transaction", "p95()", "count_unique(transaction)"],
@@ -489,7 +489,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"],
+                ["quantile(0.95)", "duration", "p95"],
                 ["uniq", "transaction", "count_unique_transaction"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
@@ -894,8 +894,8 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]],
-            having=[["percentile_transaction_duration_0_95", ">", 5]],
+            aggregations=[["quantile(0.95)", "duration", "p95"]],
+            having=[["p95", ">", 5]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -903,6 +903,50 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_duration_aliases(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("23.4m", 1000 * 60 * 23.4),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+            ("1.23h", 1000 * 60 * 60 * 1.23),
+            ("3wk", 1000 * 60 * 60 * 24 * 7 * 3),
+            ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "p95"],
+                query="http.method:GET p95:>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["http_method", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[
+                    ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]
+                ],
+                having=[["percentile_transaction_duration_0_95", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
 
     @patch("sentry.snuba.discover.raw_query")
     def test_alias_aggregate_conditions_with_brackets(self, mock_query):
@@ -925,8 +969,8 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             groupby=["transaction"],
             dataset=Dataset.Discover,
-            aggregations=[["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]],
-            having=[["percentile_transaction_duration_0_95", ">", 5]],
+            aggregations=[["quantile(0.95)", "duration", "p95"]],
+            having=[["p95", ">", 5]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -968,6 +1012,47 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_duration_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                query="http.method:GET avg(transaction.duration):>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["http_method", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[
+                    ["avg", "duration", "avg_transaction_duration"],
+                    ["max", "time", "max_time"],
+                ],
+                having=[["avg_transaction_duration", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
 
     @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_condition_missing_selected_column(self, mock_query):
@@ -1124,13 +1209,6 @@ class QueryTransformTest(TestCase):
             in six.text_type(err)
         )
 
-    # empty results
-    # full results
-    # missing results
-    # missing results sorted asc
-    # missing results sorted desc
-    # missing results sorted otherwise
-
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_empty_results(self, mock_query):
         mock_query.side_effect = [
@@ -1267,6 +1345,33 @@ class QueryTransformTest(TestCase):
         expected_extra_buckets = set([2000, 4000, 6000, 8000, 10000])
         extra_buckets = set(r["histogram_transaction_duration_10"] for r in results["data"][5:])
         assert expected_extra_buckets == extra_buckets
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_on_weird_bucket(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 869}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_87"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_87": i * 87, "count": i}
+                    for i in range(1, 10, 2)
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        expected = [i * 87 for i in range(1, 10)]
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_10"] == exp
+            assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):

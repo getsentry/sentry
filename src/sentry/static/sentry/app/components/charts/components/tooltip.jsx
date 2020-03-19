@@ -15,7 +15,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   return getFormattedDate(value, format, {local: !utc});
 }
 
-function valueFormatter(value) {
+function defaultValueFormatter(value) {
   if (typeof value === 'number') {
     return value.toLocaleString();
   }
@@ -30,6 +30,7 @@ function getFormatter({
   truncate,
   formatAxisLabel,
   utc,
+  valueFormatter = defaultValueFormatter,
 }) {
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -101,6 +102,7 @@ function getFormatter({
         .join(''),
       '</div>',
       `<div class="tooltip-date">${label}</div>`,
+      `<div class="tooltip-arrow"></div>`,
     ].join('');
   };
 }
@@ -113,6 +115,7 @@ export default function Tooltip({
   truncate,
   utc,
   formatAxisLabel,
+  valueFormatter,
   ...props
 } = {}) {
   formatter =
@@ -124,6 +127,7 @@ export default function Tooltip({
       truncate,
       utc,
       formatAxisLabel,
+      valueFormatter,
     });
 
   return {
@@ -131,11 +135,29 @@ export default function Tooltip({
     trigger: 'item',
     backgroundColor: 'transparent',
     transitionDuration: 0,
+    padding: 0,
     position(pos, _params, dom, _rec, _size) {
       // Center the tooltip slightly above the cursor.
       const tipWidth = dom.clientWidth;
       const tipHeight = dom.clientHeight;
-      return [pos[0] - tipWidth / 2, pos[1] - tipHeight - 16];
+
+      // Determine new left edge.
+      let leftPos = pos[0] - tipWidth / 2;
+      let arrowPosition = '50%';
+      const rightEdge = pos[0] + tipWidth;
+
+      // If the tooltip would go off viewport shift the tooltip over with a gap.
+      if (rightEdge >= window.innerWidth - 30) {
+        leftPos -= rightEdge - window.innerWidth + 30;
+        arrowPosition = `${pos[0] - leftPos}px`;
+      }
+      // Reposition the arrow.
+      const arrow = dom.querySelector('.tooltip-arrow');
+      if (arrow) {
+        arrow.style.left = arrowPosition;
+      }
+
+      return {left: leftPos, top: pos[1] - tipHeight - 20};
     },
     formatter,
     ...props,

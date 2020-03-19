@@ -102,10 +102,10 @@ describe('IncidentsList', function() {
     expect(
       wrapper
         .find('ButtonBar')
-        .find('a')
+        .find('Button')
         .at(0)
-        .hasClass('active')
-    ).toBe(true);
+        .prop('priority')
+    ).toBe('primary');
 
     expect(mock).toHaveBeenCalledTimes(1);
 
@@ -121,8 +121,8 @@ describe('IncidentsList', function() {
         .find('ButtonBar')
         .find('Button')
         .at(2)
-        .hasClass('active')
-    ).toBe(true);
+        .prop('priority')
+    ).toBe('primary');
 
     expect(mock).toHaveBeenCalledTimes(2);
 

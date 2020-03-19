@@ -7,7 +7,7 @@ from hashlib import md5 as _md5
 from sentry.utils.cache import cache
 from django.utils.encoding import force_bytes
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.client import ApiClient
 
 log = logging.getLogger(__name__)

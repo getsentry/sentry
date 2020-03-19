@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import Link from 'app/components/links/link';
+import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Form from 'app/views/settings/components/forms/form';
@@ -11,7 +13,7 @@ import ProjectActions from 'app/actions/projectActions';
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 
-import ProjectDataPrivacyRulesPanel from './projectDataPrivacyRulesPanel';
+import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
 
 type Props = {
   organization: Organization;
@@ -74,10 +76,24 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
             ]}
           />
         </Form>
-        <ProjectDataPrivacyRulesPanel
-          orgId={orgId}
-          projectId={projectId}
+        <DataPrivacyRulesPanel
+          panelHeaderSubTitle={
+            <PanelHeaderSubTitle>
+              {tct(
+                'This can also be configured organization-wide in [linkToOrganizationSecurityAndPrivacy]',
+                {
+                  linkToOrganizationSecurityAndPrivacy: (
+                    <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                      {t('Organization Security and Privacy')}
+                    </Link>
+                  ),
+                }
+              )}
+            </PanelHeaderSubTitle>
+          }
+          endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
+          disabled={!access.has('project:write')}
         />
       </React.Fragment>
     );
@@ -85,3 +101,9 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 }
 
 export default ProjectDataPrivacyContent;
+
+const PanelHeaderSubTitle = styled('div')`
+  display: grid;
+  grid-gap: 4px;
+  grid-template-columns: auto 1fr;
+`;
