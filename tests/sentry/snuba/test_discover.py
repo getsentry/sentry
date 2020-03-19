@@ -932,14 +932,12 @@ class QueryTransformTest(TestCase):
 
             mock_query.assert_called_with(
                 selected_columns=["transaction"],
-                conditions=[["http_method", "=", "GET"]],
+                conditions=[["contexts[http.method]", "=", "GET"]],
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
-                aggregations=[
-                    ["quantile(0.95)", "duration", "percentile_transaction_duration_0_95"]
-                ],
-                having=[["percentile_transaction_duration_0_95", ">", value]],
+                aggregations=[["quantile(0.95)", "duration", "p95"]],
+                having=[["p95", ">", value]],
                 end=end_time,
                 start=start_time,
                 orderby=None,
@@ -1037,7 +1035,7 @@ class QueryTransformTest(TestCase):
             )
             mock_query.assert_called_with(
                 selected_columns=["transaction"],
-                conditions=[["http_method", "=", "GET"]],
+                conditions=[["contexts[http.method]", "=", "GET"]],
                 filter_keys={"project_id": [self.project.id]},
                 groupby=["transaction"],
                 dataset=Dataset.Discover,
