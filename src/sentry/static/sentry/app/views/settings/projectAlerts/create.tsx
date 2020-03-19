@@ -43,7 +43,7 @@ class Create extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
       eventName: 'New Alert Rule: Viewed',
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
     });
   }

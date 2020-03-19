@@ -174,10 +174,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
 class IncidentsListContainer extends React.Component<Props> {
   componentDidMount() {
+    const {location, organization} = this.props;
+    const status = getQueryStatus(location.query.status);
+
     trackAnalyticsEvent({
       eventKey: 'alert_stream.viewed',
       eventName: 'Alert Stream: Viewed',
-      org_id: parseInt(this.props.organization.id, 10),
+      status,
+      organization_id: parseInt(organization.id, 10),
     });
   }
 

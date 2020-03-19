@@ -36,7 +36,7 @@ class IncidentDetails extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'alert_details.viewed',
       eventName: 'Alert Details: Viewed',
-      org_id: parseInt(organization.id, 10),
+      organization_id: parseInt(organization.id, 10),
       alert_id: parseInt(params.alertId, 10),
     });
 
