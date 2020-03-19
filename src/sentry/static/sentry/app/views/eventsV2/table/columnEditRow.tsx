@@ -10,12 +10,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {FieldValueKind, FieldValue} from './types';
-import {
-  FIELD_ALIASES,
-  ColumnType,
-  Aggregation,
-  AggregateParameter,
-} from '../eventQueryParams';
+import {ColumnType, AggregateParameter} from '../eventQueryParams';
 import {Column} from '../eventView';
 
 type FieldOptions = StringMap<SelectValue<FieldValue>>;
@@ -64,15 +59,6 @@ class ColumnEditRow extends React.Component<Props> {
             kind: 'function',
             function: [value.meta.name, current.function[1], current.function[2]],
           };
-        }
-        // Backwards compatibility for field alias versions of functions.
-        if (
-          current.kind === 'function' &&
-          column.kind === 'function' &&
-          current.function[1] &&
-          FIELD_ALIASES.includes(current.function[1])
-        ) {
-          column.function = [column.function[1] as Aggregation, '', undefined];
         }
         break;
       default:
@@ -178,16 +164,9 @@ class ColumnEditRow extends React.Component<Props> {
         // TODO move this closer to where it is used.
         fieldParameter = this.getFieldOrTagValue(column.function[1]);
       }
-    } else if (column.kind === 'field') {
-      if (FIELD_ALIASES.includes(column.field)) {
-        // Handle backwards compatible field aliases.
-        const aliasName = `function:${column.field}`;
-        if (fieldOptions[aliasName] !== undefined) {
-          field = fieldOptions[aliasName].value;
-        }
-      } else {
-        field = this.getFieldOrTagValue(column.field);
-      }
+    }
+    if (column.kind === 'field') {
+      field = this.getFieldOrTagValue(column.field);
     }
 
     // If our current field, or columnParameter is a virtual tag, add it to the option list.

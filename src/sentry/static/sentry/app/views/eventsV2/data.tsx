@@ -208,7 +208,6 @@ type SpecialField = {
 type SpecialFields = {
   project: SpecialField;
   user: SpecialField;
-  last_seen: SpecialField;
   'issue.id': SpecialField;
   issue: SpecialField;
   release: SpecialField;
@@ -272,19 +271,6 @@ export const SPECIAL_FIELDS: SpecialFields = {
 
       return <Container>{badge}</Container>;
     },
-  },
-  last_seen: {
-    sortField: 'last_seen',
-    renderFunc: data => (
-      <Container>
-        {data.last_seen
-          ? getDynamicText({
-              value: <StyledDateTime date={data.last_seen} />,
-              fixed: 'time',
-            })
-          : emptyValue}
-      </Container>
-    ),
   },
   release: {
     sortField: 'release',

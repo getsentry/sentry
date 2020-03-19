@@ -145,33 +145,6 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('rendering old field aliases', function() {
-    const onApply = jest.fn();
-    const wrapper = mountModal(
-      {
-        columns: [{kind: 'field', field: 'p95'}],
-        onApply,
-        tagKeys,
-      },
-      initialData
-    );
-
-    it('renders as an aggregate function with no parameters', function() {
-      const row = wrapper.find('ColumnEditRow').first();
-      expect(row.find('SelectControl[name="field"] SingleValue').text()).toBe('p95()');
-      expect(row.find('StyledInput[disabled]')).toHaveLength(1);
-    });
-
-    it('updates correctly when the function is changed', function() {
-      // Change the function to p99. We should not get p99(p95)
-      selectByLabel(wrapper, 'p99()', {name: 'field', at: 0, control: true});
-      wrapper.find('button[aria-label="Apply"]').simulate('click');
-      expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['p99', '', undefined]},
-      ]);
-    });
-  });
-
   describe('function & column selection', function() {
     const wrapper = mountModal(
       {
