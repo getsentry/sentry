@@ -92,7 +92,7 @@ class CrashHeader extends React.Component {
   render() {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
-    let titleNode = (
+    const titleNode = (
       <h3
         style={{
           marginBottom: 0,
@@ -100,26 +100,20 @@ class CrashHeader extends React.Component {
           whiteSpace: 'nowrap',
         }}
       >
-        {title}
-        <small>
-          (
-          <Tooltip title={t('Toggle stacktrace order')}>
-            <a onClick={this.handleToggleOrder}>
-              {newestFirst ? t('most recent call first') : t('most recent call last')}
-            </a>
-          </Tooltip>
-          )
-        </small>
+        <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
+          {title}
+          <small>
+            (
+            <Tooltip title={t('Toggle stacktrace order')}>
+              <a onClick={this.handleToggleOrder}>
+                {newestFirst ? t('most recent call first') : t('most recent call last')}
+              </a>
+            </Tooltip>
+            )
+          </small>
+        </GuideAnchor>
       </h3>
     );
-
-    if (!hideGuide) {
-      titleNode = (
-        <GuideAnchor target="exception" position="top">
-          {titleNode}
-        </GuideAnchor>
-      );
-    }
 
     return (
       <Wrapper className="crash-title">

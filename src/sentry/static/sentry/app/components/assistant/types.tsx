@@ -6,7 +6,7 @@ export type GuideStep = {
    * "invisible", it will not be pinged but will be scrolled to.
    * Otherwise the anchor will be pinged and scrolled to.
    */
-  target: string;
+  target?: string;
   description: React.ReactNode;
 };
 
