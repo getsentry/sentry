@@ -19,7 +19,6 @@ class AreaChart extends React.Component {
         series={series.map(({seriesName, data, ...otherSeriesProps}) =>
           AreaSeries({
             stack: stacked ? 'area' : false,
-            ...otherSeriesProps,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
             color: '#948BCF',
@@ -27,6 +26,7 @@ class AreaChart extends React.Component {
               color: '#C4BFE9',
               opacity: 1.0,
             },
+            ...otherSeriesProps,
           })
         )}
       />
