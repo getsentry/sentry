@@ -3,7 +3,6 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EventView from 'app/views/eventsV2/eventView';
 import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
