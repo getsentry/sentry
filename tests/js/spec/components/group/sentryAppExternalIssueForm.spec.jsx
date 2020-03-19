@@ -30,7 +30,7 @@ describe('SentryAppExternalIssueForm', () => {
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
-          config={component.schema}
+          config={component.schema.create}
           action="create"
           api={new Client()}
         />,
@@ -91,7 +91,7 @@ describe('SentryAppExternalIssueForm', () => {
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
-          config={component.schema}
+          config={component.schema.link}
           action="link"
           api={new Client()}
         />,
@@ -202,7 +202,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
-          config={component.schema}
+          config={component.schema.create}
           action="create"
           api={new Client()}
         />,
