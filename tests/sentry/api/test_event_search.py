@@ -1205,19 +1205,6 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == ["event.type", "message", "id", "project.id"]
 
-    def test_automatic_fields_with_aggregate_aliases(self):
-        fields = ["title", "last_seen"]
-        result = resolve_field_list(fields, {})
-        # Automatic fields should be inserted
-        assert result["selected_columns"] == ["title"]
-        assert result["aggregations"] == [
-            ["max", "timestamp", "last_seen"],
-            ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, array(), array(), '')", None, "project.name"],
-        ]
-        assert result["groupby"] == ["title"]
-
     def test_field_alias_duration_expansion_with_brackets(self):
         fields = [
             "avg(transaction.duration)",
@@ -1533,19 +1520,6 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == ["message", "id", "project.id"]
 
-    def test_orderby_field_alias(self):
-        fields = ["last_seen"]
-        snuba_args = {"orderby": "-last_seen"}
-        result = resolve_field_list(fields, snuba_args)
-        assert result["selected_columns"] == []
-        assert result["aggregations"] == [
-            ["max", "timestamp", "last_seen"],
-            ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, array(), array(), '')", None, "project.name"],
-        ]
-        assert result["groupby"] == []
-
     def test_orderby_field_aggregate(self):
         fields = ["count(id)", "count_unique(user)"]
         snuba_args = {"orderby": "-count(id)"}
@@ -1560,7 +1534,18 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
-    def test_orderby_project(self):
+    def test_orderby_issue_alias(self):
+        fields = ["issue"]
+        snuba_args = {"orderby": "-issue"}
+        result = resolve_field_list(fields, snuba_args)
+        assert result["orderby"] == ["-issue.id"]
+        assert result["selected_columns"] == ["issue.id", "id", "project.id"]
+        assert result["aggregations"] == [
+            ["transform(project_id, array(), array(), '')", None, "project.name"]
+        ]
+        assert result["groupby"] == ["issue.id", "id", "project.id"]
+
+    def test_orderby_project_alias(self):
         fields = ["project"]
         snuba_args = {"orderby": "-project"}
         result = resolve_field_list(fields, snuba_args)
