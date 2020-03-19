@@ -29,22 +29,24 @@ const ReleaseOverview = ({organization, params, selection, router, location}: Pr
   <ReleaseContext.Consumer>
     {release => {
       const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
-      const projectSlug = projects.find(p => p.id === selection.projects[0])?.slug;
+      const project = projects.find(p => p.id === selection.projects[0]);
       // TODO(releasesV2): we will handle this with locked projects later
-      if (!projectSlug) {
+      if (!project) {
         return null;
       }
       return (
         <ContentBox>
           <Main>
-            <HealthChart
-              version={version}
-              orgId={organization.slug}
-              projectSlug={projectSlug}
-              router={router}
-              selection={selection}
-              location={location}
-            />
+            {project.healthData?.hasHealthData && (
+              <HealthChart
+                version={version}
+                orgId={organization.slug}
+                projectSlug={project.slug}
+                router={router}
+                selection={selection}
+                location={location}
+              />
+            )}
             <Issues orgId={organization.slug} version={params.release} />
           </Main>
           <Sidebar>
@@ -53,7 +55,7 @@ const ReleaseOverview = ({organization, params, selection, router, location}: Pr
                 version={version}
                 orgId={organization.slug}
                 commitCount={commitCount}
-                projectSlug={projectSlug}
+                projectSlug={project.slug}
               />
             )}
             <ProjectReleaseDetails release={release!} />

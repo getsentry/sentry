@@ -49,7 +49,7 @@ class ReleaseChart extends React.Component<Props> {
       align: 'left',
       textStyle: {
         verticalAlign: 'top',
-        fontSize: theme.fontSizeExtraSmall,
+        fontSize: 11,
         fontFamily: 'Rubik',
       },
       data: timeseriesData.map(d => d.seriesName),
