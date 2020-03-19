@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import {Series} from 'app/types/echarts';
+import theme from 'app/utils/theme';
 
 import {YAxis} from '.';
 
@@ -39,7 +40,7 @@ class ReleaseChart extends React.Component<Props> {
 
     const legend = {
       right: 16,
-      top: 16,
+      top: 4,
       selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
@@ -48,7 +49,7 @@ class ReleaseChart extends React.Component<Props> {
       align: 'left',
       textStyle: {
         verticalAlign: 'top',
-        fontSize: 11,
+        fontSize: theme.fontSizeExtraSmall,
         fontFamily: 'Rubik',
       },
       data: timeseriesData.map(d => d.seriesName),
@@ -73,11 +74,11 @@ class ReleaseChart extends React.Component<Props> {
         yAxis={
           crashFreeChart
             ? {
-                min: 0,
                 max: 100,
-                interval: 25,
+                scale: true,
                 axisLabel: {
                   formatter: '{value}%',
+                  color: theme.gray1,
                 },
               }
             : undefined
