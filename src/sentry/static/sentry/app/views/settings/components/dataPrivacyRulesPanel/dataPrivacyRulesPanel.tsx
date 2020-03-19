@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons/iconAdd';
@@ -246,13 +246,16 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           <StyledPanelHeader>{t('Data Privacy Rules')}</StyledPanelHeader>
           <PanelAlert type="info">
             {additionalContext}
-            {t('To learn more about datascubbing, ')}
-            <Link
-              href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
-              target="_blank"
-            >
-              {t('read the docs.')}
-            </Link>
+            {tct('To learn more about datascubbing, [linkToDocs].', {
+              linkToDocs: (
+                <Link
+                  href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
+                  target="_blank"
+                >
+                  {t('read the docs.')}
+                </Link>
+              ),
+            })}
           </PanelAlert>
           <PanelBody>
             {rules.map(rule => (
