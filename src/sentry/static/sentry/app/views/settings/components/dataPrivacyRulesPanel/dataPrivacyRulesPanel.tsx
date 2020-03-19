@@ -41,7 +41,7 @@ type Props = {
   disabled?: boolean;
   endpoint: string;
   relayPiiConfig?: string;
-  panelHeaderSubTitle?: React.ReactNode;
+  additionalContext?: React.ReactNode;
 };
 
 type State = {
@@ -237,24 +237,21 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   render() {
-    const {panelHeaderSubTitle, disabled} = this.props;
+    const {additionalContext, disabled} = this.props;
     const {rules, savedRules} = this.state;
     const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
-          <StyledPanelHeader>
-            {t('Data Privacy Rules')}
-            {panelHeaderSubTitle && (
-              <PanelHeaderSubTitle>{panelHeaderSubTitle}</PanelHeaderSubTitle>
-            )}
-          </StyledPanelHeader>
-          <PanelAlert type="info" icon="icon-docs">
+          <StyledPanelHeader>{t('Data Privacy Rules')}</StyledPanelHeader>
+          <PanelAlert type="info">
+            {additionalContext}
+            {t('To learn more about datascubbing, ')}
             <Link
               href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
               target="_blank"
             >
-              {t('Check out how to use advanced datascrubbing')}
+              {t('read the docs.')}
             </Link>
           </PanelAlert>
           <PanelBody>
@@ -268,14 +265,15 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               />
             ))}
             <PanelAction>
-              <StyledButton
+              <StyledLink
                 disabled={disabled}
                 icon={<IconAdd circle />}
                 onClick={this.handleAddRule}
+                size="zero"
                 borderless
               >
                 {t('Add Rule')}
-              </StyledButton>
+              </StyledLink>
             </PanelAction>
           </PanelBody>
         </Panel>
@@ -301,29 +299,20 @@ const StyledPanelHeader = styled(PanelHeader)`
   grid-gap: ${space(1)};
 `;
 
-const PanelHeaderSubTitle = styled('div')`
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.4;
-  text-transform: initial;
-  font-weight: normal;
-`;
-
 const PanelAction = styled('div')`
   padding: ${space(2)} ${space(3)};
 `;
 
-// TODO(style): color #2c58a8 not yet in the theme
-const StyledButton = styled(Button)`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.blue)};
-  :hover {
-    color: ${p => (p.disabled ? p.theme.disabled : '#2c58a8')};
-  }
-  > *:first-child {
-    padding: 0;
-  }
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   justify-content: flex-end;
+`;
+
+const StyledLink = styled(Button)`
+  color: ${p => p.theme.blue};
+
+  &:hover,
+  &:active,
+  &:focus {
+    color: ${p => p.theme.blueDark};
+  }
 `;

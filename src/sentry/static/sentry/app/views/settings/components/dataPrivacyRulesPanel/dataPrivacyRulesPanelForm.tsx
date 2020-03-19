@@ -170,16 +170,18 @@ const Wrapper = styled('div')<{hasError?: boolean}>`
   grid-gap: ${space(2)};
   grid-template-columns: 1fr 40px;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.offWhite2};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
 `;
 
 const WrapperFields = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  align-items: flex-start;
+  align-items: center;
+  justify-items: start;
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: minmax(157px, 1fr) minmax(300px, 1fr);
+    justify-items: end;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
@@ -187,13 +189,11 @@ const WrapperFields = styled('div')`
         300px,
         1fr
       );
+    justify-items: start;
   }
 `;
 
 const From = styled('div')<{disabled?: boolean}>`
-  height: 40px;
-  display: flex;
-  align-items: center;
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
 `;
 
@@ -229,6 +229,7 @@ const CustomRegularExpression = styled(StyledTextField)`
 `;
 
 const StyledIconTrash = styled(Button)`
+  color: ${p => p.theme.gray3};
   width: 40px;
   height: 100%;
 `;
