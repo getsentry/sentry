@@ -22,7 +22,7 @@ const hasValue = value => !!value || value === 0;
 type FieldFromSchema = Field & {
   default?: string;
   uri?: string;
-  depends?: string[];
+  depends_on?: string[];
 };
 
 type Config = {
@@ -114,8 +114,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       query: input,
     };
 
-    if (field.depends) {
-      const dependentData = field.depends.reduce((accum, dependentField: string) => {
+    if (field.depends_on) {
+      const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
         accum[dependentField] = this.model.fields.get(dependentField);
         return accum;
       }, {});
@@ -185,12 +185,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     const fieldList: FieldFromSchema[] = requiredFields.concat(optionalFields);
 
     //could have multiple impacted fields
-    const impactedFields = fieldList.filter(({depends}) => {
-      if (!depends) {
+    const impactedFields = fieldList.filter(({depends_on}) => {
+      if (!depends_on) {
         return false;
       }
       // must be dependent on the field we just set
-      return depends.includes(id);
+      return depends_on.includes(id);
     });
 
     //reset all impacted fields first
@@ -234,9 +234,9 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       field = {...field, defaultValue: this.getFieldDefault(field)};
     }
 
-    if (field.depends) {
+    if (field.depends_on) {
       //check if this is dependent on other fields which haven't been set yet
-      const shouldDisable = field.depends.some(
+      const shouldDisable = field.depends_on.some(
         dependentField => !hasValue(this.model.fields.get(dependentField))
       );
       if (shouldDisable) {

@@ -102,7 +102,7 @@ export function SentryAppComponentDependent(params = {}) {
             label: 'Project',
           },
           {
-            depends: ['project_id'],
+            depends_on: ['project_id'],
             name: 'board_id',
             choices: [],
             type: 'select',
@@ -137,7 +137,7 @@ export function SentryAppComponentDependent(params = {}) {
             label: 'Project',
           },
           {
-            depends: ['project_id'],
+            depends_on: ['project_id'],
             name: 'board_id',
             choices: [],
             type: 'select',
