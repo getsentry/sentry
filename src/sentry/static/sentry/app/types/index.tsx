@@ -527,7 +527,7 @@ export type Group = {
   shortId: string;
   stats: any; // TODO(ts)
   status: string;
-  statusDetails: {};
+  statusDetails: ResolutionStatusDetails;
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -1029,6 +1029,12 @@ export enum ResolutionStatus {
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
+  autoResolved?: boolean;
+  ignoreCount?: number;
+  ignoreUntil?: string;
+  ignoreUserCount?: number;
+  ignoreUserWindow?: string;
+  ignoreWindow?: string;
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
