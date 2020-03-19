@@ -11,6 +11,7 @@ import {t, tct} from 'app/locale';
 import {GlobalSelection} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent} from 'app/utils';
+import {Series} from 'app/types/echarts';
 
 import {YAxis} from '.';
 
@@ -19,18 +20,6 @@ const omitIgnoredProps = (props: Props) =>
     ['api', 'version', 'orgId', 'projectSlug', 'children'].includes(key)
   );
 
-type Series = {
-  seriesName: string;
-  data: {
-    name: string | number;
-    value: string | number;
-  }[];
-  color?: string;
-  areaStyle?: {
-    color: string;
-    opacity: number;
-  };
-};
 type ChartData = {
   [key: string]: Series;
 };
@@ -39,7 +28,7 @@ type RenderProps = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[] | null;
+  timeseriesData: Series[];
 };
 
 type Props = {
@@ -201,6 +190,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
         seriesName: t('Crash Free Users'),
         data: [],
         color: '#FF6969',
+        // TODO(releasesV2): tweak these 4 hex colors
         areaStyle: {
           color: '#FA4747',
           opacity: 0.5,
@@ -259,7 +249,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       loading,
       reloading,
       errored,
-      timeseriesData: data,
+      timeseriesData: data ?? [],
     });
   }
 }

@@ -3,15 +3,15 @@ import isEqual from 'lodash/isEqual';
 
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
+import {Series} from 'app/types/echarts';
 
 import {YAxis} from '.';
 
-// TODO(releasesV2): type
 type Props = {
   reloading: boolean;
   utc: boolean;
-  releaseSeries: any;
-  timeseriesData: any;
+  releaseSeries: Series[];
+  timeseriesData: Series[];
   // zoomRenderProps: any;
   yAxis: YAxis;
 };
@@ -73,9 +73,6 @@ class ReleaseChart extends React.Component<Props> {
         yAxis={
           crashFreeChart
             ? {
-                nameTextStyle: {
-                  color: 'red',
-                },
                 min: 0,
                 max: 100,
                 interval: 25,
