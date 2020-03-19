@@ -9,7 +9,7 @@ import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node
+from parsimonious.nodes import Node, RegexNode
 from parsimonious.grammar import Grammar, NodeVisitor
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -17,6 +17,7 @@ from sentry import eventstore
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
+    parse_duration,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
@@ -97,7 +98,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
                        space?
@@ -111,12 +112,14 @@ quoted_basic_filter  = negation? search_key sep quoted_value
 time_filter          = search_key sep? operator date_format
 # filter for relative dates
 rel_time_filter      = search_key sep rel_date_format
+# filter for durations
+duration_filter      = search_key sep operator? duration_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter        = aggregate_key sep operator? numeric_value
+aggregate_filter        = aggregate_key sep operator? (numeric_value / duration_format)
 aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
 
 # has filter for not null type checks
@@ -138,6 +141,7 @@ quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -235,6 +239,7 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
+    duration_keys = set(["transaction.duration"])
     numeric_keys = set(
         [
             "project_id",
@@ -386,12 +391,25 @@ class SearchVisitor(NodeVisitor):
     def visit_aggregate_filter(self, node, children):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
+        search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
-            search_value = SearchValue(float(search_value.text))
+            aggregate_value = None
+            if search_value.expr_name == "duration_format":
+                # Even if the search value matches duration format, only act as duration for certain columns
+                _, agg_additions = resolve_field(search_key.name, None)
+                if len(agg_additions) > 0:
+                    # Extract column and function name out so we can check if we should parse as duration
+                    if agg_additions[0][-2] in self.duration_keys:
+                        aggregate_value = parse_duration(*search_value.match.groups())
+
+            if aggregate_value is None:
+                aggregate_value = float(search_value.text)
         except ValueError:
             raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
-        return AggregateFilter(search_key, operator, search_value)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(six.text_type(exc))
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -414,6 +432,20 @@ class SearchVisitor(NodeVisitor):
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(six.text_type(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value if operator != "=" else search_value
+            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
+    def visit_duration_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        if search_key.name in self.duration_keys:
+            try:
+                search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(six.text_type(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
