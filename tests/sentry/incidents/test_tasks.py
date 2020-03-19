@@ -17,6 +17,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
+    INCIDENT_STATUS,
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
@@ -79,7 +80,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         recipient = self.create_user()
         message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == "Activity on Incident {} (#{})".format(
+        assert message.subject == "Activity on Alert {} (#{})".format(
             incident.title, incident.identifier
         )
         assert message.type == "incident.activity"
@@ -93,7 +94,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         context = build_activity_context(activity, expected_recipient)
         assert context["user_name"] == expected_username
-        assert context["action"] == "%s on incident %s (#%s)" % (
+        assert context["action"] == "%s on alert %s (#%s)" % (
             expected_action,
             activity.incident.title,
             activity.incident.identifier,
@@ -133,7 +134,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             activity,
             expected_username=activity.user.name,
             expected_action="changed status from %s to %s"
-            % (IncidentStatus.WARNING.name.lower(), IncidentStatus.CLOSED.name.lower()),
+            % (INCIDENT_STATUS[IncidentStatus.WARNING], INCIDENT_STATUS[IncidentStatus.CLOSED]),
             expected_comment=activity.comment,
             expected_recipient=recipient,
         )

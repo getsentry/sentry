@@ -140,6 +140,14 @@ class IncidentStatus(Enum):
     CRITICAL = 20
 
 
+INCIDENT_STATUS = {
+    IncidentStatus.OPEN: "Open",
+    IncidentStatus.CLOSED: "Resolved",
+    IncidentStatus.CRITICAL: "Critical",
+    IncidentStatus.WARNING: "Warning",
+}
+
+
 class Incident(Model):
     __core__ = True
 
