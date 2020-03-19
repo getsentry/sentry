@@ -4,6 +4,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
+import {selectByValue} from 'sentry-test/select';
+
+const optionLabelSelector = label => `[aria-label="${label}"]`;
 
 describe('SentryAppExternalIssueForm', () => {
   let wrapper;
@@ -136,38 +139,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   let group;
   let sentryApp;
   let sentryAppInstallation;
-  const component = {
-    uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
-    type: 'issue-link',
-    schema: {
-      create: {
-        required_fields: [
-          {
-            type: 'select',
-            name: 'numbers',
-            label: 'Numbers',
-            uri: '/sentry/numbers',
-            url: '/sentry/numbers',
-            async: true,
-          },
-        ],
-      },
-      link: {
-        required_fields: [
-          {
-            type: 'text',
-            name: 'issue',
-            label: 'Issue',
-          },
-        ],
-      },
-    },
-    sentryApp: {
-      uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
-      slug: 'foo',
-      name: 'Foo',
-    },
-  };
+  const component = TestStubs.SentryAppComponentAsync();
 
   beforeEach(() => {
     group = TestStubs.Group({
@@ -212,10 +184,109 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       await tick();
       wrapper.update();
 
-      const optionLabelSelector = label => `[aria-label="${label}"]`;
-
       expect(wrapper.find(optionLabelSelector('Issue 1')).exists()).toBe(true);
       expect(wrapper.find(optionLabelSelector('Issue 2')).exists()).toBe(true);
+    });
+  });
+});
+
+describe('SentryAppExternalIssueForm Dependent fields', () => {
+  let wrapper;
+  let group;
+  let sentryApp;
+  let sentryAppInstallation;
+  const component = TestStubs.SentryAppComponentDependent();
+
+  beforeEach(() => {
+    group = TestStubs.Group({
+      title: 'ApiError: Broken',
+      shortId: 'SEN123',
+      permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
+    });
+    sentryApp = TestStubs.SentryApp();
+    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+
+    wrapper = mountWithTheme(
+      <SentryAppExternalIssueForm
+        group={group}
+        sentryAppInstallation={sentryAppInstallation}
+        appName={sentryApp.name}
+        config={component.schema.create}
+        action="create"
+        api={new Client()}
+      />,
+      TestStubs.routerContext()
+    );
+  });
+
+  afterEach(() => {
+    Client.clearMockResponses();
+  });
+
+  describe('create', () => {
+    it('load options for dependent field when the dependent option is selected', async () => {
+      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`;
+      Client.addMockResponse(
+        {
+          method: 'GET',
+          url,
+          body: {
+            choices: [
+              ['A', 'project A'],
+              ['B', 'project B'],
+            ],
+          },
+        },
+        {
+          predicate: (_url, options) => {
+            return options.query.uri === '/integrations/sentry/projects';
+          },
+        }
+      );
+
+      const boardMock = Client.addMockResponse(
+        {
+          method: 'GET',
+          url,
+          body: {
+            choices: [
+              ['R', 'board R'],
+              ['S', 'board S'],
+            ],
+          },
+        },
+        {
+          predicate: (_url, options) => {
+            return options.query.uri === '/integrations/sentry/boards';
+          },
+        }
+      );
+
+      wrapper.find('input#project_id').simulate('change', {target: {value: 'p'}});
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find(optionLabelSelector('project A')).exists()).toBe(true);
+      expect(wrapper.find(optionLabelSelector('project B')).exists()).toBe(true);
+
+      //project select should be disabled and we shouldn't fetch the options yet
+      expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(true);
+      expect(boardMock).not.toHaveBeenCalled();
+
+      //when we set the value for project we should get the values for the board
+      selectByValue(wrapper, 'A', {name: 'project_id'});
+      await tick();
+      wrapper.update();
+
+      expect(boardMock).toHaveBeenCalled();
+      expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(false);
+
+      wrapper.find('input#board_id').simulate('change', {target: {value: 'b'}});
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find(optionLabelSelector('board R')).exists()).toBe(true);
+      expect(wrapper.find(optionLabelSelector('board S')).exists()).toBe(true);
     });
   });
 });
