@@ -342,7 +342,7 @@ const ChartContainer = styled('div')`
     width: auto;
     border-radius: ${theme.borderRadiusBottom};
   }
-  .tooltip-date:after {
+  .tooltip-arrow {
     top: 100%;
     left: 50%;
     border: solid transparent;

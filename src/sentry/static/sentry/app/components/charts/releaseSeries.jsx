@@ -115,6 +115,7 @@ class ReleaseSeries extends React.Component {
               time,
               '</div>',
               '</div>',
+              '<div class="tooltip-arrow"></div>',
             ].join('');
           },
         },
