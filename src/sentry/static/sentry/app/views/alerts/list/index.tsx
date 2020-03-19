@@ -243,6 +243,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
+                  className={isOpenActive ? ' active' : ''}
                   priority={isOpenActive ? 'primary' : 'default'}
                 >
                   {t('Active')}
@@ -250,6 +251,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
                   size="small"
+                  className={isClosedActive ? ' active' : ''}
                   priority={isClosedActive ? 'primary' : 'default'}
                 >
                   {t('Resolved')}
@@ -257,6 +259,7 @@ class IncidentsListContainer extends React.Component<Props> {
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
                   size="small"
+                  className={isAllActive ? ' active' : ''}
                   priority={isAllActive ? 'primary' : 'default'}
                 >
                   {t('All')}
