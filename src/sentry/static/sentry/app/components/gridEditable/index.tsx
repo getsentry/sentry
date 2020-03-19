@@ -6,9 +6,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconEdit, IconWarning} from 'app/icons';
+import {IconDownload, IconEdit, IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {
@@ -311,7 +310,7 @@ class GridEditable<
       >
         {({hasFeature}) => (
           <React.Fragment>
-            {this.renderDownloadAllButton(hasFeature)}
+            {this.renderDownloadButton(hasFeature)}
             {this.renderDownloadCsvButton(hasFeature)}
             {this.renderEditButton(hasFeature)}
           </React.Fragment>
@@ -320,7 +319,7 @@ class GridEditable<
     );
   }
 
-  renderDownloadAllButton(canEdit: boolean) {
+  renderDownloadButton(canEdit: boolean) {
     const disabled = this.props.isLoading || canEdit === false;
     return (
       <HeaderExportButton
@@ -330,7 +329,7 @@ class GridEditable<
         }}
         disabled={disabled}
       >
-        <InlineSvg src="icon-download" />
+        <IconDownload />
         {t('Export All')}
       </HeaderExportButton>
     );
@@ -345,7 +344,7 @@ class GridEditable<
         onClick={onClick}
         data-test-id="grid-download-csv"
       >
-        <InlineSvg src="icon-download" />
+        <IconDownload />
         {t('Export Page')}
       </HeaderButton>
     );
