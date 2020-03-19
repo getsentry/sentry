@@ -57,7 +57,7 @@ class ApiClientTest(TestCase):
         resp = ApiClient().get_cached("http://example.com")
         assert resp == {"key": "value1"}
 
-        key = "undefined.client:a9b9f04336ce0181a08e774e01113b31"
+        key = "integration.undefined.client:a9b9f04336ce0181a08e774e01113b31"
         cache_get.assert_called_with(key)
         cache_set.assert_called_with(key, {"key": "value1"}, 900)
 
