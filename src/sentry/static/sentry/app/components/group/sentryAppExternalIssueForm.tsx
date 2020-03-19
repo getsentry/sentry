@@ -206,7 +206,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
       const updatedField = {...impactedField, choices};
 
-      //immutably updat the lists with the updated field depending where we got it from
+      //immutably update the lists with the updated field depending where we got it from
       if (requiredIndex > -1) {
         requiredFields = [
           ...requiredFields.slice(0, requiredIndex),
