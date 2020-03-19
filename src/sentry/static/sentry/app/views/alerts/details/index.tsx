@@ -37,6 +37,7 @@ class IncidentDetails extends React.Component<Props, State> {
       eventKey: 'alert_details.viewed',
       eventName: 'Alert Details: Viewed',
       org_id: parseInt(organization.id, 10),
+      alert_id: parseInt(params.alertId, 10),
     });
 
     fetchOrgMembers(api, params.orgId);
