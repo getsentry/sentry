@@ -187,7 +187,7 @@ class ContextsInterface extends React.Component {
       );
     }
 
-    return <div>{children}</div>;
+    return <React.Fragment>{children}</React.Fragment>;
   }
 }
 

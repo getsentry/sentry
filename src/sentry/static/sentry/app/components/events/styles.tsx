@@ -36,7 +36,7 @@ export const BannerContainer = styled('div')<BannerProps>`
   border-bottom: 1px solid ${p => COLORS[p.priority].border};
 
   /* Muted box & processing errors are in different parts of the DOM */
-  & + ${DataSection}, & + div > ${DataSection} {
+  & + ${DataSection}:first-child, & + div > ${DataSection}:first-child {
     border-top: 0;
   }
 `;
