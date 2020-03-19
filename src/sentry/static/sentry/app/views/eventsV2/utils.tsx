@@ -303,6 +303,16 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     data: data.map(row =>
       headings.map(col => {
         col = getAggregateAlias(col);
+        // This needs to match the order done in the userBadge component
+        if (col === 'user') {
+          return disableMacros(
+            row['user.name'] ||
+              row['user.email'] ||
+              row['user.username'] ||
+              row['user.ipAddress'] ||
+              row['user.ip_address']
+          );
+        }
         return disableMacros(row[col]);
       })
     ),
@@ -318,6 +328,9 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
   link.click();
   link.remove();
+
+  // Make testing easier
+  return encodedDataUrl;
 }
 
 // A map between a field alias to a transform function to convert the aggregated field alias into
