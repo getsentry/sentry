@@ -606,13 +606,14 @@ describe('downloadAsCsv', function() {
     const result = {
       data: [
         {message: 'test 1', 'user.name': 'foo'},
-        {message: 'test 2', 'user.name': 'bar', 'user.ip_address': '127.0.0.1'},
+        {message: 'test 2', 'user.name': 'bar', 'user.ip': '127.0.0.1'},
         {message: 'test 3', 'user.email': 'foo@example.com', 'user.username': 'foo'},
+        {message: 'test 4', 'user.ip': '127.0.0.1'},
       ],
     };
     expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
       encodeURIComponent(
-        'message,user\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com'
+        'message,user\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
       )
     );
   });
