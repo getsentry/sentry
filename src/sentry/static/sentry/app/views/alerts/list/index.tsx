@@ -174,6 +174,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
 class IncidentsListContainer extends React.Component<Props> {
   componentDidMount() {
+    this.trackView();
+  }
+
+  componentDidUpdate(nextProps: Props) {
+    if (nextProps.location.query?.status !== this.props.location.query?.status) {
+      this.trackView();
+    }
+  }
+
+  trackView() {
     const {location, organization} = this.props;
     const status = getQueryStatus(location.query.status);
 
