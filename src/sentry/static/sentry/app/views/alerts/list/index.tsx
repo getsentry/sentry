@@ -8,10 +8,12 @@ import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSettings} from 'app/icons';
+import {Organization} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
@@ -30,6 +32,7 @@ import Projects from 'app/utils/projects';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
 import {Incident} from '../types';
 import SparkLine from './sparkLine';
@@ -37,7 +40,9 @@ import Status from '../status';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = {
+  organization: Organization;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
   incidentList: Incident[];
@@ -168,6 +173,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 }
 
 class IncidentsListContainer extends React.Component<Props> {
+  componentDidMount() {
+    trackAnalyticsEvent({
+      eventKey: 'alert_stream.viewed',
+      eventName: 'Alert Stream: Viewed',
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  }
+
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -328,4 +341,4 @@ const NumericColumn = styled('div')`
   text-align: right;
 `;
 
-export default IncidentsListContainer;
+export default withOrganization(IncidentsListContainer);

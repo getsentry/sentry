@@ -1,20 +1,24 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
 
 import {Client} from 'app/api';
+import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
+import {IncidentStatus, Incident} from '../types';
 import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
-import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;
+  organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 type State = {
@@ -27,8 +31,16 @@ class IncidentDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
-    const {api, params} = this.props;
+    const {api, organization, params} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_details.viewed',
+      eventName: 'Alert Details: Viewed',
+      org_id: parseInt(organization.id, 10),
+    });
+
     fetchOrgMembers(api, params.orgId);
+
     this.fetchData();
   }
 
@@ -129,4 +141,4 @@ class IncidentDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(IncidentDetails);
+export default withApi(withOrganization(IncidentDetails));

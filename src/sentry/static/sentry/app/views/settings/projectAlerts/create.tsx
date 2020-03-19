@@ -1,15 +1,17 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import PanelItem from 'app/components/panels/panelItem';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withProject from 'app/utils/withProject';
 
 type RouteParams = {
   orgId: string;
@@ -18,6 +20,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
+  project: Project;
   hasMetricAlerts: boolean;
 };
 
@@ -33,6 +36,17 @@ class Create extends React.Component<Props, State> {
       ? 'metric'
       : null,
   };
+
+  componentDidMount() {
+    const {organization, project} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'new_alert_rule.viewed',
+      eventName: 'New Alert Rule: Viewed',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+    });
+  }
 
   handleChangeAlertType = (alertType: string) => {
     // alertType should be `issue` or `metric`
@@ -95,4 +109,4 @@ class Create extends React.Component<Props, State> {
   }
 }
 
-export default Create;
+export default withProject(Create);
