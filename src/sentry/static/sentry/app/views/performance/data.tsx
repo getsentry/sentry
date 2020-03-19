@@ -51,7 +51,7 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
   if (query?.query) {
     const searchQuery = decodeScalar(query.query);
     if (searchQuery) {
-      extra.query = `${PERFORMANCE_EVENT_VIEW.query} event.type:transaction transaction:"*${searchQuery}*"`;
+      extra.query = `${PERFORMANCE_EVENT_VIEW.query} transaction:"*${searchQuery}*"`;
     }
   }
 
