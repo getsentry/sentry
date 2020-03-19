@@ -45,6 +45,7 @@ SCHEMA = {
                 "name": {"type": "string"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
+                "depends": {"type": "array", "minItems": 1, "items": {"type": "string"}},
             },
             "required": ["type", "name", "label"],
             "oneOf": [{"required": ["uri"]}, {"required": ["options"]}],

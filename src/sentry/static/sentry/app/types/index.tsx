@@ -841,7 +841,7 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: object;
+  schema: SentryAppSchemaIssueLink;
   sentryApp: {
     uuid: string;
     slug: string;

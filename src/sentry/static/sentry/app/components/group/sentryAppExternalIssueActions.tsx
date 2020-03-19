@@ -161,6 +161,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
     const {sentryAppComponent, sentryAppInstallation, group} = this.props;
     const {action, showModal} = this.state;
     const name = sentryAppComponent.sentryApp.name;
+    const config = sentryAppComponent.schema[action];
 
     return (
       <Modal show={showModal} onHide={this.hideModal} animation={false}>
@@ -180,7 +181,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
             group={group}
             sentryAppInstallation={sentryAppInstallation}
             appName={name}
-            config={sentryAppComponent.schema}
+            config={config}
             action={action}
             onSubmitSuccess={this.onSubmitSuccess}
             event={this.props.event}

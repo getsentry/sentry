@@ -13,22 +13,39 @@ import getStacktraceBody from 'app/utils/getStacktraceBody';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
-import {Field} from 'app/views/settings/components/forms/type';
+import {Field, FieldValue} from 'app/views/settings/components/forms/type';
+import FormModel from 'app/views/settings/components/forms/model';
+
+//0 is a valid choice but empty string, undefined, and null are not
+const hasValue = value => !!value || value === 0;
+
+type FieldFromSchema = Field & {
+  default?: string;
+  uri?: string;
+  depends?: string[];
+};
+
+type Config = {
+  uri: string;
+  required_fields?: FieldFromSchema[];
+  optional_fields?: FieldFromSchema[];
+};
+
+//only need required_fields and optional_fields
+type State = Omit<Config, 'uri'>;
 
 type Props = {
   api: Client;
   group: Group;
   sentryAppInstallation: SentryAppInstallation;
   appName: string;
-  config: object;
+  config: Config;
   action: 'create' | 'link';
   event: Event;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
-//TODO(TS): Improve typings on Field so we can use the type in functions without errors
-
-export class SentryAppExternalIssueForm extends React.Component<Props> {
+export class SentryAppExternalIssueForm extends React.Component<Props, State> {
   static propTypes: any = {
     api: PropTypes.object.isRequired,
     group: SentryTypes.Group.isRequired,
@@ -39,6 +56,27 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     event: SentryTypes.Event,
     onSubmitSuccess: PropTypes.func,
   };
+  state: State = {};
+
+  componentDidMount() {
+    this.resetStateFromProps();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.action !== this.props.action) {
+      this.resetStateFromProps();
+    }
+  }
+
+  model = new FormModel();
+
+  resetStateFromProps() {
+    const {config} = this.props;
+    this.setState({
+      required_fields: config.required_fields,
+      optional_fields: config.optional_fields,
+    });
+  }
 
   onSubmitSuccess = (issue: PlatformExternalIssue) => {
     ExternalIssueStore.add(issue);
@@ -58,28 +96,43 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
   debouncedOptionLoad = debounce(
     // debounce is used to prevent making a request for every input change and
     // instead makes the requests every 200ms
-    (field, input, resolve) => {
-      const install = this.props.sentryAppInstallation;
-      const projectId = this.props.group.project.id;
-
-      this.props.api
-        .requestPromise(`/sentry-app-installations/${install.uuid}/external-requests/`, {
-          query: {
-            projectId,
-            uri: field.uri,
-            query: input,
-          },
-        })
-        .then(data => {
-          const options = (data.choices || []).map(([value, label]) => ({value, label}));
-          return resolve({options});
-        });
+    async (field: FieldFromSchema, input, resolve) => {
+      const choices = await this.makeExternalRequest(field, input);
+      const options = choices.map(([value, label]) => ({value, label}));
+      return resolve({options});
     },
     200,
     {trailing: true}
   );
 
-  fieldProps = field =>
+  makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
+    const install = this.props.sentryAppInstallation;
+    const projectId = this.props.group.project.id;
+    const query: {[key: string]: any} = {
+      projectId,
+      uri: field.uri,
+      query: input,
+    };
+
+    if (field.depends?.length) {
+      const dependentData = field.depends.reduce((accum, dependentField: string) => {
+        accum[dependentField] = this.model.fields.get(dependentField);
+        return accum;
+      }, {});
+      //stringify the data
+      query.dependentData = JSON.stringify(dependentData);
+    }
+
+    const {choices} = await this.props.api.requestPromise(
+      `/sentry-app-installations/${install.uuid}/external-requests/`,
+      {
+        query,
+      }
+    );
+    return choices || [];
+  };
+
+  fieldProps = (field: FieldFromSchema) =>
     field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
@@ -103,7 +156,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     }
   }
 
-  getFieldDefault(field) {
+  getFieldDefault(field: FieldFromSchema) {
     const {group, appName} = this.props;
     if (field.type === 'textarea') {
       field.maxRows = 10;
@@ -123,12 +176,83 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     }
   }
 
+  handleFieldChange = async (id: string, _value: FieldValue) => {
+    const config = this.state;
+
+    let requiredFields = config.required_fields || [];
+    let optionalFields = config.optional_fields || [];
+
+    const fieldList: FieldFromSchema[] = requiredFields.concat(optionalFields);
+
+    //could have multiple impacted fields
+    const impactedFields = fieldList.filter(({depends}) => {
+      if (!depends?.length) {
+        return false;
+      }
+      // must be dependent on the field we just set
+      return depends.includes(id);
+    });
+
+    //reset all impacted fields first
+    impactedFields.forEach(impactedField =>
+      this.model.fields.delete(impactedField.name || '')
+    );
+
+    //iterate through all the impacted fields and get new values
+    for (const impactedField of impactedFields) {
+      const choices = await this.makeExternalRequest(impactedField, '');
+      const requiredIndex = requiredFields.indexOf(impactedField);
+      const optionalIndex = optionalFields.indexOf(impactedField);
+
+      const updatedField = {...impactedField, choices};
+
+      if (requiredIndex > -1) {
+        requiredFields = [
+          ...requiredFields.slice(0, requiredIndex),
+          updatedField,
+          ...requiredFields.slice(requiredIndex + 1),
+        ];
+      } else if (optionalIndex > -1) {
+        optionalFields = [
+          ...optionalFields.slice(0, optionalIndex),
+          updatedField,
+          ...optionalFields.slice(optionalIndex + 1),
+        ];
+      }
+    }
+
+    //set state once at the end to avoid things loading at different times
+    this.setState({
+      required_fields: requiredFields,
+      optional_fields: optionalFields,
+    });
+  };
+
+  renderField = (field: FieldFromSchema) => {
+    if (['text', 'textarea'].includes(field.type) && field.default) {
+      field = {...field, defaultValue: this.getFieldDefault(field)};
+    }
+
+    if (field.depends?.length) {
+      //check if this is dependent on other fields which haven't been set yet
+      const shouldDisable = field.depends.some(
+        dependentField => !hasValue(this.model.fields.get(dependentField))
+      );
+      if (shouldDisable) {
+        field = {...field, disabled: true};
+      }
+    }
+
+    return (
+      <FieldFromConfig key={`${field.name}`} field={field} {...this.fieldProps(field)} />
+    );
+  };
+
   render() {
     const {sentryAppInstallation, action} = this.props;
-    const config = this.props.config[action];
 
-    const requiredFields = config.required_fields || [];
-    const optionalFields = config.optional_fields || [];
+    const requiredFields = this.state.required_fields || [];
+    const optionalFields = this.state.optional_fields || [];
     const metaFields: Field[] = [
       {
         type: 'hidden',
@@ -143,7 +267,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
       {
         type: 'hidden',
         name: 'uri',
-        defaultValue: config.uri,
+        defaultValue: this.props.config.uri,
       },
     ];
 
@@ -158,12 +282,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
         apiMethod="POST"
         onSubmitSuccess={this.onSubmitSuccess}
         onSubmitError={this.onSubmitError}
+        onFieldChange={this.handleFieldChange}
+        model={this.model}
       >
-        {metaFields.map(field => (
-          <FieldFromConfig key={field.name} field={field} />
-        ))}
+        {metaFields.map(this.renderField)}
 
-        {requiredFields.map(field => {
+        {requiredFields.map((field: FieldFromSchema) => {
           field = Object.assign({}, field, {
             choices: field.choices || [],
             inline: false,
@@ -172,20 +296,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
             required: true,
           });
 
-          if (['text', 'textarea'].includes(field.type) && field.default) {
-            field.defaultValue = this.getFieldDefault(field);
-          }
-
-          return (
-            <FieldFromConfig
-              key={`${field.name}`}
-              field={field}
-              {...this.fieldProps(field)}
-            />
-          );
+          return this.renderField(field);
         })}
 
-        {optionalFields.map(field => {
+        {optionalFields.map((field: FieldFromSchema) => {
           field = Object.assign({}, field, {
             choices: field.choices || [],
             inline: false,
@@ -193,17 +307,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
             flexibleControlStateSize: true,
           });
 
-          if (['text', 'textarea'].includes(field.type) && field.default) {
-            field.defaultValue = this.getFieldDefault(field);
-          }
-
-          return (
-            <FieldFromConfig
-              key={`${field.name}`}
-              field={field}
-              {...this.fieldProps(field)}
-            />
-          );
+          return this.renderField(field);
         })}
       </Form>
     );
