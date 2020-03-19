@@ -7,7 +7,7 @@ from hashlib import md5 as _md5
 from sentry.utils.cache import cache
 from django.utils.encoding import force_bytes
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.client import ApiClient
 
 log = logging.getLogger(__name__)
@@ -101,6 +101,7 @@ class JiraClient(ApiClient):
         jql = 'project="%s" AND %s' % (project, jql)
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
+    # Steve(XXX): Might consider moving this method to the base plugin API client
     def get_cached(self, full_url):
         """
         Basic Caching mechanism for requests and responses. It only caches responses

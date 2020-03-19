@@ -71,14 +71,14 @@ class DateTime extends React.Component<Props> {
       ...carriedProps
     } = this.props;
     const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
+    const options = user?.options;
     const format = this.getFormat(options);
 
     return (
       <time {...carriedProps}>
         {utc
           ? moment.utc(date).format(format)
-          : moment.tz(date, options.timezone).format(format)}
+          : moment.tz(date, options?.timezone ?? '').format(format)}
       </time>
     );
   }

@@ -174,6 +174,7 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
+USER_ALIAS = "user"
 
 
 class InvalidSearchQuery(Exception):
@@ -239,10 +240,6 @@ class SearchVisitor(NodeVisitor):
             "project_id",
             "project.id",
             "issue.id",
-            "device.battery_level",
-            "device.charging",
-            "device.online",
-            "device.simulator",
             "error.handled",
             "stack.colno",
             "stack.in_app",
@@ -654,8 +651,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=N
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter):
-    name = search_filter.key.name
+def convert_search_filter_to_snuba_query(search_filter, key=None):
+    name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
     if name in no_conversion:
@@ -823,6 +820,14 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
+            elif name == USER_ALIAS:
+                # If the key is user, do an OR across all the different possible user fields
+                kwargs["conditions"].append(
+                    [
+                        convert_search_filter_to_snuba_query(term, key=field)
+                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                    ]
+                )
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -861,20 +866,24 @@ def get_filter(query=None, params=None):
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
 }
 
 
-def get_json_meta_type(field, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field)
+def get_json_meta_type(field_alias, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    if "duration" in field:
+    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
+    if function_match:
+        function_definition = FUNCTIONS.get(function_match.group(1))
+        if function_definition and function_definition.get("result_type"):
+            return function_definition.get("result_type")
+    if "duration" in field_alias:
         return "duration"
-    if field == "transaction.status":
+    if field_alias == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
 
@@ -884,6 +893,11 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 class InvalidFunctionArgument(Exception):
     pass
+
+
+class ArgValue(object):
+    def __init__(self, arg):
+        self.arg = arg
 
 
 class FunctionArg(object):
@@ -985,73 +999,130 @@ FUNCTIONS = {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "result_type": "duration",
+    },
+    "p75": {
+        "name": "p75",
+        "args": [],
+        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p95": {
+        "name": "p95",
+        "args": [],
+        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p99": {
+        "name": "p99",
+        "args": [],
+        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
     },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
+        "result_type": "number",
     },
     "rpm": {
         "name": "rpm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
+        "result_type": "number",
     },
-    "last_seen": {"name": "last_seen", "args": [], "aggregate": ["max", "timestamp", "last_seen"]},
+    "last_seen": {
+        "name": "last_seen",
+        "args": [],
+        "aggregate": ["max", "timestamp", "last_seen"],
+        "result_type": "date",
+    },
     "latest_event": {
         "name": "latest_event",
         "args": [],
         "aggregate": ["argMax", ["id", "timestamp"], "latest_event"],
+        "result_type": "string",
     },
     "apdex": {
         "name": "apdex",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex({column}, {satisfaction:g})",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex(duration, {satisfaction:g})",
+        "result_type": "number",
     },
     "impact": {
         "name": "impact",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
         # in a format Snuba can parse so query optimizations can be applied.
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "result_type": "number",
     },
     "error_rate": {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "result_type": "number",
+    },
+    "histogram": {
+        "name": "histogram",
+        "args": [
+            DurationColumnNoLookup("column"),
+            NumberRange("num_buckets", 1, 500),
+            NumberRange("bucket", 0, None),
+        ],
+        "column": [
+            "multiply",
+            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            None,
+        ],
+        "result_type": "number",
     },
     "count_unique": {
         "name": "count_unique",
         "args": [CountColumn("column")],
         "aggregate": ["uniq", u"{column}", None],
+        "result_type": "integer",
     },
     # TODO(evanh) Count doesn't accept parameters in the frontend, but we support it here
     # for backwards compatibility. Once we've migrated existing queries this should get
     # changed to accept no parameters.
-    "count": {"name": "count", "args": [CountColumn("column")], "aggregate": ["count", None, None]},
+    "count": {
+        "name": "count",
+        "args": [CountColumn("column")],
+        "aggregate": ["count", None, None],
+        "result_type": "integer",
+    },
     "min": {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
+        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
+        "result_type": "number",
     },
     "avg": {
         "name": "avg",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["avg", u"{column}", None],
+        "result_type": "duration",
     },
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["sum", u"{column}", None],
+        "result_type": "duration",
     },
 }
+
+
+FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
 def is_function(field):
@@ -1071,6 +1142,17 @@ def get_function_alias(field):
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
+
+
+def format_column_arguments(column, arguments):
+    args = column[1]
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            format_column_arguments(args[i], arguments)
+        elif isinstance(args[i], six.string_types):
+            args[i] = args[i].format(**arguments)
+        elif isinstance(args[i], ArgValue):
+            args[i] = arguments[args[i].arg]
 
 
 def resolve_function(field, match=None, params=None):
@@ -1141,6 +1223,21 @@ def resolve_function(field, match=None, params=None):
             )
 
         return ([], [aggregate])
+    elif "column" in function:
+        # These can be very nested functions, so we need to iterate through all the layers
+        addition = deepcopy(function["column"])
+        format_column_arguments(addition, arguments)
+        if len(addition) < 3:
+            addition.append(
+                get_function_alias_with_columns(
+                    function["name"], columns if not used_default else []
+                )
+            )
+        elif len(addition) == 3 and addition[2] is None:
+            addition[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+        return ([addition], [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1175,6 +1272,11 @@ def resolve_orderby(orderby, fields, aggregations):
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
 
+        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        if found:
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + bare_column)
+
     if len(validated) == len(orderby):
         return validated
 
@@ -1194,11 +1296,9 @@ def resolve_field(field, params=None):
     if match:
         return resolve_function(field, match, params)
 
-    sans_parens = field.strip("()")
-    if sans_parens in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[sans_parens])
-        return (special_field.get("fields", []), special_field.get("aggregations", []))
-
+    if field in FIELD_ALIASES:
+        special_field = deepcopy(FIELD_ALIASES[field])
+        return (special_field.get("fields", []), None)
     return ([field], None)
 
 
@@ -1286,7 +1386,11 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(columns)
+        for column in columns:
+            if isinstance(column, (list, tuple)):
+                groupby.append(column[2])
+            else:
+                groupby.append(column)
 
     return {
         "selected_columns": columns,

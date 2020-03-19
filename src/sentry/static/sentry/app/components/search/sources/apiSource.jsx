@@ -351,7 +351,7 @@ class ApiSource extends React.Component {
 
   // Create result objects from API requests that do not require fuzzy search
   // i.e. these responses only return 1 object or they should always be displayed regardless of query input
-  async getDirectResults(requests, query) {
+  async getDirectResults(requests) {
     const [shortIdLookup, eventIdLookup] = requests;
 
     const directResults = (

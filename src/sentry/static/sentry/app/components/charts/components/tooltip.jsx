@@ -15,7 +15,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   return getFormattedDate(value, format, {local: !utc});
 }
 
-function valueFormatter(value) {
+function defaultValueFormatter(value) {
   if (typeof value === 'number') {
     return value.toLocaleString();
   }
@@ -30,6 +30,7 @@ function getFormatter({
   truncate,
   formatAxisLabel,
   utc,
+  valueFormatter = defaultValueFormatter,
 }) {
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -60,7 +61,11 @@ function getFormatter({
         utc,
         showTimeInTooltip
       );
-      const truncatedName = truncationFormatter(seriesParamsOrParam.seriesName, truncate);
+      // eCharts sets seriesName as null when `componentType` !== 'series'
+      const truncatedName = truncationFormatter(
+        seriesParamsOrParam.data.labelForValue,
+        truncate
+      );
       const formattedValue = valueFormatter(seriesParamsOrParam.data.coord[1]);
       return [
         '<div class="tooltip-series">',
@@ -109,6 +114,7 @@ export default function Tooltip({
   truncate,
   utc,
   formatAxisLabel,
+  valueFormatter,
   ...props
 } = {}) {
   formatter =
@@ -120,6 +126,7 @@ export default function Tooltip({
       truncate,
       utc,
       formatAxisLabel,
+      valueFormatter,
     });
 
   return {

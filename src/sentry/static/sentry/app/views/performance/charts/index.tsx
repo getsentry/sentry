@@ -19,12 +19,13 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
+import {ChartsContainer, ChartsGrid} from './styles';
 import Chart from './chart';
 import Footer from './footer';
 
 const YAXIS_OPTIONS = [
-  {label: 'apdex()', value: 'apdex(transaction.duration, 300)'},
-  {label: 'rpm()', value: 'rpm()'},
+  {label: 'Apdex', value: 'apdex(300)'},
+  {label: 'Throughput', value: 'rpm()'},
 ];
 
 type Props = {
@@ -131,25 +132,29 @@ class Container extends React.Component<Props, State> {
                 return <LoadingPanel data-test-id="events-request-loading" />;
               }
 
-              return YAXIS_OPTIONS.map(yAxis => (
-                <React.Fragment key={yAxis.label}>
-                  {getDynamicText({
-                    value: (
-                      <Chart
-                        loading={loading || reloading}
-                        yAxis={yAxis.label}
-                        data={results[yAxis.value]}
-                        router={router}
-                        statsPeriod={globalSelection.statsPeriod}
-                        utc={utc === 'true'}
-                        projects={globalSelection.project}
-                        environments={globalSelection.environment}
-                      />
-                    ),
-                    fixed: 'events chart',
-                  })}
-                </React.Fragment>
-              ));
+              return (
+                <ChartsGrid>
+                  {YAXIS_OPTIONS.map(yAxis => (
+                    <React.Fragment key={yAxis.label}>
+                      {getDynamicText({
+                        value: (
+                          <Chart
+                            loading={loading || reloading}
+                            yAxis={yAxis.label}
+                            data={results[yAxis.value]}
+                            router={router}
+                            statsPeriod={globalSelection.statsPeriod}
+                            utc={utc === 'true'}
+                            projects={globalSelection.project}
+                            environments={globalSelection.environment}
+                          />
+                        ),
+                        fixed: 'events chart',
+                      })}
+                    </React.Fragment>
+                  ))}
+                </ChartsGrid>
+              );
             }}
           </EventsRequest>
         </ChartsContainer>
@@ -158,10 +163,6 @@ class Container extends React.Component<Props, State> {
     );
   }
 }
-
-export const ChartsContainer = styled('div')`
-  display: flex;
-`;
 
 const ErrorPanel = styled('div')`
   display: flex;

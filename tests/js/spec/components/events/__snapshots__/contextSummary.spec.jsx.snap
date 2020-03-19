@@ -286,12 +286,12 @@ exports[`GpuSummary render() renders name and vendor 1`] = `
   <h3>
     Mali-T880
   </h3>
-  <p>
+  <ParagraphOverflow>
     <Subject>
       Vendor:
     </Subject>
     ARM
-  </p>
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -305,12 +305,12 @@ exports[`GpuSummary render() renders unknown when no vendor 1`] = `
   <h3>
     Apple A8 GPU
   </h3>
-  <p>
+  <ParagraphOverflow>
     <Subject>
       Vendor:
     </Subject>
     Unknown
-  </p>
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -324,12 +324,12 @@ exports[`OsSummary render() renders the kernel version when no version 1`] = `
   <h3>
     Mac OS X
   </h3>
-  <p>
+  <ParagraphOverflow>
     <Subject>
       Kernel:
     </Subject>
     17.5.0
-  </p>
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -343,12 +343,12 @@ exports[`OsSummary render() renders the version string 1`] = `
   <h3>
     Mac OS X
   </h3>
-  <p>
+  <ParagraphOverflow>
     <Subject>
       Version:
     </Subject>
     10.13.4
-  </p>
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -362,11 +362,11 @@ exports[`OsSummary render() renders unknown when no version 1`] = `
   <h3>
     Mac OS X
   </h3>
-  <p>
+  <ParagraphOverflow>
     <Subject>
       Version:
     </Subject>
     Unknown
-  </p>
+  </ParagraphOverflow>
 </div>
 `;

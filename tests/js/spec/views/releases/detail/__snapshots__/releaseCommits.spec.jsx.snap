@@ -223,6 +223,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <StyledBaseAvatar
                                       className="avatar"
+                                      gravatarId="example@sentry.io"
+                                      letterId="example@sentry.io"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -231,6 +233,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           "width": "36px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
+                                      uploadId=""
+                                      uploadPath="avatar"
                                     >
                                       <span
                                         className="avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
@@ -240,48 +246,58 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                             "width": "36px",
                                           }
                                         }
+                                        title="Foo Bar"
+                                        type="letter_avatar"
                                       >
-                                        <LetterAvatar
+                                        <ForwardRef
                                           displayName="Foo Bar"
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Component
-                                            className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                          <LetterAvatar
                                             displayName="Foo Bar"
+                                            forwardedRef={null}
                                             identifier="example@sentry.io"
                                             round={true}
                                           >
-                                            <svg
+                                            <Component
                                               className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
+                                              displayName="Foo Bar"
+                                              forwardedRef={null}
+                                              identifier="example@sentry.io"
+                                              round={true}
                                             >
-                                              <rect
-                                                fill="#847a8c"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
-                                                }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
+                                              <svg
+                                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                                viewBox="0 0 120 120"
                                               >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
+                                                <rect
+                                                  fill="#847a8c"
+                                                  height="120"
+                                                  rx="15"
+                                                  ry="15"
+                                                  width="120"
+                                                  x="0"
+                                                  y="0"
+                                                />
+                                                <text
+                                                  fill="#FFFFFF"
+                                                  fontSize="65"
+                                                  style={
+                                                    Object {
+                                                      "dominantBaseline": "central",
+                                                    }
+                                                  }
+                                                  textAnchor="middle"
+                                                  x="50%"
+                                                  y="50%"
+                                                >
+                                                  FB
+                                                </text>
+                                              </svg>
+                                            </Component>
+                                          </LetterAvatar>
+                                        </ForwardRef>
                                       </span>
                                     </StyledBaseAvatar>
                                   </Tooltip>
@@ -295,14 +311,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                             >
                               <Message>
                                 <div
-                                  className="css-11irdn4-TextOverflow-Message eyce8w25"
+                                  className="css-b2zdm8-TextOverflow-Message eyce8w25"
                                 >
                                   (improve) Add Links to Spike-Protection Email (#2408)
                                 </div>
                               </Message>
                               <Meta>
                                 <div
-                                  className="css-1dy4vp6-TextOverflow-Meta eyce8w26"
+                                  className="css-14ujho6-TextOverflow-Meta eyce8w26"
                                 >
                                   <span
                                     key="4"
@@ -593,6 +609,8 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                   >
                                     <StyledBaseAvatar
                                       className="avatar"
+                                      gravatarId="example@sentry.io"
+                                      letterId="example@sentry.io"
                                       loaded={true}
                                       round={true}
                                       style={
@@ -601,6 +619,10 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                           "width": "36px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
+                                      uploadId=""
+                                      uploadPath="avatar"
                                     >
                                       <span
                                         className="avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
@@ -610,48 +632,58 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                                             "width": "36px",
                                           }
                                         }
+                                        title="Foo Bar"
+                                        type="letter_avatar"
                                       >
-                                        <LetterAvatar
+                                        <ForwardRef
                                           displayName="Foo Bar"
                                           identifier="example@sentry.io"
                                           round={true}
                                         >
-                                          <Component
-                                            className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                          <LetterAvatar
                                             displayName="Foo Bar"
+                                            forwardedRef={null}
                                             identifier="example@sentry.io"
                                             round={true}
                                           >
-                                            <svg
+                                            <Component
                                               className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
+                                              displayName="Foo Bar"
+                                              forwardedRef={null}
+                                              identifier="example@sentry.io"
+                                              round={true}
                                             >
-                                              <rect
-                                                fill="#847a8c"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
-                                                }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
+                                              <svg
+                                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                                viewBox="0 0 120 120"
                                               >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
+                                                <rect
+                                                  fill="#847a8c"
+                                                  height="120"
+                                                  rx="15"
+                                                  ry="15"
+                                                  width="120"
+                                                  x="0"
+                                                  y="0"
+                                                />
+                                                <text
+                                                  fill="#FFFFFF"
+                                                  fontSize="65"
+                                                  style={
+                                                    Object {
+                                                      "dominantBaseline": "central",
+                                                    }
+                                                  }
+                                                  textAnchor="middle"
+                                                  x="50%"
+                                                  y="50%"
+                                                >
+                                                  FB
+                                                </text>
+                                              </svg>
+                                            </Component>
+                                          </LetterAvatar>
+                                        </ForwardRef>
                                       </span>
                                     </StyledBaseAvatar>
                                   </Tooltip>
@@ -665,14 +697,14 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                             >
                               <Message>
                                 <div
-                                  className="css-11irdn4-TextOverflow-Message eyce8w25"
+                                  className="css-b2zdm8-TextOverflow-Message eyce8w25"
                                 >
                                   (improve) Add Links to Spike-Protection Email (#2408)
                                 </div>
                               </Message>
                               <Meta>
                                 <div
-                                  className="css-1dy4vp6-TextOverflow-Meta eyce8w26"
+                                  className="css-14ujho6-TextOverflow-Meta eyce8w26"
                                 >
                                   <span
                                     key="4"

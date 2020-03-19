@@ -57,9 +57,12 @@ const ReleaseCard = ({release, project, location}: Props) => (
             <VersionWrapper>
               <Version
                 version={release.version}
-                preserveGlobalSelection
+                // TODO(releasesV2): we don't use this for now
+                // preserveGlobalSelection
                 tooltipRawVersion
                 truncate
+                projectId={String(release.projectId)}
+                v2
               />
               <TimeWithIcon date={release.dateReleased || release.dateCreated} />
             </VersionWrapper>
@@ -88,7 +91,9 @@ const ReleaseCard = ({release, project, location}: Props) => (
       </StyledPanelItem>
     </PanelBody>
 
-    {release.healthData && <ReleaseHealth release={release} location={location} />}
+    {release.healthData?.hasHealthData && (
+      <ReleaseHealth release={release} location={location} />
+    )}
   </Panel>
 );
 

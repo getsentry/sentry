@@ -1,21 +1,23 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
+import space from 'app/styles/space';
 import AlertMessage from 'app/components/alertMessage';
 
 storiesOf('UI|Alerts/AlertMessage', module)
   .add(
     'Default',
     withInfo('Inline alert messages')(() => (
-      <div>
+      <Grid>
         <AlertMessage
           alert={{
             id: 'id',
             message: 'Info message with a url',
             type: 'info',
-            url: 'url',
+            url: '#',
           }}
         />
 
@@ -32,7 +34,7 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Warning Message',
             type: 'warning',
-            url: 'url',
+            url: '#',
           }}
         />
 
@@ -41,22 +43,22 @@ storiesOf('UI|Alerts/AlertMessage', module)
             id: 'id',
             message: 'Error Message',
             type: 'error',
-            url: 'url',
+            url: '#',
           }}
         />
-      </div>
+      </Grid>
     ))
   )
   .add(
     'System',
     withInfo('System-level alert messages that appear at the top of the viewport')(() => (
-      <div>
+      <Grid>
         <AlertMessage
           alert={{
             id: 'id',
             message: 'Info message with a url',
             type: 'info',
-            url: 'url',
+            url: '#',
           }}
           system
         />
@@ -86,10 +88,15 @@ storiesOf('UI|Alerts/AlertMessage', module)
             message:
               "Background workers haven't checked in recently. This can mean an issue with your configuration or a serious backlog in tasks.",
             type: 'error',
-            url: 'url',
+            url: '#',
           }}
           system
         />
-      </div>
+      </Grid>
     ))
   );
+
+const Grid = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+`;

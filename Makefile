@@ -93,20 +93,23 @@ build-js-po: node-version-check
 
 build: locale
 
-locale: build-js-po
+merge-locale-catalogs: build-js-po
+	$(PIP) install Babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
+
+compile-locale:
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
-update-transifex: build-js-po
+locale: merge-locale-catalogs compile-locale
+
+sync-transifex: merge-locale-catalogs
 	$(PIP) install transifex-client
-	cd src/sentry && sentry django makemessages -i static -l en
-	./bin/merge-catalogs en
 	tx push -s
 	tx pull -a
-	./bin/find-good-catalogs src/sentry/locale/catalogs.json
-	cd src/sentry && sentry django compilemessages
+
+update-transifex: sync-transifex compile-locale
 
 build-platform-assets:
 	@echo "--> Building platform assets"
@@ -212,7 +215,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################

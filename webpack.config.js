@@ -52,10 +52,11 @@ const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
 // Deploy previews are built using zeit. We can check if we're in zeit's
 // build process by checking the existence of the PULL_REQUEST env var.
-const DEPLOY_PREVIEW_CONFIG = env.PULL_REQUEST && {
-  commitRef: env.COMMIT_REF,
-  reviewId: env.REVIEW_ID,
-  repoUrl: env.REPOSITORY_URL,
+const DEPLOY_PREVIEW_CONFIG = env.NOW_GITHUB_DEPLOYMENT && {
+  branch: env.NOW_GITHUB_COMMIT_REF,
+  commitSha: env.NOW_GITHUB_COMMIT_SHA,
+  githubOrg: env.NOW_GITHUB_COMMIT_ORG,
+  githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
 
 // When deploy previews are enabled always enable experimental SPA mode --
@@ -74,7 +75,7 @@ const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(staticPrefix, 'dist');
  */
 if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
   babelConfig.plugins.push([
-    'babel-gettext-extractor',
+    'module:babel-gettext-extractor',
     {
       fileName: 'build/javascript.po',
       baseDirectory: path.join(__dirname, 'src/sentry'),
@@ -386,7 +387,7 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (DEPLOY_PREVIEW_CONFIG) {
+if (SENTRY_EXPERIMENTAL_SPA) {
   /**
    * Generate a index.html file used for running the app in pure client mode.
    * This is currently used for PR deploy previews, where only the frontend

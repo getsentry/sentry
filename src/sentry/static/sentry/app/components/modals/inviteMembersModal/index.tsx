@@ -285,7 +285,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   }
 
   get willInvite() {
-    return this.props.organization.access.includes('member:write');
+    return this.props.organization.access?.includes('member:write');
   }
 
   get inviteButtonLabel() {

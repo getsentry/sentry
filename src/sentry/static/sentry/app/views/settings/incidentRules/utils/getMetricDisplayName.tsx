@@ -5,9 +5,9 @@ import {AlertRuleAggregations} from '../types';
 export default function getMetricDisplayName(metric: AlertRuleAggregations): string {
   switch (metric) {
     case AlertRuleAggregations.UNIQUE_USERS:
-      return t('Users Affected');
+      return t('Number of Users Affected');
     case AlertRuleAggregations.TOTAL:
-      return t('Events');
+      return t('Number of Events');
 
     default:
       return '';

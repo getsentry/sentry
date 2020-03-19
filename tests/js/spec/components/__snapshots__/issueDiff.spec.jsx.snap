@@ -407,6 +407,6 @@ exports[`IssueDiff is loading when initially rendering 1`] = `
 <StyledIssueDiff
   loading={true}
 >
-  <LoadingIndicator />
+  <profiler(LoadingIndicator) />
 </StyledIssueDiff>
 `;

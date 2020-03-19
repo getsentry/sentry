@@ -38,7 +38,7 @@
   {% block scripts %}
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
 
   <script>
     // if the ads.js file loads below it will mark this variable as false

@@ -8,6 +8,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {IconInfo} from 'app/icons';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -17,6 +18,7 @@ type Props = {
   icon: React.ReactElement;
   lockedMessage: string;
   settingsLink: string;
+  hint?: string;
   hasChanges: boolean;
   hasSelected: boolean;
   isOpen: boolean;
@@ -37,6 +39,7 @@ class HeaderItem extends React.Component<Props> {
     locked: PropTypes.bool,
     lockedMessage: PropTypes.string,
     settingsLink: PropTypes.string,
+    hint: PropTypes.string,
   };
 
   static defaultProps: DefaultProps = {
@@ -58,6 +61,7 @@ class HeaderItem extends React.Component<Props> {
       locked,
       lockedMessage,
       settingsLink,
+      hint,
       onClear, // eslint-disable-line no-unused-vars
       loading,
       forwardRef,
@@ -74,6 +78,13 @@ class HeaderItem extends React.Component<Props> {
       <StyledHeaderItem ref={forwardRef} loading={loading} {...props} {...textColorProps}>
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>{children}</Content>
+        {hint && (
+          <Hint>
+            <Tooltip title={hint} position="bottom">
+              <IconInfo size="sm" />
+            </Tooltip>
+          </Hint>
+        )}
         {hasSelected && !locked && allowClear && (
           <StyledClose {...textColorProps} src="icon-close" onClick={this.handleClear} />
         )}
@@ -136,6 +147,13 @@ const Content = styled('div')`
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   margin-right: ${space(1.5)};
+  display: flex;
+`;
+
+const Hint = styled('div')`
+  position: relative;
+  top: ${space(0.25)};
+  margin-right: ${space(1)};
 `;
 
 const StyledClose = styled(InlineSvg, {shouldForwardProp: isPropValid})<ColorProps>`

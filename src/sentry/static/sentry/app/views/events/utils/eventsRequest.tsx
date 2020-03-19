@@ -58,6 +58,7 @@ type EventsRequestPartialProps = {
   showLoading?: boolean;
   yAxis?: string | string[];
   currentSeriesName?: string;
+  previousSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
 };
 
@@ -299,7 +300,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     return {
-      seriesName: 'Previous',
+      seriesName: this.props.previousSeriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
         (_timestamp, _countArray, i) => current[i][0] * 1000

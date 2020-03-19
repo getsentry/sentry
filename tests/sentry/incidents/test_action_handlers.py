@@ -47,7 +47,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=six.text_type(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == []
+        assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_team(self):
         new_user = self.create_user()
@@ -65,6 +65,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         UserOption.objects.set_value(
             user=self.user, key="mail:alert", value=0, project=self.project
         )
+        disabled_user = self.create_user()
+        UserOption.objects.set_value(user=disabled_user, key="subscribe_by_default", value="0")
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
@@ -73,9 +75,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=six.text_type(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set(
-            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
-        )
+        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
 
 
 @freeze_time()

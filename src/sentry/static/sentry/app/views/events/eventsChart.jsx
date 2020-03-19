@@ -1,21 +1,25 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
-import LoadingMask from 'app/components/loadingMask';
-import LoadingPanel from 'app/views/events/loadingPanel';
+import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
+import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
+import ErrorPanel from 'app/components/charts/components/errorPanel';
+import {getDuration} from 'app/utils/formatters';
 
 import EventsRequest from './utils/eventsRequest';
+
+const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -26,6 +30,8 @@ class EventsAreaChart extends React.Component {
     timeseriesData: PropTypes.array,
     showLegend: PropTypes.bool,
     previousTimeseriesData: PropTypes.object,
+    currentSeriesName: PropTypes.string,
+    previousSeriesName: PropTypes.string,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -53,12 +59,14 @@ class EventsAreaChart extends React.Component {
       timeseriesData,
       previousTimeseriesData,
       showLegend,
+      currentSeriesName,
+      previousSeriesName,
       ...props
     } = this.props;
 
     const legend = showLegend && {
       right: 16,
-      top: 16,
+      top: 12,
       selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
@@ -70,7 +78,7 @@ class EventsAreaChart extends React.Component {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: ['Current', 'Previous'],
+      data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
     return (
@@ -90,93 +98,6 @@ class EventsAreaChart extends React.Component {
           bottom: '12px',
         }}
       />
-    );
-  }
-}
-
-class TransitionChart extends React.Component {
-  static propTypes = {
-    reloading: PropTypes.bool,
-    loading: PropTypes.bool,
-  };
-
-  state = {
-    prevReloading: this.props.reloading,
-    prevLoading: this.props.loading,
-    key: 1,
-  };
-
-  static getDerivedStateFromProps(props, state) {
-    // Transitions are controlled using variables called:
-    // - loading and,
-    // - reloading (also called pending in other apps)
-    //
-    // This component remounts the chart to ensure the stable transition
-    // from one data set to the next.
-
-    const prevReloading = state.prevReloading;
-    const nextReloading = props.reloading;
-
-    const prevLoading = state.prevLoading;
-    const nextLoading = props.loading;
-
-    // whenever loading changes, we explicitly remount the children by updating
-    // the key prop; regardless of what state reloading is in
-    if (prevLoading !== nextLoading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key + 1,
-      };
-    }
-
-    // invariant: prevLoading === nextLoading
-
-    // if loading is true, and hasn't changed from the previous re-render,
-    // do not remount the children.
-    if (nextLoading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key,
-      };
-    }
-
-    // invariant: loading is false
-
-    // whenever the chart is transitioning from the reloading (pending) state to a non-loading state,
-    // remount the children
-    if (prevReloading && !nextReloading) {
-      return {
-        prevReloading: nextReloading,
-        prevLoading: nextLoading,
-        key: state.key + 1,
-      };
-    }
-
-    // do not remount the children in these remaining cases:
-    // !prevReloading && !nextReloading (re-render with no prop change)
-    // prevReloading && nextReloading (re-render with no prop change)
-    // !prevReloading && nextReloading (from loaded to pending state)
-
-    return {
-      prevReloading: nextReloading,
-      prevLoading: nextLoading,
-      key: state.key,
-    };
-  }
-
-  render() {
-    const {loading, reloading} = this.props;
-
-    if (loading && !reloading) {
-      return <LoadingPanel data-test-id="events-request-loading" />;
-    }
-
-    // We make use of the key prop to explicitly remount the children
-    // https://reactjs.org/docs/lists-and-keys.html#keys
-    return (
-      <React.Fragment key={String(this.state.key)}>{this.props.children}</React.Fragment>
     );
   }
 }
@@ -213,6 +134,20 @@ class EventsChart extends React.Component {
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
+    const previousSeriesName = yAxis ? t('previous %s', yAxis) : undefined;
+
+    const tooltip = {
+      valueFormatter(value) {
+        if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
+          return getDuration(value / 1000, 2);
+        }
+        if (typeof value === 'number') {
+          return value.toLocaleString();
+        }
+
+        return value;
+      },
+    };
 
     return (
       <ChartZoom
@@ -236,6 +171,8 @@ class EventsChart extends React.Component {
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
+            currentSeriesName={yAxis}
+            previousSeriesName={previousSeriesName}
             yAxis={yAxis}
           >
             {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => (
@@ -255,6 +192,7 @@ class EventsChart extends React.Component {
                         <TransparentLoadingMask visible={reloading} />
                         <EventsAreaChart
                           {...zoomRenderProps}
+                          tooltip={tooltip}
                           loading={loading}
                           reloading={reloading}
                           utc={utc}
@@ -262,6 +200,8 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
+                          currentSeriesName={yAxis}
+                          previousSeriesName={previousSeriesName}
                         />
                       </React.Fragment>
                     </TransitionChart>
@@ -302,23 +242,3 @@ const EventsChartContainer = withGlobalSelection(
 
 export default EventsChartContainer;
 export {EventsChart, EventsAreaChart};
-
-const TransparentLoadingMask = styled(LoadingMask)`
-  ${p => !p.visible && 'display: none;'};
-  opacity: 0.4;
-  z-index: 1;
-`;
-
-const ErrorPanel = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  flex: 1;
-  flex-shrink: 0;
-  overflow: hidden;
-  height: 200px;
-  position: relative;
-  border-color: transparent;
-  margin-bottom: 0;
-`;

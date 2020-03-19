@@ -2,7 +2,7 @@ import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Organization, Project, Config} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -23,7 +23,6 @@ import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 import recreateRoute from 'app/utils/recreateRoute';
-import withConfig from 'app/utils/withConfig';
 import withProject from 'app/utils/withProject';
 
 import {
@@ -38,16 +37,12 @@ import FormModel from '../../components/forms/model';
 import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
-  config: Config;
   organization: Organization;
   project: Project;
   routes: PlainRoute[];
   rule: IncidentRule;
-  incidentRuleId?: string;
-} & RouteComponentProps<
-  {orgId: string; projectId: string; incidentRuleId: string},
-  {}
-> & {
+  ruleId?: string;
+} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -298,17 +293,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     const {organization, params, rule, onSubmitSuccess} = this.props;
+    const {ruleId} = this.props.params;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
-      addLoadingMessage(t('Saving alert'));
+      addLoadingMessage();
       const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
         ...rule,
         ...model.getTransformedData(),
         triggers: this.state.triggers.map(sanitizeTrigger),
       });
-      addSuccessMessage(t('Successfully saved alert'));
+      addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
       if (onSubmitSuccess) {
         onSubmitSuccess(resp, model);
       }
@@ -359,11 +355,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleDeleteRule = async () => {
     const {params} = this.props;
-    const {orgId, projectId, incidentRuleId} = params;
+    const {orgId, projectId, ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/alert-rules/${incidentRuleId}/`,
+        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -383,23 +379,16 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      config,
-      organization,
-      incidentRuleId,
-      rule,
-      params,
-      onSubmitSuccess,
-    } = this.props;
+    const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
           <Form
-            apiMethod={incidentRuleId ? 'PUT' : 'POST'}
+            apiMethod={ruleId ? 'PUT' : 'POST'}
             apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-              incidentRuleId ? `${incidentRuleId}/` : ''
+              ruleId ? `${ruleId}/` : ''
             }`}
             submitDisabled={!hasAccess}
             initialData={{
@@ -434,7 +423,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           >
             <TriggersChart
               api={this.api}
-              config={config}
               organization={organization}
               projects={this.state.projects}
               triggers={triggers}
@@ -458,7 +446,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               triggers={triggers}
               currentProject={params.projectId}
               organization={organization}
-              incidentRuleId={incidentRuleId}
+              ruleId={ruleId}
               availableActions={this.state.availableActions}
               onChange={this.handleChangeTriggers}
               onAdd={this.handleAddTrigger}
@@ -473,7 +461,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 export {RuleFormContainer};
-export default withConfig(withProject(RuleFormContainer));
+export default withProject(RuleFormContainer);
 
 /**
  * We need a default value of empty string for resolveThreshold or else React complains

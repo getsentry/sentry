@@ -7,6 +7,7 @@ from django.conf import settings
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models import UserSerializer
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -109,11 +110,23 @@ class OrganizationSerializer(Serializer):
 
 
 class OnboardingTasksSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        # Unique user list
+        users = {item.user for item in item_list if item.user}
+        serialized_users = serialize(users, user, UserSerializer())
+        user_map = {user["id"]: user for user in serialized_users}
+
+        data = {}
+        for item in item_list:
+            data[item] = {"user": user_map.get(six.text_type(item.user_id))}
+        return data
+
     def serialize(self, obj, attrs, user):
         return {
             "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(obj.task),
             "status": OrganizationOnboardingTask.STATUS_KEY_MAP.get(obj.status),
-            "user": obj.user.name if obj.user else None,
+            "user": attrs.get("user"),
+            "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,
         }
@@ -193,6 +206,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
+                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
+                or None,
             }
         )
         context["access"] = access.scopes

@@ -5,7 +5,7 @@ import {Location} from 'history';
 import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
@@ -30,7 +30,7 @@ const ReleaseHealth = ({release, location}: Props) => {
     crashFreeUsers,
     crashFreeSessions,
     sessionsCrashed,
-    sessionsErrored,
+    totalUsers,
   } = release.healthData!;
 
   const healthStatsPeriods = [
@@ -68,8 +68,8 @@ const ReleaseHealth = ({release, location}: Props) => {
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
+          <ErrorsColumn>{/* {t('Errors')} */}</ErrorsColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
-          <ErrorsColumn>{t('Errors')}</ErrorsColumn>
         </HeaderLayout>
       </StyledPanelHeader>
 
@@ -87,22 +87,26 @@ const ReleaseHealth = ({release, location}: Props) => {
             </DailyUsersColumn>
 
             <AdoptionColumn>
-              {defined(adoption) ? (
-                <ScoreBar
-                  score={convertAdoptionToProgress(adoption)}
-                  size={14}
-                  thickness={14}
-                  palette={[
-                    theme.red,
-                    theme.yellowOrange,
-                    theme.yellowOrange,
-                    theme.green,
-                    theme.green,
-                  ]}
-                />
-              ) : (
-                '-'
-              )}
+              <AdoptionWrapper>
+                {defined(adoption) && (
+                  <StyledScoreBar
+                    score={convertAdoptionToProgress(adoption)}
+                    size={14}
+                    thickness={14}
+                    palette={[
+                      theme.red,
+                      theme.yellowOrange,
+                      theme.yellowOrange,
+                      theme.green,
+                      theme.green,
+                    ]}
+                  />
+                )}
+                <div>
+                  <Count value={totalUsers} /> &nbsp;
+                  {tn('user', 'users', totalUsers)}
+                </div>
+              </AdoptionWrapper>
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
@@ -131,13 +135,11 @@ const ReleaseHealth = ({release, location}: Props) => {
               )}
             </CrashFreeSessionsColumn>
 
+            <ErrorsColumn>{/* <Count value={sessionsErrored ?? 0} /> */}</ErrorsColumn>
+
             <CrashesColumn>
               <Count value={sessionsCrashed ?? 0} />
             </CrashesColumn>
-
-            <ErrorsColumn>
-              <Count value={sessionsErrored ?? 0} />
-            </ErrorsColumn>
           </Layout>
         </StyledPanelItem>
       </PanelBody>
@@ -157,17 +159,17 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'daily-users adoption crash-free-users crash-free-sessions crashes errors';
+  grid-template-areas: 'daily-users adoption crash-free-users crash-free-sessions errors crashes';
   grid-template-columns: 3fr minmax(230px, 2fr) 2fr 2fr 160px 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'adoption crash-free-users crash-free-sessions crashes errors';
+    grid-template-areas: 'adoption crash-free-users crash-free-sessions errors crashes';
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'crash-free-users crash-free-sessions errors';
+    grid-template-areas: 'crash-free-users crash-free-sessions crashes';
     grid-template-columns: 2fr 2fr 1fr;
   }
 `;
@@ -221,17 +223,28 @@ const CrashFreeSessionsColumn = styled(CenterColumn)`
 `;
 const CrashesColumn = styled(RightColumn)`
   grid-area: crashes;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
-  }
 `;
 const ErrorsColumn = styled(RightColumn)`
   grid-area: errors;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
+  }
 `;
 
 const StyledPanelItem = styled(PanelItem)`
   background: ${p => p.theme.offWhite};
   padding-top: 0;
+`;
+
+const AdoptionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap-reverse;
+`;
+
+const StyledScoreBar = styled(ScoreBar)`
+  margin-right: ${space(1)};
 `;
 
 const StyledProgressRing = styled(ProgressRing)`

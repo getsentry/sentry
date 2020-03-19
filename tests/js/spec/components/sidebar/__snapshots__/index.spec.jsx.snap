@@ -8,7 +8,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-pm8679-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a4"
+    className="css-pm8679-SwitchOrganizationMenu-SidebarDropdownMenu ev3suul4"
     data-test-id="sidebar-switch-org-menu"
     onClick={[Function]}
     onMouseEnter={[Function]}
@@ -16,7 +16,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   >
     <OrganizationList>
       <div
-        className="css-1tlc4cl-OrganizationList ejspo4a5"
+        className="css-1tlc4cl-OrganizationList ev3suul5"
       />
     </OrganizationList>
     <SidebarMenuItem
@@ -89,14 +89,14 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                   >
                     <MenuItemLabelWithIcon>
                       <span
-                        className="css-1l4bf1b-MenuItemLabelWithIcon ejspo4a1"
+                        className="css-8m01f9-MenuItemLabelWithIcon ev3suul1"
                       >
                         <StyledIconAdd>
                           <ForwardRef(IconAdd)
-                            className="css-4qjexj-StyledIconAdd ejspo4a0"
+                            className="css-4qjexj-StyledIconAdd ev3suul0"
                           >
                             <svg
-                              className="css-4qjexj-StyledIconAdd ejspo4a0"
+                              className="css-4qjexj-StyledIconAdd ev3suul0"
                               fill="currentColor"
                               height="16px"
                               viewBox="0 0 16 16"
@@ -137,7 +137,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -226,6 +226,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
               >
                 <StyledBaseAvatar
                   className="avatar"
+                  letterId="org-slug"
                   loaded={true}
                   round={false}
                   style={
@@ -234,6 +235,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       "width": "36px",
                     }
                   }
+                  title="org slug"
+                  type="letter_avatar"
+                  uploadPath="organization-avatar"
                 >
                   <span
                     className="avatar css-wr6j9i-StyledBaseAvatar e147uwb0"
@@ -243,48 +247,58 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         "width": "36px",
                       }
                     }
+                    title="org slug"
+                    type="letter_avatar"
                   >
-                    <LetterAvatar
+                    <ForwardRef
                       displayName="org slug"
                       identifier="org-slug"
                       round={false}
                     >
-                      <Component
-                        className="css-1ei2ksv-LetterAvatar e12lgfev0"
+                      <LetterAvatar
                         displayName="org slug"
+                        forwardedRef={null}
                         identifier="org-slug"
                         round={false}
                       >
-                        <svg
+                        <Component
                           className="css-1ei2ksv-LetterAvatar e12lgfev0"
-                          viewBox="0 0 120 120"
+                          displayName="org slug"
+                          forwardedRef={null}
+                          identifier="org-slug"
+                          round={false}
                         >
-                          <rect
-                            fill="#4674ca"
-                            height="120"
-                            rx="15"
-                            ry="15"
-                            width="120"
-                            x="0"
-                            y="0"
-                          />
-                          <text
-                            fill="#FFFFFF"
-                            fontSize="65"
-                            style={
-                              Object {
-                                "dominantBaseline": "central",
-                              }
-                            }
-                            textAnchor="middle"
-                            x="50%"
-                            y="50%"
+                          <svg
+                            className="css-1ei2ksv-LetterAvatar e12lgfev0"
+                            viewBox="0 0 120 120"
                           >
-                            OS
-                          </text>
-                        </svg>
-                      </Component>
-                    </LetterAvatar>
+                            <rect
+                              fill="#4674ca"
+                              height="120"
+                              rx="15"
+                              ry="15"
+                              width="120"
+                              x="0"
+                              y="0"
+                            />
+                            <text
+                              fill="#FFFFFF"
+                              fontSize="65"
+                              style={
+                                Object {
+                                  "dominantBaseline": "central",
+                                }
+                              }
+                              textAnchor="middle"
+                              x="50%"
+                              y="50%"
+                            >
+                              OS
+                            </text>
+                          </svg>
+                        </Component>
+                      </LetterAvatar>
+                    </ForwardRef>
                   </span>
                 </StyledBaseAvatar>
               </Tooltip>
@@ -466,7 +480,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         }
                       >
                         <span
-                          className="css-lpolsh-SwitchOrganizationMenuActor ejspo4a3"
+                          className="css-lpolsh-SwitchOrganizationMenuActor ev3suul3"
                           data-test-id="sidebar-switch-org"
                           onClick={[Function]}
                           onKeyDown={[Function]}
@@ -481,7 +495,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                           Switch organization
                           <SubMenuCaret>
                             <span
-                              className="css-3ur4f5-SubMenuCaret ejspo4a2"
+                              className="css-3ur4f5-SubMenuCaret ev3suul2"
                             >
                               <i
                                 className="icon-arrow-right"
@@ -508,17 +522,17 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-j625pk-UserSummary e1fowdfw1"
+        className="css-j625pk-UserSummary e10773n31"
         to="/settings/account/details/"
       >
         <Link
-          className="css-j625pk-UserSummary e1fowdfw1"
+          className="css-j625pk-UserSummary e10773n31"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-j625pk-UserSummary e1fowdfw1"
+            className="css-j625pk-UserSummary e10773n31"
             onClick={[Function]}
             style={Object {}}
           >
@@ -544,7 +558,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -572,7 +586,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -592,10 +606,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
+                          className="e10773n32 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
                             gravatar={false}
@@ -662,6 +676,8 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                 >
                                   <StyledBaseAvatar
                                     className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    gravatarId="foo@example.com"
+                                    letterId="foo@example.com"
                                     loaded={true}
                                     round={true}
                                     style={
@@ -670,6 +686,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         "width": "32px",
                                       }
                                     }
+                                    title="Foo Bar"
+                                    type="letter_avatar"
+                                    uploadId=""
+                                    uploadPath="avatar"
                                   >
                                     <span
                                       className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
@@ -679,48 +699,58 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                           "width": "32px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
                                     >
-                                      <LetterAvatar
+                                      <ForwardRef
                                         displayName="Foo Bar"
                                         identifier="foo@example.com"
                                         round={true}
                                       >
-                                        <Component
-                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                        <LetterAvatar
                                           displayName="Foo Bar"
+                                          forwardedRef={null}
                                           identifier="foo@example.com"
                                           round={true}
                                         >
-                                          <svg
+                                          <Component
                                             className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                            viewBox="0 0 120 120"
+                                            displayName="Foo Bar"
+                                            forwardedRef={null}
+                                            identifier="foo@example.com"
+                                            round={true}
                                           >
-                                            <rect
-                                              fill="#315cac"
-                                              height="120"
-                                              rx="15"
-                                              ry="15"
-                                              width="120"
-                                              x="0"
-                                              y="0"
-                                            />
-                                            <text
-                                              fill="#FFFFFF"
-                                              fontSize="65"
-                                              style={
-                                                Object {
-                                                  "dominantBaseline": "central",
-                                                }
-                                              }
-                                              textAnchor="middle"
-                                              x="50%"
-                                              y="50%"
+                                            <svg
+                                              className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                              viewBox="0 0 120 120"
                                             >
-                                              FB
-                                            </text>
-                                          </svg>
-                                        </Component>
-                                      </LetterAvatar>
+                                              <rect
+                                                fill="#315cac"
+                                                height="120"
+                                                rx="15"
+                                                ry="15"
+                                                width="120"
+                                                x="0"
+                                                y="0"
+                                              />
+                                              <text
+                                                fill="#FFFFFF"
+                                                fontSize="65"
+                                                style={
+                                                  Object {
+                                                    "dominantBaseline": "central",
+                                                  }
+                                                }
+                                                textAnchor="middle"
+                                                x="50%"
+                                                y="50%"
+                                              >
+                                                FB
+                                              </text>
+                                            </svg>
+                                          </Component>
+                                        </LetterAvatar>
+                                      </ForwardRef>
                                     </span>
                                   </StyledBaseAvatar>
                                 </Tooltip>
@@ -891,7 +921,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-jlq0c6-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
+    className="css-jlq0c6-HelpMenu-SidebarDropdownMenu e6tkw732"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1090,38 +1120,36 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
   className="incident-list"
 >
   <ul
-    className="incident-list css-1iut4k0-IncidentList eglisrw0"
+    className="incident-list css-1brq3ev-IncidentList e1467r1t0"
   >
     <IncidentItem
       key="1"
     >
       <li
-        className="css-16z7ejm-IncidentItem eglisrw1"
+        className="css-10usrjr-IncidentItem e1467r1t1"
       >
         <IncidentTitle>
           <div
-            className="css-c7gclf-IncidentTitle eglisrw2"
-          >
-            Test Incident
-          </div>
+            className="css-1luh9do-IncidentTitle e1467r1t2"
+          />
         </IncidentTitle>
         <div>
           <StatusHeader>
             <div
-              className="css-1p5jdbq-StatusHeader eglisrw3"
+              className="css-4apn99-StatusHeader e1467r1t3"
             >
               Latest updates:
             </div>
           </StatusHeader>
           <StatusList>
             <ul
-              className="css-xjcuzc-StatusList eglisrw4"
+              className="css-xjcuzc-StatusList e1467r1t4"
             >
               <StatusItem
                 key="0"
               >
                 <li
-                  className="css-y8e5o2-StatusItem eglisrw5"
+                  className="css-nuktmw-StatusItem e1467r1t5"
                 >
                   First Update
                 </li>
@@ -1130,7 +1158,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 key="1"
               >
                 <li
-                  className="css-y8e5o2-StatusItem eglisrw5"
+                  className="css-nuktmw-StatusItem e1467r1t5"
                 >
                   Second Update
                 </li>
@@ -1854,7 +1882,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                             "display": true,
                             "location": "/organizations/org-slug/projects/new/",
-                            "prereq": Array [],
+                            "requisites": Array [],
                             "skippable": false,
                             "task": "create_project",
                             "title": "Create a project",
@@ -1898,7 +1926,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                               "display": true,
                               "location": "/organizations/org-slug/projects/new/",
-                              "prereq": Array [],
+                              "requisites": Array [],
                               "skippable": false,
                               "task": "create_project",
                               "title": "Create a project",
@@ -2276,7 +2304,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Follow our quick and easy steps to set up a project and start sending errors.",
                                 "display": true,
                                 "location": "/organizations/org-slug/projects/new/",
-                                "prereq": Array [],
+                                "requisites": Array [],
                                 "skippable": false,
                                 "task": "create_project",
                                 "title": "Create a project",
@@ -2512,8 +2540,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Choose your platform and send an event.",
                             "display": true,
                             "location": "/settings/org-slug/projects/:projectId/install/",
-                            "prereq": Array [
-                              1,
+                            "requisites": Array [
+                              "create_project",
                             ],
                             "skippable": false,
                             "task": "send_first_event",
@@ -2558,8 +2586,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Choose your platform and send an event.",
                               "display": true,
                               "location": "/settings/org-slug/projects/:projectId/install/",
-                              "prereq": Array [
-                                1,
+                              "requisites": Array [
+                                "create_project",
                               ],
                               "skippable": false,
                               "task": "send_first_event",
@@ -2938,8 +2966,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Choose your platform and send an event.",
                                 "display": true,
                                 "location": "/settings/org-slug/projects/:projectId/install/",
-                                "prereq": Array [
-                                  1,
+                                "requisites": Array [
+                                  "create_project",
                                 ],
                                 "skippable": false,
                                 "task": "send_first_event",
@@ -3177,7 +3205,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
-                            "prereq": Array [],
+                            "requisites": Array [],
                             "skippable": true,
                             "task": "invite_member",
                             "title": "Invite team members",
@@ -3222,7 +3250,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
-                              "prereq": Array [],
+                              "requisites": Array [],
                               "skippable": true,
                               "task": "invite_member",
                               "title": "Invite team members",
@@ -3601,7 +3629,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                                 "display": true,
-                                "prereq": Array [],
+                                "requisites": Array [],
                                 "skippable": true,
                                 "task": "invite_member",
                                 "title": "Invite team members",
@@ -3904,9 +3932,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Capture errors from both your front and back ends.",
                             "display": true,
                             "location": "/organizations/org-slug/projects/new/",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_second_platform",
@@ -3951,9 +3979,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Capture errors from both your front and back ends.",
                               "display": true,
                               "location": "/organizations/org-slug/projects/new/",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_second_platform",
@@ -4332,9 +4360,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "detailedDescription": "Capture errors from both your front and back ends.",
                                 "display": true,
                                 "location": "/organizations/org-slug/projects/new/",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_second_platform",
@@ -4638,9 +4666,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                             "display": true,
                             "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_user_context",
@@ -4686,9 +4714,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                               "display": true,
                               "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_user_context",
@@ -5068,9 +5096,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         and get a broader sense about the quality of your application.",
                                 "display": true,
                                 "location": "https://docs.sentry.io/enriching-error-data/context/#capturing-the-user",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_user_context",
@@ -5386,9 +5414,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                             "display": true,
                             "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                            "prereq": Array [
-                              1,
-                              2,
+                            "requisites": Array [
+                              "create_project",
+                              "send_first_event",
                             ],
                             "skippable": true,
                             "task": "setup_release_tracking",
@@ -5434,9 +5462,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                               "display": true,
                               "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                              "prereq": Array [
-                                1,
-                                2,
+                              "requisites": Array [
+                                "create_project",
+                                "send_first_event",
                               ],
                               "skippable": true,
                               "task": "setup_release_tracking",
@@ -5816,9 +5844,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
         cause of an issue and unlock the ability to resolve issues via commit message.",
                                 "display": true,
                                 "location": "/settings/org-slug/projects/:projectId/release-tracking/",
-                                "prereq": Array [
-                                  1,
-                                  2,
+                                "requisites": Array [
+                                  "create_project",
+                                  "send_first_event",
                                 ],
                                 "skippable": true,
                                 "task": "setup_release_tracking",
@@ -6132,7 +6160,7 @@ exports[`Sidebar renders without org and router 1`] = `
   onMouseLeave={[Function]}
 >
   <div
-    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -6141,17 +6169,17 @@ exports[`Sidebar renders without org and router 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-j625pk-UserSummary e1fowdfw1"
+        className="css-j625pk-UserSummary e10773n31"
         to="/settings/account/details/"
       >
         <Link
-          className="css-j625pk-UserSummary e1fowdfw1"
+          className="css-j625pk-UserSummary e10773n31"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-j625pk-UserSummary e1fowdfw1"
+            className="css-j625pk-UserSummary e10773n31"
             onClick={[Function]}
             style={Object {}}
           >
@@ -6177,7 +6205,7 @@ exports[`Sidebar renders without org and router 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -6205,7 +6233,7 @@ exports[`Sidebar renders without org and router 1`] = `
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -6225,10 +6253,10 @@ exports[`Sidebar renders without org and router 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e10773n32"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
+                          className="e10773n32 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
                             gravatar={false}
@@ -6295,6 +6323,8 @@ exports[`Sidebar renders without org and router 1`] = `
                                 >
                                   <StyledBaseAvatar
                                     className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    gravatarId="foo@example.com"
+                                    letterId="foo@example.com"
                                     loaded={true}
                                     round={true}
                                     style={
@@ -6303,6 +6333,10 @@ exports[`Sidebar renders without org and router 1`] = `
                                         "width": "32px",
                                       }
                                     }
+                                    title="Foo Bar"
+                                    type="letter_avatar"
+                                    uploadId=""
+                                    uploadPath="avatar"
                                   >
                                     <span
                                       className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
@@ -6312,48 +6346,58 @@ exports[`Sidebar renders without org and router 1`] = `
                                           "width": "32px",
                                         }
                                       }
+                                      title="Foo Bar"
+                                      type="letter_avatar"
                                     >
-                                      <LetterAvatar
+                                      <ForwardRef
                                         displayName="Foo Bar"
                                         identifier="foo@example.com"
                                         round={true}
                                       >
-                                        <Component
-                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                        <LetterAvatar
                                           displayName="Foo Bar"
+                                          forwardedRef={null}
                                           identifier="foo@example.com"
                                           round={true}
                                         >
-                                          <svg
+                                          <Component
                                             className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                            viewBox="0 0 120 120"
+                                            displayName="Foo Bar"
+                                            forwardedRef={null}
+                                            identifier="foo@example.com"
+                                            round={true}
                                           >
-                                            <rect
-                                              fill="#315cac"
-                                              height="120"
-                                              rx="15"
-                                              ry="15"
-                                              width="120"
-                                              x="0"
-                                              y="0"
-                                            />
-                                            <text
-                                              fill="#FFFFFF"
-                                              fontSize="65"
-                                              style={
-                                                Object {
-                                                  "dominantBaseline": "central",
-                                                }
-                                              }
-                                              textAnchor="middle"
-                                              x="50%"
-                                              y="50%"
+                                            <svg
+                                              className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                              viewBox="0 0 120 120"
                                             >
-                                              FB
-                                            </text>
-                                          </svg>
-                                        </Component>
-                                      </LetterAvatar>
+                                              <rect
+                                                fill="#315cac"
+                                                height="120"
+                                                rx="15"
+                                                ry="15"
+                                                width="120"
+                                                x="0"
+                                                y="0"
+                                              />
+                                              <text
+                                                fill="#FFFFFF"
+                                                fontSize="65"
+                                                style={
+                                                  Object {
+                                                    "dominantBaseline": "central",
+                                                  }
+                                                }
+                                                textAnchor="middle"
+                                                x="50%"
+                                                y="50%"
+                                              >
+                                                FB
+                                              </text>
+                                            </svg>
+                                          </Component>
+                                        </LetterAvatar>
+                                      </ForwardRef>
                                     </span>
                                   </StyledBaseAvatar>
                                 </Tooltip>

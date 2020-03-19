@@ -20,7 +20,7 @@ from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, 
 from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
-from sentry_plugins.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry_plugins.jira.client import JiraClient
 from sentry_plugins.utils import get_secret_field_config
 from sentry.integrations import FeatureDescription, IntegrationFeatures

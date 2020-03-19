@@ -30,6 +30,7 @@ class UserSerializerTest(TestCase):
         assert result["emails"][0]["email"] == user.email
         assert result["emails"][0]["is_verified"]
         assert result["isSuperuser"] is False
+        assert result["experiments"] == {}
 
     def test_no_useremail(self):
         user = self.create_user()

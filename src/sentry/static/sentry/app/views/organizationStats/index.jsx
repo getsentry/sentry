@@ -84,7 +84,7 @@ class OrganizationStatsContainer extends React.Component {
   fetchProjectData() {
     this.props.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
-      success: (data, textStatus, jqxhr) => {
+      success: (data, _textStatus, jqxhr) => {
         const projectMap = {};
         data.forEach(project => {
           projectMap[project.id] = project;
