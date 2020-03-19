@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
@@ -77,19 +76,19 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           />
         </Form>
         <DataPrivacyRulesPanel
-          panelHeaderSubTitle={
-            <PanelHeaderSubTitle>
+          additionalContext={
+            <span>
               {tct(
-                'This can also be configured organization-wide in [linkToOrganizationSecurityAndPrivacy]',
+                'These rules can be configured at the organization level in [linkToOrganizationSecurityAndPrivacy]',
                 {
                   linkToOrganizationSecurityAndPrivacy: (
                     <Link to={`/settings/${orgId}/security-and-privacy/`}>
-                      {t('Organization Security and Privacy')}
+                      {t('Security and Privacy. ')}
                     </Link>
                   ),
                 }
               )}
-            </PanelHeaderSubTitle>
+            </span>
           }
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
@@ -101,9 +100,3 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 }
 
 export default ProjectDataPrivacyContent;
-
-const PanelHeaderSubTitle = styled('div')`
-  display: grid;
-  grid-gap: 4px;
-  grid-template-columns: auto 1fr;
-`;
