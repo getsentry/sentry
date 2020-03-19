@@ -54,7 +54,7 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.FIRST_EVENT,
       title: t('Send your first event'),
-      description: t('Install the appropraite Sentry SDK for your application'),
+      description: t('Install the appropriate Sentry SDK for your application'),
       detailedDescription: t('Choose your platform and send an event.'),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
