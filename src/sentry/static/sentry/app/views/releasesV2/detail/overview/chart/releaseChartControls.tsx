@@ -9,7 +9,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {YAxis} from '.';
 
 type Props = {
-  summary: number;
+  summary: React.ReactNode;
   yAxis: YAxis;
   onYAxisChange: (value: YAxis) => void;
 };
@@ -18,11 +18,15 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
   const yAxisOptions = [
     {
       value: 'sessions',
-      label: t('Sessions'),
+      label: t('Session Count'),
     },
     {
       value: 'users',
-      label: t('Users'),
+      label: t('User Count'),
+    },
+    {
+      value: 'crashFree',
+      label: t('Crash Free Rate'),
     },
   ];
 
@@ -30,6 +34,8 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     switch (yAxis) {
       case 'users':
         return t('Total Active Users');
+      case 'crashFree':
+        return t('Average Rate');
       case 'sessions':
       default:
         return t('Total Sessions');
@@ -40,7 +46,7 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     <ChartControls>
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
-        <Value key="total-value">{summary.toLocaleString()}</Value>
+        <Value key="total-value">{summary}</Value>
       </InlineContainer>
 
       {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
@@ -48,6 +54,7 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
         <SectionHeading>{t('Y-Axis')}</SectionHeading>
         <DropdownControl
           alignRight
+          menuWidth="150px"
           button={({getActorProps}) => (
             <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
               {yAxisOptions.find(option => option.value === yAxis)?.label}

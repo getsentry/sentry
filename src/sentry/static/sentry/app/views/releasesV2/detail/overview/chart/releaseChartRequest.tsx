@@ -2,13 +2,15 @@ import React from 'react';
 import pick from 'lodash/pick';
 import omitBy from 'lodash/omitBy';
 import isEqual from 'lodash/isEqual';
+import meanBy from 'lodash/meanBy';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {GlobalSelection} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {percent} from 'app/utils';
 
 import {YAxis} from '.';
 
@@ -21,8 +23,13 @@ type Series = {
   seriesName: string;
   data: {
     name: string | number;
-    value: string;
+    value: string | number;
   }[];
+  color?: string;
+  areaStyle?: {
+    color: string;
+    opacity: number;
+  };
 };
 type ChartData = {
   [key: string]: Series;
@@ -43,7 +50,7 @@ type Props = {
   selection: GlobalSelection;
   location: Location;
   yAxis: YAxis;
-  onSummaryChange: (summary: number) => void;
+  onSummaryChange: (summary: React.ReactNode) => void;
   children: (renderProps: RenderProps) => React.ReactNode;
 };
 type State = {
@@ -78,7 +85,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
 
   fetchData = async () => {
     let data: Series[] | null;
-    const {api, orgId, projectSlug, version, location, yAxis} = this.props;
+    const {yAxis} = this.props;
 
     this.setState(state => ({
       reloading: state.data !== null,
@@ -86,17 +93,8 @@ class ReleaseChartRequest extends React.Component<Props, State> {
     }));
 
     try {
-      const response = await api.requestPromise(
-        `/projects/${orgId}/${projectSlug}/releases/${version}/stats/`,
-        {
-          query: {
-            ...pick(location.query, [...Object.values(URL_PARAM)]),
-            type: yAxis,
-          },
-        }
-      );
-      data = this.transformData(response.stats, yAxis);
-    } catch (resp) {
+      data = await (yAxis === 'crashFree' ? this.fetchRateData : this.fetchCountData)();
+    } catch {
       addErrorMessage(t('Error loading chart data'));
       data = null;
       this.setState({
@@ -114,7 +112,53 @@ class ReleaseChartRequest extends React.Component<Props, State> {
     });
   };
 
-  transformData(data, yAxis: string): Series[] {
+  fetchCountData = async () => {
+    const {api, yAxis} = this.props;
+
+    const response = await api.requestPromise(this.statsPath, {
+      query: {
+        ...this.baseQueryParams,
+        type: yAxis,
+      },
+    });
+
+    return this.transformCountData(response.stats, yAxis);
+  };
+
+  fetchRateData = async () => {
+    const {api} = this.props;
+
+    const [userResponse, sessionResponse] = await Promise.all([
+      api.requestPromise(this.statsPath, {
+        query: {
+          ...this.baseQueryParams,
+          type: 'users',
+        },
+      }),
+      api.requestPromise(this.statsPath, {
+        query: {
+          ...this.baseQueryParams,
+          type: 'sessions',
+        },
+      }),
+    ]);
+
+    return this.transformRateData(userResponse.stats, sessionResponse.stats);
+  };
+
+  get statsPath() {
+    const {orgId, projectSlug, version} = this.props;
+
+    return `/projects/${orgId}/${projectSlug}/releases/${version}/stats/`;
+  }
+
+  get baseQueryParams() {
+    const {location} = this.props;
+
+    return pick(location.query, [...Object.values(URL_PARAM)]);
+  }
+
+  transformCountData(data, yAxis: string): Series[] {
     let summary = 0;
     // here we can configure colors of the chart
     const chartData: ChartData = {
@@ -146,7 +190,62 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       chartData.total.data.push({name: date, value: values[yAxis]});
     });
 
-    this.props.onSummaryChange(summary);
+    this.props.onSummaryChange(summary.toLocaleString());
+
+    return Object.values(chartData);
+  }
+
+  transformRateData(users, sessions) {
+    const chartData: ChartData = {
+      users: {
+        seriesName: t('Crash Free Users'),
+        data: [],
+        color: '#FF6969',
+        areaStyle: {
+          color: '#FA4747',
+          opacity: 0.5,
+        },
+      },
+      sessions: {
+        seriesName: t('Crash Free Sessions'),
+        data: [],
+        color: '#948BCF',
+        areaStyle: {
+          color: '#C4BFE9',
+          opacity: 0.5,
+        },
+      },
+    };
+
+    const calculateDatePercentage = (data, subject) => {
+      const percentageData = data.map(entry => {
+        const [timeframe, values] = entry;
+        const date = timeframe * 1000;
+
+        const crashFreePercent = Math.round(
+          100 - percent(values[`${subject}_crashed`], values[subject])
+        );
+
+        return {name: date, value: crashFreePercent};
+      });
+
+      const averagePercent = Math.round(meanBy(percentageData, 'value'));
+
+      return {averagePercent, percentageData};
+    };
+
+    const usersPercentages = calculateDatePercentage(users, 'users');
+    chartData.users.data = usersPercentages.percentageData;
+
+    const sessionsPercentages = calculateDatePercentage(sessions, 'sessions');
+    chartData.sessions.data = sessionsPercentages.percentageData;
+
+    this.props.onSummaryChange(
+      tct('[usersPercent]% users, [sessionsPercent]% sessions', {
+        usersPercent: usersPercentages.averagePercent,
+        sessionsPercent: sessionsPercentages.averagePercent,
+      })
+    );
 
     return Object.values(chartData);
   }

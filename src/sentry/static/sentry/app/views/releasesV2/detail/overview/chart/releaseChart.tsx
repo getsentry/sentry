@@ -2,6 +2,9 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import LineChart from 'app/components/charts/lineChart';
+import AreaChart from 'app/components/charts/areaChart';
+
+import {YAxis} from '.';
 
 // TODO(releasesV2): type
 type Props = {
@@ -10,6 +13,7 @@ type Props = {
   releaseSeries: any;
   timeseriesData: any;
   // zoomRenderProps: any;
+  yAxis: YAxis;
 };
 
 class ReleaseChart extends React.Component<Props> {
@@ -29,7 +33,9 @@ class ReleaseChart extends React.Component<Props> {
   }
 
   render() {
-    const {utc, releaseSeries, timeseriesData} = this.props;
+    const {utc, releaseSeries, timeseriesData, yAxis} = this.props;
+    const crashFreeChart = yAxis === 'crashFree';
+    const Chart = crashFreeChart ? AreaChart : LineChart;
 
     const legend = {
       right: 16,
@@ -49,7 +55,7 @@ class ReleaseChart extends React.Component<Props> {
     };
 
     return (
-      <LineChart
+      <Chart
         legend={legend}
         utc={utc}
         // {zoomRenderProps}
@@ -64,6 +70,22 @@ class ReleaseChart extends React.Component<Props> {
           top: '32px',
           bottom: '12px',
         }}
+        yAxis={
+          crashFreeChart
+            ? {
+                nameTextStyle: {
+                  color: 'red',
+                },
+                min: 0,
+                max: 100,
+                interval: 25,
+                axisLabel: {
+                  formatter: '{value}%',
+                },
+              }
+            : undefined
+        }
+        tooltip={crashFreeChart ? {appendToValue: '%'} : undefined}
       />
     );
   }

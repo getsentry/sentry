@@ -30,6 +30,7 @@ function getFormatter({
   truncate,
   formatAxisLabel,
   utc,
+  appendToValue,
 }) {
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -70,7 +71,7 @@ function getFormatter({
         '<div class="tooltip-series">',
         `<div>
           <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
-          ${truncatedName}: ${formattedValue}
+          ${truncatedName}: ${formattedValue}${appendToValue ?? ''}
         </div>`,
         '</div>',
         `<div class="tooltip-date">${label}</div>`,
@@ -96,7 +97,10 @@ function getFormatter({
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
           const value = valueFormatter(s.data[1]);
-          return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+          return `<div><span class="tooltip-label">${
+            s.marker
+          } <strong>${formattedLabel}</strong></span> ${value}${appendToValue ??
+            ''}</div>`;
         })
         .join(''),
       '</div>',
@@ -113,6 +117,7 @@ export default function Tooltip({
   truncate,
   utc,
   formatAxisLabel,
+  appendToValue,
   ...props
 } = {}) {
   formatter =
@@ -124,6 +129,7 @@ export default function Tooltip({
       truncate,
       utc,
       formatAxisLabel,
+      appendToValue,
     });
 
   return {

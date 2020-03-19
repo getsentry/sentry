@@ -20,7 +20,7 @@ import ReleaseChart from './releaseChart';
 import ReleaseChartRequest from './releaseChartRequest';
 import ReleaseChartControls from './releaseChartControls';
 
-export type YAxis = 'sessions' | 'users';
+export type YAxis = 'sessions' | 'users' | 'crashFree';
 
 type Props = {
   api: Client;
@@ -33,13 +33,13 @@ type Props = {
 };
 
 type State = {
-  summary: number;
+  summary: React.ReactNode;
   yAxis: YAxis;
 };
 
 class ReleaseChartContainer extends React.Component<Props, State> {
   state: State = {
-    summary: 0,
+    summary: '',
     yAxis: 'sessions',
   };
 
@@ -47,7 +47,7 @@ class ReleaseChartContainer extends React.Component<Props, State> {
     this.setState({yAxis: value});
   };
 
-  handleSummaryChange = (value: number) => {
+  handleSummaryChange = (value: React.ReactNode) => {
     this.setState({summary: value});
   };
 
@@ -93,6 +93,7 @@ class ReleaseChartContainer extends React.Component<Props, State> {
                           timeseriesData={timeseriesData}
                           // zoomRenderProps={zoomRenderProps}
                           reloading={reloading}
+                          yAxis={yAxis}
                         />
                       </React.Fragment>
                     </TransitionChart>
