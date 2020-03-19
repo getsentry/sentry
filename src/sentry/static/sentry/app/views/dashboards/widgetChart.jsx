@@ -37,13 +37,19 @@ class WidgetChart extends React.Component {
     const isDataEqual =
       this.props.results.length &&
       nextProps.results.length &&
-      isEqual(this.props.results[0].data, nextProps.results[0].data);
+      this.props.results.length === nextProps.results.length;
 
-    if (isDataEqual) {
-      return false;
+    if (!isDataEqual) {
+      return true;
     }
 
-    return true;
+    for (let i = 0; i < this.props.results.length; i++) {
+      if (!isEqual(this.props.results[i].data, nextProps.results[i].data)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   renderZoomableChart(ChartComponent, props) {
