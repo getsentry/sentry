@@ -114,7 +114,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       query: input,
     };
 
-    if (field.depends?.length) {
+    if (field.depends) {
       const dependentData = field.depends.reduce((accum, dependentField: string) => {
         accum[dependentField] = this.model.fields.get(dependentField);
         return accum;
@@ -186,7 +186,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     //could have multiple impacted fields
     const impactedFields = fieldList.filter(({depends}) => {
-      if (!depends?.length) {
+      if (!depends) {
         return false;
       }
       // must be dependent on the field we just set
@@ -234,7 +234,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       field = {...field, defaultValue: this.getFieldDefault(field)};
     }
 
-    if (field.depends?.length) {
+    if (field.depends) {
       //check if this is dependent on other fields which haven't been set yet
       const shouldDisable = field.depends.some(
         dependentField => !hasValue(this.model.fields.get(dependentField))
