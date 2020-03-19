@@ -224,7 +224,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   });
 
   describe('create', () => {
-    it('load options for dependent field when the dependent option is selected', async () => {
+    it('load options for field that has dependencies when the dependent option is selected', async () => {
       const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`;
       Client.addMockResponse(
         {
@@ -256,8 +256,11 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
           },
         },
         {
-          predicate: (_url, options) => {
-            return options.query.uri === '/integrations/sentry/boards';
+          predicate: (_url, {query}) => {
+            return (
+              query.uri === '/integrations/sentry/boards' &&
+              query.dependentData === JSON.stringify({project_id: 'A'})
+            );
           },
         }
       );
