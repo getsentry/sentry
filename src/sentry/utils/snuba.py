@@ -13,6 +13,7 @@ import six
 import time
 import urllib3
 import sentry_sdk
+from sentry_sdk import Hub
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -540,11 +541,11 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     query_param_list = map(_prepare_query_params, snuba_param_list)
 
     def snuba_query(params):
-        query_params, forward, reverse = params
+        query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
                 body = json.dumps(query_params)
-                with sentry_sdk.start_span(
+                with thread_hub.start_span(
                     op="snuba", description=u"query {}".format(body)
                 ) as span:
                     span.set_tag("referrer", headers.get("referer", "<unknown>"))
@@ -556,12 +557,21 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 
-    if len(snuba_param_list) > 1:
-        query_results = _query_thread_pool.map(snuba_query, query_param_list)
-    else:
-        # No need to submit to the thread pool if we're just performing a
-        # single query
-        query_results = [snuba_query(query_param_list[0])]
+    with sentry_sdk.start_span(
+        op="start_snuba_query",
+        description=u"running {} snuba queries".format(len(snuba_param_list)),
+    ) as span:
+        span.set_tag("referrer", headers.get("referer", "<unknown>"))
+        if len(snuba_param_list) > 1:
+            query_results = list(
+                _query_thread_pool.map(
+                    snuba_query, [params + (Hub(Hub.current),) for params in query_param_list]
+                )
+            )
+        else:
+            # No need to submit to the thread pool if we're just performing a
+            # single query
+            query_results = [snuba_query(query_param_list[0] + (Hub(Hub.current),))]
 
     results = []
     for response, _, reverse in query_results:
