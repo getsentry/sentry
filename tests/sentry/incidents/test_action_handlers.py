@@ -18,6 +18,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     QueryAggregations,
     TriggerStatus,
+    INCIDENT_STATUS,
 )
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
@@ -109,7 +110,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             ],
             "query": action.alert_rule_trigger.alert_rule.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
-            "status": handler.incident_status[IncidentStatus(incident.status)],
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
