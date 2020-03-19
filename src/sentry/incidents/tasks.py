@@ -16,6 +16,7 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
+    INCIDENT_STATUS,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
@@ -61,7 +62,7 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject=u"Activity on Incident {} (#{})".format(incident.title, incident.identifier),
+        subject=u"Activity on Alert {} (#{})".format(incident.title, incident.identifier),
         template=u"sentry/emails/incidents/activity.txt",
         html_template=u"sentry/emails/incidents/activity.html",
         type="incident.activity",
@@ -74,12 +75,12 @@ def build_activity_context(activity, user):
         action = "left a comment"
     else:
         action = "changed status from %s to %s" % (
-            IncidentStatus(int(activity.previous_value)).name.lower(),
-            IncidentStatus(int(activity.value)).name.lower(),
+            INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
+            INCIDENT_STATUS[IncidentStatus(int(activity.value))],
         )
     incident = activity.incident
 
-    action = "%s on incident %s (#%s)" % (action, incident.title, incident.identifier)
+    action = "%s on alert %s (#%s)" % (action, incident.title, incident.identifier)
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",
