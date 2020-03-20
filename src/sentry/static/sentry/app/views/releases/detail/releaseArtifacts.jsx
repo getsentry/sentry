@@ -28,6 +28,7 @@ class ReleaseArtifacts extends React.Component {
     organization: SentryTypes.Organization,
     api: PropTypes.object,
     projectId: PropTypes.string,
+    smallEmptyMessage: PropTypes.string,
   };
 
   constructor() {
@@ -110,9 +111,11 @@ class ReleaseArtifacts extends React.Component {
     } else if (this.state.fileList.length === 0) {
       return (
         <Panel>
-          <EmptyStateWarning>
-            <p>{t('There are no artifacts uploaded for this release.')}</p>
-          </EmptyStateWarning>
+          <PanelBody>
+            <EmptyStateWarning small={this.props.smallEmptyMessage}>
+              <p>{t('There are no artifacts uploaded for this release.')}</p>
+            </EmptyStateWarning>
+          </PanelBody>
         </Panel>
       );
     }

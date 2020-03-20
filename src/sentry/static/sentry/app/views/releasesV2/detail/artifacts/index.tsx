@@ -29,6 +29,7 @@ const ReleaseArtifacts = ({params, location}: Props) => (
           params={params}
           location={location}
           projectId={project.slug}
+          smallEmptyMessage
         />
       </ContentBox>
     )}

@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {CommitFile, Repository} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel, PanelBody} from 'app/components/panels';
 
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -54,7 +55,13 @@ class FilesChanged extends AsyncComponent<Props, State> {
             />
           ))
         ) : (
-          <EmptyStateWarning small>{t('There are no changed files.')}</EmptyStateWarning>
+          <Panel>
+            <PanelBody>
+              <EmptyStateWarning small>
+                {t('There are no changed files.')}
+              </EmptyStateWarning>
+            </PanelBody>
+          </Panel>
         )}
       </ContentBox>
     );
