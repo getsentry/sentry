@@ -1,12 +1,10 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {SelectValue} from 'app/types';
 import YAxisSelector from 'app/views/events/yAxisSelector';
-import space from 'app/styles/space';
 
-import {ChartControls, InlineContainer, SectionHeading} from './styles';
+import {ChartControls, InlineContainer, SectionHeading, SectionValue} from './styles';
 
 type Props = {
   total: number | null;
@@ -21,11 +19,11 @@ export default function ChartFooter({total, yAxisValue, yAxisOptions, onChange}:
   elements.push(<SectionHeading key="total-label">{t('Total')}</SectionHeading>);
   elements.push(
     total === null ? (
-      <Value data-test-id="loading-placeholder" key="total-value">
+      <SectionValue data-test-id="loading-placeholder" key="total-value">
         -
-      </Value>
+      </SectionValue>
     ) : (
-      <Value key="total-value">{total.toLocaleString()}</Value>
+      <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
 
@@ -36,9 +34,3 @@ export default function ChartFooter({total, yAxisValue, yAxisOptions, onChange}:
     </ChartControls>
   );
 }
-
-const Value = styled('span')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
-`;

@@ -30,6 +30,7 @@ import {
   GridBodyCell,
   GridBodyCellNumber,
 } from '../styles';
+import LatencyChart from './latencyChart';
 
 type Props = {
   eventView: EventView;
@@ -158,11 +159,21 @@ class SummaryContentTable extends React.Component<Props> {
   };
 
   render() {
-    const {eventView, organization} = this.props;
+    const {eventView, location, organization} = this.props;
     const columnOrder = eventView.getColumns();
 
     return (
       <div>
+        <LatencyChart
+          organization={organization}
+          location={location}
+          query={eventView.query}
+          project={eventView.project}
+          environment={eventView.environment}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
         <Header>
           <HeaderTitle>{t('Slowest Requests')}</HeaderTitle>
           <HeaderButtonContainer>
