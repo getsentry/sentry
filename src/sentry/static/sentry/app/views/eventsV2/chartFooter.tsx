@@ -16,7 +16,7 @@ type Props = {
 export default function ChartFooter({total, yAxisValue, yAxisOptions, onChange}: Props) {
   const elements: React.ReactNode[] = [];
 
-  elements.push(<SectionHeading key="total-label">{t('Total')}</SectionHeading>);
+  elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
   elements.push(
     total === null ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 
@@ -13,7 +12,6 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import EventView from 'app/views/eventsV2/eventView';
-import {fetchTotalCount} from 'app/views/eventsV2/utils';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
@@ -36,49 +34,7 @@ type Props = {
   router: ReactRouter.InjectedRouter;
 };
 
-type State = {
-  totalValues: null | number;
-};
-
-class Container extends React.Component<Props, State> {
-  state: State = {
-    totalValues: null,
-  };
-
-  componentDidMount() {
-    this.mounted = true;
-
-    // TODO: implement later
-    // this.fetchTotalCount();
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
-  mounted: boolean = false;
-
-  async fetchTotalCount() {
-    const {api, organization, location, eventView} = this.props;
-    if (!eventView.isValid() || !this.mounted) {
-      return;
-    }
-
-    try {
-      const totals = await fetchTotalCount(
-        api,
-        organization.slug,
-        eventView.getEventsAPIPayload(location)
-      );
-
-      if (this.mounted) {
-        this.setState({totalValues: totals});
-      }
-    } catch (err) {
-      Sentry.captureException(err);
-    }
-  }
-
+class Container extends React.Component<Props> {
   render() {
     const {api, organization, location, eventView, router} = this.props;
 
@@ -158,7 +114,12 @@ class Container extends React.Component<Props, State> {
             }}
           </EventsRequest>
         </ChartsContainer>
-        <Footer totals={this.state.totalValues} />
+        <Footer
+          api={api}
+          organization={organization}
+          eventView={eventView}
+          location={location}
+        />
       </Panel>
     );
   }
