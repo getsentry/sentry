@@ -51,6 +51,7 @@ class ReleaseArtifacts extends AsyncView<Props> {
           params={params}
           location={location}
           projectId={project.slug}
+          smallEmptyMessage
         />
       </ContentBox>
     );

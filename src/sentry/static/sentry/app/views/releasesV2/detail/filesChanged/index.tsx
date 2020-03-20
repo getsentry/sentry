@@ -12,6 +12,7 @@ import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
+import {Panel, PanelBody} from 'app/components/panels';
 
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -72,7 +73,13 @@ class FilesChanged extends AsyncView<Props, State> {
             />
           ))
         ) : (
-          <EmptyStateWarning small>{t('There are no changed files.')}</EmptyStateWarning>
+          <Panel>
+            <PanelBody>
+              <EmptyStateWarning small>
+                {t('There are no changed files.')}
+              </EmptyStateWarning>
+            </PanelBody>
+          </Panel>
         )}
       </ContentBox>
     );

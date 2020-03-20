@@ -101,7 +101,6 @@ class ReleaseOverview extends AsyncView<Props, State> {
                       <CommitAuthorBreakdown
                         version={version}
                         orgId={organization.slug}
-                        commitCount={commitCount}
                         projectSlug={project.slug}
                       />
                     )}
