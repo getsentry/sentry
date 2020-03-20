@@ -7,13 +7,16 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Organization, GlobalSelection} from 'app/types';
 import space from 'app/styles/space';
+import {Client} from 'app/api';
+import withApi from 'app/utils/withApi';
 
-import HealthChart from './chart';
+import ReleaseChartContainer from './chart';
 import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
-import SessionDuration from './sessionDuration';
+import ReleaseStatsRequest from './chart/releaseStatsRequest';
+import {YAxis} from './chart/releaseChartControls';
 
 import {ReleaseContext} from '..';
 
@@ -23,50 +26,87 @@ type Props = {
   location: Location;
   selection: GlobalSelection;
   router: InjectedRouter;
+  api: Client;
 };
 
-const ReleaseOverview = ({organization, params, selection, router, location}: Props) => (
-  <ReleaseContext.Consumer>
-    {release => {
-      const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
-      const project = projects.find(p => p.id === selection.projects[0]);
-      // TODO(releasesV2): we will handle this with locked projects later
-      if (!project) {
-        return null;
-      }
-      return (
-        <ContentBox>
-          <Main>
-            {project.healthData?.hasHealthData && (
-              <HealthChart
-                version={version}
-                orgId={organization.slug}
-                projectSlug={project.slug}
-                router={router}
-                selection={selection}
-                location={location}
-              />
-            )}
-            <Issues orgId={organization.slug} version={params.release} />
-          </Main>
-          <Sidebar>
-            {commitCount > 0 && (
-              <CommitAuthorBreakdown
-                version={version}
-                orgId={organization.slug}
-                commitCount={commitCount}
-                projectSlug={project.slug}
-              />
-            )}
-            <ProjectReleaseDetails release={release!} />
-            <TotalCrashFreeUsers />
-            <SessionDuration />
-          </Sidebar>
-        </ContentBox>
-      );
-    }}
-  </ReleaseContext.Consumer>
-);
+type State = {
+  yAxis: YAxis;
+};
+
+class ReleaseOverview extends React.Component<Props, State> {
+  state: State = {
+    yAxis: 'sessions',
+  };
+
+  handleYAxisChange = (yAxis: YAxis) => {
+    this.setState({yAxis});
+  };
+
+  render() {
+    const {organization, params, selection, location, api} = this.props;
+    const {yAxis} = this.state;
+
+    return (
+      <ReleaseContext.Consumer>
+        {release => {
+          const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
+          const project = projects.find(p => p.id === selection.projects[0]);
+          // TODO(releasesV2): we will handle this with locked projects later
+          if (!project) {
+            return null;
+          }
+
+          return (
+            <ReleaseStatsRequest
+              api={api}
+              orgId={organization.slug}
+              projectSlug={project?.slug}
+              version={version}
+              selection={selection}
+              location={location}
+              yAxis={yAxis}
+            >
+              {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
+                <ContentBox>
+                  <Main>
+                    {project.healthData?.hasHealthData && (
+                      <ReleaseChartContainer
+                        onYAxisChange={this.handleYAxisChange}
+                        selection={selection}
+                        yAxis={yAxis}
+                        {...releaseStatsProps}
+                      />
+                    )}
+                    <Issues orgId={organization.slug} version={params.release} />
+                  </Main>
+                  <Sidebar>
+                    {commitCount > 0 && (
+                      <CommitAuthorBreakdown
+                        version={version}
+                        orgId={organization.slug}
+                        commitCount={commitCount}
+                        projectSlug={project.slug}
+                      />
+                    )}
+                    <ProjectReleaseDetails release={release!} />
+                    {project.healthData?.hasHealthData && (
+                      <TotalCrashFreeUsers
+                        crashFreeTimeBreakdown={crashFreeTimeBreakdown}
+                        startDate={release?.dateReleased ?? release?.dateCreated}
+                      />
+                    )}
+                    {/* TODO(releasesV2): hidden for now */}
+                    {/* <SessionDuration /> */}
+                  </Sidebar>
+                </ContentBox>
+              )}
+            </ReleaseStatsRequest>
+          );
+        }}
+      </ReleaseContext.Consumer>
+    );
+  }
+}
 
 const ContentBox = styled('div')`
   padding: ${space(4)};
@@ -87,4 +127,4 @@ const Sidebar = styled('div')`
   grid-column: 2 / 3;
 `;
 
-export default withGlobalSelection(withOrganization(ReleaseOverview));
+export default withApi(withGlobalSelection(withOrganization(ReleaseOverview)));

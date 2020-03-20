@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-import {YAxis} from '.';
+export type YAxis = 'sessions' | 'users' | 'crashFree' | 'sessionDuration';
 
 type Props = {
   summary: React.ReactNode;
@@ -19,6 +19,10 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     {
       value: 'sessions',
       label: t('Session Count'),
+    },
+    {
+      value: 'sessionDuration',
+      label: t('Session Duration'),
     },
     {
       value: 'users',
@@ -36,6 +40,8 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
         return t('Total Active Users');
       case 'crashFree':
         return t('Average Rate');
+      case 'sessionDuration':
+        return t('Average Duration');
       case 'sessions':
       default:
         return t('Total Sessions');

@@ -1087,3 +1087,12 @@ export type SentryServiceStatus = {
   incidents: SentryServiceIncident[];
   url: string;
 };
+
+export type CrashFreeTimeBreakdown = {
+  [key: string]: {
+    totalSessions: number;
+    crashFreeSessions: number | null;
+    crashFreeUsers: number | null;
+    totalUsers: number;
+  };
+};
