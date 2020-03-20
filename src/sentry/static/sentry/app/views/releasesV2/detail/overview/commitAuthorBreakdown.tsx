@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import round from 'lodash/round';
 
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -52,7 +51,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   getDisplayPercent(authorCommitCount: number): string {
     const {commits} = this.state;
 
-    const calculatedPercent = round(percent(authorCommitCount, commits.length), 0);
+    const calculatedPercent = Math.round(percent(authorCommitCount, commits.length));
 
     return `${calculatedPercent < 1 ? '<1' : calculatedPercent}%`;
   }
