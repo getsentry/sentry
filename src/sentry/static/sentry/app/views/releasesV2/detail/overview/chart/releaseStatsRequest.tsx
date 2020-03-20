@@ -279,12 +279,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     responseData.forEach(entry => {
       const [timeframe, values] = entry;
       const date = timeframe * 1000;
-      chartData.data.push({name: date, value: values.duration_p50});
+      chartData.data.push({name: date, value: Math.round(values.duration_p50)});
     });
 
-    const sessionDurationAverage = meanBy(
-      chartData.data.filter(item => defined(item.value)),
-      'value'
+    const sessionDurationAverage = Math.round(
+      meanBy(
+        chartData.data.filter(item => defined(item.value)),
+        'value'
+      )
     );
     const summary = tn('%s second', '%s seconds', sessionDurationAverage ?? 0);
 
