@@ -3,12 +3,16 @@ import styled from '@emotion/styled';
 import {Params, InjectedRouter} from 'react-router/lib/Router';
 import {Location} from 'history';
 
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Organization, GlobalSelection} from 'app/types';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
+import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import ReleaseChartContainer from './chart';
 import Issues from './issues';
@@ -27,16 +31,28 @@ type Props = {
   selection: GlobalSelection;
   router: InjectedRouter;
   api: Client;
-};
+} & AsyncView['props'];
 
 type State = {
   yAxis: YAxis;
-};
+} & AsyncView['state'];
 
-class ReleaseOverview extends React.Component<Props, State> {
-  state: State = {
-    yAxis: 'sessions',
-  };
+class ReleaseOverview extends AsyncView<Props, State> {
+  getTitle() {
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
+  }
+
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      yAxis: 'sessions',
+    };
+  }
 
   handleYAxisChange = (yAxis: YAxis) => {
     this.setState({yAxis});

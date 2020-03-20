@@ -6,14 +6,19 @@ import AsyncComponent from 'app/components/asyncComponent';
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {CommitFile, Repository} from 'app/types';
+import {CommitFile, Repository, Organization} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import AsyncView from 'app/views/asyncView';
+import withOrganization from 'app/utils/withOrganization';
+import routeTitleGen from 'app/utils/routeTitle';
+import {formatVersion} from 'app/utils/formatters';
 
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
 
 type Props = {
   params: Params;
+  organization: Organization;
 } & AsyncComponent['props'];
 
 type State = {
@@ -21,7 +26,16 @@ type State = {
   repos: Repository[];
 } & AsyncComponent['state'];
 
-class FilesChanged extends AsyncComponent<Props, State> {
+class FilesChanged extends AsyncView<Props, State> {
+  getTitle() {
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Files Changed - Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, release} = this.props.params;
 
@@ -73,4 +87,4 @@ const ContentBox = styled('div')`
   }
 `;
 
-export default FilesChanged;
+export default withOrganization(FilesChanged);
