@@ -306,7 +306,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         filter_keys=filter_keys,
     )["data"]:
         ts = parse_snuba_datetime(rv["bucketed_started"])
-        bucket = int((end - ts).total_seconds() / rollup)
+        bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
             stat: rv[stat],
             stat + "_crashed": rv[stat + "_crashed"],
