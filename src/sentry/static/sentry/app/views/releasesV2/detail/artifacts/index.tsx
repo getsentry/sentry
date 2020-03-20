@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -15,9 +14,12 @@ import {Organization} from 'app/types';
 
 import {ReleaseContext} from '..';
 
-type Props = {
-  params: Params;
-  location: Location;
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 

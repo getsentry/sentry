@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Params, InjectedRouter} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -24,14 +23,16 @@ import {YAxis} from './chart/releaseChartControls';
 
 import {ReleaseContext} from '..';
 
-type Props = {
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  params: Params;
-  location: Location;
   selection: GlobalSelection;
-  router: InjectedRouter;
   api: Client;
-} & AsyncView['props'];
+};
 
 type State = {
   yAxis: YAxis;

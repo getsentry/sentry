@@ -1,5 +1,5 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -16,10 +16,14 @@ import {formatVersion} from 'app/utils/formatters';
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
 
-type Props = {
-  params: Params;
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-} & AsyncComponent['props'];
+};
 
 type State = {
   fileList: CommitFile[];
