@@ -84,7 +84,6 @@ class ReleaseOverview extends React.Component<Props, State> {
                       <CommitAuthorBreakdown
                         version={version}
                         orgId={organization.slug}
-                        commitCount={commitCount}
                         projectSlug={project.slug}
                       />
                     )}
