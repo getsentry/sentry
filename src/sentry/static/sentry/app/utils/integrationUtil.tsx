@@ -68,7 +68,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Integration Tab Clicked'
     | 'Integrations: Config Saved'
     | 'Integrations: Plugin Add to Project Clicked'
-    | 'Integrations: Open Upgrade Modal';
+    | 'Integrations: Upgrade Plan Modal Opened';
   integration: string; //the slug
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
