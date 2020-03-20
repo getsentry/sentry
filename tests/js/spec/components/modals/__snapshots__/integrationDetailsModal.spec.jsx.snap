@@ -402,17 +402,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                   align="center"
                   size="small"
                 >
-                  <Component
-                    align="center"
+                  <span
                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                    size="small"
                   >
-                    <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
-                    >
-                      Cancel
-                    </span>
-                  </Component>
+                    Cancel
+                  </span>
                 </ButtonLabel>
               </button>
             </Component>
@@ -811,18 +805,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                   priority="primary"
                                   size="small"
                                 >
-                                  <Component
-                                    align="center"
+                                  <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    priority="primary"
-                                    size="small"
                                   >
-                                    <span
-                                      className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    >
-                                      Add Installation
-                                    </span>
-                                  </Component>
+                                    Add Installation
+                                  </span>
                                 </ButtonLabel>
                               </button>
                             </Component>
