@@ -9,10 +9,12 @@ import space from 'app/styles/space';
 import {Panel} from 'app/components/panels';
 import EventView from 'app/views/eventsV2/eventView';
 import {formatVersion} from 'app/utils/formatters';
+import Feature from 'app/components/acl/feature';
 
 type Props = {
   orgId: string;
   version: string;
+  projectId: number;
 };
 
 type State = {
@@ -25,22 +27,17 @@ class Issues extends React.Component<Props, State> {
     issuesType: 'new',
   };
 
-  // TODO(releasesV2): figure out the query we want + do we want to pass globalSelectionHeader values?
   getDiscoverUrl() {
-    const {version, orgId} = this.props;
+    const {version, orgId, projectId} = this.props;
 
     const discoverQuery = {
       id: undefined,
       version: 2,
       name: `${t('Release')} ${formatVersion(version)}`,
-      fields: ['title', 'count(id)', 'event.type', 'user', 'last_seen'],
-      query: `release:${version}`,
-
-      projects: [],
-      range: '',
-      start: '',
-      end: '',
-      environment: [''],
+      fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+      query: `release:${version} !event.type:transaction`,
+      orderby: '-last_seen',
+      projects: [projectId],
     } as const;
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -111,7 +108,9 @@ class Issues extends React.Component<Props, State> {
             ))}
           </DropdownControl>
 
-          <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          <Feature features={['discover-basic']}>
+            <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          </Feature>
         </ControlsWrapper>
 
         <TableWrapper>
