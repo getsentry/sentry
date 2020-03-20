@@ -66,7 +66,7 @@ const IntegrationRow = (props: Props) => {
             {renderDetails()}
           </IntegrationDetails>
         </Container>
-        <FlexContainer>
+        <InternalContainer>
           {categories?.map(category => (
             <CategoryTag
               key={category}
@@ -74,7 +74,7 @@ const IntegrationRow = (props: Props) => {
               priority={category === publishStatus}
             />
           ))}
-        </FlexContainer>
+        </InternalContainer>
       </FlexContainer>
     </PanelItem>
   );
@@ -84,6 +84,10 @@ const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
+`;
+
+const InternalContainer = styled(FlexContainer)`
+  padding: 0 ${space(2)};
 `;
 
 const Container = styled('div')`
