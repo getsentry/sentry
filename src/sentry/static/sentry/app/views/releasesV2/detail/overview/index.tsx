@@ -48,13 +48,9 @@ class ReleaseOverview extends React.Component<Props, State> {
 
     return (
       <ReleaseContext.Consumer>
-        {release => {
-          const {commitCount, version, projects} = release!; // if release is undefined, this will not be rendered at all
-          const project = projects.find(p => p.id === selection.projects[0]);
-          // TODO(releasesV2): we will handle this with locked projects later
-          if (!project) {
-            return null;
-          }
+        {({release, project}) => {
+          const {commitCount, version} = release;
+          const {hasHealthData} = project.healthData || {};
 
           return (
             <ReleaseStatsRequest
@@ -69,7 +65,7 @@ class ReleaseOverview extends React.Component<Props, State> {
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
                   <Main>
-                    {project.healthData?.hasHealthData && (
+                    {hasHealthData && (
                       <ReleaseChartContainer
                         onYAxisChange={this.handleYAxisChange}
                         selection={selection}
@@ -88,11 +84,11 @@ class ReleaseOverview extends React.Component<Props, State> {
                         projectSlug={project.slug}
                       />
                     )}
-                    <ProjectReleaseDetails release={release!} />
-                    {project.healthData?.hasHealthData && (
+                    <ProjectReleaseDetails release={release} />
+                    {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                        startDate={release?.dateReleased ?? release?.dateCreated}
+                        startDate={release.dateReleased ?? release.dateCreated}
                       />
                     )}
                     {/* TODO(releasesV2): hidden for now */}
