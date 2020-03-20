@@ -11,13 +11,13 @@ import {
   IntegrationProvider,
   SentryAppInstallation,
   PluginWithProjectList,
-  IntegrationFeature,
 } from 'app/types';
 import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
   getSortIntegrationsByWeightActive,
+  getCategories,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -289,29 +289,6 @@ export class OrganizationIntegrations extends AsyncComponent<
     });
   };
 
-  getCategories = (features: IntegrationFeature[]): string[] => {
-    const transform = features.map(({featureGate}) => {
-      const feature = featureGate
-        .replace(/integrations/g, '')
-        .replace(/-/g, ' ')
-        .trim();
-      switch (feature) {
-        case 'actionable notification':
-          return 'notification action';
-        case 'issue basic':
-        case 'issue sync':
-          return 'project management';
-        case 'commits':
-          return 'source code management';
-        case 'chat unfurl':
-          return 'chat';
-        default:
-          return feature;
-      }
-    });
-
-    return [...new Set(transform)];
-  };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -331,7 +308,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={integrations.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={integrations.length}
-        categories={this.getCategories(provider.metadata.features)}
+        categories={getCategories(provider.metadata.features)}
       />
     );
   };
@@ -356,7 +333,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={plugin.projectList.length}
-        categories={this.getCategories(plugin.featureDescriptions)}
+        categories={getCategories(plugin.featureDescriptions)}
       />
     );
   };
@@ -367,7 +344,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
     const categories = ['internal', 'unpublished'].includes(app.status)
       ? [app.status]
-      : this.getCategories(app.featureData);
+      : getCategories(app.featureData);
 
     return (
       <IntegrationRow

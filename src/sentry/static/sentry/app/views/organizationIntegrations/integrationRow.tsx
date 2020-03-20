@@ -71,7 +71,7 @@ const IntegrationRow = (props: Props) => {
             <CategoryTag
               key={category}
               category={category}
-              publishStatus={publishStatus}
+              priority={category === publishStatus}
             />
           ))}
         </FlexContainer>
@@ -131,18 +131,21 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   }
 `;
 
-const CategoryTag = styled(({category, ...p}) => <div {...p}>{category}</div>)`
+const CategoryTag = styled(
+  ({priority, category, ...p}: {category: string; priority: boolean; theme?: any}) => (
+    <div {...p}>{category}</div>
+  )
+)`
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p =>
-    p.category === p.publishStatus ? p.theme.purpleLightest : p.theme.offWhite2};
+  background: ${p => (p.priority ? p.theme.purpleLightest : p.theme.offWhite2)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};
   line-height: ${space(3)};
   text-align: center;
-  color: ${p => (p.category === p.publishStatus ? p.theme.white : p.theme.gray4)};
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
 `;
 
 export default IntegrationRow;
