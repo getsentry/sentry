@@ -41,7 +41,7 @@ const ReleaseActions = ({orgId, version}: Props) => {
       <Confirm
         onConfirm={handleDelete}
         message={t(
-          'Deleting this release is permanent. Are you sure you wish to continue?'
+          'Deleting this release is permanent and will affect other projects associated with it. Are you sure you wish to continue?'
         )}
       >
         <Button>
