@@ -276,9 +276,6 @@ const theme = {
     expandedWidth: '220px',
     mobileHeight: '54px',
     menuSpacing: '15px',
-    panel: {
-      width: '320px',
-    },
   },
 
   text: {

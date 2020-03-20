@@ -112,6 +112,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding:invite-members': OnboardingInviteMembersHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
 };
 
 /**

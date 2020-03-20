@@ -12,7 +12,14 @@ import ConfigStore from 'app/stores/configStore';
 export async function updateOnboardingTask(
   api: Client | null,
   organization: Organization,
-  updatedTask: Pick<OnboardingTask, 'task' | 'status' | 'data'>
+  updatedTask: Partial<Pick<OnboardingTask, 'status' | 'data'>> & {
+    task: OnboardingTask['task'];
+    /**
+     * Marks completion seen. This differs from the OnboardingTask
+     * completionSeen type as that returns the date completion was seen.
+     */
+    completionSeen?: boolean;
+  }
 ) {
   if (api !== null) {
     api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {

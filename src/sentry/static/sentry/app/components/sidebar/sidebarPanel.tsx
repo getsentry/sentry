@@ -74,7 +74,7 @@ const getPositionForOrientation = (p: Props & {theme: Theme}) =>
         right: 0;
       `
     : css`
-        width: ${p.theme.sidebar.panel.width};
+        width: 320px;
         top: 0;
         left: ${p.collapsed
           ? p.theme.sidebar.collapsedWidth
