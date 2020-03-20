@@ -13,6 +13,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {GlobalSelection} from 'app/types';
+import Feature from 'app/components/acl/feature';
 
 enum IssuesType {
   NEW = 'new',
@@ -24,6 +25,7 @@ type Props = {
   orgId: string;
   version: string;
   selection: GlobalSelection;
+  projectId: number;
 };
 
 type State = {
@@ -36,22 +38,17 @@ class Issues extends React.Component<Props, State> {
     issuesType: IssuesType.NEW,
   };
 
-  // TODO(releasesV2): figure out the query we want + do we want to pass globalSelectionHeader values?
   getDiscoverUrl() {
-    const {version, orgId} = this.props;
+    const {version, orgId, projectId} = this.props;
 
     const discoverQuery = {
       id: undefined,
       version: 2,
       name: `${t('Release')} ${formatVersion(version)}`,
-      fields: ['title', 'count(id)', 'event.type', 'user', 'last_seen'],
-      query: `release:${version}`,
-
-      projects: [],
-      range: '',
-      start: '',
-      end: '',
-      environment: [''],
+      fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+      query: `release:${version} !event.type:transaction`,
+      orderby: '-last_seen',
+      projects: [projectId],
     } as const;
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -151,7 +148,9 @@ class Issues extends React.Component<Props, State> {
             ))}
           </DropdownControl>
 
-          <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          <Feature features={['discover-basic']}>
+            <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          </Feature>
         </ControlsWrapper>
 
         <TableWrapper>

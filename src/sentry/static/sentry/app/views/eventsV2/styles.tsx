@@ -13,6 +13,12 @@ export const SectionHeading = styled('h4')`
   line-height: 1.2;
 `;
 
+export const SectionValue = styled('span')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(1)};
+`;
+
 export const Container = styled('div')`
   ${overflowEllipsis};
 `;
@@ -81,4 +87,28 @@ export const InlineContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
+`;
+
+export const SubHeading = styled('h3')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: normal;
+  color: ${p => p.theme.gray5};
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const ErrorPanel = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 200px;
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
 `;
