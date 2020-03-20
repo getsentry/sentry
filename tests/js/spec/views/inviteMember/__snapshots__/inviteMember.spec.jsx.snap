@@ -155,7 +155,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
-                spellCheck="false"
                 type="text"
                 value=""
               />
