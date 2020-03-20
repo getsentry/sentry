@@ -39,7 +39,6 @@ const IntegrationRow = (props: Props) => {
     categories,
   } = props;
 
-  // console.log({type, slug, categories});
   const baseUrl =
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
@@ -136,7 +135,10 @@ const CategoryTag = styled(({category, ...p}) => <div {...p}>{category}</div>)`
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.category === p.publishStatus ? '#E1567C' : p.theme.offWhite2)};
+  background: ${p =>
+    p.category === p.publishStatus
+      ? /*'#E1567C'*/ p.theme.purpleLightest
+      : p.theme.offWhite2};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};

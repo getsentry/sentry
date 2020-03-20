@@ -291,19 +291,22 @@ export class OrganizationIntegrations extends AsyncComponent<
 
   getCategories = (features: IntegrationFeature[]): string[] => {
     const transform = features.map(({featureGate}) => {
-      switch (featureGate) {
-        case 'actionable-notification':
+      const feature = featureGate
+        .replace(/integrations/g, '')
+        .replace(/-/g, ' ')
+        .trim();
+      switch (feature) {
+        case 'actionable notification':
           return 'notification action';
-        case 'issue-basic':
-          return 'project management';
-        case 'issue-sync':
+        case 'issue basic':
+        case 'issue sync':
           return 'project management';
         case 'commits':
           return 'source code management';
-        case 'chat-unfurl':
+        case 'chat unfurl':
           return 'chat';
         default:
-          return featureGate.replace(/integrations/g, '').replace(/-/g, ' ');
+          return feature;
       }
     });
 
@@ -362,7 +365,6 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
-    // console.log(app.featureData);
     const categories = ['internal', 'unpublished'].includes(app.status)
       ? [app.status]
       : this.getCategories(app.featureData);
