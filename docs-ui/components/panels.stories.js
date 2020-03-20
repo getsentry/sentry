@@ -31,7 +31,7 @@ storiesOf('UI|Panels', module)
     ))
   )
   .add(
-    'Table Panel',
+    'Panel Table',
     withInfo({
       text: 'A Panel for "tabular" data',
     })(() => (
