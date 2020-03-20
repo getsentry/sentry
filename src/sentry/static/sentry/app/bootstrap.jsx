@@ -56,8 +56,7 @@ if (window.__initialData) {
 // SDK INIT  --------------------------------------------------------
 const config = ConfigStore.getConfig();
 
-let tracesSampleRate = config ? config.apmSampling : 0;
-tracesSampleRate = 1;
+const tracesSampleRate = config ? config.apmSampling : 0;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
