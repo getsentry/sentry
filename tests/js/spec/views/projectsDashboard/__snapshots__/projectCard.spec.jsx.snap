@@ -1052,17 +1052,11 @@ exports[`ProjectCard renders 1`] = `
                                     align="center"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      align="center"
+                                    <span
                                       className="css-cmi7y3-ButtonLabel edwq9my1"
-                                      size="xsmall"
                                     >
-                                      <span
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
-                                      >
-                                        Track deploys
-                                      </span>
-                                    </Component>
+                                      Track deploys
+                                    </span>
                                   </ButtonLabel>
                                 </a>
                               </ForwardRef>
