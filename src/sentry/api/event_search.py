@@ -46,7 +46,7 @@ def translate(pat):
         # fnmatch.translate has no way to handle escaping metacharacters.
         # Applied this basic patch to handle it:
         # https://bugs.python.org/file27570/issue8402.1.patch
-        if c == "\\":
+        if c == "\\" and i < n:
             res += re.escape(pat[i])
             i += 1
         elif c == "*":
