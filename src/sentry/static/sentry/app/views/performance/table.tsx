@@ -19,7 +19,7 @@ import {EventData} from 'app/views/eventsV2/data';
 import withProjects from 'app/utils/withProjects';
 import EventsV2 from 'app/utils/discover/eventsv2';
 
-import {transactionSummaryRouteWithEventView} from './transaction_summary/utils';
+import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
 import {
   TableGrid,
   GridHead,
