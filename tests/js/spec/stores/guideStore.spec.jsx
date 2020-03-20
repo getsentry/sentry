@@ -76,7 +76,7 @@ describe('GuideStore', function() {
       eventKey: 'assistant.guide_cued',
       eventName: 'Assistant Guide Cued',
       organization_id: null,
-      user_id: user.id,
+      user_id: parseInt(user.id, 10),
     });
 
     expect(spy).toHaveBeenCalledTimes(1);

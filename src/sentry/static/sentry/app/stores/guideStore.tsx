@@ -103,12 +103,11 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
-      if (serverGuide) {
+      serverGuide &&
         acc.push({
           ...content,
           ...serverGuide,
         });
-      }
       return acc;
     }, []);
 
@@ -153,7 +152,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       eventKey: 'assistant.guide_cued',
       eventName: 'Assistant Guide Cued',
       organization_id: this.state.orgId,
-      user_id: user.id,
+      user_id: parseInt(user.id, 10),
     };
     trackAnalyticsEvent(data);
 
