@@ -12,6 +12,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -45,6 +46,7 @@ type State = {
 function getQueryStatus(status: any) {
   return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
 }
+
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
@@ -199,6 +201,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
     const status = getQueryStatus(query.status);
+
+    const isOpenActive = status === 'open';
+    const isClosedActive = status === 'closed';
+    const isAllActive = status === 'all';
+
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
@@ -210,9 +217,6 @@ class IncidentsListContainer extends React.Component<Props> {
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
-              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
-                {t('Send feedback')}
-              </FeedbackLink>
             </StyledPageHeading>
 
             <Actions>
@@ -239,21 +243,24 @@ class IncidentsListContainer extends React.Component<Props> {
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'open' ? ' active' : '')}
+                  className={isOpenActive ? ' active' : ''}
+                  priority={isOpenActive ? 'primary' : 'default'}
                 >
                   {t('Active')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'closed' ? ' active' : '')}
+                  className={isClosedActive ? ' active' : ''}
+                  priority={isClosedActive ? 'primary' : 'default'}
                 >
                   {t('Resolved')}
                 </Button>
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'all' ? ' active' : '')}
+                  className={isAllActive ? ' active' : ''}
+                  priority={isAllActive ? 'primary' : 'default'}
                 >
                   {t('All')}
                 </Button>
@@ -261,6 +268,13 @@ class IncidentsListContainer extends React.Component<Props> {
             </Actions>
           </PageHeader>
 
+          <Alert type="info" icon="icon-circle-info">
+            {t('This feature is in beta and currently shows only metric alerts. ')}
+
+            <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+              {t('Please contact us if you have any feedback.')}
+            </FeedbackLink>
+          </Alert>
           <IncidentsList {...this.props} />
         </PageContent>
       </DocumentTitle>

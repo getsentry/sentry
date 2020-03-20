@@ -15,11 +15,20 @@ export const SectionHeading = styled('h4')`
   line-height: 1.2;
 `;
 
+export const SectionValue = styled('span')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-right: ${space(1)};
+`;
+
 export const ChartsContainer = styled('div')`
+  padding: ${space(2)} ${space(1.5)};
+`;
+
+export const ChartsGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-column-gap: ${space(1)};
-  padding: ${space(2)} ${space(1.5)};
 `;
 
 export const ChartContainer = styled('div')`
@@ -28,7 +37,7 @@ export const ChartContainer = styled('div')`
 
 export const ChartControls = styled('div')`
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   padding: ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.borderLight};
 `;

@@ -126,10 +126,10 @@ class IntegrationPipeline(Pipeline):
                             return self._dialog_response(
                                 {
                                     "error": _(
-                                        "The provided %s account is linked to a different Sentry user. "
-                                        "To continue linking the current Sentry user, please use a different %s account."
+                                        "The provided %(proper_name)s account is linked to a different Sentry user. "
+                                        "To continue linking the current Sentry user, please use a different %(proper_name)s account."
                                     )
-                                    % (proper_name, proper_name)
+                                    % ({"proper_name": proper_name})
                                 },
                                 False,
                             )

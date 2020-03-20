@@ -197,6 +197,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
 from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
@@ -301,6 +302,7 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
     ProjectCombinedRuleIndexEndpoint,
 )
+from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -606,6 +608,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
                     OrganizationIncidentDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/stats/$",
+                    OrganizationIncidentStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-incident-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/$",
@@ -1300,6 +1307,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
                     ProjectIssuesResolvedInReleaseEndpoint.as_view(),
                     name="sentry-api-0-project-release-resolved",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/stats/$",
+                    ProjectReleaseStatsEndpoint.as_view(),
+                    name="sentry-api-0-project-release-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",

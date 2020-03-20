@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import round from 'lodash/round';
 
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -10,6 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
 import {Commit, User} from 'app/types';
+import Button from 'app/components/button';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -18,28 +18,30 @@ type GroupedAuthorCommits = {
 };
 
 type Props = {
-  projectId: string;
+  projectSlug: string;
   orgId: string;
   version: string;
-  commitCount: number;
 } & AsyncComponent['props'];
 
 type State = {
   commits: Commit[];
+  collapsed: boolean;
 } & AsyncComponent['state'];
 
 class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
+  static MAX_WHEN_COLLAPSED = 5;
+
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      collapsed: true,
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, version} = this.props;
+    const {orgId, projectSlug, version} = this.props;
 
-    // TODO(releasesV2): we want to change this in Q2 2020 to fetch release commits filtered by project
-    const commitsEndpoint = `/organizations/${orgId}/releases/${encodeURIComponent(
+    const commitsEndpoint = `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(
       version
     )}/commits/`;
 
@@ -47,14 +49,22 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
   }
 
   getDisplayPercent(authorCommitCount: number): string {
-    const {commitCount} = this.props;
+    const {commits} = this.state;
 
-    const calculatedPercent = round(percent(authorCommitCount, commitCount), 0);
+    const calculatedPercent = Math.round(percent(authorCommitCount, commits.length));
 
     return `${calculatedPercent < 1 ? '<1' : calculatedPercent}%`;
   }
 
+  onCollapseToggle = () => {
+    this.setState(state => ({
+      collapsed: !state.collapsed,
+    }));
+  };
+
   renderBody() {
+    const {collapsed} = this.state;
+
     // group commits by author
     const groupedAuthorCommits = this.state.commits?.reduce(
       (authorCommitsAccumulator, commit) => {
@@ -75,13 +85,23 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     );
 
     // sort authors by number of commits
-    const sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
+    let sortedAuthorsByNumberOfCommits = Object.values(groupedAuthorCommits).sort(
       (a, b) => b.commitCount - a.commitCount
     );
 
     if (!sortedAuthorsByNumberOfCommits.length) {
       return null;
     }
+
+    // collapse them
+    const MAX = CommitAuthorBreakdown.MAX_WHEN_COLLAPSED;
+    const initialNumberOfAuthors = sortedAuthorsByNumberOfCommits.length;
+    const canExpand = initialNumberOfAuthors > MAX;
+    if (collapsed && canExpand) {
+      sortedAuthorsByNumberOfCommits = sortedAuthorsByNumberOfCommits.slice(0, MAX);
+    }
+    const collapsedNumberOfAuthors =
+      initialNumberOfAuthors - sortedAuthorsByNumberOfCommits.length;
 
     return (
       <Wrapper>
@@ -99,6 +119,20 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
             </Stats>
           </AuthorLine>
         ))}
+        {collapsedNumberOfAuthors > 0 && (
+          <StyledButton priority="link" onClick={this.onCollapseToggle}>
+            {tn(
+              'Show %s collapsed author',
+              'Show %s collapsed authors',
+              collapsedNumberOfAuthors
+            )}
+          </StyledButton>
+        )}
+        {collapsedNumberOfAuthors === 0 && canExpand && (
+          <StyledButton priority="link" onClick={this.onCollapseToggle}>
+            {t('Collapse')}
+          </StyledButton>
+        )}
       </Wrapper>
     );
   }
@@ -125,7 +159,8 @@ const StyledUserAvatar = styled(UserAvatar)`
 const AuthorName = styled('div')`
   font-weight: 600;
   color: ${p => p.theme.gray3};
-  ${overflowEllipsis}
+  padding-right: ${space(0.5)};
+  ${overflowEllipsis};
 `;
 
 const Stats = styled('div')`
@@ -143,6 +178,10 @@ const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
   color: ${p => p.theme.gray4};
+`;
+
+const StyledButton = styled(Button)`
+  width: 100%;
 `;
 
 export default CommitAuthorBreakdown;

@@ -107,6 +107,7 @@ class SnubaEventStorage(EventStorage):
             and filter.project_ids
             and len(filter.event_ids) * len(filter.project_ids) < min(limit, NODESTORE_LIMIT)
             and offset == 0
+            and should_bind_nodes
         ):
             event_list = [
                 Event(project_id=project_id, event_id=event_id)

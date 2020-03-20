@@ -60,7 +60,7 @@ const ApiChart = createReactClass({
             };
           }, this.requestFinished);
         },
-        error: data => {
+        error: () => {
           this.setState({
             error: true,
           });

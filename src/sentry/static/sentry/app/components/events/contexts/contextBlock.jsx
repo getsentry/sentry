@@ -39,7 +39,7 @@ class ContextBlock extends React.Component {
     }
 
     if (extraData.length > 0) {
-      data = data.concat(sortBy(extraData, (key, value) => key));
+      data = data.concat(sortBy(extraData, key => key));
     }
 
     return (

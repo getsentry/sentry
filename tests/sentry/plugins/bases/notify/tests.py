@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry_plugins.base import CorePluginMixin
 from sentry.exceptions import PluginError
-from sentry_plugins.exceptions import ApiError, ApiHostError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiUnauthorized
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase

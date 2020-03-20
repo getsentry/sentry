@@ -85,15 +85,16 @@ class NoGroupsHandler extends React.Component<Props, State> {
   }
 
   renderAwaitingEvents(projects: State['firstEventProjects']) {
-    const {organization} = this.props;
-    const project = projects && projects.length > 0 ? projects[0] : null;
+    const {organization, groupIds} = this.props;
 
-    const sampleIssueId = this.props.groupIds.length > 0 ? this.props.groupIds[0] : '';
+    const project = projects && projects.length > 0 ? projects[0] : undefined;
+    const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+
     return (
       <ErrorRobot
         org={organization}
         project={project}
-        sampleIssueId={sampleIssueId}
+        sampleIssueId={sampleIssueId?.toString() ?? ''}
         gradient
       />
     );
@@ -110,16 +111,18 @@ class NoGroupsHandler extends React.Component<Props, State> {
   render() {
     const {fetchingSentFirstEvent, sentFirstEvent, firstEventProjects} = this.state;
     const {query} = this.props;
-    // render things accordingly
+
     if (fetchingSentFirstEvent) {
       return this.renderLoading();
-    } else if (!sentFirstEvent) {
-      return this.renderAwaitingEvents(firstEventProjects);
-    } else if (query === DEFAULT_QUERY) {
-      return <NoUnresolvedIssues />;
-    } else {
-      return this.renderEmpty();
     }
+    if (!sentFirstEvent) {
+      return this.renderAwaitingEvents(firstEventProjects);
+    }
+    if (query === DEFAULT_QUERY) {
+      return <NoUnresolvedIssues />;
+    }
+
+    return this.renderEmpty();
   }
 }
 

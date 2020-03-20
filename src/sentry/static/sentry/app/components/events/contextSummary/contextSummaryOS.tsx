@@ -7,6 +7,7 @@ import {Meta} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
+import {ParagraphOverflow} from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -78,7 +79,7 @@ const ContextSummaryOS = ({data}: Props) => {
     <div className={`context-item ${className}`}>
       <span className="context-item-icon" />
       <h3>{renderName()}</h3>
-      <p>
+      <ParagraphOverflow>
         <Subject>{versionElement.subject}</Subject>
         {versionElement.meta ? (
           <AnnotatedText
@@ -90,7 +91,7 @@ const ContextSummaryOS = ({data}: Props) => {
         ) : (
           versionElement.value
         )}
-      </p>
+      </ParagraphOverflow>
     </div>
   );
 };

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import React from 'react';
+import omit from 'lodash/omit';
 
-const SearchResultWrapper = styled(({highlighted, ...props}) => <div {...props} />)`
+const SearchResultWrapper = styled(props => <div {...omit(props, 'highlighted')} />)`
   cursor: pointer;
   display: block;
   color: ${p => p.theme.gray5};

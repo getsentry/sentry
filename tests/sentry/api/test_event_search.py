@@ -11,6 +11,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
+    AggregateKey,
     event_search_grammar,
     get_filter,
     resolve_field_list,
@@ -555,6 +556,36 @@ class ParseSearchQueryTest(unittest.TestCase):
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
                 parse_search_query(invalid_query)
 
+    def test_duration_filter(self):
+        assert parse_search_query("transaction.duration:>500s") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_aggregate_duration_filter(self):
+        assert parse_search_query("avg(transaction.duration):>500s") == [
+            SearchFilter(
+                key=AggregateKey(name="avg(transaction.duration)"),
+                operator=">",
+                value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_invalid_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
+            parse_search_query("transaction.duration:>..500s")
+
+    def test_invalid_aggregate_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
+            parse_search_query("avg(transaction.duration):>..500s")
+
+    def test_invalid_aggregate_column_with_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
+            parse_search_query("avg(stack.colno):>500s")
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -1018,6 +1049,10 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert _filter.filter_keys == {}
 
+    def test_wildcard_with_trailing_backslash(self):
+        results = get_filter("title:*misgegaan\\")
+        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
@@ -1176,12 +1211,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
     def test_function_with_float_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", 0.5]]
+        result = get_filter("apdex(300):>0.5")
+        assert result.having == [["apdex_300", ">", 0.5]]
 
     def test_function_with_negative_arguments(self):
-        result = get_filter("apdex(transaction.duration, 300):>-0.5")
-        assert result.having == [["apdex_transaction_duration_300", ">", -0.5]]
+        result = get_filter("apdex(300):>-0.5")
+        assert result.having == [["apdex_300", ">", -0.5]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1205,26 +1240,13 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == ["event.type", "message", "id", "project.id"]
 
-    def test_automatic_fields_with_aggregate_aliases(self):
-        fields = ["title", "last_seen"]
-        result = resolve_field_list(fields, {})
-        # Automatic fields should be inserted
-        assert result["selected_columns"] == ["title"]
-        assert result["aggregations"] == [
-            ["max", "timestamp", "last_seen"],
-            ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, array(), array(), '')", None, "project.name"],
-        ]
-        assert result["groupby"] == ["title"]
-
     def test_field_alias_duration_expansion_with_brackets(self):
         fields = [
             "avg(transaction.duration)",
             "latest_event()",
             "last_seen()",
-            "apdex(transaction.duration, 300)",
-            "impact(transaction.duration, 300)",
+            "apdex(300)",
+            "impact(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -1236,11 +1258,11 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["max", "timestamp", "last_seen"],
-            ["apdex(duration, 300)", None, "apdex_transaction_duration_300"],
+            ["apdex(duration, 300)", None, "apdex_300"],
             [
                 "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
-                "impact_transaction_duration_300",
+                "impact_300",
             ],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
@@ -1453,6 +1475,45 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_histogram_function(self):
+        fields = ["histogram(transaction.duration, 10, 1000)", "count()"]
+        result = resolve_field_list(fields, {})
+        assert result["selected_columns"] == [
+            [
+                "multiply",
+                [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
+                "histogram_transaction_duration_10_1000",
+            ]
+        ]
+        assert result["aggregations"] == [
+            ["count", None, "count"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
+        ]
+        assert result["groupby"] == ["histogram_transaction_duration_10_1000"]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(stack.colno, 10, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(stack.colno, 10, 1000): column argument invalid: stack.colno is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 10)"]
+            resolve_field_list(fields, {})
+        assert "histogram(transaction.duration, 10): expected 3 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 1000, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(transaction.duration, 1000, 1000): num_buckets argument invalid: 1000 must be less than 500"
+            in six.text_type(err)
+        )
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
@@ -1494,19 +1555,6 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == ["message", "id", "project.id"]
 
-    def test_orderby_field_alias(self):
-        fields = ["last_seen"]
-        snuba_args = {"orderby": "-last_seen"}
-        result = resolve_field_list(fields, snuba_args)
-        assert result["selected_columns"] == []
-        assert result["aggregations"] == [
-            ["max", "timestamp", "last_seen"],
-            ["argMax", ["id", "timestamp"], "latest_event"],
-            ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, array(), array(), '')", None, "project.name"],
-        ]
-        assert result["groupby"] == []
-
     def test_orderby_field_aggregate(self):
         fields = ["count(id)", "count_unique(user)"]
         snuba_args = {"orderby": "-count(id)"}
@@ -1521,7 +1569,18 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
-    def test_orderby_project(self):
+    def test_orderby_issue_alias(self):
+        fields = ["issue"]
+        snuba_args = {"orderby": "-issue"}
+        result = resolve_field_list(fields, snuba_args)
+        assert result["orderby"] == ["-issue.id"]
+        assert result["selected_columns"] == ["issue.id", "id", "project.id"]
+        assert result["aggregations"] == [
+            ["transform(project_id, array(), array(), '')", None, "project.name"]
+        ]
+        assert result["groupby"] == ["issue.id", "id", "project.id"]
+
+    def test_orderby_project_alias(self):
         fields = ["project"]
         snuba_args = {"orderby": "-project"}
         result = resolve_field_list(fields, snuba_args)

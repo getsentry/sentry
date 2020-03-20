@@ -13,6 +13,7 @@ import {
   getDiscoverLandingUrl,
   explodeField,
   hasAggregateField,
+  downloadAsCsv,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
@@ -568,5 +569,52 @@ describe('hasAggregateField', function() {
     });
 
     expect(hasAggregateField(eventView)).toBe(true);
+  });
+});
+
+describe('downloadAsCsv', function() {
+  const messageColumn = {name: 'message'};
+  const environmentColumn = {name: 'environment'};
+  const countColumn = {name: 'count'};
+  const userColumn = {name: 'user'};
+  it('handles raw data', function() {
+    const result = {
+      data: [
+        {message: 'test 1', environment: 'prod'},
+        {message: 'test 2', environment: 'test'},
+      ],
+    };
+    expect(downloadAsCsv(result, [messageColumn, environmentColumn])).toContain(
+      encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test')
+    );
+  });
+  it('handles aggregations', function() {
+    const result = {
+      data: [{count: 3}],
+    };
+    expect(downloadAsCsv(result, [countColumn])).toContain(encodeURI('count\r\n3'));
+  });
+  it('quotes unsafe strings', function() {
+    const result = {
+      data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
+    };
+    expect(downloadAsCsv(result, [messageColumn])).toContain(
+      encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
+    );
+  });
+  it('handles the user column', function() {
+    const result = {
+      data: [
+        {message: 'test 1', 'user.name': 'foo'},
+        {message: 'test 2', 'user.name': 'bar', 'user.ip': '127.0.0.1'},
+        {message: 'test 3', 'user.email': 'foo@example.com', 'user.username': 'foo'},
+        {message: 'test 4', 'user.ip': '127.0.0.1'},
+      ],
+    };
+    expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
+      encodeURIComponent(
+        'message,user\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
+      )
+    );
   });
 });

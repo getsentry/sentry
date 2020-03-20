@@ -12,6 +12,7 @@ from sentry.incidents.models import (
     QueryAggregations,
     TriggerStatus,
     IncidentStatus,
+    INCIDENT_STATUS,
 )
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -20,12 +21,6 @@ from sentry.utils.http import absolute_uri
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-    incident_status = {
-        IncidentStatus.OPEN: "Open",
-        IncidentStatus.CLOSED: "Resolved",
-        IncidentStatus.CRITICAL: "Critical",
-        IncidentStatus.WARNING: "Warning",
-    }
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -64,15 +59,10 @@ class EmailActionHandler(ActionHandler):
             if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
                 targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-                alert_settings = self.project.get_member_alert_settings("mail:alert")
-                disabled_users = set(
-                    user_id for user_id, setting in alert_settings.items() if setting == 0
+                users = self.project.filter_to_subscribed_users(
+                    set(member.user for member in target.member_set)
                 )
-                targets = [
-                    (user_id, email)
-                    for user_id, email in target.member_set.values_list("user_id", "user__email")
-                    if user_id not in disabled_users
-                ]
+                targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being
         # used as an email relay.
         # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
@@ -147,7 +137,7 @@ class EmailActionHandler(ActionHandler):
             # if alert threshold and threshold type is above then show '>'
             # if resolve threshold and threshold type is *BELOW* then show '>'
             "threshold_direction_string": ">" if show_greater_than_string else "<",
-            "status": self.incident_status[IncidentStatus(self.incident.status)],
+            "status": INCIDENT_STATUS[IncidentStatus(self.incident.status)],
             "is_critical": self.incident.status == IncidentStatus.CRITICAL,
             "is_warning": self.incident.status == IncidentStatus.WARNING,
             "unsubscribe_link": None,

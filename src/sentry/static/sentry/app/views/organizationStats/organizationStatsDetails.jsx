@@ -31,7 +31,7 @@ class OrganizationStats extends React.Component {
     organization: PropTypes.object,
   };
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip(point, _pointIdx, chart) {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, rejected, blacklisted] = point.y;
 
