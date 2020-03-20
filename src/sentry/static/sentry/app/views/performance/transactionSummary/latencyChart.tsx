@@ -71,6 +71,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
       end,
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload.referrer = 'api.performance.latencychart';
 
     return [
       ['chartData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
