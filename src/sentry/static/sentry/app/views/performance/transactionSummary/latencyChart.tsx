@@ -21,6 +21,7 @@ import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/views/eventsV2/eventView';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {getDuration} from 'app/utils/formatters';
 
 type ViewProps = Pick<
   EventView,
@@ -126,6 +127,11 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+    const tooltip = {
+      valueFormatter(value: number) {
+        return getDuration(value / 1000, 2);
+      },
+    };
 
     return (
       <BarChart
@@ -134,6 +140,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         yAxis={{type: 'value'}}
         series={transformData(chartData.data)}
         colors={['rgba(140, 79, 189, 0.3)']}
+        tooltip={tooltip}
       />
     );
   }
@@ -184,7 +191,7 @@ function transformData(data: ApiResult[]) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
     const midPoint = previous + Math.ceil((bucket - previous) / 2);
-    const value = {value: item.count, name: `${midPoint}ms`};
+    const value = {value: item.count, name: getDuration(midPoint / 1000, 2)};
     previous = bucket + 1;
 
     return value;

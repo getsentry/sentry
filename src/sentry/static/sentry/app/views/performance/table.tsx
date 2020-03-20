@@ -60,7 +60,7 @@ type Props = {
 };
 
 class Table extends React.Component<Props> {
-  renderResults = ({isLoading, tableData}) => {
+  renderResults({isLoading, tableData}) {
     if (isLoading) {
       return (
         <tr>
@@ -94,20 +94,18 @@ class Table extends React.Component<Props> {
       assert(tableData.meta);
 
       return (
-        <React.Fragment key={index}>
-          <GridRow numOfColumns={columnOrder.length}>
-            {this.renderRowItem(row, columnOrder, tableData.meta)}
-          </GridRow>
-        </React.Fragment>
+        <GridRow key={index} numOfColumns={columnOrder.length}>
+          {this.renderRowItem(row, columnOrder, tableData.meta)}
+        </GridRow>
       );
     });
-  };
+  }
 
-  renderRowItem = (
+  renderRowItem(
     row: TableDataRow,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ) => {
+  ) {
     const {organization, location, projects} = this.props;
 
     return columnOrder.map((column, index) => {
@@ -142,9 +140,9 @@ class Table extends React.Component<Props> {
 
       return <GridBodyCell key={column.key}>{rendered}</GridBodyCell>;
     });
-  };
+  }
 
-  renderHeader = ({tableData}) => {
+  renderHeader({tableData}) {
     const {location, eventView} = this.props;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
@@ -184,7 +182,7 @@ class Table extends React.Component<Props> {
         }}
       </HeaderCell>
     ));
-  };
+  }
 
   render() {
     const {eventView, organization, location} = this.props;
