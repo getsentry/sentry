@@ -14,7 +14,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import ProjectOwnership, User, Team
+from sentry.models import ProjectOwnership, User, Team, Project
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.rules.actions.base import EventAction
@@ -449,6 +449,10 @@ class NotifyEmailForm(forms.Form):
         required=False, help_text="Only required if 'Member' or 'Team' is selected"
     )
 
+    def __init__(self, project, *args, **kwargs):
+        super(NotifyEmailForm, self).__init__(*args, **kwargs)
+        self.project = project
+
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
         targetType = cleaned_data.get("targetType")
@@ -460,6 +464,22 @@ class NotifyEmailForm(forms.Form):
 
         if targetIdentifier is None:
             msg = forms.ValidationError("You need to specify a Team or Member to send a mail to.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        if targetType == NotifyEmailActionTargetType.TEAM.value and not list(
+            Project.objects.filter(teams__id=targetIdentifier, id=self.project.id)
+        ):
+            msg = forms.ValidationError("This team is not part of the project.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        if targetType == NotifyEmailActionTargetType.MEMBER.value and not list(
+            User.objects.get_from_projects(self.project.organization.id, [self.project]).filter(
+                id=targetIdentifier
+            )
+        ):
+            msg = forms.ValidationError("This user is not part of the project.")
             self.add_error("targetIdentifier", msg)
             return
 
@@ -495,4 +515,4 @@ class NotifyEmailAction(EventAction):
         )
 
     def get_form_instance(self):
-        return self.form_cls(self.data)
+        return self.form_cls(self.project, self.data)
