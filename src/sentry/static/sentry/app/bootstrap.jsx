@@ -61,8 +61,7 @@ tracesSampleRate = 1;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
-  debug: true,
-  integrations: getSentryIntegrations(config),
+  integrations: getSentryIntegrations(),
   tracesSampleRate,
 });
 
