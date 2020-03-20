@@ -230,7 +230,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       },
     };
 
-    const calculateDatePercentage = (responseData, subject) => {
+    const calculateDatePercentage = (responseData, subject: YAxis) => {
       const percentageData = responseData.map(entry => {
         const [timeframe, values] = entry;
         const date = timeframe * 1000;
@@ -269,14 +269,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     return {chartData: Object.values(chartData), chartSummary: summary};
   }
 
-  transformSessionDurationData(data): Omit<Data, 'crashFreeTimeBreakdown'> {
+  transformSessionDurationData(responseData): Omit<Data, 'crashFreeTimeBreakdown'> {
     // here we can configure colors of the chart
     const chartData: Series = {
       seriesName: t('Session Duration'),
       data: [],
     };
 
-    data.forEach(entry => {
+    responseData.forEach(entry => {
       const [timeframe, values] = entry;
       const date = timeframe * 1000;
       chartData.data.push({name: date, value: values.duration_p50});
