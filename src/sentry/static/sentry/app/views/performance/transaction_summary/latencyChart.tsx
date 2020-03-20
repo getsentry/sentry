@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
 import {Panel} from 'app/components/panels';
@@ -21,6 +22,7 @@ import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/views/eventsV2/eventView';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 type ViewProps = Pick<
   EventView,
@@ -30,6 +32,11 @@ type ViewProps = Pick<
 type ApiResult = {
   histogram_transaction_duration_15: number;
   count: number;
+};
+
+type SeriesValue = {
+  value: number;
+  name: string;
 };
 
 type Props = AsyncComponent['props'] &
@@ -71,6 +78,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
       end,
     });
     const apiPayload = eventView.getEventsAPIPayload(location);
+    apiPayload.referrer = 'api.performance.latencychart';
 
     return [
       ['chartData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
@@ -95,6 +103,51 @@ class LatencyChart extends AsyncComponent<Props, State> {
       prevProps.statsPeriod !== this.props.statsPeriod
     );
   }
+
+  handleClick = value => {
+    const {
+      organization,
+      query,
+      start,
+      end,
+      statsPeriod,
+      environment,
+      project,
+    } = this.props;
+
+    const {chartData} = this.state;
+    if (chartData === null) {
+      return;
+    }
+
+    let startDuration = 0;
+    const valueIndex = value.dataIndex;
+    const endDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
+    // Our buckets start at 0, any bucket from the first means we need to
+    // go to the previous bucket to get our start time.
+    if (valueIndex > 0 && chartData.data[valueIndex - 1] !== undefined) {
+      startDuration =
+        chartData.data[valueIndex - 1].histogram_transaction_duration_15 + 1;
+    }
+
+    const parsed = tokenizeSearch(query);
+    parsed['transaction.duration'] = [`>${startDuration}`, `<${endDuration}`];
+
+    const eventView = EventView.fromSavedQuery({
+      id: '',
+      name: `Transactions between ${startDuration.toLocaleString()}ms and ${endDuration.toLocaleString()}ms`,
+      version: 2,
+      fields: ['transaction', 'transaction.duration', 'timestamp'],
+      orderby: '-timestamp',
+      projects: project,
+      range: statsPeriod,
+      query: stringifyQueryObject(parsed),
+      environment,
+      start,
+      end,
+    });
+    browserHistory.push(eventView.getResultsViewUrlTarget(organization.slug));
+  };
 
   renderLoading() {
     return <LoadingPanel data-test-id="histogram-loading" />;
@@ -132,6 +185,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data)}
+        onClick={this.handleClick}
         colors={['rgba(140, 79, 189, 0.3)']}
       />
     );
@@ -180,7 +234,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
 function transformData(data: ApiResult[]) {
   let previous: number = 0;
 
-  const seriesData = data.map(item => {
+  const seriesData: SeriesValue[] = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
     const midPoint = previous + Math.ceil((bucket - previous) / 2);
     const value = {value: item.count, name: `${midPoint}ms`};

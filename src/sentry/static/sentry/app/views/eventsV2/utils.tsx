@@ -40,6 +40,9 @@ export type EventQuery = {
   sort?: string | string[];
   query: string;
   per_page?: number;
+  // Optional value to help distinguish different workloads
+  // that the generic discover endpoint can handle.
+  referrer?: string;
 };
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;

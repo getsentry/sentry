@@ -148,7 +148,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,
-                referrer="api.organization-events-v2",
+                referrer=request.GET.get("referrer", "api.organization-events-v2"),
                 auto_fields=True,
                 use_aggregate_conditions=True,
             )
