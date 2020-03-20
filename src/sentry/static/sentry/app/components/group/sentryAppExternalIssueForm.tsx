@@ -65,7 +65,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.action !== this.props.action) {
-      this.model.reset();
       this.resetStateFromProps();
     }
   }
@@ -304,6 +303,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         {metaFields.map(this.renderField)}
 
         {requiredFields.map((field: FieldFromSchema) => {
+          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
           field = Object.assign({}, field, {
             choices: field.choices || [],
             inline: false,
@@ -316,6 +316,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         })}
 
         {optionalFields.map((field: FieldFromSchema) => {
+          //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
           field = Object.assign({}, field, {
             choices: field.choices || [],
             inline: false,
