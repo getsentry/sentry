@@ -112,7 +112,7 @@ export default class WorldMapChart extends React.Component {
             const countryOrCode = this.state.codeToCountryMap[name] || name;
 
             return [
-              `<div class="tooltip-series">
+              `<div class="tooltip-series tooltip-series-solo">
                  <div><span class="tooltip-label">${marker} <strong>${countryOrCode}</strong></span> ${formattedValue}</div>
               </div>`,
               '<div class="tooltip-arrow"></div>',
