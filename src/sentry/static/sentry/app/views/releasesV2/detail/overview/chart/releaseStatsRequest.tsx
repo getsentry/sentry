@@ -12,6 +12,8 @@ import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
+import {getInterval} from 'app/components/charts/utils';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
 import {YAxis} from './releaseChartControls';
@@ -164,9 +166,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location} = this.props;
+    const {location, selection} = this.props;
 
-    return pick(location.query, [...Object.values(URL_PARAM)]);
+    return {
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      interval: getInterval(selection.datetime),
+    };
   }
 
   transformCountData(responseData, yAxis: string): Omit<Data, 'crashFreeTimeBreakdown'> {
