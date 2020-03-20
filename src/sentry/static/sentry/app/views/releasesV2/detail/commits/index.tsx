@@ -129,9 +129,13 @@ class ReleaseCommits extends AsyncComponent<Props, State> {
             )}
           </React.Fragment>
         ) : (
-          <EmptyStateWarning small>
-            {t('There are no commits associated with this release.')}
-          </EmptyStateWarning>
+          <Panel>
+            <PanelBody>
+              <EmptyStateWarning small>
+                {t('There are no commits associated with this release.')}
+              </EmptyStateWarning>
+            </PanelBody>
+          </Panel>
         )}
       </ContentBox>
     );
