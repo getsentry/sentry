@@ -26,9 +26,7 @@ import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 
-function getSentryIntegrations(config) {
-  const tracesSampleRate = config ? config.apmSampling : 0;
-
+function getSentryIntegrations() {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -36,7 +34,6 @@ function getSentryIntegrations(config) {
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
-      tracesSampleRate,
     }),
   ];
   if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
@@ -58,10 +55,15 @@ if (window.__initialData) {
 
 // SDK INIT  --------------------------------------------------------
 const config = ConfigStore.getConfig();
-// Only enable self-tracing when isApmDataSamplingEnabled is true
+
+let tracesSampleRate = config ? config.apmSampling : 0;
+tracesSampleRate = 1;
+
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
+  debug: true,
   integrations: getSentryIntegrations(config),
+  tracesSampleRate,
 });
 
 if (window.__SENTRY__USER) {
