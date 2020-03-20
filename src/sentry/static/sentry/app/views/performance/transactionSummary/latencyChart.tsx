@@ -127,11 +127,6 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
-    const tooltip = {
-      valueFormatter(value: number) {
-        return getDuration(value / 1000, 2);
-      },
-    };
 
     return (
       <BarChart
@@ -140,7 +135,6 @@ class LatencyChart extends AsyncComponent<Props, State> {
         yAxis={{type: 'value'}}
         series={transformData(chartData.data)}
         colors={['rgba(140, 79, 189, 0.3)']}
-        tooltip={tooltip}
       />
     );
   }
@@ -186,15 +180,19 @@ class LatencyChart extends AsyncComponent<Props, State> {
  * Convert a discover response into a barchart compatible series
  */
 function transformData(data: ApiResult[]) {
-  let previous: number = 0;
+  // We can assume that all buckets are of equal width, use the first two
+  // buckets to get the width. The value of each histogram function indicates
+  // the beginning of the bucket.
+  const bucketWidth =
+    data.length > 2
+      ? data[1].histogram_transaction_duration_15 -
+        data[0].histogram_transaction_duration_15
+      : 0;
 
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
-    const midPoint = previous + Math.ceil((bucket - previous) / 2);
-    const value = {value: item.count, name: getDuration(midPoint / 1000, 2)};
-    previous = bucket + 1;
-
-    return value;
+    const midPoint = Math.ceil(bucket + bucketWidth / 2);
+    return {value: item.count, name: getDuration(midPoint / 1000, 2, true)};
   });
 
   return [
