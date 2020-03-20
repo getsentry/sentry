@@ -12,15 +12,15 @@ import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
-import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
 import {YAxis} from './releaseChartControls';
+import {getInterval} from './utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
-    ['api', 'version', 'orgId', 'projectSlug', 'children'].includes(key)
+    ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
 type ChartData = {
