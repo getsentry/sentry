@@ -195,10 +195,7 @@ class GroupEventDetails extends React.Component<Props, State> {
               <MutedBox statusDetails={group.statusDetails} />
             )}
             {group.status === 'resolved' && (
-              <ResolutionBox
-                statusDetails={group.statusDetails}
-                orgId={organization.slug}
-              />
+              <ResolutionBox statusDetails={group.statusDetails} />
             )}
             {this.state.loading ? (
               <LoadingIndicator />

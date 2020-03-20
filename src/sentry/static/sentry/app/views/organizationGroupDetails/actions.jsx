@@ -91,7 +91,6 @@ class DeleteActions extends React.Component {
   render() {
     return (
       <div className="btn-group">
-        <GuideAnchor target="ignore_delete_discard" />
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
@@ -271,34 +270,38 @@ const GroupDetailsActions = createReactClass({
 
     return (
       <div className="group-actions">
-        <ResolveActions
-          hasRelease={hasRelease}
-          latestRelease={project.latestRelease}
-          onUpdate={this.onUpdate}
-          orgId={organization.slug}
-          projectId={project.slug}
-          isResolved={isResolved}
-          isAutoResolved={isResolved && group.statusDetails.autoResolved}
-        />
+        <GuideAnchor target="resolve" position="bottom">
+          <ResolveActions
+            hasRelease={hasRelease}
+            latestRelease={project.latestRelease}
+            onUpdate={this.onUpdate}
+            orgId={organization.slug}
+            projectId={project.slug}
+            isResolved={isResolved}
+            isAutoResolved={isResolved && group.statusDetails.autoResolved}
+          />
+        </GuideAnchor>
 
-        <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+        <GuideAnchor target="ignore_delete_discard" position="bottom">
+          <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
 
-        <div className="btn-group">
-          <div
-            className={bookmarkClassName}
-            title={t('Bookmark')}
-            onClick={this.onToggleBookmark}
-          >
-            <span className="icon-star-solid" />
+          <div className="btn-group">
+            <div
+              className={bookmarkClassName}
+              title={t('Bookmark')}
+              onClick={this.onToggleBookmark}
+            >
+              <span className="icon-star-solid" />
+            </div>
           </div>
-        </div>
 
-        <DeleteActions
-          organization={organization}
-          project={project}
-          onDelete={this.onDelete}
-          onDiscard={this.onDiscard}
-        />
+          <DeleteActions
+            organization={organization}
+            project={project}
+            onDelete={this.onDelete}
+            onDiscard={this.onDiscard}
+          />
+        </GuideAnchor>
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

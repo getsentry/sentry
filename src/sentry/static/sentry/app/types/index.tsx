@@ -527,7 +527,7 @@ export type Group = {
   shortId: string;
   stats: any; // TODO(ts)
   status: string;
-  statusDetails: {};
+  statusDetails: ResolutionStatusDetails;
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -797,7 +797,7 @@ export type Release = {
   projects: ReleaseProject[];
 } & BaseRelease;
 
-type ReleaseProject = {
+export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
@@ -866,7 +866,9 @@ export type ActiveOrgExperiments = {
   IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
 
-export type ActiveUserExperiments = {};
+export type ActiveUserExperiments = {
+  AssistantGuideExperiment: 0 | 1 | -1;
+};
 
 type SavedQueryVersions = 1 | 2;
 
@@ -945,6 +947,11 @@ export enum OnboardingTaskKey {
   ALERT_RULE = 'setup_alert_rules',
 }
 
+export type OnboardingSupplementComponentProps = {
+  task: OnboardingTask;
+  onCompleteTask: () => void;
+};
+
 export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
@@ -963,6 +970,10 @@ export type OnboardingTaskDescriptor = {
    * Should the onboarding task currently be displayed
    */
   display: boolean;
+  /**
+   * An extra component that may be rendered within the onboarding task item.
+   */
+  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
 } & (
   | {
       actionType: 'app' | 'external';
@@ -983,7 +994,14 @@ export type OnboardingTaskStatus = {
   data?: object;
 };
 
-export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
+export type OnboardingTask = OnboardingTaskStatus &
+  OnboardingTaskDescriptor & {
+    /**
+     * Onboarding tasks that are currently incomplete and must be completed
+     * before this task should be completed.
+     */
+    requisiteTasks: OnboardingTask[];
+  };
 
 export type Tag = {
   name: string;
@@ -1029,6 +1047,12 @@ export enum ResolutionStatus {
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
+  autoResolved?: boolean;
+  ignoreCount?: number;
+  ignoreUntil?: string;
+  ignoreUserCount?: number;
+  ignoreUserWindow?: string;
+  ignoreWindow?: string;
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
@@ -1062,4 +1086,13 @@ export type SentryServiceStatus = {
   indicator: 'major' | 'minor' | 'none';
   incidents: SentryServiceIncident[];
   url: string;
+};
+
+export type CrashFreeTimeBreakdown = {
+  [key: string]: {
+    totalSessions: number;
+    crashFreeSessions: number | null;
+    crashFreeUsers: number | null;
+    totalUsers: number;
+  };
 };

@@ -1,15 +1,22 @@
-import GuideStore from 'app/stores/guideStore';
+import {logExperiment, trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
+import GuideStore from 'app/stores/guideStore';
+
+jest.mock('app/utils/analytics');
 
 describe('GuideStore', function() {
   let data;
+  const user = {
+    id: '5',
+    isSuperuser: false,
+    dateJoined: new Date(2020, 0, 1),
+  };
 
   beforeEach(function() {
+    trackAnalyticsEvent.mockClear();
+    logExperiment.mockClear();
     ConfigStore.config = {
-      user: {
-        isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
-      },
+      user,
     };
     GuideStore.init();
     data = [
@@ -63,6 +70,15 @@ describe('GuideStore', function() {
     const spy = jest.spyOn(GuideStore, 'recordCue');
     GuideStore.onFetchSucceeded(data);
     expect(spy).toHaveBeenCalledWith('issue');
+
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
+      guide: 'issue',
+      eventKey: 'assistant.guide_cued',
+      eventName: 'Assistant Guide Cued',
+      organization_id: null,
+      user_id: user.id,
+    });
+
     expect(spy).toHaveBeenCalledTimes(1);
 
     GuideStore.updateCurrentGuide();
@@ -71,6 +87,13 @@ describe('GuideStore', function() {
     GuideStore.onNextStep();
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
+
+    expect(logExperiment).toHaveBeenCalledWith({
+      key: 'AssistantGuideExperiment',
+      unitName: 'user_id',
+      unitId: parseInt(user.id, 10),
+      param: 'variant',
+    });
   });
 
   describe('discover sidebar guide', function() {

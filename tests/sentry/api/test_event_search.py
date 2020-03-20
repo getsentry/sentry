@@ -11,6 +11,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.event_search import (
+    AggregateKey,
     event_search_grammar,
     get_filter,
     resolve_field_list,
@@ -555,6 +556,36 @@ class ParseSearchQueryTest(unittest.TestCase):
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
                 parse_search_query(invalid_query)
 
+    def test_duration_filter(self):
+        assert parse_search_query("transaction.duration:>500s") == [
+            SearchFilter(
+                key=SearchKey(name="transaction.duration"),
+                operator=">",
+                value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_aggregate_duration_filter(self):
+        assert parse_search_query("avg(transaction.duration):>500s") == [
+            SearchFilter(
+                key=AggregateKey(name="avg(transaction.duration)"),
+                operator=">",
+                value=SearchValue(raw_value=500000.0),
+            )
+        ]
+
+    def test_invalid_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
+            parse_search_query("transaction.duration:>..500s")
+
+    def test_invalid_aggregate_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
+            parse_search_query("avg(transaction.duration):>..500s")
+
+    def test_invalid_aggregate_column_with_duration_filter(self):
+        with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
+            parse_search_query("avg(stack.colno):>500s")
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -1017,6 +1048,10 @@ class GetSnubaQueryArgsTest(TestCase):
             ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
         ]
         assert _filter.filter_keys == {}
+
+    def test_wildcard_with_trailing_backslash(self):
+        results = get_filter("title:*misgegaan\\")
+        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
