@@ -89,10 +89,12 @@ class ReleaseOverview extends React.Component<Props, State> {
                       />
                     )}
                     <ProjectReleaseDetails release={release!} />
-                    <TotalCrashFreeUsers
-                      crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                      startDate={release?.dateReleased ?? release?.dateCreated}
-                    />
+                    {project.healthData?.hasHealthData && (
+                      <TotalCrashFreeUsers
+                        crashFreeTimeBreakdown={crashFreeTimeBreakdown}
+                        startDate={release?.dateReleased ?? release?.dateCreated}
+                      />
+                    )}
                     {/* TODO(releasesV2): hidden for now */}
                     {/* <SessionDuration /> */}
                   </Sidebar>
