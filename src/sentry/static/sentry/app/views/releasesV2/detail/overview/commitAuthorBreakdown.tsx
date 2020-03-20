@@ -97,8 +97,8 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
     // collapse them
     const MAX = CommitAuthorBreakdown.MAX_WHEN_COLLAPSED;
     const initialNumberOfAuthors = sortedAuthorsByNumberOfCommits.length;
-    const canCollapse = initialNumberOfAuthors > MAX;
-    if (collapsed && canCollapse) {
+    const canExpand = initialNumberOfAuthors > MAX;
+    if (collapsed && canExpand) {
       sortedAuthorsByNumberOfCommits = sortedAuthorsByNumberOfCommits.slice(0, MAX);
     }
     const collapsedNumberOfAuthors =
@@ -129,7 +129,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
             )}
           </StyledButton>
         )}
-        {collapsedNumberOfAuthors === 0 && canCollapse && (
+        {collapsedNumberOfAuthors === 0 && canExpand && (
           <StyledButton priority="link" onClick={this.onCollapseToggle}>
             {t('Collapse')}
           </StyledButton>
