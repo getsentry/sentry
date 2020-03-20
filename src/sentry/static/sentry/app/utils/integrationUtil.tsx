@@ -72,6 +72,7 @@ export type SingleIntegrationEvent = {
   integration: string; //the slug
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
+  plan?: string;
 } & (SentryAppEvent | NonSentryAppEvent);
 
 type SentryAppEvent = {
