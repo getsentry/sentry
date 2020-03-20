@@ -507,17 +507,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                               align="center"
                                               size="small"
                                             >
-                                              <Component
-                                                align="center"
+                                              <span
                                                 className="css-19gcr2f-ButtonLabel edwq9my1"
-                                                size="small"
                                               >
-                                                <span
-                                                  className="css-19gcr2f-ButtonLabel edwq9my1"
-                                                >
-                                                  Enable Plugin
-                                                </span>
-                                              </Component>
+                                                Enable Plugin
+                                              </span>
                                             </ButtonLabel>
                                           </button>
                                         </Component>
@@ -565,17 +559,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                               align="center"
                                               size="small"
                                             >
-                                              <Component
-                                                align="center"
+                                              <span
                                                 className="css-19gcr2f-ButtonLabel edwq9my1"
-                                                size="small"
                                               >
-                                                <span
-                                                  className="css-19gcr2f-ButtonLabel edwq9my1"
-                                                >
-                                                  Reset Configuration
-                                                </span>
-                                              </Component>
+                                                Reset Configuration
+                                              </span>
                                             </ButtonLabel>
                                           </button>
                                         </Component>

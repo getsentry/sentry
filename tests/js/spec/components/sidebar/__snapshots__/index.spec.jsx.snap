@@ -1226,17 +1226,11 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                         align="center"
                         size="small"
                       >
-                        <Component
-                          align="center"
+                        <span
                           className="css-19gcr2f-ButtonLabel edwq9my1"
-                          size="small"
                         >
-                          <span
-                            className="css-19gcr2f-ButtonLabel edwq9my1"
-                          >
-                            Learn more
-                          </span>
-                        </Component>
+                          Learn more
+                        </span>
                       </ButtonLabel>
                     </a>
                   </ForwardRef>

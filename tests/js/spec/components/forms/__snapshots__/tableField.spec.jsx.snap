@@ -303,56 +303,44 @@ exports[`TableField renders renders with form context 1`] = `
                                                   align="center"
                                                   size="xsmall"
                                                 >
-                                                  <Component
-                                                    align="center"
+                                                  <span
                                                     className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                    size="xsmall"
                                                   >
-                                                    <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="xsmall"
                                                     >
-                                                      <Icon
-                                                        hasChildren={true}
+                                                      <span
+                                                        className="css-5zck09-Icon edwq9my2"
                                                         size="xsmall"
                                                       >
-                                                        <Component
-                                                          className="css-5zck09-Icon edwq9my2"
-                                                          hasChildren={true}
-                                                          size="xsmall"
+                                                        <ForwardRef(IconAdd)
+                                                          circle={true}
+                                                          size="xs"
                                                         >
-                                                          <span
-                                                            className="css-5zck09-Icon edwq9my2"
-                                                            size="xsmall"
+                                                          <svg
+                                                            fill="currentColor"
+                                                            height="12px"
+                                                            viewBox="0 0 16 16"
+                                                            width="12px"
                                                           >
-                                                            <ForwardRef(IconAdd)
-                                                              circle={true}
-                                                              size="xs"
-                                                            >
-                                                              <svg
-                                                                fill="currentColor"
-                                                                height="12px"
-                                                                viewBox="0 0 16 16"
-                                                                width="12px"
-                                                              >
-                                                                <g>
-                                                                  <path
-                                                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                                  />
-                                                                  <path
-                                                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                                  />
-                                                                  <path
-                                                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                                  />
-                                                                </g>
-                                                              </svg>
-                                                            </ForwardRef(IconAdd)>
-                                                          </span>
-                                                        </Component>
-                                                      </Icon>
-                                                      Add Thing
-                                                    </span>
-                                                  </Component>
+                                                            <g>
+                                                              <path
+                                                                d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                              />
+                                                              <path
+                                                                d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                              />
+                                                              <path
+                                                                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                              />
+                                                            </g>
+                                                          </svg>
+                                                        </ForwardRef(IconAdd)>
+                                                      </span>
+                                                    </Icon>
+                                                    Add Thing
+                                                  </span>
                                                 </ButtonLabel>
                                               </button>
                                             </Component>
@@ -507,17 +495,11 @@ exports[`TableField renders renders with form context 1`] = `
                           align="center"
                           priority="primary"
                         >
-                          <Component
-                            align="center"
+                          <span
                             className="css-zmpclt-ButtonLabel edwq9my1"
-                            priority="primary"
                           >
-                            <span
-                              className="css-zmpclt-ButtonLabel edwq9my1"
-                            >
-                              Save Changes
-                            </span>
-                          </Component>
+                            Save Changes
+                          </span>
                         </ButtonLabel>
                       </button>
                     </Component>
@@ -743,56 +725,44 @@ exports[`TableField renders renders without form context 1`] = `
                                             align="center"
                                             size="xsmall"
                                           >
-                                            <Component
-                                              align="center"
+                                            <span
                                               className="css-cmi7y3-ButtonLabel edwq9my1"
-                                              size="xsmall"
                                             >
-                                              <span
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              <Icon
+                                                hasChildren={true}
+                                                size="xsmall"
                                               >
-                                                <Icon
-                                                  hasChildren={true}
+                                                <span
+                                                  className="css-5zck09-Icon edwq9my2"
                                                   size="xsmall"
                                                 >
-                                                  <Component
-                                                    className="css-5zck09-Icon edwq9my2"
-                                                    hasChildren={true}
-                                                    size="xsmall"
+                                                  <ForwardRef(IconAdd)
+                                                    circle={true}
+                                                    size="xs"
                                                   >
-                                                    <span
-                                                      className="css-5zck09-Icon edwq9my2"
-                                                      size="xsmall"
+                                                    <svg
+                                                      fill="currentColor"
+                                                      height="12px"
+                                                      viewBox="0 0 16 16"
+                                                      width="12px"
                                                     >
-                                                      <ForwardRef(IconAdd)
-                                                        circle={true}
-                                                        size="xs"
-                                                      >
-                                                        <svg
-                                                          fill="currentColor"
-                                                          height="12px"
-                                                          viewBox="0 0 16 16"
-                                                          width="12px"
-                                                        >
-                                                          <g>
-                                                            <path
-                                                              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                            />
-                                                            <path
-                                                              d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                            />
-                                                            <path
-                                                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                            />
-                                                          </g>
-                                                        </svg>
-                                                      </ForwardRef(IconAdd)>
-                                                    </span>
-                                                  </Component>
-                                                </Icon>
-                                                Add Item
-                                              </span>
-                                            </Component>
+                                                      <g>
+                                                        <path
+                                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                        />
+                                                        <path
+                                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                        />
+                                                      </g>
+                                                    </svg>
+                                                  </ForwardRef(IconAdd)>
+                                                </span>
+                                              </Icon>
+                                              Add Item
+                                            </span>
                                           </ButtonLabel>
                                         </button>
                                       </Component>

@@ -140,6 +140,7 @@ const button = {
   },
   primary: {
     color: colors.white,
+    colorActive: colors.white,
     background: colors.purple,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
@@ -150,6 +151,7 @@ const button = {
   },
   success: {
     color: colors.white,
+    colorActive: colors.white,
     background: '#3fa372',
     backgroundActive: colors.green,
     border: '#7ccca5',
@@ -160,6 +162,7 @@ const button = {
   },
   danger: {
     color: colors.white,
+    colorActive: colors.white,
     background: colors.red,
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
@@ -170,17 +173,23 @@ const button = {
   },
   link: {
     color: colors.blue,
+    colorActive: colors.blue,
     background: 'transparent',
+    border: 'none',
+    borderActive: 'inherit',
     // border: '#3d328e',
     backgroundActive: 'transparent',
     // borderActive: '#352b7b',
+    focusShadow: false,
   },
   disabled: {
     color: aliases.disabled,
+    colorActive: aliases.disabled,
     border: '#e3e5e6',
     borderActive: '#e3e5e6',
     background: colors.white,
     backgroundActive: colors.white,
+    focusShadow: false,
   },
 } as const;
 

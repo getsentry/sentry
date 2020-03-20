@@ -203,16 +203,11 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     <ButtonLabel
                       align="center"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Cancel
-                        </span>
-                      </Component>
+                        Cancel
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>
@@ -269,17 +264,11 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                       align="center"
                       priority="primary"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Bulk resolve issues
-                        </span>
-                      </Component>
+                        Bulk resolve issues
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>
@@ -528,16 +517,11 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     <ButtonLabel
                       align="center"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Cancel
-                        </span>
-                      </Component>
+                        Cancel
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>
@@ -594,17 +578,11 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                       align="center"
                       priority="primary"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Bulk resolve issues
-                        </span>
-                      </Component>
+                        Bulk resolve issues
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>

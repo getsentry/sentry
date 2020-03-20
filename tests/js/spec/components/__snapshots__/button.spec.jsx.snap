@@ -44,18 +44,11 @@ exports[`Button renders 1`] = `
             priority="primary"
             size="large"
           >
-            <Component
-              align="center"
+            <span
               className="css-ym5hp1-ButtonLabel edwq9my1"
-              priority="primary"
-              size="large"
             >
-              <span
-                className="css-ym5hp1-ButtonLabel edwq9my1"
-              >
-                Button
-              </span>
-            </Component>
+              Button
+            </span>
           </ButtonLabel>
         </button>
       </Component>
@@ -103,16 +96,11 @@ exports[`Button renders disabled normal link 1`] = `
           <ButtonLabel
             align="center"
           >
-            <Component
-              align="center"
+            <span
               className="css-zmpclt-ButtonLabel edwq9my1"
             >
-              <span
-                className="css-zmpclt-ButtonLabel edwq9my1"
-              >
-                Normal Link
-              </span>
-            </Component>
+              Normal Link
+            </span>
           </ButtonLabel>
         </a>
       </Component>
@@ -160,16 +148,11 @@ exports[`Button renders normal link 1`] = `
           <ButtonLabel
             align="center"
           >
-            <Component
-              align="center"
+            <span
               className="css-zmpclt-ButtonLabel edwq9my1"
             >
-              <span
-                className="css-zmpclt-ButtonLabel edwq9my1"
-              >
-                Normal Link
-              </span>
-            </Component>
+              Normal Link
+            </span>
           </ButtonLabel>
         </a>
       </Component>
@@ -227,16 +210,11 @@ exports[`Button renders react-router link 1`] = `
             <ButtonLabel
               align="center"
             >
-              <Component
-                align="center"
+              <span
                 className="css-zmpclt-ButtonLabel edwq9my1"
               >
-                <span
-                  className="css-zmpclt-ButtonLabel edwq9my1"
-                >
-                  Router Link
-                </span>
-              </Component>
+                Router Link
+              </span>
             </ButtonLabel>
           </a>
         </Link>
