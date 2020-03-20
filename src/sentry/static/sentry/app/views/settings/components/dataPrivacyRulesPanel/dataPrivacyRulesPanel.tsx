@@ -246,7 +246,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           <StyledPanelHeader>{t('Data Privacy Rules')}</StyledPanelHeader>
           <PanelAlert type="info">
             {additionalContext}
-            {tct('To learn more about datascubbing, [linkToDocs].', {
+            {tct('To learn more about datascubbing, [linkToDocs]', {
               linkToDocs: (
                 <Link
                   href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
