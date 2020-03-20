@@ -34,7 +34,7 @@ class Issues extends React.Component<Props, State> {
       id: undefined,
       version: 2,
       name: `${t('Release')} ${formatVersion(version)}`,
-      fields: ['title', 'count(id)', 'event.type', 'issue', 'last_seen'],
+      fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
       query: `release:${version} !event.type:transaction`,
       orderby: '-last_seen',
       projects: [projectId],
