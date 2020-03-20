@@ -1,12 +1,13 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {PlatformKey} from 'app/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
-import {PlatformKey} from 'app/data/platformCategories';
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -69,7 +70,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveOrgExperiments>;
+  experiments: Partial<OrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -323,7 +324,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
-  experiments: Partial<ActiveUserExperiments>;
+  experiments: Partial<UserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -858,16 +859,6 @@ export type SentryAppComponent = {
     slug: string;
     name: string;
   };
-};
-
-export type ActiveOrgExperiments = {
-  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
-  IntegrationDirectorySortWeightExperiment: '1' | '0';
-};
-
-export type ActiveUserExperiments = {
-  AssistantGuideExperiment: 0 | 1 | -1;
 };
 
 type SavedQueryVersions = 1 | 2;
