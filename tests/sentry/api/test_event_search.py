@@ -1049,6 +1049,10 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert _filter.filter_keys == {}
 
+    def test_wildcard_with_trailing_backslash(self):
+        results = get_filter("title:*misgegaan\\")
+        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
