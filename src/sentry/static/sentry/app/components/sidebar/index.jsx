@@ -38,6 +38,7 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
+import {logExperiment} from 'app/utils/analytics';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -78,6 +79,15 @@ class Sidebar extends React.Component {
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
+
+    const {organization} = this.props;
+    logExperiment({
+      organization,
+      key: 'OnboardingSidebarV2Experiment',
+      unitName: 'org_id',
+      unitId: parseInt(organization?.id, 10),
+      param: 'exposed',
+    });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -540,18 +550,19 @@ class Sidebar extends React.Component {
 
         {hasOrganization && (
           <SidebarSectionGroup>
-            {localStorage.getItem('NEW_ONBOARDING_SIDEBAR') && !horizontal && (
-              <SidebarSection noMargin noPadding>
-                <OnboardingStatus
-                  org={organization}
-                  currentPanel={currentPanel}
-                  onShowPanel={() => this.togglePanel('todos')}
-                  showPanel={showPanel}
-                  hidePanel={this.hidePanel}
-                  collapsed={collapsed}
-                />
-              </SidebarSection>
-            )}
+            {organization.experiments?.OnboardingSidebarV2Experiment === 1 &&
+              !horizontal && (
+                <SidebarSection noMargin noPadding>
+                  <OnboardingStatus
+                    org={organization}
+                    currentPanel={currentPanel}
+                    onShowPanel={() => this.togglePanel('todos')}
+                    showPanel={showPanel}
+                    hidePanel={this.hidePanel}
+                    collapsed={collapsed}
+                  />
+                </SidebarSection>
+              )}
 
             <SidebarSection>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
@@ -584,18 +595,19 @@ class Sidebar extends React.Component {
               />
             </SidebarSection>
 
-            {!localStorage.getItem('NEW_ONBOARDING_SIDEBAR') && !horizontal && (
-              <SidebarSection noMargin>
-                <LegacyOnboardingStatus
-                  org={organization}
-                  currentPanel={currentPanel}
-                  onShowPanel={() => this.togglePanel('todos')}
-                  showPanel={showPanel}
-                  hidePanel={this.hidePanel}
-                  collapsed={collapsed}
-                />
-              </SidebarSection>
-            )}
+            {organization.experiments?.OnboardingSidebarV2Experiment !== 1 &&
+              !horizontal && (
+                <SidebarSection noMargin>
+                  <LegacyOnboardingStatus
+                    org={organization}
+                    currentPanel={currentPanel}
+                    onShowPanel={() => this.togglePanel('todos')}
+                    showPanel={showPanel}
+                    hidePanel={this.hidePanel}
+                    collapsed={collapsed}
+                  />
+                </SidebarSection>
+              )}
 
             {!horizontal && (
               <SidebarSection>
