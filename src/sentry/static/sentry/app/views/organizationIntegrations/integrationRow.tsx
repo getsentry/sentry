@@ -18,6 +18,7 @@ type Props = {
   status: IntegrationInstallationStatus;
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
+  categories?: string[];
 };
 
 const urlMap = {
@@ -35,8 +36,10 @@ const IntegrationRow = (props: Props) => {
     status,
     publishStatus,
     configurations,
+    categories,
   } = props;
 
+  // console.log({type, slug, categories});
   const baseUrl =
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
@@ -64,6 +67,15 @@ const IntegrationRow = (props: Props) => {
             {renderDetails()}
           </IntegrationDetails>
         </Container>
+        <FlexContainer>
+          {categories?.map(category => (
+            <CategoryTag
+              key={category}
+              category={category}
+              publishStatus={publishStatus}
+            />
+          ))}
+        </FlexContainer>
       </FlexContainer>
     </PanelItem>
   );
@@ -118,6 +130,19 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
+`;
+
+const CategoryTag = styled(({category, ...p}) => <div {...p}>{category}</div>)`
+  display: flex;
+  flex-direction: row;
+  padding: 1px 10px;
+  background: ${p => (p.category === p.publishStatus ? '#E1567C' : p.theme.offWhite2)};
+  border-radius: 20px;
+  font-size: ${space(1.5)};
+  margin-right: ${space(1)};
+  line-height: ${space(3)};
+  text-align: center;
+  color: ${p => (p.category === p.publishStatus ? p.theme.white : p.theme.gray4)};
 `;
 
 export default IntegrationRow;
