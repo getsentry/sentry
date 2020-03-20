@@ -5,8 +5,10 @@ import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
 
-import {YAxis} from '.';
+import {YAxis} from './releaseChartControls';
 
 type Props = {
   reloading: boolean;
@@ -33,10 +35,24 @@ class ReleaseChart extends React.Component<Props> {
     return true;
   }
 
+  formatTooltipValue = (value: string | number | null) => {
+    const {yAxis} = this.props;
+    switch (yAxis) {
+      case 'sessionDuration':
+        return defined(value) ? `${value}${t('s')}` : '-';
+      case 'crashFree':
+        return defined(value) ? `${value}%` : '-';
+      case 'sessions':
+      case 'users':
+      default:
+        return typeof value === 'number' ? value.toLocaleString() : value;
+    }
+  };
+
   render() {
     const {utc, releaseSeries, timeseriesData, yAxis} = this.props;
-    const crashFreeChart = yAxis === 'crashFree';
-    const Chart = crashFreeChart ? AreaChart : LineChart;
+    const Chart =
+      yAxis === 'crashFree' || yAxis === 'sessionDuration' ? AreaChart : LineChart;
 
     const legend = {
       right: 16,
@@ -72,7 +88,7 @@ class ReleaseChart extends React.Component<Props> {
           bottom: '12px',
         }}
         yAxis={
-          crashFreeChart
+          yAxis === 'crashFree'
             ? {
                 max: 100,
                 scale: true,
@@ -83,7 +99,7 @@ class ReleaseChart extends React.Component<Props> {
               }
             : undefined
         }
-        tooltip={crashFreeChart ? {valueFormatter: value => `${value}%`} : undefined}
+        tooltip={{valueFormatter: this.formatTooltipValue}}
       />
     );
   }
