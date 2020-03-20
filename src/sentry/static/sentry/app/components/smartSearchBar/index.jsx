@@ -96,6 +96,24 @@ const getDropdownElementStyles = p => `
 `;
 
 class SmartSearchBar extends React.Component {
+  /**
+   * Given a query, and the current cursor position, return the string-delimiting
+   * index of the search term designated by the cursor.
+   */
+  static getLastTermIndex = (query, cursor) => {
+    // TODO: work with quoted-terms
+    const cursorOffset = query.slice(cursor).search(/\s|$/);
+    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+  };
+
+  /**
+   * Returns an array of query terms, including incomplete terms
+   *
+   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+   */
+  static getQueryTerms = (query, cursor) =>
+    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+
   static propTypes = {
     api: PropTypes.object,
 
@@ -184,24 +202,6 @@ class SmartSearchBar extends React.Component {
   static contextTypes = {
     router: PropTypes.object,
   };
-
-  /**
-   * Given a query, and the current cursor position, return the string-delimiting
-   * index of the search term designated by the cursor.
-   */
-  static getLastTermIndex = (query, cursor) => {
-    // TODO: work with quoted-terms
-    const cursorOffset = query.slice(cursor).search(/\s|$/);
-    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-  };
-
-  /**
-   * Returns an array of query terms, including incomplete terms
-   *
-   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-   */
-  static getQueryTerms = (query, cursor) =>
-    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
 
   static defaultProps = {
     defaultQuery: '',
@@ -388,8 +388,14 @@ class SmartSearchBar extends React.Component {
         activeSearchItem: nextActiveSearchItem,
         searchItems: searchItems.slice(0),
       });
-    } else if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
+    }
+
+    if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
       evt.preventDefault();
+
+      if (this.state.loading) {
+        return;
+      }
 
       const {activeSearchItem, searchItems} = this.state;
       const [groupIndex, childrenIndex] = findSearchItemByIndex(
@@ -401,12 +407,25 @@ class SmartSearchBar extends React.Component {
       if (item && !this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
       }
-    } else if (key === 'Enter' && !useFormWrapper && !isSelectingDropdownItems) {
-      // If enter is pressed, and we are not wrapping input in a `<form>`, and
-      // we are not selecting an item from the dropdown, then we should consider
-      // the user as finished selecting and perform a "search" since there is no
-      // `<form>` to catch and call `this.onSubmit`
-      this.doSearch();
+      return;
+    }
+
+    if (key === 'Enter') {
+      // If we are still loading dropdown, do nothing
+      // Otherwise, this will propagate up to form and submit
+      if (this.state.loading) {
+        evt.preventDefault();
+        return;
+      }
+
+      if (!useFormWrapper && !isSelectingDropdownItems) {
+        // If enter is pressed, and we are not wrapping input in a `<form>`, and
+        // we are not selecting an item from the dropdown, then we should consider
+        // the user as finished selecting and perform a "search" since there is no
+        // `<form>` to catch and call `this.onSubmit`
+        this.doSearch();
+      }
+      return;
     }
   };
 
