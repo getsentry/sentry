@@ -53,7 +53,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.disabled'
     | 'integrations.config_saved'
     | 'integrations.integration_tab_clicked'
-    | 'integrations.plugin_add_to_project_clicked';
+    | 'integrations.plugin_add_to_project_clicked'
+    | 'integrations.upgrade_plan_modal_opened';
   eventName:
     | 'Integrations: Install Modal Opened'
     | 'Integrations: Installation Start'
@@ -66,10 +67,12 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Disabled'
     | 'Integrations: Integration Tab Clicked'
     | 'Integrations: Config Saved'
-    | 'Integrations: Plugin Add to Project Clicked';
+    | 'Integrations: Plugin Add to Project Clicked'
+    | 'Integrations: Upgrade Plan Modal Opened';
   integration: string; //the slug
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
+  plan?: string;
 } & (SentryAppEvent | NonSentryAppEvent);
 
 type SentryAppEvent = {
