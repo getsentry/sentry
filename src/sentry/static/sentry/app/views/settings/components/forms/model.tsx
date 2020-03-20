@@ -292,8 +292,12 @@ class FormModel {
     );
   }
 
+  /**
+   * Set the value of the form field
+   * if quiet is true, we skip callbacks, validations
+   */
   @action
-  setValue(id: string, value: FieldValue) {
+  setValue(id: string, value: FieldValue, quiet: boolean) {
     const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
@@ -302,6 +306,9 @@ class FormModel {
     }
 
     this.fields.set(id, finalValue);
+    if (quiet) {
+      return;
+    }
 
     if (this.options.onFieldChange) {
       this.options.onFieldChange(id, finalValue);

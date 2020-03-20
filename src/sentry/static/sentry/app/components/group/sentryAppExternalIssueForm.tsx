@@ -15,6 +15,7 @@ import {Client} from 'app/api';
 import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
 import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 import FormModel from 'app/views/settings/components/forms/model';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex.tsx';
 
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
@@ -64,6 +65,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.action !== this.props.action) {
+      this.model.reset();
       this.resetStateFromProps();
     }
   }
@@ -116,7 +118,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     if (field.depends_on) {
       const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
-        accum[dependentField] = this.model.fields.get(dependentField);
+        accum[dependentField] = this.model.getValue(dependentField);
         return accum;
       }, {});
       //stringify the data
@@ -176,6 +178,12 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     }
   }
 
+  /**
+   * This function determines which fields need to be reset and new options fetched
+   * based on the dependencies defined with the depends_on attribute.
+   * This is a hack to get around the issue that the autoLoad parameter for the deprecated
+   * Select control does not actually get componn
+   */
   handleFieldChange = async (id: string, _value: FieldValue) => {
     const config = this.state;
 
@@ -193,39 +201,46 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       return depends_on.includes(id);
     });
 
-    //reset all impacted fields first
-    impactedFields.forEach(impactedField =>
-      this.model.fields.delete(impactedField.name || '')
+    //load all options in parallel
+    const choiceArray = await Promise.all(
+      impactedFields.map(field => {
+        //reset all impacted fields first
+        this.model.setValue(field.name || '', '', true);
+        return this.makeExternalRequest(field, '');
+      })
     );
 
-    //iterate through all the impacted fields and get new values
-    for (const impactedField of impactedFields) {
-      const choices = await this.makeExternalRequest(impactedField, '');
-      const requiredIndex = requiredFields.indexOf(impactedField);
-      const optionalIndex = optionalFields.indexOf(impactedField);
+    this.setState(state => {
+      //pull the field lists from latest state
+      requiredFields = state.required_fields || [];
+      optionalFields = state.optional_fields || [];
+      //iterate through all the impacted fields and get new values
+      impactedFields.forEach((impactedField, i) => {
+        const choices = choiceArray[i];
+        const requiredIndex = requiredFields.indexOf(impactedField);
+        const optionalIndex = optionalFields.indexOf(impactedField);
 
-      const updatedField = {...impactedField, choices};
+        const updatedField = {...impactedField, choices};
 
-      //immutably update the lists with the updated field depending where we got it from
-      if (requiredIndex > -1) {
-        requiredFields = [
-          ...requiredFields.slice(0, requiredIndex),
-          updatedField,
-          ...requiredFields.slice(requiredIndex + 1),
-        ];
-      } else if (optionalIndex > -1) {
-        optionalFields = [
-          ...optionalFields.slice(0, optionalIndex),
-          updatedField,
-          ...optionalFields.slice(optionalIndex + 1),
-        ];
-      }
-    }
-
-    //set state once at the end to avoid things loading at different times
-    this.setState({
-      required_fields: requiredFields,
-      optional_fields: optionalFields,
+        //immutably update the lists with the updated field depending where we got it from
+        if (requiredIndex > -1) {
+          requiredFields = replaceAtArrayIndex(
+            requiredFields,
+            requiredIndex,
+            updatedField
+          );
+        } else if (optionalIndex > -1) {
+          optionalFields = replaceAtArrayIndex(
+            optionalFields,
+            optionalIndex,
+            updatedField
+          );
+        }
+      });
+      return {
+        required_fields: requiredFields,
+        optional_fields: optionalFields,
+      };
     });
   };
 
@@ -237,7 +252,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     if (field.depends_on) {
       //check if this is dependent on other fields which haven't been set yet
       const shouldDisable = field.depends_on.some(
-        dependentField => !hasValue(this.model.fields.get(dependentField))
+        dependentField => !hasValue(this.model.getValue(dependentField))
       );
       if (shouldDisable) {
         field = {...field, disabled: true};
