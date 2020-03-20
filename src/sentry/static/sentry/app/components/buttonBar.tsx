@@ -2,13 +2,14 @@ import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import space, {ValidSize} from 'app/styles/space';
 
 type ButtonBarProps = {
   className?: string;
   gap?: ValidSize;
   merged?: boolean;
-  active?: string | number;
+  active?: React.ComponentProps<typeof Button>['barId'];
   children: React.ReactNode;
 };
 
@@ -31,15 +32,17 @@ function ButtonBar({
 
             const {props: childProps, ...childWithoutProps} = child;
 
-            // We do not want to pass `id` to <Button>`
-            const {id, ...props} = childProps;
-            const isActive = active === id;
+            // We do not want to pass `barId` to <Button>`
+            const {barId, ...props} = childProps;
+            const isActive = active === barId;
+
+            // This ["primary"] could be customizable with a prop,
+            // but let's just enforce one "active" type for now
             const priority = isActive ? 'primary' : childProps.priority || 'default';
 
             return React.cloneElement(childWithoutProps as React.ReactElement, {
               ...props,
               className: classNames(className, {active: isActive}),
-              // This could be customizable with a prop, but let's just enforce one "active" type for now
               priority,
             });
           })}

@@ -224,18 +224,18 @@ storiesOf('UI|Buttons', module)
         <Section>
           <h3>Merged Buttons with "active" button</h3>
           <ButtonBar active="left" merged>
-            <Button id="left">Left Button</Button>
-            <Button id="right">Right Button</Button>
+            <Button barId="left">Left Button</Button>
+            <Button barId="right">Right Button</Button>
           </ButtonBar>
         </Section>
 
         <Section>
           <h3>Multiple Merged Buttons with "active" button</h3>
-          <ButtonBar active={2} merged>
-            <Button id={1}>First Button</Button>
-            <Button id={2}>Second Button</Button>
-            <Button id={3}>Third Button</Button>
-            <Button id={4}>Fourth Button</Button>
+          <ButtonBar active="2" merged>
+            <Button barId="1">First Button</Button>
+            <Button barId="2">Second Button</Button>
+            <Button barId="3">Third Button</Button>
+            <Button barId="4">Fourth Button</Button>
           </ButtonBar>
         </Section>
       </div>
