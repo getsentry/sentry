@@ -797,7 +797,7 @@ export type Release = {
   projects: ReleaseProject[];
 } & BaseRelease;
 
-type ReleaseProject = {
+export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;

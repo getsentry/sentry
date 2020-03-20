@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization, Release, Deploy} from 'app/types';
+import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -16,16 +16,19 @@ import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ReleaseHeader from './releaseHeader';
 
-const ReleaseContext = React.createContext<Release | undefined>(undefined);
+type ReleaseContext = {release: Release; project: ReleaseProject};
+const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
 type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
   params: Params;
+  selection: GlobalSelection;
 } & AsyncView['props'];
 
 type State = {
@@ -33,7 +36,6 @@ type State = {
   deploys: Deploy[];
 } & AsyncView['state'];
 
-// TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
     const {params, organization} = this.props;
@@ -86,8 +88,14 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, location} = this.props;
+    const {organization, location, selection} = this.props;
     const {release, deploys} = this.state;
+    const project = release.projects.find(p => p.id === selection.projects[0]);
+
+    // TODO(releasesv2): This will be handled later with forced project selector
+    if (!project || !release) {
+      return null;
+    }
 
     return (
       <NoProjectMessage organization={organization}>
@@ -97,9 +105,10 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             orgId={organization.slug}
             release={release}
             deploys={deploys}
+            project={project}
           />
 
-          <ReleaseContext.Provider value={release}>
+          <ReleaseContext.Provider value={{release, project}}>
             {this.props.children}
           </ReleaseContext.Provider>
         </StyledPageContent>
@@ -120,4 +129,4 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};
-export default withOrganization(ReleasesV2DetailContainer);
+export default withGlobalSelection(withOrganization(ReleasesV2DetailContainer));
