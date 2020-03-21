@@ -36,35 +36,81 @@ from sentry.rules.actions.notify_email import (
 
 
 class NotifyEmailFormTest(TestCase):
+    TARGET_TYPE_KEY = "targetType"
+    TARGET_IDENTIFIER_KEY = "targetIdentifier"
+
     def setUp(self):
         super(NotifyEmailFormTest, self).setUp()
-        user = self.create_user(email="foo@example.com", is_active=True)
-        user2 = self.create_user(email="baz@example.com", is_active=True)
-        self.create_user(email="baz2@example.com", is_active=True)
+        self.user = self.create_user(email="foo@example.com", is_active=True)
+        self.user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.inactive_user = self.create_user(email="totallynotabot@149.com", is_active=False)
 
-        # user with inactive account
-        self.create_user(email="bar@example.com", is_active=False)
-        # user not in any groups
-        self.create_user(email="bar2@example.com", is_active=True)
+        organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=organization)
+        self.team_not_in_project = self.create_team(organization=organization)
 
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-
-        self.project = self.create_project(name="Test", teams=[team])
+        self.project = self.create_project(name="Test", teams=[self.team])
         OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
-            team=team,
+            organizationmember=OrganizationMember.objects.get(
+                user=self.user, organization=organization
+            ),
+            team=self.team,
         )
-        self.create_member(user=user2, organization=organization, teams=[team])
+        self.create_member(user=self.user2, organization=organization, teams=[self.team])
+        self.create_member(
+            user=self.inactive_user,
+            organization=organization,
+            teams=[self.team, self.team_not_in_project],
+        )
+
+    def form_from_json(self, json):
+        return NotifyEmailForm(self.project, json)
+
+    def form_from_values(self, target_type_value, target_id=None):
+        json = {self.TARGET_TYPE_KEY: target_type_value}
+        if target_id:
+            json[self.TARGET_IDENTIFIER_KEY] = target_id
+        return self.form_from_json(json)
+
+    def test_validate_empty_fail(self):
+        form = self.form_from_json({})
+        assert not form.is_valid()
+
+    def test_validate_none_fail(self):
+        form = self.form_from_json(None)
+        assert not form.is_valid()
+
+    def test_validate_malformed_json_fail(self):
+        form = self.form_from_json(
+            {"notTheRightK3yName": NotifyEmailActionTargetType.ISSUE_OWNERS.value}
+        )
+        assert not form.is_valid()
+
+    def test_validate_invalid_target_type_fail(self):
+        form = self.form_from_values("TheLegend27")
+        assert not form.is_valid()
 
     def test_validate_issue_owners(self):
-        form = NotifyEmailForm(
-            self.project, {"targetType": NotifyEmailActionTargetType.ISSUE_OWNERS.value}
-        )
+        form = self.form_from_values(NotifyEmailActionTargetType.ISSUE_OWNERS.value)
         assert form.is_valid()
 
-    def test_validation_empty_fail(self):
-        form = NotifyEmailForm(self.project, {})
+    def test_validate_team(self):
+        form = self.form_from_values(NotifyEmailActionTargetType.TEAM.value, self.team.id)
+        assert form.is_valid()
+
+    def test_validate_team_not_in_project_fail(self):
+        form = self.form_from_values(
+            NotifyEmailActionTargetType.TEAM.value, self.team_not_in_project.id
+        )
+        assert not form.is_valid()
+
+    def test_validate_user(self):
+        for u in [self.user, self.user2]:
+            form = self.form_from_values(NotifyEmailActionTargetType.MEMBER.value, u.id)
+            assert form.is_valid()
+
+    def test_validate_inactive_user_fail(self):
+        form = self.form_from_values(NotifyEmailActionTargetType.MEMBER.value, self.inactive_user)
         assert not form.is_valid()
 
 
