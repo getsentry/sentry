@@ -42,7 +42,7 @@ export const getSortIntegrationsByWeightActive = (organization?: Organization) =
 
 export type SingleIntegrationEvent = {
   eventKey:
-    | 'integrations.install_modal_opened'
+    | 'integrations.install_modal_opened' //TODO: remove
     | 'integrations.installation_start'
     | 'integrations.installation_complete'
     | 'integrations.integration_viewed' //for the integration overview
@@ -56,7 +56,7 @@ export type SingleIntegrationEvent = {
     | 'integrations.plugin_add_to_project_clicked'
     | 'integrations.upgrade_plan_modal_opened';
   eventName:
-    | 'Integrations: Install Modal Opened'
+    | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
     | 'Integrations: Integration Viewed'
@@ -104,7 +104,6 @@ type IntegrationsEventParams = (
 ) & {
   view?:
     | 'external_install'
-    | 'integrations_page'
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
