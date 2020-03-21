@@ -29,9 +29,43 @@ from sentry.utils.compat.mock import Mock
 from sentry.utils.email import MessageBuilder
 from sentry.rules.actions.notify_email import (
     NotifyEmailAction,
+    NotifyEmailForm,
     MailAdapter,
     NotifyEmailActionTargetType,
 )
+
+
+class NotifyEmailFormTest(TestCase):
+    def setUp(self):
+        super(NotifyEmailFormTest, self).setUp()
+        user = self.create_user(email="foo@example.com", is_active=True)
+        user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.create_user(email="baz2@example.com", is_active=True)
+
+        # user with inactive account
+        self.create_user(email="bar@example.com", is_active=False)
+        # user not in any groups
+        self.create_user(email="bar2@example.com", is_active=True)
+
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+
+        self.project = self.create_project(name="Test", teams=[team])
+        OrganizationMemberTeam.objects.create(
+            organizationmember=OrganizationMember.objects.get(user=user, organization=organization),
+            team=team,
+        )
+        self.create_member(user=user2, organization=organization, teams=[team])
+
+    def test_validate_issue_owners(self):
+        form = NotifyEmailForm(
+            self.project, {"targetType": NotifyEmailActionTargetType.ISSUE_OWNERS.value}
+        )
+        assert form.is_valid()
+
+    def test_validation_empty_fail(self):
+        form = NotifyEmailForm(self.project, {})
+        assert not form.is_valid()
 
 
 class NotifyEmailTest(RuleTestCase):
