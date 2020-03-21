@@ -46,6 +46,13 @@ function roundWithFixed(
   return {label, result};
 }
 
+// in milliseconds
+const WEEK = 604800000;
+const DAY = 86400000;
+const HOUR = 3600000;
+const MINUTE = 60000;
+const SECOND = 1000;
+
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
@@ -53,28 +60,80 @@ export function getDuration(
 ): string {
   const value = Math.abs(seconds * 1000);
 
-  if (value >= 604800000) {
-    const {label, result} = roundWithFixed(value / 604800000, fixedDigits);
-    return `${label} ${abbreviation ? 'wk' : tn('week', 'weeks', result)}`;
+  if (value >= WEEK) {
+    const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
+    return `${label} ${abbreviation ? t('wk') : tn('week', 'weeks', result)}`;
   }
   if (value >= 172800000) {
-    const {label, result} = roundWithFixed(value / 86400000, fixedDigits);
-    return `${label} ${abbreviation ? 'd' : tn('day', 'days', result)}`;
+    const {label, result} = roundWithFixed(value / DAY, fixedDigits);
+    return `${label} ${abbreviation ? t('d') : tn('day', 'days', result)}`;
   }
   if (value >= 7200000) {
-    const {label, result} = roundWithFixed(value / 3600000, fixedDigits);
-    return `${label} ${abbreviation ? 'hr' : tn('hour', 'hours', result)}`;
+    const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
+    return `${label} ${abbreviation ? t('hr') : tn('hour', 'hours', result)}`;
   }
   if (value >= 120000) {
-    const {label, result} = roundWithFixed(value / 60000, fixedDigits);
-    return `${label} ${abbreviation ? 'min' : tn('minute', 'minutes', result)}`;
+    const {label, result} = roundWithFixed(value / MINUTE, fixedDigits);
+    return `${label} ${abbreviation ? t('min') : tn('minute', 'minutes', result)}`;
   }
-  if (value >= 1000) {
-    const {label, result} = roundWithFixed(value / 1000, fixedDigits);
-    return `${label} ${abbreviation ? 's' : tn('second', 'seconds', result)}`;
+  if (value >= SECOND) {
+    const {label, result} = roundWithFixed(value / SECOND, fixedDigits);
+    return `${label} ${abbreviation ? t('s') : tn('second', 'seconds', result)}`;
   }
 
   const {label} = roundWithFixed(value, fixedDigits);
 
-  return `${label}ms`;
+  return label + t('ms');
+}
+
+export function getExactDuration(seconds: number, abbreviation: boolean = false) {
+  const value = Math.abs(seconds * 1000);
+
+  const divideBy = (time: number) => {
+    return {quotient: Math.floor(value / time), remainder: value % time};
+  };
+
+  if (value >= WEEK) {
+    const {quotient, remainder} = divideBy(WEEK);
+
+    return `${quotient}${
+      abbreviation ? t('wk') : ` ${tn('week', 'weeks', quotient)}`
+    } ${getExactDuration(remainder / 1000, abbreviation)}`;
+  }
+  if (value >= DAY) {
+    const {quotient, remainder} = divideBy(DAY);
+
+    return `${quotient}${
+      abbreviation ? t('d') : ` ${tn('day', 'days', quotient)}`
+    } ${getExactDuration(remainder / 1000, abbreviation)}`;
+  }
+  if (value >= HOUR) {
+    const {quotient, remainder} = divideBy(HOUR);
+
+    return `${quotient}${
+      abbreviation ? t('hr') : ` ${tn('hour', 'hours', quotient)}`
+    } ${getExactDuration(remainder / 1000, abbreviation)}`;
+  }
+  if (value >= MINUTE) {
+    const {quotient, remainder} = divideBy(MINUTE);
+
+    return `${quotient}${
+      abbreviation ? t('min') : ` ${tn('minute', 'minutes', quotient)}`
+    } ${getExactDuration(remainder / 1000, abbreviation)}`;
+  }
+  if (value >= SECOND) {
+    const {quotient, remainder} = divideBy(SECOND);
+
+    return `${quotient}${
+      abbreviation ? t('s') : ` ${tn('second', 'seconds', quotient)}`
+    } ${getExactDuration(remainder / 1000, abbreviation)}`;
+  }
+
+  if (value === 0) {
+    return '';
+  }
+
+  return `${value}${
+    abbreviation ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`
+  }`;
 }
