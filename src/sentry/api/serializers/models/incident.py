@@ -28,7 +28,9 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
-        for incident, stats in zip(item_list, bulk_get_incident_stats(item_list, prewindow=True)):
+        for incident, stats in zip(
+            item_list, bulk_get_incident_stats(item_list, windowed_stats=True)
+        ):
             results[incident] = {
                 "projects": incident_projects.get(incident.id, []),
                 "event_stats": stats["event_stats"],
