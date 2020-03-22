@@ -309,8 +309,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
             row['user.name'] ||
               row['user.email'] ||
               row['user.username'] ||
-              row['user.ipAddress'] ||
-              row['user.ip_address']
+              row['user.ip']
           );
         }
         return disableMacros(row[col]);

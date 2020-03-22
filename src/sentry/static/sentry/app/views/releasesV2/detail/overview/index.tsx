@@ -56,7 +56,7 @@ class ReleaseOverview extends React.Component<Props, State> {
             <ReleaseStatsRequest
               api={api}
               orgId={organization.slug}
-              projectSlug={project?.slug}
+              projectSlug={project.slug}
               version={version}
               selection={selection}
               location={location}
@@ -73,14 +73,17 @@ class ReleaseOverview extends React.Component<Props, State> {
                         {...releaseStatsProps}
                       />
                     )}
-                    <Issues orgId={organization.slug} version={params.release} />
+                    <Issues
+                      orgId={organization.slug}
+                      projectId={project.id}
+                      version={params.release}
+                    />
                   </Main>
                   <Sidebar>
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown
                         version={version}
                         orgId={organization.slug}
-                        commitCount={commitCount}
                         projectSlug={project.slug}
                       />
                     )}

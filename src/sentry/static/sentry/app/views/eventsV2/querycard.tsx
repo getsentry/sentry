@@ -10,6 +10,8 @@ import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import Card from 'app/components/card';
 
+import {SubHeading} from './styles';
+
 type Props = {
   title?: string;
   subtitle?: string;
@@ -44,7 +46,7 @@ class QueryCard extends React.PureComponent<Props> {
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
         <StyledQueryCard interactive>
           <QueryCardHeader>
-            <StyledTitle>
+            <CardHeading>
               {title}
               {starred && (
                 <StyledIconBookmark
@@ -53,7 +55,7 @@ class QueryCard extends React.PureComponent<Props> {
                   solid
                 />
               )}
-            </StyledTitle>
+            </CardHeading>
             <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
@@ -90,12 +92,7 @@ const StyledIconBookmark = styled(IconBookmark)`
   right: ${space(2)};
 `;
 
-const StyledTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray5};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+const CardHeading = styled(SubHeading)`
   width: 95%;
 `;
 

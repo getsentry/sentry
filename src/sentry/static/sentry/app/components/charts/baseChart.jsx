@@ -323,6 +323,9 @@ const ChartContainer = styled('div')`
     padding: ${space(1)} ${space(2)};
     border-radius: ${theme.borderRadius} ${theme.borderRadius} 0 0;
   }
+  .tooltip-series-solo {
+    border-radius: ${theme.borderRadius};
+  }
   .tooltip-label {
     margin-right: ${space(1)};
   }
