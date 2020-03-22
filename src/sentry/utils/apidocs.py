@@ -19,6 +19,7 @@ from docutils.core import publish_doctree
 from pytz import utc
 from random import randint
 from six import StringIO
+from six.moves import reduce
 
 # Do not import from sentry here!  Bad things will happen
 
