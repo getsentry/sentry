@@ -99,14 +99,14 @@ def retrieve_organization_scenario(runner):
     runner.request(method="GET", path="/organizations/%s/" % runner.org.slug)
 
 
-# @scenario("UpdateOrganization")
-# def update_organization_scenario(runner):
-#     with runner.isolated_org("Badly Misnamed") as org:
-#         runner.request(
-#             method="PUT",
-#             path="/organizations/%s/" % org.slug,
-#             data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
-#         )
+@scenario("UpdateOrganization")
+def update_organization_scenario(runner):
+    with runner.isolated_org("Badly Misnamed") as org:
+        runner.request(
+            method="PUT",
+            path="/organizations/%s/" % org.slug,
+            data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
+        )
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -354,7 +354,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(organization, request.user, serializer(), access=request.access)
         return self.respond(context)
 
-    # @attach_scenarios([update_organization_scenario])
+    @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
         """
         Update an Organization
