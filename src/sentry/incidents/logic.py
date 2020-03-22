@@ -304,15 +304,13 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
     query_args_list = []
     for incident in incidents:
         # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
-        time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 10
+        time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
         time_window_delta = timedelta(minutes=time_window)
         params = {
             "start": incident.date_started - time_window_delta if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
         if windowed_stats:
-            # prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
-            # now = params["start"] + timedelta(minutes=time_window * 40)
             now = timezone.now()
             params["end"] = params["start"] + timedelta(
                 minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
@@ -377,7 +375,10 @@ def bulk_get_incident_event_stats(incidents, query_params_list):
             ],
             orderby="time",
             groupby=["time"],
-            rollup=incident.alert_rule.time_window * 60,
+            rollup=incident.alert_rule.time_window * 60
+            if incident.alert_rule is not None
+            else 1
+            * 60,  # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
             limit=10000,
             **query_param
         )

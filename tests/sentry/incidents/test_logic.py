@@ -35,6 +35,7 @@ from sentry.incidents.logic import (
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    WINDOWED_STATS_DATA_POINTS,
     get_actions_for_trigger,
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
@@ -48,7 +49,6 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
-    calculate_incident_prewindow,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -250,77 +250,77 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
             groups=[event.group],
         )
 
+    def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
+        # Duration of 300s, but no alert rule
+        time_window = 1
+        assert result.rollup == time_window * 60
+        expected_start = start if start else incident.date_started - timedelta(minutes=1)
+        expected_end = end if end else incident.current_end_date
 
+        if windowed_stats:
+            now = timezone.now()
+            expected_end = expected_start + timedelta(
+                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+            )
+            expected_start = expected_start - timedelta(
+                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+            )
+            if expected_end > now:
+                expected_end = now
+                expected_start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+
+        assert result.start == expected_start
+        assert result.end == expected_end
+        assert [r["count"] for r in result.data["data"]] == expected_results
+
+
+@freeze_time()
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(self, incident, expected_results, start=None, end=None):
+    def run_test(self, incident, expected_results, start=None, end=None, windowed_stats=False):
         kwargs = {}
         if start is not None:
             kwargs["start"] = start
         if end is not None:
             kwargs["end"] = end
 
-        result = get_incident_event_stats(incident, data_points=20, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        expected_start = start if start else incident.date_started
-        expected_end = end if end else incident.current_end_date
-        assert result.start == expected_start
-        assert result.end == expected_end
-        assert [r["count"] for r in result.data["data"]] == expected_results
-
-        # A prewindow version of the same test:
-        result = get_incident_event_stats(incident, data_points=20, prewindow=True, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        expected_start = start if start else incident.date_started
-        expected_end = end if end else incident.current_end_date
-        expected_start = expected_start - calculate_incident_prewindow(
-            expected_start, expected_end, incident
-        )
-        assert result.start == expected_start
-        assert result.end == expected_end
-        assert [r["count"] for r in result.data["data"]] == expected_results
+        result = get_incident_event_stats(incident, windowed_stats=windowed_stats, **kwargs)
+        self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
         self.run_test(self.project_incident, [2, 1])
         self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
         self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
 
+        self.run_test(self.project_incident, [2, 1], windowed_stats=True)
+        self.run_test(
+            self.project_incident,
+            [2, 1],
+            start=self.now - timedelta(minutes=1),
+            windowed_stats=True,
+        )
+        self.run_test(
+            self.project_incident,
+            [2, 1],
+            end=self.now - timedelta(minutes=1, seconds=59),
+            windowed_stats=True,
+        )
+
     def test_groups(self):
         self.run_test(self.group_incident, [1, 1])
+        self.run_test(self.group_incident, [1, 1], windowed_stats=True)
 
 
+@freeze_time()
 class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(self, incidents, expected_results_list, start=None, end=None):
+    def run_test(
+        self, incidents, expected_results_list, start=None, end=None, windowed_stats=False
+    ):
         query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, prewindow=False
+            incidents, start=start, end=end, windowed_stats=windowed_stats
         )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
-            expected_start = start if start else incident.date_started
-            expected_end = end if end else incident.current_end_date
-            assert result.start == expected_start
-            assert result.end == expected_end
-            assert [r["count"] for r in result.data["data"]] == expected_results
-
-        # A prewindow version of the same test:
-        query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, prewindow=True
-        )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
-        for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
-            expected_start = start if start else incident.date_started
-            expected_end = end if end else incident.current_end_date
-            expected_start = expected_start - calculate_incident_prewindow(
-                expected_start, expected_end, incident
-            )
-            assert result.start == expected_start
-            assert result.end == expected_end
-            assert [r["count"] for r in result.data["data"]] == expected_results
+            self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
         other_project = self.create_project(fire_project_created=True)
@@ -333,6 +333,10 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         incidents = [self.project_incident, other_incident]
         self.run_test(incidents, [[2, 1], []])
         self.run_test(incidents, [[1], []], start=self.now - timedelta(minutes=1))
+        self.run_test(
+            incidents, [[2, 1], []], start=self.now - timedelta(minutes=1), windowed_stats=True
+        )
+        self.run_test(incidents, [[2, 1], []], windowed_stats=True)
         self.run_test(incidents, [[2], []], end=self.now - timedelta(minutes=1, seconds=59))
 
     def test_groups(self):
@@ -345,6 +349,7 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         )
 
         self.run_test([self.group_incident, other_incident], [[1, 1], []])
+        self.run_test([self.group_incident, other_incident], [[1, 1], []], windowed_stats=True)
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -423,18 +428,16 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
         snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, False
+            incident, incident.date_started, incident.current_end_date, windowed_stats=False
         )
         assert snapshot.start == incident.date_started
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
         snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, True
+            incident, incident.date_started, incident.current_end_date, windowed_stats=True
         )
-        assert snapshot.start == incident.date_started - calculate_incident_prewindow(
-            incident.date_started, incident.current_end_date, incident
-        )
+        assert snapshot.start == incident.date_started
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
@@ -555,7 +558,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         incident.update(status=IncidentStatus.CLOSED.value)
         snapshot = create_incident_snapshot(incident)
         expected_snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.date_closed, prewindow=True
+            incident, incident.date_started, incident.date_closed, windowed_stats=True
         )
 
         assert snapshot.event_stats_snapshot.start == expected_snapshot.start
@@ -593,9 +596,9 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
         incidents = [closed_incident, open_incident]
         # Note: Closing an incident above uses a prewindow in the snapshot by default, so without prewindows this test fails.
         for incident, incident_stats in zip(
-            incidents, bulk_get_incident_stats(incidents, prewindow=True)
+            incidents, bulk_get_incident_stats(incidents, windowed_stats=True)
         ):
-            event_stats = get_incident_event_stats(incident, prewindow=True)
+            event_stats = get_incident_event_stats(incident, windowed_stats=True)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
             expected_start = incident_stats["event_stats"].start
             expected_end = incident_stats["event_stats"].end
