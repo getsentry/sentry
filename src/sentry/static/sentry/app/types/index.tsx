@@ -709,6 +709,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  featureData: IntegrationFeature[];
 };
 
 export type Integration = {

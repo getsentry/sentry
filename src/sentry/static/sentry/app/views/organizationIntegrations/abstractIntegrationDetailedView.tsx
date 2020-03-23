@@ -1,4 +1,3 @@
-import uniq from 'lodash/uniq';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
@@ -20,6 +19,7 @@ import {
   getIntegrationFeatureGate,
   trackIntegrationEvent,
   SingleIntegrationEvent,
+  getCategories,
 } from 'app/utils/integrationUtil';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
@@ -231,11 +231,7 @@ class AbstractIntegrationDetailedView<
   }
 
   cleanTags() {
-    return uniq(
-      this.featureData.map(feature =>
-        feature.featureGate.replace(/integrations/g, '').replace(/-/g, ' ')
-      )
-    );
+    return getCategories(this.featureData);
   }
 
   renderAddInstallButton(hideButtonIfDisabled = false) {
