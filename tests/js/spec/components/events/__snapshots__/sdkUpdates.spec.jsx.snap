@@ -59,28 +59,34 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                 <div
                   className="ref-info css-h3mlzm-Alert ejthpj82"
                 >
-                  <StyledInlineSvg
-                    size="24px"
-                    src="icon-upgrade"
-                  >
-                    <ForwardRef
-                      className="css-p7z0xe-InlineSvg-StyledInlineSvg ejthpj80"
-                      size="24px"
-                      src="icon-upgrade"
+                  <IconWrapper>
+                    <span
+                      className="css-klxrkj-IconWrapper ejthpj80"
                     >
-                      <svg
-                        className="css-p7z0xe-InlineSvg-StyledInlineSvg ejthpj80"
-                        height="24px"
-                        viewBox={Object {}}
-                        width="24px"
+                      <InlineSvg
+                        size="24px"
+                        src="icon-upgrade"
                       >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </ForwardRef>
-                  </StyledInlineSvg>
+                        <ForwardRef
+                          className="css-tbsmsq-InlineSvg enyz4ql0"
+                          size="24px"
+                          src="icon-upgrade"
+                        >
+                          <svg
+                            className="css-tbsmsq-InlineSvg enyz4ql0"
+                            height="24px"
+                            viewBox={Object {}}
+                            width="24px"
+                          >
+                            <use
+                              href="#test"
+                              xlinkHref="#test"
+                            />
+                          </svg>
+                        </ForwardRef>
+                      </InlineSvg>
+                    </span>
+                  </IconWrapper>
                   <StyledTextBlock>
                     <div
                       className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"

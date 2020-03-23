@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
 type Size = 'small' | 'normal';
@@ -13,7 +14,7 @@ type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 type PropsWithHref = {href: string};
 type PropsWithTo = {to: LocationDescriptor};
 type OtherProps = {
-  icon?: string;
+  icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 };
 type DefaultProps = {
@@ -61,9 +62,13 @@ export default class AlertLink extends React.Component<Props> {
         withoutMarginBottom={withoutMarginBottom}
         target={openInNewTab ? '_blank' : '_self'}
       >
-        {icon && <StyledInlineSvg src={icon} size="1.5em" spacingSize={size} />}
+        {icon && (
+          <IconWrapper>
+            {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
+          </IconWrapper>
+        )}
         <AlertLinkText>{children}</AlertLinkText>
-        <InlineSvg src="icon-chevron-right" size="1em" />
+        <IconChevron direction="right" size="md" />
       </StyledLink>
     );
   }
@@ -96,6 +101,7 @@ const AlertLinkText = styled('div')`
   flex-grow: 1;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)<{spacingSize: Size}>`
-  margin-right: ${p => (p.spacingSize === 'small' ? space(1) : space(1.5))};
+const IconWrapper = styled('span')`
+  display: flex;
+  margin-right: ${space(1.5)};
 `;

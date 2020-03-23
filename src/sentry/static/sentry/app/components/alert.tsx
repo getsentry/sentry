@@ -13,7 +13,7 @@ import space from 'app/styles/space';
 export type Props = {
   type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
   iconSize?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   alignTop?: boolean;
   system?: boolean;
   thinner?: boolean;
@@ -29,8 +29,9 @@ type AlertThemeProps = {
 
 const DEFAULT_TYPE = 'info';
 
-const StyledInlineSvg = styled(InlineSvg)<{size: string}>`
-  margin-right: calc(${p => p.size} / 2);
+const IconWrapper = styled('span')`
+  display: flex;
+  margin-right: ${space(1.5)};
 `;
 
 const getAlertColorStyles = ({
@@ -53,8 +54,7 @@ const getSystemAlertColorStyles = ({border, iconColor}: AlertThemeProps) => css`
     ${color(border)
       .alpha(0.5)
       .string()};
-
-  ${StyledInlineSvg} {
+  svg {
     color: ${iconColor};
   }
 `;
@@ -93,18 +93,13 @@ const StyledTextBlock = styled(TextBlock)`
 `;
 
 const Alert = styled(
-  ({
-    type,
-    icon,
-    iconSize,
-    children,
-    system,
-    className,
-    thinner,
-    ...props
-  }: AlertProps) => (
+  ({type, icon, iconSize, children, className, ...props}: AlertProps) => (
     <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
-      {icon && <StyledInlineSvg src={icon} size={iconSize!} />}
+      {icon && (
+        <IconWrapper>
+          {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
+        </IconWrapper>
+      )}
       <StyledTextBlock>{children}</StyledTextBlock>
     </div>
   )
@@ -115,7 +110,7 @@ const Alert = styled(
 Alert.propTypes = {
   type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
   iconSize: PropTypes.string,
-  icon: PropTypes.string,
+  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   alignTop: PropTypes.bool,
   system: PropTypes.bool,
   thinner: PropTypes.bool,

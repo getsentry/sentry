@@ -3,6 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import AlertLink from 'app/components/alertLink';
+import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
 
 storiesOf('UI|Alerts/AlertLink', module)
   .add(
@@ -28,12 +29,16 @@ storiesOf('UI|Alerts/AlertLink', module)
   .add(
     'with an icon',
     withInfo('You can optionally pass an icon src')(() => [
-      <AlertLink to="/settings/account/notifications" icon="icon-mail" key="1">
+      <AlertLink
+        to="/settings/account/notifications"
+        icon={<IconMail size="md" />}
+        key="1"
+      >
         Check out the notifications settings panel.
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon="icon-docs"
+        icon={<IconDocs size="md" />}
         priority="error"
         key="2"
       >
@@ -41,7 +46,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon="icon-stack"
+        icon={<IconStack size="md" />}
         priority="info"
         key="3"
       >
@@ -49,7 +54,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon="icon-star"
+        icon={<IconStar size="md" />}
         priority="success"
         key="4"
       >
@@ -57,7 +62,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon="icon-generic-box"
+        icon={<IconGeneric size="md" />}
         priority="muted"
         key="5"
       >

@@ -6,7 +6,7 @@ import Link from 'app/components/links/link';
 import Alert from 'app/components/alert';
 import AlertActions from 'app/actions/alertActions';
 import Button from 'app/components/button';
-import {IconClose} from 'app/icons/iconClose';
+import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
 type Alert = {
@@ -27,7 +27,8 @@ const AlertMessage = ({alert, system}: Props) => {
   };
 
   const {url, message, type} = alert;
-  const icon = type === 'success' ? 'icon-circle-check' : 'icon-circle-exclamation';
+  const icon =
+    type === 'success' ? <IconCheckmark size="md" circle /> : <IconWarning size="md" />;
 
   return (
     <StyledAlert type={type} icon={icon} system={system}>
