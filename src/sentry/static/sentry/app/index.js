@@ -2,11 +2,9 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 
-import {Config} from 'app/types';
-
 const BOOTSTRAP_URL = '/api/client-config/';
 
-const bootApplication = (data: Config) => {
+const bootApplication = data => {
   const {distPrefix, csrfCookieName, sentryConfig, userIdentity} = data;
 
   // TODO(epurkhiser): Would be great if we could remove some of these from
@@ -25,7 +23,7 @@ const bootApplication = (data: Config) => {
 
 async function bootWithHydration() {
   const response = await fetch(BOOTSTRAP_URL);
-  const data: Config = await response.json();
+  const data = await response.json();
 
   // XXX(epurkhiser): Currently we only boot with hydration in experimental SPA
   // mode, where assets are *currently not versioned*. We hardcode this here
