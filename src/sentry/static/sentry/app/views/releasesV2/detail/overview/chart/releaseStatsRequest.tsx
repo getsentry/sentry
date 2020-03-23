@@ -7,18 +7,21 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct, tn} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {getExactDuration} from 'app/utils/formatters';
 
-import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
 import {YAxis} from './releaseChartControls';
+import {getInterval} from './utils';
+import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
-    ['api', 'version', 'orgId', 'projectSlug', 'children'].includes(key)
+    ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
 type ChartData = {
@@ -164,9 +167,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location} = this.props;
+    const {location, selection} = this.props;
 
-    return pick(location.query, [...Object.values(URL_PARAM)]);
+    return {
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      interval: getInterval(selection.datetime),
+    };
   }
 
   transformCountData(responseData, yAxis: string): Omit<Data, 'crashFreeTimeBreakdown'> {
@@ -288,7 +294,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         'value'
       )
     );
-    const summary = tn('%s second', '%s seconds', sessionDurationAverage ?? 0);
+    const summary = getExactDuration(sessionDurationAverage ?? 0);
 
     return {chartData: [chartData], chartSummary: summary};
   }

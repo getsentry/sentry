@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as ReactRouter from 'react-router';
 
-// import ChartZoom from 'app/components/charts/chartZoom';
+import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
@@ -20,6 +21,7 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   selection: GlobalSelection;
   yAxis: YAxis;
   onYAxisChange: (yAxis: YAxis) => void;
+  router: ReactRouter.InjectedRouter;
 };
 
 const ReleaseChartContainer = ({
@@ -31,44 +33,45 @@ const ReleaseChartContainer = ({
   chartSummary,
   yAxis,
   onYAxisChange,
+  router,
 }: Props) => {
   const {datetime, projects} = selection;
-  const {utc} = datetime;
+  const {utc, period, start, end} = datetime;
 
   return (
     <Panel>
       <ChartWrapper>
-        {/* <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-          {zoomRenderProps => ( */}
-        <ReleaseSeries utc={utc} projects={projects}>
-          {({releaseSeries}) => {
-            if (errored) {
-              return (
-                <ErrorPanel>
-                  <IconWarning color={theme.gray2} size="lg" />
-                </ErrorPanel>
-              );
-            }
+        <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+          {zoomRenderProps => (
+            <ReleaseSeries utc={utc} projects={projects}>
+              {({releaseSeries}) => {
+                if (errored) {
+                  return (
+                    <ErrorPanel>
+                      <IconWarning color={theme.gray2} size="lg" />
+                    </ErrorPanel>
+                  );
+                }
 
-            return (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <React.Fragment>
-                  <TransparentLoadingMask visible={reloading} />
-                  <ReleaseChart
-                    utc={utc}
-                    releaseSeries={releaseSeries}
-                    timeseriesData={chartData}
-                    // zoomRenderProps={zoomRenderProps}
-                    reloading={reloading}
-                    yAxis={yAxis}
-                  />
-                </React.Fragment>
-              </TransitionChart>
-            );
-          }}
-        </ReleaseSeries>
-        {/* )}
-        </ChartZoom> */}
+                return (
+                  <TransitionChart loading={loading} reloading={reloading}>
+                    <React.Fragment>
+                      <TransparentLoadingMask visible={reloading} />
+                      <ReleaseChart
+                        utc={utc}
+                        releaseSeries={releaseSeries}
+                        timeseriesData={chartData}
+                        zoomRenderProps={zoomRenderProps}
+                        reloading={reloading}
+                        yAxis={yAxis}
+                      />
+                    </React.Fragment>
+                  </TransitionChart>
+                );
+              }}
+            </ReleaseSeries>
+          )}
+        </ChartZoom>
       </ChartWrapper>
       <ReleaseChartControls
         summary={chartSummary}

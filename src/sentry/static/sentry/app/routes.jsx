@@ -1498,7 +1498,7 @@ function routes() {
             <IndexRoute
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transaction_summary'
+                  /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transactionSummary'
                 )
               }
               component={errorHandler(LazyLoad)}

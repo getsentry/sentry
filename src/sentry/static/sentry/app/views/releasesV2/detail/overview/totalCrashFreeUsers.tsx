@@ -10,6 +10,7 @@ import {defined} from 'app/utils';
 import Count from 'app/components/count';
 
 import {SectionHeading, Wrapper} from './styles';
+import {displayCrashFreePercent} from '../../utils';
 
 type Props = {
   crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
@@ -69,7 +70,9 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown, startDate}: Props) => {
             <InnerRow>
               <Text>{periodToLabels[row.period]}</Text>
               <Text right>
-                {defined(row.crashFreeUsers) ? `${row.crashFreeUsers}%` : '-'}
+                {defined(row.crashFreeUsers)
+                  ? displayCrashFreePercent(row.crashFreeUsers)
+                  : '-'}
               </Text>
             </InnerRow>
           </Row>

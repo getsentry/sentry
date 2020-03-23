@@ -2427,10 +2427,10 @@
   dependencies:
     "@types/trusted-types" "*"
 
-"@types/echarts@^4.1.11":
-  version "4.4.2"
-  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.4.2.tgz#88be60b9b87bc65414f22d4150834538d62ac602"
-  integrity sha512-sK3lJn0EwFUFz2xbMiSWvwZDnft4mp5zcZtvHzrMkMU2JG7lTeYjd7iAbuK2p7s7k8xVeevClllKtrHkCtjqHw==
+"@types/echarts@^4.4.3":
+  version "4.4.3"
+  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.4.3.tgz#9a04003c3a70cc6feb38de5220cc1d079f19f2cb"
+  integrity sha512-HmDmg9hDJQC5KOpNOeVgcaBM+emDiduNyCCHVInDrVVfLDVPuK4fSSISy39kn1HqPa1hYDQ96FIGEhjRNGHhPA==
   dependencies:
     "@types/zrender" "*"
 
@@ -5841,12 +5841,12 @@ echarts-for-react@2.0.14:
     fast-deep-equal "^2.0.1"
     size-sensor "^0.2.0"
 
-echarts@4.2.1:
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.2.1.tgz#9a8ea3b03354f86f824d97625c334cf16965ef03"
-  integrity sha512-pw4xScRPsLegD/cqEcoXRKeA2SD4+s+Kyo0Na166NamOWhzNl2yI5RZ2rE97tBlAopNmhyMeBVpAeD5qb+ee1A==
+echarts@4.7.0:
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.7.0.tgz#5b3875a4c2f91e3929425fabab9eace7e4098b3f"
+  integrity sha512-NlOTdUcAsIyCCG+N4uh0ZEvXtrPW2jvcuqf03RyqYeCKzyPbiOQ4I3MdKXMhxG3lBdqQNdNXVT71SB4KTQjN0A==
   dependencies:
-    zrender "4.0.7"
+    zrender "4.3.0"
 
 ee-first@1.1.1:
   version "1.1.1"
@@ -15920,10 +15920,10 @@ yargs@~3.10.0:
     decamelize "^1.0.0"
     window-size "0.1.0"
 
-zrender@4.0.7:
-  version "4.0.7"
-  resolved "https://registry.yarnpkg.com/zrender/-/zrender-4.0.7.tgz#15ae960822f5efed410995d37e5107fe3de10e6d"
-  integrity sha512-TNloHe0ums6zxbHfnaCryM61J4IWDajZwNq6dHk9vfWhhysO/OeFvvR0drBs/nbXha2YxSzfQj2FiCd6RVBe+Q==
+zrender@4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/zrender/-/zrender-4.3.0.tgz#9f056121b20bbae44414d287bf6a119ff7042661"
+  integrity sha512-Dii6j2bDsPkxQayuVf2DXJeruIB/mKVxxcGRZQ9GExiBd4c3w7+oBuvo1O/JGHeFeA1nCmSDVDs/S7yKZG1nrA==
 
 zwitch@^1.0.0:
   version "1.0.4"

@@ -57,3 +57,8 @@ export const GridRow = styled('tr')<{numOfColumns: number}>`
     return 'auto 120px';
   }};
 `;
+
+export const SummaryGridRow = styled('tr')`
+  display: grid;
+  grid-template-columns: auto minmax(70px, 170px) minmax(70px, 230px);
+`;

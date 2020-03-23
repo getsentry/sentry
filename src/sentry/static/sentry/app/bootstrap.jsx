@@ -39,11 +39,7 @@ function getSentryIntegrations() {
   if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
-
-    // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
-    // incompatible. It's a newer plugin, so this can be expected, but we
-    // should fix.
-    integrations.push(new SentryRRWeb() as any);
+    integrations.push(new SentryRRWeb());
   }
   return integrations;
 }
@@ -85,7 +81,7 @@ jQuery.ajaxSetup({
   beforeSend: ajaxCsrfSetup,
 });
 
-const render = (Component: React.ComponentType) => {
+const render = Component => {
   const rootEl = document.getElementById('blk_router');
 
   try {
@@ -106,7 +102,7 @@ const render = (Component: React.ComponentType) => {
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
 // it on demand.
-async function loadPasswordStrength(callback: Function) {
+async function loadPasswordStrength(callback) {
   const module = await import(
     /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
   );
@@ -137,7 +133,6 @@ const globals = {
 
   // django templates make use of these globals
   createReactClass,
-  SentryApp: {},
 };
 
 // The SentryApp global contains exported app modules for use in javascript
