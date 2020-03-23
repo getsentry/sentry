@@ -12,16 +12,16 @@ import {t} from 'app/locale';
 import {IconLightning, IconLock, IconCheckmark} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
+import {CommonSidebarProps} from 'app/components/sidebar/types';
 
 import {findUpcomingTasks, findCompleteTasks, findActiveTasks, taskIsDone} from './utils';
 import {getMergedTasks} from './taskConfig';
 import Task from './task';
 import ProgressHeader from './progressHeader';
 
-type Props = {
+type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   organization: Organization;
-  collapsed: boolean;
   onClose: () => void;
 };
 
@@ -127,7 +127,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
   );
 
   render() {
-    const {collapsed, onClose} = this.props;
+    const {collapsed, orientation, onClose} = this.props;
     const {all, active, upcoming, complete} = this.segmentedTasks;
 
     const completeList = (
@@ -148,7 +148,11 @@ class OnboardingWizardSidebar extends React.Component<Props> {
     ];
 
     return (
-      <TaskSidebarPanel collapsed={collapsed} hidePanel={onClose}>
+      <TaskSidebarPanel
+        collapsed={collapsed}
+        hidePanel={onClose}
+        orientation={orientation}
+      >
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
           <PoseGroup exitPose="markComplete">{items}</PoseGroup>
