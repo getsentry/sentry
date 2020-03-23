@@ -13,6 +13,10 @@ export const displayCrashFreePercent = (
   decimalThreshold = 95,
   decimalPlaces = 3
 ): string => {
+  if (percent < 1 && percent > 0) {
+    return `<1%`;
+  }
+
   const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
 
   return `${rounded}%`;

@@ -43,7 +43,7 @@ class ReleaseOverview extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, params, selection, location, api} = this.props;
+    const {organization, params, selection, location, api, router} = this.props;
     const {yAxis} = this.state;
 
     return (
@@ -70,6 +70,7 @@ class ReleaseOverview extends React.Component<Props, State> {
                         onYAxisChange={this.handleYAxisChange}
                         selection={selection}
                         yAxis={yAxis}
+                        router={router}
                         {...releaseStatsProps}
                       />
                     )}

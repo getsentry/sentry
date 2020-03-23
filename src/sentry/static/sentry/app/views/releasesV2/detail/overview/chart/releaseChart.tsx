@@ -15,7 +15,7 @@ type Props = {
   utc: boolean;
   releaseSeries: Series[];
   timeseriesData: Series[];
-  // zoomRenderProps: any;
+  zoomRenderProps: any;
   yAxis: YAxis;
 };
 
@@ -50,7 +50,7 @@ class ReleaseChart extends React.Component<Props> {
   };
 
   render() {
-    const {utc, releaseSeries, timeseriesData, yAxis} = this.props;
+    const {utc, releaseSeries, timeseriesData, yAxis, zoomRenderProps} = this.props;
     const Chart =
       yAxis === 'crashFree' || yAxis === 'sessionDuration' ? AreaChart : LineChart;
 
@@ -75,7 +75,7 @@ class ReleaseChart extends React.Component<Props> {
       <Chart
         legend={legend}
         utc={utc}
-        // {zoomRenderProps}
+        {...zoomRenderProps}
         series={[...timeseriesData, ...releaseSeries]}
         isGroupedByDate
         seriesOptions={{

@@ -37,6 +37,8 @@ type State = {
 } & AsyncView['state'];
 
 class ReleasesV2Detail extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(

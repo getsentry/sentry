@@ -84,4 +84,5 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 "Use a larger interval, or a smaller date range."
             )
 
-        return int(interval.total_seconds())
+        # The minimum interval is one hour on the server
+        return max(int(interval.total_seconds()), 3600)
