@@ -8,8 +8,9 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.models import ExportedData, File
-from sentry.models.exporteddata import DEFAULT_EXPIRATION, ExportStatus
+from sentry.data_export.base import DEFAULT_EXPIRATION, ExportStatus
+from sentry.data_export.models import ExportedData
+from sentry.models import File
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 from sentry.utils.compat.mock import patch

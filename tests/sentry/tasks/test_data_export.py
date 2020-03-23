@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import ExportedData, File
+from sentry.data_export.models import ExportedData
+from sentry.models import File
 from sentry.tasks.data_export import assemble_download, get_file_name, DataExportError
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.utils.compat.mock import patch
