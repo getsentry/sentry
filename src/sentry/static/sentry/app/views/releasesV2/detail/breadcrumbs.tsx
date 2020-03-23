@@ -7,7 +7,7 @@ import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
 type Crumb = {
-  label: React.ReactNode;
+  label: string;
   to?: string;
 };
 
@@ -18,7 +18,7 @@ type Props = {
 const Breadcrumbs = ({crumbs}: Props) => (
   <BreadcrumbList>
     {crumbs.map((crumb, index) => (
-      <React.Fragment key={crumb.to}>
+      <React.Fragment key={crumb.label}>
         <BreadcrumbItem to={crumb.to}>{crumb.label}</BreadcrumbItem>
         {index < crumbs.length - 1 && <StyledIcon size="xs" direction="right" />}
       </React.Fragment>

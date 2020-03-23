@@ -16,6 +16,7 @@ import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
+import {formatVersion} from 'app/utils/formatters';
 
 import ReleaseStat from './releaseStat';
 import Breadcrumbs from './breadcrumbs';
@@ -53,7 +54,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
               label: t('Releases'),
               to: `/organizations/${orgId}/releases-v2/`,
             },
-            {label: <Version version={version} anchor={false} />},
+            {label: formatVersion(version)},
           ]}
         />
 
