@@ -123,16 +123,13 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
                 "piiConfig": _get_pii_config(project),
                 "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
             },
+            "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
 
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
-
-    # The organization id is only required for reporting when processing events
-    # internally. Do not expose it to external Relays.
-    cfg["organizationId"] = project.organization_id
 
     with Hub.current.start_span(op="get_filter_settings"):
         cfg["config"]["filterSettings"] = get_filter_settings(project)
@@ -265,7 +262,7 @@ class ProjectConfig(_ConfigBase):
 
 def _get_pii_config(project):
     def _decode(value):
-        if value is not None:
+        if value:
             return safe_execute(utils.json.loads, value)
 
     # Order of merging is important here. We want to apply organization rules

@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
+import Link from 'app/components/links/link';
+import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Form from 'app/views/settings/components/forms/form';
@@ -10,6 +11,8 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
+
+import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
 
 type Props = {
   organization: Organization;
@@ -33,11 +36,13 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
   renderBody() {
     const {organization} = this.context;
-    const project = this.state.data;
+    const initialData = this.state.data;
     const {orgId, projectId} = this.props.params;
     const endpoint = `/projects/${orgId}/${projectId}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
+    const relayPiiConfig = initialData?.relayPiiConfig;
+    const apiMethod = 'PUT';
 
     return (
       <React.Fragment>
@@ -45,8 +50,8 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
         <Form
           saveOnBlur
           allowUndo
-          initialData={project}
-          apiMethod="PUT"
+          initialData={initialData}
+          apiMethod={apiMethod}
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
             // This will update our project context
@@ -67,10 +72,28 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
               fields.sensitiveFields,
               fields.safeFields,
               fields.storeCrashReports,
-              fields.relayPiiConfig,
             ]}
           />
         </Form>
+        <DataPrivacyRulesPanel
+          additionalContext={
+            <span>
+              {tct(
+                'These rules can be configured at the organization level in [linkToOrganizationSecurityAndPrivacy]',
+                {
+                  linkToOrganizationSecurityAndPrivacy: (
+                    <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                      {t('Security and Privacy. ')}
+                    </Link>
+                  ),
+                }
+              )}
+            </span>
+          }
+          endpoint={endpoint}
+          relayPiiConfig={relayPiiConfig}
+          disabled={!access.has('project:write')}
+        />
       </React.Fragment>
     );
   }

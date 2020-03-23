@@ -195,6 +195,7 @@ from .endpoints.project_processingissues import (
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
 from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
@@ -286,6 +287,7 @@ from sentry.data_export.endpoints.data_export_details import DataExportDetailsEn
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
+from sentry.discover.endpoints.discover_key_transactions import KeyTransactionEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -300,6 +302,7 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
     ProjectCombinedRuleIndexEndpoint,
 )
+from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -607,6 +610,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-incident-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/stats/$",
+                    OrganizationIncidentStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-incident-stats",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/incidents/$",
                     OrganizationIncidentIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-index",
@@ -646,6 +654,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
                     OrganizationDashboardDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-dashboard-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
+                    KeyTransactionEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions",
                 ),
                 # Dashboards
                 url(
@@ -1294,6 +1307,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
                     ProjectIssuesResolvedInReleaseEndpoint.as_view(),
                     name="sentry-api-0-project-release-resolved",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/stats/$",
+                    ProjectReleaseStatsEndpoint.as_view(),
+                    name="sentry-api-0-project-release-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",

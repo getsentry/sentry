@@ -86,11 +86,11 @@ const PluginsStore = Reflux.createStore({
     this.triggerState();
   },
 
-  onUpdateSuccess(id, updateObj) {
+  onUpdateSuccess(id, _updateObj) {
     this.updating.delete(id);
   },
 
-  onUpdateError(id, updateObj, err) {
+  onUpdateError(id, _updateObj, err) {
     const origPlugin = this.updating.get(id);
     if (!origPlugin) {
       return;

@@ -15,7 +15,7 @@ class CreateOwnershipRuleModal extends React.Component {
     project: SentryTypes.Project,
   };
 
-  handleSubmit = data => {
+  handleSubmit = () => {
     this.handleSuccess();
   };
 

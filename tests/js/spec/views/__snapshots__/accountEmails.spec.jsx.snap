@@ -80,9 +80,11 @@ exports[`AccountEmails renders with emails 1`] = `
     </Form>
     <AlertLink
       icon="icon-stack"
+      openInNewTab={false}
       priority="warning"
       size="normal"
       to="/settings/account/notifications"
+      withoutMarginBottom={false}
     >
       Want to change how many emails you get? Use the notifications panel.
     </AlertLink>

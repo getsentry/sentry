@@ -161,7 +161,7 @@ class PieChart extends React.Component {
             avoidLabelOverlap: false,
             label: {
               normal: {
-                formatter: ({name, percent, dataIndex}) => `${name}\n${percent}%`,
+                formatter: ({name, percent}) => `${name}\n${percent}%`,
                 show: false,
                 position: 'center',
               },

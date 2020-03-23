@@ -61,5 +61,5 @@ export function isOpen(incident: Incident): boolean {
  * Get display string based on alert rule aggregation type
  */
 export function getDisplayForAlertRuleAggregation(aggregation: AlertRuleAggregations) {
-  return aggregation === AlertRuleAggregations.TOTAL ? t('Events') : t('Users');
+  return aggregation === AlertRuleAggregations.TOTAL ? t('Events') : t('Users Affected');
 }

@@ -1,4 +1,4 @@
-export function ProviderList(params = {}) {
+export function ProviderList() {
   return {
     providers: [
       {
@@ -33,7 +33,7 @@ export function ProviderList(params = {}) {
   };
 }
 
-export function IntegrationConfig(params = {}) {
+export function IntegrationConfig() {
   return [
     {
       accountType: null,
@@ -58,7 +58,7 @@ export function IntegrationConfig(params = {}) {
   ];
 }
 
-export function OrgOwnedApps(params = {}) {
+export function OrgOwnedApps() {
   return [
     {
       allowedOrigins: [],
@@ -78,6 +78,7 @@ export function OrgOwnedApps(params = {}) {
       uuid: 'a806ab10-9608-4a4f-8dd9-ca6d6c09f9f5',
       verifyInstall: false,
       webhookUrl: 'https://myheadbandwasher.com',
+      featureData: [],
     },
     {
       allowedOrigins: [],
@@ -99,6 +100,13 @@ export function OrgOwnedApps(params = {}) {
       uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7',
       verifyInstall: false,
       webhookUrl: 'https://lacroix.com',
+      featureData: [
+        {
+          description:
+            'La Croix can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
     {
       allowedOrigins: [],
@@ -118,11 +126,18 @@ export function OrgOwnedApps(params = {}) {
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
       webhookUrl: 'http://localhost:7000',
+      featureData: [
+        {
+          description:
+            'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
   ];
 }
 
-export function PublishedApps(params = {}) {
+export function PublishedApps() {
   return [
     {
       allowedOrigins: [],
@@ -142,11 +157,18 @@ export function PublishedApps(params = {}) {
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
       webhookUrl: 'http://localhost:7000',
+      featureData: [
+        {
+          description:
+            'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
   ];
 }
 
-export function SentryAppInstalls(params = {}) {
+export function SentryAppInstalls() {
   return [
     {
       app: {
@@ -161,7 +183,7 @@ export function SentryAppInstalls(params = {}) {
   ];
 }
 
-export function PluginListConfig(params = {}) {
+export function PluginListConfig() {
   return [
     {
       assets: [],
@@ -206,11 +228,17 @@ export function PluginListConfig(params = {}) {
       isTestable: true,
       isHidden: true,
       hasConfiguration: true,
-      features: [],
       shortName: 'PagerDuty',
       id: 'pagerduty',
       assets: [],
-      featureDescriptions: [],
+      featureDescriptions: [
+        {
+          description:
+            'Configure rule based PagerDuty alerts to automatically be triggered in a specific\n            service - or in multiple services!',
+          featureGate: 'alert-rule',
+        },
+      ],
+      features: ['alert-rule'],
       name: 'PagerDuty',
       author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
       contexts: [],

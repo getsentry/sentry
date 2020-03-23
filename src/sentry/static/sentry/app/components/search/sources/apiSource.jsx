@@ -81,16 +81,21 @@ async function createMemberResults(membersPromise, orgId) {
   }));
 }
 
-async function createLegacyIntegrationResults(pluginsPromise, orgId) {
+async function createPluginResults(pluginsPromise, orgId) {
   const plugins = (await pluginsPromise) || [];
-  return plugins.map(plugin => ({
-    title: `${plugin.name} (Legacy)`,
-    description: plugin.description,
-    model: plugin,
-    sourceType: 'plugin',
-    resultType: 'integration',
-    to: `/settings/${orgId}/projects/:projectId/plugins/${plugin.id}/`,
-  }));
+  return plugins
+    .filter(plugin => {
+      //show a plugin if it is not hidden (aka legacy) or if we have projects with it configured
+      return !plugin.isHidden || !!plugin.projectList.length;
+    })
+    .map(plugin => ({
+      title: plugin.isHidden ? `${plugin.name} (Legacy)` : plugin.name,
+      description: plugin.description,
+      model: plugin,
+      sourceType: 'plugin',
+      resultType: 'integration',
+      to: `/settings/${orgId}/plugins/${plugin.id}/`,
+    }));
 }
 
 async function createIntegrationResults(integrationsPromise, orgId) {
@@ -225,7 +230,7 @@ class ApiSource extends React.Component {
         `/organizations/${orgId}/projects/`,
         `/organizations/${orgId}/teams/`,
         `/organizations/${orgId}/members/`,
-        `/organizations/${orgId}/plugins/?plugins=_all`,
+        `/organizations/${orgId}/plugins/configs/`,
         `/organizations/${orgId}/config/integrations/`,
       ];
 
@@ -317,6 +322,7 @@ class ApiSource extends React.Component {
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
+    //TODO(XXX): Might consider adding logic to maintain consistent ordering of results so things don't switch positions
     const fuzzy = createFuzzySearch(searchResults, {
       ...searchOptions,
       keys: ['title', 'description'],
@@ -341,8 +347,8 @@ class ApiSource extends React.Component {
         createProjectResults(projects, orgId),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
-        createLegacyIntegrationResults(plugins, orgId),
         createIntegrationResults(integrations, orgId),
+        createPluginResults(plugins, orgId),
       ])
     );
 
@@ -351,7 +357,7 @@ class ApiSource extends React.Component {
 
   // Create result objects from API requests that do not require fuzzy search
   // i.e. these responses only return 1 object or they should always be displayed regardless of query input
-  async getDirectResults(requests, query) {
+  async getDirectResults(requests) {
     const [shortIdLookup, eventIdLookup] = requests;
 
     const directResults = (

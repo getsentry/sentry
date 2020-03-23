@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.models.projectoption import ProjectOption
 from sentry.testutils import TestCase
 from sentry.utils.safe import set_path
@@ -11,6 +13,9 @@ from sentry.message_filters import (
 )
 
 
+@pytest.mark.obsolete(
+    "Unit tests in Relay, in the filters implementation files.", "relay-filter/..."
+)
 class FilterTests(TestCase):
     def _get_message(self):
         return {}

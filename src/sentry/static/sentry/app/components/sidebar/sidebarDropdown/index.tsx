@@ -17,16 +17,14 @@ import TextOverflow from 'app/components/textOverflow';
 import withApi from 'app/utils/withApi';
 import {Organization, User, Config} from 'app/types';
 import {Client} from 'app/api';
-import {SidebarOrientation} from 'app/components/sidebar/types';
 import space from 'app/styles/space';
 
+import {CommonSidebarProps} from '../types';
 import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
 
-type Props = {
+type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
-  orientation: SidebarOrientation;
-  collapsed: boolean;
   org: Organization;
   user: User;
   config: Config;
@@ -35,18 +33,17 @@ type Props = {
 const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props) => {
   const handleLogout = async () => {
     await logout(api);
-    window.location.assign('/auth/login');
+    window.location.assign('/auth/login/');
   };
 
   const hasOrganization = !!org;
   const hasUser = !!user;
 
-  // If there is no org in context, we use an org from `withLatestContext`
-  // (which uses an org from organizations index endpoint versus details endpoint)
-  // and does not have `access`
-  const hasOrgRead = org && org.access && org.access.indexOf('org:read') > -1;
-  const hasMemberRead = org && org.access && org.access.indexOf('member:read') > -1;
-  const hasTeamRead = org && org.access && org.access.indexOf('team:read') > -1;
+  // It's possible we do not have an org in context (e.g. RouteNotFound)
+  // Otherwise, we should have the full org
+  const hasOrgRead = org?.access?.includes('org:read');
+  const hasMemberRead = org?.access?.includes('member:read');
+  const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
   // Avatar to use: Organization --> user --> Sentry

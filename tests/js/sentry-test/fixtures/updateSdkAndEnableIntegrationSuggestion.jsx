@@ -1,4 +1,4 @@
-export function UpdateSdkAndEnableIntegrationSuggestion(params) {
+export function UpdateSdkAndEnableIntegrationSuggestion() {
   return {
     id: '123',
     sdk: {

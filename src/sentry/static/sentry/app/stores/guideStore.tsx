@@ -3,13 +3,11 @@ import Reflux from 'reflux';
 
 import {Client} from 'app/api';
 import {Guide, GuidesServerData, GuidesContent} from 'app/components/assistant/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {logExperiment, trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
-
-const guidesContent: GuidesContent = getGuidesContent();
 
 type GuideStoreState = {
   /**
@@ -99,11 +97,19 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       return;
     }
 
+    const user = ConfigStore.get('user');
+    const guidesContent: GuidesContent = getGuidesContent(user);
+
     // map server guide state (i.e. seen status) with guide content
-    const guides = guidesContent.map(guideContent => ({
-      ...guideContent,
-      ...data.find(serverGuide => serverGuide.guide === guideContent.guide),
-    }));
+    const guides = guidesContent.reduce((acc: Guide[], content) => {
+      const serverGuide = data.find(guide => guide.guide === content.guide);
+      serverGuide &&
+        acc.push({
+          ...content,
+          ...serverGuide,
+        });
+      return acc;
+    }, []);
 
     this.state.guides = guides;
     this.updateCurrentGuide();
@@ -136,13 +142,26 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
   },
 
   recordCue(guide) {
+    const user = ConfigStore.get('user');
+    if (!user) {
+      return;
+    }
+
     const data = {
       guide,
       eventKey: 'assistant.guide_cued',
       eventName: 'Assistant Guide Cued',
       organization_id: this.state.orgId,
+      user_id: parseInt(user.id, 10),
     };
     trackAnalyticsEvent(data);
+
+    logExperiment({
+      key: 'AssistantGuideExperiment',
+      unitName: 'user_id',
+      unitId: parseInt(user.id, 10),
+      param: 'variant',
+    });
   },
 
   updatePrevGuide(nextGuide) {
@@ -172,24 +191,31 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       .sort((a, b) => a.guide.localeCompare(b.guide))
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
-    if (!forceShow) {
-      const user = ConfigStore.get('user');
-      const assistantThreshold = new Date(2019, 6, 1);
-      const discoverDate = new Date(2020, 1, 6);
-      const userDateJoined = new Date(user?.dateJoined);
+    const user = ConfigStore.get('user');
+    const assistantThreshold = new Date(2019, 6, 1);
+    const discoverDate = new Date(2020, 1, 6);
+    const userDateJoined = new Date(user?.dateJoined);
 
-      guideOptions = guideOptions.filter(({guide, seen}) => {
-        if (seen !== false) {
-          return false;
-        }
-        if (user?.isSuperuser) {
-          return true;
-        }
-        if (guide === 'discover_sidebar' && userDateJoined >= discoverDate) {
-          return false;
-        }
-        return userDateJoined > assistantThreshold;
-      });
+    if (!forceShow) {
+      guideOptions = guideOptions.filter(({guide, seen}) =>
+        seen
+          ? false
+          : user?.isSuperuser
+          ? true
+          : guide === 'discover_sidebar' && userDateJoined >= discoverDate
+          ? false
+          : userDateJoined > assistantThreshold
+      );
+    }
+
+    // do not force show the "events moved" guide
+    // since it's not relevant for new users
+    if (forceShow) {
+      guideOptions = guideOptions.filter(({guide, seen}) =>
+        guide === 'discover_sidebar' && (seen || userDateJoined >= discoverDate)
+          ? false
+          : true
+      );
     }
 
     const nextGuide =

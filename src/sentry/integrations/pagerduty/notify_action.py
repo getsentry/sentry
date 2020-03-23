@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.constants import ObjectStatus
 from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
 

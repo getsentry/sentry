@@ -208,7 +208,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           {t('Build a new query')}
         </StarterButton>
-        <StarterButton href="https://docs.sentry.io/workflow/discover2/">
+        <StarterButton href="https://docs.sentry.io/performance/discover/">
           {t('Read the docs')}
         </StarterButton>
       </Banner>

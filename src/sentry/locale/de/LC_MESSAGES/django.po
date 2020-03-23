@@ -451,8 +451,8 @@ msgstr[1] "Das Passwort ist zu kurz. Es muss mindestens %(min_length)d Zeichen l
 #, python-format
 msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
-msgstr[0] "Ihr Passwort muss mindestens %(min_length) Zeichen enthalten."
-msgstr[1] "Ihr Passwort muss mindestens %(min_length) Zeichen enthalten."
+msgstr[0] "Ihr Passwort muss mindestens %(min_length)d Zeichen enthalten."
+msgstr[1] "Ihr Passwort muss mindestens %(min_length)d Zeichen enthalten."
 
 #: auth/password_validation.py:123
 #, python-format

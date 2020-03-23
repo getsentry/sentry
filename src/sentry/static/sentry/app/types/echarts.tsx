@@ -8,6 +8,11 @@ export type SeriesDataUnit = {
 export type Series = {
   seriesName: string;
   data: SeriesDataUnit[];
+  color?: string;
+  areaStyle?: {
+    color: string;
+    opacity: number;
+  };
 };
 
 export type ReactEchartsRef = {

@@ -1,6 +1,8 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {PlatformKey} from 'app/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {
   INSTALLED,
   NOT_INSTALLED,
@@ -68,7 +70,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveExperiments>;
+  experiments: Partial<OrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -97,7 +99,7 @@ export type Organization = LightWeightOrganization & {
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
-  platform?: string;
+  platform?: PlatformKey;
 };
 
 export type Project = {
@@ -225,7 +227,7 @@ type SentryEventBase = {
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: string;
+  platform?: PlatformKey;
   dateCreated?: string;
   endTimestamp?: number;
   entries: EntryType[];
@@ -233,6 +235,7 @@ type SentryEventBase = {
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+  projectID: string;
 
   tags: EventTag[];
 
@@ -321,6 +324,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
+  experiments: Partial<UserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -368,7 +372,7 @@ export type PluginProjectItem = {
   projectId: string;
   projectSlug: string;
   projectName: string;
-  projectPlatform: string | null;
+  projectPlatform: PlatformKey;
   enabled: boolean;
   configured: boolean;
 };
@@ -508,13 +512,13 @@ export type Group = {
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
   lastSeen: string;
-  level: string;
+  level: Level;
   logger: string;
   metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
-  platform: string;
+  platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)
@@ -524,7 +528,7 @@ export type Group = {
   shortId: string;
   stats: any; // TODO(ts)
   status: string;
-  statusDetails: {};
+  statusDetails: ResolutionStatusDetails;
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -573,6 +577,7 @@ export type Repository = {
   status: RepositoryStatus;
   url: string;
 };
+
 export enum RepositoryStatus {
   ACTIVE = 'active',
   DISABLED = 'disabled',
@@ -580,6 +585,12 @@ export enum RepositoryStatus {
   PENDING_DELETION = 'pending_deletion',
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
+
+export type PullRequest = {
+  id: string;
+  title: string;
+  externalUrl: string;
+};
 
 type BaseIntegrationProvider = {
   key: string;
@@ -660,6 +671,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  featureData: IntegrationFeature[];
 };
 
 export type Integration = {
@@ -787,7 +799,7 @@ export type Release = {
   projects: ReleaseProject[];
 } & BaseRelease;
 
-type ReleaseProject = {
+export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
@@ -822,6 +834,16 @@ export type Commit = {
   releases: BaseRelease[];
 };
 
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
+};
+
 export type MemberRole = {
   id: string;
   name: string;
@@ -838,12 +860,6 @@ export type SentryAppComponent = {
     slug: string;
     name: string;
   };
-};
-
-export type ActiveExperiments = {
-  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
-  IntegrationDirectorySortWeightExperiment: '1' | '0';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -923,6 +939,11 @@ export enum OnboardingTaskKey {
   ALERT_RULE = 'setup_alert_rules',
 }
 
+export type OnboardingSupplementComponentProps = {
+  task: OnboardingTask;
+  onCompleteTask: () => void;
+};
+
 export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
@@ -941,6 +962,10 @@ export type OnboardingTaskDescriptor = {
    * Should the onboarding task currently be displayed
    */
   display: boolean;
+  /**
+   * An extra component that may be rendered within the onboarding task item.
+   */
+  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
 } & (
   | {
       actionType: 'app' | 'external';
@@ -961,7 +986,14 @@ export type OnboardingTaskStatus = {
   data?: object;
 };
 
-export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
+export type OnboardingTask = OnboardingTaskStatus &
+  OnboardingTaskDescriptor & {
+    /**
+     * Onboarding tasks that are currently incomplete and must be completed
+     * before this task should be completed.
+     */
+    requisiteTasks: OnboardingTask[];
+  };
 
 export type Tag = {
   name: string;
@@ -1006,6 +1038,14 @@ export enum ResolutionStatus {
   UNRESOLVED = 'unresolved',
 }
 export type ResolutionStatusDetails = {
+  actor?: AvatarUser;
+  autoResolved?: boolean;
+  ignoreCount?: number;
+  ignoreUntil?: string;
+  ignoreUserCount?: number;
+  ignoreUserWindow?: string;
+  ignoreWindow?: string;
+  inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
 };
@@ -1024,4 +1064,27 @@ export type Broadcast = {
   dateCreated: string;
   dateExpires: string;
   hasSeen: boolean;
+};
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
+};
+
+export type CrashFreeTimeBreakdown = {
+  [key: string]: {
+    totalSessions: number;
+    crashFreeSessions: number | null;
+    crashFreeUsers: number | null;
+    totalUsers: number;
+  };
 };
