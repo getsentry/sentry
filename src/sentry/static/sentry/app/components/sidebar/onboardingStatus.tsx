@@ -21,14 +21,6 @@ type Props = CommonSidebarProps & {
   org: Organization;
 };
 
-function recordAnalytics(currentPanel: string, orgId: string) {
-  const data =
-    currentPanel === 'todos'
-      ? {eventKey: 'onboarding.wizard_opened', eventName: 'Onboarding Wizard Opened'}
-      : {eventKey: 'onboarding.wizard_closed', eventName: 'Onboarding Wizard Closed'};
-  trackAnalyticsEvent({...data, organization_id: orgId});
-}
-
 const isDone = (task: OnboardingTaskStatus) =>
   task.status === 'complete' || task.status === 'skipped';
 
@@ -38,26 +30,19 @@ const progressTextCss = () => css`
 `;
 
 class OnboardingStatus extends React.Component<Props> {
-  componentDidUpdate(prevProps: Props) {
-    const {currentPanel, org} = this.props;
-    if (
-      currentPanel !== prevProps.currentPanel &&
-      (currentPanel || prevProps.currentPanel === 'todos')
-    ) {
-      recordAnalytics(currentPanel, org.id);
-    }
-  }
+  handleShowPanel = () => {
+    const {org, onShowPanel} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'onboarding.wizard_opened',
+      eventName: 'Onboarding Wizard Opened',
+      organization_id: org.id,
+    });
+    onShowPanel();
+  };
 
   render() {
-    const {
-      collapsed,
-      org,
-      currentPanel,
-      orientation,
-      hidePanel,
-      showPanel,
-      onShowPanel,
-    } = this.props;
+    const {collapsed, org, currentPanel, orientation, hidePanel, showPanel} = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
@@ -84,7 +69,7 @@ class OnboardingStatus extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <Container onClick={onShowPanel} isActive={isActive}>
+        <Container onClick={this.handleShowPanel} isActive={isActive}>
           <ProgressRing
             animateText
             textCss={progressTextCss}
