@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.plugins import providers
 from sentry.models import Integration
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 
 
 class ExampleRepositoryProvider(providers.IntegrationRepositoryProvider):
