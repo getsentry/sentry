@@ -46,7 +46,6 @@ def test_get_project_config(default_project, insta_snapshot, full):
     # public keys change every time
     assert cfg.pop("projectId") == default_project.id
     assert len(cfg.pop("publicKeys")) == len(keys)
-    if full:
-        assert cfg.pop("organizationId") == default_project.organization.id
+    assert cfg.pop("organizationId") == default_project.organization.id
 
     insta_snapshot(cfg)
