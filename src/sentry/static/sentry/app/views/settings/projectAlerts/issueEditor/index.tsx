@@ -103,16 +103,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getEndpoints() {
-    const {
-      params: {ruleId, projectId, orgId},
-      location: {query: {__has_issue_alerts_targeting} = {}} = {},
-    } = this.props;
+    const {params, location} = this.props;
+    const {ruleId, projectId, orgId} = params;
+    const {__has_issue_alerts_targeting = 0} = location.query ?? {};
+
     const endpoints = [
       ['environments', `/projects/${orgId}/${projectId}/environments/`],
       [
         'configs',
-        `/projects/${orgId}/${projectId}/rules/configuration/?issue_alerts_targeting=${__has_issue_alerts_targeting ??
-          0}`,
+        `/projects/${orgId}/${projectId}/rules/configuration/?issue_alerts_targeting=${__has_issue_alerts_targeting}`,
       ],
     ];
 
