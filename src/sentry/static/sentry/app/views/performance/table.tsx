@@ -221,7 +221,6 @@ class Table extends React.Component<Props> {
         {({pageLinks, isLoading, tableData}) => (
           <div>
             <StyledSearchBar
-              defaultQuery=""
               query={this.getTransactionSearchQuery()}
               placeholder={t('Filter Transactions')}
               onSearch={this.handleTransactionSearchQuery}
