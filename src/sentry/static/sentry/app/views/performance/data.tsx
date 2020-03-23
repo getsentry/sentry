@@ -55,7 +55,7 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
     if (searchQuery) {
       extra.query = stringifyQueryObject({
         query: [PERFORMANCE_EVENT_VIEW.query],
-        transaction: ['*${escapeDoubleQuotes(searchQuery)}*'],
+        transaction: [`*${escapeDoubleQuotes(searchQuery)}*`],
       });
     }
   }
