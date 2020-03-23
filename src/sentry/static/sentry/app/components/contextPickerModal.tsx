@@ -293,7 +293,12 @@ class ContextPickerModal extends React.Component<Props> {
 type ContainerProps = Omit<
   Props,
   'projects' | 'loading' | 'organizations' | 'organization' | 'onSelectOrganization'
->;
+> & {
+  /**
+   * List of slugs we want to be able to choose from
+   */
+  projectSlugs?: string[];
+};
 
 type ContainerState = {
   organizations?: Organization[];
@@ -328,9 +333,15 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
   },
 
   render() {
+    const {projectSlugs} = this.props; // eslint-disable-line react/prop-types
+
     if (this.state.selectedOrganization) {
       return (
-        <Projects orgId={this.state.selectedOrganization} allProjects>
+        <Projects
+          orgId={this.state.selectedOrganization}
+          allProjects={!projectSlugs?.length}
+          slugs={projectSlugs}
+        >
           {renderProps => this.renderModal(renderProps)}
         </Projects>
       );
