@@ -258,6 +258,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
       }
     }
 
+    //Note that upgrading this to work with the new react select will be quite a challenge!
     return (
       <FieldFromConfig key={`${field.name}`} field={field} {...this.fieldProps(field)} />
     );
