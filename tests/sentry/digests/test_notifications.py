@@ -12,9 +12,32 @@ from sentry.digests.notifications import (
     group_records,
     sort_group_contents,
     sort_rule_groups,
+    split_key_for_targeted_action,
+    is_targeted_action_key,
+    unsplit_key_for_targeted_action,
 )
 from sentry.models import Rule
+from sentry.rules.actions.notify_email import NotifyEmailActionTargetType
 from sentry.testutils import TestCase
+
+
+class TargetedActionsKeyTest(TestCase):
+    def test_split_unsplit_idempotency(self):
+        project = self.project
+        target_type = NotifyEmailActionTargetType.MEMBER.value
+        target_id = 2
+        key = unsplit_key_for_targeted_action(project, target_type, target_id)
+        _, actual_project, actual_target_type, actual_id = split_key_for_targeted_action(key)
+        assert actual_project == project
+        assert actual_target_type == target_type
+        assert actual_id == target_id
+
+    def test_targeted_action_key_detection(self):
+        project = self.project
+        target_type = NotifyEmailActionTargetType.MEMBER.value
+        target_id = 2
+        key = unsplit_key_for_targeted_action(project, target_type, target_id)
+        assert is_targeted_action_key(key)
 
 
 class RewriteRecordTestCase(TestCase):
