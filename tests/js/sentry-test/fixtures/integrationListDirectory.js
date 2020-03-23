@@ -78,6 +78,7 @@ export function OrgOwnedApps() {
       uuid: 'a806ab10-9608-4a4f-8dd9-ca6d6c09f9f5',
       verifyInstall: false,
       webhookUrl: 'https://myheadbandwasher.com',
+      featureData: [],
     },
     {
       allowedOrigins: [],
@@ -99,6 +100,13 @@ export function OrgOwnedApps() {
       uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7',
       verifyInstall: false,
       webhookUrl: 'https://lacroix.com',
+      featureData: [
+        {
+          description:
+            'La Croix can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
     {
       allowedOrigins: [],
@@ -118,6 +126,13 @@ export function OrgOwnedApps() {
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
       webhookUrl: 'http://localhost:7000',
+      featureData: [
+        {
+          description:
+            'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
   ];
 }
@@ -142,6 +157,13 @@ export function PublishedApps() {
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
       webhookUrl: 'http://localhost:7000',
+      featureData: [
+        {
+          description:
+            'Clickup can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+          featureGate: 'integrations-api',
+        },
+      ],
     },
   ];
 }
@@ -210,7 +232,14 @@ export function PluginListConfig() {
       shortName: 'PagerDuty',
       id: 'pagerduty',
       assets: [],
-      featureDescriptions: [],
+      featureDescriptions: [
+        {
+          description:
+            'Configure rule based PagerDuty alerts to automatically be triggered in a specific\n            service - or in multiple services!',
+          featureGate: 'alert-rule',
+        },
+      ],
+      features: ['alert-rule'],
       name: 'PagerDuty',
       author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
       contexts: [],
