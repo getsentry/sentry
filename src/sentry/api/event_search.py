@@ -450,7 +450,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(six.text_type(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
-            search_value = operator + search_value if operator != "=" else search_value
+            search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_rel_time_filter(self, node, children):
