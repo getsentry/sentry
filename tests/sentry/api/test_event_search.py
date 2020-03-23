@@ -556,6 +556,20 @@ class ParseSearchQueryTest(unittest.TestCase):
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
                 parse_search_query(invalid_query)
 
+    def test_duration_on_non_duration_field(self):
+        assert parse_search_query("user.id:500s") == [
+            SearchFilter(
+                key=SearchKey(name="user.id"), operator="=", value=SearchValue(raw_value="500s")
+            )
+        ]
+
+    def test_negated_duration_on_non_duration_field(self):
+        assert parse_search_query("!user.id:500s") == [
+            SearchFilter(
+                key=SearchKey(name="user.id"), operator="!=", value=SearchValue(raw_value="500s")
+            )
+        ]
+
     def test_duration_filter(self):
         assert parse_search_query("transaction.duration:>500s") == [
             SearchFilter(
