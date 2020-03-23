@@ -36,9 +36,13 @@ class EventUserFeedback extends React.Component<Props> {
 
   render() {
     const {className, report} = this.props;
-    const user = report.user
-      ? report.user
-      : {name: report.name, email: report.email, id: '', username: '', ip_address: ''};
+    const user = report.user || {
+      name: report.name,
+      email: report.email,
+      id: '',
+      username: '',
+      ip_address: '',
+    };
 
     return (
       <div className={className}>
