@@ -33,7 +33,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
+import withProjectsBySlugs from 'app/utils/withProjectsBySlugs';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
@@ -50,9 +50,19 @@ class GlobalSelectionHeader extends React.Component {
     router: PropTypes.object,
 
     /**
-     * List of projects to display in project selector
+     * List of projects to display in project selector (comes from HoC)
      */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
+
+    /**
+     * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
+     */
+    projectSlugs: PropTypes.arrayOf(PropTypes.string),
+
+    /**
+     * Remove ability to select multiple projects even if organization has feature 'global-views'
+     */
+    disableMultipleProjectSelection: PropTypes.bool,
 
     /**
      * Whether or not the projects are currently being loaded in
@@ -161,6 +171,7 @@ class GlobalSelectionHeader extends React.Component {
     showEnvironmentSelector: true,
     showDateSelector: true,
     resetParamsOnChange: [],
+    disableMultipleProjectSelection: false,
   };
 
   constructor(props) {
@@ -589,6 +600,8 @@ class GlobalSelectionHeader extends React.Component {
       showProjectSettingsLink,
       lockedMessageSubject,
       timeRangeHint,
+      projectSlugs,
+      disableMultipleProjectSelection,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -602,7 +615,11 @@ class GlobalSelectionHeader extends React.Component {
       <Header className={className}>
         <HeaderItemPosition>
           {showIssueStreamLink && this.getBackButton()}
-          <Projects orgId={organization.slug} limit={PROJECTS_PER_PAGE} globalSelection>
+          <Projects
+            orgId={organization.slug}
+            limit={PROJECTS_PER_PAGE}
+            slugs={projectSlugs}
+          >
             {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
               const paginatedProjectSelectorCallbacks = {
                 onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
@@ -635,7 +652,9 @@ class GlobalSelectionHeader extends React.Component {
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
                   onUpdate={this.handleUpdateProjects}
-                  multi={this.hasMultipleProjectSelection()}
+                  multi={
+                    !disableMultipleProjectSelection && this.hasMultipleProjectSelection()
+                  }
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                   showIssueStreamLink={showIssueStreamLink}
                   showProjectSettingsLink={showProjectSettingsLink}
@@ -692,7 +711,9 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)));
+export default withProjectsBySlugs(
+  withRouter(withGlobalSelection(GlobalSelectionHeader))
+);
 
 const BackButtonWrapper = styled('div')`
   display: flex;
