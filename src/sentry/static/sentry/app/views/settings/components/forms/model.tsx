@@ -297,7 +297,7 @@ class FormModel {
    * if quiet is true, we skip callbacks, validations
    */
   @action
-  setValue(id: string, value: FieldValue, quiet: boolean) {
+  setValue(id: string, value: FieldValue, quiet?: boolean) {
     const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
