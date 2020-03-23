@@ -15,12 +15,11 @@ import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
-import {openModal} from 'app/actionCreators/modal';
-import ContextPickerModal from 'app/components/contextPickerModal';
 import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ReleaseHeader from './releaseHeader';
+import PickProjectToContinue from './pickProjectToContinue';
 
 type ReleaseContext = {release: Release; project: ReleaseProject};
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
@@ -130,48 +129,6 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
     ];
   }
 
-  componentDidUpdate() {
-    // everything is fine if there is a project in URL
-    if (!this.state.release || !this.isProjectMissingInUrl()) {
-      return;
-    }
-
-    const {projects} = this.state.release;
-    const {organization, params, router} = this.props;
-    const path = `/organizations/${organization.slug}/releases-v2/${encodeURIComponent(
-      params.release
-    )}/?project=`;
-
-    // if the project in URL is missing, but this release belongs to only one project, redirect there
-    if (projects.length === 1) {
-      router.replace(path + projects[0].id);
-      return;
-    }
-
-    // otherwise open project selector (only projects that have this release are options there)
-    openModal(
-      ({Header, Body}) => (
-        <ContextPickerModal
-          Header={Header}
-          Body={Body}
-          needOrg={false}
-          needProject
-          nextPath={`${path}:project`}
-          onFinish={pathname => {
-            router.replace(pathname);
-          }}
-          projectSlugs={projects.map(p => p.slug)}
-        />
-      ),
-      {
-        onClose() {
-          // if a user closes the modal (either via button, Ecs, clicking outside)
-          router.push(`/organizations/${organization.slug}/releases-v2/`);
-        },
-      }
-    );
-  }
-
   isProjectMissingInUrl() {
     const projectId = this.props.location.query.project;
 
@@ -179,11 +136,18 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, params, router} = this.props;
     const {projects} = this.state.release;
 
     if (this.isProjectMissingInUrl()) {
-      return <ContextPickerBackground />;
+      return (
+        <PickProjectToContinue
+          orgSlug={organization.slug}
+          version={params.release}
+          router={router}
+          projects={projects}
+        />
+      );
     }
 
     return (
@@ -204,11 +168,6 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-
-const ContextPickerBackground = styled('div')`
-  height: 100vh;
-  width: 100%;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};
