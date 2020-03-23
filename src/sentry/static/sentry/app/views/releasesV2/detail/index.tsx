@@ -17,7 +17,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -35,7 +35,6 @@ type State = {
   deploys: Deploy[];
 } & AsyncView['state'];
 
-// TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
     const {params, organization} = this.props;
@@ -71,23 +70,17 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  renderError() {
-    const {errors} = this.state;
+  handleError(e) {
     const {router, location} = this.props;
-    const possiblyWrongProject = Object.values(errors).find(
-      e => e?.status === 404 || e?.status === 403
-    );
+    const possiblyWrongProject = e.status === 404 || e.status === 403;
 
     if (possiblyWrongProject) {
-      addErrorMessage(t('This release may not be in your selected project.'));
       // refreshing this page without project ID will bring up a project selector
       router.replace({
         ...location,
         query: {...location.query, project: undefined},
       });
     }
-
-    return null;
   }
 
   renderBody() {
@@ -113,13 +106,39 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-const ReleasesV2DetailContainer = (props: Props) => {
-  const {organization, location, router, params} = props;
+class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization, params} = this.props;
+    // fetch projects this release belongs to
+    return [
+      [
+        'release',
+        `/organizations/${organization.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/`,
+      ],
+    ];
+  }
 
-  const projectId = location.query.project;
+  componentDidUpdate() {
+    // everything is fine if there is a project in URL
+    if (!this.state.release || !this.isProjectMissingInUrl()) {
+      return;
+    }
 
-  // if there is no project in url, present a project selector
-  if (!projectId || typeof projectId !== 'string') {
+    const {projects} = this.state.release;
+    const {organization, params, router} = this.props;
+    const path = `/organizations/${organization.slug}/releases-v2/${encodeURIComponent(
+      params.release
+    )}/?project=`;
+
+    // if the project in URL is missing, but this release belongs to only one project, redirect there
+    if (projects.length === 1) {
+      router.replace(path + projects[0].id);
+      return;
+    }
+
+    // otherwise open project selector (only projects that have this release are options there)
     openModal(
       ({Header, Body}) => (
         <ContextPickerModal
@@ -127,12 +146,11 @@ const ReleasesV2DetailContainer = (props: Props) => {
           Body={Body}
           needOrg={false}
           needProject
-          nextPath={`/organizations/${organization.slug}/releases-v2/${encodeURIComponent(
-            params.release
-          )}/?project=:project`}
+          nextPath={`${path}:project`}
           onFinish={pathname => {
             router.replace(pathname);
           }}
+          projectSlugs={projects.map(p => p.slug)}
         />
       ),
       {
@@ -142,23 +160,37 @@ const ReleasesV2DetailContainer = (props: Props) => {
         },
       }
     );
-
-    return <ContextPickerBackground />;
   }
 
-  // otherwhise business as usual
-  return (
-    <React.Fragment>
-      <GlobalSelectionHeader
-        organization={organization}
-        shouldForceProject
-        lockedMessageSubject={t('release')}
-        forceProject={organization.projects.find(p => p.id === projectId)}
-      />
-      <ReleasesV2Detail {...props} />
-    </React.Fragment>
-  );
-};
+  isProjectMissingInUrl() {
+    const projectId = this.props.location.query.project;
+
+    return !projectId || typeof projectId !== 'string';
+  }
+
+  renderBody() {
+    const {organization} = this.props;
+    const {projects} = this.state.release;
+
+    if (this.isProjectMissingInUrl()) {
+      return <ContextPickerBackground />;
+    }
+
+    return (
+      <React.Fragment>
+        <GlobalSelectionHeader
+          organization={organization}
+          lockedMessageSubject={t('release')}
+          shouldForceProject={projects.length === 1}
+          forceProject={projects.length === 1 ? projects[0] : undefined}
+          projectSlugs={projects.map(p => p.slug)}
+          disableMultipleProjectSelection
+        />
+        <ReleasesV2Detail {...this.props} />
+      </React.Fragment>
+    );
+  }
+}
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
