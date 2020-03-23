@@ -21,14 +21,14 @@ type State = {
 /**
  * Higher order component that takes projectSlugs and provides list of that projects from ProjectsStore
  */
-const withProjectsBySlugs = <P extends InjectedProjectsProps>(
+const withProjectsSpecified = <P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   createReactClass<
     Omit<P, keyof InjectedProjectsProps> & Partial<InjectedProjectsProps>,
     State
   >({
-    displayName: `withProjectsBySlugs(${getDisplayName(WrappedComponent)})`,
+    displayName: `withProjectsSpecified(${getDisplayName(WrappedComponent)})`,
     propTypes: {
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,
@@ -53,4 +53,4 @@ const withProjectsBySlugs = <P extends InjectedProjectsProps>(
     },
   });
 
-export default withProjectsBySlugs;
+export default withProjectsSpecified;

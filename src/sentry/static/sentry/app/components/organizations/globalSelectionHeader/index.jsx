@@ -33,7 +33,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjectsBySlugs from 'app/utils/withProjectsBySlugs';
+import withProjectsSpecified from 'app/utils/withProjectsSpecified';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
@@ -712,7 +712,7 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withProjectsBySlugs(
+export default withProjectsSpecified(
   withRouter(withGlobalSelection(GlobalSelectionHeader))
 );
 
