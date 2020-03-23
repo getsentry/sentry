@@ -15,7 +15,7 @@ import {Client} from 'app/api';
 import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
 import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 import FormModel from 'app/views/settings/components/forms/model';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex.tsx';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;
@@ -180,10 +180,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
   /**
    * This function determines which fields need to be reset and new options fetched
    * based on the dependencies defined with the depends_on attribute.
-   * This is a hack to get around the issue that the autoLoad parameter for the deprecated
-   * Select control does not actually get componn
+   * This is done because the autoload flag causes fields to load at different times
+   * if you have multiple dependent fields while this solution updates state at once.
    */
-  handleFieldChange = async (id: string, _value: FieldValue) => {
+  handleFieldChange = async (id: string) => {
     const config = this.state;
 
     let requiredFields = config.required_fields || [];
@@ -204,7 +204,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     const choiceArray = await Promise.all(
       impactedFields.map(field => {
         //reset all impacted fields first
-        this.model.setValue(field.name || '', '', true);
+        this.model.setValue(field.name || '', '', {quiet: true});
         return this.makeExternalRequest(field, '');
       })
     );
