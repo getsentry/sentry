@@ -327,12 +327,14 @@
   display: flex;
   margin: -20px -40px;
   background: #fff;
+  flex-direction: column;
+
+  @media (min-width: 1200px) {
+    flex-direction: row;
+  }
 
   .primary {
     flex: 1;
-    // TODO(dcramer): whatever flex is doing here is causing this to extend to
-    // whatever it pleases (e.g. 4k pixels on my 1280 screen)
-    max-width: ~'calc(100% - 365px)';
 
     .user-report {
       border-radius: 0;
@@ -344,12 +346,22 @@
 
       padding-bottom: 0;
     }
+
+    @media (min-width: 1200px) {
+      // TODO(dcramer): whatever flex is doing here is causing this to extend to
+      // whatever it pleases (e.g. 4k pixels on my 1280 screen)
+      max-width: ~'calc(100% - 365px)';
+    }
   }
 
   .secondary {
-    width: 365px;
+    width: 100%;
     padding: 30px 40px 30px 30px;
     border-left: 1px solid @trim;
+
+    @media (min-width: 1200px) {
+      width: 365px;
+    }
   }
 }
 

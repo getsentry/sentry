@@ -5,6 +5,7 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   address: string;
@@ -118,7 +119,7 @@ const Address = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.foreground};
   letter-spacing: -0.25px;
-  width: 117px;
+  width: 100%;
   flex-grow: 0;
   flex-shrink: 0;
   display: block;
@@ -126,6 +127,15 @@ const Address = styled('span')`
 
   &:hover ${Toggle} {
     visibility: visible;
+  }
+
+  order: 1;
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    ${overflowEllipsis}
+  }
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    width: 117px;
+    order: 0;
   }
 `;
 

@@ -18,6 +18,7 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 import {IconRefresh, IconAdd, IconSubtract} from 'app/icons';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import FrameDefaultTitle from './frameDefaultTitle';
 import FrameContext from './frameContext';
@@ -211,7 +212,7 @@ export class Frame extends React.Component {
 
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
-      return <span className="leads-to-app-hint">{'Called from: '}</span>;
+      return <LeadHint className="leads-to-app-hint">{t('Called from: ')}</LeadHint>;
     } else {
       return null;
     }
@@ -268,14 +269,16 @@ export class Frame extends React.Component {
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
           <NativeLineContent>
-            {this.renderLeadHint()}
-            <PackageLink
-              packagePath={data.package}
-              onClick={this.scrollToImage}
-              isClickable={this.shouldShowLinkToImage()}
-            >
-              <PackageStatus status={this.packageStatus()} />
-            </PackageLink>
+            <PackageInfo>
+              {this.renderLeadHint()}
+              <PackageLink
+                packagePath={data.package}
+                onClick={this.scrollToImage}
+                isClickable={this.shouldShowLinkToImage()}
+              >
+                <PackageStatus status={this.packageStatus()} />
+              </PackageLink>
+            </PackageInfo>
             <TogglableAddress
               address={data.instructionAddr}
               startingAddress={image ? image.image_addr : null}
@@ -381,24 +384,35 @@ const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
 `;
 
-const NativeLineContent = styled(VertCenterWrapper)`
-  flex: 1;
-  overflow: hidden;
-  justify-content: center;
-
-  & > span {
-    display: block;
-    padding: 0 5px;
-  }
-
-  flex-direction: column;
+const PackageInfo = styled('div')`
+  order: 2;
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    flex-direction: row;
+    order: 0;
+  }
+  display: grid;
+  grid-template-columns: auto 1fr;
+`;
+
+const NativeLineContent = styled('div')`
+  display: grid;
+  flex: 1;
+  grid-gap: ${space(0.5)};
+  grid-template-columns: 117px 1fr;
+  align-items: flex-start;
+  justify-content: flex-start;
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: 1fr;
+  }
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    grid-template-columns: 150px 117px 1fr auto;
   }
 `;
 
-const DefaultLine = styled(VertCenterWrapper)`
-  justify-content: space-between;
+const DefaultLine = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
 `;
 
 const HintStatus = styled(InlineSvg)`
@@ -408,14 +422,26 @@ const HintStatus = styled(InlineSvg)`
 `;
 
 const Symbol = styled('span')`
-  text-align: center;
+  text-align: left;
+  grid-column-start: 1;
+  grid-column-end: -1;
+  order: 3;
+
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    text-align: left;
+    order: 0;
+    grid-column-start: auto;
+    grid-column-end: auto;
   }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
+`;
+
+const LeadHint = styled('div')`
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    ${overflowEllipsis}
+  }
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

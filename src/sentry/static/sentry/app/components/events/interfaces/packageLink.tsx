@@ -7,6 +7,7 @@ import {defined} from 'app/utils';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   packagePath: string;
@@ -30,10 +31,10 @@ class PackageLink extends React.Component<Props> {
       <Package onClick={this.handleClick} isClickable={isClickable}>
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <PackageName>{trimPackage(packagePath)}</PackageName>
+            <TooltipContent>{trimPackage(packagePath)}</TooltipContent>
           </Tooltip>
         ) : (
-          <PackageName>{'<unknown>'}</PackageName>
+          <span>{'<unknown>'}</span>
         )}
         {children}
         {isClickable && <LinkChevron src="icon-chevron-right" />}
@@ -51,11 +52,6 @@ const LinkChevron = styled(InlineSvg)`
 const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  flex-grow: 0;
-  flex-shrink: 0;
   padding: 0 0 0 ${space(0.5)};
   color: ${p => p.theme.foreground};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
@@ -69,18 +65,15 @@ const Package = styled('a')<Partial<Props>>`
       opacity: 1;
     }
   }
-  flex-basis: auto;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    flex-basis: 137px;
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    ${overflowEllipsis}
   }
 `;
 
-const PackageName = styled('span')`
-  display: block;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 104px;
+const TooltipContent = styled('span')`
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    ${overflowEllipsis}
+  }
 `;
 
 export default PackageLink;
