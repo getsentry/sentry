@@ -12,6 +12,7 @@ import ExternalIssueList from 'app/components/group/externalIssuesList';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
 import SubscribeButton from 'app/components/subscribeButton';
@@ -253,7 +254,9 @@ class GroupSidebar extends React.Component {
         {this.renderPluginIssue()}
 
         <h6>
-          <span>{t('Tags')}</span>
+          <GuideAnchor target="tags" position="bottom">
+            <span>{t('Tags')}</span>
+          </GuideAnchor>
         </h6>
         {this.state.tagsWithTopValues &&
           group.tags.map(tag => {

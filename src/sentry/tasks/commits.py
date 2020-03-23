@@ -6,7 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import (
     Deploy,
     LatestRepoReleaseEnvironment,

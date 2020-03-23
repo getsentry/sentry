@@ -24,12 +24,13 @@ import {
 import {
   TableGrid,
   GridHead,
-  GridRow,
   GridBody,
   GridHeadCell,
   GridBodyCell,
   GridBodyCellNumber,
+  SummaryGridRow,
 } from '../styles';
+import LatencyChart from './latencyChart';
 
 type Props = {
   eventView: EventView;
@@ -41,7 +42,7 @@ type Props = {
 };
 
 class SummaryContentTable extends React.Component<Props> {
-  renderHeader = () => {
+  renderHeader() {
     const {eventView, tableData} = this.props;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
@@ -69,7 +70,7 @@ class SummaryContentTable extends React.Component<Props> {
         }}
       </HeaderCell>
     ));
-  };
+  }
 
   renderResults() {
     const {isLoading, tableData} = this.props;
@@ -107,20 +108,18 @@ class SummaryContentTable extends React.Component<Props> {
       assert(tableData.meta);
 
       return (
-        <React.Fragment key={index}>
-          <GridRow numOfColumns={columnOrder.length}>
-            {this.renderRowItem(row, columnOrder, tableData.meta)}
-          </GridRow>
-        </React.Fragment>
+        <SummaryGridRow key={index}>
+          {this.renderRowItem(row, columnOrder, tableData.meta)}
+        </SummaryGridRow>
       );
     });
   }
 
-  renderRowItem = (
+  renderRowItem(
     row: TableDataRow,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ) => {
+  ) {
     const {organization, location, eventView} = this.props;
 
     return columnOrder.map((column, index) => {
@@ -155,14 +154,23 @@ class SummaryContentTable extends React.Component<Props> {
 
       return <GridBodyCell key={column.key}>{rendered}</GridBodyCell>;
     });
-  };
+  }
 
   render() {
-    const {eventView, organization} = this.props;
-    const columnOrder = eventView.getColumns();
+    const {eventView, location, organization} = this.props;
 
     return (
       <div>
+        <LatencyChart
+          organization={organization}
+          location={location}
+          query={eventView.query}
+          project={eventView.project}
+          environment={eventView.environment}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+        />
         <Header>
           <HeaderTitle>{t('Slowest Requests')}</HeaderTitle>
           <HeaderButtonContainer>
@@ -177,7 +185,7 @@ class SummaryContentTable extends React.Component<Props> {
         <Panel>
           <TableGrid>
             <GridHead>
-              <GridRow numOfColumns={columnOrder.length}>{this.renderHeader()}</GridRow>
+              <SummaryGridRow>{this.renderHeader()}</SummaryGridRow>
             </GridHead>
             <GridBody>{this.renderResults()}</GridBody>
           </TableGrid>
@@ -203,12 +211,6 @@ export const Header = styled('div')`
 export const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
-
-  /* Hovercard anchor element when features are disabled. */
-  & > span {
-    display: flex;
-    flex-direction: row;
-  }
 `;
 
 export default SummaryContentTable;

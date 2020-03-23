@@ -9,12 +9,12 @@ import space from 'app/styles/space';
 import {IconClose} from 'app/icons';
 import {slideInLeft} from 'app/styles/animations';
 
-type Props = React.HTMLProps<HTMLDivElement> & {
-  title?: string;
-  collapsed?: boolean;
-  orientation?: 'top' | 'left';
-  hidePanel?: () => void;
-};
+import {CommonSidebarProps} from './types';
+
+type Props = React.HTMLProps<HTMLDivElement> &
+  Pick<CommonSidebarProps, 'collapsed' | 'orientation' | 'hidePanel'> & {
+    title?: string;
+  };
 
 /**
  * Get the container element of the sidebar that react portals into.
@@ -66,7 +66,9 @@ class SidebarPanel extends React.Component<Props> {
 
 export default SidebarPanel;
 
-const getPositionForOrientation = (p: Props & {theme: Theme}) =>
+const getPositionForOrientation = (
+  p: Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {theme: Theme}
+) =>
   p.orientation === 'top'
     ? css`
         top: ${p.theme.sidebar.mobileHeight};
@@ -74,7 +76,7 @@ const getPositionForOrientation = (p: Props & {theme: Theme}) =>
         right: 0;
       `
     : css`
-        width: ${p.theme.sidebar.panel.width};
+        width: 320px;
         top: 0;
         left: ${p.collapsed
           ? p.theme.sidebar.collapsedWidth

@@ -17,16 +17,14 @@ import TextOverflow from 'app/components/textOverflow';
 import withApi from 'app/utils/withApi';
 import {Organization, User, Config} from 'app/types';
 import {Client} from 'app/api';
-import {SidebarOrientation} from 'app/components/sidebar/types';
 import space from 'app/styles/space';
 
+import {CommonSidebarProps} from '../types';
 import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
 
-type Props = {
+type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
-  orientation: SidebarOrientation;
-  collapsed: boolean;
   org: Organization;
   user: User;
   config: Config;

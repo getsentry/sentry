@@ -58,31 +58,35 @@ storiesOf('Utility|Formatters', module)
   )
   .add(
     'Duration',
-    withInfo('Formats number of seconds into a duration string')(() => (
-      <div>
+    withInfo('Formats number of seconds into a duration string')(() => {
+      const exact = boolean('exact', false);
+      const abbreviation = boolean('abbreviation', false);
+      return (
         <div>
-          <Duration seconds={15} />
+          <div>
+            <Duration seconds={15} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={60} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={15000} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={86400} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={186400} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={604800} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={1500000} exact={exact} abbreviation={abbreviation} />
+          </div>
         </div>
-        <div>
-          <Duration seconds={60} />
-        </div>
-        <div>
-          <Duration seconds={15000} />
-        </div>
-        <div>
-          <Duration seconds={86400} />
-        </div>
-        <div>
-          <Duration seconds={186400} />
-        </div>
-        <div>
-          <Duration seconds={604800} />
-        </div>
-        <div>
-          <Duration seconds={1500000} />
-        </div>
-      </div>
-    ))
+      );
+    })
   )
   .add(
     'Count',

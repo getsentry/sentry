@@ -8,28 +8,36 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {percent} from 'app/utils';
+import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {getExactDuration} from 'app/utils/formatters';
 
+import {YAxis} from './releaseChartControls';
+import {getInterval} from './utils';
 import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
-import {YAxis} from '.';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
-    ['api', 'version', 'orgId', 'projectSlug', 'children'].includes(key)
+    ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
 type ChartData = {
   [key: string]: Series;
 };
 
-type RenderProps = {
+type Data = {
+  chartData: Series[];
+  chartSummary: React.ReactNode;
+  crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
+};
+
+export type ReleaseStatsRequestRenderProps = Data & {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
-  timeseriesData: Series[];
 };
 
 type Props = {
@@ -40,17 +48,16 @@ type Props = {
   selection: GlobalSelection;
   location: Location;
   yAxis: YAxis;
-  onSummaryChange: (summary: React.ReactNode) => void;
-  children: (renderProps: RenderProps) => React.ReactNode;
+  children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
 };
 type State = {
   reloading: boolean;
   errored: boolean;
-  data: Series[] | null;
+  data: Data | null;
 };
 
-class ReleaseChartRequest extends React.Component<Props, State> {
-  state = {
+class ReleaseStatsRequest extends React.Component<Props, State> {
+  state: State = {
     reloading: false,
     errored: false,
     data: null,
@@ -74,7 +81,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    let data: Series[] | null;
+    let data: Data | null = null;
     const {yAxis} = this.props;
 
     this.setState(state => ({
@@ -83,12 +90,19 @@ class ReleaseChartRequest extends React.Component<Props, State> {
     }));
 
     try {
-      data = await (yAxis === 'crashFree' ? this.fetchRateData : this.fetchCountData)();
+      if (yAxis === 'crashFree') {
+        data = await this.fetchRateData();
+      } else {
+        // session duration uses same endpoint as sessions
+        data = await this.fetchCountData(
+          yAxis === 'sessionDuration' ? 'sessions' : yAxis
+        );
+      }
     } catch {
       addErrorMessage(t('Error loading chart data'));
-      data = null;
       this.setState({
         errored: true,
+        data: null,
       });
     }
 
@@ -102,17 +116,22 @@ class ReleaseChartRequest extends React.Component<Props, State> {
     });
   };
 
-  fetchCountData = async () => {
+  fetchCountData = async (type: YAxis) => {
     const {api, yAxis} = this.props;
 
     const response = await api.requestPromise(this.statsPath, {
       query: {
         ...this.baseQueryParams,
-        type: yAxis,
+        type,
       },
     });
 
-    return this.transformCountData(response.stats, yAxis);
+    const transformedData =
+      yAxis === 'sessionDuration'
+        ? this.transformSessionDurationData(response.stats)
+        : this.transformCountData(response.stats, yAxis);
+
+    return {...transformedData, crashFreeTimeBreakdown: response.usersBreakdown};
   };
 
   fetchRateData = async () => {
@@ -133,7 +152,12 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       }),
     ]);
 
-    return this.transformRateData(userResponse.stats, sessionResponse.stats);
+    const transformedData = this.transformRateData(
+      userResponse.stats,
+      sessionResponse.stats
+    );
+
+    return {...transformedData, crashFreeTimeBreakdown: userResponse.usersBreakdown};
   };
 
   get statsPath() {
@@ -143,12 +167,15 @@ class ReleaseChartRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location} = this.props;
+    const {location, selection} = this.props;
 
-    return pick(location.query, [...Object.values(URL_PARAM)]);
+    return {
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      interval: getInterval(selection.datetime),
+    };
   }
 
-  transformCountData(data, yAxis: string): Series[] {
+  transformCountData(responseData, yAxis: string): Omit<Data, 'crashFreeTimeBreakdown'> {
     let summary = 0;
     // here we can configure colors of the chart
     const chartData: ChartData = {
@@ -170,7 +197,7 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       },
     };
 
-    data.forEach(entry => {
+    responseData.forEach(entry => {
       const [timeframe, values] = entry;
       const date = timeframe * 1000;
       summary += values[yAxis];
@@ -180,12 +207,13 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       chartData.total.data.push({name: date, value: values[yAxis]});
     });
 
-    this.props.onSummaryChange(summary.toLocaleString());
-
-    return Object.values(chartData);
+    return {chartData: Object.values(chartData), chartSummary: summary.toLocaleString()};
   }
 
-  transformRateData(users, sessions) {
+  transformRateData(
+    responseUsersData,
+    responseSessionsData
+  ): Omit<Data, 'crashFreeTimeBreakdown'> {
     const chartData: ChartData = {
       users: {
         seriesName: t('Crash Free Users'),
@@ -208,37 +236,67 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       },
     };
 
-    const calculateDatePercentage = (data, subject) => {
-      const percentageData = data.map(entry => {
+    const calculateDatePercentage = (responseData, subject: YAxis) => {
+      const percentageData = responseData.map(entry => {
         const [timeframe, values] = entry;
         const date = timeframe * 1000;
 
-        const crashFreePercent = getCrashFreePercent(
-          100 - percent(values[`${subject}_crashed`], values[subject])
-        );
+        const crashFreePercent =
+          values[subject] !== 0
+            ? getCrashFreePercent(
+                100 - percent(values[`${subject}_crashed`], values[subject])
+              )
+            : null;
 
         return {name: date, value: crashFreePercent};
       });
 
-      const averagePercent = displayCrashFreePercent(meanBy(percentageData, 'value'));
+      const averagePercent = displayCrashFreePercent(
+        meanBy(
+          percentageData.filter(item => defined(item.value)),
+          'value'
+        )
+      );
 
       return {averagePercent, percentageData};
     };
 
-    const usersPercentages = calculateDatePercentage(users, 'users');
+    const usersPercentages = calculateDatePercentage(responseUsersData, 'users');
     chartData.users.data = usersPercentages.percentageData;
 
-    const sessionsPercentages = calculateDatePercentage(sessions, 'sessions');
+    const sessionsPercentages = calculateDatePercentage(responseSessionsData, 'sessions');
     chartData.sessions.data = sessionsPercentages.percentageData;
 
-    this.props.onSummaryChange(
-      tct('[usersPercent] users, [sessionsPercent] sessions', {
-        usersPercent: usersPercentages.averagePercent,
-        sessionsPercent: sessionsPercentages.averagePercent,
-      })
-    );
+    const summary = tct('[usersPercent] users, [sessionsPercent] sessions', {
+      usersPercent: usersPercentages.averagePercent,
+      sessionsPercent: sessionsPercentages.averagePercent,
+    });
 
-    return Object.values(chartData);
+    return {chartData: Object.values(chartData), chartSummary: summary};
+  }
+
+  transformSessionDurationData(responseData): Omit<Data, 'crashFreeTimeBreakdown'> {
+    // here we can configure colors of the chart
+    const chartData: Series = {
+      seriesName: t('Session Duration'),
+      data: [],
+    };
+
+    responseData.forEach(entry => {
+      const [timeframe, values] = entry;
+      const date = timeframe * 1000;
+      chartData.data.push({name: date, value: Math.round(values.duration_p50)});
+    });
+
+    const sessionDurationAverage = Math.round(
+      meanBy(
+        chartData.data.filter(item => defined(item.value)),
+        'value'
+      )
+    );
+    const summary = getExactDuration(sessionDurationAverage ?? 0);
+
+    return {chartData: [chartData], chartSummary: summary};
   }
 
   render() {
@@ -250,9 +308,11 @@ class ReleaseChartRequest extends React.Component<Props, State> {
       loading,
       reloading,
       errored,
-      timeseriesData: data ?? [],
+      chartData: data?.chartData ?? [],
+      chartSummary: data?.chartSummary ?? '',
+      crashFreeTimeBreakdown: data?.crashFreeTimeBreakdown ?? {},
     });
   }
 }
 
-export default ReleaseChartRequest;
+export default ReleaseStatsRequest;

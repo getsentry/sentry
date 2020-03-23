@@ -424,17 +424,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                       align="center"
                                       size="small"
                                     >
-                                      <Component
-                                        align="center"
+                                      <span
                                         className="css-19gcr2f-ButtonLabel edwq9my1"
-                                        size="small"
                                       >
-                                        <span
-                                          className="css-19gcr2f-ButtonLabel edwq9my1"
-                                        >
-                                          Compare
-                                        </span>
-                                      </Component>
+                                        Compare
+                                      </span>
                                     </ButtonLabel>
                                   </button>
                                 </Component>
@@ -491,17 +485,11 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     align="center"
                                     size="small"
                                   >
-                                    <Component
-                                      align="center"
+                                    <span
                                       className="css-19gcr2f-ButtonLabel edwq9my1"
-                                      size="small"
                                     >
-                                      <span
-                                        className="css-19gcr2f-ButtonLabel edwq9my1"
-                                      >
-                                        Collapse All
-                                      </span>
-                                    </Component>
+                                      Collapse All
+                                    </span>
                                   </ButtonLabel>
                                 </button>
                               </Component>

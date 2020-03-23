@@ -21,7 +21,7 @@ from sentry.models import (
     User,
 )
 
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models.apitoken import generate_token
 from sentry.tasks.base import instrumented_task, retry
 

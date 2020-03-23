@@ -6,12 +6,11 @@ import AsyncComponent from 'app/components/asyncComponent';
 import CommitRow from 'app/components/commitRow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Repository, Commit, GlobalSelection} from 'app/types';
+import {Repository, Commit} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -24,9 +23,7 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  selection: GlobalSelection;
-};
+type Props = RouteComponentProps<RouteParams, {}>;
 
 type State = {
   commits: Commit[];
@@ -45,10 +42,10 @@ class ReleaseCommits extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {params, selection} = this.props;
+    const {params} = this.props;
     const {orgId, release} = params;
 
-    const project = this.context.projects.find(p => p.id === selection.projects[0]);
+    const {project} = this.context;
 
     return [
       [
@@ -132,9 +129,13 @@ class ReleaseCommits extends AsyncComponent<Props, State> {
             )}
           </React.Fragment>
         ) : (
-          <EmptyStateWarning small>
-            {t('There are no commits associated with this release.')}
-          </EmptyStateWarning>
+          <Panel>
+            <PanelBody>
+              <EmptyStateWarning small>
+                {t('There are no commits associated with this release.')}
+              </EmptyStateWarning>
+            </PanelBody>
+          </Panel>
         )}
       </ContentBox>
     );
@@ -160,4 +161,4 @@ const RepoLabel = styled('div')`
   ${overflowEllipsisLeft}
 `;
 
-export default withGlobalSelection(ReleaseCommits);
+export default ReleaseCommits;
