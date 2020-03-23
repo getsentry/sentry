@@ -114,6 +114,7 @@ import six
 from datetime import datetime
 from sentry.utils.apidocs import MockUtils, Runner, iter_scenarios, iter_endpoints, get_sections
 from sentry.web.helpers import render_to_string
+from sentry.utils.integrationdocs import sync_docs
 
 
 def color_for_string(s):
@@ -166,6 +167,12 @@ def cli(output_path, output_format):
         event1 = utils.create_event(project=project, release=release, platform="python")
         event2 = utils.create_event(project=project, release=release, platform="java")
         projects.append({"project": project, "release": release, "events": [event1, event2]})
+
+    # HACK: the scenario in ProjectDetailsEndpoint#put requires our integration docs to be in place
+    # so that we can validate the platform. We create the docker container that runs generator.py
+    # with SENTRY_LIGHT_BUILD=1, which doesn't run `sync_docs` and `sync_docs` requires sentry
+    # to be configured, which we do in this file. So, we need to do the sync_docs here.
+    sync_docs(quiet=True)
 
     vars = {
         "org": org,
