@@ -231,16 +231,17 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
                 break
 
     for i in range(num_buckets):
-        bucket = bucket_size * (i + 1)
+        bucket = bucket_size * i
         if bucket not in bucket_map:
             bucket_map[bucket] = build_new_bucket_row(bucket)
 
     # If the list was sorted, pull results out in sorted order, else concat the results
     if is_sorted:
-        i, diff, end = (0, 1, num_buckets - 1) if not is_reversed else (num_buckets - 1, -1, 0)
+        i, diff, end = (0, 1, num_buckets) if not is_reversed else (num_buckets, -1, 0)
         while i <= end:
-            bucket = bucket_size * (i + 1)
-            new_results.append(bucket_map[bucket])
+            bucket = bucket_size * i
+            if bucket in bucket_map:
+                new_results.append(bucket_map[bucket])
             i += diff
     else:
         new_results = results
