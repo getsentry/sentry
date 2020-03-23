@@ -9,15 +9,16 @@ from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
-from sentry.constants import ExportQueryType
-from sentry.models import Environment, ExportedData
-from sentry.tasks.data_export import assemble_download
+from sentry.models import Environment
 from sentry.utils import metrics
+
+from ..base import ExportQueryType
+from ..models import ExportedData
+from ..tasks import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
-    # TODO(Leander): Implement query_info validation with jsonschema
     query_info = serializers.JSONField(required=True)
 
 
