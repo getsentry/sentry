@@ -19,7 +19,7 @@ from sentry.utils import json, metrics
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
 
-MAX_ATTEMPTS = 3
+MAX_ATTEMPTS = 2
 REQUEST_CACHE_TIMEOUT = 3600
 
 logger = logging.getLogger(__name__)
@@ -347,7 +347,10 @@ class SymbolicatorSession(object):
 
         while True:
             try:
-                response = self.session.request(method, url, **kwargs)
+                with metrics.timer("events.symbolicator.request", tags={"attempt": attempts}):
+                    response = self.session.request(
+                        method, url, timeout=settings.SYMBOLICATOR_POLL_TIMEOUT + 1, **kwargs
+                    )
 
                 metrics.incr(
                     "events.symbolicator.status_code",
@@ -385,7 +388,6 @@ class SymbolicatorSession(object):
                     raise
 
                 time.sleep(wait)
-                wait *= 2.0
 
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
