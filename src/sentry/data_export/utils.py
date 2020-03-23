@@ -4,6 +4,7 @@ import six
 from contextlib import contextmanager
 
 from sentry.utils import metrics, snuba
+
 from .base import ExportError
 
 

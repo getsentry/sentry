@@ -11,10 +11,10 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception
 
-from .base import ExportQueryType, ExportError, SNUBA_MAX_RESULTS
+from .base import ExportError, ExportQueryType, SNUBA_MAX_RESULTS
 from .models import ExportedData
 from .utils import snuba_error_handler
-from .processors.issue_by_tag import IssuesByTagProcessor
+from .processors.issues_by_tag import IssuesByTagProcessor
 
 
 logger = logging.getLogger(__name__)
