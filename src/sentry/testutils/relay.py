@@ -93,11 +93,6 @@ class RelayStoreHelper(object):
         return True
 
     def post_and_retrieve_event(self, data):
-        event = self.post_and_try_retrieve_event(data)
-        assert event is not None
-        return event
-
-    def post_and_try_retrieve_event(self, data):
         url = self.get_relay_store_url(self.project.id)
         responses.add_passthru(url)
         resp = requests.post(
@@ -106,16 +101,22 @@ class RelayStoreHelper(object):
             json=data,
         )
 
-        if not resp.ok:
-            return None
-
+        assert resp.ok
         resp_body = resp.json()
         event_id = resp_body["id"]
 
         event = self.wait_for_ingest_consumer(
             lambda: eventstore.get_event_by_id(self.project.id, event_id)
         )
+        # check that we found it in Snuba
+        assert event is not None
         return event
+
+    def post_and_try_retrieve_event(self, data):
+        try:
+            return self.post_and_retrieve_event(data)
+        except AssertionError:
+            return None
 
     def setUp(self):  # NOQA
         self.auth_header = get_auth_header(
