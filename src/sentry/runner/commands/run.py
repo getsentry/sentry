@@ -8,6 +8,7 @@ import click
 
 from sentry.runner.decorators import configuration, log_options
 from sentry.bgtasks.api import managed_bgtasks
+from sentry.ingest.types import ConsumerType
 
 
 class AddressParamType(click.ParamType):
@@ -412,11 +413,18 @@ def batching_kafka_options(group):
 @run.command("ingest-consumer")
 @log_options()
 @click.option(
+    "consumer_types",
     "--consumer-type",
-    default=None,
-    required=True,
-    help="Specify which type of consumer to create, i.e. from which topic to consume messages.",
-    type=click.Choice(["events", "transactions", "attachments"]),
+    default=[],
+    multiple=True,
+    help="Specify which type of consumer to create, i.e. from which topic to consume messages. By default all ingest-related topics are consumed ",
+    type=click.Choice(ConsumerType.all()),
+)
+@click.option(
+    "--all-consumer-types",
+    default=False,
+    is_flag=True,
+    help="Listen to all consumer types at once.",
 )
 @batching_kafka_options("ingest-consumer")
 @click.option(
@@ -426,25 +434,31 @@ def batching_kafka_options(group):
     help="Spawn this many threads to process messages. Defaults to 1.",
 )
 @configuration
-def ingest_consumer(consumer_type, **options):
+def ingest_consumer(consumer_types, all_consumer_types, **options):
     """
     Runs an "ingest consumer" task.
 
     The "ingest consumer" tasks read events from a kafka topic (coming from Relay) and schedules
     process event celery tasks for them
     """
-    from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+    from sentry.ingest.ingest_consumer import get_ingest_consumer
     from sentry.utils import metrics
 
-    if consumer_type == "events":
-        consumer_type = ConsumerType.Events
-    elif consumer_type == "transactions":
-        consumer_type = ConsumerType.Transactions
-    elif consumer_type == "attachments":
-        consumer_type = ConsumerType.Attachments
+    if all_consumer_types:
+        if consumer_types:
+            raise click.ClickException(
+                "Cannot specify --all-consumer types and --consumer-type at the same time"
+            )
+        else:
+            consumer_types = set(ConsumerType.all())
 
-    with metrics.global_tags(ingest_consumer_type=consumer_type, _all_threads=True):
-        get_ingest_consumer(consumer_type=consumer_type, **options).run()
+    if not all_consumer_types and not consumer_types:
+        raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
+
+    with metrics.global_tags(
+        ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
+    ):
+        get_ingest_consumer(consumer_types=consumer_types, **options).run()
 
 
 @run.command("outcomes-consumer")

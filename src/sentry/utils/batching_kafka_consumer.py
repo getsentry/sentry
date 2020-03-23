@@ -139,10 +139,10 @@ class BatchingKafkaConsumer(object):
         # new messages)
         self.__batch_processing_time_ms = 0.0
 
-        if not isinstance(topics, (list, tuple)):
-            topics = [topics]
-        elif isinstance(topics, tuple):
+        if isinstance(topics, (tuple, set)):
             topics = list(topics)
+        elif not isinstance(topics, list):
+            topics = [topics]
 
         self.consumer = self.create_consumer(
             topics,
