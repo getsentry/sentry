@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import {browserHistory} from 'react-router';
 
 import {Panel} from 'app/components/panels';
 import {IconQuestion, IconWarning} from 'app/icons';
@@ -98,6 +99,50 @@ class LatencyChart extends AsyncComponent<Props, State> {
     );
   }
 
+  handleClick = value => {
+    const {chartData} = this.state;
+    if (chartData === null) {
+      return;
+    }
+    const {location} = this.props;
+
+    // Only bars that are 'active' will have itemStyle set.
+    // See transformData()
+    const isActive = value.data.hasOwnProperty('itemStyle');
+    const valueIndex = value.dataIndex;
+
+    // If the active bar is clicked again we need to remove the constraints.
+    const startDuration = isActive
+      ? undefined
+      : chartData.data[valueIndex].histogram_transaction_duration_15;
+    const endDuration =
+      typeof startDuration === 'number' ? startDuration + this.bucketWidth : undefined;
+
+    const target = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        startDuration,
+        endDuration,
+      },
+    };
+    browserHistory.push(target);
+  };
+
+  get bucketWidth() {
+    if (this.state.chartData === null) {
+      return 0;
+    }
+    // We can assume that all buckets are of equal width, use the first two
+    // buckets to get the width. The value of each histogram function indicates
+    // the beginning of the bucket.
+    const data = this.state.chartData.data;
+    return data.length > 2
+      ? data[1].histogram_transaction_duration_15 -
+          data[0].histogram_transaction_duration_15
+      : 0;
+  }
+
   renderLoading() {
     return <LoadingPanel data-test-id="histogram-loading" />;
   }
@@ -116,6 +161,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
     if (chartData === null) {
       return null;
     }
+    const {location} = this.props;
     const xAxis = {
       type: 'category',
       truncate: true,
@@ -133,8 +179,9 @@ class LatencyChart extends AsyncComponent<Props, State> {
         grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
-        series={transformData(chartData.data)}
+        series={transformData(chartData.data, location, this.bucketWidth)}
         colors={['rgba(140, 79, 189, 0.3)']}
+        onClick={this.handleClick}
       />
     );
   }
@@ -179,20 +226,24 @@ class LatencyChart extends AsyncComponent<Props, State> {
 /**
  * Convert a discover response into a barchart compatible series
  */
-function transformData(data: ApiResult[]) {
-  // We can assume that all buckets are of equal width, use the first two
-  // buckets to get the width. The value of each histogram function indicates
-  // the beginning of the bucket.
-  const bucketWidth =
-    data.length > 2
-      ? data[1].histogram_transaction_duration_15 -
-        data[0].histogram_transaction_duration_15
-      : 0;
-
+function transformData(data: ApiResult[], location: Location, bucketWidth: number) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
     const midPoint = Math.ceil(bucket + bucketWidth / 2);
-    return {value: item.count, name: getDuration(midPoint / 1000, 2, true)};
+    const value: any = {
+      value: item.count,
+      name: getDuration(midPoint / 1000, 2, true),
+    };
+    if (
+      location.query.startDuration &&
+      typeof location.query.startDuration === 'string'
+    ) {
+      const start = parseInt(location.query.startDuration, 10);
+      if (bucket >= start && bucket < start + bucketWidth) {
+        value.itemStyle = {color: theme.purpleLight};
+      }
+    }
+    return value;
   });
 
   return [
