@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.rules import rules
 from rest_framework.response import Response
@@ -22,11 +21,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             node = rule_cls(project)
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if (
-                not features.has(
-                    "organizations:issue-alerts-targeting", project.organization, actor=request.user
-                )
-                and node.id == "sentry.rules.actions.notify_email.NotifyEmailAction"
-            ):
+                project.flags.has_issue_alerts_targeting
+                or request.query_params.get("issue_alerts_targeting", ["0"])[0] != "1"
+            ) and node.id == "sentry.rules.actions.notify_email.NotifyEmailAction":
                 continue
 
             if hasattr(node, "form_fields"):
