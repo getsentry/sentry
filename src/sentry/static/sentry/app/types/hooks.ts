@@ -112,6 +112,7 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding:invite-members': OnboardingInviteMembersHook;
   'onboarding:extra-chrome': GenericComponentHook;
+  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
 };
 
 /**
@@ -196,13 +197,13 @@ type AnalyticsTrackAdhocEvent = (
  */
 type AnalyticsLogExperiment = (opts: {
   /**
-   * The organiation with the experiment
+   * The organization for org based experiments
    */
-  organization: Organization;
+  organization?: Organization;
   /**
    * The experiment key
    */
-  key: string;
+  key: keyof Organization['experiments'] | keyof User['experiments'];
   /**
    * The name of the exposed unit
    */

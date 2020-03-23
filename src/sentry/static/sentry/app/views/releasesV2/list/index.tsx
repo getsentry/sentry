@@ -23,6 +23,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Projects from 'app/utils/projects';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 
@@ -97,10 +99,6 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
     return releases.flatMap(release =>
       release.projects.map(project => {
@@ -131,6 +129,37 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderEmptyMessage() {
+    const {location} = this.props;
+    const searchQuery = this.getQuery();
+
+    if (searchQuery && searchQuery.length) {
+      return (
+        <EmptyStateWarning small>{`${t(
+          'There are no releases that match'
+        )}: '${searchQuery}'.`}</EmptyStateWarning>
+      );
+    }
+
+    if (this.getSort() !== 'date') {
+      const relativePeriod = getRelativeSummary(
+        location.query.statsPeriod || DEFAULT_STATS_PERIOD
+      ).toLowerCase();
+
+      return (
+        <EmptyStateWarning small>
+          {`${t('There are no releases with data in the')} ${relativePeriod}.`}
+        </EmptyStateWarning>
+      );
+    }
+
+    return t('There are no releases.');
+  }
+
   renderInnerBody() {
     const {organization, location} = this.props;
     const {loading, releases} = this.state;
@@ -140,7 +169,7 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     if (!releases.length) {
-      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+      return this.renderEmptyMessage();
     }
 
     const projectReleases = this.transformToProjectRelease(releases);

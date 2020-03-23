@@ -3,9 +3,12 @@ from __future__ import absolute_import
 import six
 from rest_framework.exceptions import PermissionDenied
 
+
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_filter, InvalidSearchQuery
+from sentry.api.event_search import get_filter, InvalidSearchQuery, get_json_meta_type
 from sentry.models.project import Project
+from sentry.models.group import Group
 from sentry.snuba.discover import ReferenceEvent
 from sentry.utils.compat import map
 
@@ -71,3 +74,57 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         }
 
         return snuba_args
+
+
+class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    def handle_results_with_meta(self, request, organization, project_ids, results):
+        data = self.handle_data(request, organization, project_ids, results.get("data"))
+        if not data:
+            return {"data": [], "meta": {}}
+
+        meta = {
+            value["name"]: get_json_meta_type(value["name"], value["type"])
+            for value in results["meta"]
+        }
+        # Ensure all columns in the result have types.
+        for key in data[0]:
+            if key not in meta:
+                meta[key] = "string"
+        return {"meta": meta, "data": data}
+
+    def handle_data(self, request, organization, project_ids, results):
+        if not results:
+            return results
+
+        first_row = results[0]
+
+        # TODO(mark) move all of this result formatting into discover.query()
+        # once those APIs are used across the application.
+        if "transaction.status" in first_row:
+            for row in results:
+                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+
+        fields = request.GET.getlist("field")
+        issues = {}
+        if "issue" in fields:  # Look up the short ID and return that in the results
+            issue_ids = set(row["issue.id"] for row in results)
+            issues = {
+                i.id: i.qualified_short_id
+                for i in Group.objects.filter(
+                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
+                )
+            }
+            for result in results:
+                if "issue.id" in result:
+                    result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        if not ("project.id" in first_row or "projectid" in first_row):
+            return results
+
+        for result in results:
+            for key in ("projectid", "project.id"):
+                if key in result:
+                    if key not in fields:
+                        del result[key]
+
+        return results

@@ -140,6 +140,11 @@ export function escape(str: string): string {
 }
 
 export function percent(value: number, totalValue: number): number {
+  // prevent division by zero
+  if (totalValue === 0) {
+    return 0;
+  }
+
   return (value / totalValue) * 100;
 }
 

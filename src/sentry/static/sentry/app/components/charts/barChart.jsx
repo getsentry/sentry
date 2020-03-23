@@ -15,7 +15,7 @@ export default class BarChart extends React.Component {
       <BaseChart
         {...props}
         xAxis={xAxis !== null ? {...(xAxis || {}), boundaryGap: true} : null}
-        series={series.map((s, i) =>
+        series={series.map(s =>
           BarSeries({
             name: s.seriesName,
             stack: stacked ? 'stack1' : null,

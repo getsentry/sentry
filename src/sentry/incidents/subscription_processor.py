@@ -11,7 +11,6 @@ from django.db import transaction
 
 from sentry.incidents.logic import create_incident, update_incident_status
 from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
-from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -23,7 +22,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip

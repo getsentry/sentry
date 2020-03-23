@@ -9,7 +9,7 @@ import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
-from parsimonious.nodes import Node
+from parsimonious.nodes import Node, RegexNode
 from parsimonious.grammar import Grammar, NodeVisitor
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -17,6 +17,7 @@ from sentry import eventstore
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.search.utils import (
+    parse_duration,
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
@@ -45,7 +46,7 @@ def translate(pat):
         # fnmatch.translate has no way to handle escaping metacharacters.
         # Applied this basic patch to handle it:
         # https://bugs.python.org/file27570/issue8402.1.patch
-        if c == "\\":
+        if c == "\\" and i < n:
             res += re.escape(pat[i])
             i += 1
         elif c == "*":
@@ -97,7 +98,7 @@ search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
+key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
                        space?
@@ -111,12 +112,14 @@ quoted_basic_filter  = negation? search_key sep quoted_value
 time_filter          = search_key sep? operator date_format
 # filter for relative dates
 rel_time_filter      = search_key sep rel_date_format
+# filter for durations
+duration_filter      = search_key sep operator? duration_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter        = aggregate_key sep operator? numeric_value
+aggregate_filter        = aggregate_key sep operator? (numeric_value / duration_format)
 aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
 
 # has filter for not null type checks
@@ -138,6 +141,7 @@ quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -174,6 +178,7 @@ PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
+USER_ALIAS = "user"
 
 
 class InvalidSearchQuery(Exception):
@@ -234,15 +239,12 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
+    duration_keys = set(["transaction.duration"])
     numeric_keys = set(
         [
             "project_id",
             "project.id",
             "issue.id",
-            "device.battery_level",
-            "device.charging",
-            "device.online",
-            "device.simulator",
             "error.handled",
             "stack.colno",
             "stack.in_app",
@@ -389,12 +391,25 @@ class SearchVisitor(NodeVisitor):
     def visit_aggregate_filter(self, node, children):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
+        search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
-            search_value = SearchValue(float(search_value.text))
+            aggregate_value = None
+            if search_value.expr_name == "duration_format":
+                # Even if the search value matches duration format, only act as duration for certain columns
+                _, agg_additions = resolve_field(search_key.name, None)
+                if len(agg_additions) > 0:
+                    # Extract column and function name out so we can check if we should parse as duration
+                    if agg_additions[0][-2] in self.duration_keys:
+                        aggregate_value = parse_duration(*search_value.match.groups())
+
+            if aggregate_value is None:
+                aggregate_value = float(search_value.text)
         except ValueError:
             raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
-        return AggregateFilter(search_key, operator, search_value)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(six.text_type(exc))
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -417,6 +432,20 @@ class SearchVisitor(NodeVisitor):
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(six.text_type(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value if operator != "=" else search_value
+            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
+    def visit_duration_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        if search_key.name in self.duration_keys:
+            try:
+                search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(six.text_type(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
@@ -654,8 +683,8 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=N
     return condition
 
 
-def convert_search_filter_to_snuba_query(search_filter):
-    name = search_filter.key.name
+def convert_search_filter_to_snuba_query(search_filter, key=None):
+    name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
     if name in no_conversion:
@@ -823,6 +852,14 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
+            elif name == USER_ALIAS:
+                # If the key is user, do an OR across all the different possible user fields
+                kwargs["conditions"].append(
+                    [
+                        convert_search_filter_to_snuba_query(term, key=field)
+                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                    ]
+                )
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -861,26 +898,24 @@ def get_filter(query=None, params=None):
 # static/app/views/eventsV2/eventQueryParams.tsx so that
 # the UI builder stays in sync.
 FIELD_ALIASES = {
-    "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
 }
 
 
-def get_json_meta_type(field, snuba_type):
-    alias_definition = FIELD_ALIASES.get(field)
+def get_json_meta_type(field_alias, snuba_type):
+    alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
-    function_match = FUNCTION_ALIAS_PATTERN.match(field)
+    function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
     if function_match:
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
-    # TODO remove this check when field aliases are removed.
-    if "duration" in field or field in ("p75", "p95", "p99"):
+    if "duration" in field_alias:
         return "duration"
-    if field == "transaction.status":
+    if field_alias == "transaction.status":
         return "string"
     return get_json_type(snuba_type)
 
@@ -890,6 +925,11 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 class InvalidFunctionArgument(Exception):
     pass
+
+
+class ArgValue(object):
+    def __init__(self, arg):
+        self.arg = arg
 
 
 class FunctionArg(object):
@@ -993,6 +1033,24 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p75": {
+        "name": "p75",
+        "args": [],
+        "aggregate": [u"quantile(0.75)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p95": {
+        "name": "p95",
+        "args": [],
+        "aggregate": [u"quantile(0.95)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p99": {
+        "name": "p99",
+        "args": [],
+        "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "rps": {
         "name": "rps",
         "args": [IntervalDefault("interval", 1, None)],
@@ -1009,7 +1067,7 @@ FUNCTIONS = {
         "name": "last_seen",
         "args": [],
         "aggregate": ["max", "timestamp", "last_seen"],
-        "result_type": "timestamp",
+        "result_type": "date",
     },
     "latest_event": {
         "name": "latest_event",
@@ -1019,25 +1077,39 @@ FUNCTIONS = {
     },
     "apdex": {
         "name": "apdex",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
-        "transform": u"apdex({column}, {satisfaction:g})",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "transform": u"apdex(duration, {satisfaction:g})",
         "result_type": "number",
     },
     "impact": {
         "name": "impact",
-        "args": [DurationColumn("column"), NumberRange("satisfaction", 0, None)],
+        "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
         # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
         # in a format Snuba can parse so query optimizations can be applied.
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
-        "transform": u"plus(minus(1, divide(plus(countIf(less({column}, {satisfaction:g})),divide(countIf(and(greater({column}, {satisfaction:g}),less({column}, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
         "result_type": "number",
     },
     "error_rate": {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "result_type": "number",
+    },
+    "histogram": {
+        "name": "histogram",
+        "args": [
+            DurationColumnNoLookup("column"),
+            NumberRange("num_buckets", 1, 500),
+            NumberRange("bucket", 0, None),
+        ],
+        "column": [
+            "multiply",
+            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            None,
+        ],
         "result_type": "number",
     },
     "count_unique": {
@@ -1102,6 +1174,17 @@ def get_function_alias(field):
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
     return u"{}_{}".format(function_name, columns).rstrip("_")
+
+
+def format_column_arguments(column, arguments):
+    args = column[1]
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            format_column_arguments(args[i], arguments)
+        elif isinstance(args[i], six.string_types):
+            args[i] = args[i].format(**arguments)
+        elif isinstance(args[i], ArgValue):
+            args[i] = arguments[args[i].arg]
 
 
 def resolve_function(field, match=None, params=None):
@@ -1172,6 +1255,21 @@ def resolve_function(field, match=None, params=None):
             )
 
         return ([], [aggregate])
+    elif "column" in function:
+        # These can be very nested functions, so we need to iterate through all the layers
+        addition = deepcopy(function["column"])
+        format_column_arguments(addition, arguments)
+        if len(addition) < 3:
+            addition.append(
+                get_function_alias_with_columns(
+                    function["name"], columns if not used_default else []
+                )
+            )
+        elif len(addition) == 3 and addition[2] is None:
+            addition[2] = get_function_alias_with_columns(
+                function["name"], columns if not used_default else []
+            )
+        return ([addition], [])
 
 
 def resolve_orderby(orderby, fields, aggregations):
@@ -1206,6 +1304,11 @@ def resolve_orderby(orderby, fields, aggregations):
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
 
+        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        if found:
+            prefix = "-" if column.startswith("-") else ""
+            validated.append(prefix + bare_column)
+
     if len(validated) == len(orderby):
         return validated
 
@@ -1225,11 +1328,9 @@ def resolve_field(field, params=None):
     if match:
         return resolve_function(field, match, params)
 
-    sans_parens = field.strip("()")
-    if sans_parens in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[sans_parens])
-        return (special_field.get("fields", []), special_field.get("aggregations", []))
-
+    if field in FIELD_ALIASES:
+        special_field = deepcopy(FIELD_ALIASES[field])
+        return (special_field.get("fields", []), None)
     return ([field], None)
 
 
@@ -1317,7 +1418,11 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
     if aggregations:
-        groupby.extend(columns)
+        for column in columns:
+            if isinstance(column, (list, tuple)):
+                groupby.append(column[2])
+            else:
+                groupby.append(column)
 
     return {
         "selected_columns": columns,

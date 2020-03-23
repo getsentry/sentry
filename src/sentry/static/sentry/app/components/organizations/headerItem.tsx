@@ -147,6 +147,7 @@ const Content = styled('div')`
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
   color: ${getColor};
   margin-right: ${space(1.5)};
+  display: flex;
 `;
 
 const Hint = styled('div')`

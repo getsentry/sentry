@@ -6,6 +6,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
@@ -97,12 +98,19 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert events[1].event_id == "b" * 32
         assert events[2].event_id == "a" * 32
 
+    @mock.patch("sentry.nodestore.get_multi")
+    def test_get_unfetched_events(self, get_multi):
+        events = self.eventstore.get_unfetched_events(filter=Filter(project_ids=[self.project1.id]))
+        assert len(events) == 1
+        assert get_multi.call_count == 0
+
     def test_get_event_by_id(self):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
+        assert event.group_id == event.group.id
 
         # Get non existent event
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
@@ -114,21 +122,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.event_id == "d" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
-
-    def test_get_event_by_id_nodestore(self):
-        event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
-        assert event
-        assert event.group_id == event.group.id
-
-        # Transaction event
-        event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-        assert event
-        assert not event.group_id
-        assert not event.group
-
-        # Non existent event
-        event = self.eventstore.get_event_by_id(self.project.id, "f" * 32)
-        assert not event
 
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)

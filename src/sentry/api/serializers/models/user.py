@@ -5,6 +5,7 @@ import six
 from collections import defaultdict
 from django.conf import settings
 
+from sentry import experiments
 from sentry.app import env
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -64,6 +65,8 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(self, obj, attrs, user):
+        experiment_assignments = experiments.all(user=user)
+
         d = {
             "id": six.text_type(obj.id),
             "name": obj.get_display_name(),
@@ -79,6 +82,7 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
+            "experiments": experiment_assignments,
         }
 
         if obj == user:

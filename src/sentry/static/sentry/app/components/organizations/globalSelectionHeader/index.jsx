@@ -309,6 +309,7 @@ class GlobalSelectionHeader extends React.Component {
       selection,
       forceUrlSync,
       forceProject,
+      shouldForceProject,
     } = this.props;
 
     if (hasCustomRouting) {
@@ -328,7 +329,7 @@ class GlobalSelectionHeader extends React.Component {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
         singleProjectIsEnforced = true;
-        this.enforceSingleProject({forceProject});
+        this.enforceSingleProject({shouldForceProject, forceProject});
       }
     }
 
@@ -341,7 +342,7 @@ class GlobalSelectionHeader extends React.Component {
     ) {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
-        this.enforceSingleProject({forceProject});
+        this.enforceSingleProject({shouldForceProject, forceProject});
       }
     }
 

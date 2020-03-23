@@ -8,7 +8,6 @@ from six import BytesIO
 import multiprocessing.dummy
 import multiprocessing as _multiprocessing
 
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import eventstore, features, options
@@ -21,7 +20,8 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
-from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
+from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.event_manager import save_transaction_events
 
@@ -29,26 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 CACHE_TIMEOUT = 3600
-
-
-class ConsumerType(object):
-    """
-    Defines the types of ingestion consumers
-    """
-
-    Events = "events"  # consumes simple events ( from the Events topic)
-    Attachments = "attachments"  # consumes events with attachments ( from the Attachments topic)
-    Transactions = "transactions"  # consumes transaction events ( from the Transactions topic)
-
-    @staticmethod
-    def get_topic_name(consumer_type):
-        if consumer_type == ConsumerType.Events:
-            return settings.KAFKA_INGEST_EVENTS
-        elif consumer_type == ConsumerType.Attachments:
-            return settings.KAFKA_INGEST_ATTACHMENTS
-        elif consumer_type == ConsumerType.Transactions:
-            return settings.KAFKA_INGEST_TRANSACTIONS
-        raise ValueError("Invalid consumer type", consumer_type)
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
@@ -245,7 +225,13 @@ def process_individual_attachment(message, projects):
         headers={"Content-Type": attachment.content_type},
     )
 
-    file.putfile(BytesIO(attachment.data))
+    try:
+        data = attachment.data
+    except MissingAttachmentChunks:
+        logger.exception("Missing chunks for cache_key=%s", cache_key)
+        return
+
+    file.putfile(BytesIO(data))
     EventAttachment.objects.create(
         project_id=project.id, group_id=group_id, event_id=event_id, name=attachment.name, file=file
     )
@@ -273,13 +259,15 @@ def process_userreport(message, projects):
         return False
 
 
-def get_ingest_consumer(consumer_type, once=False, concurrency=None, **options):
+def get_ingest_consumer(consumer_types, once=False, concurrency=None, **options):
     """
     Handles events coming via a kafka queue.
 
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
-    topic_name = ConsumerType.get_topic_name(consumer_type)
+    topic_names = set(
+        ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
+    )
     return create_batching_kafka_consumer(
-        topic_name=topic_name, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(concurrency=concurrency), **options
     )

@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .mixins import BitbucketMixin

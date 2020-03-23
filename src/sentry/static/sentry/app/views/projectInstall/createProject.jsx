@@ -284,9 +284,9 @@ class CreateProject extends React.Component {
     ruleId
   ) {
     let data = {
-      eventKey: 'new_project.alert_rule_option_selected',
-      eventName: 'New Project Alert Rule Option Selected',
-      org_id: parseInt(organization.id, 10),
+      eventKey: 'new_project.alert_rule_selected',
+      eventName: 'New Project Alert Rule Selected',
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(projectData.id, 10),
       rule_type: isDefaultRules
         ? 'Default'

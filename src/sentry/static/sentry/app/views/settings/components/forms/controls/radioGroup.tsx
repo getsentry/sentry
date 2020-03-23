@@ -6,17 +6,27 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {growIn} from 'app/styles/animations';
 
-type Props = {
+type RadioGroupProps<C extends string> = {
   value: string | number | null;
 
   // An array of [id, name, description]
-  choices: [string, React.ReactNode, React.ReactNode?][];
+  choices: [C, React.ReactNode, React.ReactNode?][];
   disabled?: boolean;
   label: string;
-  onChange: (id: string, e: React.MouseEvent) => void;
+  onChange: (id: C, e: React.MouseEvent) => void;
 };
 
-const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props) => (
+type Props<C extends string> = RadioGroupProps<C> &
+  Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioGroupProps<C>>;
+
+const RadioGroup = <C extends string>({
+  value,
+  disabled,
+  choices,
+  label,
+  onChange,
+  ...props
+}: Props<C>) => (
   <div {...props} role="radiogroup" aria-labelledby={label}>
     {(choices || []).map(([id, name, description], index) => {
       const isSelected = value === id;

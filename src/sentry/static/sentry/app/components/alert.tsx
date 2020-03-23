@@ -16,6 +16,7 @@ export type Props = {
   icon?: string;
   alignTop?: boolean;
   system?: boolean;
+  thinner?: boolean;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -63,10 +64,11 @@ const alertStyles = ({
   type = DEFAULT_TYPE,
   system,
   alignTop,
+  thinner,
 }: Props & {theme: any}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
-  padding: ${space(2)};
+  padding: ${space(thinner ? 1 : 2)};
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
@@ -86,12 +88,21 @@ const alertStyles = ({
 const StyledTextBlock = styled(TextBlock)`
   line-height: 1.4;
   margin-bottom: 0;
-  flex: 1;
   align-self: center;
+  width: 100%;
 `;
 
 const Alert = styled(
-  ({type, icon, iconSize, children, system, className, ...props}: AlertProps) => (
+  ({
+    type,
+    icon,
+    iconSize,
+    children,
+    system,
+    className,
+    thinner,
+    ...props
+  }: AlertProps) => (
     <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
       {icon && <StyledInlineSvg src={icon} size={iconSize!} />}
       <StyledTextBlock>{children}</StyledTextBlock>
@@ -107,6 +118,7 @@ Alert.propTypes = {
   icon: PropTypes.string,
   alignTop: PropTypes.bool,
   system: PropTypes.bool,
+  thinner: PropTypes.bool,
 };
 
 Alert.defaultProps = {
