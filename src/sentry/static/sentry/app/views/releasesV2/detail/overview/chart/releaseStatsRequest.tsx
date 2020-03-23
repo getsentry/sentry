@@ -289,7 +289,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         'value'
       )
     );
-    const summary = getExactDuration(sessionDurationAverage ?? 0) || `0 ${t('seconds')}`;
+    const summary = getExactDuration(sessionDurationAverage ?? 0);
 
     return {chartData: [chartData], chartSummary: summary};
   }
