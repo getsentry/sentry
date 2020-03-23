@@ -4,7 +4,8 @@ import six
 
 from sentry import tagstore
 from sentry.models import EventUser, Group, get_group_with_redirect
-from .base import ExportProcessor, ExportError
+from .base import ExportProcessor
+from ..base import ExportError
 
 
 class IssuesByTagProcessor(ExportProcessor):
