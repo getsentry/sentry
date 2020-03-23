@@ -4,7 +4,6 @@ import {t} from 'app/locale';
 import {NewQuery} from 'app/types';
 import EventView from 'app/views/eventsV2/eventView';
 import {decodeScalar} from 'app/views/eventsV2/utils';
-import {escapeDoubleQuotes} from 'app/utils';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export const DEFAULT_STATS_PERIOD = '24h';
@@ -55,7 +54,7 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
     if (searchQuery) {
       extra.query = stringifyQueryObject({
         query: [PERFORMANCE_EVENT_VIEW.query],
-        transaction: [`*${escapeDoubleQuotes(searchQuery)}*`],
+        transaction: [`*${searchQuery}*`],
       });
     }
   }
