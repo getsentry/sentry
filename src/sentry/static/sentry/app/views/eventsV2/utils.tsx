@@ -40,6 +40,7 @@ export type EventQuery = {
   sort?: string | string[];
   query: string;
   per_page?: number;
+  referrer?: string;
 };
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;

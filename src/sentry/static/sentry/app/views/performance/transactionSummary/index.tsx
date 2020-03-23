@@ -115,13 +115,11 @@ function generateSummaryEventView(
   transactionName: string | undefined
 ): EventView {
   let eventView = generatePerformanceEventView(location);
-
   if (typeof transactionName !== 'string') {
     return eventView;
   }
 
   // narrow the search conditions of the Performance event view
-
   eventView.name = transactionName;
 
   const searchConditions = {
@@ -129,7 +127,6 @@ function generateSummaryEventView(
     'event.type': ['transaction'],
     transaction: [transactionName],
   };
-
   eventView.query = stringifyQueryObject(searchConditions);
 
   eventView = eventView.withColumns([
@@ -138,16 +135,12 @@ function generateSummaryEventView(
       field: 'transaction',
     },
     {
-      kind: 'function',
-      function: ['rpm', '', undefined],
-    },
-    {
       kind: 'field',
       field: 'transaction.duration',
     },
     {
-      kind: 'function',
-      function: ['last_seen', '', undefined],
+      kind: 'field',
+      field: 'timestamp',
     },
   ]);
 
