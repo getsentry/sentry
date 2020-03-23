@@ -62,9 +62,9 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
                 )
                 raise ExportError("Failed to save the assembled file")
     except ExportError as error:
-        return data_export.email_failure(message=error)
+        return data_export.email_failure(message=six.text_type(error))
     except NotImplementedError as error:
-        return data_export.email_failure(message=error)
+        return data_export.email_failure(message=six.text_type(error))
     except BaseException as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error(
