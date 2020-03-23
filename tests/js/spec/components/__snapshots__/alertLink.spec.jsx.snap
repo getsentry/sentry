@@ -13,7 +13,6 @@ exports[`AlertLink renders 1`] = `
   </AlertLinkText>
   <ForwardRef(IconChevron)
     direction="right"
-    size="md"
   />
 </StyledLink>
 `;
@@ -36,7 +35,6 @@ exports[`AlertLink renders with icon 1`] = `
   </AlertLinkText>
   <ForwardRef(IconChevron)
     direction="right"
-    size="md"
   />
 </StyledLink>
 `;

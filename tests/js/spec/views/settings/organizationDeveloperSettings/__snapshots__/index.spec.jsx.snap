@@ -155,14 +155,13 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     </AlertLinkText>
                     <ForwardRef(IconChevron)
                       direction="right"
-                      size="md"
                     >
                       <svg
                         fill="currentColor"
-                        height="20px"
+                        height="16px"
                         transform="rotate(90)"
                         viewBox="0 0 16 16"
-                        width="20px"
+                        width="16px"
                       >
                         <g>
                           <path

@@ -33,7 +33,7 @@ const AlertMessage = ({alert, system}: Props) => {
   return (
     <StyledAlert type={type} icon={icon} system={system}>
       <StyledCloseButton
-        icon={<IconClose circle />}
+        icon={<IconClose size="md" circle />}
         aria-label={t('Close')}
         onClick={handleCloseAlert}
         borderless
