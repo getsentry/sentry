@@ -228,7 +228,6 @@ export function PluginListConfig() {
       isTestable: true,
       isHidden: true,
       hasConfiguration: true,
-      features: [],
       shortName: 'PagerDuty',
       id: 'pagerduty',
       assets: [],
