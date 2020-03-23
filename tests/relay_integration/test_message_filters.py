@@ -1,9 +1,9 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
-import pytest
+from django.test import override_settings
 
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
-from sentry.testutils import TestCase
 from sentry.utils.safe import set_path
 from sentry.message_filters import (
     _localhost_filter,
@@ -13,10 +13,11 @@ from sentry.message_filters import (
 )
 
 
-@pytest.mark.obsolete(
-    "Unit tests in Relay, in the filters implementation files.", "relay-filter/..."
-)
-class FilterTests(TestCase):
+@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+class FilterTests(RelayStoreHelper, TransactionTestCase):
+    def setUp(self):  # NOQA
+        RelayStoreHelper.setUp(self)
+
     def _get_message(self):
         return {}
 
@@ -25,28 +26,26 @@ class FilterTests(TestCase):
             project=self.project, key=u"filters:{}".format(flt.spec.id), value=state
         )
 
+    def test_should_not_filter_simple_messages(self):
+        # baseline test (so we know everything works as expected)
+        message = self._get_message()
+        self.post_and_retrieve_event(message)
+
     def _get_message_with_bad_ip(self):
         message = self._get_message()
         set_path(message, "user", "ip_address", value="127.0.0.1")
         return message
 
-    def test_should_not_filter_simple_messages(self):
-        # baseline test (so we know everything works as expected)
-        message = self._get_message()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
-
     def test_should_filter_local_ip_addresses_when_enabled(self):
         self._set_filter_state(_localhost_filter, "1")
         message = self._get_message_with_bad_ip()
-        resp = self._postWithHeader(message)
-        assert resp.status_code >= 400  # some http error
+        event = self.post_and_try_retrieve_event(message)
+        assert event is None
 
     def test_should_not_filter_bad_ip_addresses_when_disabled(self):
         self._set_filter_state(_localhost_filter, "0")
         message = self._get_message_with_bad_ip()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
+        self.post_and_retrieve_event(message)
 
     def _get_message_with_bad_extension(self):
         message = self._get_message()
@@ -61,14 +60,13 @@ class FilterTests(TestCase):
     def test_should_filter_browser_extensions_when_enabled(self):
         self._set_filter_state(_browser_extensions_filter, "1")
         message = self._get_message_with_bad_extension()
-        resp = self._postWithHeader(message)
-        assert resp.status_code >= 400  # some http error
+        event = self.post_and_try_retrieve_event(message)
+        assert event is None
 
     def test_should_not_filter_browser_extensions_when_disabled(self):
         self._set_filter_state(_browser_extensions_filter, "0")
         message = self._get_message_with_bad_extension()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
+        self.post_and_retrieve_event(message)
 
     def _get_message_from_webcrawler(self):
         message = self._get_message()
@@ -86,14 +84,13 @@ class FilterTests(TestCase):
     def test_should_filter_web_crawlers_when_enabled(self):
         self._set_filter_state(_web_crawlers_filter, "1")
         message = self._get_message_from_webcrawler()
-        resp = self._postWithHeader(message)
-        assert resp.status_code >= 400  # some http error
+        event = self.post_and_try_retrieve_event(message)
+        assert event is None
 
     def test_should_not_filter_web_crawlers_when_disabled(self):
         self._set_filter_state(_web_crawlers_filter, "0")
         message = self._get_message_from_webcrawler()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
+        self.post_and_retrieve_event(message)
 
     def _get_message_from_legacy_browser(self):
         ie_5_user_agent = (
@@ -112,26 +109,13 @@ class FilterTests(TestCase):
         )
         return message
 
-    def test_should_filter_legacy_browsers_all_enabled(self):
+    def test_should_filter_legacy_browsers(self):
         self._set_filter_state(_legacy_browsers_filter, "1")
         message = self._get_message_from_legacy_browser()
-        resp = self._postWithHeader(message)
-        assert resp.status_code >= 400  # some http error
-
-    def test_should_filter_legacy_browsers_specific_browsers(self):
-        self._set_filter_state(_legacy_browsers_filter, {"ie_pre_9", "safari_5"})
-        message = self._get_message_from_legacy_browser()
-        resp = self._postWithHeader(message)
-        assert resp.status_code >= 400  # some http error
+        event = self.post_and_try_retrieve_event(message)
+        assert event is None
 
     def test_should_not_filter_legacy_browsers_when_disabled(self):
         self._set_filter_state(_legacy_browsers_filter, "0")
         message = self._get_message_from_legacy_browser()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
-
-    def test_should_not_filter_legacy_browsers_when_current_browser_check_disabled(self):
-        self._set_filter_state(_legacy_browsers_filter, {"safari_5"})
-        message = self._get_message_from_legacy_browser()
-        resp = self._postWithHeader(message)
-        assert resp.status_code < 400  # no http error
+        self.post_and_retrieve_event(message)

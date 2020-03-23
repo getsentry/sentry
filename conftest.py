@@ -30,6 +30,7 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "relay_store_integration: mark test as using the relay store endpoint"
     )
+    config.addinivalue_line("markers", "obsolete: mark test as obsolete and soon to be removed")
 
 
 def install_sentry_plugins():
