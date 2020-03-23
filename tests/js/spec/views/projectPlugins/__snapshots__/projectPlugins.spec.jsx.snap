@@ -110,6 +110,7 @@ exports[`ProjectPlugins renders 1`] = `
                     >
                       <div
                         className="ref-warning e1cszazt0 css-1jpz4sh-Alert-PanelAlert ejthpj82"
+                        system={true}
                       >
                         <IconWrapper>
                           <span
