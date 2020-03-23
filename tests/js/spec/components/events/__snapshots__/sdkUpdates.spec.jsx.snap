@@ -51,17 +51,17 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
               type="info"
             >
               <Component
-                className="css-h3mlzm-Alert ejthpj82"
+                className="css-g96o1-Alert ejthpj82"
                 icon="icon-upgrade"
                 iconSize="24px"
                 type="info"
               >
                 <div
-                  className="ref-info css-h3mlzm-Alert ejthpj82"
+                  className="ref-info css-g96o1-Alert ejthpj82"
                 >
                   <IconWrapper>
                     <span
-                      className="css-klxrkj-IconWrapper ejthpj80"
+                      className="css-dhrf1z-IconWrapper ejthpj80"
                     >
                       <InlineSvg
                         size="24px"
@@ -89,7 +89,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                   </IconWrapper>
                   <StyledTextBlock>
                     <div
-                      className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
+                      className="css-1kyjxgv-StyledTextBlock ejthpj81"
                     >
                       We recommend you 
                       <EventSdkUpdateSuggestion

@@ -68,7 +68,9 @@ export default class AlertLink extends React.Component<Props> {
           </IconWrapper>
         )}
         <AlertLinkText>{children}</AlertLinkText>
-        <IconChevron direction="right" />
+        <IconLink>
+          <IconChevron direction="right" />
+        </IconLink>
       </StyledLink>
     );
   }
@@ -92,12 +94,15 @@ const StyledLink = styled((props: StyledLinkProps) => (
   }
 `;
 
-const AlertLinkText = styled('div')`
-  flex-grow: 1;
-`;
-
 const IconWrapper = styled('span')`
   display: flex;
-  margin-top: ${space(0.25)};
-  margin-right: ${space(1.5)};
+  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 0;
+`;
+
+const IconLink = styled(IconWrapper)`
+  margin: ${space(0.5)} 0;
+`;
+
+const AlertLinkText = styled('div')`
+  flex-grow: 1;
 `;

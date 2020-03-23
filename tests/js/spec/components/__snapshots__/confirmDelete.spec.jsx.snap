@@ -35,16 +35,16 @@ exports[`ConfirmDelete renders 1`] = `
             type="error"
           >
             <Component
-              className="css-1c7awzo-Alert ejthpj82"
+              className="css-1cl10ra-Alert ejthpj82"
               iconSize="24px"
               type="error"
             >
               <div
-                className="ref-error css-1c7awzo-Alert ejthpj82"
+                className="ref-error css-1cl10ra-Alert ejthpj82"
               >
                 <StyledTextBlock>
                   <div
-                    className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
+                    className="css-1kyjxgv-StyledTextBlock ejthpj81"
                   >
                     Are you sure?
                   </div>

@@ -102,19 +102,19 @@ exports[`ProjectPlugins renders 1`] = `
                     type="warning"
                   >
                     <Component
-                      className="e1cszazt0 css-1jpz4sh-Alert-PanelAlert ejthpj82"
+                      className="e1cszazt0 css-utenda-Alert-PanelAlert ejthpj82"
                       icon="icon-circle-exclamation"
                       iconSize="24px"
                       system={true}
                       type="warning"
                     >
                       <div
-                        className="ref-warning e1cszazt0 css-1jpz4sh-Alert-PanelAlert ejthpj82"
+                        className="ref-warning e1cszazt0 css-utenda-Alert-PanelAlert ejthpj82"
                         system={true}
                       >
                         <IconWrapper>
                           <span
-                            className="css-klxrkj-IconWrapper ejthpj80"
+                            className="css-dhrf1z-IconWrapper ejthpj80"
                           >
                             <InlineSvg
                               size="24px"
@@ -142,7 +142,7 @@ exports[`ProjectPlugins renders 1`] = `
                         </IconWrapper>
                         <StyledTextBlock>
                           <div
-                            className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
+                            className="css-1kyjxgv-StyledTextBlock ejthpj81"
                           >
                             <WithOrganizationMockWrapper
                               access={

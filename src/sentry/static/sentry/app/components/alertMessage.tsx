@@ -32,6 +32,7 @@ const AlertMessage = ({alert, system}: Props) => {
 
   return (
     <StyledAlert type={type} icon={icon} system={system}>
+      {url ? <Link href={url}>{message}</Link> : message}
       <StyledCloseButton
         icon={<IconClose size="md" circle />}
         aria-label={t('Close')}
@@ -39,7 +40,6 @@ const AlertMessage = ({alert, system}: Props) => {
         size="zero"
         borderless
       />
-      {url ? <Link href={url}>{message}</Link> : message}
     </StyledAlert>
   );
 };
@@ -47,18 +47,20 @@ const AlertMessage = ({alert, system}: Props) => {
 export default AlertMessage;
 
 const StyledAlert = styled(Alert)`
-  padding: ${space(1)} ${space(4)} ${space(1)} ${space(2)};
-  position: relative;
+  padding: ${space(1)} ${space(2)};
   margin: 0;
 `;
 
 const StyledCloseButton = styled(Button)`
-  opacity: 0.5;
+  align-self: flex-start;
+  margin: ${space(0.5)} 0;
+  background-color: none;
+  opacity: 0.4;
   transition: opacity 0.1s linear;
-  position: absolute;
-  right: ${space(1)};
 
-  &:hover {
+  &:hover,
+  &:focus {
+    background-color: none;
     opacity: 1;
   }
 `;

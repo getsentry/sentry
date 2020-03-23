@@ -29,16 +29,14 @@ storiesOf('UI|Alerts/AlertLink', module)
   .add(
     'with an icon',
     withInfo('You can optionally pass an icon src')(() => [
-      <AlertLink
-        to="/settings/account/notifications"
-        icon={<IconMail size="md" />}
-        key="1"
-      >
-        Check out the notifications settings panel.
+      <AlertLink to="/settings/account/notifications" icon={<IconMail />} key="1">
+        Gumbo beet greens corn soko endive gumbo gourd. Parsley shallot courgette tatsoi
+        pea sprouts fava bean collard greens dandelion okra wakame tomato. Dandelion
+        cucumber earthnut pea peanut soko zucchini.
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon={<IconDocs size="md" />}
+        icon={<IconDocs />}
         priority="error"
         key="2"
       >
@@ -46,7 +44,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon={<IconStack size="md" />}
+        icon={<IconStack />}
         priority="info"
         key="3"
       >
@@ -54,7 +52,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon={<IconStar size="md" />}
+        icon={<IconStar />}
         priority="success"
         key="4"
       >
@@ -62,7 +60,7 @@ storiesOf('UI|Alerts/AlertLink', module)
       </AlertLink>,
       <AlertLink
         to="/settings/account/notifications"
-        icon={<IconGeneric size="md" />}
+        icon={<IconGeneric />}
         priority="muted"
         key="5"
       >

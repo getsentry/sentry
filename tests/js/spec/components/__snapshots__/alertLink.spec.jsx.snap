@@ -11,9 +11,11 @@ exports[`AlertLink renders 1`] = `
   <AlertLinkText>
     This is an external link button
   </AlertLinkText>
-  <ForwardRef(IconChevron)
-    direction="right"
-  />
+  <IconLink>
+    <ForwardRef(IconChevron)
+      direction="right"
+    />
+  </IconLink>
 </StyledLink>
 `;
 
@@ -33,8 +35,10 @@ exports[`AlertLink renders with icon 1`] = `
   <AlertLinkText>
     This is an external link button
   </AlertLinkText>
-  <ForwardRef(IconChevron)
-    direction="right"
-  />
+  <IconLink>
+    <ForwardRef(IconChevron)
+      direction="right"
+    />
+  </IconLink>
 </StyledLink>
 `;

@@ -148,28 +148,34 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                   >
                     <AlertLinkText>
                       <div
-                        className="css-1niufup-AlertLinkText e1ylhppg1"
+                        className="css-1niufup-AlertLinkText e1ylhppg3"
                       >
                         Have questions about the Integration Platform? Learn more about it in our docs.
                       </div>
                     </AlertLinkText>
-                    <ForwardRef(IconChevron)
-                      direction="right"
-                    >
-                      <svg
-                        fill="currentColor"
-                        height="16px"
-                        transform="rotate(90)"
-                        viewBox="0 0 16 16"
-                        width="16px"
+                    <IconLink>
+                      <span
+                        className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
                       >
-                        <g>
-                          <path
-                            d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z"
-                          />
-                        </g>
-                      </svg>
-                    </ForwardRef(IconChevron)>
+                        <ForwardRef(IconChevron)
+                          direction="right"
+                        >
+                          <svg
+                            fill="currentColor"
+                            height="16px"
+                            transform="rotate(90)"
+                            viewBox="0 0 16 16"
+                            width="16px"
+                          >
+                            <g>
+                              <path
+                                d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z"
+                              />
+                            </g>
+                          </svg>
+                        </ForwardRef(IconChevron)>
+                      </span>
+                    </IconLink>
                   </a>
                 </Link>
               </Component>
