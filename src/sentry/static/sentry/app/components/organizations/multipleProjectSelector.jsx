@@ -8,7 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
@@ -168,14 +168,13 @@ export default class MultipleProjectSelector extends React.PureComponent {
     const {forceProject, lockedMessageSubject} = this.props;
 
     if (forceProject) {
-      return t(
-        'This %s is unique to the %s project',
-        lockedMessageSubject,
-        forceProject.slug
-      );
+      return tct('This [subject] is unique to the [projectSlug] project', {
+        subject: lockedMessageSubject,
+        projectSlug: forceProject.slug,
+      });
     }
 
-    return t('This %s is unique to a project', lockedMessageSubject);
+    return tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
   }
 
   render() {
