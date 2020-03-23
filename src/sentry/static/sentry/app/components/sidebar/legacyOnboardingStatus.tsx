@@ -10,14 +10,10 @@ import {tct, t} from 'app/locale';
 import TodoList from 'app/components/onboardingWizard/todoList';
 import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
+import {CommonSidebarProps} from 'app/components/sidebar/types';
 
-type Props = {
+type Props = CommonSidebarProps & {
   org: Organization;
-  currentPanel: string;
-  onShowPanel: () => void;
-  hidePanel: () => void;
-  showPanel: boolean;
-  collapsed: boolean;
 };
 
 function recordAnalytics(currentPanel: string, orgId: string) {
@@ -49,7 +45,15 @@ class LegacyOnboardingStatus extends React.Component<Props> {
   }
 
   render() {
-    const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
+    const {
+      collapsed,
+      org,
+      currentPanel,
+      orientation,
+      hidePanel,
+      showPanel,
+      onShowPanel,
+    } = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
@@ -88,6 +92,7 @@ class LegacyOnboardingStatus extends React.Component<Props> {
         {showPanel && currentPanel === 'todos' && (
           <SidebarPanel
             collapsed={collapsed}
+            orientation={orientation}
             title={t('Getting Started with Sentry')}
             hidePanel={hidePanel}
           >

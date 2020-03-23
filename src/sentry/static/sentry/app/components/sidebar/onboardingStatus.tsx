@@ -15,13 +15,10 @@ import ProgressRing, {
   RingText,
 } from 'app/components/progressRing';
 
-type Props = {
+import {CommonSidebarProps} from './types';
+
+type Props = CommonSidebarProps & {
   org: Organization;
-  currentPanel: string;
-  onShowPanel: () => void;
-  hidePanel: () => void;
-  showPanel: boolean;
-  collapsed: boolean;
 };
 
 function recordAnalytics(currentPanel: string, orgId: string) {
@@ -52,7 +49,15 @@ class OnboardingStatus extends React.Component<Props> {
   }
 
   render() {
-    const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
+    const {
+      collapsed,
+      org,
+      currentPanel,
+      orientation,
+      hidePanel,
+      showPanel,
+      onShowPanel,
+    } = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
@@ -100,7 +105,13 @@ class OnboardingStatus extends React.Component<Props> {
             </div>
           )}
         </Container>
-        {isActive && <OnboardingSidebar collapsed={collapsed} onClose={hidePanel} />}
+        {isActive && (
+          <OnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+          />
+        )}
       </React.Fragment>
     );
   }

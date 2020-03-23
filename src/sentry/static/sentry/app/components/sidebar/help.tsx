@@ -11,13 +11,10 @@ import {Organization} from 'app/types';
 
 import SidebarMenuItem from './sidebarMenuItem';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
-import {SidebarOrientation} from './types';
+import {CommonSidebarProps} from './types';
 
-type Props = {
+type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
   organization: Organization;
-  collapsed: boolean;
-  hidePanel: () => void;
-  orientation: SidebarOrientation;
 };
 
 const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) => (
