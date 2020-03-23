@@ -101,10 +101,15 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const guidesContent: GuidesContent = getGuidesContent(user);
 
     // map server guide state (i.e. seen status) with guide content
-    const guides = guidesContent.map(guideContent => ({
-      ...guideContent,
-      ...data.find(serverGuide => serverGuide.guide === guideContent.guide),
-    }));
+    const guides = guidesContent.reduce((acc: Guide[], content) => {
+      const serverGuide = data.find(guide => guide.guide === content.guide);
+      serverGuide &&
+        acc.push({
+          ...content,
+          ...serverGuide,
+        });
+      return acc;
+    }, []);
 
     this.state.guides = guides;
     this.updateCurrentGuide();
@@ -147,7 +152,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       eventKey: 'assistant.guide_cued',
       eventName: 'Assistant Guide Cued',
       organization_id: this.state.orgId,
-      user_id: user.id,
+      user_id: parseInt(user.id, 10),
     };
     trackAnalyticsEvent(data);
 
@@ -186,24 +191,31 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       .sort((a, b) => a.guide.localeCompare(b.guide))
       .filter(guide => guide.requiredTargets.every(target => anchors.has(target)));
 
-    if (!forceShow) {
-      const user = ConfigStore.get('user');
-      const assistantThreshold = new Date(2019, 6, 1);
-      const discoverDate = new Date(2020, 1, 6);
-      const userDateJoined = new Date(user?.dateJoined);
+    const user = ConfigStore.get('user');
+    const assistantThreshold = new Date(2019, 6, 1);
+    const discoverDate = new Date(2020, 1, 6);
+    const userDateJoined = new Date(user?.dateJoined);
 
-      guideOptions = guideOptions.filter(({guide, seen}) => {
-        if (seen !== false) {
-          return false;
-        }
-        if (user?.isSuperuser) {
-          return true;
-        }
-        if (guide === 'discover_sidebar' && userDateJoined >= discoverDate) {
-          return false;
-        }
-        return userDateJoined > assistantThreshold;
-      });
+    if (!forceShow) {
+      guideOptions = guideOptions.filter(({guide, seen}) =>
+        seen
+          ? false
+          : user?.isSuperuser
+          ? true
+          : guide === 'discover_sidebar' && userDateJoined >= discoverDate
+          ? false
+          : userDateJoined > assistantThreshold
+      );
+    }
+
+    // do not force show the "events moved" guide
+    // since it's not relevant for new users
+    if (forceShow) {
+      guideOptions = guideOptions.filter(({guide, seen}) =>
+        guide === 'discover_sidebar' && (seen || userDateJoined >= discoverDate)
+          ? false
+          : true
+      );
     }
 
     const nextGuide =

@@ -14,7 +14,7 @@ export type Guide = {
   guide: string;
   requiredTargets: string[];
   steps: GuideStep[];
-  seen?: boolean;
+  seen: boolean;
 };
 
 export type GuidesContent = {
