@@ -6,13 +6,14 @@ import six
 
 from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
-from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE, is_minidump_event
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE, is_applecrashreport_event
 from sentry.lang.native.utils import (
     get_sdk_from_event,
     native_images_from_data,
     is_native_platform,
+    is_native_event,
     image_name,
     signal_from_data,
     get_event_attachment,
@@ -23,6 +24,7 @@ from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.compat import zip
+
 
 logger = logging.getLogger(__name__)
 
@@ -352,3 +354,16 @@ def process_payload(data):
         sinfo.stacktrace["frames"] = new_frames
 
     return data
+
+
+def get_symbolication_enhancer(data):
+    if is_minidump_event(data):
+        return process_minidump
+    elif is_applecrashreport_event(data):
+        return process_applecrashreport
+    elif is_native_event(data):
+        return process_payload
+
+
+def should_process_with_symbolicator(data):
+    return bool(get_symbolication_enhancer(data))

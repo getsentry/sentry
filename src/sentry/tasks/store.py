@@ -19,6 +19,10 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.lang.native.processing import (
+    should_process_with_symbolicator,
+    get_symbolication_enhancer,
+)
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
@@ -70,6 +74,11 @@ def submit_process(project, from_reprocessing, cache_key, event_id, start_time, 
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
+def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
+    task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
+    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+
+
 def submit_save_event(project, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
@@ -104,8 +113,13 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     else:
         assert project.id == project_id, (project.id, project_id)
 
+    from_reprocessing = process_task is process_event_from_reprocessing
+
+    if should_process_with_symbolicator(data):
+        submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+        return
+
     if should_process(data):
-        from_reprocessing = process_task is process_event_from_reprocessing
         submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
         return
 
@@ -174,6 +188,85 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
     process_task.delay(**task_kwargs)
 
 
+def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=None):
+    if data is None:
+        data = default_cache.get(cache_key)
+
+    if data is None:
+        metrics.incr(
+            "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
+        )
+        error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
+        return
+
+    data = CanonicalKeyDict(data)
+
+    project_id = data["project"]
+    event_id = data["event_id"]
+
+    symbolication_function = get_symbolication_enhancer(data)
+
+    try:
+        symbolicated = safe_execute(
+            symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
+        )
+        if symbolicated:
+            data = symbolicated
+            # has_changed = True
+
+    except RetrySymbolication as e:
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
+            error_logger.warning(
+                "process.slow", extra={"project_id": project_id, "event_id": event_id}
+            )
+
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            # Do not drop event but actually continue with rest of pipeline
+            # (persisting unsymbolicated event)
+            error_logger.exception(
+                "process.failed.infinite_retry",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
+        else:
+            retry_process_event.apply_async(
+                args=(),
+                kwargs={
+                    "process_task_name": process_task.__name__,
+                    "task_kwargs": {
+                        "cache_key": cache_key,
+                        "event_id": event_id,
+                        "start_time": start_time,
+                    },
+                },
+                countdown=e.retry_after,
+            )
+            return
+
+
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event",
+    queue="events.symbolicate_event",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
+    return _do_symbolicate_event(
+        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+    return _do_symbolicate_event(
+        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
+    )
+
+
 def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     from sentry.plugins.base import plugins
 
@@ -202,48 +295,21 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
-    try:
-        # Event enhancers.  These run before anything else.
-        for plugin in plugins.all(version=2):
-            enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-            for enhancer in enhancers or ():
-                enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
-                if enhanced:
-                    data = enhanced
-                    has_changed = True
+    # TODO(anton): All enhances should be empty now, so we can delete this
+    # Event enhancers.  These run before anything else.
+    for plugin in plugins.all(version=2):
+        enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+        for enhancer in enhancers or ():
+            enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
+            if enhanced:
+                data = enhanced
+                has_changed = True
 
-        # Stacktrace based event processors.
-        new_data = process_stacktraces(data)
-        if new_data is not None:
-            has_changed = True
-            data = new_data
-    except RetrySymbolication as e:
-        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
-            error_logger.warning(
-                "process.slow", extra={"project_id": project_id, "event_id": event_id}
-            )
-
-        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-            # Do not drop event but actually continue with rest of pipeline
-            # (persisting unsymbolicated event)
-            error_logger.exception(
-                "process.failed.infinite_retry",
-                extra={"project_id": project_id, "event_id": event_id},
-            )
-        else:
-            retry_process_event.apply_async(
-                args=(),
-                kwargs={
-                    "process_task_name": process_task.__name__,
-                    "task_kwargs": {
-                        "cache_key": cache_key,
-                        "event_id": event_id,
-                        "start_time": start_time,
-                    },
-                },
-                countdown=e.retry_after,
-            )
-            return
+    # Stacktrace based event processors.
+    new_data = process_stacktraces(data)
+    if new_data is not None:
+        has_changed = True
+        data = new_data
 
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
