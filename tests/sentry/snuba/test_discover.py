@@ -1213,7 +1213,7 @@ class QueryTransformTest(TestCase):
             {"data": [{"max_transaction.duration": 10000}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
-                "data": [],
+                "data": [{"histogram_transaction_duration_10_1000": 10000, "count": 1}],
             },
         ]
 
@@ -1226,7 +1226,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(10)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
 
@@ -1238,7 +1238,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10)
+                    for i in range(11)
                 ],
             },
         ]
@@ -1252,7 +1252,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
@@ -1265,7 +1265,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10, 2)
+                    for i in range(0, 11, 2)
                 ],
             },
         ]
@@ -1279,14 +1279,14 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = range(1, 10, 2)
+        seed = range(0, 11, 2)
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000}]},
@@ -1307,11 +1307,11 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         expected.reverse()
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_no_sort(self, mock_query):
@@ -1321,7 +1321,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10, 2)
+                    for i in range(0, 10, 2)
                 ],
             },
         ]
@@ -1335,12 +1335,12 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [1000, 3000, 5000, 7000, 9000]
+        expected = [0, 2000, 4000, 6000, 8000]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
 
-        expected_extra_buckets = set([2000, 4000, 6000, 8000, 10000])
+        expected_extra_buckets = set([1000, 3000, 5000, 7000, 9000])
         extra_buckets = set(r["histogram_transaction_duration_10"] for r in results["data"][5:])
         assert expected_extra_buckets == extra_buckets
 
@@ -1366,7 +1366,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 87 for i in range(1, 10)]
+        expected = [i * 87 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
