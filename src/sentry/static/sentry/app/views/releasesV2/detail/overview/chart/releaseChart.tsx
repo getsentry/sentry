@@ -6,7 +6,7 @@ import AreaChart from 'app/components/charts/areaChart';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
-import {t} from 'app/locale';
+import {getExactDuration} from 'app/utils/formatters';
 
 import {YAxis} from './releaseChartControls';
 
@@ -39,7 +39,7 @@ class ReleaseChart extends React.Component<Props> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case 'sessionDuration':
-        return defined(value) ? `${value}${t('s')}` : '-';
+        return typeof value === 'number' ? getExactDuration(value, true) : value;
       case 'crashFree':
         return defined(value) ? `${value}%` : '-';
       case 'sessions':

@@ -1,12 +1,49 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {PlatformKey} from 'app/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
-import {PlatformKey} from 'app/data/platformCategories';
+
+declare global {
+  interface Window {
+    /**
+     * Assets public location
+     */
+    __sentryGlobalStaticPrefix: string;
+    /**
+     * The config object provided by the backend.
+     */
+    __initialData: Config;
+    /**
+     * Sentry SDK configuration
+     */
+    __SENTRY__OPTIONS: Config['sentryConfig'];
+    /**
+     * The authenticated user identity, a bare-bones version of User
+     */
+    __SENTRY__USER: Config['userIdentity'];
+    /**
+     * Sentrys version string
+     */
+    __SENTRY__VERSION?: string;
+    /**
+     * The CSRF cookie ised on the backend
+     */
+    csrfCookieName?: string;
+    /**
+     * Primary entrypoint for rendering the sentry app. This is typically
+     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
+     * after config hydration.
+     */
+    SentryRenderApp: () => void;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
+  }
+}
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -69,7 +106,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveOrgExperiments>;
+  experiments: Partial<OrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -323,7 +360,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
-  experiments: Partial<ActiveUserExperiments>;
+  experiments: Partial<UserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -464,7 +501,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
+  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -483,6 +520,8 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
+  apmSampling: number;
+  dsn_requests: string;
 };
 
 export type EventOrGroupType =
@@ -858,16 +897,6 @@ export type SentryAppComponent = {
     slug: string;
     name: string;
   };
-};
-
-export type ActiveOrgExperiments = {
-  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
-  IntegrationDirectorySortWeightExperiment: '1' | '0';
-};
-
-export type ActiveUserExperiments = {
-  AssistantGuideExperiment: 0 | 1 | -1;
 };
 
 type SavedQueryVersions = 1 | 2;
