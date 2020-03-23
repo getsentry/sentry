@@ -36,6 +36,7 @@ const AlertMessage = ({alert, system}: Props) => {
         icon={<IconClose size="md" circle />}
         aria-label={t('Close')}
         onClick={handleCloseAlert}
+        size="zero"
         borderless
       />
       {url ? <Link href={url}>{message}</Link> : message}
@@ -52,17 +53,12 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledCloseButton = styled(Button)`
-  background: none;
-  opacity: 0.4;
-  transition: opacity 0.2s linear;
+  opacity: 0.5;
+  transition: opacity 0.1s linear;
   position: absolute;
   right: ${space(1)};
 
   &:hover {
-    opacity: 0.8;
-    background: none;
-  }
-  > *:first-child {
-    padding: 0 ${space(1)};
+    opacity: 1;
   }
 `;

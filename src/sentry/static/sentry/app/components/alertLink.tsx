@@ -78,7 +78,6 @@ const StyledLink = styled((props: StyledLinkProps) => (
   <Link {...omit(props, ['withoutMarginBottom', 'priority', 'size'])} />
 ))`
   display: flex;
-  align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
@@ -86,10 +85,6 @@ const StyledLink = styled((props: StyledLinkProps) => (
   margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
   border-radius: 0.25em;
   transition: 0.2s border-color;
-
-  &:hover {
-    border-color: ${p => p.theme.blueLight};
-  }
 
   &.focus-visible {
     outline: none;
@@ -103,5 +98,6 @@ const AlertLinkText = styled('div')`
 
 const IconWrapper = styled('span')`
   display: flex;
+  margin-top: ${space(0.25)};
   margin-right: ${space(1.5)};
 `;

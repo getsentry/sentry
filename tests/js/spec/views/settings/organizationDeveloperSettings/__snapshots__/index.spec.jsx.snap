@@ -129,7 +129,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               withoutMarginBottom={false}
             >
               <Component
-                className="css-1yd43zs-StyledLink e1ylhppg0"
+                className="css-1fqt8dl-StyledLink e1ylhppg0"
                 href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 priority="warning"
                 size="normal"
@@ -137,12 +137,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 withoutMarginBottom={false}
               >
                 <Link
-                  className="css-1yd43zs-StyledLink e1ylhppg0"
+                  className="css-1fqt8dl-StyledLink e1ylhppg0"
                   href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   target="_self"
                 >
                   <a
-                    className="css-1yd43zs-StyledLink e1ylhppg0"
+                    className="css-1fqt8dl-StyledLink e1ylhppg0"
                     href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                     target="_self"
                   >
