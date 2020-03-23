@@ -8,7 +8,7 @@ from sentry.integrations import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
 from sentry.models import User

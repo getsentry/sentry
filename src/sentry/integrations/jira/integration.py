@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import (
+from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     ApiError,
     IntegrationError,

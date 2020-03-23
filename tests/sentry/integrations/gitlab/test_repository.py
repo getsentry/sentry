@@ -6,7 +6,7 @@ import pytest
 from exam import fixture
 
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, PullRequest, Repository
 from sentry.testutils import IntegrationRepositoryTestCase

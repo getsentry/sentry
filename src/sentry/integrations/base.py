@@ -18,7 +18,7 @@ from enum import Enum
 from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
-from .exceptions import (
+from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiError,
     ApiUnauthorized,
@@ -26,7 +26,11 @@ from .exceptions import (
     IntegrationFormError,
     UnsupportedResponseType,
 )
-from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
+from sentry.shared_integrations.constants import (
+    ERR_UNAUTHORIZED,
+    ERR_INTERNAL,
+    ERR_UNSUPPORTED_RESPONSE_TYPE,
+)
 from sentry.models import Identity, OrganizationIntegration
 
 

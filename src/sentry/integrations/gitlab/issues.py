@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 
 from django.core.urlresolvers import reverse
-from sentry.integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.utils.http import absolute_uri
 

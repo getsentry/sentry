@@ -12,7 +12,7 @@ from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from .testutils import COMPARE_COMMITS_EXAMPLE, GET_LAST_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE
 

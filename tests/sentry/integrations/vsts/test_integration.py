@@ -6,7 +6,7 @@ import responses
 from sentry.utils.compat.mock import patch, Mock
 
 from sentry.identity.vsts import VSTSIdentityProvider
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
     Integration,

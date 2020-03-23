@@ -20,7 +20,7 @@ from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import filter
 from django.utils.translation import ugettext_lazy as _
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.models.repository import Repository
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response

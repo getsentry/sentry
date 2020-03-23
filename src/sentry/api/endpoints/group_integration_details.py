@@ -9,7 +9,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.signals import integration_issue_created, integration_issue_linked
 

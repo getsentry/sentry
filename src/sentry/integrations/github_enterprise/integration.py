@@ -14,8 +14,8 @@ from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
 )
-from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
