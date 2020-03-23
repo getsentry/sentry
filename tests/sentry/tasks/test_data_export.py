@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import six
-
 from sentry.data_export.models import ExportedData
+from sentry.data_export.tasks import assemble_download
 from sentry.models import File
-from sentry.tasks.data_export import assemble_download, get_file_name, DataExportError
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.utils.compat.mock import patch
 
@@ -26,13 +24,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         )
 
     def test_task_persistent_name(self):
-        assert assemble_download.name == "sentry.tasks.data_export.assemble_download"
-
-    def test_get_file_name(self):
-        file_name = get_file_name("TESTING", "proj1-user1-test", 1, "ext")
-        assert file_name == "TESTING_proj1-user1-test_1.ext"
-        file_name = get_file_name("TESTING", "proj1-user1-test", 2)
-        assert file_name == "TESTING_proj1-user1-test_2.csv"
+        assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
 
     def test_issue_by_tag(self):
         de = ExportedData.objects.create(
@@ -61,7 +53,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert raw1.startswith("bar,1,")
         assert raw2.startswith("bar2,2,")
 
-    @patch("sentry.models.ExportedData.email_failure")
+    @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_errors(self, emailer):
         de1 = ExportedData.objects.create(
             user=self.user,
@@ -72,8 +64,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de1.id)
         error = emailer.call_args[1]["message"]
-        assert isinstance(error, DataExportError)
-        assert six.text_type(error) == u"Requested project does not exist"
+        assert error == "Requested project does not exist"
         de2 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -83,5 +74,4 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de2.id)
         error = emailer.call_args[1]["message"]
-        assert isinstance(error, DataExportError)
-        assert six.text_type(error) == u"Requested issue does not exist"
+        assert error == "Requested issue does not exist"
