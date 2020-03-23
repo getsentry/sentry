@@ -4,23 +4,12 @@ import six
 from datetime import timedelta
 from enum import Enum
 
-from sentry.models import Project
-
 SNUBA_MAX_RESULTS = 1000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
 class ExportError(Exception):
     pass
-
-
-class ExportProcessor:
-    def get_project(self, project_id):
-        try:
-            project = Project.objects.get(id=project_id)
-            return project
-        except Project.DoesNotExist:
-            raise ExportError("Requested project does not exist")
 
 
 class ExportStatus(six.text_type, Enum):
