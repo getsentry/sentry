@@ -4,25 +4,27 @@ const numberFormats = [
   [1000000000, 'b'],
   [1000000, 'm'],
   [1000, 'k'],
-];
+] as const;
 
-export default function formatNumber(number) {
-  let b, x, y, o, p;
+export default function formatNumber(number: number | string) {
+  number = Number(number);
 
-  number = parseInt(number, 10);
+  let lookup: typeof numberFormats[number];
 
   // eslint-disable-next-line no-cond-assign
-  for (let i = 0; (b = numberFormats[i]); i++) {
-    x = b[0];
-    y = b[1];
-    o = Math.floor(number / x);
-    p = number % x;
-    if (o > 0) {
-      if (o / 10 > 1 || !p) {
-        return '' + o + y;
-      }
-      return '' + floatFormat(number / x, 1) + y;
+  for (let i = 0; (lookup = numberFormats[i]); i++) {
+    const [suffixNum, suffix] = lookup;
+    const shortValue = Math.floor(number / suffixNum);
+    const fitsBound = number % suffixNum;
+
+    if (shortValue <= 0) {
+      continue;
     }
+
+    return shortValue / 10 > 1 || !fitsBound
+      ? `${shortValue}${suffix}`
+      : `${floatFormat(number / suffixNum, 1)}${suffix}`;
   }
-  return '' + number.toLocaleString();
+
+  return number.toLocaleString();
 }
