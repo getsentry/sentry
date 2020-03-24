@@ -14,7 +14,7 @@ from exam import fixture
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeIntegrityFailure
-from sentry.models import ProjectKey, LostPasswordHash
+from sentry.models import Organization, Project, ProjectKey, LostPasswordHash
 from sentry.testutils import TestCase
 from sentry.eventstore.models import Event
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -45,6 +45,16 @@ class ProjectKeyTest(TestCase):
         key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
         with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
             self.assertEquals(key.get_dsn(), "http://public:secret@endpoint.com/1")
+
+    def test_get_dsn_with_endpoint_formatting(self):
+        organization = Organization(id=3)
+        project = Project(id=2, organization=organization)
+        key = ProjectKey(id=1, project=project, public_key="public", secret_key="secret")
+        with self.settings(SENTRY_ENDPOINT="http://p{project_id}.o{organization_id}.endpoint.com"):
+            self.assertEquals(key.get_dsn(), "http://public:secret@p2.o3.endpoint.com/2")
+
+        with self.settings(SENTRY_ENDPOINT="http://o{organization_id}.endpoint.com"):
+            self.assertEquals(key.get_dsn(), "http://public:secret@o3.endpoint.com/2")
 
     def test_key_is_created_for_project(self):
         self.create_user("admin@example.com")

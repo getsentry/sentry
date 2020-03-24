@@ -145,15 +145,10 @@ class ProjectKey(Model):
     def get_dsn(self, domain=None, secure=True, public=False):
         if not public:
             key = "%s:%s" % (self.public_key, self.secret_key)
-            url = settings.SENTRY_ENDPOINT
         else:
             key = self.public_key
-            url = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
 
-        if url:
-            urlparts = urlparse(url)
-        else:
-            urlparts = urlparse(options.get("system.url-prefix"))
+        urlparts = urlparse(self.get_endpoint(public=public))
 
         # If we do not have a scheme or domain/hostname, dsn is never valid
         if not urlparts.netloc or not urlparts.scheme:
@@ -229,11 +224,18 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    def get_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get("system.url-prefix")
-        return endpoint
+    def get_endpoint(self, public=True):
+        if public:
+            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        else:
+            endpoint = settings.SENTRY_ENDPOINT
+
+        if endpoint:
+            return endpoint.format(
+                organization_id=self.project.organization_id, project_id=self.project_id
+            )
+
+        return options.get("system.url-prefix")
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins

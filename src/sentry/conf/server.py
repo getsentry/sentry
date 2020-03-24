@@ -1099,8 +1099,14 @@ SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefixes.
 
-# URI Prefixes for generating DSN URLs
-# (Defaults to URL_PREFIX by default)
+# URI Prefixes for generating DSN URLs.
+#
+# Custom schema/hostname/port to show for all DSNs. This can contain formatting
+# placeholders for organization and project ID:
+#
+#    https://p{project_id}.o{organization_id}.ingest.sentry.io
+#
+# (Defaults to `system.url-prefix` by default)
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
 
