@@ -26,11 +26,6 @@ type State = {
   dataExportId?: number;
 };
 
-const TooltipMessages = {
-  start: "We'll get all your data in one place and email you when it's ready",
-  progress: "We'll email you when it's ready",
-} as const;
-
 class DataExport extends React.Component<Props, State> {
   state: State = {
     inProgress: false,
@@ -53,10 +48,14 @@ class DataExport extends React.Component<Props, State> {
           },
         }
       );
-      addSuccessMessage(t("We'll email you when it's ready for download"));
+      addSuccessMessage(
+        t("Sit tight. We'll shoot you an email when your data is ready for download.")
+      );
       this.setState({inProgress: true, dataExportId});
     } catch (_err) {
-      addErrorMessage(t('Unable to begin bulk data export. Please try again.'));
+      addErrorMessage(
+        t("We tried our hardes, but we couldn't export your data. Give it another go.")
+      );
     }
   };
 
@@ -65,15 +64,15 @@ class DataExport extends React.Component<Props, State> {
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <Tooltip title={TooltipMessages.progress}>
+          <Tooltip title="Wait right there. We'll email you.">
             <button className="btn btn-default btn-sm" disabled>
-              {t('Queued up!')}
+              {t("We're working on it...")}
             </button>
           </Tooltip>
         ) : (
-          <Tooltip title={TooltipMessages.start}>
+          <Tooltip title="Put your data to work. Start your export, and we'll email you when it's finished.">
             <button className="btn btn-default btn-sm" onClick={this.startDataExport}>
-              {t('Export All to CSV')}
+              {t('Create CSV')}
             </button>
           </Tooltip>
         )}
