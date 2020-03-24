@@ -29,8 +29,12 @@ class PluginManager(InstanceManager):
                 yield plugin
 
     def configurable_for_project(self, project, version=1):
+        from sentry.plugins.sentry_mail.models import MailPlugin
+
         for plugin in self.all(version=version):
             if not safe_execute(plugin.can_configure_for_project, project, _with_transaction=False):
+                continue
+            if plugin.slug == MailPlugin.slug and project.flags.has_issue_alerts_targeting:
                 continue
             yield plugin
 
