@@ -164,6 +164,11 @@ class GlobalSelectionHeader extends React.Component {
      * E.g. This 'issue' is unique to a project
      */
     lockedMessageSubject: PropTypes.string,
+
+    /**
+     * Message to display at the bottom of project list
+     */
+    projectsFooterMessage: PropTypes.node,
   };
 
   static defaultProps = {
@@ -603,6 +608,7 @@ class GlobalSelectionHeader extends React.Component {
       timeRangeHint,
       specificProjectSlugs,
       disableMultipleProjectSelection,
+      projectsFooterMessage,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -660,6 +666,7 @@ class GlobalSelectionHeader extends React.Component {
                   showIssueStreamLink={showIssueStreamLink}
                   showProjectSettingsLink={showProjectSettingsLink}
                   lockedMessageSubject={lockedMessageSubject}
+                  footerMessage={projectsFooterMessage}
                 />
               );
             }}

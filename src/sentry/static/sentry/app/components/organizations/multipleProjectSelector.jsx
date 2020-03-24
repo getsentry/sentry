@@ -32,6 +32,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     showIssueStreamLink: PropTypes.bool,
     showProjectSettingsLink: PropTypes.bool,
     lockedMessageSubject: PropTypes.string,
+    footerMessage: PropTypes.node,
   };
 
   static contextTypes = {
@@ -188,6 +189,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       shouldForceProject,
       forceProject,
       showProjectSettingsLink,
+      footerMessage,
     } = this.props;
     const selectedProjectIds = new Set(value);
 
@@ -250,6 +252,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
                   this.handleClear();
                   actions.close();
                 }}
+                message={footerMessage}
               />
             )}
           >
@@ -293,6 +296,7 @@ const SelectorFooterControls = props => {
     onShowAllProjects,
     onShowMyProjects,
     organization,
+    message,
   } = props;
   let showMyProjects = false;
   let showAllProjects = false;
@@ -309,27 +313,31 @@ const SelectorFooterControls = props => {
   }
 
   // Nothing to show.
-  if (!(showAllProjects || showMyProjects || hasChanges)) {
+  if (!(showAllProjects || showMyProjects || hasChanges || message)) {
     return null;
   }
 
   return (
     <FooterContainer>
-      {showAllProjects && (
-        <Button onClick={onShowAllProjects} priority="default" size="xsmall">
-          {t('View All Projects')}
-        </Button>
-      )}
-      {showMyProjects && (
-        <Button onClick={onShowMyProjects} priority="default" size="xsmall">
-          {t('View My Projects')}
-        </Button>
-      )}
-      {hasChanges && (
-        <SubmitButton onClick={onApply} size="xsmall" priority="primary">
-          {t('Apply Filter')}
-        </SubmitButton>
-      )}
+      {message && <FooterMessage>{message}</FooterMessage>}
+
+      <FooterActions>
+        {showAllProjects && (
+          <Button onClick={onShowAllProjects} priority="default" size="xsmall">
+            {t('View All Projects')}
+          </Button>
+        )}
+        {showMyProjects && (
+          <Button onClick={onShowMyProjects} priority="default" size="xsmall">
+            {t('View My Projects')}
+          </Button>
+        )}
+        {hasChanges && (
+          <SubmitButton onClick={onApply} size="xsmall" priority="primary">
+            {t('Apply Filter')}
+          </SubmitButton>
+        )}
+      </FooterActions>
     </FooterContainer>
   );
 };
@@ -342,18 +350,26 @@ SelectorFooterControls.propTypes = {
   onApply: PropTypes.func,
   onShowAllProjects: PropTypes.func,
   onShowMyProjects: PropTypes.func,
+  message: PropTypes.node,
 };
 
 const FooterContainer = styled('div')`
+  padding: ${space(1)} 0;
+`;
+const FooterActions = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding: ${space(1)} 0;
   & > * {
     margin-left: ${space(0.5)};
   }
 `;
 const SubmitButton = styled(Button)`
   animation: 0.1s ${growIn} ease-in;
+`;
+
+const FooterMessage = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: 0 ${space(0.5)};
 `;
 
 const StyledProjectSelector = styled(ProjectSelector)`
