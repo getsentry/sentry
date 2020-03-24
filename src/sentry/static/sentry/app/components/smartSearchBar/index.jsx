@@ -332,12 +332,20 @@ class SmartSearchBar extends React.Component {
   };
 
   onKeyDown = evt => {
+    const {key} = evt;
+
+    // If tab or enter is pressed while the search bar is in a loading state then
+    // we should prevent any the form from submitting from this component
+    //
+    if ((key === 'Tab' || key === 'Enter') && this.state.loading) {
+      evt.preventDefault();
+    }
+
     if (!this.state.searchItems.length) {
       return;
     }
 
     const {useFormWrapper} = this.props;
-    const {key} = evt;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
     if (key === 'ArrowDown' || key === 'ArrowUp') {
@@ -412,9 +420,7 @@ class SmartSearchBar extends React.Component {
 
     if (key === 'Enter') {
       // If we are still loading dropdown, do nothing
-      // Otherwise, this will propagate up to form and submit
       if (this.state.loading) {
-        evt.preventDefault();
         return;
       }
 

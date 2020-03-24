@@ -75,7 +75,39 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls preventDefault when loading and enter is pressed', async function() {
+  it('calls preventDefault when there are no search items and is loading and enter is pressed', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return new Promise(() => {});
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'browser:'}});
+    await tick();
+
+    // press enter
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    expect(onSearch).not.toHaveBeenCalled();
+    expect(preventDefault).toHaveBeenCalled();
+  });
+
+  it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
