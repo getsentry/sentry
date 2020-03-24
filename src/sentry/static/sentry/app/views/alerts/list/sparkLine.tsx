@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
-import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import {Incident} from 'app/views/alerts/types';
 
@@ -11,7 +10,7 @@ const SPARKLINE_HEIGHT = 38;
 
 type Props = {
   className?: string;
-  incident: Incident;
+  eventStats: Incident['eventStats'];
 };
 
 const Sparklines = React.lazy(() =>
@@ -22,14 +21,14 @@ const SparklinesLine = React.lazy(() =>
 );
 
 class SparkLine extends React.Component<Props> {
-  static propTypes = {
-    incident: SentryTypes.Incident.isRequired,
-  };
-
   render() {
-    const {className, incident} = this.props;
+    const {className, eventStats} = this.props;
 
-    const data = incident.eventStats.data.map(([, value]) =>
+    if (!eventStats) {
+      return <SparkLinePlaceholder />;
+    }
+
+    const data = eventStats.data.map(([, value]) =>
       value && Array.isArray(value) && value.length ? value[0].count || 0 : 0
     );
 
@@ -47,12 +46,11 @@ class SparkLine extends React.Component<Props> {
 
 const StyledSparkLine = styled(SparkLine)`
   flex-shrink: 0;
-  width: 120px;
+  width: 100%;
   height: ${SPARKLINE_HEIGHT}px;
 `;
 
 const SparkLinePlaceholder = styled(Placeholder)`
-  background-color: transparent;
   height: ${SPARKLINE_HEIGHT}px;
 `;
 
