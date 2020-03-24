@@ -34,11 +34,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   api: Client;
 };
 
-type State = {
-  yAxis: YAxis;
-} & AsyncView['state'];
-
-class ReleaseOverview extends AsyncView<Props, State> {
+class ReleaseOverview extends AsyncView<Props> {
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(
@@ -48,20 +44,24 @@ class ReleaseOverview extends AsyncView<Props, State> {
     );
   }
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      yAxis: 'sessions',
-    };
-  }
-
   handleYAxisChange = (yAxis: YAxis) => {
-    this.setState({yAxis});
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, yAxis},
+    });
   };
+
+  getYAxis(): YAxis {
+    const {yAxis} = this.props.location.query;
+
+    return typeof yAxis === 'string' ? (yAxis as YAxis) : 'sessions';
+  }
 
   render() {
     const {organization, params, selection, location, api, router} = this.props;
-    const {yAxis} = this.state;
+    const yAxis = this.getYAxis();
 
     return (
       <ReleaseContext.Consumer>
