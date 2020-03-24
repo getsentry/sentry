@@ -32,4 +32,3 @@ export const StyledDateTime = styled(DateTime)`
 export const OverflowLink = styled(Link)`
   ${overflowEllipsis};
 `;
-
