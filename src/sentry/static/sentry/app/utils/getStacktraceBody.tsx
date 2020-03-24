@@ -1,6 +1,7 @@
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import {Event} from 'app/types';
 
-export default function getStacktraceBody(event) {
+export default function getStacktraceBody(event: Event) {
   if (!event || !event.entries) {
     return [];
   }
@@ -17,13 +18,14 @@ export default function getStacktraceBody(event) {
     if (!msg) {
       return [];
     }
-    return msg.data && msg.data.formatted && [msg.data.formatted];
+    return msg?.data?.formatted && [msg.data.formatted];
   }
 
   if (!exc.data) {
     return [];
   }
 
+  // TODO(ts): This should be verified when EntryTypeData has the correct type
   return exc.data.values
     .filter(value => !!value.stacktrace)
     .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
