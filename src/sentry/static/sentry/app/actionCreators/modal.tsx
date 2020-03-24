@@ -3,13 +3,7 @@ import {css} from '@emotion/core';
 import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {
-  Integration,
-  IntegrationProvider,
-  Organization,
-  SentryApp,
-  Project,
-} from 'app/types';
+import {Organization, SentryApp, Project} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -156,23 +150,6 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
   });
 }
 
-export type IntegrationDetailsModalOptions = {
-  onAddIntegration: (integration: Integration) => void;
-  provider: IntegrationProvider;
-  organization: Organization;
-  isInstalled: boolean; //used for analytics
-  onCloseModal?: () => void; //used for analytics
-};
-
-export async function openIntegrationDetails(options: IntegrationDetailsModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal'
-  );
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
 export async function redirectToProject(newProjectSlug: string) {
   const mod = await import(
     /* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject'
@@ -200,15 +177,6 @@ export type SentryAppDetailsModalOptions = {
   organization: Organization;
   onCloseModal?: () => void; //used for analytics
 };
-
-export async function openSentryAppDetailsModal(options: SentryAppDetailsModalOptions) {
-  const mod = await import(
-    /* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal'
-  );
-  const {default: Modal} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
 
 export async function openDebugFileSourceModal(options: ModalOptions = {}) {
   const mod = await import(
