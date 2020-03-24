@@ -21,9 +21,11 @@ from sentry.models import (
     GroupSubscription,
     GroupStatus,
     GroupTombstone,
+    GroupMeta,
     Release,
 )
 from sentry.testutils import APITestCase
+from sentry.plugins.base import plugins
 
 
 class GroupDetailsTest(APITestCase):
@@ -136,6 +138,23 @@ class GroupDetailsTest(APITestCase):
 
         assert response.data["annotations"] == [
             u'<a href="https://example.com/issues/2">Issue#2</a>'
+        ]
+
+    def test_plugin_external_issue_annotation(self):
+        group = self.create_group()
+        GroupMeta.objects.create(group=group, key="trello:tid", value="134")
+
+        plugins.get("trello").enable(group.project)
+        plugins.get("trello").set_option("key", "some_value", group.project)
+        plugins.get("trello").set_option("token", "another_value", group.project)
+
+        self.login_as(user=self.user)
+
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.data["annotations"] == [
+            u'<a href="https://trello.com/c/134">Trello-134</a>'
         ]
 
     def test_permalink_superuser(self):

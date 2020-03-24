@@ -223,19 +223,16 @@ class IssueBasicMixin(object):
         return (default_repo, default_repo)
 
     def get_annotations_for_group_list(self, group_list):
-        project_ids = list(set(group.project.organization_id for group in group_list))
-        group_id_list = [group.id for group in group_list]
-
         group_links = GroupLink.objects.filter(
-            group_id__in=group_id_list,
-            project_id__in=project_ids,
+            group_id__in=[group.id for group in group_list],
+            project_id__in=list(set(group.project.id for group in group_list)),
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
         )
 
-        external_issue_ids = [group_link.linked_id for group_link in group_links]
         external_issues = ExternalIssue.objects.filter(
-            id__in=external_issue_ids, integration_id=self.model.id
+            id__in=[group_link.linked_id for group_link in group_links],
+            integration_id=self.model.id,
         )
 
         # group annotations by group id

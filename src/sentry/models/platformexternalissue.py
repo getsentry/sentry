@@ -26,8 +26,7 @@ class PlatformExternalIssue(Model):
 
     @classmethod
     def get_annotations_for_group_list(cls, group_list):
-        group_id_list = [group.id for group in group_list]
-        external_issues = cls.objects.filter(group_id__in=group_id_list)
+        external_issues = cls.objects.filter(group_id__in=[group.id for group in group_list])
 
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
