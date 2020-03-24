@@ -34,7 +34,7 @@ export default function getGuidesContent(user): GuidesContent {
               description: t(
                 `Just can't deal with this Issue right now? Ignore it. Saving it for later?
                 Star it. Want it gone and out of your life forever?
-                Delete that shi*t.`
+                Delete that sh*t.`
               ),
             },
             {
