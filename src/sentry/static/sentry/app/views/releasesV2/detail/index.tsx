@@ -16,6 +16,8 @@ import {formatVersion} from 'app/utils/formatters';
 import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconInfo} from 'app/icons';
+import space from 'app/styles/space';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -145,6 +147,14 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
     return !projectId || typeof projectId !== 'string';
   }
 
+  renderProjectsFooterMessage() {
+    return (
+      <ProjectsFooterMessage>
+        <IconInfo size="xs" /> {t('Only projects with this release are visible.')}
+      </ProjectsFooterMessage>
+    );
+  }
+
   renderBody() {
     const {organization, params, router} = this.props;
     const {projects} = this.state.release;
@@ -169,6 +179,8 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
           forceProject={projects.length === 1 ? projects[0] : undefined}
           specificProjectSlugs={projects.map(p => p.slug)}
           disableMultipleProjectSelection
+          showProjectSettingsLink
+          projectsFooterMessage={this.renderProjectsFooterMessage()}
         />
         <ReleasesV2Detail {...this.props} />
       </React.Fragment>
@@ -178,6 +190,13 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const ProjectsFooterMessage = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: min-content 1fr;
+  grid-gap: ${space(1)};
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};

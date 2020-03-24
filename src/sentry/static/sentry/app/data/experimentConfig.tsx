@@ -1,4 +1,4 @@
-import {Experiments} from 'app/types/experiments';
+import {Experiments, ExperimentType} from 'app/types/experiments';
 
 /**
  * This is the value an experiment will have when the unit of assignment
@@ -15,31 +15,31 @@ export const unassignedValue = -1;
 export const experimentList = [
   {
     key: 'TrialUpgradeV2Experiment',
-    type: 'organization',
+    type: ExperimentType.Organization,
     parameter: 'variant',
     assignments: ['upgrade', 'trial', -1],
   },
   {
     key: 'AlertDefaultsExperiment',
-    type: 'organization',
+    type: ExperimentType.Organization,
     parameter: 'variant',
     assignments: ['controlV1', '2Optionsv1', '3OptionsV2'],
   },
   {
     key: 'IntegrationDirectorySortWeightExperiment',
-    type: 'organization',
+    type: ExperimentType.Organization,
     parameter: 'variant',
     assignments: ['1', '0', -1],
   },
   {
     key: 'OnboardingSidebarV2Experiment',
-    type: 'organization',
+    type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [1, 0, -1],
   },
   {
     key: 'AssistantGuideExperiment',
-    type: 'user',
+    type: ExperimentType.User,
     parameter: 'exposed',
     assignments: [0, 1, -1],
   },

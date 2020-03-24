@@ -58,7 +58,7 @@ const ReleaseHealth = ({release, location}: Props) => {
                     pathname,
                     query: {...query, healthStatsPeriod: healthStatsPeriod.key},
                   }}
-                  active={activeHealthStatsPeriod === healthStatsPeriod.key}
+                  selected={activeHealthStatsPeriod === healthStatsPeriod.key}
                 >
                   {healthStatsPeriod.label}
                 </StatsPeriod>
@@ -277,11 +277,11 @@ const StatsPeriodChanger = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const StatsPeriod = styled(Link)<{active: boolean}>`
-  color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+const StatsPeriod = styled(Link)<{selected: boolean}>`
+  color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
 
   &:hover {
-    color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+    color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
   }
 `;
 

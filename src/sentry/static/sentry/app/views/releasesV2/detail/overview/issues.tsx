@@ -1,5 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
+import {Location} from 'history';
 
 import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -14,6 +16,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 enum IssuesType {
   NEW = 'new',
@@ -21,11 +24,18 @@ enum IssuesType {
   ALL = 'all',
 }
 
+type IssuesQueryParams = {
+  limit: number;
+  sort: string;
+  query: string;
+};
+
 type Props = {
   orgId: string;
   version: string;
   selection: GlobalSelection;
   projectId: number;
+  location: Location;
 };
 
 type State = {
@@ -55,23 +65,31 @@ class Issues extends React.Component<Props, State> {
     return discoverView.getResultsViewUrlTarget(orgId);
   }
 
-  getIssuesEndpoint(): {path: string; query: string} {
-    const {version, orgId} = this.props;
+  getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
+    const {version, orgId, location} = this.props;
     const {issuesType} = this.state;
+    const queryParams = {
+      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+      limit: 50,
+      sort: 'new',
+    };
 
     switch (issuesType) {
       case IssuesType.ALL:
-        return {path: `/organizations/${orgId}/issues/`, query: `release:"${version}"`};
+        return {
+          path: `/organizations/${orgId}/issues/`,
+          queryParams: {...queryParams, query: `release:"${version}"`},
+        };
       case IssuesType.RESOLVED:
         return {
           path: `/organizations/${orgId}/releases/${version}/resolved/`,
-          query: '',
+          queryParams: {...queryParams, query: ''},
         };
       case IssuesType.NEW:
       default:
         return {
           path: `/organizations/${orgId}/issues/`,
-          query: `first-release:"${version}"`,
+          queryParams: {...queryParams, query: `first-release:"${version}"`},
         };
     }
   }
@@ -121,7 +139,7 @@ class Issues extends React.Component<Props, State> {
   render() {
     const {issuesType} = this.state;
     const {orgId} = this.props;
-    const {path, query} = this.getIssuesEndpoint();
+    const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: 'new', label: t('New Issues')},
       {value: 'resolved', label: t('Resolved Issues')},
@@ -157,7 +175,8 @@ class Issues extends React.Component<Props, State> {
           <GroupList
             orgId={orgId}
             endpointPath={path}
-            query={query}
+            queryParams={queryParams}
+            query=""
             canSelectGroups={false}
             withChart={false}
             renderEmptyMessage={this.renderEmptyMessage}

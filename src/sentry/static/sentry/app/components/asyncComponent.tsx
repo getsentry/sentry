@@ -15,9 +15,12 @@ import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 type AsyncComponentProps = {
-  // optional sentry APM profiling
-  // Note we don't decorate `AsyncComponent` but rather the subclass
-  // so we can get its component name
+  /**
+   * Optional sentry APM profiling.
+   *
+   * NOTE: we don't decorate `AsyncComponent` but rather the subclass so we can
+   *       get its component name
+   */
   finishProfile?: () => void;
 } & Partial<RouteComponentProps<{}, {}>>;
 
