@@ -1,33 +1,46 @@
 import React from 'react';
 
+type Match = {
+  value: string;
+  indices: [number, number][];
+};
+
+type HighlightResult = {
+  highlight: boolean;
+  text: string;
+};
+
+type MatchResult = HighlightResult[];
+
 /**
  * Parses matches from fuse.js library
  *
  * Example `match` would be
- * {
- *  value: 'Authentication tokens allow you to perform actions',
- *  indices: [[4, 6], [12, 13], [15, 16]],
- * }
+ *
+ *   {
+ *    value: 'Authentication tokens allow you to perform actions',
+ *    indices: [[4, 6], [12, 13], [15, 16]],
+ *   }
  *
  * So:
- *  0-3 -> not highlighted,
- *  4-6 -> highlighted,
- *  7-11 -> not highlighted,
- *  12-13 -> highlighted,
- *  ...etc
  *
- * @param {Object} match The match object from fuse
- * @param {String} match.value The entire string that has matches
- * @param {Array<Number>} match.indices Array of indices that represent matches
- * @return {Array<{highlight: Boolean, text: String}>} Returns an array of {highlight, text} objects.
+ *   00-03 -> not highlighted,
+ *   04-06 -> highlighted,
+ *   07-11 -> not highlighted,
+ *   12-13 -> highlighted,
+ *   ...etc
+ *
+ * @param match The match object from fuse
+ * @param match.value The entire string that has matches
+ * @param match.indices Array of indices that represent matches
  */
-const getFuseMatches = ({value, indices}) => {
+const getFuseMatches = ({value, indices}: Match): MatchResult => {
   if (indices.length === 0) {
     return [{highlight: false, text: value}];
   }
 
   const strLength = value.length;
-  const result = [];
+  const result: MatchResult = [];
   let prev = [0, -1];
 
   indices.forEach(([start, end]) => {
@@ -63,9 +76,10 @@ const getFuseMatches = ({value, indices}) => {
 };
 
 /**
- * Given a match object from fuse.js, returns an array of components with "highlighted" (bold) substrings.
+ * Given a match object from fuse.js, returns an array of components with
+ * "highlighted" (bold) substrings.
  */
-const highlightFuseMatches = (matchObj, Marker = 'mark') =>
+const highlightFuseMatches = (matchObj: Match, Marker: React.ElementType = 'mark') =>
   getFuseMatches(matchObj).map(({highlight, text}, index) => {
     if (!text) {
       return null;
