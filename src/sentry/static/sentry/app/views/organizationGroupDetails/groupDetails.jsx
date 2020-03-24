@@ -15,7 +15,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
@@ -303,4 +303,4 @@ const GroupDetails = createReactClass({
 
 export {GroupDetails};
 
-export default withApi(profiler()(GroupDetails));
+export default withApi(withProfiler(GroupDetails));
