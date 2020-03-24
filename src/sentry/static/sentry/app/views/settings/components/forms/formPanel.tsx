@@ -69,8 +69,7 @@ export default class FormPanel extends React.Component<Props> {
               return field();
             }
 
-            // eslint-disable-next-line no-unused-vars
-            const {defaultValue, ...fieldWithoutDefaultValue} = field;
+            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
             // Allow the form panel disabled prop to override the fields
             // disabled prop, with fallback to the fields disabled state.

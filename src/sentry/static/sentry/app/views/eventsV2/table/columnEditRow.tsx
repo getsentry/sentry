@@ -407,7 +407,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   };
 
   render() {
-    const {onUpdate, ...props} = this.props;
+    const {onUpdate: _, ...props} = this.props;
     return (
       <StyledInput
         {...props}
