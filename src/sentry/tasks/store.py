@@ -19,10 +19,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.lang.native.processing import (
-    should_process_with_symbolicator,
-    get_symbolication_enhancer,
-)
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
@@ -93,6 +89,8 @@ def submit_save_event(project, cache_key, event_id, start_time, data):
 
 
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
+    from sentry.lang.native.processing import should_process_with_symbolicator
+
     if cache_key and data is None:
         data = default_cache.get(cache_key)
 
@@ -191,6 +189,8 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
 
 
 def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=None):
+    from sentry.lang.native.processing import get_symbolication_enhancer
+
     if data is None:
         data = default_cache.get(cache_key)
 
@@ -209,11 +209,11 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
     symbolication_function = get_symbolication_enhancer(data)
 
     try:
-        symbolicated = safe_execute(
+        symbolicated_data = safe_execute(
             symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
         )
-        if symbolicated:
-            data = symbolicated
+        if symbolicated_data:
+            data = symbolicated_data
             # has_changed = True
 
     except RetrySymbolication as e:
@@ -243,6 +243,13 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
                 countdown=e.retry_after,
             )
             return
+
+    project = Project.objects.get_from_cache(id=project_id)
+    from_reprocessing = process_task is process_event_from_reprocessing
+    if should_process(data):
+        submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
+    else:
+        submit_save_event(project, cache_key, event_id, start_time, data)
 
 
 @instrumented_task(
