@@ -6,11 +6,15 @@ import AsyncComponent from 'app/components/asyncComponent';
 import CommitRow from 'app/components/commitRow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Repository, Commit} from 'app/types';
+import {Repository, Commit, Organization} from 'app/types';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
+import AsyncView from 'app/views/asyncView';
+import routeTitleGen from 'app/utils/routeTitle';
+import {formatVersion} from 'app/utils/formatters';
+import withOrganization from 'app/utils/withOrganization';
 
 import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -23,7 +27,9 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+};
 
 type State = {
   commits: Commit[];
@@ -31,8 +37,17 @@ type State = {
   activeRepo: string;
 } & AsyncComponent['state'];
 
-class ReleaseCommits extends AsyncComponent<Props, State> {
+class ReleaseCommits extends AsyncView<Props, State> {
   static contextType = ReleaseContext;
+
+  getTitle() {
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Commits - Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
+  }
 
   getDefaultState() {
     return {
@@ -161,4 +176,4 @@ const RepoLabel = styled('div')`
   ${overflowEllipsisLeft}
 `;
 
-export default ReleaseCommits;
+export default withOrganization(ReleaseCommits);
