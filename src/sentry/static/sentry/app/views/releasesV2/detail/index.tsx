@@ -169,6 +169,7 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
           forceProject={projects.length === 1 ? projects[0] : undefined}
           specificProjectSlugs={projects.map(p => p.slug)}
           disableMultipleProjectSelection
+          showProjectSettingsLink
         />
         <ReleasesV2Detail {...this.props} />
       </React.Fragment>
