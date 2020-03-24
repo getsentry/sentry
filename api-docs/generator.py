@@ -240,6 +240,10 @@ def output_json(sections, scenarios, section_mapping):
 
 def output_markdown(sections, scenarios, section_mapping):
     report("docs", "Generating markdown documents")
+
+    # With nested URLs, we can have groups of URLs that are nested under multiple base URLs. We only want
+    # them to show up once in the index.md. So, keep a set of endpoints we have already processed
+    # to avoid duplication.
     processed_endpoints = set()
 
     for section, title in sections.items():

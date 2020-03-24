@@ -275,11 +275,8 @@ def flatten(l):
 
 def resolve_nested_routes(pattern, current_parents=None):
     """
-    Returns a flattened list of routes.
-
-    Routes can have two types of items in the route list - RegexURLPattern and RegexURLResolver.
-    RegexURLResolver allows for nested patterns. This function converts an entire list of routes to
-    RegexURLPattern and the parents in their path.
+    Returns a list of tuples. The first element in the tuple is a RegexURLPattern. The second element is
+    a string list of all the parents that url pattern has.
     """
     from sentry.utils.compat import map
 
@@ -303,11 +300,11 @@ def iter_endpoints():
 
     resolved_patterns = resolve_nested_routes(urlpatterns)
 
-    for pattern, parent in resolved_patterns:
+    for pattern, parents in resolved_patterns:
         internal_endpoint = get_internal_endpoint_from_pattern(pattern)
         if internal_endpoint is None:
             continue
-        for endpoint in extract_endpoint_info(pattern, internal_endpoint, parent):
+        for endpoint in extract_endpoint_info(pattern, internal_endpoint, parents):
             yield endpoint
 
 
