@@ -61,6 +61,13 @@ disabled = object()
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
 
 
+def merge_list_dictionaries(dict1, dict2):
+    for key, val in six.iteritems(dict2):
+        if key not in dict1:
+            dict1[key] = []
+        dict1[key].extend(val)
+
+
 class GroupSerializerBase(Serializer):
     def _get_seen_stats(self, item_list, user):
         """
@@ -147,6 +154,8 @@ class GroupSerializerBase(Serializer):
 
     def get_attrs(self, item_list, user):
         from sentry.plugins.base import plugins
+        from sentry.integrations import IntegrationFeatures
+        from sentry.models import PlatformExternalIssue
 
         GroupMeta.objects.populate_cache(item_list)
 
@@ -226,41 +235,57 @@ class GroupSerializerBase(Serializer):
 
         seen_stats = self._get_seen_stats(item_list, user)
 
+        annotations_by_group_id = defaultdict(list)
+
+        # find every org that's part of the item list
+        organization_id_list = list(set(item.project.organization_id for item in item_list))
+
+        # find all the integration installs for those orgs that are have issue tracking
+        for integration in Integration.objects.filter(organizations__in=organization_id_list):
+            if not (
+                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            ):
+                continue
+
+            for organization in integration.organizations.all():
+                install = integration.get_installation(organization.id)
+                local_annotations_by_group_id = (
+                    safe_execute(
+                        install.get_annotations_for_group_list,
+                        group_list=item_list,
+                        _with_transaction=False,
+                    )
+                    or {}
+                )
+                merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
+        # find the external issues for sentry apps and add them in
+        local_annotations_by_group_id = (
+            safe_execute(
+                PlatformExternalIssue.get_annotations_for_group_list,
+                group_list=item_list,
+                _with_transaction=False,
+            )
+            or {}
+        )
+        merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
             annotations = []
+            annotations.extend(annotations_by_group_id[item.id])
+
+            # add the annotations for plugins
+            # note that the model GroupMeta where all the information is stored is already cached at the top of this function
+            # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
-
-            from sentry.integrations import IntegrationFeatures
-
-            for integration in Integration.objects.filter(
-                organizations=item.project.organization_id
-            ):
-                if not (
-                    integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                    or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-                ):
-                    continue
-
-                install = integration.get_installation(item.project.organization_id)
-                annotations.extend(
-                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
-                )
-
-            from sentry.models import PlatformExternalIssue
-
-            annotations.extend(
-                safe_execute(
-                    PlatformExternalIssue.get_annotations, group=item, _with_transaction=False
-                )
-                or ()
-            )
 
             resolution_actor = None
             resolution_type = None

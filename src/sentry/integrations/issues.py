@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
+from collections import defaultdict
 
 from sentry import features
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -231,6 +232,9 @@ class IssueBasicMixin(object):
         external_issues = ExternalIssue.objects.filter(
             id__in=external_issue_ids, integration_id=self.model.id
         )
+        return self.map_external_issues_to_annotations(external_issues)
+
+    def map_external_issues_to_annotations(self, external_issues):
         annotations = []
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
@@ -238,6 +242,35 @@ class IssueBasicMixin(object):
             annotations.append('<a href="%s">%s</a>' % (link, label))
 
         return annotations
+
+    def get_annotations_for_group_list(self, group_list):
+        project_ids = list(set(group.project.organization_id for group in group_list))
+        group_id_list = [group.id for group in group_list]
+
+        external_issue_ids = GroupLink.objects.filter(
+            group_id__in=group_id_list,
+            project_id__in=project_ids,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).values_list("linked_id", flat=True)
+
+        external_issues = ExternalIssue.objects.filter(
+            id__in=external_issue_ids, integration_id=self.model.id
+        )
+
+        # group the external_ids by the group id
+        external_issues_by_group_id = defaultdict(list)
+        for external_issue in external_issues:
+            external_issues_by_group_id[external_issue.group_id].append(external_issue)
+
+        # group annotations by group id
+        annotations_by_group_id = {}
+        for group_id, external_issues in six.iteritems(external_issues_by_group_id):
+            annotations_by_group_id[group_id] = self.map_external_issues_to_annotations(
+                external_issues
+            )
+
+        return annotations_by_group_id
 
     def get_comment_id(self, comment):
         return comment["id"]
