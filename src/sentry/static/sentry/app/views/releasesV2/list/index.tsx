@@ -178,7 +178,7 @@ class ReleasesList extends AsyncView<Props, State> {
         {({projects}) =>
           projectReleases.map((release: ProjectRelease) => (
             <ReleaseCard
-              key={`${release.version}-${release.dateCreated}`}
+              key={`${release.version}-${release.projectSlug}`}
               release={release}
               project={projects.find(p => p.slug === release.projectSlug)}
               location={location}
