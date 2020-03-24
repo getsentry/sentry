@@ -141,15 +141,12 @@ export class OrganizationIntegrations extends AsyncComponent<
           const array = ['internal', 'unpublished'].includes(integration.status)
             ? [{featureGate: integration.status, description: ''}]
             : integration.featureData;
-          acc.push(...array);
-          return acc;
+          return acc.concat(...array);
         }
         if (isPlugin(integration)) {
-          acc.push(...integration.featureDescriptions);
-          return acc;
+          return acc.concat(...integration.featureDescriptions);
         }
-        acc.push(...integration.metadata.features);
-        return acc;
+        return acc.concat(...integration.metadata.features);
       },
       [] as IntegrationFeature[]
     );
@@ -438,7 +435,7 @@ export class OrganizationIntegrations extends AsyncComponent<
                 {getCategorySelectActive() ? (
                   <StyledSelectControl
                     name="select-categories"
-                    onChange={this.onCategorySelect} // {v => console.log(v)} //
+                    onChange={this.onCategorySelect}
                     value={selectedCategory}
                     choices={[
                       ['', 'All categories'],
