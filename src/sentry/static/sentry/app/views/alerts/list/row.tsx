@@ -15,7 +15,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import {Incident} from '../types';
+import {Incident, IncidentStats} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import SparkLine from './sparkLine';
 import Status from '../status';
@@ -28,11 +28,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  stats: {
-    eventStats: Incident['eventStats'];
-    uniqueUsers: number;
-    totalEvents: number;
-  };
+  stats: IncidentStats;
 } & AsyncComponent['state'];
 
 class AlertListRow extends AsyncComponent<Props, State> {

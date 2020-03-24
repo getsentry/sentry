@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
 import theme from 'app/utils/theme';
-import {Incident} from 'app/views/alerts/types';
+import {IncidentStats} from 'app/views/alerts/types';
 
 // Height of sparkline
 const SPARKLINE_HEIGHT = 38;
 
 type Props = {
   className?: string;
-  eventStats: Incident['eventStats'];
+  eventStats: IncidentStats['eventStats'];
 };
 
 const Sparklines = React.lazy(() =>
