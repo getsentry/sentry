@@ -135,20 +135,24 @@ export class OrganizationIntegrations extends AsyncComponent<
 
     const list = this.sortIntegrations(combined);
 
-    const allFeatureDescriptions: IntegrationFeature[] = list
-      .map(integration => {
+    const allFeatureDescriptions: IntegrationFeature[] = list.reduce(
+      (acc, integration) => {
         if (isSentryApp(integration)) {
           const array = ['internal', 'unpublished'].includes(integration.status)
             ? [{featureGate: integration.status, description: ''}]
             : integration.featureData;
-          return array;
+          acc.push(...array);
+          return acc;
         }
         if (isPlugin(integration)) {
-          return integration.featureDescriptions;
+          acc.push(...integration.featureDescriptions);
+          return acc;
         }
-        return integration.metadata.features;
-      })
-      .flat(1);
+        acc.push(...integration.metadata.features);
+        return acc;
+      },
+      [] as IntegrationFeature[]
+    );
 
     const categoriesList = getCategories(allFeatureDescriptions);
 
