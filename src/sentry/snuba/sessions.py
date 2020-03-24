@@ -23,8 +23,8 @@ def _get_conditions_and_filter_keys(project_releases, environments):
 
 
 def get_changed_project_release_model_adoptions(project_ids):
-    """Returns the last 48 hours worth of releases."""
-    start = datetime.now(pytz.utc) - timedelta(days=2)
+    """Returns the last 72 hours worth of releases."""
+    start = datetime.now(pytz.utc) - timedelta(days=3)
     rv = []
 
     # Find all releases with adoption in the last 48 hours
@@ -37,6 +37,26 @@ def get_changed_project_release_model_adoptions(project_ids):
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
+    return rv
+
+
+def get_oldest_health_data_for_releases(project_releases):
+    """Returns the oldest health data we have observed in a release
+    in 90 days.  This is used for backfilling.
+    """
+    conditions = [["release", "IN", [x[1] for x in project_releases]]]
+    filter_keys = {"project_id": [x[0] for x in project_releases]}
+    rows = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[["min", ["started"], "oldest"], "project_id", "release"],
+        groupby=["release", "project_id"],
+        start=datetime.utcnow() - timedelta(days=90),
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]
+    rv = {}
+    for row in rows:
+        rv[row["project_id"], row["release"]] = row["oldest"]
     return rv
 
 
@@ -278,21 +298,24 @@ def get_release_health_data_overview(
     return rv
 
 
-def get_crash_free_breakdown(project_id, release, environments=None):
+def get_crash_free_breakdown(project_id, release, start, environments=None):
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
 
-    def _query_stats(start_delta):
+    now = datetime.now(pytz.utc)
+
+    def _query_stats(start):
         row = raw_query(
             dataset=Dataset.Sessions,
             selected_columns=["users", "users_crashed", "sessions", "sessions_crashed"],
-            start=datetime.now(pytz.utc) - start_delta,
+            start=start,
             conditions=conditions,
             filter_keys=filter_keys,
         )["data"][0]
         return {
+            "date": start,
             "total_users": row["users"],
             "crash_free_users": 100 - row["users_crashed"] / float(row["users"]) * 100
             if row["users"]
@@ -303,12 +326,21 @@ def get_crash_free_breakdown(project_id, release, environments=None):
             else None,
         }
 
-    return {
-        "1d": _query_stats(timedelta(days=1)),
-        "1w": _query_stats(timedelta(days=7)),
-        "2w": _query_stats(timedelta(days=14)),
-        "4w": _query_stats(timedelta(days=28)),
-    }
+    rv = []
+    for offset in (
+        timedelta(seconds=0),
+        timedelta(days=1),
+        timedelta(days=2),
+        timedelta(days=7),
+        timedelta(days=14),
+        timedelta(days=14),
+    ):
+        item_start = start + offset
+        if item_start > now:
+            break
+        rv.append(_query_stats(item_start))
+
+    return rv
 
 
 def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
