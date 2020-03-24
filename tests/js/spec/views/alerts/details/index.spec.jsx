@@ -32,8 +32,18 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/123/stats/',
+      body: TestStubs.IncidentStats(),
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/123/seen/',
       method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/456/stats/',
+      body: TestStubs.IncidentStats({totalEvents: 555, uniqueUsers: 12}),
     });
 
     MockApiClient.addMockResponse({
@@ -67,12 +77,16 @@ describe('IncidentDetails', function() {
     wrapper.update();
 
     expect(wrapper.find('IncidentTitle').text()).toBe('Too many Chrome errors');
+
+    // Number of users affected
     expect(
       wrapper
         .find('ItemValue')
         .at(2)
         .text()
     ).toBe('20');
+
+    // Number of events
     expect(
       wrapper
         .find('ItemValue')

@@ -33,7 +33,7 @@ describe('IncidentsList', function() {
       body: [
         TestStubs.Incident({
           id: '123',
-          tidentifier: '1',
+          identifier: '1',
           title: 'First incident',
           projects: projects1,
         }),
@@ -45,6 +45,16 @@ describe('IncidentsList', function() {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/1/stats/',
+      body: TestStubs.IncidentStats(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/2/stats/',
+      body: TestStubs.IncidentStats({totalEvents: 1000, uniqueUsers: 32}),
+    });
+
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
@@ -83,6 +93,38 @@ describe('IncidentsList', function() {
     ).toMatchObject({
       platform: 'javascript',
     });
+
+    expect(
+      items
+        .at(0)
+        .find('Count')
+        .at(0)
+        .text()
+    ).toBe('20');
+
+    expect(
+      items
+        .at(0)
+        .find('Count')
+        .at(1)
+        .text()
+    ).toBe('100');
+
+    expect(
+      items
+        .at(1)
+        .find('Count')
+        .at(0)
+        .text()
+    ).toBe('32');
+
+    expect(
+      items
+        .at(1)
+        .find('Count')
+        .at(1)
+        .text()
+    ).toBe('1k');
   });
 
   it('displays empty state', async function() {

@@ -21,7 +21,7 @@ import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
-import {Incident} from '../types';
+import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
 import Status from '../status';
 
@@ -30,6 +30,7 @@ type Props = {
   hasIncidentDetailsError: boolean;
   // Can be undefined when loading
   incident?: Incident;
+  stats?: IncidentStats;
   onSubscriptionChange: (event: React.MouseEvent) => void;
   onStatusChange: (eventKey: any) => void;
   params: Params;
@@ -66,7 +67,13 @@ export default class DetailsHeader extends React.Component<Props> {
   }
 
   render() {
-    const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
+    const {
+      hasIncidentDetailsError,
+      incident,
+      params,
+      stats,
+      onSubscriptionChange,
+    } = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     const dateStarted = incident && moment(incident.dateStarted).format('LL');
     const duration =
@@ -118,14 +125,14 @@ export default class DetailsHeader extends React.Component<Props> {
                 </Projects>
               )}
             </ItemValue>
-            {incident && (
+            {stats && (
               <ItemValue>
-                <Count value={incident.uniqueUsers} />
+                <Count value={stats.uniqueUsers} />
               </ItemValue>
             )}
-            {incident && (
+            {stats && (
               <ItemValue>
-                <Count value={incident.totalEvents} />
+                <Count value={stats.totalEvents} />
               </ItemValue>
             )}
             {incident && (
