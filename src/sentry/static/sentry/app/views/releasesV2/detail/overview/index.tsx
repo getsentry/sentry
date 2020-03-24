@@ -95,6 +95,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       orgId={organization.slug}
                       projectId={project.id}
                       version={params.release}
+                      location={location}
                     />
                   </Main>
                   <Sidebar>
