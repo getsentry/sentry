@@ -1,5 +1,7 @@
 import flatMap from 'lodash/flatMap';
 
+import {escapeDoubleQuotes} from 'app/utils';
+
 export type QueryResults = {
   /**
    * The text portion of the string query
@@ -74,7 +76,9 @@ export function stringifyQueryObject(results: QueryResults) {
   const {query, ...tags} = results;
 
   const stringTags = flatMap(Object.entries(tags), ([k, values]) =>
-    values.map(tag => `${k}:${/[\s\(\)]/g.test(tag) ? `"${tag}"` : tag}`)
+    values.map(
+      tag => `${k}:${/[\s\(\)\\"]/g.test(tag) ? `"${escapeDoubleQuotes(tag)}"` : tag}`
+    )
   );
 
   return `${query.join(' ')} ${stringTags.join(' ')}`.trim();

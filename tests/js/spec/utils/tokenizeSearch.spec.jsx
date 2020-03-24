@@ -86,6 +86,11 @@ describe('utils/tokenizeSearch', function() {
         object: {query: ['bad things'], repository_id: ["UUID('long-value')"]},
         string: 'bad things repository_id:"UUID(\'long-value\')"',
       },
+      {
+        name: 'should escape quote tags with double quotes',
+        object: {query: ['bad things'], name: ['Ernest "Papa" Hemingway']},
+        string: 'bad things name:"Ernest \\"Papa\\" Hemingway"',
+      },
     ];
 
     for (const {name, string, object} of cases) {
