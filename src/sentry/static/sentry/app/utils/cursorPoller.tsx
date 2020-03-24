@@ -1,68 +1,80 @@
-import {Client} from 'app/api';
+import {Client, Request} from 'app/api';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
+type Options = {
+  endpoint: string;
+  success: (data: any, link?: string | null) => void;
+};
+
+const BASE_DELAY = 3000;
+const MAX_DELAY = 60000;
+
 class CursorPoller {
-  constructor(options) {
-    this.api = new Client();
+  constructor(options: Options) {
     this.options = options;
-    this._timeoutId = null;
-    this._active = true;
-    this._baseDelay = 3000;
-    this._maxDelay = 60000;
-    this._reqsWithoutData = 0;
-    this._pollingEndpoint = options.endpoint;
+    this.pollingEndpoint = options.endpoint;
   }
+
+  api = new Client();
+  options: Options;
+  pollingEndpoint: string;
+  timeoutId: number | null = null;
+  lastRequest: Request | null = null;
+  active: boolean = true;
+
+  reqsWithoutData = 0;
 
   getDelay() {
-    const delay = this._baseDelay * (this._reqsWithoutData + 1);
-    return Math.min(delay, this._maxDelay);
+    const delay = BASE_DELAY * (this.reqsWithoutData + 1);
+    return Math.min(delay, MAX_DELAY);
   }
 
-  setEndpoint(url) {
-    this._pollingEndpoint = url;
+  setEndpoint(url: string) {
+    this.pollingEndpoint = url;
   }
 
   enable() {
-    this._active = true;
-    if (!this._timeoutId) {
-      this._timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
+    this.active = true;
+    if (!this.timeoutId) {
+      this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
     }
   }
 
   disable() {
-    this._active = false;
-    if (this._timeoutId) {
-      window.clearTimeout(this._timeoutId);
-      this._timeoutId = null;
+    this.active = false;
+    if (this.timeoutId) {
+      window.clearTimeout(this.timeoutId);
+      this.timeoutId = null;
     }
 
-    if (this._lastRequest) {
-      this._lastRequest.cancel();
+    if (this.lastRequest) {
+      this.lastRequest.cancel();
     }
   }
 
   poll() {
-    this._lastRequest = this.api.request(this._pollingEndpoint, {
+    this.lastRequest = this.api.request(this.pollingEndpoint, {
       success: (data, _, jqXHR) => {
         // cancel in progress operation if disabled
-        if (!this._active) {
+        if (!this.active) {
           return;
         }
 
         // if theres no data, nothing changes
         if (!data || !data.length) {
-          this._reqsWithoutData += 1;
+          this.reqsWithoutData += 1;
           return;
         }
 
-        if (this._reqsWithoutData > 0) {
-          this._reqsWithoutData -= 1;
+        if (this.reqsWithoutData > 0) {
+          this.reqsWithoutData -= 1;
         }
 
-        const links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
-        this._pollingEndpoint = links.previous.href;
+        const linksHeader = jqXHR?.getResponseHeader('Link') ?? null;
+        const links = parseLinkHeader(linksHeader);
+        this.pollingEndpoint = links.previous.href;
 
-        this.options.success(data, jqXHR.getResponseHeader('Link'));
+        this.options.success(data, linksHeader);
       },
       error: resp => {
         if (!resp) {
@@ -79,10 +91,10 @@ class CursorPoller {
         }
       },
       complete: () => {
-        this._lastRequest = null;
+        this.lastRequest = null;
 
-        if (this._active) {
-          this._timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
+        if (this.active) {
+          this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
         }
       },
     });
