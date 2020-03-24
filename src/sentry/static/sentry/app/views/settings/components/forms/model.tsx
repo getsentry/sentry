@@ -73,7 +73,7 @@ class FormModel {
    */
   initialData = {};
 
-  api: Client | null;
+  api: Client;
 
   formErrors: any;
 
@@ -92,8 +92,7 @@ class FormModel {
    * Reset state of model
    */
   reset() {
-    this.api && this.api.clear();
-    this.api = null;
+    this.api.clear();
     this.fieldDescriptor.clear();
     this.resetForm();
   }
@@ -283,22 +282,22 @@ class FormModel {
     const endpoint = apiEndpoint || this.options.apiEndpoint || '';
     const method = apiMethod || this.options.apiMethod;
 
-    return new Promise((resolve, reject) => {
-      //should never happen but TS complains if we don't check
-      if (!this.api) {
-        return reject(new Error('Api not set'));
-      }
-      return this.api.request(endpoint, {
+    return new Promise((resolve, reject) =>
+      this.api.request(endpoint, {
         method,
         data,
         success: response => resolve(response),
         error: error => reject(error),
-      });
-    });
+      })
+    );
   }
 
+  /**
+   * Set the value of the form field
+   * if quiet is true, we skip callbacks, validations
+   */
   @action
-  setValue(id: string, value: FieldValue) {
+  setValue(id: string, value: FieldValue, {quiet}: {quiet?: boolean} = {}) {
     const fieldDescriptor = this.fieldDescriptor.get(id);
     let finalValue = value;
 
@@ -307,6 +306,9 @@ class FormModel {
     }
 
     this.fields.set(id, finalValue);
+    if (quiet) {
+      return;
+    }
 
     if (this.options.onFieldChange) {
       this.options.onFieldChange(id, finalValue);

@@ -20,6 +20,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             "install": installation,
             "uri": request.GET.get("uri"),
             "query": request.GET.get("query"),
+            "dependent_data": request.GET.get("dependentData"),
         }
 
         if project:
