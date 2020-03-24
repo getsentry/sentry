@@ -1774,7 +1774,7 @@ MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pa
 
 # Log error and abort processing (without dropping event) when process_event is
 # taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
