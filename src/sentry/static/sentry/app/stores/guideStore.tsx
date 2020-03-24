@@ -160,7 +160,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       key: 'AssistantGuideExperiment',
       unitName: 'user_id',
       unitId: parseInt(user.id, 10),
-      param: 'variant',
+      param: 'exposed',
     });
   },
 

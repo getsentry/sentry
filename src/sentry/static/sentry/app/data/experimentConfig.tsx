@@ -40,7 +40,7 @@ export const experimentList = [
   {
     key: 'AssistantGuideExperiment',
     type: 'user',
-    parameter: 'variant',
+    parameter: 'exposed',
     assignments: [0, 1, -1],
   },
 ] as const;
