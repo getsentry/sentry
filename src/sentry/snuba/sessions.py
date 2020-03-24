@@ -27,7 +27,7 @@ def get_changed_project_release_model_adoptions(project_ids):
     start = datetime.now(pytz.utc) - timedelta(days=2)
     rv = []
 
-    # Find all releases with adoption in the last 24 hours
+    # Find all releases with adoption in the last 48 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release", "users"],
@@ -128,6 +128,43 @@ def get_rollup_starts_and_buckets(period):
     return seconds, start, buckets
 
 
+def get_release_adoption(project_releases, environments=None, now=None):
+    """Get the adoption of the last 24 hours (or a difference reference timestamp)."""
+    conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
+    if now is None:
+        now = datetime.now(pytz.utc)
+    start = now - timedelta(days=1)
+
+    total_users = {}
+    for x in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["release", "users"],
+        groupby=["release", "project_id"],
+        start=start,
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]:
+        total_users[x["project_id"]] = x["users"]
+
+    rv = {}
+    for x in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["release", "project_id", "users"],
+        groupby=["release", "project_id"],
+        start=start,
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]:
+        total = total_users.get(x["project_id"])
+        if not total:
+            adoption = None
+        else:
+            adoption = x["users"] / total * 100
+        rv[x["project_id"], x["release"]] = adoption
+
+    return rv
+
+
 def get_release_health_data_overview(
     project_releases, environments=None, summary_stats_period=None, health_stats_period=None
 ):
@@ -141,17 +178,6 @@ def get_release_health_data_overview(
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
     stats_rollup, stats_start, stats_buckets = get_rollup_starts_and_buckets(health_stats_period)
-
-    total_users = {}
-    for x in raw_query(
-        dataset=Dataset.Sessions,
-        selected_columns=["release", "users"],
-        groupby=["release", "project_id"],
-        start=summary_start,
-        conditions=conditions,
-        filter_keys=filter_keys,
-    )["data"]:
-        total_users[x["project_id"]] = x["users"]
 
     missing_releases = set(project_releases)
     rv = {}
@@ -172,7 +198,6 @@ def get_release_health_data_overview(
         conditions=conditions,
         filter_keys=filter_keys,
     )["data"]:
-        x_total_users = total_users.get(x["project_id"])
         rp = {
             "duration_p50": _convert_duration(x["duration_quantiles"][0]),
             "duration_p90": _convert_duration(x["duration_quantiles"][1]),
@@ -186,7 +211,6 @@ def get_release_health_data_overview(
             "total_sessions": x["sessions"],
             "sessions_crashed": x["sessions_crashed"],
             "sessions_errored": x["sessions_errored"],
-            "adoption": x["users"] / x_total_users * 100 if x_total_users and x["users"] else None,
             "has_health_data": True,
         }
         if health_stats_period:
@@ -214,13 +238,17 @@ def get_release_health_data_overview(
                 "total_sessions": 0,
                 "sessions_crashed": 0,
                 "sessions_errored": 0,
-                "adoption": None,
                 "has_health_data": key in has_health_data,
             }
             if health_stats_period:
                 rv[key]["stats"] = {
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
+
+    # Fill in release adoption
+    release_adoption = get_release_adoption(project_releases, environments)
+    for key in rv:
+        rv[key]["adoption"] = release_adoption.get(key)
 
     if health_stats_period:
         for x in raw_query(
