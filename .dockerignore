@@ -4,7 +4,6 @@
 .gitattributes
 .dockerignore
 **/cloudbuild.yaml
-.gitignore
 Gemfile.lock
 .idea/
 *.iml
