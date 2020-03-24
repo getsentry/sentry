@@ -398,7 +398,7 @@ class SymbolicatorSession(object):
                     raise
 
                 time.sleep(wait)
-                wait *= 2
+                wait *= 2.0
 
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
