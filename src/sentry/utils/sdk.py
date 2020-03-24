@@ -214,7 +214,7 @@ class InternalTransport(Transport):
         # execution flow into the celery job triggered by StoreView. In other
         # words, UNSAFE_FILES is used in case the celery job for crashes and
         # that error is captured by the SDK.
-        with NOOP_HUB:
+        with sentry_sdk.Hub(NOOP_HUB):
             return self._capture_event(event)
 
     def _capture_event(self, event):
