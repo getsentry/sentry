@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
-export default function handleXhrErrorResponse(message) {
-  return resp => {
+export default function handleXhrErrorResponse(message: string) {
+  return (resp: JQueryXHR) => {
     if (!resp) {
       return;
     }
