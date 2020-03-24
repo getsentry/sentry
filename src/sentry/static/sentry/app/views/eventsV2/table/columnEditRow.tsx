@@ -5,7 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import {SelectValue, StringMap} from 'app/types';
+import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -13,7 +13,7 @@ import {FieldValueKind, FieldValue} from './types';
 import {ColumnType, AggregateParameter} from '../eventQueryParams';
 import {Column} from '../eventView';
 
-type FieldOptions = StringMap<SelectValue<FieldValue>>;
+type FieldOptions = Record<string, SelectValue<FieldValue>>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
