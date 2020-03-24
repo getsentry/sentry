@@ -15,6 +15,7 @@ import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
+const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -40,6 +41,9 @@ export const getSortIntegrationsByWeightActive = (organization?: Organization) =
       return variant && variant === '1';
   }
 };
+
+export const getCategorySelectActive = () =>
+  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
 
 export type SingleIntegrationEvent = {
   eventKey:
