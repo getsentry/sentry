@@ -15,6 +15,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
 import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -91,11 +92,14 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, location, selection} = this.props;
-    const {release, deploys} = this.state;
+    const {release, deploys, reloading} = this.state;
     const project = release.projects.find(p => p.id === selection.projects[0]);
 
-    // TODO(releasesv2): This will be handled later with forced project selector
     if (!project || !release) {
+      if (reloading) {
+        return <LoadingIndicator />;
+      }
+
       return null;
     }
 
@@ -120,6 +124,8 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 }
 
 class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     // fetch projects this release belongs to
