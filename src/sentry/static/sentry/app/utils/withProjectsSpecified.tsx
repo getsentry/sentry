@@ -19,7 +19,7 @@ type State = {
 };
 
 /**
- * Higher order component that takes projectSlugs and provides list of that projects from ProjectsStore
+ * Higher order component that takes specificProjectSlugs and provides list of that projects from ProjectsStore
  */
 const withProjectsSpecified = <P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
@@ -32,15 +32,15 @@ const withProjectsSpecified = <P extends InjectedProjectsProps>(
     propTypes: {
       organization: SentryTypes.Organization,
       project: SentryTypes.Project,
-      projectSlugs: PropTypes.arrayOf(PropTypes.string),
+      specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
     },
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
-      return ProjectsStore.getState(this.props.projectSlugs);
+      return ProjectsStore.getState(this.props.specificProjectSlugs);
     },
 
     onProjectUpdate() {
-      this.setState(ProjectsStore.getState(this.props.projectSlugs));
+      this.setState(ProjectsStore.getState(this.props.specificProjectSlugs));
     },
     render() {
       return (

@@ -40,7 +40,7 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
     ),
     {
       onClose() {
-        // if a user closes the modal (either via button, Ecs, clicking outside)
+        // if a user closes the modal (either via button, Esc, clicking outside)
         router.push(`/organizations/${orgSlug}/releases-v2/`);
       },
     }

@@ -57,7 +57,7 @@ class GlobalSelectionHeader extends React.Component {
     /**
      * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
      */
-    projectSlugs: PropTypes.arrayOf(PropTypes.string),
+    specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
 
     /**
      * Remove ability to select multiple projects even if organization has feature 'global-views'
@@ -601,7 +601,7 @@ class GlobalSelectionHeader extends React.Component {
       showProjectSettingsLink,
       lockedMessageSubject,
       timeRangeHint,
-      projectSlugs,
+      specificProjectSlugs,
       disableMultipleProjectSelection,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
@@ -619,7 +619,7 @@ class GlobalSelectionHeader extends React.Component {
           <Projects
             orgId={organization.slug}
             limit={PROJECTS_PER_PAGE}
-            slugs={projectSlugs}
+            slugs={specificProjectSlugs}
           >
             {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
               const paginatedProjectSelectorCallbacks = {

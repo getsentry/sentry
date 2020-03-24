@@ -72,7 +72,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  handleError(e) {
+  handleError(e, args) {
     const {router, location} = this.props;
     const possiblyWrongProject = e.status === 404 || e.status === 403;
 
@@ -82,7 +82,9 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
         ...location,
         query: {...location.query, project: undefined},
       });
+      return;
     }
+    super.handleError(e, args);
   }
 
   renderBody() {
@@ -157,7 +159,7 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
           lockedMessageSubject={t('release')}
           shouldForceProject={projects.length === 1}
           forceProject={projects.length === 1 ? projects[0] : undefined}
-          projectSlugs={projects.map(p => p.slug)}
+          specificProjectSlugs={projects.map(p => p.slug)}
           disableMultipleProjectSelection
         />
         <ReleasesV2Detail {...this.props} />
