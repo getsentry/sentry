@@ -7,7 +7,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, StringMap, Organization, OrganizationSummary} from 'app/types';
+import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
@@ -146,7 +146,7 @@ export function fetchTotalCount(
     .then((res: Response) => res.count);
 }
 
-export type MetaType = StringMap<FieldTypes>;
+export type MetaType = Record<string, FieldTypes>;
 
 /**
  * Get the field renderer for the named field and metadata
@@ -353,7 +353,7 @@ const TRANSFORM_AGGREGATES: {[field: string]: string | undefined} = {
  */
 export function getExpandedResults(
   eventView: EventView,
-  additionalConditions: StringMap<string>,
+  additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): EventView {
   // Find aggregate fields and flag them for updates.
@@ -446,9 +446,9 @@ export function getExpandedResults(
 function generateAdditionalConditions(
   eventView: EventView,
   dataRow?: TableDataRow | Event
-): StringMap<string> {
+): Record<string, string> {
   const specialKeys = Object.values(URL_PARAM);
-  const conditions: StringMap<string> = {};
+  const conditions: Record<string, string> = {};
 
   if (!dataRow) {
     return conditions;
@@ -499,7 +499,7 @@ function generateAdditionalConditions(
 
 function generateExpandedConditions(
   eventView: EventView,
-  additionalConditions: StringMap<string>,
+  additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): string {
   const parsedQuery = tokenizeSearch(eventView.query);
