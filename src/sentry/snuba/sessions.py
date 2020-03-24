@@ -149,7 +149,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
     rv = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "project_id", "users"],
+        selected_columns=["release", "project_id", "users", "sessions"],
         groupby=["release", "project_id"],
         start=start,
         conditions=conditions,
@@ -160,7 +160,11 @@ def get_release_adoption(project_releases, environments=None, now=None):
             adoption = None
         else:
             adoption = x["users"] / total * 100
-        rv[x["project_id"], x["release"]] = adoption
+        rv[x["project_id"], x["release"]] = {
+            "adoption": adoption,
+            "users_24h": x["users"],
+            "sessions_24h": x["sessions"],
+        }
 
     return rv
 
@@ -248,7 +252,10 @@ def get_release_health_data_overview(
     # Fill in release adoption
     release_adoption = get_release_adoption(project_releases, environments)
     for key in rv:
-        rv[key]["adoption"] = release_adoption.get(key)
+        adoption_info = release_adoption.get(key) or {}
+        rv[key]["adoption"] = adoption_info.get("adoption")
+        rv[key]["total_users_24h"] = adoption_info.get("users_24h")
+        rv[key]["total_sessions_24h"] = adoption_info.get("sessions_24h")
 
     if health_stats_period:
         for x in raw_query(
