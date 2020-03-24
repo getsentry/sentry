@@ -9,14 +9,15 @@ import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import {PageContent} from 'app/styles/organization';
-import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
+import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ReleaseHeader from './releaseHeader';
+import PickProjectToContinue from './pickProjectToContinue';
 
 type ReleaseContext = {release: Release; project: ReleaseProject};
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
@@ -59,6 +60,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
+      // TODO(releasesV2): summaryStatsPeriod + healthStatsPeriod?
       health: 1,
     };
 
@@ -72,21 +74,19 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  renderError(error: Error, disableLog = false, disableReport = false) {
-    const {errors} = this.state;
-    const has404Errors = Object.values(errors).find(e => e?.status === 404);
+  handleError(e, args) {
+    const {router, location} = this.props;
+    const possiblyWrongProject = e.status === 404 || e.status === 403;
 
-    if (has404Errors) {
-      return (
-        <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
-            {t('This release may not be in your selected project')}
-          </Alert>
-        </PageContent>
-      );
+    if (possiblyWrongProject) {
+      // refreshing this page without project ID will bring up a project selector
+      router.replace({
+        ...location,
+        query: {...location.query, project: undefined},
+      });
+      return;
     }
-
-    return super.renderError(error, disableLog, disableReport);
+    super.handleError(e, args);
   }
 
   renderBody() {
@@ -119,12 +119,56 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-const ReleasesV2DetailContainer = (props: Props) => (
-  <React.Fragment>
-    <GlobalSelectionHeader organization={props.organization} />
-    <ReleasesV2Detail {...props} />
-  </React.Fragment>
-);
+class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization, params} = this.props;
+    // fetch projects this release belongs to
+    return [
+      [
+        'release',
+        `/organizations/${organization.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/`,
+      ],
+    ];
+  }
+
+  isProjectMissingInUrl() {
+    const projectId = this.props.location.query.project;
+
+    return !projectId || typeof projectId !== 'string';
+  }
+
+  renderBody() {
+    const {organization, params, router} = this.props;
+    const {projects} = this.state.release;
+
+    if (this.isProjectMissingInUrl()) {
+      return (
+        <PickProjectToContinue
+          orgSlug={organization.slug}
+          version={params.release}
+          router={router}
+          projects={projects}
+        />
+      );
+    }
+
+    return (
+      <React.Fragment>
+        <GlobalSelectionHeader
+          organization={organization}
+          lockedMessageSubject={t('release')}
+          shouldForceProject={projects.length === 1}
+          forceProject={projects.length === 1 ? projects[0] : undefined}
+          specificProjectSlugs={projects.map(p => p.slug)}
+          disableMultipleProjectSelection
+        />
+        <ReleasesV2Detail {...this.props} />
+      </React.Fragment>
+    );
+  }
+}
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;

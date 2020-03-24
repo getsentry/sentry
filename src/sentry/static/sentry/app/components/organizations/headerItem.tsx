@@ -16,7 +16,7 @@ type DefaultProps = {
 
 type Props = {
   icon: React.ReactElement;
-  lockedMessage: string;
+  lockedMessage: React.ReactNode;
   settingsLink: string;
   hint?: string;
   hasChanges: boolean;
@@ -37,7 +37,7 @@ class HeaderItem extends React.Component<Props> {
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
     locked: PropTypes.bool,
-    lockedMessage: PropTypes.string,
+    lockedMessage: PropTypes.element,
     settingsLink: PropTypes.string,
     hint: PropTypes.string,
   };

@@ -171,9 +171,13 @@ const ProjectsStore = Reflux.createStore({
     return this.getAll().find(project => project.slug === slug);
   },
 
-  getState() {
+  getBySlugs(slugs) {
+    return this.getAll().filter(project => slugs.includes(project.slug));
+  },
+
+  getState(slugs) {
     return {
-      projects: this.getAll(),
+      projects: slugs ? this.getBySlugs(slugs) : this.getAll(),
       loading: this.loading,
     };
   },

@@ -275,6 +275,9 @@ const GroupDetails = createReactClass({
             forceProject={project}
             showDateSelector={false}
             shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
           />
         )}
         {isLoading ? (
