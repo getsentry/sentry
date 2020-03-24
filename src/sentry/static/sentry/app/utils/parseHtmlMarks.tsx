@@ -1,17 +1,26 @@
+type Options = {
+  key: string;
+  htmlString: string;
+  markTags: {
+    highlightPreTag: string;
+    highlightPostTag: string;
+  };
+};
+
 /**
  * Parses the "marked" html strings into a {key, value, indices} (similar to
  * Fuse.js) object, where the indices are a set of zero indexed [start, end]
  * indices for what should be highlighted.
  *
- * @param {key} The key of the field, this mimisc the Fuse match object
- * @param {htmlString} The html string to parse
- * @param {markTags.highlightPreTag} The left tag
- * @param {markTags.highlightPostTag} The right tag
+ * @param key The key of the field, this mimics the Fuse match object
+ * @param htmlString The html string to parse
+ * @param markTags.highlightPreTag The left tag
+ * @param markTags.highlightPostTag The right tag
  */
-export default function parseHtmlMarks({key, htmlString, markTags}) {
+export default function parseHtmlMarks({key, htmlString, markTags}: Options) {
   const {highlightPreTag, highlightPostTag} = markTags;
 
-  const indices = [];
+  const indices: [number, number][] = [];
   let value = htmlString;
 
   // eslint-disable-next-line no-constant-condition

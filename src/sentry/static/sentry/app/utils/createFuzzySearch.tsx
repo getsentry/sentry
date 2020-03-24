@@ -4,7 +4,7 @@ export function loadFuzzySearch() {
   return import(/* webpackChunkName: "Fuse" */ 'fuse.js');
 }
 
-export function createFuzzySearch<
+export async function createFuzzySearch<
   T = string,
   Options extends Fuse.FuseOptions<T> = Fuse.FuseOptions<T>
 >(objects: any[], options: Options): Promise<Fuse<T, Options>> {
@@ -12,13 +12,10 @@ export function createFuzzySearch<
     throw new Error('You need to define `options.keys`');
   }
 
-  return loadFuzzySearch()
-    .then(mod => mod.default)
-    .then(
-      Fuse =>
-        new Fuse(objects, {
-          ...DEFAULT_FUSE_OPTIONS,
-          ...options,
-        })
-    );
+  const {default: Fuse} = await loadFuzzySearch();
+
+  return new Fuse(objects, {
+    ...DEFAULT_FUSE_OPTIONS,
+    ...options,
+  });
 }

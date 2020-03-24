@@ -14,7 +14,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -182,4 +182,4 @@ class OrganizationReleases extends AsyncView {
   }
 }
 
-export default withOrganization(withGlobalSelection(profiler()(ReleasesContainer)));
+export default withOrganization(withGlobalSelection(withProfiler(ReleasesContainer)));

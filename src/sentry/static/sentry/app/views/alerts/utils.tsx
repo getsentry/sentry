@@ -2,7 +2,7 @@ import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 
-import {Incident, IncidentStatus} from './types';
+import {Incident, IncidentStats, IncidentStatus} from './types';
 
 export function fetchIncident(
   api: Client,
@@ -10,6 +10,14 @@ export function fetchIncident(
   alertId: string
 ): Promise<Incident> {
   return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
+}
+
+export function fetchIncidentStats(
+  api: Client,
+  orgId: string,
+  alertId: string
+): Promise<IncidentStats> {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/stats/`);
 }
 
 export function updateSubscription(

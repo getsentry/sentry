@@ -1,7 +1,5 @@
 import React from 'react';
-import {Location} from 'history';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -28,12 +26,13 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 
-type Props = {
-  params: Params;
-  location: Location;
+type RouteParams = {
+  orgId: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  router: ReactRouter.InjectedRouter;
-} & AsyncView['props'];
+};
 
 type State = AsyncView['state'];
 
@@ -179,7 +178,7 @@ class ReleasesList extends AsyncView<Props, State> {
         {({projects}) =>
           projectReleases.map((release: ProjectRelease) => (
             <ReleaseCard
-              key={`${release.version}-${release.dateCreated}`}
+              key={`${release.version}-${release.projectSlug}`}
               release={release}
               project={projects.find(p => p.slug === release.projectSlug)}
               location={location}

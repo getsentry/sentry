@@ -26,13 +26,14 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident} from '../types';
+import {Incident, IncidentStats} from '../types';
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';
 
 type Props = {
   incident?: Incident;
+  stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -152,15 +153,15 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident} = this.props;
+    const {params, incident, stats} = this.props;
 
     return (
       <StyledPageContent>
         <ChartWrapper>
-          {incident ? (
+          {incident && stats ? (
             <Chart
               aggregation={incident.alertRule?.aggregation}
-              data={incident.eventStats.data}
+              data={stats.eventStats.data}
               detected={incident.dateDetected}
               closed={incident.dateClosed}
             />

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
@@ -6,7 +5,6 @@ import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 
 type Props = {
   provider: IntegrationProvider;
@@ -15,20 +13,12 @@ type Props = {
   reinstall?: boolean;
   organization?: Organization; //for analytics
   analyticsParams?: {
-    view: 'integrations_directory_integration_detail' | 'integrations_directory';
+    view: 'integrations_directory_integration_detail';
     already_installed: boolean;
   };
 } & React.ComponentProps<typeof Button>;
 
 export default class AddIntegrationButton extends React.Component<Props> {
-  static propTypes = {
-    provider: PropTypes.object.isRequired,
-    onAddIntegration: PropTypes.func.isRequired,
-    buttonText: PropTypes.string,
-    reinstall: PropTypes.bool,
-    organization: SentryTypes.Organization,
-  };
-
   render() {
     const {
       provider,
