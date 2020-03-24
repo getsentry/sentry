@@ -101,19 +101,19 @@ const GuideAnchor = createReactClass<Props, State>({
    *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
    *  - In both cases we consider it CLOSED
    */
-  handleFinish(e) {
+  handleFinish(e: React.MouseEvent) {
     e.stopPropagation();
     const {currentGuide, orgId} = this.state;
     recordFinish(currentGuide.guide, orgId);
     closeGuide();
   },
 
-  handleNextStep(e) {
+  handleNextStep(e: React.MouseEvent) {
     e.stopPropagation();
     nextStep();
   },
 
-  handleDismiss(e) {
+  handleDismiss(e: React.MouseEvent) {
     e.stopPropagation();
     const {currentGuide, step, orgId} = this.state;
     dismissGuide(currentGuide.guide, step, orgId);
