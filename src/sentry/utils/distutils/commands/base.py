@@ -6,7 +6,7 @@ import shutil
 import sys
 
 from distutils import log
-from subprocess import check_output
+from subprocess import check_output, STDOUT, CalledProcessError
 from distutils.core import Command
 
 import sentry  # We just need its path via __file__
@@ -144,11 +144,21 @@ class BaseBuildCommand(Command):
             self._run_yarn_command(["install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):
-        log.debug("running [%s]" % (" ".join(cmd),))
+        cmd_str = " ".join(cmd)
+        log.debug("running [%s]", cmd_str)
         try:
-            return check_output(cmd, cwd=self.work_path, env=env)
+            return check_output(cmd, cwd=self.work_path, env=env, stderr=STDOUT)
+        except CalledProcessError as err:
+            log.error(
+                "[%s] failed with exit code [%s] on [%s]:\n%s",
+                cmd_str,
+                err.returncode,
+                self.work_path,
+                err.output,
+            )
+            raise
         except Exception:
-            log.error("command failed [%s] via [%s]" % (" ".join(cmd), self.work_path))
+            log.error("command failed [%s] via [%s]", cmd_str, self.work_path)
             raise
 
     def _run_yarn_command(self, cmd, env=None):
