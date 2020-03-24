@@ -218,7 +218,10 @@ const SPECIAL_FIELDS: SpecialFields = {
  * Get the sort field name for a given field if it is special or fallback
  * to the generic type formatter.
  */
-export function getSortField(field: string, tableMeta?: MetaType): string | null {
+export function getSortField(
+  field: string,
+  tableMeta: MetaType | undefined
+): string | null {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field as keyof typeof SPECIAL_FIELDS].sortField;
   }

@@ -56,12 +56,16 @@ const reverseSort = (sort: Sort): Sort => ({
   field: sort.field,
 });
 
-const isSortEqualToField = (sort: Sort, field: Field, tableMeta?: MetaType): boolean => {
+const isSortEqualToField = (
+  sort: Sort,
+  field: Field,
+  tableMeta: MetaType | undefined
+): boolean => {
   const sortKey = getSortKeyFromField(field, tableMeta);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableMeta: MetaType): Sort | undefined => {
+const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
   const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
