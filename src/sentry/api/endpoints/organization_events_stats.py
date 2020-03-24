@@ -44,14 +44,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             }
             fields = request.GET.getlist("field", [])
             query_columns = [column_map.get(column, column) for column in columns]
-            top_events = {
-                event_id: discover.find_reference_event(
-                    self.get_reference_event(
-                        request, organization, event_id, params.get("start"), params.get("end")
-                    )
+            top_events = [
+                self.get_reference_event(
+                    request, organization, event_id, params.get("start"), params.get("end")
                 )
                 for event_id in top_events[:5]
-            }
+            ]
 
             result = discover.timeseries_query(
                 selected_columns=query_columns + fields,
@@ -61,7 +59,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 reference_event=self.reference_event(
                     request, organization, params.get("start"), params.get("end")
                 ),
-                groupby=fields,
+                top_events=top_events,
                 referrer="api.organization-event-stats",
             )
         except InvalidSearchQuery as err:
@@ -74,15 +72,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 for column, query_column in zip(columns, query_columns)
             }
         elif top_events:
-            data = {}
-            for event_id, reference_event in six.iteritems(top_events):
-                data[event_id] = [
-                    {"count": row["count"], "time": row["time"]}
-                    for row in result.data["data"]
-                    if all(
-                        row.get(key) == reference_event.get(key) for key in reference_event.keys()
-                    )
-                ]
+            data = {
+                slug: serializer.serialize(event_result)
+                for slug, event_result in six.iteritems(result)
+            }
         else:
             data = serializer.serialize(result)
         return Response(data, status=200)

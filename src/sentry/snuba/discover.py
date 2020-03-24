@@ -612,7 +612,7 @@ def query(
 
 
 def timeseries_query(
-    selected_columns, query, params, rollup, groupby=None, reference_event=None, referrer=None
+    selected_columns, query, params, rollup, top_events=None, reference_event=None, referrer=None
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -639,7 +639,11 @@ def timeseries_query(
     # to use the new function values
     selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
     query = transform_deprecated_functions_in_query(query)
-    groupby = [resolve_column(col) for col in groupby] if groupby else []
+    if top_events:
+        groupby = [resolve_column(col) for col in top_events[0].fields]
+        top_events = {event.slug: find_reference_event(event) for event in top_events}
+    else:
+        groupby = None
 
     snuba_filter = get_filter(query, params)
     snuba_args = {
@@ -681,7 +685,31 @@ def timeseries_query(
         limit=10000,
         referrer=referrer,
     )
-    result = zerofill(result["data"], snuba_args["start"], snuba_args["end"], rollup, "time")
+    if top_events:
+        results = {}
+        for slug, event in six.iteritems(top_events):
+            results[slug] = SnubaTSResult(
+                {
+                    "data": zerofill(
+                        [
+                            row
+                            for row in result["data"]
+                            if all(row[field] == event[field] for field in event.keys())
+                        ],
+                        snuba_args["start"],
+                        snuba_args["end"],
+                        rollup,
+                        "time",
+                    ),
+                    "values": event,
+                },
+                snuba_filter.start,
+                snuba_filter.end,
+                rollup,
+            )
+        return results
+    else:
+        result = zerofill(result["data"], snuba_args["start"], snuba_args["end"], rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
