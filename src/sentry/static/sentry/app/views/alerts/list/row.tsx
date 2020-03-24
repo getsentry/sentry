@@ -43,7 +43,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
     projects.find(project => project.slug === slug)
   );
 
-  rederLoading() {
+  renderLoading() {
     return this.renderBody();
   }
 
