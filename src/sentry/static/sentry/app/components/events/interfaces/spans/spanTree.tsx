@@ -11,6 +11,7 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
+  SentryTransactionEvent,
 } from './types';
 import {
   boundsGenerator,
@@ -42,6 +43,7 @@ type PropType = {
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  event: SentryTransactionEvent;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -135,7 +137,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView} = this.props;
+    const {orgId, eventView, event} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
@@ -152,11 +154,14 @@ class SpanTree extends React.Component<PropType> {
 
     const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
 
+    const shouldIncludeGap = event.sdk?.name?.includes('javascript') === false;
+
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
       previousSiblingEndTimestamp < span.start_timestamp &&
       // gap is at least 100 ms
-      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
+      span.start_timestamp - previousSiblingEndTimestamp >= 0.1 &&
+      shouldIncludeGap;
 
     const spanGroupNumber = isValidGap && isSpanDisplayed ? spanNumber + 1 : spanNumber;
 
