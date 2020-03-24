@@ -175,11 +175,9 @@ const button = {
     color: colors.blue,
     colorActive: colors.blue,
     background: 'transparent',
-    border: 'none',
-    borderActive: 'inherit',
-    // border: '#3d328e',
+    border: false,
+    borderActive: false,
     backgroundActive: 'transparent',
-    // borderActive: '#352b7b',
     focusShadow: false,
   },
   disabled: {

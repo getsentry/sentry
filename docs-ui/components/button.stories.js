@@ -59,6 +59,12 @@ storiesOf('UI|Buttons', module)
           </Item>
 
           <Item>
+            <Button priority="link" onClick={action('click link')}>
+              Link Button
+            </Button>
+          </Item>
+
+          <Item>
             <Button to="" disabled onClick={action('click disabled')}>
               Disabled Button
             </Button>
