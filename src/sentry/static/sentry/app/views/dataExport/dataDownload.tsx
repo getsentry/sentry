@@ -5,7 +5,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
-import {PageContent} from 'app/styles/organization';
+import Layout from 'app/views/auth/layout';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
@@ -68,15 +68,21 @@ class DataDownload extends AsyncView<Props, State> {
   renderExpired(): React.ReactNode {
     return (
       <React.Fragment>
-        <h3>{t('Sorry!')}</h3>
-        <p>
-          {t('It seems this link has expired, and your download is no longer available.')}
-        </p>
-        <p>
-          {t(
-            'Feel free to start a new export to get the latest and greatest of your Sentry data.'
-          )}
-        </p>
+        <Header>
+          <h3>{t('Sorry!')}</h3>
+        </Header>
+        <Body>
+          <p>
+            {t(
+              'It seems this link has expired, and your download is no longer available.'
+            )}
+          </p>
+          <p>
+            {t(
+              'Feel free to start a new export to get the latest and greatest of your Sentry data.'
+            )}
+          </p>
+        </Body>
       </React.Fragment>
     );
   }
@@ -84,9 +90,13 @@ class DataDownload extends AsyncView<Props, State> {
   renderEarly(): React.ReactNode {
     return (
       <React.Fragment>
-        <h3>{t("You're Early!")}</h3>
-        <p>{t("We're still preparing your download, so check back in a bit!")}</p>
-        <p>{t("You can close this page, we'll email you when were ready")}</p>
+        <Header>
+          <h3>{t("You're Early!")}</h3>
+        </Header>
+        <Body>
+          <p>{t("We're still preparing your download, so check back in a bit!")}</p>
+          <p>{t("You can close this page, we'll email you when were ready")}</p>
+        </Body>
       </React.Fragment>
     );
   }
@@ -98,23 +108,27 @@ class DataDownload extends AsyncView<Props, State> {
     const {orgId, dataExportId} = this.props.params;
     return (
       <React.Fragment>
-        <h3>{t('Finally!')}</h3>
-        <p>
-          {t(
-            'We prepared your data for download, you can access it with the link below.'
-          )}
-        </p>
-        <Button
-          priority="primary"
-          icon="icon-download"
-          size="large"
-          borderless
-          href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
-        >
-          {t('Download CSV')}
-        </Button>
-        <p>{t('Keep in mind, this link will no longer work after:')}</p>
-        <p>{this.renderDate(dateExpired)}</p>
+        <Header>
+          <h3>{t('Finally!')}</h3>
+        </Header>
+        <Body>
+          <p>
+            {t(
+              'We prepared your data for download, you can access it with the link below.'
+            )}
+          </p>
+          <Button
+            priority="primary"
+            icon="icon-download"
+            size="large"
+            borderless
+            href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
+          >
+            {t('Download CSV')}
+          </Button>
+          <p>{t('Keep in mind, this link will no longer work after:')}</p>
+          <p>{this.renderDate(dateExpired)}</p>
+        </Body>
       </React.Fragment>
     );
   }
@@ -133,25 +147,26 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <PageContent>
-        <div className="pattern-bg" />
-        <ContentContainer>{this.renderContent()}</ContentContainer>
-      </PageContent>
+      <Layout>
+        <main>{this.renderContent()}</main>
+      </Layout>
     );
   }
 }
 
-const ContentContainer = styled('div')`
-  text-align: center;
-  margin: ${space(4)} auto;
-  width: 350px;
-  padding: ${space(4)};
-  background: ${p => p.theme.whiteDark};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 2px solid ${p => p.theme.borderDark};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+const Header = styled('header')`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(3)} 40px 0;
+  h3 {
+    font-size: 24px;
+    margin: 0 0 ${space(3)} 0;
+  }
+`;
+
+const Body = styled('div')`
+  padding: ${space(4)} 40px;
   p {
-    margin: ${space(1.5)};
+    margin: ${space(1.5)} 0;
   }
 `;
 
