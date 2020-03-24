@@ -518,6 +518,72 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
 
+    def test_top_5(self):
+        for i in range(10):
+            event = self.store_event(
+                data={
+                    "event_id": "e{}".format(i) * 16,
+                    "message": "oh my",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": "bob@example.com"},
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            )
+        for i in range(10):
+            event2 = self.store_event(
+                data={
+                    "event_id": "a{}".format(i) * 16,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": self.user.email},
+                },
+                project_id=self.project.id,
+            )
+        for i in range(10):
+            event3 = self.store_event(
+                data={
+                    "event_id": "c{}".format(i) * 16,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": "foo@example.com"},
+                },
+                project_id=self.project.id,
+            )
+        for i in range(10):
+            event3 = self.store_event(
+                data={
+                    "event_id": "d{}".format(i) * 16,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": "foo@example.com"},
+                },
+                project_id=self.project.id,
+            )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["message", "user.email"],
+                    "topEvents": [
+                        "{}:{}".format(self.project.slug, event.event_id),
+                        "{}:{}".format(self.project.slug, event2.event_id),
+                        "{}:{}".format(self.project.slug, event3.event_id),
+                    ],
+                },
+                format="json",
+            )
+
+        print (response)
+        assert False
+
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(

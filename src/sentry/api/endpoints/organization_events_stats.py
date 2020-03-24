@@ -29,6 +29,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
+            top_events = request.GET.getlist("topEvents", [])
             params = self.get_filter_params(request, organization)
             rollup = self.get_rollup(request, params)
             # Backwards compatibility for incidents which uses the old
@@ -41,16 +42,26 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 "rpm()": "rpm(%d)" % rollup,
                 "rps()": "rps(%d)" % rollup,
             }
+            fields = request.GET.getlist("field", [])
             query_columns = [column_map.get(column, column) for column in columns]
+            top_events = {
+                event_id: discover.find_reference_event(
+                    self.get_reference_event(
+                        request, organization, event_id, params.get("start"), params.get("end")
+                    )
+                )
+                for event_id in top_events[:5]
+            }
 
             result = discover.timeseries_query(
-                selected_columns=query_columns,
+                selected_columns=query_columns + fields,
                 query=request.GET.get("query"),
                 params=params,
                 rollup=rollup,
                 reference_event=self.reference_event(
                     request, organization, params.get("start"), params.get("end")
                 ),
+                groupby=fields,
                 referrer="api.organization-event-stats",
             )
         except InvalidSearchQuery as err:
@@ -62,6 +73,16 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 column: serializer.serialize(result, get_function_alias(query_column))
                 for column, query_column in zip(columns, query_columns)
             }
+        elif top_events:
+            data = {}
+            for event_id, reference_event in six.iteritems(top_events):
+                data[event_id] = [
+                    {"count": row["count"], "time": row["time"]}
+                    for row in result.data["data"]
+                    if all(
+                        row.get(key) == reference_event.get(key) for key in reference_event.keys()
+                    )
+                ]
         else:
             data = serializer.serialize(result)
         return Response(data, status=200)

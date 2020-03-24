@@ -611,7 +611,9 @@ def query(
     return transform_results(result, translated_columns, snuba_args)
 
 
-def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
+def timeseries_query(
+    selected_columns, query, params, rollup, groupby=None, reference_event=None, referrer=None
+):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -637,6 +639,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     # to use the new function values
     selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
     query = transform_deprecated_functions_in_query(query)
+    groupby = [resolve_column(col) for col in groupby] if groupby else []
 
     snuba_filter = get_filter(query, params)
     snuba_args = {
@@ -673,7 +676,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         end=snuba_args.get("end"),
         rollup=rollup,
         orderby="time",
-        groupby=["time"],
+        groupby=["time"] + groupby,
         dataset=Dataset.Discover,
         limit=10000,
         referrer=referrer,
