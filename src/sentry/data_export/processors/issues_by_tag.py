@@ -87,7 +87,7 @@ class IssuesByTagProcessor(ExportProcessor):
             result["ip_address"] = euser.ip_address if euser else ""
         return result
 
-    def get_data(self, offset=0):
+    def get_raw_data(self, offset=0):
         """
         Returns list of GroupTagValues
         """
@@ -104,5 +104,5 @@ class IssuesByTagProcessor(ExportProcessor):
         """
         Returns list of serialized GroupTagValue dictionaries
         """
-        raw_data = self.get_data(offset)
+        raw_data = self.get_raw_data(offset)
         return [self.serialize_issue(item, self.key) for item in raw_data]

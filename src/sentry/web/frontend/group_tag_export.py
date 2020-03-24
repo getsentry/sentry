@@ -39,4 +39,4 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
         filename = u"{}-{}".format(processor.group.qualified_short_id or processor.group.id, key)
 
-        return self.to_csv_response(processor.get_data(), filename, key=key)
+        return self.to_csv_response(processor.get_raw_data(), filename, key=key)
