@@ -22,7 +22,7 @@ import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
@@ -312,7 +312,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(profiler()(OrganizationContext)));
+export default withApi(withOrganizations(withProfiler(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`

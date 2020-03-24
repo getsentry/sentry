@@ -11,7 +11,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -132,5 +132,5 @@ class OrganizationReleaseDetails extends AsyncView {
 }
 
 export default withProjects(
-  withOrganization(withGlobalSelection(profiler()(ReleaseDetailsContainer)))
+  withOrganization(withGlobalSelection(withProfiler(ReleaseDetailsContainer)))
 );

@@ -36,7 +36,7 @@ import StreamManager from 'app/utils/streamManager';
 import TagStore from 'app/stores/tagStore';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
@@ -666,6 +666,6 @@ const IssueListOverview = createReactClass({
 });
 
 export default withSavedSearches(
-  withGlobalSelection(withOrganization(profiler()(IssueListOverview)))
+  withGlobalSelection(withOrganization(withProfiler(IssueListOverview)))
 );
 export {IssueListOverview};
