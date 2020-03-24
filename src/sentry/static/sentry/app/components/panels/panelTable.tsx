@@ -1,4 +1,5 @@
 import React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -42,7 +43,9 @@ type WrapperProps = {
   disablePadding: Props['disablePadding'];
 };
 
-const Wrapper = styled(Panel)<WrapperProps>`
+const Wrapper = styled(Panel, {
+  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+})<WrapperProps>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, auto);
 
