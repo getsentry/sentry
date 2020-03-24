@@ -11,7 +11,7 @@ import EventsV2 from 'app/utils/discover/eventsv2';
 
 import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
-import UserStats from './user_stats';
+import UserStats from './userStats';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 

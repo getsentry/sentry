@@ -18,6 +18,7 @@ type Props = {
   status: IntegrationInstallationStatus;
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
+  categories?: string[];
 };
 
 const urlMap = {
@@ -35,6 +36,7 @@ const IntegrationRow = (props: Props) => {
     status,
     publishStatus,
     configurations,
+    categories,
   } = props;
 
   const baseUrl =
@@ -64,6 +66,15 @@ const IntegrationRow = (props: Props) => {
             {renderDetails()}
           </IntegrationDetails>
         </Container>
+        <InternalContainer>
+          {categories?.map(category => (
+            <CategoryTag
+              key={category}
+              category={category}
+              priority={category === publishStatus}
+            />
+          ))}
+        </InternalContainer>
       </FlexContainer>
     </PanelItem>
   );
@@ -73,6 +84,10 @@ const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
+`;
+
+const InternalContainer = styled(FlexContainer)`
+  padding: 0 ${space(2)};
 `;
 
 const Container = styled('div')`
@@ -118,6 +133,23 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
+`;
+
+const CategoryTag = styled(
+  ({priority, category, ...p}: {category: string; priority: boolean; theme?: any}) => (
+    <div {...p}>{category}</div>
+  )
+)`
+  display: flex;
+  flex-direction: row;
+  padding: 1px 10px;
+  background: ${p => (p.priority ? p.theme.purpleLightest : p.theme.offWhite2)};
+  border-radius: 20px;
+  font-size: ${space(1.5)};
+  margin-right: ${space(1)};
+  line-height: ${space(3)};
+  text-align: center;
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
 `;
 
 export default IntegrationRow;

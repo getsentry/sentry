@@ -144,7 +144,7 @@ def get_outcomes_consumer(concurrency=None, **options):
     """
 
     return create_batching_kafka_consumer(
-        topic_name=settings.KAFKA_OUTCOMES,
+        topic_names=[settings.KAFKA_OUTCOMES],
         worker=OutcomesConsumerWorker(concurrency=concurrency),
         **options
     )

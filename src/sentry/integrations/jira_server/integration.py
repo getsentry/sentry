@@ -18,8 +18,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.client import ApiError
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text

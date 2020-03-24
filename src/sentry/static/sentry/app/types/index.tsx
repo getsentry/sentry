@@ -9,42 +9,6 @@ import {
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
 
-declare global {
-  interface Window {
-    /**
-     * Assets public location
-     */
-    __sentryGlobalStaticPrefix: string;
-    /**
-     * The config object provided by the backend.
-     */
-    __initialData: Config;
-    /**
-     * Sentry SDK configuration
-     */
-    __SENTRY__OPTIONS: Config['sentryConfig'];
-    /**
-     * The authenticated user identity, a bare-bones version of User
-     */
-    __SENTRY__USER: Config['userIdentity'];
-    /**
-     * Sentrys version string
-     */
-    __SENTRY__VERSION?: string;
-    /**
-     * The CSRF cookie ised on the backend
-     */
-    csrfCookieName?: string;
-    /**
-     * Primary entrypoint for rendering the sentry app. This is typically
-     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
-     * after config hydration.
-     */
-    SentryRenderApp: () => void;
-    sentryEmbedCallback?: ((embed: any) => void) | null;
-  }
-}
-
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
@@ -501,7 +465,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
+  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -520,8 +484,6 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
-  apmSampling: number;
-  dsn_requests: string;
 };
 
 export type EventOrGroupType =
@@ -709,6 +671,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  featureData: IntegrationFeature[];
 };
 
 export type Integration = {

@@ -224,11 +224,11 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert _date_regex.match(last_change) is not None
     last_fetch = safe.get_path(cfg, "lastFetch")
     assert _date_regex.match(last_fetch) is not None
+    assert safe.get_path(cfg, "organizationId") == default_project.organization.id
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
 
-    assert safe.get_path(cfg, "organizationId") is None
     assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
