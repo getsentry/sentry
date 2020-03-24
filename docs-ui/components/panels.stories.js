@@ -45,6 +45,9 @@ storiesOf('UI|Panels', module)
         <div>Panel Item</div>
         <div>Panel Item</div>
         <div>Panel Item</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
+        <div>Panel Item</div>
       </PanelTable>
     ))
   )
