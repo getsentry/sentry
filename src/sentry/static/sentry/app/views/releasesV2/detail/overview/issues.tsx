@@ -69,7 +69,7 @@ class Issues extends React.Component<Props, State> {
     const {version, orgId, location} = this.props;
     const {issuesType} = this.state;
     const queryParams = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
       limit: 50,
       sort: 'new',
     };
