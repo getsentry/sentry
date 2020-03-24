@@ -8,7 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
@@ -29,6 +29,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
     multi: PropTypes.bool,
     shouldForceProject: PropTypes.bool,
     forceProject: SentryTypes.Project,
+    showIssueStreamLink: PropTypes.bool,
+    showProjectSettingsLink: PropTypes.bool,
+    lockedMessageSubject: PropTypes.string,
   };
 
   static contextTypes = {
@@ -37,6 +40,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
   static defaultProps = {
     multi: true,
+    lockedMessageSubject: t('page'),
   };
 
   constructor() {
@@ -136,9 +140,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
   renderProjectName() {
     const {location} = this.context.router;
-    const {forceProject, multi, organization} = this.props;
+    const {forceProject, multi, organization, showIssueStreamLink} = this.props;
 
-    if (forceProject && multi) {
+    if (showIssueStreamLink && forceProject && multi) {
       return (
         <Tooltip title={t('Issues Stream')} position="bottom">
           <StyledLink
@@ -160,6 +164,19 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return '';
   }
 
+  getLockedMessage() {
+    const {forceProject, lockedMessageSubject} = this.props;
+
+    if (forceProject) {
+      return tct('This [subject] is unique to the [projectSlug] project', {
+        subject: lockedMessageSubject,
+        projectSlug: forceProject.slug,
+      });
+    }
+
+    return tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
+  }
+
   render() {
     const {
       value,
@@ -170,6 +187,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
       organization,
       shouldForceProject,
       forceProject,
+      showProjectSettingsLink,
     } = this.props;
     const selectedProjectIds = new Set(value);
 
@@ -186,13 +204,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
         locked
-        lockedMessage={
-          forceProject
-            ? t(`This issue is unique to the ${forceProject.slug} project`)
-            : t('This issue is unique to a project')
-        }
+        lockedMessage={this.getLockedMessage()}
         settingsLink={
-          forceProject && `/settings/${organization.slug}/projects/${forceProject.slug}/`
+          forceProject &&
+          showProjectSettingsLink &&
+          `/settings/${organization.slug}/projects/${forceProject.slug}/`
         }
       >
         {this.renderProjectName()}
