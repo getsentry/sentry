@@ -336,7 +336,6 @@ class SmartSearchBar extends React.Component {
 
     // If tab or enter is pressed while the search bar is in a loading state then
     // we should prevent any the form from submitting from this component
-    //
     if ((key === 'Tab' || key === 'Enter') && this.state.loading) {
       evt.preventDefault();
     }
