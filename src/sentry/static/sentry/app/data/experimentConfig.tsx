@@ -32,6 +32,12 @@ export const experimentList = [
     assignments: ['1', '0', -1],
   },
   {
+    key: 'OnboardingSidebarV2Experiment',
+    type: 'organization',
+    parameter: 'exposed',
+    assignments: [1, 0, -1],
+  },
+  {
     key: 'AssistantGuideExperiment',
     type: 'user',
     parameter: 'variant',
