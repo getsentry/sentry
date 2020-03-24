@@ -8,10 +8,9 @@ import SelectControl from 'app/components/forms/selectControl';
 import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Column, ColumnType, AggregateParameter} from 'app/utils/discover/fields';
 
 import {FieldValueKind, FieldValue} from './types';
-import {ColumnType, AggregateParameter} from '../eventQueryParams';
-import {Column} from '../eventView';
 
 type FieldOptions = Record<string, SelectValue<FieldValue>>;
 

@@ -11,18 +11,24 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery, NewQuery, SelectValue} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
+import {EventQuery, decodeColumnOrder, decodeScalar} from 'app/views/eventsV2/utils';
 
-import {SPECIAL_FIELDS, FIELD_FORMATTERS, CHART_AXIS_OPTIONS} from './data';
 import {
-  MetaType,
-  EventQuery,
+  Sort,
+  Field,
+  Column,
+  ColumnType,
   isAggregateField,
   getAggregateAlias,
-  decodeColumnOrder,
-  decodeScalar,
-} from './utils';
-import {Aggregation, AggregationRefinement} from './eventQueryParams';
-import {TableColumn, TableColumnSort} from './table/types';
+} from './fields';
+import {getSortField} from './fieldRenderers';
+
+// Metadata mapping for discover results.
+export type MetaType = Record<string, ColumnType>;
+
+// Data in discover results.
+export type EventData = Record<string, any>;
 
 type LocationQuery = {
   start?: string | string[];
@@ -39,47 +45,23 @@ const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   'cursor',
 ];
 
-export type Sort = {
-  kind: 'asc' | 'desc';
-  field: string;
-};
+// default list of yAxis options
+export const CHART_AXIS_OPTIONS = [
+  {label: 'count()', value: 'count()'},
+  {label: 'count_unique(users)', value: 'count_unique(user)'},
+];
 
 const reverseSort = (sort: Sort): Sort => ({
   kind: sort.kind === 'desc' ? 'asc' : 'desc',
   field: sort.field,
 });
 
-// Contains the URL field value & the related table column width.
-// Can be parsed into a Column using explodeField()
-export type Field = {
-  field: string;
-  width?: number;
-};
-
-// The parsed result of a Field.
-// Functions and Fields are handled as subtypes to enable other
-// code to work more simply.
-// This type can be converted into a Field.field using generateFieldAsString()
-export type Column =
-  | {
-      kind: 'field';
-      field: string;
-    }
-  | {
-      kind: 'function';
-      function: [Aggregation, string, AggregationRefinement];
-    };
-
-const isSortEqualToField = (
-  sort: Sort,
-  field: Field,
-  tableMeta: MetaType | undefined
-): boolean => {
+const isSortEqualToField = (sort: Sort, field: Field, tableMeta?: MetaType): boolean => {
   const sortKey = getSortKeyFromField(field, tableMeta);
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
+const fieldToSort = (field: Field, tableMeta: MetaType): Sort | undefined => {
   const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
@@ -92,29 +74,12 @@ const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | unde
   };
 };
 
-function getSortKeyFromField(
-  field: Field,
-  tableMeta: MetaType | undefined
-): string | null {
+function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null {
   const alias = getAggregateAlias(field.field);
-  if (SPECIAL_FIELDS.hasOwnProperty(alias)) {
-    return SPECIAL_FIELDS[alias as keyof typeof SPECIAL_FIELDS].sortField;
-  }
-
-  if (!tableMeta) {
-    return alias;
-  }
-
-  if (FIELD_FORMATTERS.hasOwnProperty(tableMeta[alias])) {
-    return FIELD_FORMATTERS[tableMeta[alias] as keyof typeof FIELD_FORMATTERS].sortField
-      ? alias
-      : null;
-  }
-
-  return null;
+  return getSortField(alias, tableMeta);
 }
 
-export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): boolean {
+export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
   return !!getSortKeyFromField(field, tableMeta);
 }
 
@@ -554,6 +519,10 @@ class EventView {
 
   getAggregateFields(): Field[] {
     return this.fields.filter(field => isAggregateField(field.field));
+  }
+
+  hasAggregateField() {
+    return this.fields.some(field => isAggregateField(field.field));
   }
 
   numOfColumns(): number {
