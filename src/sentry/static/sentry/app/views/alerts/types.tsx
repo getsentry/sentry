@@ -8,9 +8,6 @@ export type Incident = {
   dateStarted: string;
   dateDetected: string;
   dateCreated: string;
-  eventStats: {
-    data: Data;
-  };
   id: string;
   identifier: string;
   isSubscribed: boolean;
@@ -21,10 +18,16 @@ export type Incident = {
   seenBy: User[];
   status: IncidentStatus;
   title: string;
-  totalEvents: number;
-  uniqueUsers: number;
   hasSeen: boolean;
   alertRule: IncidentRule;
+};
+
+export type IncidentStats = {
+  eventStats: {
+    data: Data;
+  };
+  totalEvents: number;
+  uniqueUsers: number;
 };
 
 export type IncidentSuspect = {
