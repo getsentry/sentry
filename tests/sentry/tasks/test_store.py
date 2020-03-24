@@ -64,6 +64,12 @@ def mock_process_event():
 
 
 @pytest.fixture
+def mock_symbolicate_event():
+    with mock.patch("sentry.tasks.store.symbolicate_event") as m:
+        yield m
+
+
+@pytest.fixture
 def mock_default_cache():
     with mock.patch("sentry.tasks.store.default_cache") as m:
         yield m
@@ -91,6 +97,26 @@ def test_move_to_process_event(
     preprocess_event(data=data)
 
     assert mock_process_event.delay.call_count == 1
+    assert mock_save_event.delay.call_count == 0
+
+
+@pytest.mark.django_db
+def test_move_to_symbolicate_event(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
+    register_plugin(BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "native",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(data=data)
+
+    assert mock_symbolicate_event.delay.call_count == 1
+    assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
 
 
