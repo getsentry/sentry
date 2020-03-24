@@ -104,5 +104,6 @@ const IconLink = styled(IconWrapper)`
 `;
 
 const AlertLinkText = styled('div')`
+  line-height: 1.5;
   flex-grow: 1;
 `;

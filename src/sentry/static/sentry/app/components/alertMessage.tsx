@@ -53,14 +53,14 @@ const StyledAlert = styled(Alert)`
 
 const StyledCloseButton = styled(Button)`
   align-self: flex-start;
-  margin: ${space(0.5)} 0;
-  background-color: none;
+  margin: ${space(0.5)} 0 ${space(0.5)} auto;
+  background-color: transparent;
   opacity: 0.4;
   transition: opacity 0.1s linear;
 
   &:hover,
   &:focus {
-    background-color: none;
+    background-color: transparent;
     opacity: 1;
   }
 `;

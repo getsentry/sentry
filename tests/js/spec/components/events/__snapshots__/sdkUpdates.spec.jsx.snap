@@ -89,7 +89,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                   </IconWrapper>
                   <StyledTextBlock>
                     <div
-                      className="css-1kyjxgv-StyledTextBlock ejthpj81"
+                      className="css-12wruw9-StyledTextBlock ejthpj81"
                     >
                       We recommend you 
                       <EventSdkUpdateSuggestion
