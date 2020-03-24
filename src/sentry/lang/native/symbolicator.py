@@ -347,7 +347,12 @@ class SymbolicatorSession(object):
 
         while True:
             try:
-                response = self.session.request(method, url, **kwargs)
+                with metrics.timer(
+                    "events.symbolicator.session.request", tags={"attempt": attempts}
+                ):
+                    response = self.session.request(
+                        method, url, timeout=settings.SYMBOLICATOR_POLL_TIMEOUT + 1, **kwargs
+                    )
 
                 metrics.incr(
                     "events.symbolicator.status_code",
@@ -374,7 +379,15 @@ class SymbolicatorSession(object):
                     json = {"status": "failed", "message": "internal server error"}
 
                 return json
-            except (IOError, RequestException):
+            except (IOError, RequestException) as e:
+                metrics.incr(
+                    "events.symbolicator.request_error",
+                    tags={
+                        "exc": ".".join([e.__class__.__module__, e.__class__.__name__]),
+                        "attempt": attempts,
+                    },
+                )
+
                 attempts += 1
                 # Any server error needs to be treated as a failure. We can
                 # retry a couple of times, but ultimately need to bail out.
@@ -389,7 +402,8 @@ class SymbolicatorSession(object):
 
     def _create_task(self, path, **kwargs):
         params = {"timeout": self.timeout, "scope": self.project_id}
-        return self._request(method="post", path=path, params=params, **kwargs)
+        with metrics.timer("events.symbolicator.create_task", tags={"path": path}):
+            return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
         json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
@@ -421,7 +435,8 @@ class SymbolicatorSession(object):
             "scope": self.project_id,
         }
 
-        return self._request("get", task_url, params=params)
+        with metrics.timer("events.symbolicator.query_task"):
+            return self._request("get", task_url, params=params)
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
