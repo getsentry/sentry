@@ -196,9 +196,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
 
     if data is None:
         metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
+            "events.failed", tags={"reason": "cache", "stage": "symbolicate"}, skip_internal=False
         )
-        error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
+        error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
         return
 
     data = CanonicalKeyDict(data)
@@ -208,13 +208,15 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
 
     symbolication_function = get_symbolication_enhancer(data)
 
+    has_changed = False
+
     try:
         symbolicated_data = safe_execute(
             symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
         )
         if symbolicated_data:
             data = symbolicated_data
-            # has_changed = True
+            has_changed = True
 
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -244,9 +246,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
             )
             return
 
+    # We cannot persist canonical types in the cache, so we need to
+    # downgrade this.
+    if isinstance(data, CANONICAL_TYPES):
+        data = dict(data.items())
+
+    if has_changed:
+        # TODO(tonyo) check if we need everything we run at the end of submit_process
+        default_cache.set(cache_key, data, 3600)
+
     project = Project.objects.get_from_cache(id=project_id)
-    from_reprocessing = process_task is process_event_from_reprocessing
     if should_process(data):
+        from_reprocessing = process_task is process_event_from_reprocessing
         submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
     else:
         submit_save_event(project, cache_key, event_id, start_time, data)
@@ -304,7 +315,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
-    # TODO(anton): All enhances should be empty now, so we can delete this
+    # TODO(anton): All enhancers should be empty now, so we can delete this
     # Event enhancers.  These run before anything else.
     for plugin in plugins.all(version=2):
         enhancers = safe_execute(plugin.get_event_enhancers, data=data)
