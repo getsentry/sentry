@@ -1,7 +1,5 @@
 import React from 'react';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
@@ -23,13 +21,15 @@ import ReleaseHeader from './releaseHeader';
 type ReleaseContext = {release: Release; project: ReleaseProject};
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
-type Props = {
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
   selection: GlobalSelection;
-} & AsyncView['props'];
+};
 
 type State = {
   release: Release;

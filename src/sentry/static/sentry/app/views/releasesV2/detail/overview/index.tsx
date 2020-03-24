@@ -1,14 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Params, InjectedRouter} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {Organization, GlobalSelection} from 'app/types';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
+import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
 
 import ReleaseChartContainer from './chart';
 import Issues from './issues';
@@ -20,23 +23,37 @@ import {YAxis} from './chart/releaseChartControls';
 
 import {ReleaseContext} from '..';
 
-type Props = {
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  params: Params;
-  location: Location;
   selection: GlobalSelection;
-  router: InjectedRouter;
   api: Client;
 };
 
 type State = {
   yAxis: YAxis;
-};
+} & AsyncView['state'];
 
-class ReleaseOverview extends React.Component<Props, State> {
-  state: State = {
-    yAxis: 'sessions',
-  };
+class ReleaseOverview extends AsyncView<Props, State> {
+  getTitle() {
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
+  }
+
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      yAxis: 'sessions',
+    };
+  }
 
   handleYAxisChange = (yAxis: YAxis) => {
     this.setState({yAxis});
