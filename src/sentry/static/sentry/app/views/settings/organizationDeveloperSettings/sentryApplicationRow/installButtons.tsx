@@ -5,8 +5,10 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {t, tct} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
-import {IconAdd, IconSubtract} from 'app/icons';
+import {IconSubtract} from 'app/icons';
 import space from 'app/styles/space';
+
+//TODO(Steve): Should move somewhere else
 
 type UninstallButtonProps = {
   install: SentryAppInstallation;
@@ -15,49 +17,6 @@ type UninstallButtonProps = {
   onUninstallModalOpen?: () => void; //used for analytics
   disabled?: boolean;
 };
-export const UninstallButton = ({
-  install,
-  app,
-  onClickUninstall,
-  onUninstallModalOpen,
-  disabled,
-}: UninstallButtonProps) => {
-  const message = tct('Are you sure you want to remove the [slug] installation?', {
-    slug: app.slug,
-  });
-
-  return (
-    <Confirm
-      message={message}
-      priority="danger"
-      onConfirm={() => onClickUninstall && install && onClickUninstall(install)} //called when the user confirms the action
-      onConfirming={onUninstallModalOpen} //called when the confirm modal opens
-      disabled={disabled}
-    >
-      <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
-        {t('Uninstall')}
-      </StyledButton>
-    </Confirm>
-  );
-};
-
-type InstallButtonProps = {
-  onClickInstall?: () => void;
-};
-export const InstallButton = ({onClickInstall}: InstallButtonProps) => (
-  <Button
-    onClick={onClickInstall}
-    size="small"
-    icon={<IconAdd size="xs" circle />}
-    className="btn btn-default"
-  >
-    {t('Install')}
-  </Button>
-);
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
-`;
 
 export const UninstallAppButton = ({
   install,

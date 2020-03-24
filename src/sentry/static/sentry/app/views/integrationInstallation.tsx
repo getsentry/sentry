@@ -51,6 +51,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
       return;
     }
 
+    //TODO: Probably don't need this event anymore
     trackIntegrationEvent(
       {
         eventKey: 'integrations.install_modal_opened',

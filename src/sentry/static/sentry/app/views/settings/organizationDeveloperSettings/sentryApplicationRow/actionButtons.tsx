@@ -11,11 +11,10 @@ type Props = {
   org: LightWeightOrganization;
   app: SentryApp;
 
-  showDashboard: boolean;
   showPublish: boolean;
   showDelete: boolean;
   onPublish?: () => void;
-  onDelete?: (app: SentryApp) => void;
+  onDelete: (app: SentryApp) => void;
   // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
   disablePublishReason?: string;
   disableDeleteReason?: string;
@@ -24,7 +23,6 @@ type Props = {
 const ActionButtons = ({
   org,
   app,
-  showDashboard,
   showPublish,
   showDelete,
   onPublish,
@@ -32,7 +30,7 @@ const ActionButtons = ({
   disablePublishReason,
   disableDeleteReason,
 }: Props) => {
-  const appDashboardButton = showDashboard ? (
+  const appDashboardButton = (
     <StyledButton
       size="small"
       icon="icon-stats"
@@ -40,7 +38,7 @@ const ActionButtons = ({
     >
       {t('Dashboard')}
     </StyledButton>
-  ) : null;
+  );
 
   const publishRequestButton = showPublish ? (
     <StyledButton
