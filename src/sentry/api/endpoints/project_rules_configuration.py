@@ -20,10 +20,14 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
-            if (
+            has_issue_alerts_targeting = (
                 project.flags.has_issue_alerts_targeting
-                or request.query_params.get("issue_alerts_targeting", ["0"])[0] != "1"
-            ) and node.id == "sentry.rules.actions.notify_email.NotifyEmailAction":
+                or request.query_params.get("issue_alerts_targeting", ["0"])[0] == "1"
+            )
+            if (
+                node.id == "sentry.rules.actions.notify_email.NotifyEmailAction"
+                and not has_issue_alerts_targeting
+            ):
                 continue
 
             if hasattr(node, "form_fields"):
