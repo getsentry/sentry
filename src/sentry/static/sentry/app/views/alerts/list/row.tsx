@@ -53,13 +53,12 @@ class AlertListRow extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {incident, orgId, projectsLoaded, projects} = this.props;
-    const {stats} = this.state;
+    const {loading, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
-    const loading = true;
 
     return (
       <IncidentPanelItem>
