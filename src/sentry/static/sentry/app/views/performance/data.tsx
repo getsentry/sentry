@@ -3,6 +3,8 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import {NewQuery} from 'app/types';
 import EventView from 'app/views/eventsV2/eventView';
+import {decodeScalar} from 'app/views/eventsV2/utils';
+import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -45,6 +47,16 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
         : typeof sort === 'string'
         ? sort
         : '-rpm';
+  }
+
+  if (query?.query) {
+    const searchQuery = decodeScalar(query.query);
+    if (searchQuery) {
+      extra.query = stringifyQueryObject({
+        query: [PERFORMANCE_EVENT_VIEW.query],
+        transaction: [`*${searchQuery}*`],
+      });
+    }
   }
 
   return Object.assign({}, PERFORMANCE_EVENT_VIEW, extra);
