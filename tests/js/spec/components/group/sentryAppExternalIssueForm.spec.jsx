@@ -14,6 +14,8 @@ describe('SentryAppExternalIssueForm', () => {
   let sentryApp;
   let sentryAppInstallation;
   let component;
+  let submitUrl;
+  let externalIssueRequst;
 
   beforeEach(() => {
     group = TestStubs.Group({
@@ -24,6 +26,12 @@ describe('SentryAppExternalIssueForm', () => {
     component = TestStubs.SentryAppComponent();
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
+    externalIssueRequst = Client.addMockResponse({
+      url: submitUrl,
+      method: 'POST',
+      body: {},
+    });
   });
 
   describe('create', () => {
@@ -41,34 +49,36 @@ describe('SentryAppExternalIssueForm', () => {
       );
     });
 
-    it('specifies the action', () => {
-      expect(wrapper.find('HiddenField[name="action"]').prop('defaultValue')).toEqual(
-        'create'
-      );
-    });
-
-    it('specifies the group', () => {
-      expect(wrapper.find('HiddenField[name="groupId"]').prop('defaultValue')).toEqual(
-        group.id
-      );
-    });
-
-    it('specifies the uri', () => {
-      expect(wrapper.find('HiddenField[name="uri"]').prop('defaultValue')).toEqual(
-        component.schema.create.uri
-      );
-    });
-
     it('renders each required_fields field', () => {
       component.schema.create.required_fields.forEach(field => {
         expect(wrapper.exists(`#${field.name}`)).toBe(true);
       });
     });
 
+    it('does not submit form if required fields are not set', () => {
+      wrapper.find('form').simulate('submit');
+      expect(externalIssueRequst).not.toHaveBeenCalled();
+    });
+
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
-      expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
-      expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
+      selectByValue(wrapper, 1, {name: 'numbers'});
+
+      wrapper.find('form').simulate('submit');
+
+      expect(externalIssueRequst).toHaveBeenCalledWith(
+        submitUrl,
+        expect.objectContaining({
+          data: {
+            action: 'create',
+            description:
+              'Sentry Issue: [SEN123](https://sentry.io/organizations/sentry/issues/123/?project=1&referrer=Sample%20App)',
+            groupId: '1',
+            numbers: 1,
+            title: 'ApiError: Broken',
+          },
+          method: 'POST',
+        })
+      );
     });
 
     it('renders prepopulated defaults', () => {
@@ -102,24 +112,6 @@ describe('SentryAppExternalIssueForm', () => {
       );
     });
 
-    it('specifies the action', () => {
-      expect(wrapper.find('HiddenField[name="action"]').prop('defaultValue')).toEqual(
-        'link'
-      );
-    });
-
-    it('specifies the group', () => {
-      expect(wrapper.find('HiddenField[name="groupId"]').prop('defaultValue')).toEqual(
-        group.id
-      );
-    });
-
-    it('specifies the uri', () => {
-      expect(wrapper.find('HiddenField[name="uri"]').prop('defaultValue')).toEqual(
-        component.schema.link.uri
-      );
-    });
-
     it('renders each required_fields field', () => {
       component.schema.link.required_fields.forEach(field => {
         expect(wrapper.exists(`#${field.name}`)).toBe(true);
@@ -127,9 +119,23 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
-      expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
-      expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
+      wrapper
+        .find('input[name="issue"]')
+        .simulate('change', {target: {value: 'my issue'}});
+
+      wrapper.find('form').simulate('submit');
+
+      expect(externalIssueRequst).toHaveBeenCalledWith(
+        submitUrl,
+        expect.objectContaining({
+          data: {
+            action: 'link',
+            groupId: '1',
+            issue: 'my issue',
+          },
+          method: 'POST',
+        })
+      );
     });
   });
 });

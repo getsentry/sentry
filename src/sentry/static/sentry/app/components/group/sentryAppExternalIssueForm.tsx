@@ -65,17 +65,25 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.action !== this.props.action) {
+      this.model.reset();
       this.resetStateFromProps();
     }
   }
 
   model = new FormModel();
 
+  //reset the state when we mount or the action changes
   resetStateFromProps() {
-    const {config} = this.props;
+    const {config, action, group} = this.props;
     this.setState({
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
+    });
+    //we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+    this.model.setInitialData({
+      action,
+      groupId: group.id,
+      uri: config.uri,
     });
   }
 
@@ -259,9 +267,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     }
 
     //Note that upgrading this to work with the new react select will be quite a challenge!
-    return (
-      <FieldFromConfig key={`${field.name}`} field={field} {...this.fieldProps(field)} />
-    );
+    return <FieldFromConfig key={field.name} field={field} {...this.fieldProps(field)} />;
   };
 
   render() {
@@ -269,23 +275,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     const requiredFields = this.state.required_fields || [];
     const optionalFields = this.state.optional_fields || [];
-    const metaFields: Field[] = [
-      {
-        type: 'hidden',
-        name: 'action',
-        defaultValue: action,
-      },
-      {
-        type: 'hidden',
-        name: 'groupId',
-        defaultValue: this.props.group.id,
-      },
-      {
-        type: 'hidden',
-        name: 'uri',
-        defaultValue: this.props.config.uri,
-      },
-    ];
 
     if (!sentryAppInstallation) {
       return '';
@@ -301,8 +290,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         onFieldChange={this.handleFieldChange}
         model={this.model}
       >
-        {metaFields.map(this.renderField)}
-
         {requiredFields.map((field: FieldFromSchema) => {
           //TODO(TS): Object.assign causing type checks to not correctly run on the params being passed
           field = Object.assign({}, field, {

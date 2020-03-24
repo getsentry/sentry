@@ -86,7 +86,7 @@ export function SentryAppComponentAsync(params = {}) {
 export function SentryAppComponentDependent(params = {}) {
   return {
     type: 'issue-link',
-    uuid: '2fd6d0d4-ad4a-4644-bef9-ce277378f34e',
+    uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     schema: {
       link: {
         required_fields: [
