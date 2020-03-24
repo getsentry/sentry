@@ -1,11 +1,16 @@
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+type Props = {
+  backgroundColor?: string;
+  borderColor?: string;
+};
+
 /**
  * This creates a bordered box that has a left pointing arrow
  * on the left-side at the top.
  */
-const ActivityBubble = styled('div')`
+const ActivityBubble = styled('div')<Props>`
   flex: 1;
   background-color: ${p => p.backgroundColor};
   border: 1px solid ${p => p.borderColor || p.theme.borderLight};

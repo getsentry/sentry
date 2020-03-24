@@ -7,9 +7,8 @@ import theme from 'app/utils/theme';
 
 const ActivityPlaceholder = () => (
   <ActivityItem
-    author={null}
     bubbleProps={{
-      background: theme.placeholderBackground,
+      backgroundColor: theme.placeholderBackground,
       borderColor: theme.placeholderBackground,
     }}
   >
