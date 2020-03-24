@@ -77,7 +77,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           />
         </Form>
         <DataPrivacyRulesPanel
-          additionalContext={t('These rules can be configured for each project. ')}
+          additionalContext={t('These rules can be configured for each project.')}
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('org:write')}
