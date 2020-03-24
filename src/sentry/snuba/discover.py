@@ -635,15 +635,17 @@ def timeseries_query(
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
+    if top_events:
+        groupby = [resolve_column(col) for col in top_events[0].fields]
+        selected_columns += groupby
+        top_events = {event.slug: find_reference_event(event) for event in top_events}
+    else:
+        groupby = None
+
     # TODO(evanh): These can be removed once we migrate the frontend / saved queries
     # to use the new function values
     selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
     query = transform_deprecated_functions_in_query(query)
-    if top_events:
-        groupby = [resolve_column(col) for col in top_events[0].fields]
-        top_events = {event.slug: find_reference_event(event) for event in top_events}
-    else:
-        groupby = None
 
     snuba_filter = get_filter(query, params)
     snuba_args = {

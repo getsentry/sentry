@@ -42,7 +42,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 "rpm()": "rpm(%d)" % rollup,
                 "rps()": "rps(%d)" % rollup,
             }
-            fields = request.GET.getlist("field", [])
             query_columns = [column_map.get(column, column) for column in columns]
             top_events = [
                 self.get_reference_event(
@@ -52,7 +51,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             ]
 
             result = discover.timeseries_query(
-                selected_columns=query_columns + fields,
+                selected_columns=query_columns,
                 query=request.GET.get("query"),
                 params=params,
                 rollup=rollup,
