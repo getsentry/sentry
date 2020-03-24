@@ -9,6 +9,9 @@ import {
   IntegrationInstallationStatus,
   SentryAppStatus,
   IntegrationFeature,
+  AppOrProviderOrPlugin,
+  SentryApp,
+  PluginWithProjectList,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -237,3 +240,30 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
 
   return [...new Set(transform)];
 };
+
+export const getCategoriesForIntegration = (
+  integration: AppOrProviderOrPlugin
+): string[] => {
+  if (isSentryApp(integration)) {
+    const features = ['internal', 'unpublished'].includes(integration.status)
+      ? [{featureGate: integration.status, description: ''}]
+      : integration.featureData;
+    return getCategories(features);
+  }
+  if (isPlugin(integration)) {
+    return getCategories(integration.featureDescriptions);
+  }
+  return getCategories(integration.metadata.features);
+};
+
+export function isSentryApp(
+  integration: AppOrProviderOrPlugin
+): integration is SentryApp {
+  return !!(integration as SentryApp).uuid;
+}
+
+export function isPlugin(
+  integration: AppOrProviderOrPlugin
+): integration is PluginWithProjectList {
+  return integration.hasOwnProperty('shortName');
+}
