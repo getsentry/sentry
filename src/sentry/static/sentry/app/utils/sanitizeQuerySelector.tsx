@@ -4,9 +4,9 @@
  * e.g. `feedback:branding` --> `feedback-branding` or
  * 'Data Privacy' --> 'Data-Privacy'
  *
- * @param {String} str The string to sanitize
- * @return {String} Returns a sanitized string (replace
+ * @param str The string to sanitize
+ * @return Returns a sanitized string (replace
  */
-export function sanitizeQuerySelector(str) {
+export function sanitizeQuerySelector(str: string) {
   return typeof str === 'string' ? str.replace(/[ :]+/g, '-') : '';
 }
