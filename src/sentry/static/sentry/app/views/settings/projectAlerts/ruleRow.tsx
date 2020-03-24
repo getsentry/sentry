@@ -5,7 +5,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
-import {PanelItem} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -53,7 +52,7 @@ class RuleRow extends React.Component<Props, State> {
       : t('All Environments');
 
     return (
-      <RuleItem>
+      <React.Fragment>
         <RuleType>{t('Issue')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
@@ -84,7 +83,7 @@ class RuleRow extends React.Component<Props, State> {
             ))}
           </Actions>
         </TriggerAndActions>
-      </RuleItem>
+      </React.Fragment>
     );
   }
 
@@ -97,7 +96,7 @@ class RuleRow extends React.Component<Props, State> {
     });
 
     return (
-      <RuleItem>
+      <React.Fragment>
         <RuleType>{t('Metric')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
@@ -125,7 +124,7 @@ class RuleRow extends React.Component<Props, State> {
               </TriggerAndActions>
             ))}
         </div>
-      </RuleItem>
+      </React.Fragment>
     );
   }
 
@@ -137,13 +136,6 @@ class RuleRow extends React.Component<Props, State> {
 }
 
 export default RuleRow;
-
-const RuleItem = styled(PanelItem)`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr 3fr 6fr;
-  grid-auto-flow: column;
-`;
 
 const RuleType = styled('div')`
   color: ${p => p.theme.gray3};
@@ -171,7 +163,6 @@ const TriggerAndActions = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-auto-flow: column;
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1)};
 `;
 
 const MatchTypeHeader = styled('div')`

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelTable} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -120,36 +120,33 @@ class ProjectAlertRules extends AsyncView<Props, State> {
         />
         <PermissionAlert />
 
-        <Panel>
-          <RuleHeader>
-            <div>{t('Type')}</div>
-            <div>{t('Name')}</div>
-            <TriggerAndActions>
-              <div>{t('Conditions/Triggers')}</div>
-              <div>{t('Action(s)')}</div>
-            </TriggerAndActions>
-          </RuleHeader>
-
-          <PanelBody>
+        <ScrollWrapper>
+          <PanelTable
+            headers={[
+              <div key="type">{t('Type')}</div>,
+              <div key="name">{t('Name')}</div>,
+              <TriggerAndActions key="triggerAndActions">
+                <div>{t('Conditions/Triggers')}</div>
+                <div>{t('Action(s)')}</div>
+              </TriggerAndActions>,
+            ]}
+          >
             {loading
               ? super.renderLoading()
               : !!rules.length
               ? this.renderResults()
               : this.renderEmpty()}
-          </PanelBody>
-        </Panel>
+          </PanelTable>
+        </ScrollWrapper>
       </React.Fragment>
     );
   }
 }
 
 export default ProjectAlertRules;
-
-const RuleHeader = styled(PanelHeader)`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr 3fr 6fr;
-  grid-auto-flow: column;
+const ScrollWrapper = styled('div')`
+  width: 100%;
+  overflow-x: auto;
 `;
 
 const TriggerAndActions = styled('div')`
