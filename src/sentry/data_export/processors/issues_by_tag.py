@@ -19,7 +19,7 @@ class IssuesByTagProcessor(ExportProcessor):
         self.group = self.get_group(group_id, self.project)
         self.key = key
         self.environment_id = environment_id
-        self.fields = self.get_fields(self.key)
+        self.header_fields = self.get_header_fields(self.key)
         self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
@@ -39,7 +39,7 @@ class IssuesByTagProcessor(ExportProcessor):
             raise ExportError("Requested issue does not exist")
 
     @staticmethod
-    def get_fields(key):
+    def get_header_fields(key):
         if key == "user":
             return [
                 "value",
@@ -72,7 +72,7 @@ class IssuesByTagProcessor(ExportProcessor):
         return [IssuesByTagProcessor.get_eventuser_callback(project_id)] if key == "user" else []
 
     @staticmethod
-    def serialize_issue(item, key):
+    def serialize_row(item, key):
         result = {
             "value": item.value,
             "times_seen": item.times_seen,
@@ -105,4 +105,4 @@ class IssuesByTagProcessor(ExportProcessor):
         Returns list of serialized GroupTagValue dictionaries
         """
         raw_data = self.get_raw_data(offset)
-        return [self.serialize_issue(item, self.key) for item in raw_data]
+        return [self.serialize_row(item, self.key) for item in raw_data]

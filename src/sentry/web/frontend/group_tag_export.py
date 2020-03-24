@@ -15,11 +15,11 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
     required_scope = "event:read"
 
     def get_header(self, key):
-        return tuple(IssuesByTagProcessor.get_fields(key))
+        return tuple(IssuesByTagProcessor.get_header_fields(key))
 
     def get_row(self, item, key):
-        fields = IssuesByTagProcessor.get_fields(key)
-        item_dict = IssuesByTagProcessor.serialize_issue(item, key)
+        fields = IssuesByTagProcessor.get_header_fields(key)
+        item_dict = IssuesByTagProcessor.serialize_row(item, key)
         return (item_dict[field] for field in fields)
 
     def get(self, request, organization, project, group_id, key):

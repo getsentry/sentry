@@ -92,7 +92,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
         raise error
 
     # Iterate through all the GroupTagValues
-    writer = create_writer(file, processor.fields)
+    writer = create_writer(file, processor.header_fields)
     iteration = 0
     with snuba_error_handler(logger=logger):
         while True:
