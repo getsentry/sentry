@@ -275,6 +275,12 @@ class MailAdapter(object):
 
     @staticmethod
     def get_send_to_member(target_identifier):
+        """
+        No checking for disabled users is done. If a user explicitly specifies a member as a target to send to, it
+        should overwrite the user's personal mail settings.
+        :param target_identifier:
+        :return: Iterable[int] id of member that should be sent to.
+        """
         if target_identifier is None:
             return []
         try:
