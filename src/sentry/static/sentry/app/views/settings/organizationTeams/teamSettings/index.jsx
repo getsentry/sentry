@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -81,9 +80,7 @@ export default class TeamSettings extends AsyncView {
             slug: team.slug,
           }}
         >
-          <Box>
-            <JsonForm access={access} location={location} forms={teamSettingsFields} />
-          </Box>
+          <JsonForm access={access} location={location} forms={teamSettingsFields} />
         </Form>
 
         <Panel>
