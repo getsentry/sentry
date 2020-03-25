@@ -77,14 +77,12 @@ class SummaryContent extends React.Component<Props> {
   }
 }
 
-const StyledTitleHeader = styled('h2')`
+const StyledTitleHeader = styled('span')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  line-height: 1.2;
-
   color: ${p => p.theme.gray4};
   grid-column: 1/2;
   align-self: center;
+  min-height: 30px;
   ${overflowEllipsis};
 `;
 
