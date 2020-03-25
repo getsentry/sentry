@@ -111,7 +111,7 @@ class Project(Model, PendingDeletionMixin):
         null=True,
     )
 
-    objects = ProjectManager(cache_fields=["pk", "slug"])
+    objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
