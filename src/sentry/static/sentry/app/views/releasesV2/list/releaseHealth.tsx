@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -13,8 +12,10 @@ import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 import ScoreBar, {Bar} from 'app/components/scoreBar';
 
-import UsersChart from './usersChart';
+import HealthStatsChart from './healthStatsChart';
 import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
+import HealthStatsTitle, {StatsSubject} from './healthStatsTitle';
+import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 
 type Props = {
   release: ProjectRelease;
@@ -22,8 +23,9 @@ type Props = {
 };
 
 const ReleaseHealth = ({release, location}: Props) => {
-  const {pathname, query} = location;
-  const activeHealthStatsPeriod = (query.healthStatsPeriod || '24h') as '24h' | '14d';
+  const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
+  const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
+
   const {
     adoption,
     stats,
@@ -33,37 +35,13 @@ const ReleaseHealth = ({release, location}: Props) => {
     totalUsers24h,
   } = release.healthData!;
 
-  const healthStatsPeriods = [
-    {
-      key: '24h',
-      label: t('24h'),
-    },
-    {
-      key: '14d',
-      label: t('14d'),
-    },
-  ];
-
   return (
     <React.Fragment>
       <StyledPanelHeader>
         <HeaderLayout>
           <DailyUsersColumn>
-            {t('Daily Sessions')}:
-            <StatsPeriodChanger>
-              {healthStatsPeriods.map(healthStatsPeriod => (
-                <StatsPeriod
-                  key={healthStatsPeriod.key}
-                  to={{
-                    pathname,
-                    query: {...query, healthStatsPeriod: healthStatsPeriod.key},
-                  }}
-                  selected={activeHealthStatsPeriod === healthStatsPeriod.key}
-                >
-                  {healthStatsPeriod.label}
-                </StatsPeriod>
-              ))}
-            </StatsPeriodChanger>
+            <HealthStatsTitle location={location} activeSubject={activeStatsSubject} />
+            <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
           </DailyUsersColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
@@ -78,11 +56,11 @@ const ReleaseHealth = ({release, location}: Props) => {
           <Layout>
             <DailyUsersColumn>
               <ChartWrapper>
-                {/* TODO(releasesV2): switch between sessions and users */}
-                <UsersChart
+                <HealthStatsChart
                   data={stats}
                   height={20}
-                  statsPeriod={activeHealthStatsPeriod}
+                  period={activeStatsPeriod}
+                  subject={activeStatsSubject}
                 />
               </ChartWrapper>
             </DailyUsersColumn>
@@ -101,7 +79,7 @@ const ReleaseHealth = ({release, location}: Props) => {
                     theme.green,
                   ]}
                 />
-                <Count value={totalUsers24h} /> &nbsp;
+                <Count value={totalUsers24h ?? 0} /> &nbsp;
                 {tn('user', 'users', totalUsers24h)}
               </AdoptionWrapper>
             </AdoptionColumn>
@@ -260,25 +238,6 @@ const ChartWrapper = styled('div')`
     /* TODO(releasesV2): figure out with design these colors */
     background: #c6becf;
     fill: #c6becf;
-  }
-`;
-
-const StatsPeriodChanger = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-column-gap: ${space(0.75)};
-  flex: 1;
-  justify-content: flex-end;
-  text-align: right;
-  margin-right: ${space(2)};
-  margin-left: ${space(0.5)};
-`;
-
-const StatsPeriod = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
-
-  &:hover {
-    color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
   }
 `;
 

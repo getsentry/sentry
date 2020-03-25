@@ -58,6 +58,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
+        'healthStat',
       ]),
       summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
