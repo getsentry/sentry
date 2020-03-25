@@ -23,6 +23,7 @@ export type Incident = {
   title: string;
   hasSeen: boolean;
   alertRule: IncidentRule;
+  aggregation: AlertRuleAggregations;
 };
 
 export type IncidentStats = {
@@ -31,7 +32,6 @@ export type IncidentStats = {
   };
   totalEvents: number;
   uniqueUsers: number;
-  aggregation: AlertRuleAggregations;
   alertRule: IncidentRule;
 };
 
