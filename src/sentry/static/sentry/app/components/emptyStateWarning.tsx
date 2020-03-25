@@ -12,18 +12,24 @@ type Props = {
   small?: boolean;
   children?: React.ReactNode;
   withIcon?: boolean;
+  className?: string;
 };
 
-const EmptyStateWarning = ({small = false, withIcon = true, children}: Props) =>
+const EmptyStateWarning = ({
+  small = false,
+  withIcon = true,
+  children,
+  className,
+}: Props) =>
   small ? (
-    <EmptyMessage>
+    <EmptyMessage className={className}>
       <SmallMessage>
         {withIcon && <StyledIconWarning color={theme.gray2} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
-    <EmptyStreamWrapper data-test-id="empty-state">
+    <EmptyStreamWrapper data-test-id="empty-state" className={className}>
       {withIcon && <HeroIcon src="icon-circle-exclamation" size="54" />}
       {children}
     </EmptyStreamWrapper>
