@@ -79,11 +79,11 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           additionalContext={
             <span>
               {tct(
-                'These rules can be configured at the organization level in [linkToOrganizationSecurityAndPrivacy]',
+                'These rules can be configured at the organization level in [linkToOrganizationSecurityAndPrivacy].',
                 {
                   linkToOrganizationSecurityAndPrivacy: (
                     <Link to={`/settings/${orgId}/security-and-privacy/`}>
-                      {t('Security and Privacy. ')}
+                      {t('Security and Privacy')}
                     </Link>
                   ),
                 }

@@ -623,6 +623,7 @@ describe('GlobalSelectionHeader', function() {
           organization={initialData.organization}
           shouldForceProject
           forceProject={initialData.organization.projects[0]}
+          showIssueStreamLink
         />,
         initialData.routerContext
       );

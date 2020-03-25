@@ -1,5 +1,4 @@
 import * as ReactRouter from 'react-router';
-import {ModalBody, ModalHeader} from 'react-bootstrap';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -7,12 +6,12 @@ import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Text from 'app/components/text';
 import recreateRoute from 'app/utils/recreateRoute';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 
-type Props = ReactRouter.WithRouterProps & {
-  slug: string;
-  Header: typeof ModalHeader;
-  Body: typeof ModalBody;
-};
+type Props = ModalRenderProps &
+  ReactRouter.WithRouterProps & {
+    slug: string;
+  };
 
 type State = {
   timer: number;

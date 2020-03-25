@@ -9,13 +9,12 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, OrganizationSummary, StringMap} from 'app/types';
+import {SelectValue, OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
 import {SectionHeading} from '../styles';
-import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
-import {Column} from '../eventView';
 import {FieldValue, FieldValueKind} from './types';
 import {ColumnEditRow} from './columnEditRow';
 
@@ -35,7 +34,7 @@ type State = {
   left: undefined | number;
   top: undefined | number;
   // Stored as a object so we can find elements later.
-  fieldOptions: StringMap<SelectValue<FieldValue>>;
+  fieldOptions: Record<string, SelectValue<FieldValue>>;
 };
 
 const DRAG_CLASS = 'draggable-item';
@@ -100,7 +99,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       fields = fields.filter(item => !TRACING_FIELDS.includes(item));
       functions = functions.filter(item => !TRACING_FIELDS.includes(item));
     }
-    const fieldOptions: StringMap<SelectValue<FieldValue>> = {};
+    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
     // Index items by prefixed keys as custom tags
     // can overlap both fields and function names.

@@ -1,34 +1,54 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
 
 import {Client} from 'app/api';
+import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {
+  fetchIncident,
+  fetchIncidentStats,
+  updateSubscription,
+  updateStatus,
+  isOpen,
+} from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
-import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;
+  organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 type State = {
   isLoading: boolean;
   hasError: boolean;
   incident?: Incident;
+  stats?: IncidentStats;
 };
 
 class IncidentDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
-    const {api, params} = this.props;
+    const {api, organization, params} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_details.viewed',
+      eventName: 'Alert Details: Viewed',
+      organization_id: parseInt(organization.id, 10),
+      alert_id: parseInt(params.alertId, 10),
+    });
+
     fetchOrgMembers(api, params.orgId);
+
     this.fetchData();
   }
 
@@ -41,8 +61,12 @@ class IncidentDetails extends React.Component<Props, State> {
     } = this.props;
 
     try {
-      const incident = await fetchIncident(api, orgId, alertId);
-      this.setState({incident, isLoading: false, hasError: false});
+      const [incident, stats] = await Promise.all([
+        fetchIncident(api, orgId, alertId),
+        fetchIncidentStats(api, orgId, alertId),
+      ]);
+
+      this.setState({incident, stats, isLoading: false, hasError: false});
       markIncidentAsSeen(api, orgId, incident);
     } catch (_err) {
       this.setState({isLoading: false, hasError: true});
@@ -110,7 +134,7 @@ class IncidentDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {incident, hasError} = this.state;
+    const {incident, stats, hasError} = this.state;
     const {params} = this.props;
 
     return (
@@ -119,14 +143,15 @@ class IncidentDetails extends React.Component<Props, State> {
           hasIncidentDetailsError={hasError}
           params={params}
           incident={incident}
+          stats={stats}
           onSubscriptionChange={this.handleSubscriptionChange}
           onStatusChange={this.handleStatusChange}
         />
 
-        <DetailsBody {...this.props} incident={incident} />
+        <DetailsBody {...this.props} incident={incident} stats={stats} />
       </React.Fragment>
     );
   }
 }
 
-export default withApi(IncidentDetails);
+export default withApi(withOrganization(IncidentDetails));

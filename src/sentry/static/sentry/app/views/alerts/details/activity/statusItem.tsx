@@ -50,7 +50,7 @@ class StatusItem extends React.Component<Props> {
         showTime={showTime}
         author={{
           type: activity.user ? 'user' : 'system',
-          user: activity.user,
+          user: activity.user || undefined,
         }}
         header={
           <div>

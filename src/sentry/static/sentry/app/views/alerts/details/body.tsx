@@ -15,7 +15,7 @@ import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {getUtcDateString, intervalToMilliseconds} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
@@ -26,13 +26,14 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident} from '../types';
+import {Incident, IncidentStats} from '../types';
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';
 
 type Props = {
   incident?: Incident;
+  stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -63,7 +64,7 @@ export default class DetailsBody extends React.Component<Props> {
       fields: ['issue', 'count(id)', 'count_unique(user.id)'],
       widths: ['400', '200', '-1'],
       orderby:
-        incident.alertRule?.aggregation === AlertRuleAggregations.UNIQUE_USERS
+        incident.aggregation === AlertRuleAggregations.UNIQUE_USERS
           ? '-count_unique_user_id'
           : '-count_id',
       query: (incident && incident.query) || '',
@@ -152,15 +153,15 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident} = this.props;
+    const {params, incident, stats} = this.props;
 
     return (
       <StyledPageContent>
         <ChartWrapper>
-          {incident ? (
+          {incident && stats ? (
             <Chart
-              aggregation={incident.alertRule?.aggregation}
-              data={incident.eventStats.data}
+              aggregation={incident.aggregation}
+              data={stats.eventStats.data}
               detected={incident.dateDetected}
               closed={incident.dateClosed}
             />

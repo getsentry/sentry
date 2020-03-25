@@ -1339,7 +1339,7 @@ SENTRY_WATCHERS = (
 # If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
@@ -1774,7 +1774,7 @@ MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pa
 
 # Log error and abort processing (without dropping event) when process_event is
 # taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120

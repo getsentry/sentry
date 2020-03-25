@@ -1,6 +1,6 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
@@ -11,12 +11,11 @@ import withProjects from 'app/utils/withProjects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
-import {generatePerformanceEventView} from '../data';
 import SummaryContent from './content';
 
 type Props = {
@@ -28,7 +27,7 @@ type Props = {
 };
 
 type State = {
-  eventView: EventView;
+  eventView: EventView | undefined;
 };
 
 class TransactionSummary extends React.Component<Props, State> {
@@ -64,13 +63,11 @@ class TransactionSummary extends React.Component<Props, State> {
   render() {
     const {organization, location} = this.props;
     const {eventView} = this.state;
-
     const transactionName = getTransactionName(this.props);
-
-    if (!transactionName) {
+    if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
 
-      ReactRouter.browserHistory.replace({
+      browserHistory.replace({
         pathname: `/organizations/${organization.slug}/performance/`,
         query: {
           ...location.query,
@@ -113,45 +110,37 @@ function getTransactionName(props: Props): string | undefined {
 function generateSummaryEventView(
   location: Location,
   transactionName: string | undefined
-): EventView {
-  let eventView = generatePerformanceEventView(location);
-  if (typeof transactionName !== 'string') {
-    return eventView;
+): EventView | undefined {
+  if (transactionName === undefined) {
+    return undefined;
   }
-
-  // narrow the search conditions of the Performance event view
-  eventView.name = transactionName;
-
-  const searchConditions = {
+  const conditions = {
     query: [],
     'event.type': ['transaction'],
     transaction: [transactionName],
   };
-  eventView.query = stringifyQueryObject(searchConditions);
+  // Handle duration filters from the latency chart
+  if (location.query.startDuration || location.query.endDuration) {
+    conditions['transaction.duration'] = [
+      decodeScalar(location.query.startDuration),
+      decodeScalar(location.query.endDuration),
+    ]
+      .filter(item => item)
+      .map((item, index) => (index === 0 ? `>${item}` : `<${item}`));
+  }
 
-  eventView = eventView.withColumns([
+  return EventView.fromNewQueryWithLocation(
     {
-      kind: 'field',
-      field: 'transaction',
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields: ['transaction', 'transaction.duration', 'timestamp'],
+      orderby: '-transaction.duration',
+      query: stringifyQueryObject(conditions),
+      projects: [],
     },
-    {
-      kind: 'field',
-      field: 'transaction.duration',
-    },
-    {
-      kind: 'field',
-      field: 'timestamp',
-    },
-  ]);
-
-  eventView.sorts = [
-    {
-      kind: 'desc',
-      field: 'transaction.duration',
-    },
-  ];
-
-  return eventView;
+    location
+  );
 }
 
 export default withProjects(withOrganization(TransactionSummary));
