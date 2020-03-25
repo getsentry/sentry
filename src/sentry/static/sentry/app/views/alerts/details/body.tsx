@@ -15,7 +15,7 @@ import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {getUtcDateString, intervalToMilliseconds} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';

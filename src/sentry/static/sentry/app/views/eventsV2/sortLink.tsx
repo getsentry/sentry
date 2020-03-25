@@ -5,9 +5,8 @@ import omit from 'lodash/omit';
 
 import {IconArrow} from 'app/icons/iconArrow';
 import Link from 'app/components/links/link';
-
-import EventView, {Field, Sort, isFieldSortable} from './eventView';
-import {MetaType} from './utils';
+import {Field, Sort} from 'app/utils/discover/fields';
+import EventView, {MetaType, isFieldSortable} from 'app/utils/discover/eventView';
 
 export type Alignments = 'left' | 'right' | undefined;
 

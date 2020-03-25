@@ -1,6 +1,6 @@
 import React from 'react';
 
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 
 import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {ProcessedSpanType, ParsedTraceType} from './types';

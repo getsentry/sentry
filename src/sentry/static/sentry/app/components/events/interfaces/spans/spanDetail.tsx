@@ -16,7 +16,7 @@ import {
   generateEventSlug,
   generateEventDetailsRoute,
 } from 'app/views/eventsV2/eventDetails/utils';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {assert} from 'app/types/utils';
 

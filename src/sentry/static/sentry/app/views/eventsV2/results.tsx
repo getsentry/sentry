@@ -20,6 +20,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -27,7 +28,6 @@ import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
-import EventView, {isAPIPayloadSimilar} from './eventView';
 import {generateTitle, fetchTotalCount} from './utils';
 import {ContentBox} from './styles';
 
