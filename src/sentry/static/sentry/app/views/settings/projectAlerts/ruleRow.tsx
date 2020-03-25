@@ -10,6 +10,7 @@ import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
@@ -79,7 +80,7 @@ class RuleRow extends React.Component<Props, State> {
 
           <Actions>
             {data.actions.map((action, i) => (
-              <div key={i}>{action.name}</div>
+              <Action key={i}>{action.name}</Action>
             ))}
           </Actions>
         </TriggerAndActions>
@@ -103,27 +104,27 @@ class RuleRow extends React.Component<Props, State> {
           <RuleDescription />
         </div>
 
-        <div>
+        <TriggerAndActions>
           {data.triggers.length !== 0 &&
             data.triggers.map((trigger, i) => (
-              <TriggerAndActions key={i}>
-                <Trigger>
+              <React.Fragment key={i}>
+                <Trigger key={`trigger-${i}`}>
                   <StatusBadge>{trigger.label}</StatusBadge>
-                  <div>
+                  <TriggerDescription>
                     {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
                     {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
                     {trigger.alertThreshold}/{data.timeWindow}
                     {t('min')}
-                  </div>
+                  </TriggerDescription>
                 </Trigger>
-                <Actions>
+                <Actions key={`actions-${i}`}>
                   {trigger.actions?.map((action, j) => (
-                    <div key={j}>{action.desc}</div>
+                    <Action key={j}>{action.desc}</Action>
                   ))}
                 </Actions>
-              </TriggerAndActions>
+              </React.Fragment>
             ))}
-        </div>
+        </TriggerAndActions>
       </React.Fragment>
     );
   }
@@ -156,12 +157,21 @@ const Conditions = styled('div')`
 `;
 
 // For tests
-const Actions = styled('div')``;
+const Actions = styled('div')`
+  overflow: hidden;
+`;
+
+const Action = styled('div')`
+  line-height: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
 
 const TriggerAndActions = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-auto-flow: column;
+  align-items: flex-start;
+  grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -179,7 +189,11 @@ const RuleDescription = styled('div')`
 
 const Trigger = styled('div')`
   display: flex;
-  align-items: center;
+  overflow: hidden;
+`;
+
+const TriggerDescription = styled('div')`
+  ${overflowEllipsis};
 `;
 
 const StatusBadge = styled('div')`

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader, PanelTable} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -18,6 +18,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tooltip from 'app/components/tooltip';
 import routeTitle from 'app/utils/routeTitle';
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   canEditRule: boolean;
@@ -50,7 +51,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t('There are no alerts configured for this project.')}</p>
+        <p />
       </EmptyStateWarning>
     );
   }
@@ -121,22 +122,23 @@ class ProjectAlertRules extends AsyncView<Props, State> {
         <PermissionAlert />
 
         <ScrollWrapper>
-          <PanelTable
+          <StyledPanelTable
+            isLoading={loading}
+            isEmpty={!loading && !rules.length}
+            emptyMessage={t('There are no alerts configured for this project.')}
             headers={[
               <div key="type">{t('Type')}</div>,
               <div key="name">{t('Name')}</div>,
               <TriggerAndActions key="triggerAndActions">
-                <div>{t('Conditions/Triggers')}</div>
-                <div>{t('Action(s)')}</div>
+                <EllipsisHeader key="conditions">
+                  {t('Conditions/Triggers')}
+                </EllipsisHeader>
+                <EllipsisHeader key="actions">{t('Action(s)')}</EllipsisHeader>
               </TriggerAndActions>,
             ]}
           >
-            {loading
-              ? super.renderLoading()
-              : !!rules.length
-              ? this.renderResults()
-              : this.renderEmpty()}
-          </PanelTable>
+            {() => this.renderResults()}
+          </StyledPanelTable>
         </ScrollWrapper>
       </React.Fragment>
     );
@@ -144,19 +146,38 @@ class ProjectAlertRules extends AsyncView<Props, State> {
 }
 
 export default ProjectAlertRules;
+
 const ScrollWrapper = styled('div')`
   width: 100%;
   overflow-x: auto;
 `;
 
+const LoadingWrapper = styled('div')`
+  border: none;
+  grid-column: auto / span 4;
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  width: fit-content;
+  min-width: 100%;
+
+  > ${LoadingWrapper} {
+    border: none;
+  }
+`;
+
 const TriggerAndActions = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-auto-flow: column;
+  grid-gap: ${space(1)};
 `;
 
 const HeaderActions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
+`;
+
+const EllipsisHeader = styled('div')`
+  ${overflowEllipsis};
 `;
