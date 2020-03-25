@@ -12,6 +12,7 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
+from sentry import digests, ratelimits
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.models import ProjectOwnership, User, Team, Project
@@ -163,15 +164,26 @@ class MailAdapter(object):
         return project.get_notification_recipients(self.legacy_mail.alert_option_key)
 
     def should_notify(self, group):
-        send_to = self.get_sendable_users(group.project)
+        project = group.project
+        send_to = self.get_sendable_users(project)
         if not send_to:
             return False
 
         if not group.is_unresolved():
             return False
 
-        # No rate limit checks needed as mail should be throttled due to digests.
+        # If digests are not enabled, perform rate limit checks. While digests cannot be disabled for mail at the time
+        # of writing, this logic is kept for backwards compatibility.
+        if not (
+            hasattr(self, "notify_digest") and digests.enabled(project)
+        ) and self.__is_rate_limited(project):
+            self.logger.info("notification.rate_limited", extra={"project_id": project.id})
+            return False
+
         return True
+
+    def __is_rate_limited(self, project):
+        return ratelimits.is_limited(project=project, key=self.legacy_mail.get_conf_key(), limit=10)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
