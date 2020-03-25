@@ -56,12 +56,10 @@ class DataForwardingStats extends AsyncComponent {
               className="standard-barchart"
             />
           ) : (
-            <div className="blankslate p-y-2">
-              <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
-              <p className="m-b-0">
-                {t('Total events forwarded to third party integrations.')}
-              </p>
-            </div>
+            <EmptyMessage
+              title={t('Nothing forwarded in the last 30 days.')}
+              description={t('Total events forwarded to third party integrations.')}
+            />
           )}
         </PanelBody>
       </Panel>
