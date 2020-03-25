@@ -1,10 +1,11 @@
 import {Link} from 'react-router';
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
 
+import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
@@ -34,6 +35,9 @@ type Props = {
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
+
+  // This is only used with `<ButtonBar>`
+  barId?: string;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
@@ -133,8 +137,7 @@ class Button extends React.Component<ButtonProps, {}> {
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
-      // eslint-disable-next-line no-unused-vars
-      onClick,
+      onClick: _onClick,
       ...buttonProps
     } = this.props;
     // For `aria-label`
@@ -210,7 +213,7 @@ ButtonForwardRef.displayName = 'forwardRef<Button>';
 
 export default ButtonForwardRef;
 
-type StyledButtonProps = ButtonProps & {theme?: any};
+type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
@@ -329,7 +332,11 @@ const StyledButton = styled(
 /**
  * Get label padding determined by size
  */
-const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
+const getLabelPadding = ({
+  size,
+  priority,
+  borderless,
+}: Pick<StyledButtonProps, 'size' | 'priority' | 'borderless'>) => {
   if (priority === 'link') {
     return '0';
   }
@@ -352,11 +359,12 @@ const getLabelPadding = ({size, priority, borderless}: StyledButtonProps) => {
   }
 };
 
+const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
 
-const ButtonLabel = styled(
-  ({size, priority, borderless, align, ...props}: ButtonLabelProps) => <span {...props} />
-)<Props>`
+const ButtonLabel = styled('span', {
+  shouldForwardProp: prop => isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
+})<ButtonLabelProps>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -364,7 +372,7 @@ const ButtonLabel = styled(
   padding: ${getLabelPadding};
 `;
 
-type IconProps = Omit<React.HTMLProps<HTMLSpanElement>, 'size'> & {
+type IconProps = {
   size?: ButtonProps['size'];
   hasChildren?: boolean;
 };
@@ -378,7 +386,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled(({hasChildren, ...props}: IconProps) => <span {...props} />)`
+const Icon = styled('span')<IconProps>`
   margin-right: ${getIconMargin};
   display: flex;
 `;

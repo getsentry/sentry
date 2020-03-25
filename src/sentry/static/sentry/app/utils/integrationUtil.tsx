@@ -8,6 +8,7 @@ import {
   SentryAppInstallation,
   IntegrationInstallationStatus,
   SentryAppStatus,
+  IntegrationFeature,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -42,7 +43,7 @@ export const getSortIntegrationsByWeightActive = (organization?: Organization) =
 
 export type SingleIntegrationEvent = {
   eventKey:
-    | 'integrations.install_modal_opened'
+    | 'integrations.install_modal_opened' //TODO: remove
     | 'integrations.installation_start'
     | 'integrations.installation_complete'
     | 'integrations.integration_viewed' //for the integration overview
@@ -56,7 +57,7 @@ export type SingleIntegrationEvent = {
     | 'integrations.plugin_add_to_project_clicked'
     | 'integrations.upgrade_plan_modal_opened';
   eventName:
-    | 'Integrations: Install Modal Opened'
+    | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
     | 'Integrations: Integration Viewed'
@@ -104,7 +105,6 @@ type IntegrationsEventParams = (
 ) & {
   view?:
     | 'external_install'
-    | 'integrations_page'
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
@@ -207,4 +207,28 @@ export const getSentryAppInstallStatus = (install: SentryAppInstallation | undef
     return capitalize(install.status) as IntegrationInstallationStatus;
   }
   return 'Not Installed';
+};
+
+export const getCategories = (features: IntegrationFeature[]): string[] => {
+  const transform = features.map(({featureGate}) => {
+    const feature = featureGate
+      .replace(/integrations/g, '')
+      .replace(/-/g, ' ')
+      .trim();
+    switch (feature) {
+      case 'actionable notification':
+        return 'notification action';
+      case 'issue basic':
+      case 'issue sync':
+        return 'project management';
+      case 'commits':
+        return 'source code management';
+      case 'chat unfurl':
+        return 'chat';
+      default:
+        return feature;
+    }
+  });
+
+  return [...new Set(transform)];
 };

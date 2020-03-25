@@ -667,44 +667,38 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                         align="center"
                                                         size="xsmall"
                                                       >
-                                                        <Component
-                                                          align="center"
+                                                        <span
                                                           className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                          size="xsmall"
                                                         >
-                                                          <span
-                                                            className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                          >
-                                                            Add Team
-                                                            <StyledChevronDown>
-                                                              <Component
+                                                          Add Team
+                                                          <StyledChevronDown>
+                                                            <Component
+                                                              className="css-1jdzfs8-StyledChevronDown eenpoef0"
+                                                            >
+                                                              <InlineSvg
                                                                 className="css-1jdzfs8-StyledChevronDown eenpoef0"
+                                                                src="icon-chevron-down"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1jdzfs8-StyledChevronDown eenpoef0"
+                                                                <ForwardRef
+                                                                  className="eenpoef0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                                   src="icon-chevron-down"
                                                                 >
-                                                                  <ForwardRef
+                                                                  <svg
                                                                     className="eenpoef0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                    src="icon-chevron-down"
+                                                                    height="1em"
+                                                                    viewBox={Object {}}
+                                                                    width="1em"
                                                                   >
-                                                                    <svg
-                                                                      className="eenpoef0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                      height="1em"
-                                                                      viewBox={Object {}}
-                                                                      width="1em"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </ForwardRef>
-                                                                </InlineSvg>
-                                                              </Component>
-                                                            </StyledChevronDown>
-                                                          </span>
-                                                        </Component>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef>
+                                                              </InlineSvg>
+                                                            </Component>
+                                                          </StyledChevronDown>
+                                                        </span>
                                                       </ButtonLabel>
                                                     </button>
                                                   </Component>
@@ -808,17 +802,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                   align="center"
                   priority="primary"
                 >
-                  <Component
-                    align="center"
+                  <span
                     className="css-zmpclt-ButtonLabel edwq9my1"
-                    priority="primary"
                   >
-                    <span
-                      className="css-zmpclt-ButtonLabel edwq9my1"
-                    >
-                      Add Member
-                    </span>
-                  </Component>
+                    Add Member
+                  </span>
                 </ButtonLabel>
               </button>
             </Component>

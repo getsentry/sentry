@@ -17,6 +17,7 @@ import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
   getSortIntegrationsByWeightActive,
+  getCategories,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -254,7 +255,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     const {list} = this.state;
     this.setState({
       fuzzy: await createFuzzySearch(list || [], {
-        threshold: 0.1,
+        threshold: 0.3,
         location: 0,
         distance: 100,
         keys: ['slug', 'key', 'name', 'id'],
@@ -307,6 +308,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={integrations.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={integrations.length}
+        categories={getCategories(provider.metadata.features)}
       />
     );
   };
@@ -331,6 +333,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={plugin.projectList.length}
+        categories={getCategories(plugin.featureDescriptions)}
       />
     );
   };
@@ -339,6 +342,9 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
+    const categories = ['internal', 'unpublished'].includes(app.status)
+      ? [app.status]
+      : getCategories(app.featureData);
 
     return (
       <IntegrationRow
@@ -351,6 +357,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={status}
         publishStatus={app.status}
         configurations={0}
+        categories={categories}
       />
     );
   };

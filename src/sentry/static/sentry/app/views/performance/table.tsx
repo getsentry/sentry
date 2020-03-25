@@ -1,7 +1,10 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
+import styled from '@emotion/styled';
+import * as ReactRouter from 'react-router';
 
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {assert} from 'app/types/utils';
@@ -10,16 +13,18 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView, {MetaType, EventData} from 'app/utils/discover/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import {TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import {getFieldRenderer, MetaType, getAggregateAlias} from 'app/views/eventsV2/utils';
-import {EventData} from 'app/views/eventsV2/data';
+import {decodeScalar} from 'app/views/eventsV2/utils';
 import withProjects from 'app/utils/withProjects';
 import EventsV2 from 'app/utils/discover/eventsv2';
+import SearchBar from 'app/components/searchBar';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
-import {transactionSummaryRouteWithEventView} from './transaction_summary/utils';
+import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
 import {
   TableGrid,
   GridHead,
@@ -60,7 +65,7 @@ type Props = {
 };
 
 class Table extends React.Component<Props> {
-  renderResults = ({isLoading, tableData}) => {
+  renderResults({isLoading, tableData}) {
     if (isLoading) {
       return (
         <tr>
@@ -94,24 +99,23 @@ class Table extends React.Component<Props> {
       assert(tableData.meta);
 
       return (
-        <React.Fragment key={index}>
-          <GridRow numOfColumns={columnOrder.length}>
-            {this.renderRowItem(row, columnOrder, tableData.meta)}
-          </GridRow>
-        </React.Fragment>
+        <GridRow key={index} numOfColumns={columnOrder.length}>
+          {this.renderRowItem(row, columnOrder, tableData.meta)}
+        </GridRow>
       );
     });
-  };
+  }
 
-  renderRowItem = (
+  renderRowItem(
     row: TableDataRow,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ) => {
+  ) {
     const {organization, location, projects} = this.props;
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
+      // TODO(mark) add a better abstraction for this.
       const fieldName = getAggregateAlias(field);
       const fieldType = tableMeta[fieldName];
 
@@ -142,9 +146,9 @@ class Table extends React.Component<Props> {
 
       return <GridBodyCell key={column.key}>{rendered}</GridBodyCell>;
     });
-  };
+  }
 
-  renderHeader = ({tableData}) => {
+  renderHeader({tableData}) {
     const {location, eventView} = this.props;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
@@ -184,6 +188,25 @@ class Table extends React.Component<Props> {
         }}
       </HeaderCell>
     ));
+  }
+
+  getTransactionSearchQuery(): string {
+    const {location} = this.props;
+
+    return String(decodeScalar(location.query.query) || '').trim();
+  }
+
+  handleTransactionSearchQuery = (searchQuery: string) => {
+    const {location} = this.props;
+
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        query: String(searchQuery).trim() || undefined,
+      },
+    });
   };
 
   render() {
@@ -194,6 +217,11 @@ class Table extends React.Component<Props> {
       <EventsV2 eventView={eventView} organization={organization} location={location}>
         {({pageLinks, isLoading, tableData}) => (
           <div>
+            <StyledSearchBar
+              query={this.getTransactionSearchQuery()}
+              placeholder={t('Filter Transactions')}
+              onSearch={this.handleTransactionSearchQuery}
+            />
             <Panel>
               <TableGrid>
                 <GridHead>
@@ -211,5 +239,11 @@ class Table extends React.Component<Props> {
     );
   }
 }
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+
+  margin-bottom: ${space(1)};
+`;
 
 export default withProjects(Table);

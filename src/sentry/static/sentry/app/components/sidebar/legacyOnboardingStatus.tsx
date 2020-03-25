@@ -10,23 +10,11 @@ import {tct, t} from 'app/locale';
 import TodoList from 'app/components/onboardingWizard/todoList';
 import Tooltip from 'app/components/tooltip';
 import {Organization} from 'app/types';
+import {CommonSidebarProps} from 'app/components/sidebar/types';
 
-type Props = {
+type Props = CommonSidebarProps & {
   org: Organization;
-  currentPanel: string;
-  onShowPanel: () => void;
-  hidePanel: () => void;
-  showPanel: boolean;
-  collapsed: boolean;
 };
-
-function recordAnalytics(currentPanel: string, orgId: string) {
-  const data =
-    currentPanel === 'todos'
-      ? {eventKey: 'onboarding.wizard_opened', eventName: 'Onboarding Wizard Opened'}
-      : {eventKey: 'onboarding.wizard_closed', eventName: 'Onboarding Wizard Closed'};
-  trackAnalyticsEvent({...data, organization_id: orgId});
-}
 
 class LegacyOnboardingStatus extends React.Component<Props> {
   static propTypes = {
@@ -38,18 +26,19 @@ class LegacyOnboardingStatus extends React.Component<Props> {
     collapsed: PropTypes.bool,
   };
 
-  componentDidUpdate(prevProps: Props) {
-    const {currentPanel, org} = this.props;
-    if (
-      currentPanel !== prevProps.currentPanel &&
-      (currentPanel || prevProps.currentPanel === 'todos')
-    ) {
-      recordAnalytics(currentPanel, org.id);
-    }
-  }
+  handleShowPanel = () => {
+    const {org, onShowPanel} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'onboarding.wizard_opened',
+      eventName: 'Onboarding Wizard Opened',
+      organization_id: org.id,
+    });
+    onShowPanel();
+  };
 
   render() {
-    const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
+    const {collapsed, org, currentPanel, orientation, hidePanel, showPanel} = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
@@ -79,7 +68,7 @@ class LegacyOnboardingStatus extends React.Component<Props> {
       <React.Fragment>
         <Tooltip title={tooltipTitle} containerDisplayMode="block">
           <OnboardingProgressBar
-            onClick={onShowPanel}
+            onClick={this.handleShowPanel}
             isActive={currentPanel === 'todos'}
             isCollapsed={collapsed}
             progress={Math.round((doneTasks.length / allDisplayedTasks.length) * 100)}
@@ -88,6 +77,7 @@ class LegacyOnboardingStatus extends React.Component<Props> {
         {showPanel && currentPanel === 'todos' && (
           <SidebarPanel
             collapsed={collapsed}
+            orientation={orientation}
             title={t('Getting Started with Sentry')}
             hidePanel={hidePanel}
           >

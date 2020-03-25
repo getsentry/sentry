@@ -12,20 +12,14 @@ import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization, Broadcast} from 'app/types';
 
-import {SidebarOrientation, SidebarPanelKey} from './types';
+import {CommonSidebarProps} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
-type Props = {
+type Props = CommonSidebarProps & {
   api: Client;
   organization: Organization;
-  orientation: SidebarOrientation;
-  collapsed: boolean;
-  showPanel: boolean;
-  currentPanel: SidebarPanelKey;
-  hidePanel: () => void;
-  onShowPanel: () => void;
 };
 
 type State = {

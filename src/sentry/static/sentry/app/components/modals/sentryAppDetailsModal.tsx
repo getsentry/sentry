@@ -1,12 +1,10 @@
 import {Box, Flex} from 'reflexbox';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -15,8 +13,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
-import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
-import {IntegrationFeature} from 'app/types';
+import {IntegrationFeature, SentryApp, Organization} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
   trackIntegrationEvent,
@@ -24,30 +21,19 @@ import {
 } from 'app/utils/integrationUtil';
 
 type Props = {
-  view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
-} & SentryAppDetailsModalOptions &
-  AsyncComponent['props'];
+  sentryApp: SentryApp;
+  isInstalled: boolean;
+  onInstall: () => Promise<void>;
+  organization: Organization;
+} & AsyncComponent['props'];
 
 type State = {
   featureData: IntegrationFeature[];
 } & AsyncComponent['state'];
 
+//No longer a modal anymore but yea :)
 export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
-  static propTypes = {
-    sentryApp: SentryTypes.SentryApplication.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    onInstall: PropTypes.func.isRequired,
-    isInstalled: PropTypes.bool.isRequired,
-    closeModal: PropTypes.func.isRequired,
-    onCloseModal: PropTypes.func,
-    view: PropTypes.string.isRequired,
-  };
-
-  static defaultProps = {
-    view: 'integrations_page',
-  };
-
   componentDidUpdate(prevProps: Props) {
     //if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
@@ -59,12 +45,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     this.trackOpened();
   }
 
-  componentWillUnmount() {
-    this.props.onCloseModal?.();
-  }
-
   trackOpened() {
-    const {sentryApp, organization, isInstalled, view} = this.props;
+    const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
     trackIntegrationEvent(
@@ -74,11 +56,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         already_installed: isInstalled,
-        view,
+        view: 'external_install',
         integration_status: sentryApp.status,
       },
       organization,
-      {startSession: view === 'external_install'} //new session on external installs
+      {startSession: true}
     );
   }
 
@@ -99,7 +81,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   async onInstall() {
-    const {onInstall, closeModal, view} = this.props;
+    const {onInstall} = this.props;
     //we want to make sure install finishes before we close the modal
     //and we should close the modal if there is an error as well
     try {
@@ -107,8 +89,6 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     } catch (_err) {
       /* stylelint-disable-next-line no-empty-block */
     }
-    // let onInstall handle redirection post install on the external install flow
-    view !== 'external_install' && closeModal();
   }
 
   renderPermissions() {

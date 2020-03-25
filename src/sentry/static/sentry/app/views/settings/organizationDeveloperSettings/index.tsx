@@ -58,7 +58,6 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         app={app}
         organization={organization}
         onRemoveApp={this.removeApp}
-        isOnIntegrationPage={false}
       />
     );
   };

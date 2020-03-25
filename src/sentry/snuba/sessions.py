@@ -259,11 +259,11 @@ def get_crash_free_breakdown(project_id, release, environments=None):
         )["data"][0]
         return {
             "total_users": row["users"],
-            "crash_free_users": row["users_crashed"] / float(row["users"]) * 100
+            "crash_free_users": 100 - row["users_crashed"] / float(row["users"]) * 100
             if row["users"]
             else None,
             "total_sessions": row["sessions"],
-            "crash_free_sessions": row["sessions_crashed"] / float(row["sessions"]) * 100
+            "crash_free_sessions": 100 - row["sessions_crashed"] / float(row["sessions"]) * 100
             if row["sessions"]
             else None,
         }
@@ -306,7 +306,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         filter_keys=filter_keys,
     )["data"]:
         ts = parse_snuba_datetime(rv["bucketed_started"])
-        bucket = int((end - ts).total_seconds() / rollup)
+        bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
             stat: rv[stat],
             stat + "_crashed": rv[stat + "_crashed"],

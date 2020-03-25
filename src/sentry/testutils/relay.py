@@ -112,6 +112,12 @@ class RelayStoreHelper(object):
         assert event is not None
         return event
 
+    def post_and_try_retrieve_event(self, data):
+        try:
+            return self.post_and_retrieve_event(data)
+        except AssertionError:
+            return None
+
     def setUp(self):  # NOQA
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
