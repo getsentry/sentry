@@ -20,7 +20,6 @@ import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
   getSortIntegrationsByWeightActive,
-  getCategories,
   getCategorySelectActive,
   isSentryApp,
   isPlugin,
@@ -318,7 +317,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={integrations.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={integrations.length}
-        categories={getCategories(provider.metadata.features)}
+        categories={getCategoriesForIntegration(provider)}
       />
     );
   };
@@ -343,7 +342,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={plugin.projectList.length}
-        categories={getCategories(plugin.featureDescriptions)}
+        categories={getCategoriesForIntegration(plugin)}
       />
     );
   };
