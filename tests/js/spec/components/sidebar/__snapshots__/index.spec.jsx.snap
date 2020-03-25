@@ -135,12 +135,30 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
+  style={
+    Object {
+      "left": 0,
+      "opacity": 0,
+      "pointerEvents": "none",
+      "position": "absolute",
+      "top": 0,
+    }
+  }
 >
   <div
     className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
+    style={
+      Object {
+        "left": 0,
+        "opacity": 0,
+        "pointerEvents": "none",
+        "position": "absolute",
+        "top": 0,
+      }
+    }
   >
     <SidebarOrgSummary
       organization={
@@ -1252,12 +1270,30 @@ exports[`Sidebar renders without org and router 1`] = `
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
+  style={
+    Object {
+      "left": 0,
+      "opacity": 0,
+      "pointerEvents": "none",
+      "position": "absolute",
+      "top": 0,
+    }
+  }
 >
   <div
     className="css-4razvn-OrgAndUserMenu-SidebarDropdownMenu e10773n39"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
+    style={
+      Object {
+        "left": 0,
+        "opacity": 0,
+        "pointerEvents": "none",
+        "position": "absolute",
+        "top": 0,
+      }
+    }
   >
     <UserSummary
       to="/settings/account/details/"

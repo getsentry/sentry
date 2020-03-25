@@ -1,4 +1,4 @@
-import {Manager, Reference, Popper} from 'react-popper';
+import {Popper} from 'react-popper';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -12,6 +12,7 @@ type GetActorArgs = {
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
+  popperRef?: (Element) => void;
   style?: React.CSSProperties;
   className?: string;
 };
@@ -20,6 +21,7 @@ type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  portalRef?: (Element) => void;
   className?: string;
 };
 
@@ -41,6 +43,16 @@ type MenuProps = {
 type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
 type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
 
+type PortalRenderChildrenArgs = {
+  ref: GetMenuArgs['portalRef'];
+  style: React.CSSProperties;
+};
+type PortalRenderArgs = {
+  children: (opts: PortalRenderChildrenArgs) => React.ReactNode;
+};
+
+type PortalRenderPropsFn = (opts: PortalRenderArgs) => React.ReactElement;
+
 type RenderProps = {
   isOpen: boolean;
   getRootProps: Function;
@@ -50,6 +62,7 @@ type RenderProps = {
     open: Function;
     close: Function;
   };
+  Portal: PortalRenderPropsFn;
 };
 
 type DefaultProps = {
@@ -139,6 +152,8 @@ class DropdownMenu extends React.Component<Props, State> {
     document.removeEventListener('click', this.checkClickOutside, true);
   }
 
+  portalEl: Element | null = null;
+  dropdownId: string | null = null;
   dropdownMenu: Element | null = null;
   dropdownActor: Element | null = null;
 
@@ -277,6 +292,7 @@ class DropdownMenu extends React.Component<Props, State> {
   // bind a click handler to `document` to listen for clicks outside of
   // this component and close menu if so
   handleMenuMount = (popperRef: any, ref: Element | null) => {
+    console.log(popperRef);
     if (popperRef) {
       popperRef(ref);
     }
@@ -411,10 +427,10 @@ class DropdownMenu extends React.Component<Props, State> {
     onClick,
     onMouseLeave,
     onMouseEnter,
-    ref,
+    portalRef,
     ...props
   }: GetMenuArgs = {}): MenuProps => {
-    const refProps = {ref: this.handleMenuMount.bind(this, ref)};
+    const refProps = {ref: this.handleMenuMount.bind(this, portalRef)};
 
     // Props that the menu needs to have <DropdownMenu> work
     return {
@@ -464,7 +480,8 @@ class DropdownMenu extends React.Component<Props, State> {
         open: this.handleOpen,
         close: this.handleClose,
       },
-      Portal: ({children: portalRenderFunc, ...rest}) =>
+      Portal: ({children: portalRenderFunc}) =>
+        this.portalEl &&
         shouldShowDropdown &&
         ReactDOM.createPortal(
           <Popper placement="bottom">
