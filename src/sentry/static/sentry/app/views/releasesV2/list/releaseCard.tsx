@@ -20,11 +20,11 @@ type Props = {
   release: ProjectRelease;
   project?: Project | AvatarProject;
   location: Location;
+  reloading: boolean;
 };
 
-const ReleaseCard = ({release, project, location}: Props) => (
-  // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
-  <Panel>
+const ReleaseCard = ({release, project, location, reloading}: Props) => (
+  <StyledPanel loading={reloading}>
     <PanelBody>
       <StyledPanelItem>
         <HeaderLayout>
@@ -94,8 +94,13 @@ const ReleaseCard = ({release, project, location}: Props) => (
     {release.healthData?.hasHealthData && (
       <ReleaseHealth release={release} location={location} />
     )}
-  </Panel>
+  </StyledPanel>
 );
+
+const StyledPanel = styled(Panel)<{loading: boolean}>`
+  opacity: ${p => (p.loading ? 0.5 : 1)};
+  pointer-events: ${p => (p.loading ? 'none' : 'auto')};
+`;
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;
