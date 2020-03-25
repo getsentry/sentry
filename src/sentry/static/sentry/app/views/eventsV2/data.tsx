@@ -58,4 +58,3 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     range: '24h',
   },
 ];
-
