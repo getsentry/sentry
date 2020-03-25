@@ -154,7 +154,7 @@ class SpanTree extends React.Component<PropType> {
 
     const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
 
-    const shouldIncludeGap = event.sdk?.name?.includes('javascript') === false;
+    const shouldIncludeGap = isJavaScriptSDK(event.sdk?.name) === false;
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
@@ -339,5 +339,19 @@ const TraceViewContainer = styled('div')`
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
 `;
+
+function isJavaScriptSDK(SDKName: string | undefined): boolean {
+  if (!SDKName) {
+    return false;
+  }
+
+  SDKName = SDKName.toLowerCase();
+
+  // based on
+  // https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+  // https://github.com/getsentry/sentry-javascript/blob/master/packages/node/src/version.ts
+
+  return SDKName === 'sentry.javascript.browser' || SDKName === 'sentry.javascript.node';
+}
 
 export default SpanTree;
