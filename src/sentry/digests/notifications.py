@@ -44,7 +44,7 @@ def split_key(key):
 
 
 def unsplit_key_for_targeted_action(project, target_type, target_id=None):
-    sanitised_target_id = target_id if (target_id is not None) else -1
+    sanitised_target_id = target_id if target_id is not None else -1
     return u"{targeted_action_symbol}:p:{project.id}:{target_type}:{sanitised_target_id}".format(
         targeted_action_symbol=TARGETED_MAIL_ACTION_SYMBOL,
         project=project,
