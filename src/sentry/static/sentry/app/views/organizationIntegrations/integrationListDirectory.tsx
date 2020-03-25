@@ -255,7 +255,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     const {list} = this.state;
     this.setState({
       fuzzy: await createFuzzySearch(list || [], {
-        threshold: 0.1,
+        threshold: 0.3,
         location: 0,
         distance: 100,
         keys: ['slug', 'key', 'name', 'id'],

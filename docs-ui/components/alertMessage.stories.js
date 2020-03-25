@@ -41,7 +41,8 @@ storiesOf('UI|Alerts/AlertMessage', module)
         <AlertMessage
           alert={{
             id: 'id',
-            message: 'Error Message',
+            message:
+              "Background workers haven't checked in recently. This can mean an issue with your configuration or a serious backlog in tasks.",
             type: 'error',
             url: '#',
           }}
