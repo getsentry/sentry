@@ -356,7 +356,7 @@ def process_payload(data):
     return data
 
 
-def get_symbolication_enhancer(data):
+def get_symbolication_function(data):
     if is_minidump_event(data):
         return process_minidump
     elif is_applecrashreport_event(data):
@@ -366,4 +366,4 @@ def get_symbolication_enhancer(data):
 
 
 def should_process_with_symbolicator(data):
-    return bool(get_symbolication_enhancer(data))
+    return bool(get_symbolication_function(data))

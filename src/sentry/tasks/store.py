@@ -65,7 +65,9 @@ def should_process(data):
     return False
 
 
-def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_process(
+    project, from_reprocessing, cache_key, event_id, start_time, data, has_changed=None
+):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
@@ -159,37 +161,41 @@ def preprocess_event_from_reprocessing(
         data=data,
         start_time=start_time,
         event_id=event_id,
+        # FIXME?
         process_task=process_event,
         project=project,
     )
 
 
-@instrumented_task(
-    name="sentry.tasks.store.retry_process_event",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-)
-def retry_process_event(process_task_name, task_kwargs, **kwargs):
+# @instrumented_task(
+#     name="sentry.tasks.store.retry_process_event",
+#     queue="sleep",
+#     time_limit=(60 * 5) + 5,
+#     soft_time_limit=60 * 5,
+# )
+# def retry_process_event(process_task_name, task_kwargs, **kwargs):
+#     """
+#     The only purpose of this task is be enqueued with some ETA set. This is
+#     essentially an implementation of ETAs on top of Celery's existing ETAs, but
+#     with the intent of having separate workers wait for those ETAs.
+#     """
+#     tasks = {
+#         "process_event": process_event,
+#         "process_event_from_reprocessing": process_event_from_reprocessing,
+#     }
+
+#     process_task = tasks.get(process_task_name)
+#     if not process_task:
+#         raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
+
+#     process_task.delay(**task_kwargs)
+
+
+def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
     """
-    The only purpose of this task is be enqueued with some ETA set. This is
-    essentially an implementation of ETAs on top of Celery's existing ETAs, but
-    with the intent of having separate workers wait for those ETAs.
+    TODO
     """
-    tasks = {
-        "process_event": process_event,
-        "process_event_from_reprocessing": process_event_from_reprocessing,
-    }
-
-    process_task = tasks.get(process_task_name)
-    if not process_task:
-        raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
-
-    process_task.delay(**task_kwargs)
-
-
-def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=None):
-    from sentry.lang.native.processing import get_symbolication_enhancer
+    from sentry.lang.native.processing import get_symbolication_function
 
     if data is None:
         data = default_cache.get(cache_key)
@@ -206,9 +212,13 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
     project_id = data["project"]
     event_id = data["event_id"]
 
-    symbolication_function = get_symbolication_enhancer(data)
+    project = Project.objects.get_from_cache(id=project_id)
+
+    symbolication_function = get_symbolication_function(data)
 
     has_changed = False
+
+    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     try:
         symbolicated_data = safe_execute(
@@ -218,7 +228,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
             data = symbolicated_data
             has_changed = True
 
-    except RetrySymbolication as e:
+    except RetrySymbolication:
+        error_logger.warn("retry symbolication")
+
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
                 "process.slow", extra={"project_id": project_id, "event_id": event_id}
@@ -232,18 +244,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
                 extra={"project_id": project_id, "event_id": event_id},
             )
         else:
-            retry_process_event.apply_async(
-                args=(),
-                kwargs={
-                    "process_task_name": process_task.__name__,
-                    "task_kwargs": {
-                        "cache_key": cache_key,
-                        "event_id": event_id,
-                        "start_time": start_time,
-                    },
-                },
-                countdown=e.retry_after,
-            )
+            # Requeue the task after a delay
+            submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data)
             return
 
     # We cannot persist canonical types in the cache, so we need to
@@ -255,12 +257,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
         # TODO(tonyo) check if we need everything we run at the end of submit_process
         default_cache.set(cache_key, data, 3600)
 
-    project = Project.objects.get_from_cache(id=project_id)
-    if should_process(data):
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
-    else:
-        submit_save_event(project, cache_key, event_id, start_time, data)
+    submit_process(project, from_reprocessing, cache_key, event_id, start_time, data, has_changed)
 
 
 @instrumented_task(
@@ -271,7 +268,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, process_task, data=No
 )
 def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     return _do_symbolicate_event(
-        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event,
     )
 
 
@@ -283,11 +283,14 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
     return _do_symbolicate_event(
-        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        symbolicate_task=symbolicate_event_from_reprocessing,
     )
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
+def _do_process_event(cache_key, start_time, event_id, process_task, data=None, has_changed=None):
     from sentry.plugins.base import plugins
 
     if data is None:
@@ -300,6 +303,9 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
 
+    if has_changed is None:
+        has_changed = False
+
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
@@ -309,8 +315,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
 
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
-
-    has_changed = False
 
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
@@ -427,9 +431,14 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, **kwargs):
+def process_event(cache_key, start_time=None, event_id=None, has_changed=None, **kwargs):
+    error_logger.warn("YYY started task: process_event")
     return _do_process_event(
-        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_event,
+        has_changed=has_changed,
     )
 
 
@@ -439,12 +448,15 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+def process_event_from_reprocessing(
+    cache_key, start_time=None, event_id=None, has_changed=None, **kwargs
+):
     return _do_process_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         process_task=process_event_from_reprocessing,
+        has_changed=has_changed,
     )
 
 
