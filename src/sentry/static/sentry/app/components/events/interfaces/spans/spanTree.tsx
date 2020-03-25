@@ -349,9 +349,8 @@ function isJavaScriptSDK(SDKName: string | undefined): boolean {
 
   // based on
   // https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  // https://github.com/getsentry/sentry-javascript/blob/master/packages/node/src/version.ts
 
-  return SDKName === 'sentry.javascript.browser' || SDKName === 'sentry.javascript.node';
+  return SDKName === 'sentry.javascript.browser';
 }
 
 export default SpanTree;
