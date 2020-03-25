@@ -42,35 +42,35 @@ describe('ProjectAlertsList', function() {
 
     expect(
       wrapper
-        .find('RuleItem RuleType')
+        .find('RuleType')
         .at(0)
         .text()
     ).toBe('Issue');
 
     expect(
       wrapper
-        .find('RuleItem RuleName')
+        .find('RuleName')
         .at(0)
         .text()
     ).toBe('My alert rule');
 
     expect(
       wrapper
-        .find('RuleItem RuleDescription')
+        .find('RuleDescription')
         .at(0)
         .text()
     ).toBe('Environment: Staging');
 
     expect(
       wrapper
-        .find('RuleItem Conditions')
+        .find('Conditions')
         .at(0)
         .text()
     ).toBe('An alert is first seen');
 
     expect(
       wrapper
-        .find('RuleItem Actions')
+        .find('Actions')
         .at(0)
         .text()
     ).toBe('Send a notification to all services');
@@ -91,7 +91,7 @@ describe('ProjectAlertsList', function() {
     ).toBe(true);
     expect(
       wrapper
-        .find('RuleItem RuleDescription')
+        .find('RuleDescription')
         .at(0)
         .text()
     ).toBe('Environment: Staging');
