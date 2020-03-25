@@ -35,7 +35,7 @@ describe('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Create CSV');
+    expect(wrapper.text()).toBe('Export Data');
   });
 
   it('should send a request and disable itself when clicked', async function() {

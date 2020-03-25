@@ -59,7 +59,7 @@ class DataExport extends React.Component<Props, State> {
       this.setState({inProgress: true, dataExportId});
     } catch (_err) {
       addErrorMessage(
-        t("We tried our hardes, but we couldn't export your data. Give it another go.")
+        t("We tried our hardest, but we couldn't export your data. Give it another go.")
       );
     }
   };
@@ -75,9 +75,9 @@ class DataExport extends React.Component<Props, State> {
             </button>
           </Tooltip>
         ) : (
-          <Tooltip title="Put your data to work. Start your export, and we'll email you when it's finished.">
+          <Tooltip title="Put your data to work. Start your export and we'll email you when it's finished.">
             <button className="btn btn-default btn-sm" onClick={this.startDataExport}>
-              {t('Create CSV')}
+              {t('Export Data')}
             </button>
           </Tooltip>
         )}
