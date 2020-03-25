@@ -50,10 +50,7 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...args} />, {
-    modalClassName: 'sudo-modal',
-    onClose,
-  });
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
 }
 
 export async function openDiffModal(options: ModalOptions) {
@@ -62,9 +59,7 @@ export async function openDiffModal(options: ModalOptions) {
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type CreateTeamModalOptions = {
@@ -84,9 +79,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'create-team-modal',
-  });
+  openModal(deps => <Modal {...deps} {...options} />);
 }
 
 type CreateOwnershipRuleModalOptions = {
@@ -104,22 +97,18 @@ export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalO
   const mod = await import(
     /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
   );
-  const {default: Modal} = mod;
+  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'create-ownership-rule-modal',
-  });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
   const mod = await import(
     /* webpackChunkName: "CommandPalette" */ 'app/components/modals/commandPalette'
   );
-  const {default: Modal} = mod;
+  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalClassName: 'command-palette',
-  });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openRecoveryOptions(options: ModalOptions = {}) {
@@ -163,11 +152,9 @@ export async function openHelpSearchModal() {
   const mod = await import(
     /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
   );
-  const {default: Modal} = mod;
+  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} />, {
-    modalClassName: 'help-search-modal',
-  });
+  openModal(deps => <Modal {...deps} />, {modalCss});
 }
 
 export type SentryAppDetailsModalOptions = {
