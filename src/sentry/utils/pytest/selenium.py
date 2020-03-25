@@ -341,6 +341,7 @@ def browser(request, percy, live_server):
         chrome_args = {"options": options}
         if chromedriver_path:
             chrome_args["executable_path"] = chromedriver_path
+
         driver = start_chrome(**chrome_args)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
