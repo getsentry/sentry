@@ -45,7 +45,7 @@ type Props = {
 };
 
 /**
- * Bare bones table that treats the first `this.props.columns` as a header
+ * Bare bones table generates a CSS grid template based on the content.
  *
  * The number of children elements should be a multiple of `this.props.columns` to have
  * it look ok.
