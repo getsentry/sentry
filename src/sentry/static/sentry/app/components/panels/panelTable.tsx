@@ -140,8 +140,6 @@ const Wrapper = styled(Panel, {
 `;
 
 const PanelTableHeader = styled('div')`
-  align-items: center;
-  justify-content: space-between;
   color: ${p => p.theme.gray3};
   font-size: 13px;
   font-weight: 600;
@@ -149,7 +147,6 @@ const PanelTableHeader = styled('div')`
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.offWhite};
   line-height: 1;
-  position: relative;
 `;
 
 export default PanelTable;
