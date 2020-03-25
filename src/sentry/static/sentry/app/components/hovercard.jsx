@@ -194,7 +194,7 @@ const slideIn = p => keyframes`
 const getTipColor = p => (p.placement === 'bottom' ? p.theme.offWhite : '#fff');
 const getTipDirection = p =>
   VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
-const getOffset = p => (p.offset ? p.offset : space(2));
+const getOffset = p => p.offset ?? space(2);
 
 const StyledHovercard = styled('div')`
   border-radius: 4px;
