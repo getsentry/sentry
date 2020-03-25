@@ -3,7 +3,7 @@ import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import {Tags} from 'app/views/eventsV2/tags';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 describe('Tags', function() {

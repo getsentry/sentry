@@ -12,15 +12,14 @@ import {assert} from 'app/types/utils';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-
-import {
-  downloadAsCsv,
-  getFieldRenderer,
-  getExpandedResults,
-  pushEventViewToLocation,
+import EventView, {
   MetaType,
-} from '../utils';
-import EventView, {Column, pickRelevantLocationQueryStrings} from '../eventView';
+  pickRelevantLocationQueryStrings,
+} from 'app/utils/discover/eventView';
+import {Column} from 'app/utils/discover/fields';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+
+import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
 import {generateEventSlug, eventDetailsRouteWithEventView} from '../eventDetails/utils';
 import ColumnEditModal from './columnEditModal';

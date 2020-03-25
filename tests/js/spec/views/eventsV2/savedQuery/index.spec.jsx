@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';

@@ -1,5 +1,4 @@
-import {EventData} from '../data';
-import EventView from '../eventView';
+import EventView, {EventData} from 'app/utils/discover/eventView';
 
 export function generateEventDetailsRoute({
   eventSlug,

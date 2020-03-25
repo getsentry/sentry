@@ -7,7 +7,7 @@ import {Organization} from 'app/types';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 
 import {getPerformanceLandingUrl} from '../utils';
 import {transactionSummaryRouteWithEventView} from './utils';

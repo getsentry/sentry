@@ -1,8 +1,5 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 export const SectionHeading = styled('h4')`
@@ -17,31 +14,6 @@ export const SectionValue = styled('span')`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
-`;
-
-export const Container = styled('div')`
-  ${overflowEllipsis};
-`;
-
-export const VersionContainer = styled('div')`
-  ${overflowEllipsis};
-  max-width: 100%;
-  width: auto;
-  display: inline-block;
-`;
-
-export const NumberContainer = styled('div')`
-  text-align: right;
-  ${overflowEllipsis};
-`;
-
-export const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray2};
-  ${overflowEllipsis};
-`;
-
-export const OverflowLink = styled(Link)`
-  ${overflowEllipsis};
 `;
 
 export const ChartControls = styled('div')`

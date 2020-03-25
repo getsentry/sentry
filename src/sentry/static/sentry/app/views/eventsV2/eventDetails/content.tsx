@@ -25,9 +25,9 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import EventEntries from 'app/components/events/eventEntries';
 import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from '../eventView';
-import {hasAggregateField, EventQuery, generateTitle} from '../utils';
+import {EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
@@ -126,7 +126,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     });
 
     // Having an aggregate field means we want to show pagination/graphs
-    const isGroupedView = hasAggregateField(eventView);
+    const isGroupedView = eventView.hasAggregateField();
     const {isSidebarVisible} = this.state;
 
     return (

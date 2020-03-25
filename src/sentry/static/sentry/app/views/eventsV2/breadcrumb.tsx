@@ -7,8 +7,8 @@ import {Event, Organization} from 'app/types';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from './eventView';
 import {getDiscoverLandingUrl} from './utils';
 
 type DefaultProps = {

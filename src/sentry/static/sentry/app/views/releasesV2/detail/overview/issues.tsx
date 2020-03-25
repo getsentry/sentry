@@ -9,7 +9,7 @@ import Button from 'app/components/button';
 import GroupList from 'app/views/releases/detail/groupList';
 import space from 'app/styles/space';
 import {Panel, PanelBody} from 'app/components/panels';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {formatVersion} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';

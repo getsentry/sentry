@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {getAggregateAlias} from '../utils';
-import {ColumnValueType} from '../eventQueryParams';
+import {ColumnValueType, getAggregateAlias} from 'app/utils/discover/fields';
+
 import {Alignments} from '../sortLink';
 import {TableColumn, TableData, TableDataRow} from './types';
 
@@ -22,7 +22,7 @@ function HeaderCell(props: Props) {
   const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
   let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
 
-  if (column.type === 'never' || column.type === '*') {
+  if (column.type === 'never') {
     // fallback to align the column based on the table metadata
     const maybeType =
       tableData && tableData.meta

@@ -2,7 +2,7 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {NewQuery} from 'app/types';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 

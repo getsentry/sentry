@@ -8,8 +8,7 @@ import {
   updateSavedQuery,
 } from 'app/actionCreators/discoverSavedQueries';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-
-import EventView from '../eventView';
+import EventView from 'app/utils/discover/eventView';
 
 export function handleCreateQuery(
   api: Client,

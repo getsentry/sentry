@@ -1,9 +1,9 @@
 import EventView, {
+  CHART_AXIS_OPTIONS,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
-} from 'app/views/eventsV2/eventView';
+} from 'app/utils/discover/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
-import {CHART_AXIS_OPTIONS} from 'app/views/eventsV2/data';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -1816,7 +1816,6 @@ describe('EventView.sortOnField()', function() {
     const field = state.fields[1];
 
     const eventView2 = eventView.sortOnField(field, meta);
-
     expect(eventView2 === eventView).toBe(true);
   });
 
@@ -2133,6 +2132,30 @@ describe('EventView.getYAxis', function() {
       // yAxis defaults to the first entry of the default yAxis options
       expect(thisEventView.getYAxis()).toEqual('count()');
     }
+  });
+});
+
+describe('EventView.hasAggregateField', function() {
+  it('ensures an eventview has an aggregate field', function() {
+    let eventView = new EventView({
+      fields: [{field: 'foobar'}],
+      sorts: [],
+      query: '',
+      project: [],
+      environment: [],
+    });
+
+    expect(eventView.hasAggregateField()).toBe(false);
+
+    eventView = new EventView({
+      fields: [{field: 'count(foo.bar.is-Enterprise_42)'}],
+      sorts: [],
+      query: '',
+      project: [],
+      environment: [],
+    });
+
+    expect(eventView.hasAggregateField()).toBe(true);
   });
 });
 

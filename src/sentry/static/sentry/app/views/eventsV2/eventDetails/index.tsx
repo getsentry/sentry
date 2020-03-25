@@ -12,9 +12,9 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import EventView from 'app/utils/discover/eventView';
 
 import EventDetailsContent from './content';
-import EventView from '../eventView';
 
 type Props = {
   organization: Organization;

@@ -14,8 +14,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-
-import EventView from './eventView';
+import EventView from 'app/utils/discover/eventView';
 
 type Props = {
   organization: Organization;

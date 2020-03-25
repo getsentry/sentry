@@ -11,9 +11,9 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import {EventsChart} from 'app/views/events/eventsChart';
+import EventView from 'app/utils/discover/eventView';
 
 import ChartFooter from './chartFooter';
-import EventView from './eventView';
 
 type ResultsChartProps = {
   api: Client;

@@ -1,139 +1,14 @@
 import {browserHistory} from 'react-router';
 
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {
-  getAggregateAlias,
-  isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  getFieldRenderer,
   getDiscoverLandingUrl,
-  explodeField,
-  hasAggregateField,
   downloadAsCsv,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-
-describe('getAggregateAlias', function() {
-  it('no-ops simple fields', function() {
-    expect(getAggregateAlias('field')).toEqual('field');
-    expect(getAggregateAlias('under_field')).toEqual('under_field');
-    expect(getAggregateAlias('foo.bar.is-Enterprise_42')).toEqual(
-      'foo.bar.is-Enterprise_42'
-    );
-  });
-
-  it('handles 0 arg functions', function() {
-    expect(getAggregateAlias('count()')).toEqual('count');
-    expect(getAggregateAlias('count_unique()')).toEqual('count_unique');
-  });
-
-  it('handles 1 arg functions', function() {
-    expect(getAggregateAlias('count(id)')).toEqual('count_id');
-    expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
-    expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
-    expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
-      'count_foo_bar_is-Enterprise_42'
-    );
-  });
-
-  it('handles 2 arg functions', function() {
-    expect(getAggregateAlias('percentile(transaction.duration,0.81)')).toEqual(
-      'percentile_transaction_duration_0_81'
-    );
-    expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
-      'percentile_transaction_duration_0_11'
-    );
-  });
-});
-
-describe('getFieldRenderer', function() {
-  let location, context, project, organization, data;
-  beforeEach(function() {
-    context = initializeOrg({
-      project: TestStubs.Project(),
-    });
-    organization = context.organization;
-    project = context.project;
-
-    location = {
-      pathname: '/events',
-      query: {},
-    };
-    data = {
-      title: 'ValueError: something bad',
-      transaction: 'api.do_things',
-      boolValue: 1,
-      numeric: 1.23,
-      createdAt: new Date(2019, 9, 3, 12, 13, 14),
-      url: '/example',
-      latest_event: 'deadbeef',
-      project: project.slug,
-    };
-  });
-
-  it('can render string fields', function() {
-    const renderer = getFieldRenderer('url', {url: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-    const text = wrapper.find('Container');
-    expect(text.text()).toEqual(data.url);
-  });
-
-  it('can render boolean fields', function() {
-    const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-    const text = wrapper.find('Container');
-    expect(text.text()).toEqual('yes');
-  });
-
-  it('can render integer fields', function() {
-    const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('Count');
-    expect(value).toHaveLength(1);
-    expect(value.props().value).toEqual(data.numeric);
-  });
-
-  it('can render date fields', function() {
-    const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('StyledDateTime');
-    expect(value).toHaveLength(1);
-    expect(value.props().date).toEqual(data.createdAt);
-  });
-
-  it('can render null date fields', function() {
-    const renderer = getFieldRenderer('nope', {nope: 'date'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('StyledDateTime');
-    expect(value).toHaveLength(0);
-    expect(wrapper.text()).toEqual('n/a');
-  });
-
-  it('can render project as an avatar', function() {
-    const renderer = getFieldRenderer('project', {project: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const value = wrapper.find('ProjectBadge');
-    expect(value).toHaveLength(1);
-    expect(value.props().project).toEqual(project);
-  });
-});
 
 describe('decodeColumnOrder', function() {
   it('can decode 0 elements', function() {
@@ -298,30 +173,13 @@ describe('pushEventViewToLocation', function() {
   });
 });
 
-describe('isAggregateField', function() {
-  it('detects aliases', function() {
-    expect(isAggregateField('p888')).toBe(false);
-    expect(isAggregateField('other_field')).toBe(false);
-    expect(isAggregateField('foo.bar.is-Enterprise_42')).toBe(false);
-    expect(isAggregateField('p75')).toBe(true);
-    expect(isAggregateField('last_seen')).toBe(true);
-  });
-
-  it('detects functions', function() {
-    expect(isAggregateField('thing(')).toBe(false);
-    expect(isAggregateField('count()')).toBe(true);
-    expect(isAggregateField('unique_count(user)')).toBe(true);
-    expect(isAggregateField('unique_count(foo.bar.is-Enterprise_42)')).toBe(true);
-  });
-});
-
 describe('getExpandedResults()', function() {
   const state = {
     id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()'},
-      {field: 'last_seen'},
+      {field: 'last_seen()'},
       {field: 'title'},
       {field: 'custom_tag'},
     ],
@@ -351,7 +209,7 @@ describe('getExpandedResults()', function() {
       ...state,
       fields: [
         {field: 'count()'},
-        {field: 'last_seen'},
+        {field: 'last_seen()'},
         {field: 'title'},
         {field: 'custom_tag'},
         {field: 'count(id)'},
@@ -370,23 +228,18 @@ describe('getExpandedResults()', function() {
     view = new EventView({
       ...state,
       fields: [
-        {field: 'last_seen'}, // expect this to be transformed to transaction.duration
-        {field: 'latest_event'},
+        {field: 'last_seen()'}, // expect this to be transformed to timestamp
+        {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p75()'},
         {field: 'p95()'},
         {field: 'p99()'},
-        // legacy parameterless functions
-        {field: 'p75'},
-        {field: 'p95'},
-        {field: 'p99'},
         {field: 'custom_tag'},
         {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},
-        // expect these aliases to be dropped
-        {field: 'apdex'},
-        {field: 'impact'},
+        {field: 'apdex()'}, // should be dropped
+        {field: 'impact()'}, // should be dropped
       ],
     });
 
@@ -512,63 +365,6 @@ describe('getDiscoverLandingUrl', function() {
   it('is correct for with only discover-basic feature', function() {
     const org = TestStubs.Organization({features: ['discover-basic']});
     expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
-  });
-});
-
-describe('explodeField', function() {
-  it('explodes fields', function() {
-    expect(explodeField({field: 'foobar'})).toEqual({
-      kind: 'field',
-      field: 'foobar',
-    });
-
-    // has width
-    expect(explodeField({field: 'foobar', width: 123})).toEqual({
-      kind: 'field',
-      field: 'foobar',
-    });
-
-    // has aggregation
-    expect(explodeField({field: 'count(foobar)', width: 123})).toEqual({
-      kind: 'function',
-      function: ['count', 'foobar', undefined],
-    });
-
-    // custom tag
-    expect(explodeField({field: 'foo.bar.is-Enterprise_42', width: 123})).toEqual({
-      kind: 'field',
-      field: 'foo.bar.is-Enterprise_42',
-    });
-
-    // custom tag with aggregation
-    expect(explodeField({field: 'count(foo.bar.is-Enterprise_42)', width: 123})).toEqual({
-      kind: 'function',
-      function: ['count', 'foo.bar.is-Enterprise_42', undefined],
-    });
-  });
-});
-
-describe('hasAggregateField', function() {
-  it('ensures an eventview has an aggregate field', function() {
-    let eventView = new EventView({
-      fields: [{field: 'foobar'}],
-      sorts: [],
-      query: '',
-      project: [],
-      environment: [],
-    });
-
-    expect(hasAggregateField(eventView)).toBe(false);
-
-    eventView = new EventView({
-      fields: [{field: 'count(foo.bar.is-Enterprise_42)'}],
-      sorts: [],
-      query: '',
-      project: [],
-      environment: [],
-    });
-
-    expect(hasAggregateField(eventView)).toBe(true);
   });
 });
 

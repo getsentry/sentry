@@ -1,5 +1,5 @@
 import {ALL_VIEWS} from 'app/views/eventsV2/data';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {
   handleCreateQuery,
   handleUpdateQuery,

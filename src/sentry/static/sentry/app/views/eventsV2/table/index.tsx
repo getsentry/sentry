@@ -8,8 +8,8 @@ import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
-import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
 

@@ -13,20 +13,16 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView, {MetaType, EventData} from 'app/utils/discover/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import {TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import {
-  getFieldRenderer,
-  MetaType,
-  getAggregateAlias,
-  decodeScalar,
-} from 'app/views/eventsV2/utils';
-import {EventData} from 'app/views/eventsV2/data';
+import {decodeScalar} from 'app/views/eventsV2/utils';
 import withProjects from 'app/utils/withProjects';
 import EventsV2 from 'app/utils/discover/eventsv2';
 import SearchBar from 'app/components/searchBar';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
 import {
@@ -119,6 +115,7 @@ class Table extends React.Component<Props> {
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
+      // TODO(mark) add a better abstraction for this.
       const fieldName = getAggregateAlias(field);
       const fieldType = tableMeta[fieldName];
 

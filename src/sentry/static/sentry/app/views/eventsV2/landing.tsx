@@ -24,10 +24,10 @@ import SentryTypes from 'app/sentryTypes';
 import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import EventView from 'app/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries, decodeScalar} from './utils';
-import EventView from './eventView';
 import QueryList from './queryList';
 import backgroundSpace from '../../../images/spot/background-space.svg';
 

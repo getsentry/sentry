@@ -12,10 +12,9 @@ import {t} from 'app/locale';
 import {SelectValue, OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
 import {SectionHeading} from '../styles';
-import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
-import {Column} from '../eventView';
 import {FieldValue, FieldValueKind} from './types';
 import {ColumnEditRow} from './columnEditRow';
 

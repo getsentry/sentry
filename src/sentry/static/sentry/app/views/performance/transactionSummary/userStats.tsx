@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
-import {getFieldRenderer} from 'app/views/eventsV2/utils';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {assert} from 'app/types/utils';
 import EventsV2 from 'app/utils/discover/eventsv2';
 
