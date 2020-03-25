@@ -10,7 +10,6 @@ import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
@@ -62,28 +61,26 @@ class RuleRow extends React.Component<Props, State> {
           </RuleDescription>
         </div>
 
-        <TriggerAndActions>
-          <ConditionsWithHeader>
-            <MatchTypeHeader>
-              {tct('[matchType] of the following:', {
-                matchType: data.actionMatch,
-              })}
-            </MatchTypeHeader>
-            {data.conditions.length !== 0 && (
-              <Conditions>
-                {data.conditions.map((condition, i) => (
-                  <div key={i}>{condition.name}</div>
-                ))}
-              </Conditions>
-            )}
-          </ConditionsWithHeader>
+        <ConditionsWithHeader>
+          <MatchTypeHeader>
+            {tct('[matchType] of the following:', {
+              matchType: data.actionMatch,
+            })}
+          </MatchTypeHeader>
+          {data.conditions.length !== 0 && (
+            <Conditions>
+              {data.conditions.map((condition, i) => (
+                <div key={i}>{condition.name}</div>
+              ))}
+            </Conditions>
+          )}
+        </ConditionsWithHeader>
 
-          <Actions>
-            {data.actions.map((action, i) => (
-              <Action key={i}>{action.name}</Action>
-            ))}
-          </Actions>
-        </TriggerAndActions>
+        <Actions>
+          {data.actions.map((action, i) => (
+            <Action key={i}>{action.name}</Action>
+          ))}
+        </Actions>
       </React.Fragment>
     );
   }
@@ -96,19 +93,22 @@ class RuleRow extends React.Component<Props, State> {
       location,
     });
 
+    const numberOfTriggers = data.triggers.length;
+
     return (
       <React.Fragment>
-        <RuleType>{t('Metric')}</RuleType>
-        <div>
+        <RuleType rowSpans={numberOfTriggers}>{t('Metric')}</RuleType>
+        <RuleNameAndDescription rowSpans={numberOfTriggers}>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription />
-        </div>
+        </RuleNameAndDescription>
 
-        <TriggerAndActions>
-          {data.triggers.length !== 0 &&
-            data.triggers.map((trigger, i) => (
+        {numberOfTriggers !== 0 &&
+          data.triggers.map((trigger, i) => {
+            const hideBorder = i !== numberOfTriggers - 1;
+            return (
               <React.Fragment key={i}>
-                <Trigger key={`trigger-${i}`}>
+                <Trigger key={`trigger-${i}`} hideBorder={hideBorder}>
                   <StatusBadge>{trigger.label}</StatusBadge>
                   <TriggerDescription>
                     {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
@@ -117,14 +117,14 @@ class RuleRow extends React.Component<Props, State> {
                     {t('min')}
                   </TriggerDescription>
                 </Trigger>
-                <Actions key={`actions-${i}`}>
+                <Actions key={`actions-${i}`} hideBorder={hideBorder}>
                   {trigger.actions?.map((action, j) => (
                     <Action key={j}>{action.desc}</Action>
                   ))}
                 </Actions>
               </React.Fragment>
-            ))}
-        </TriggerAndActions>
+            );
+          })}
       </React.Fragment>
     );
   }
@@ -138,11 +138,24 @@ class RuleRow extends React.Component<Props, State> {
 
 export default RuleRow;
 
-const RuleType = styled('div')`
+type RowSpansProp = {
+  rowSpans?: number;
+};
+
+type HasBorderProp = {
+  hideBorder?: boolean;
+};
+
+const RuleType = styled('div')<RowSpansProp>`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;
+  ${p => p.rowSpans && `grid-row: auto / span ${p.rowSpans}`};
+`;
+
+const RuleNameAndDescription = styled('div')<RowSpansProp>`
+  ${p => p.rowSpans && `grid-row: auto / span ${p.rowSpans}`};
 `;
 
 const RuleName = styled(Link)`
@@ -157,26 +170,18 @@ const Conditions = styled('div')`
 `;
 
 // For tests
-const Actions = styled('div')`
-  overflow: hidden;
+const Actions = styled('div')<HasBorderProp>`
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  ${p => p.hideBorder && `border-bottom: none`};
 `;
 
 const Action = styled('div')`
   line-height: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const TriggerAndActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: flex-start;
-  grid-gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const ConditionsWithHeader = styled('div')`
-  overflow: hidden;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const MatchTypeHeader = styled('div')`
@@ -184,21 +189,24 @@ const MatchTypeHeader = styled('div')`
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
   margin-bottom: ${space(1)};
-  ${overflowEllipsis}
 `;
 
 const RuleDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin: ${space(0.5)} 0;
+  white-space: nowrap;
 `;
 
-const Trigger = styled('div')`
+const Trigger = styled('div')<HasBorderProp>`
   display: flex;
-  overflow: hidden;
+  align-items: flex-start;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  ${p => p.hideBorder && `border-bottom: none`};
 `;
 
 const TriggerDescription = styled('div')`
-  ${overflowEllipsis};
+  white-space: nowrap;
 `;
 
 const StatusBadge = styled('div')`

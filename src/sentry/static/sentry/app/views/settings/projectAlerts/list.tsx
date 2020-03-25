@@ -10,7 +10,6 @@ import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
@@ -18,7 +17,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tooltip from 'app/components/tooltip';
 import routeTitle from 'app/utils/routeTitle';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   canEditRule: boolean;
@@ -46,14 +44,6 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitle(t('Alert Rules'), projectId);
-  }
-
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p />
-      </EmptyStateWarning>
-    );
   }
 
   renderResults() {
@@ -129,12 +119,8 @@ class ProjectAlertRules extends AsyncView<Props, State> {
             headers={[
               <div key="type">{t('Type')}</div>,
               <div key="name">{t('Name')}</div>,
-              <TriggerAndActions key="triggerAndActions">
-                <EllipsisHeader key="conditions">
-                  {t('Conditions/Triggers')}
-                </EllipsisHeader>
-                <EllipsisHeader key="actions">{t('Action(s)')}</EllipsisHeader>
-              </TriggerAndActions>,
+              <div key="conditions">{t('Conditions/Triggers')}</div>,
+              <div key="actions">{t('Action(s)')}</div>,
             ]}
           >
             {() => this.renderResults()}
@@ -152,32 +138,16 @@ const ScrollWrapper = styled('div')`
   overflow-x: auto;
 `;
 
-const LoadingWrapper = styled('div')`
-  border: none;
-  grid-column: auto / span 4;
-`;
-
+/**
+ * TODO(billy): Not sure if this should be default for PanelTable or not
+ */
 const StyledPanelTable = styled(PanelTable)`
   width: fit-content;
   min-width: 100%;
-
-  > ${LoadingWrapper} {
-    border: none;
-  }
-`;
-
-const TriggerAndActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(1)};
 `;
 
 const HeaderActions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
-`;
-
-const EllipsisHeader = styled('div')`
-  ${overflowEllipsis};
 `;
