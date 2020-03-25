@@ -6,8 +6,9 @@ from django.http import StreamingHttpResponse
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
-from sentry.models import ExportedData
 from sentry.utils import metrics
+
+from ..models import ExportedData
 
 
 class DataExportDetailsEndpoint(OrganizationEndpoint):

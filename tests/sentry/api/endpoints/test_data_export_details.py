@@ -4,9 +4,8 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.constants import ExportQueryType
-from sentry.models import ExportedData
-from sentry.models.exporteddata import ExportStatus
+from sentry.data_export.base import ExportStatus, ExportQueryType
+from sentry.data_export.models import ExportedData
 from sentry.testutils import APITestCase
 
 

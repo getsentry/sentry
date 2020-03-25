@@ -504,6 +504,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
+    "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.tasks.assemble",
@@ -515,7 +516,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
-    "sentry.tasks.data_export",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -1788,6 +1788,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
     "sentry.web.frontend",
     "sentry.api.endpoints",
+    "sentry.data_export.endpoints",
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
 )
