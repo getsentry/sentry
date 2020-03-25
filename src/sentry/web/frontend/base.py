@@ -139,7 +139,7 @@ class OrganizationMixin(object):
 
     def get_active_project(self, request, organization, project_slug):
         try:
-            project = Project.objects.get_from_cache(slug=project_slug, organization=organization)
+            project = Project.objects.get(slug=project_slug, organization=organization)
         except Project.DoesNotExist:
             return None
 
