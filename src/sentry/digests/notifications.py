@@ -21,16 +21,7 @@ TARGETED_MAIL_ACTION_SYMBOL = "targeted_mail"
 
 
 def is_targeted_action_key(key):
-    return (
-        len(
-            [
-                token
-                for idx, token in enumerate(key.split(":"))
-                if idx == 0 and token == TARGETED_MAIL_ACTION_SYMBOL
-            ]
-        )
-        == 1
-    )
+    return key.startswith("{symbol}:".format(symbol=TARGETED_MAIL_ACTION_SYMBOL))
 
 
 def split_key_for_targeted_action(key):
