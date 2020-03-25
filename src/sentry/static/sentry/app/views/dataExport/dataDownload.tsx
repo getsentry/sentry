@@ -78,6 +78,27 @@ class DataDownload extends AsyncView<Props, State> {
     );
   }
 
+  renderEarly(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <Header>
+          <h3>
+            {t('What are')}
+            <i>{t(' you ')}</i>
+            {t('doing here?')}
+          </h3>
+        </Header>
+        <Body>
+          <p>
+            {t(
+              "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
+            )}
+          </p>
+          <p>{t("Close this window and we'll email you when your download is ready.")}</p>
+        </Body>
+      </React.Fragment>
+    );
+  }
   renderExpired(): React.ReactNode {
     const {query} = this.state.download;
     const actionLink = this.getActionLink(query.type);
@@ -100,28 +121,6 @@ class DataDownload extends AsyncView<Props, State> {
           <Button href={actionLink} priority="primary">
             {t('Start a New Download')}
           </Button>
-        </Body>
-      </React.Fragment>
-    );
-  }
-
-  renderEarly(): React.ReactNode {
-    return (
-      <React.Fragment>
-        <Header>
-          <h3>
-            {t('What are')}
-            <i>{t(' you ')}</i>
-            {t('doing here?')}
-          </h3>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
-            )}
-          </p>
-          <p>{t("Close this window and we'll email you when your download is ready.")}</p>
         </Body>
       </React.Fragment>
     );
@@ -159,10 +158,10 @@ class DataDownload extends AsyncView<Props, State> {
   renderContent(): React.ReactNode {
     const {download} = this.state;
     switch (download.status) {
-      case DownloadStatus.Expired:
-        return this.renderExpired();
       case DownloadStatus.Early:
         return this.renderEarly();
+      case DownloadStatus.Expired:
+        return this.renderExpired();
       default:
         return this.renderValid();
     }
@@ -171,7 +170,7 @@ class DataDownload extends AsyncView<Props, State> {
   renderBody() {
     return (
       <Layout>
-        <main>{this.renderValid()}</main>
+        <main>{this.renderContent()}</main>
       </Layout>
     );
   }

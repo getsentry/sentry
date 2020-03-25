@@ -3,8 +3,7 @@ import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 import WrappedDataExport, {DataExport} from 'app/components/dataExport';
 
-// eslint-disable-next-line
-describe.skip('DataExport', function() {
+describe('DataExport', function() {
   const mockUnauthorizedOrg = TestStubs.Organization({
     features: [],
   });
@@ -36,7 +35,7 @@ describe.skip('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Export All to CSV');
+    expect(wrapper.text()).toBe('Create CSV');
   });
 
   it('should send a request and disable itself when clicked', async function() {
@@ -65,7 +64,7 @@ describe.skip('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toBe('Queued up!');
+    expect(wrapper.text()).toBe("We're working on it...");
     expect(wrapper.find('button').is('[disabled]')).toBe(true);
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: true,
