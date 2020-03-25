@@ -8,7 +8,7 @@ from time import time
 from sentry import quotas
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
-from sentry.tasks.store import preprocess_event, process_event, save_event
+from sentry.tasks.store import preprocess_event, process_event, save_event, symbolicate_event
 from sentry.testutils.helpers.features import Feature
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -70,6 +70,12 @@ def mock_symbolicate_event():
 
 
 @pytest.fixture
+def mock_get_symbolication_function():
+    with mock.patch("sentry.lang.native.processing.get_symbolication_function") as m:
+        yield m
+
+
+@pytest.fixture
 def mock_default_cache():
     with mock.patch("sentry.tasks.store.default_cache") as m:
         yield m
@@ -83,7 +89,7 @@ def mock_refund():
 
 @pytest.mark.django_db
 def test_move_to_process_event(
-    default_project, mock_process_event, mock_save_event, register_plugin
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
     register_plugin(BasicPreprocessorPlugin)
     data = {
@@ -96,6 +102,7 @@ def test_move_to_process_event(
 
     preprocess_event(data=data)
 
+    assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
     assert mock_save_event.delay.call_count == 0
 
@@ -121,7 +128,46 @@ def test_move_to_symbolicate_event(
 
 
 @pytest.mark.django_db
-def test_move_to_save_event(default_project, mock_process_event, mock_save_event, register_plugin):
+def test_symbolicate_event_call_process(
+    default_project,
+    mock_default_cache,
+    mock_process_event,
+    mock_save_event,
+    mock_get_symbolication_function,
+    register_plugin,
+):
+    register_plugin(BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "native",
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+    mock_default_cache.get.return_value = data
+
+    symbolicated_data = {"type": "error"}
+
+    mock_get_symbolication_function.return_value = lambda _: symbolicated_data
+
+    symbolicate_event(cache_key="e:1", start_time=1)
+
+    # The event mutated, so make sure we save it back
+    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+
+    assert key == "e:1"
+    assert event == symbolicated_data
+    assert duration == 3600
+
+    assert mock_save_event.delay.call_count == 0
+    mock_process_event.delay.assert_called_once_with(
+        cache_key="e:1", start_time=1, event_id=EVENT_ID, has_changed=True
+    )
+
+
+@pytest.mark.django_db
+def test_move_to_save_event(
+    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
+):
     register_plugin(BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
@@ -133,6 +179,7 @@ def test_move_to_save_event(default_project, mock_process_event, mock_save_event
 
     preprocess_event(data=data)
 
+    assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 1
 

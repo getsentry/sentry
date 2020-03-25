@@ -69,7 +69,9 @@ def submit_process(
     project, from_reprocessing, cache_key, event_id, start_time, data, has_changed=None
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
-    task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
+    task.delay(
+        cache_key=cache_key, start_time=start_time, event_id=event_id, has_changed=has_changed
+    )
 
 
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
