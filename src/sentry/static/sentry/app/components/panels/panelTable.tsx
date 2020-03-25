@@ -2,15 +2,47 @@ import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 
 import Panel from './panel';
 
 type Props = {
-  disablePadding?: boolean;
+  /**
+   * Headers of the table.
+   */
   headers: React.ReactNode[];
-  children: React.ReactNode;
-} & Omit<typeof Panel, 'title' | 'body'>;
+
+  /**
+   * The body of the table. Make sure the number of children elements are
+   * multiples of the length of headers.
+   */
+  children: React.ReactNode | (() => React.ReactNode);
+
+  /**
+   * If this is true, then display a loading indicator
+   */
+  isLoading?: boolean;
+
+  /**
+   * Displays an `<EmptyStateWarning>` if true
+   */
+  isEmpty?: boolean;
+
+  /**
+   * Message to use for `<EmptyStateWarning>`
+   */
+  emptyMessage?: React.ReactNode;
+
+  /**
+   * Renders without predefined padding on the header and body cells
+   */
+  disablePadding?: boolean;
+
+  className?: string;
+};
 
 /**
  * Bare bones table that treats the first `this.props.columns` as a header
@@ -26,14 +58,53 @@ type Props = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-const PanelTable = ({headers, children, disablePadding, ...props}: Props) => (
-  <Wrapper columns={headers.length} disablePadding={disablePadding} {...props}>
-    {headers.map((header, i) => (
-      <PanelTableHeader key={i}>{header}</PanelTableHeader>
-    ))}
-    {children}
-  </Wrapper>
-);
+const PanelTable = ({
+  headers,
+  children,
+  isLoading,
+  isEmpty,
+  emptyMessage = t('There are no items to display'),
+  disablePadding,
+  className,
+}: Props) => {
+  const shouldShowLoading = isLoading === true;
+  const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
+  const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
+
+  return (
+    <Wrapper
+      columns={headers.length}
+      disablePadding={disablePadding}
+      className={className}
+    >
+      {headers.map((header, i) => (
+        <PanelTableHeader key={i}>{header}</PanelTableHeader>
+      ))}
+
+      {shouldShowLoading && (
+        <LoadingWrapper>
+          <LoadingIndicator />
+        </LoadingWrapper>
+      )}
+
+      {shouldShowEmptyMessage && (
+        <TableEmptyStateWarning>
+          <p>{emptyMessage}</p>
+        </TableEmptyStateWarning>
+      )}
+
+      {shouldShowContent && getContent(children)}
+    </Wrapper>
+  );
+};
+
+function getContent(children: Props['children']) {
+  if (typeof children === 'function') {
+    return children();
+  }
+
+  return children;
+}
 
 type WrapperProps = {
   /**
@@ -42,6 +113,10 @@ type WrapperProps = {
   columns: number;
   disablePadding: Props['disablePadding'];
 };
+
+const LoadingWrapper = styled('div')``;
+
+const TableEmptyStateWarning = styled(EmptyStateWarning)``;
 
 const Wrapper = styled(Panel, {
   shouldForwardProp: p => isPropValid(p) && p !== 'columns',
@@ -56,6 +131,11 @@ const Wrapper = styled(Panel, {
     &:nth-child(-${p => p.columns}) {
       border-bottom: none;
     }
+  }
+
+  > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
+    border: none;
+    grid-column: auto / span ${p => p.columns};
   }
 `;
 

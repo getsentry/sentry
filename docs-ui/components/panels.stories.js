@@ -35,20 +35,42 @@ storiesOf('UI|Panels', module)
     withInfo({
       text: 'A Panel for "tabular" data',
     })(() => (
-      <PanelTable
-        // eslint-disable-next-line react/jsx-key
-        headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
-      >
-        <div>Panel Item with really long content</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-        <div>Panel Item</div>
-      </PanelTable>
+      <React.Fragment>
+        <PanelTable
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item with really long content</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+
+        <PanelTable
+          isLoading
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+
+        <PanelTable
+          isEmpty
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+      </React.Fragment>
     ))
   )
   .add(
