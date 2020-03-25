@@ -231,6 +231,7 @@ class ReleaseSerializer(Serializer):
         project = kwargs.get("project")
         environment = kwargs.get("environment")
         with_health_data = kwargs.get("with_health_data", False)
+        health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
 
@@ -260,6 +261,7 @@ class ReleaseSerializer(Serializer):
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
+                stat=health_stat,
             )
         else:
             health_data = None

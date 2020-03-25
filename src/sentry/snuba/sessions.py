@@ -190,13 +190,20 @@ def get_release_adoption(project_releases, environments=None, now=None):
 
 
 def get_release_health_data_overview(
-    project_releases, environments=None, summary_stats_period=None, health_stats_period=None
+    project_releases,
+    environments=None,
+    summary_stats_period=None,
+    health_stats_period=None,
+    stat=None,
 ):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
     tuples.  The return value is a set of all the project releases that have health
     data.
     """
+    if stat is None:
+        stat = "sessions"
+    assert stat in ("sessions", "users")
 
     _, summary_start, _ = get_rollup_starts_and_buckets(summary_stats_period or "24h")
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
@@ -280,7 +287,7 @@ def get_release_health_data_overview(
     if health_stats_period:
         for x in raw_query(
             dataset=Dataset.Sessions,
-            selected_columns=["release", "project_id", "bucketed_started", "sessions"],
+            selected_columns=["release", "project_id", "bucketed_started", stat],
             groupby=["release", "project_id", "bucketed_started"],
             rollup=stats_rollup,
             start=stats_start,
@@ -292,7 +299,7 @@ def get_release_health_data_overview(
                 / stats_rollup
             )
             rv[x["project_id"], x["release"]]["stats"][health_stats_period][time_bucket][1] = x[
-                "sessions"
+                stat
             ]
 
     return rv

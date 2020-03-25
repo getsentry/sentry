@@ -168,12 +168,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
+        health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
         if health_stats_period and health_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+        if health_stat not in ("sessions", "users"):
+            raise ParseError(detail="invalid healthStat")
 
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
@@ -258,6 +261,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 x,
                 request.user,
                 with_health_data=with_health,
+                health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
             ),
