@@ -313,10 +313,11 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
 
     now = datetime.now(pytz.utc)
 
-    def _query_stats(start):
+    def _query_stats(end):
         row = raw_query(
             dataset=Dataset.Sessions,
             selected_columns=["users", "users_crashed", "sessions", "sessions_crashed"],
+            end=end,
             start=start,
             conditions=conditions,
             filter_keys=filter_keys,
@@ -335,7 +336,6 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
 
     rv = []
     for offset in (
-        timedelta(seconds=0),
         timedelta(days=1),
         timedelta(days=2),
         timedelta(days=7),
