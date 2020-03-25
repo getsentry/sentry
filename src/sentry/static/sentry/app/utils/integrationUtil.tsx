@@ -245,10 +245,9 @@ export const getCategoriesForIntegration = (
   integration: AppOrProviderOrPlugin
 ): string[] => {
   if (isSentryApp(integration)) {
-    const features = ['internal', 'unpublished'].includes(integration.status)
-      ? [{featureGate: integration.status, description: ''}]
-      : integration.featureData;
-    return getCategories(features);
+    return ['internal', 'unpublished'].includes(integration.status)
+      ? [integration.status]
+      : getCategories(integration.featureData);
   }
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);

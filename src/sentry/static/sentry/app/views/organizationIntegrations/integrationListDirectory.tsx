@@ -3,6 +3,8 @@ import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import flatten from 'lodash/flatten';
+import uniq from 'lodash/uniq';
 
 import {
   Organization,
@@ -382,10 +384,7 @@ export class OrganizationIntegrations extends AsyncComponent<
     const {displayedList, selectedCategory, list} = this.state;
 
     const title = t('Integrations');
-    const categoryList = list.reduce<string[]>(
-      (acc, curr) => [...new Set([...acc, ...getCategoriesForIntegration(curr)])],
-      []
-    );
+    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -409,7 +408,7 @@ export class OrganizationIntegrations extends AsyncComponent<
                 <SearchInput
                   value={this.state.searchInput || ''}
                   onChange={this.onSearchChange}
-                  placeholder="Filter Integrations..."
+                  placeholder={t('Filter Integrations...')}
                   width="25em"
                 />
               </ActionContainer>
