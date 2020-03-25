@@ -194,9 +194,15 @@ class MailAdapter(object):
         """
 
         def return_set(xs):
+            from collections import Iterable
+
             if isinstance(xs, set):
                 return xs
-            return set(xs) if xs or xs == 0 else set()
+
+            if isinstance(xs, Iterable):
+                return set(xs) if xs else set()
+
+            return {xs} if xs is not None else set()
 
         if not (project and project.teams.exists()):
             self.logger.debug("Tried to send notification to invalid project: %r", project)
