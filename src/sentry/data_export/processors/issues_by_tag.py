@@ -3,13 +3,12 @@ from __future__ import absolute_import
 import six
 
 from sentry import tagstore
-from sentry.models import EventUser, Group, get_group_with_redirect
+from sentry.models import EventUser, Group, get_group_with_redirect, Project
 
-from .base import ExportProcessor
 from ..base import ExportError
 
 
-class IssuesByTagProcessor(ExportProcessor):
+class IssuesByTagProcessor(object):
     """
     Export processor for data exports of issues data based on a provided tag
     """
@@ -27,6 +26,14 @@ class IssuesByTagProcessor(ExportProcessor):
         except tagstore.TagKeyNotFound:
             raise ExportError("Requested key does not exist")
         self.callbacks = self.get_callbacks(self.key, self.group.project_id)
+
+    @staticmethod
+    def get_project(project_id):
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            return project
+        except Project.DoesNotExist:
+            raise ExportError("Requested project does not exist")
 
     @staticmethod
     def get_group(group_id, project):
