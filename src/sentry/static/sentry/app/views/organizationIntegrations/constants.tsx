@@ -52,3 +52,15 @@ export const POPULARITY_WEIGHT: {
   'amazon-sqs': 2,
   splunk: 2,
 } as const;
+
+export const documentIntegrations = [
+  {
+    slug: 'datadog',
+    name: 'Datadog',
+    author: 'Datadog',
+    docUrl: 'https://datadog.com',
+    description: 'asdfasdfadfasfdasf',
+    features: [],
+    resourceLinks: [{title: 'github', url: 'http//github.com'}],
+  },
+] as const;
