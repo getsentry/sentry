@@ -176,8 +176,12 @@ const SelectControl = props => {
   let mappedValue = value;
 
   if (choicesOrOptions) {
-    // Value is expected to be object like the options list, we map it back from
-    // the options list
+    /**
+     * Value is expected to be object like the options list, we map it back from the options list.
+     * Note that if the component doesn't have options or choices passed in
+     * because the select component fetches the options finding the mappedValue will fail
+     * and the component won't work
+     */
     mappedValue =
       props.multiple && Array.isArray(value)
         ? value.map(val => choicesOrOptions.find(option => option.value === val))

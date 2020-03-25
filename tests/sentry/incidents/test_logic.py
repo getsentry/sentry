@@ -594,7 +594,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-        # Note: Closing an incident above uses a prewindow in the snapshot by default, so without prewindows this test fails.
+
         for incident, incident_stats in zip(
             incidents, bulk_get_incident_stats(incidents, windowed_stats=True)
         ):
