@@ -169,30 +169,6 @@ def preprocess_event_from_reprocessing(
     )
 
 
-# @instrumented_task(
-#     name="sentry.tasks.store.retry_process_event",
-#     queue="sleep",
-#     time_limit=(60 * 5) + 5,
-#     soft_time_limit=60 * 5,
-# )
-# def retry_process_event(process_task_name, task_kwargs, **kwargs):
-#     """
-#     The only purpose of this task is be enqueued with some ETA set. This is
-#     essentially an implementation of ETAs on top of Celery's existing ETAs, but
-#     with the intent of having separate workers wait for those ETAs.
-#     """
-#     tasks = {
-#         "process_event": process_event,
-#         "process_event_from_reprocessing": process_event_from_reprocessing,
-#     }
-
-#     process_task = tasks.get(process_task_name)
-#     if not process_task:
-#         raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
-
-#     process_task.delay(**task_kwargs)
-
-
 def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
     """
     TODO
@@ -246,7 +222,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                 extra={"project_id": project_id, "event_id": event_id},
             )
         else:
-            # Requeue the task after a delay
+            # Requeue the task
+            # TODO(anton): We probably need some delay here
             submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data)
             return
 
@@ -434,7 +411,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None, 
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, has_changed=None, **kwargs):
-    error_logger.warn("YYY started task: process_event")
     return _do_process_event(
         cache_key=cache_key,
         start_time=start_time,
