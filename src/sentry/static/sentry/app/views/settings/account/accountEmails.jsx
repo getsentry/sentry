@@ -1,4 +1,3 @@
-import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -15,6 +14,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tag from 'app/views/settings/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
 import space from 'app/styles/space';
+import ButtonBar from 'app/components/buttonBar';
 
 const ENDPOINT = '/users/me/emails/';
 
@@ -47,15 +47,13 @@ class EmailRow extends React.Component {
     const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <PanelItem justifyContent="space-between">
-        <Flex alignItems="center">
+      <EmailItem>
+        <EmailTags>
           {email}
-          {!isVerified && (
-            <TagWithSpace priority="warning">{t('Unverified')}</TagWithSpace>
-          )}
-          {isPrimary && <TagWithSpace priority="success">{t('Primary')}</TagWithSpace>}
-        </Flex>
-        <Flex>
+          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
+        </EmailTags>
+        <ButtonBar gap={1}>
           {!isPrimary && isVerified && (
             <Button size="small" onClick={this.handleSetPrimary}>
               {t('Set as primary')}
@@ -67,18 +65,16 @@ class EmailRow extends React.Component {
             </Button>
           )}
           {!hideRemove && !isPrimary && (
-            <Box ml={1}>
-              <Button
-                data-test-id="remove"
-                priority="danger"
-                size="small"
-                icon="icon-trash"
-                onClick={this.handleRemove}
-              />
-            </Box>
+            <Button
+              data-test-id="remove"
+              priority="danger"
+              size="small"
+              icon="icon-trash"
+              onClick={this.handleRemove}
+            />
           )}
-        </Flex>
-      </PanelItem>
+        </ButtonBar>
+      </EmailItem>
     );
   }
 }
@@ -194,6 +190,13 @@ class AccountEmails extends AsyncView {
 
 export default AccountEmails;
 
-const TagWithSpace = styled(Tag)`
-  margin-left: ${space(1)};
+const EmailTags = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  align-items: center;
+`;
+
+const EmailItem = styled(PanelItem)`
+  justify-content: space-between;
 `;
