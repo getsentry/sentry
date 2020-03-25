@@ -11,11 +11,13 @@ import Count from 'app/components/count';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 import ScoreBar, {Bar} from 'app/components/scoreBar';
+import Tooltip from 'app/components/tooltip';
 
 import HealthStatsChart from './healthStatsChart';
 import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
 import HealthStatsTitle, {StatsSubject} from './healthStatsTitle';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
+import AdoptionTooltip from './adoptionTooltip';
 
 type Props = {
   release: ProjectRelease;
@@ -32,7 +34,10 @@ const ReleaseHealth = ({release, location}: Props) => {
     crashFreeUsers,
     crashFreeSessions,
     sessionsCrashed,
+    totalUsers,
     totalUsers24h,
+    totalSessions,
+    totalSessions24h,
   } = release.healthData!;
 
   return (
@@ -67,20 +72,33 @@ const ReleaseHealth = ({release, location}: Props) => {
 
             <AdoptionColumn>
               <AdoptionWrapper>
-                <StyledScoreBar
-                  score={convertAdoptionToProgress(adoption ?? 0)}
-                  size={14}
-                  thickness={14}
-                  palette={[
-                    theme.red,
-                    theme.yellowOrange,
-                    theme.yellowOrange,
-                    theme.green,
-                    theme.green,
-                  ]}
-                />
-                <Count value={totalUsers24h ?? 0} /> &nbsp;
-                {tn('user', 'users', totalUsers24h)}
+                <Tooltip
+                  title={
+                    <AdoptionTooltip
+                      totalUsers={totalUsers}
+                      totalSessions={totalSessions}
+                      totalUsers24h={totalUsers24h}
+                      totalSessions24h={totalSessions24h}
+                    />
+                  }
+                >
+                  <StyledScoreBar
+                    score={convertAdoptionToProgress(adoption ?? 0)}
+                    size={14}
+                    thickness={14}
+                    palette={[
+                      theme.red,
+                      theme.yellowOrange,
+                      theme.yellowOrange,
+                      theme.green,
+                      theme.green,
+                    ]}
+                  />
+                </Tooltip>
+                <div>
+                  <Count value={totalUsers24h ?? 0} />{' '}
+                  {tn('user', 'users', totalUsers24h)}
+                </div>
               </AdoptionWrapper>
             </AdoptionColumn>
 
