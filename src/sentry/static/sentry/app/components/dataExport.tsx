@@ -9,9 +9,14 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+//! Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
+export enum ExportQueryType {
+  IssuesByTag = 'Issues-by-Tag',
+  Discover = 'Discover',
+}
+
 type DataExportPayload = {
-  // Coordinate with ExportQueryType string (src/sentry/constants.py)
-  queryType: 'Issues-by-Tag' | 'Discover';
+  queryType: ExportQueryType;
   queryInfo: any; // TODO(ts): Formalize different possible payloads
 };
 
