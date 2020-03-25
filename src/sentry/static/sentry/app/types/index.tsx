@@ -131,8 +131,11 @@ export type ProjectRelease = {
 };
 
 export type Health = {
-  crashFreeUsers: number | null;
   totalUsers: number;
+  totalUsers24h: number;
+  totalSessions: number;
+  totalSessions24h: number;
+  crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;

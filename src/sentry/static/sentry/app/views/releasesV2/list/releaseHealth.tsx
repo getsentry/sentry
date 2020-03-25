@@ -30,7 +30,7 @@ const ReleaseHealth = ({release, location}: Props) => {
     crashFreeUsers,
     crashFreeSessions,
     sessionsCrashed,
-    totalUsers,
+    totalUsers24h,
   } = release.healthData!;
 
   const healthStatsPeriods = [
@@ -78,6 +78,7 @@ const ReleaseHealth = ({release, location}: Props) => {
           <Layout>
             <DailyUsersColumn>
               <ChartWrapper>
+                {/* TODO(releasesV2): switch between sessions and users */}
                 <UsersChart
                   data={stats}
                   height={20}
@@ -88,24 +89,20 @@ const ReleaseHealth = ({release, location}: Props) => {
 
             <AdoptionColumn>
               <AdoptionWrapper>
-                {defined(adoption) && (
-                  <StyledScoreBar
-                    score={convertAdoptionToProgress(adoption)}
-                    size={14}
-                    thickness={14}
-                    palette={[
-                      theme.red,
-                      theme.yellowOrange,
-                      theme.yellowOrange,
-                      theme.green,
-                      theme.green,
-                    ]}
-                  />
-                )}
-                <div>
-                  <Count value={totalUsers} /> &nbsp;
-                  {tn('user', 'users', totalUsers)}
-                </div>
+                <StyledScoreBar
+                  score={convertAdoptionToProgress(adoption ?? 0)}
+                  size={14}
+                  thickness={14}
+                  palette={[
+                    theme.red,
+                    theme.yellowOrange,
+                    theme.yellowOrange,
+                    theme.green,
+                    theme.green,
+                  ]}
+                />
+                <Count value={totalUsers24h} /> &nbsp;
+                {tn('user', 'users', totalUsers24h)}
               </AdoptionWrapper>
             </AdoptionColumn>
 
