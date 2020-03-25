@@ -1,4 +1,3 @@
-import {ModalBody, ModalHeader} from 'react-bootstrap';
 import ReactSelect, {components} from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -17,22 +16,13 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import IdBadge from 'app/components/idBadge';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 
-type Props = {
+type Props = ModalRenderProps & {
   /**
    * The destination route
    */
   nextPath: string;
-
-  /**
-   * Container for modal header
-   */
-  Header: typeof ModalHeader;
-
-  /**
-   * Container for modal body
-   */
-  Body: typeof ModalBody;
 
   /**
    * List of available organizations

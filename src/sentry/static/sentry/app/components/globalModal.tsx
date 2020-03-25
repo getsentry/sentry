@@ -89,8 +89,8 @@ class GlobalModal extends React.Component<Props> {
         {({css, cx}) => (
           <Modal
             className={cx(
-              options && options.modalClassName,
-              options && options.modalCss && css(options.modalCss)
+              options?.modalClassName,
+              options?.modalCss && css(options.modalCss)
             )}
             dialogClassName={options && options.dialogClassName}
             show={visible}

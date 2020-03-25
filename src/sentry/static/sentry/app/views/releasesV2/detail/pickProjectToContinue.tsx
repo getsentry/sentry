@@ -25,10 +25,9 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
   }
 
   openModal(
-    ({Header, Body}) => (
+    modalProps => (
       <ContextPickerModalContainer
-        Header={Header}
-        Body={Body}
+        {...modalProps}
         needOrg={false}
         needProject
         nextPath={`${path}:project`}

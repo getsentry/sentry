@@ -1,4 +1,4 @@
-import {ClassNames} from '@emotion/core';
+import {ClassNames, css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -33,13 +33,13 @@ class CommandPaletteModal extends React.Component {
     return (
       <Body>
         <ClassNames>
-          {({css}) => (
+          {({css: injectedCss}) => (
             <Search
               {...this.props}
               entryPoint="command_palette"
               minSearch={1}
               maxResults={10}
-              dropdownStyle={css`
+              dropdownStyle={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -69,6 +69,12 @@ class CommandPaletteModal extends React.Component {
 }
 
 export default CommandPaletteModal;
+
+export const modalCss = css`
+  .modal-content {
+    padding: 0;
+  }
+`;
 
 const InputWrapper = styled('div')`
   padding: 2px;
