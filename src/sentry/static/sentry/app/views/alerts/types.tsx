@@ -32,7 +32,6 @@ export type IncidentStats = {
   };
   totalEvents: number;
   uniqueUsers: number;
-  alertRule: IncidentRule;
 };
 
 export type IncidentSuspect = {
