@@ -63,7 +63,7 @@ class RuleRow extends React.Component<Props, State> {
         </div>
 
         <TriggerAndActions>
-          <div>
+          <ConditionsWithHeader>
             <MatchTypeHeader>
               {tct('[matchType] of the following:', {
                 matchType: data.actionMatch,
@@ -76,7 +76,7 @@ class RuleRow extends React.Component<Props, State> {
                 ))}
               </Conditions>
             )}
-          </div>
+          </ConditionsWithHeader>
 
           <Actions>
             {data.actions.map((action, i) => (
@@ -175,11 +175,16 @@ const TriggerAndActions = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
+const ConditionsWithHeader = styled('div')`
+  overflow: hidden;
+`;
+
 const MatchTypeHeader = styled('div')`
   font-weight: bold;
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
   margin-bottom: ${space(1)};
+  ${overflowEllipsis}
 `;
 
 const RuleDescription = styled('div')`
