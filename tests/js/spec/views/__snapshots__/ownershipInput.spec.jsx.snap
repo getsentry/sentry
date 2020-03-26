@@ -1060,7 +1060,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-2r1wnf-StyledTextArea en3n9di2"
+        className="css-2r1wnf-StyledTextArea en3n9di3"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1074,7 +1074,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-2r1wnf-StyledTextArea en3n9di2"
+          className="css-2r1wnf-StyledTextArea en3n9di3"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1085,17 +1085,14 @@ url:http://example.com/settings/* #product"
         />
       </TextareaAutosize>
     </StyledTextArea>
-    <Styled(div)
-      alignItems="center"
-      justifyContent="space-between"
-    >
+    <ActionBar>
       <div
-        className="css-s3axrf"
+        className="css-hgonoe-ActionBar en3n9di0"
       >
         <div />
         <SaveButton>
           <div
-            className="css-q90es8-SaveButton en3n9di1"
+            className="css-q90es8-SaveButton en3n9di2"
           >
             <forwardRef<Button>
               disabled={false}
@@ -1157,7 +1154,7 @@ url:http://example.com/settings/* #product"
           </div>
         </SaveButton>
       </div>
-    </Styled(div)>
+    </ActionBar>
   </div>
 </OwnerInput>
 `;

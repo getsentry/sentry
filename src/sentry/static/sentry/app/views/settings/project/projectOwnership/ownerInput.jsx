@@ -1,4 +1,3 @@
-import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -165,7 +164,7 @@ class OwnerInput extends React.Component {
             autoCorrect="off"
             autoCapitalize="off"
           />
-          <Flex alignItems="center" justifyContent="space-between">
+          <ActionBar>
             <div>{this.parseError(error)}</div>
             <SaveButton>
               <Button
@@ -177,7 +176,7 @@ class OwnerInput extends React.Component {
                 {t('Save Changes')}
               </Button>
             </SaveButton>
-          </Flex>
+          </ActionBar>
         </div>
       </React.Fragment>
     );
@@ -186,6 +185,12 @@ class OwnerInput extends React.Component {
 
 const TEXTAREA_PADDING = 4;
 const TEXTAREA_LINE_HEIGHT = 24;
+
+const ActionBar = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const SyntaxOverlay = styled('div')`
   ${inputStyles};
