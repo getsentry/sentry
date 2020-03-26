@@ -88,7 +88,15 @@ const StyledTextBlock = styled('div')`
 `;
 
 const Alert = styled(
-  ({type, icon, iconSize, children, className, ...props}: AlertProps) => (
+  ({
+    type,
+    icon,
+    iconSize,
+    children,
+    className,
+    system: _system, // don't forward to `div`
+    ...props
+  }: AlertProps) => (
     <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
       {icon && (
         <IconWrapper>

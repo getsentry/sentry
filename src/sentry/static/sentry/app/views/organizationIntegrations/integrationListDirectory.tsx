@@ -3,6 +3,8 @@ import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import flatten from 'lodash/flatten';
+import uniq from 'lodash/uniq';
 
 import {
   Organization,
@@ -11,13 +13,17 @@ import {
   IntegrationProvider,
   SentryAppInstallation,
   PluginWithProjectList,
+  AppOrProviderOrPlugin,
 } from 'app/types';
 import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
   getSortIntegrationsByWeightActive,
-  getCategories,
+  getCategorySelectActive,
+  isSentryApp,
+  isPlugin,
+  getCategoriesForIntegration,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -30,11 +36,10 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import {logExperiment} from 'app/utils/analytics';
+import SelectControl from 'app/components/forms/selectControl';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
-
-type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -53,17 +58,8 @@ type State = {
   searchInput: string;
   list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
+  selectedCategory: string;
 };
-
-function isSentryApp(integration: AppOrProviderOrPlugin): integration is SentryApp {
-  return !!(integration as SentryApp).uuid;
-}
-
-function isPlugin(
-  integration: AppOrProviderOrPlugin
-): integration is PluginWithProjectList {
-  return integration.hasOwnProperty('shortName');
-}
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
@@ -96,6 +92,7 @@ export class OrganizationIntegrations extends AsyncComponent<
       ...super.getDefaultState(),
       list: [],
       displayedList: [],
+      selectedCategory: '',
     };
   }
 
@@ -289,6 +286,18 @@ export class OrganizationIntegrations extends AsyncComponent<
     });
   };
 
+  onCategorySelect = ({value: category}: {value: string}) => {
+    this.setState({selectedCategory: category}, () => {
+      if (!category) {
+        return this.setState({displayedList: this.state.list});
+      }
+      const result = this.state.list.filter(integration => {
+        return getCategoriesForIntegration(integration).includes(category);
+      });
+
+      return this.setState({displayedList: result});
+    });
+  };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -308,7 +317,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={integrations.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={integrations.length}
-        categories={getCategories(provider.metadata.features)}
+        categories={getCategoriesForIntegration(provider)}
       />
     );
   };
@@ -333,7 +342,7 @@ export class OrganizationIntegrations extends AsyncComponent<
         status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
         configurations={plugin.projectList.length}
-        categories={getCategories(plugin.featureDescriptions)}
+        categories={getCategoriesForIntegration(plugin)}
       />
     );
   };
@@ -342,9 +351,7 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));
-    const categories = ['internal', 'unpublished'].includes(app.status)
-      ? [app.status]
-      : getCategories(app.featureData);
+    const categories = getCategoriesForIntegration(app);
 
     return (
       <IntegrationRow
@@ -373,9 +380,10 @@ export class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {displayedList} = this.state;
+    const {displayedList, selectedCategory, list} = this.state;
 
     const title = t('Integrations');
+    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -384,12 +392,25 @@ export class OrganizationIntegrations extends AsyncComponent<
           <SettingsPageHeader
             title={title}
             action={
-              <SearchInput
-                value={this.state.searchInput || ''}
-                onChange={this.onSearchChange}
-                placeholder="Filter Integrations..."
-                width="25em"
-              />
+              <ActionContainer>
+                {getCategorySelectActive() ? (
+                  <SelectControl
+                    name="select-categories"
+                    onChange={this.onCategorySelect}
+                    value={selectedCategory}
+                    choices={[
+                      ['', t('All categories')],
+                      ...categoryList.map(category => [category, category]),
+                    ]}
+                  />
+                ) : null}
+                <SearchInput
+                  value={this.state.searchInput || ''}
+                  onChange={this.onSearchChange}
+                  placeholder={t('Filter Integrations...')}
+                  width="25em"
+                />
+              </ActionContainer>
             }
           />
         )}
@@ -414,6 +435,12 @@ export class OrganizationIntegrations extends AsyncComponent<
     );
   }
 }
+
+const ActionContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 240px max-content;
+  grid-gap: ${space(2)};
+`;
 
 const EmptyResultsContainer = styled('div')`
   height: 200px;

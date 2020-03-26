@@ -110,7 +110,6 @@ exports[`ProjectPlugins renders 1`] = `
                     >
                       <div
                         className="ref-warning e1cszazt0 css-utenda-Alert-PanelAlert ejthpj82"
-                        system={true}
                       >
                         <IconWrapper>
                           <span
