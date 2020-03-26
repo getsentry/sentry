@@ -3,15 +3,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {PageHeader} from 'app/styles/organization';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
 import SentryTypes from 'app/sentryTypes';
 
-import SavedSearchSelector from './savedSearchSelector';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
+import SavedSearchSelector from './savedSearchSelector';
 
 class IssueListFilters extends React.Component {
   static propTypes = {
@@ -48,8 +48,10 @@ class IssueListFilters extends React.Component {
   };
 
   handleSavedSearchSelect = savedSearch => {
-    analytics('organization_saved_search.selected', {
-      org_id: this.props.organization.id,
+    trackAnalyticsEvent({
+      eventKey: 'organization_saved_search.selected',
+      eventName: 'Organization Saved Search: Selected saved search',
+      organization_id: this.props.organization.id,
       query: savedSearch.query,
       search_type: 'issues',
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
