@@ -808,7 +808,7 @@ function routes() {
           path=":integrationSlug/"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/pluginDetailedView'
+              /* webpackChunkName: "PluginDetailedView" */ 'app/views/organizationIntegrations/pluginDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -822,7 +822,7 @@ function routes() {
           path=":integrationSlug"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
+              /* webpackChunkName: "SentryAppDetailedView" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -833,7 +833,7 @@ function routes() {
         <IndexRoute
           componentPromise={() =>
             import(
-              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations/integrationListDirectory'
+              /* webpackChunkName: "IntegrationListDirectory" */ 'app/views/organizationIntegrations/integrationListDirectory'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -843,7 +843,7 @@ function routes() {
           path=":integrationSlug"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/integrationDetailedView'
+              /* webpackChunkName: "IntegrationDetailedView" */ 'app/views/organizationIntegrations/integrationDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
