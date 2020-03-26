@@ -24,7 +24,7 @@ type Props = {
 };
 
 const ReleaseCard = ({release, project, location, reloading}: Props) => (
-  <StyledPanel loading={reloading}>
+  <StyledPanel reloading={reloading ? 1 : 0}>
     <PanelBody>
       <StyledPanelItem>
         <HeaderLayout>
@@ -97,9 +97,9 @@ const ReleaseCard = ({release, project, location, reloading}: Props) => (
   </StyledPanel>
 );
 
-const StyledPanel = styled(Panel)<{loading: boolean}>`
-  opacity: ${p => (p.loading ? 0.5 : 1)};
-  pointer-events: ${p => (p.loading ? 'none' : 'auto')};
+const StyledPanel = styled(Panel)<{reloading: number}>`
+  opacity: ${p => (p.reloading ? 0.5 : 1)};
+  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
 `;
 
 const StyledPanelItem = styled(PanelItem)`

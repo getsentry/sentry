@@ -47,7 +47,7 @@ const HealthStatsSubject = ({location, activeSubject}: Props) => {
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto;
+  grid-auto-flow: column;
   grid-column-gap: ${space(0.75)};
   margin-right: ${space(0.25)};
 `;

@@ -46,7 +46,7 @@ const HealthStatsPeriod = ({location, activePeriod}: Props) => {
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto;
+  grid-auto-flow: column;
   grid-column-gap: ${space(0.75)};
   flex: 1;
   justify-content: flex-end;
