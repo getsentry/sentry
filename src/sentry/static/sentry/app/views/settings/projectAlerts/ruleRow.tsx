@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -162,15 +163,18 @@ const RuleName = styled(Link)`
   font-weight: bold;
 `;
 
-const Listing = styled('div')`
+const listingCss = css`
   display: grid;
   grid-gap: ${space(1)};
 `;
 
-const Conditions = styled(Listing)``;
+const Conditions = styled('div')`
+  ${listingCss};
+`;
 
-const Actions = styled(Listing)<HasBorderProp>`
+const Actions = styled('div')<HasBorderProp>`
   font-size: ${p => p.theme.fontSizeSmall};
+  ${listingCss};
 
   ${p => p.hideBorder && `border-bottom: none`};
 `;
