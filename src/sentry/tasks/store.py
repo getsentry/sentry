@@ -66,11 +66,14 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data, has_changed=None
+    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
-        cache_key=cache_key, start_time=start_time, event_id=event_id, has_changed=has_changed
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        data_has_changed=data_has_changed,
     )
 
 
@@ -163,16 +166,12 @@ def preprocess_event_from_reprocessing(
         data=data,
         start_time=start_time,
         event_id=event_id,
-        # FIXME?
-        process_task=process_event,
+        process_task=process_event_from_reprocessing,
         project=project,
     )
 
 
 def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
-    """
-    TODO
-    """
     from sentry.lang.native.processing import get_symbolication_function
 
     if data is None:
@@ -206,7 +205,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             data = symbolicated_data
             has_changed = True
 
-    except RetrySymbolication:
+    except RetrySymbolication as e:
         error_logger.warn("retry symbolication")
 
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -222,9 +221,19 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                 extra={"project_id": project_id, "event_id": event_id},
             )
         else:
-            # Requeue the task
-            # TODO(anton): We probably need some delay here
-            submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data)
+            # Requeue the task in the "sleep" queue
+            retry_symbolicate_event.apply_async(
+                args=(),
+                kwargs={
+                    "symbolicate_task_name": symbolicate_task.__name__,
+                    "task_kwargs": {
+                        "cache_key": cache_key,
+                        "event_id": event_id,
+                        "start_time": start_time,
+                    },
+                },
+                countdown=e.retry_after,
+            )
             return
 
     # We cannot persist canonical types in the cache, so we need to
@@ -233,7 +242,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         data = dict(data.items())
 
     if has_changed:
-        # TODO(tonyo) check if we need everything we run at the end of submit_process
         default_cache.set(cache_key, data, 3600)
 
     submit_process(project, from_reprocessing, cache_key, event_id, start_time, data, has_changed)
@@ -246,6 +254,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     soft_time_limit=60,
 )
 def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
+    """
+    Handles event symbolication using the external service: symbolicator.
+    """
     return _do_symbolicate_event(
         cache_key=cache_key,
         start_time=start_time,
@@ -269,7 +280,35 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
     )
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task, data=None, has_changed=None):
+@instrumented_task(
+    name="sentry.tasks.store.retry_symbolicate_event",
+    queue="sleep",
+    time_limit=(60 * 5) + 5,
+    soft_time_limit=60 * 5,
+)
+def retry_symbolicate_event(symbolicate_task_name, task_kwargs, **kwargs):
+    """
+    The only purpose of this task is be enqueued with some ETA set. This is
+    essentially an implementation of ETAs on top of Celery's existing ETAs, but
+    with the intent of having separate workers wait for those ETAs.
+    """
+    tasks = {
+        "symbolicate_event": symbolicate_event,
+        "symbolicate_event_from_reprocessing": symbolicate_event_from_reprocessing,
+    }
+
+    symbolicate_task = tasks.get(symbolicate_task_name)
+    if not symbolicate_task:
+        raise ValueError(
+            "Invalid argument for symbolicate_task_name: %s" % (symbolicate_task_name,)
+        )
+
+    symbolicate_task.delay(**task_kwargs)
+
+
+def _do_process_event(
+    cache_key, start_time, event_id, process_task, data=None, data_has_changed=None
+):
     from sentry.plugins.base import plugins
 
     if data is None:
@@ -282,8 +321,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None, 
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
 
-    if has_changed is None:
-        has_changed = False
+    has_changed = False if data_has_changed is None else data_has_changed
 
     data = CanonicalKeyDict(data)
 
@@ -410,13 +448,13 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None, 
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, has_changed=None, **kwargs):
+def process_event(cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs):
     return _do_process_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         process_task=process_event,
-        has_changed=has_changed,
+        data_has_changed=data_has_changed,
     )
 
 
@@ -427,14 +465,14 @@ def process_event(cache_key, start_time=None, event_id=None, has_changed=None, *
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(
-    cache_key, start_time=None, event_id=None, has_changed=None, **kwargs
+    cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
     return _do_process_event(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         process_task=process_event_from_reprocessing,
-        has_changed=has_changed,
+        data_has_changed=data_has_changed,
     )
 
 
