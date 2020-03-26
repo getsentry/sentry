@@ -7,5 +7,4 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_enhancers(self, data):
-        # TODO: graceful rollout
-        return []
+        return None
