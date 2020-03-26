@@ -226,7 +226,7 @@ const MenuRoot = styled('div')`
 `;
 
 const Menu = styled('div')`
-  margin: 8px 0;
+  margin: ${space(1)} 0;
 
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
