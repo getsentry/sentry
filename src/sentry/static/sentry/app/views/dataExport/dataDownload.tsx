@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Button from 'app/components/button';
+import {ExportQueryType} from 'app/components/dataExport';
 import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
-import {PageContent} from 'app/styles/organization';
+import Layout from 'app/views/auth/layout';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
@@ -31,7 +32,7 @@ type Download = {
   dateFinished?: string;
   dateExpired?: string;
   query: {
-    type: number;
+    type: ExportQueryType;
     info: object;
   };
   status: DownloadStatus;
@@ -53,6 +54,18 @@ class DataDownload extends AsyncView<Props, State> {
     return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
   }
 
+  getActionLink(queryType): string {
+    const {orgId} = this.props.params;
+    switch (queryType) {
+      case ExportQueryType.IssuesByTag:
+        return `/organizations/${orgId}/issues/`;
+      case ExportQueryType.Discover:
+        return `/organizations/${orgId}/discover/queries/`;
+      default:
+        return '/';
+    }
+  }
+
   renderDate(date: string | undefined): React.ReactNode {
     if (!date) {
       return null;
@@ -65,28 +78,50 @@ class DataDownload extends AsyncView<Props, State> {
     );
   }
 
-  renderExpired(): React.ReactNode {
-    return (
-      <React.Fragment>
-        <h3>{t('Sorry!')}</h3>
-        <p>
-          {t('It seems this link has expired, and your download is no longer available.')}
-        </p>
-        <p>
-          {t(
-            'Feel free to start a new export to get the latest and greatest of your Sentry data.'
-          )}
-        </p>
-      </React.Fragment>
-    );
-  }
-
   renderEarly(): React.ReactNode {
     return (
       <React.Fragment>
-        <h3>{t("You're Early!")}</h3>
-        <p>{t("We're still preparing your download, so check back in a bit!")}</p>
-        <p>{t("You can close this page, we'll email you when were ready")}</p>
+        <Header>
+          <h3>
+            {t('What are')}
+            <i>{t(' you ')}</i>
+            {t('doing here?')}
+          </h3>
+        </Header>
+        <Body>
+          <p>
+            {t(
+              "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
+            )}
+          </p>
+          <p>{t("Close this window and we'll email you when your download is ready.")}</p>
+        </Body>
+      </React.Fragment>
+    );
+  }
+  renderExpired(): React.ReactNode {
+    const {query} = this.state.download;
+    const actionLink = this.getActionLink(query.type);
+    return (
+      <React.Fragment>
+        <Header>
+          <h3>{t('This is awkward.')}</h3>
+        </Header>
+        <Body>
+          <p>
+            {t(
+              "That link expired, so your download doesn't live here anymore. Just picked up one day and left town."
+            )}
+          </p>
+          <p>
+            {t(
+              'Make a new one with your latest data. Your old download will never see it coming.'
+            )}
+          </p>
+          <DownloadButton href={actionLink} priority="primary">
+            {t('Start a New Download')}
+          </DownloadButton>
+        </Body>
       </React.Fragment>
     );
   }
@@ -98,23 +133,24 @@ class DataDownload extends AsyncView<Props, State> {
     const {orgId, dataExportId} = this.props.params;
     return (
       <React.Fragment>
-        <h3>{t('Finally!')}</h3>
-        <p>
-          {t(
-            'We prepared your data for download, you can access it with the link below.'
-          )}
-        </p>
-        <Button
-          priority="primary"
-          icon="icon-download"
-          size="large"
-          borderless
-          href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
-        >
-          {t('Download CSV')}
-        </Button>
-        <p>{t('Keep in mind, this link will no longer work after:')}</p>
-        <p>{this.renderDate(dateExpired)}</p>
+        <Header>
+          <h3>{t('All done.')}</h3>
+        </Header>
+        <Body>
+          <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
+          <Button
+            priority="primary"
+            icon="icon-download"
+            href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
+          >
+            {t('Download CSV')}
+          </Button>
+          <p>
+            {t("That link won't last forever — it expires:")}
+            <br />
+            {this.renderDate(dateExpired)}
+          </p>
+        </Body>
       </React.Fragment>
     );
   }
@@ -122,10 +158,10 @@ class DataDownload extends AsyncView<Props, State> {
   renderContent(): React.ReactNode {
     const {download} = this.state;
     switch (download.status) {
-      case DownloadStatus.Expired:
-        return this.renderExpired();
       case DownloadStatus.Early:
         return this.renderEarly();
+      case DownloadStatus.Expired:
+        return this.renderExpired();
       default:
         return this.renderValid();
     }
@@ -133,26 +169,32 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <PageContent>
-        <div className="pattern-bg" />
-        <ContentContainer>{this.renderContent()}</ContentContainer>
-      </PageContent>
+      <Layout>
+        <main>{this.renderContent()}</main>
+      </Layout>
     );
   }
 }
 
-const ContentContainer = styled('div')`
-  text-align: center;
-  margin: ${space(4)} auto;
-  width: 350px;
-  padding: ${space(4)};
-  background: ${p => p.theme.whiteDark};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 2px solid ${p => p.theme.borderDark};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  p {
-    margin: ${space(1.5)};
+const Header = styled('header')`
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(3)} 40px 0;
+  h3 {
+    font-size: 24px;
+    margin: 0 0 ${space(3)} 0;
   }
+`;
+
+const Body = styled('div')`
+  padding: ${space(2)} 40px;
+  max-width: 500px;
+  p {
+    margin: ${space(1.5)} 0;
+  }
+`;
+
+const DownloadButton = styled(Button)`
+  margin-bottom: ${space(1.5)};
 `;
 
 export default DataDownload;

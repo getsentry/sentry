@@ -1,8 +1,8 @@
-Your Download is Ready!
------------------------
+Your data is ready.
+-------------------
 
-We've finished assembling your download, check it out by clicking the link below:
+See, that wasn't so bad. We're all done assembling your download. Now have at it.
 
 {{url|safe}}
 
-The download file will expire at {{expiration}}
+The download file expires at {{expiration}}. So don't get attached.

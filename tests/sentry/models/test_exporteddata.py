@@ -125,7 +125,7 @@ class ExportedDataTest(TestCase):
             )
         )
         expected_email_args = {
-            "subject": "Your Download is Ready!",
+            "subject": "Your data is ready.",
             "context": {
                 "url": expected_url,
                 "expiration": ExportedData.format_date(date=self.data_export.date_expired),
@@ -147,7 +147,7 @@ class ExportedDataTest(TestCase):
         with self.tasks():
             self.data_export.email_failure(self.TEST_STRING)
         expected_email_args = {
-            "subject": "Unable to Export Data",
+            "subject": "We couldn't export your data.",
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,

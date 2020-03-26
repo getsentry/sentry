@@ -4,13 +4,13 @@
 {% load i18n %}
 
 {% block main %}
-    <h3>Unable to Export Data</h3>
-    <p>The data export you created at {{creation}} has failed.</p>
-    <p>We were unable to generate your report due to an error:</p>
+    <h3>We couldn't export your data.</h3>
+    <p>Well, this is a little awkward. The data export you created at {{creation}} didn't work. Sorry about that.</p>
+    <p>It looks like there was an error:</p>
     <code><pre>{{error_message}}</pre></code>
-    <p>We received the following payload:</p>
+    <p>This is what you sent us. Maybe it'll help you sort this out.</p>
     <code><pre>{{payload}}</pre></code>
-    <p><strong>Troubleshooting &amp; References</strong></p>
+    <p><strong>Need a little more help?</strong></p>
     <ul>
         <li><a href="https://docs.sentry.io/">Documentation</a></li>
         <li><a href="https://help.sentry.io/">FAQs</a></li>

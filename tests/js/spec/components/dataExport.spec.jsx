@@ -35,7 +35,7 @@ describe('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Export All to CSV');
+    expect(wrapper.text()).toBe('Export Data');
   });
 
   it('should send a request and disable itself when clicked', async function() {
@@ -64,7 +64,7 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toBe('Queued up!');
+    expect(wrapper.text()).toBe("We're working on it...");
     expect(wrapper.find('button').is('[disabled]')).toBe(true);
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: true,

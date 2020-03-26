@@ -96,7 +96,7 @@ class ExportedData(Model):
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
         msg = MessageBuilder(
-            subject="Your Download is Ready!",
+            subject="Your data is ready.",
             context={"url": url, "expiration": self.format_date(self.date_expired)},
             type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
@@ -109,7 +109,7 @@ class ExportedData(Model):
         from sentry.utils.email import MessageBuilder
 
         msg = MessageBuilder(
-            subject="Unable to Export Data",
+            subject="We couldn't export your data.",
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
