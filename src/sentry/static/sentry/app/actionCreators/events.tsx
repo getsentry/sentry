@@ -107,13 +107,8 @@ export type Tag = {
 
 /**
  * Fetches tag facets for a query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {String} query
- * @returns {Promise<Object>}
  */
-export function fetchTagFacets(
+export async function fetchTagFacets(
   api: Client,
   orgSlug: string,
   query: EventQuery
@@ -129,13 +124,8 @@ export function fetchTagFacets(
 
 /**
  * Fetches total count of events for a given query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {string} query
- * @returns {Promise<Number>}
  */
-export function fetchTotalCount(
+export async function fetchTotalCount(
   api: Client,
   orgSlug: String,
   query: EventQuery

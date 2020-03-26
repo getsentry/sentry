@@ -563,10 +563,9 @@ export const EChartsData = PropTypes.arrayOf(
       value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     }),
 
-    // e.g. Barchart with itemStyle
+    // e.g. Barchart with itemStyle {itemStyle: {color: '#fff'}, value: ['category', 123]}
     PropTypes.shape({
-      name: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-      value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      value: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
       itemStyle: PropTypes.shape({color: PropTypes.string}),
     }),
   ])
