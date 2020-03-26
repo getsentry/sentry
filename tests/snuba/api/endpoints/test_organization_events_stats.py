@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import zip
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
@@ -518,135 +519,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
 
-    def test_simple_top_events(self):
-        for i in range(3):
-            event1 = self.store_event(
-                data={
-                    "event_id": "e{}".format(i) * 16,
-                    "message": "oh my",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "user": {"email": "bob@example.com"},
-                    "fingerprint": ["group3"],
-                },
-                project_id=self.project.id,
-            )
-            event2 = self.store_event(
-                data={
-                    "event_id": "a{}".format(i) * 16,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group2"],
-                    "user": {"email": self.user.email},
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "c{}".format(i) * 16,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "fingerprint": ["group1"],
-                    "user": {"email": "foo@example.com"},
-                },
-                project_id=self.project.id,
-            )
-            event3 = self.store_event(
-                data={
-                    "event_id": "d{}".format(i) * 16,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group1"],
-                    "user": {"email": "foo@example.com"},
-                },
-                project_id=self.project.id,
-            )
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "field": ["message", "user.email"],
-                    "topEvents": [
-                        "{}:{}".format(self.project.slug, event1.event_id),
-                        "{}:{}".format(self.project.slug, event2.event_id),
-                        "{}:{}".format(self.project.slug, event3.event_id),
-                    ],
-                },
-                format="json",
-            )
-
-        data = response.data
-        assert len(data) == 3
-
-        event1_data = data["{}:{}".format(self.project.slug, event1.event_id)]
-        assert event1_data["values"] == {"message": "oh my", "email": "bob@example.com"}
-        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
-
-        event2_data = data["{}:{}".format(self.project.slug, event2.event_id)]
-        assert event2_data["values"] == {"message": "very bad", "email": self.user.email}
-        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
-
-        event3_data = data["{}:{}".format(self.project.slug, event3.event_id)]
-        assert event3_data["values"] == {"message": "very bad", "email": "foo@example.com"}
-        assert [attrs for time, attrs in event3_data["data"]] == [[{"count": 3}], [{"count": 3}]]
-
-        assert len(data) == 3
-
-    def test_top_events_with_projects(self):
-        for i in range(3):
-            event1 = self.store_event(
-                data={
-                    "event_id": "e{}".format(i) * 16,
-                    "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "user": {"email": "bob@example.com"},
-                    "fingerprint": ["group3"],
-                },
-                project_id=self.project.id,
-            )
-            event2 = self.store_event(
-                data={
-                    "event_id": "a{}".format(i) * 16,
-                    "message": "voof",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group1"],
-                    "user": {"email": self.user.email},
-                },
-                project_id=self.project2.id,
-            )
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "field": ["message", "project"],
-                    "topEvents": [
-                        "{}:{}".format(self.project.slug, event1.event_id),
-                        "{}:{}".format(self.project2.slug, event2.event_id),
-                    ],
-                },
-                format="json",
-            )
-
-        data = response.data
-        print (data)
-
-        assert len(data) == 2
-
-        event1_data = data["{}:{}".format(self.project.slug, event1.event_id)]
-        assert event1_data["values"] == {"message": "poof", "project": self.project.slug}
-        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
-
-        event2_data = data["{}:{}".format(self.project2.slug, event2.event_id)]
-        assert event2_data["values"] == {"message": "voof", "project": self.project2.slug}
-        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
-
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -700,3 +572,190 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400
+
+
+class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(OrganizationEventsStatsTopNEvents, self).setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+        self.user2 = self.create_user()
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
+        for i in range(3):
+            self.event1 = self.store_event(
+                data={
+                    "event_id": "a{}".format(i) * 16,
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            )
+            self.event2 = self.store_event(
+                data={
+                    "event_id": "b{}".format(i) * 16,
+                    "message": "voof",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group2"],
+                    "user": {"email": self.user2.email},
+                },
+                project_id=self.project2.id,
+            )
+            self.store_event(
+                data={
+                    "event_id": "c{}".format(i) * 16,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": "foo@example.com"},
+                },
+                project_id=self.project.id,
+            )
+            self.event3 = self.store_event(
+                data={
+                    "event_id": "d{}".format(i) * 16,
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": "foo@example.com"},
+                },
+                project_id=self.project.id,
+            )
+            self.transaction = self.store_event(transaction_data, project_id=self.project.id)
+        self.event1_slug = "{}:{}".format(self.project.slug, self.event1.event_id)
+        self.event2_slug = "{}:{}".format(self.project2.slug, self.event2.event_id)
+        self.event3_slug = "{}:{}".format(self.project.slug, self.event3.event_id)
+        self.transaction_slug = "{}:{}".format(self.project.slug, self.transaction.event_id)
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_simple_top_events(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["message", "user.email"],
+                    "topEvents": [self.event1_slug, self.event2_slug, self.event3_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 3
+
+        event1_data = data[self.event1_slug]
+        assert event1_data["values"] == {"message": "poof", "email": self.user.email}
+        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+        event2_data = data[self.event2_slug]
+        assert event2_data["values"] == {"message": "voof", "email": self.user2.email}
+        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
+
+        event3_data = data[self.event3_slug]
+        assert event3_data["values"] == {"message": "very bad", "email": "foo@example.com"}
+        assert [attrs for time, attrs in event3_data["data"]] == [[{"count": 3}], [{"count": 3}]]
+
+    def test_top_events_with_projects(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["message", "project"],
+                    "topEvents": [self.event1_slug, self.event2_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        print (data)
+        assert len(data) == 2
+
+        event1_data = data[self.event1_slug]
+        values = event1_data["values"]
+        assert values["message"] == "poof"
+        assert values["project"] == self.project.slug
+        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+        event2_data = data[self.event2_slug]
+        values = event2_data["values"]
+        assert values["message"] == "voof"
+        assert values["project"] == self.project2.slug
+        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
+
+    def test_top_events_with_issue(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["message", "issue.id"],
+                    "topEvents": [self.event1_slug, self.event2_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 2
+
+        event1_data = data[self.event1_slug]
+        assert event1_data["values"] == {"message": "poof", "group_id": self.event1.group_id}
+        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+        event2_data = data[self.event2_slug]
+        assert event2_data["values"] == {"message": "voof", "group_id": self.event2.group_id}
+        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
+
+    def test_top_events_with_functions(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["transaction", "avg(transaction.duration)"],
+                    "topEvents": [self.transaction_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        transaction_data = data[self.transaction_slug]
+        assert transaction_data["values"] == {
+            "transaction": self.transaction.transaction,
+            "avg_transaction_duration": 120000.0,
+        }
+        assert [attrs for time, attrs in transaction_data["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]

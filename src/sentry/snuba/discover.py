@@ -73,9 +73,8 @@ def find_reference_event(reference_event):
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
     # We don't need to run a query if there are no columns
-    if not column_names:
+    if not reference_event.fields:
         return None
 
     try:
@@ -87,30 +86,23 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    start = None
-    end = None
-    if reference_event.start:
-        start = reference_event.start - timedelta(seconds=5)
-    if reference_event.end:
-        end = reference_event.end + timedelta(seconds=5)
+    snuba_args = {
+        "start": reference_event.start - timedelta(seconds=5) if reference_event.start else None,
+        "end": reference_event.end + timedelta(seconds=5) if reference_event.end else None,
+        "filter_keys": {"project_id": [project.id], "event_id": [event_id]},
+    }
 
-    fake_columns = [col for col in reference_event.fields if not is_real_column(col)]
-    if fake_columns:
-        snuba_args = {
-            "start": start,
-            "end": end,
-            "filter_keys": {"project_id": [project.id], "event_id": [event_id]},
-        }
-        snuba_args.update(resolve_field_list(fake_columns, snuba_args, auto_fields=False))
-    else:
-        snuba_args = {}
+    snuba_args.update(resolve_field_list(reference_event.fields, snuba_args, auto_fields=False))
+
+    snuba_args, _ = resolve_discover_aliases(snuba_args)
 
     event = raw_query(
-        selected_columns=column_names,
-        filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        selected_columns=snuba_args.get("selected_columns"),
+        filter_keys=snuba_args.get("filter_keys"),
         aggregations=snuba_args.get("aggregations"),
-        start=start,
-        end=end,
+        start=snuba_args.get("start"),
+        end=snuba_args.get("end"),
+        groupby=snuba_args.get("groupby"),
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event",
