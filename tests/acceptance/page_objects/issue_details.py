@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import json
-
 from .base import BasePage
 
 
@@ -64,21 +62,6 @@ class IssueDetailsPage(BasePage):
     def has_comment(self, text):
         element = self.browser.element('[data-test-id="activity-note-body"]')
         return text in element.text
-
-    def dismiss_assistant(self):
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 1, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
-
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 3, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")

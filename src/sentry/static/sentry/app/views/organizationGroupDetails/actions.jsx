@@ -270,7 +270,7 @@ const GroupDetailsActions = createReactClass({
 
     return (
       <div className="group-actions">
-        <GuideAnchor target="resolve" position="bottom">
+        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
@@ -282,26 +282,26 @@ const GroupDetailsActions = createReactClass({
           />
         </GuideAnchor>
 
-        <GuideAnchor target="ignore_delete_discard" position="bottom">
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
           <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
-
-          <div className="btn-group">
-            <div
-              className={bookmarkClassName}
-              title={t('Bookmark')}
-              onClick={this.onToggleBookmark}
-            >
-              <span className="icon-star-solid" />
-            </div>
-          </div>
-
-          <DeleteActions
-            organization={organization}
-            project={project}
-            onDelete={this.onDelete}
-            onDiscard={this.onDiscard}
-          />
         </GuideAnchor>
+
+        <div className="btn-group">
+          <div
+            className={bookmarkClassName}
+            title={t('Bookmark')}
+            onClick={this.onToggleBookmark}
+          >
+            <span className="icon-star-solid" />
+          </div>
+        </div>
+
+        <DeleteActions
+          organization={organization}
+          project={project}
+          onDelete={this.onDelete}
+          onDiscard={this.onDiscard}
+        />
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

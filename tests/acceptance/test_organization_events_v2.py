@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import copy
+import json
 import six
 import pytest
 import pytz
@@ -149,6 +150,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
+
+        self.dismiss_assistant()
+
+    def dismiss_assistant(self):
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -423,9 +434,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # View the query list
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
-
-            # Dismiss assistant as it is in the way.
-            self.browser.element('[aria-label="Got It"]').click()
 
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()

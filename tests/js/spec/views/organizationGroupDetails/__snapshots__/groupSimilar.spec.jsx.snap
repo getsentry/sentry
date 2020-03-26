@@ -1056,9 +1056,15 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 }
                                               }
                                             >
-                                              <span>
-                                                TypeError
-                                              </span>
+                                              <GuideAnchor
+                                                disabled={true}
+                                                position="bottom"
+                                                target="issue_title"
+                                              >
+                                                <span>
+                                                  TypeError
+                                                </span>
+                                              </GuideAnchor>
                                               <Spacer>
                                                 <span
                                                   style={

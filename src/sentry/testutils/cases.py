@@ -715,6 +715,28 @@ class AcceptanceTestCase(TransactionTestCase):
         # Forward session cookie to django client.
         self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
+    def dismiss_assistant(self):
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
+
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "issue", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
+
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "issue_stream", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
+
 
 class IntegrationTestCase(TestCase):
     provider = None

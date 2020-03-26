@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Level} from 'app/types';
 import ErrorLevel from 'app/components/events/errorLevel';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -23,7 +22,6 @@ const EventMessage = ({
   levelIndicatorSize,
   message,
   annotations,
-  hasGuideAnchor,
 }: Props) => (
   <div className={className}>
     {level && (
@@ -32,11 +30,7 @@ const EventMessage = ({
       </StyledErrorLevel>
     )}
 
-    {message && (
-      <GuideAnchor target="issue_title" disabled={!hasGuideAnchor} position="bottom">
-        <Message>{message}</Message>
-      </GuideAnchor>
-    )}
+    {message && <Message>{message}</Message>}
 
     {annotations}
   </div>

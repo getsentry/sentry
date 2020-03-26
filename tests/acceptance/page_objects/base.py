@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import json
+
 
 class BasePage(object):
     """Base class for PageObjects"""
@@ -13,6 +15,28 @@ class BasePage(object):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
+
+    def dismiss_assistant(self):
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
+
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "issue", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
+
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "issue_stream", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
 
 
 class BaseElement(object):

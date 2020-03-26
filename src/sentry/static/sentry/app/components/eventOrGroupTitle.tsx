@@ -4,10 +4,12 @@ import PropTypes from 'prop-types';
 import {Event, Group} from 'app/types';
 import {Metadata} from 'app/sentryTypes';
 import {getTitle} from 'app/utils/events';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 type Props = {
   data: Event | Group;
   style?: React.CSSProperties;
+  hasGuideAnchor?: boolean;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
@@ -31,16 +33,23 @@ class EventOrGroupTitle extends React.Component<Props> {
 
   render() {
     const {title, subtitle} = getTitle(this.props.data as Event);
+    const {hasGuideAnchor} = this.props;
 
     return subtitle ? (
       <span style={this.props.style}>
-        <span>{title}</span>
+        <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
+          <span>{title}</span>
+        </GuideAnchor>
         <Spacer />
         <em title={subtitle}>{subtitle}</em>
         <br />
       </span>
     ) : (
-      <span style={this.props.style}>{title}</span>
+      <span style={this.props.style}>
+        <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
+          {title}
+        </GuideAnchor>
+      </span>
     );
   }
 }

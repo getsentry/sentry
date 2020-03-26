@@ -9,6 +9,7 @@ class IssueListPage(BasePage):
         self.client = client
 
     def visit_issue_list(self, org, query=""):
+        self.dismiss_assistant()
         self.browser.get(u"/organizations/{}/issues/{}".format(org, query))
         self.wait_until_loaded()
 

@@ -1231,7 +1231,13 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                                     }
                                                   }
                                                 >
-                                                  TypeError
+                                                  <GuideAnchor
+                                                    disabled={true}
+                                                    position="bottom"
+                                                    target="issue_title"
+                                                  >
+                                                    TypeError
+                                                  </GuideAnchor>
                                                 </span>
                                               </EventOrGroupTitle>
                                             </a>
@@ -1984,7 +1990,13 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                                     }
                                                   }
                                                 >
-                                                  TypeError
+                                                  <GuideAnchor
+                                                    disabled={true}
+                                                    position="bottom"
+                                                    target="issue_title"
+                                                  >
+                                                    TypeError
+                                                  </GuideAnchor>
                                                 </span>
                                               </EventOrGroupTitle>
                                             </a>
