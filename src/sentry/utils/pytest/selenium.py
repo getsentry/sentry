@@ -315,7 +315,7 @@ def percy(request):
     return percy
 
 
-@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,))
+@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
     return webdriver.Chrome(**chrome_args)
 
