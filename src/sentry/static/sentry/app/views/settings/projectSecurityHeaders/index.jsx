@@ -1,4 +1,3 @@
-import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -12,10 +11,6 @@ import routeTitleGen from 'app/utils/routeTitle';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-
-const HeaderName = styled('span')`
-  font-size: 1.2em;
-`;
 
 export default class ProjectSecurityHeaders extends AsyncView {
   static propTypes = {
@@ -95,16 +90,12 @@ export default class ProjectSecurityHeaders extends AsyncView {
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
             {this.getReports().map(({name, url}) => (
-              <PanelItem key={url} p={0} flexDirection="column">
-                <Flex flex="1" p={2} alignItems="center">
-                  <Box flex="1">
-                    <HeaderName>{name}</HeaderName>
-                  </Box>
-                  <Button to={url} priority="primary">
-                    {t('Instructions')}
-                  </Button>
-                </Flex>
-              </PanelItem>
+              <ReportItem key={url}>
+                <HeaderName>{name}</HeaderName>
+                <Button to={url} priority="primary">
+                  {t('Instructions')}
+                </Button>
+              </ReportItem>
             ))}
           </PanelBody>
         </Panel>
@@ -112,3 +103,12 @@ export default class ProjectSecurityHeaders extends AsyncView {
     );
   }
 }
+
+const ReportItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HeaderName = styled('span')`
+  font-size: 1.2em;
+`;
