@@ -79,9 +79,9 @@ export default class TableField extends React.Component<Props> {
       onChange(nextValue, []);
 
       //check for falsy values
-      const validValues = !flatten(
-        Object.values(nextValue).map(o => Object.values(o))
-      ).some(v => !v);
+      const validValues = !flatten(Object.values(nextValue).map(Object.values)).some(
+        v => !v
+      );
 
       if (allowEmpty || validValues) {
         //TOOD: add debouncing or use a form save button
