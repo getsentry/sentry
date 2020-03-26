@@ -103,7 +103,10 @@ const Alert = styled(
           {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
         </IconWrapper>
       )}
-      <StyledTextBlock>{children}</StyledTextBlock>
+      <StyledTextBlock>
+        {/* wrap with <span> to preserve inline white space in children */}
+        <span>{children}</span>
+      </StyledTextBlock>
     </div>
   )
 )<AlertProps>`
