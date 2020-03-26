@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -13,11 +14,19 @@ import Alert from 'app/components/alert';
 import EventView from 'app/utils/discover/eventView';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {StyledPageHeader} from 'app/views/eventsV2/landing';
+import space from 'app/styles/space';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
+
+type FilterViewType = 'ALL_TRANSACTIONS' | 'KEY_TRANSACTIONS';
+const FILTER_VIEWS: Readonly<FilterViewType[]> = [
+  'ALL_TRANSACTIONS',
+  'KEY_TRANSACTIONS',
+] as const;
 
 type Props = {
   organization: Organization;
@@ -28,6 +37,7 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string | undefined;
+  currentView: FilterViewType;
 };
 
 class PerformanceLanding extends React.Component<Props, State> {
@@ -35,9 +45,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     return {...prevState, eventView: generatePerformanceEventView(nextProps.location)};
   }
 
-  state = {
+  state: State = {
     eventView: generatePerformanceEventView(this.props.location),
     error: undefined,
+    currentView: 'ALL_TRANSACTIONS',
   };
 
   renderError = () => {
@@ -100,6 +111,44 @@ class PerformanceLanding extends React.Component<Props, State> {
     return false;
   };
 
+  getViewLabel(currentView: FilterViewType): string {
+    switch (currentView) {
+      case 'ALL_TRANSACTIONS':
+        return t('All Transactions');
+      case 'KEY_TRANSACTIONS':
+        return t('My Key Transactions');
+      default:
+        throw Error(`Unknown view: ${currentView}`);
+    }
+  }
+
+  renderDropdown() {
+    const selectView = (viewKey: FilterViewType) => {
+      return () => {
+        this.setState({
+          currentView: viewKey,
+        });
+      };
+    };
+
+    return (
+      <ButtonBar merged active={this.state.currentView}>
+        {FILTER_VIEWS.map(viewKey => {
+          return (
+            <Button
+              key={viewKey}
+              barId={viewKey}
+              size="small"
+              onClick={selectView(viewKey)}
+            >
+              {this.getViewLabel(viewKey)}
+            </Button>
+          );
+        })}
+      </ButtonBar>
+    );
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {eventView} = this.state;
@@ -114,19 +163,24 @@ class PerformanceLanding extends React.Component<Props, State> {
           />
           <PageContent>
             <NoProjectMessage organization={organization}>
-              <StyledPageHeader>{t('Performance')}</StyledPageHeader>
+              <StyledPageHeader>
+                <div>{t('Performance')}</div>
+                <div>{this.renderDropdown()}</div>
+              </StyledPageHeader>
               {this.renderError()}
               <Charts
                 eventView={eventView}
                 organization={organization}
                 location={location}
                 router={router}
+                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
               />
               <Table
                 eventView={eventView}
                 organization={organization}
                 location={location}
                 setError={this.setError}
+                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
               />
             </NoProjectMessage>
           </PageContent>
@@ -135,5 +189,15 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 }
+
+export const StyledPageHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  height: 40px;
+  margin-bottom: ${space(1)};
+`;
 
 export default withOrganization(PerformanceLanding);
