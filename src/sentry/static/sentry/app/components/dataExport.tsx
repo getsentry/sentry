@@ -9,9 +9,14 @@ import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+//! Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
+export enum ExportQueryType {
+  IssuesByTag = 'Issues-by-Tag',
+  Discover = 'Discover',
+}
+
 type DataExportPayload = {
-  // Coordinate with ExportQueryType string (src/sentry/constants.py)
-  queryType: 'Issues-by-Tag' | 'Discover';
+  queryType: ExportQueryType;
   queryInfo: any; // TODO(ts): Formalize different possible payloads
 };
 
@@ -26,11 +31,6 @@ type State = {
   inProgress: boolean;
   dataExportId?: number;
 };
-
-const TooltipMessages = {
-  start: "We'll get all your data in one place and email you when it's ready",
-  progress: "We'll email you when it's ready",
-} as const;
 
 class DataExport extends React.Component<Props, State> {
   state: State = {
@@ -54,10 +54,14 @@ class DataExport extends React.Component<Props, State> {
           },
         }
       );
-      addSuccessMessage(t("We'll email you when it's ready for download"));
+      addSuccessMessage(
+        t("Sit tight. We'll shoot you an email when your data is ready for download.")
+      );
       this.setState({inProgress: true, dataExportId});
     } catch (_err) {
-      addErrorMessage(t('Unable to begin bulk data export. Please try again.'));
+      addErrorMessage(
+        t("We tried our hardest, but we couldn't export your data. Give it another go.")
+      );
     }
   };
 
@@ -70,11 +74,11 @@ class DataExport extends React.Component<Props, State> {
           <Button
             size="small"
             priority="default"
-            title={TooltipMessages.progress}
+            title="You can get on with your life. We'll email you when your data's ready."
             {...this.props}
             disabled
           >
-            {t('Queued up!')}
+            {t("We're working on it...")}
           </Button>
         ) : (
           <Button
@@ -82,10 +86,10 @@ class DataExport extends React.Component<Props, State> {
             disabled={disabled || false}
             size="small"
             priority="default"
-            title={TooltipMessages.start}
+            title="Put your data to work. Start your export and we'll email you when it's finished."
             {...this.props}
           >
-            {children ? children : t('Export All to CSV')}
+            {children ? children : t('Export Data')}
           </Button>
         )}
       </Feature>

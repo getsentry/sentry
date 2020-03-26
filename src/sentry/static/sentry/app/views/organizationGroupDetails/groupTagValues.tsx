@@ -14,7 +14,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import DataExport from 'app/components/dataExport';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
@@ -121,7 +121,7 @@ class GroupTagValues extends AsyncComponent<
           </Button>
           <DataExport
             payload={{
-              queryType: 'Issues-by-Tag',
+              queryType: ExportQueryType.IssuesByTag,
               queryInfo: {
                 project_id: group.project.id,
                 group_id: group.id,

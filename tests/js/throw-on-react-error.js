@@ -7,6 +7,7 @@ const BAD_ERRORS = [
   'Failed child context type',
   'Warning: Each child in an array or iterator should have a unique "key" prop',
   'React does not recognize the `[^`]+` prop on a DOM element',
+  'Warning: Received `[^`]+` for a non-boolean attribute `[^`]+`',
 ];
 
 // This is needed because when we throw the captured error message, it will
