@@ -310,7 +310,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       errored,
       chartData: data?.chartData ?? [],
       chartSummary: data?.chartSummary ?? '',
-      crashFreeTimeBreakdown: data?.crashFreeTimeBreakdown ?? {},
+      crashFreeTimeBreakdown: data?.crashFreeTimeBreakdown ?? [],
     });
   }
 }
