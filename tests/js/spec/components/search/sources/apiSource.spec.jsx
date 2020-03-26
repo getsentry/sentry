@@ -58,6 +58,10 @@ describe('ApiSource', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: [],
     });
