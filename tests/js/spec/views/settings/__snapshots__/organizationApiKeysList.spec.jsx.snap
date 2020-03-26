@@ -442,7 +442,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           >
                             <a
                               className="btn btn-default btn-sm"
-                              href=""
+                              href="#"
                               onClick={[Function]}
                               title="Remove API Key?"
                             >

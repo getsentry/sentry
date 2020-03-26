@@ -312,7 +312,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <a
                               className="btn btn-sm btn-default disabled"
                               disabled={true}
-                              href=""
+                              href="#"
                               onClick={[Function]}
                               title="Unmerging 0 events"
                             >

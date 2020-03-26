@@ -363,7 +363,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
-                                        href=""
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -558,7 +558,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
-                                        href=""
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -753,7 +753,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
-                                        href=""
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -969,7 +969,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
-                                                  href=""
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >
@@ -1189,7 +1189,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
-                                                  href=""
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >
