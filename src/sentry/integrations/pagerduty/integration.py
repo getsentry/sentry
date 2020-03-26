@@ -16,6 +16,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
     FeatureDescription,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 
 from sentry.models import OrganizationIntegration, PagerDutyService
 
@@ -87,11 +88,11 @@ class PagerDutyIntegration(IntegrationInstallation):
                         service_name = matched_row["service"]
                         key = matched_row["integration_key"]
 
-                        # only update the fields if we have a new value
-                        if service_name:
-                            service_item.service_name = service_name
-                        if key:
-                            service_item.integration_key = key
+                        # must provide name and key
+                        if not service_name or not key:
+                            raise IntegrationError("Name and key are required")
+                        service_item.integration_key = key
+                        service_item.service_name = service_name
                         service_item.save()
                     else:
                         service_item.delete()
