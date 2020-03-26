@@ -146,26 +146,32 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
     def test_update_organization_config(self):
         with self.tasks():
             self.assert_setup_flow()
-
         integration = Integration.objects.get(provider=self.provider.key)
-        service = PagerDutyService.objects.get(
-            organization_integration=OrganizationIntegration.objects.get(
-                integration=integration, organization=self.organization
-            )
-        )
+        service_id = PagerDutyService.objects.get(integration_key="key1").id
         config_data = {
             "service_table": [
                 {"service": "Mleep", "integration_key": "xxxxxxxxxxxxxxxx", "id": None},
-                {
-                    "service": service.service_name,
-                    "integration_key": service.integration_key,
-                    "id": service.id,
-                },
+                {"service": "new_service", "integration_key": "new_key", "id": service_id},
             ]
         }
         integration.get_installation(self.organization).update_organization_config(config_data)
-        assert len(PagerDutyService.objects.all()) == 2
-        assert not PagerDutyService.objects.filter(id=service.id).exists()
+        assert len(PagerDutyService.objects.filter()) == 2
+        service_row = PagerDutyService.objects.get(id=service_id)
+        assert service_row.service_name == "new_service"
+        assert service_row.integration_key == "new_key"
+
+    @responses.activate
+    def test_delete_row_organization_config(self):
+        with self.tasks():
+            self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        service_id = PagerDutyService.objects.get(integration_key="key1").id
+        config_data = {
+            "service_table": [{"service": "new_service", "integration_key": "new_key", "id": None}]
+        }
+        integration.get_installation(self.organization).update_organization_config(config_data)
+        assert len(PagerDutyService.objects.all()) == 1
+        assert not PagerDutyService.objects.filter(id=service_id).exists()
 
     @responses.activate
     def test_get_config_data(self):

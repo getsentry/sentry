@@ -7,6 +7,7 @@ from django.db import transaction
 from sentry import options
 
 from sentry.utils import json
+from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.integrations.base import (
     IntegrationInstallation,
@@ -73,13 +74,33 @@ class PagerDutyIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         if "service_table" in data:
+            service_rows = data["service_table"]
             with transaction.atomic():
-                PagerDutyService.objects.filter(
+                exising_service_items = PagerDutyService.objects.filter(
                     organization_integration=self.org_integration
-                ).delete()
-                for item in data["service_table"]:
-                    service_name = item["service"]
-                    key = item["integration_key"]
+                )
+                for service_item in exising_service_items:
+                    # find the matching row from the input
+                    matched_rows = filter(lambda x: x["id"] == service_item.id, service_rows)
+                    if matched_rows:
+                        matched_row = matched_rows[0]
+                        service_name = matched_row["service"]
+                        key = matched_row["integration_key"]
+
+                        # only update the fields if we have a new value
+                        if service_name:
+                            service_item.service_name = service_name
+                        if key:
+                            service_item.integration_key = key
+                        service_item.save()
+                    else:
+                        service_item.delete()
+
+                # new rows don't have an id
+                new_rows = filter(lambda x: not x["id"], service_rows)
+                for row in new_rows:
+                    service_name = row["service"]
+                    key = row["integration_key"]
 
                     if key and service_name:
                         PagerDutyService.objects.create(
