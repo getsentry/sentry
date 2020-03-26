@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -56,20 +55,18 @@ export default class AccountNotifications extends AsyncView {
           apiMethod="PUT"
           apiEndpoint="/users/me/notifications/"
         >
-          <Box>
-            <JsonForm
-              forms={accountNotificationFields}
-              renderFooter={({title}) => {
-                if (FINE_TUNE_FOOTERS[title]) {
-                  return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
-                }
-                return null;
-              }}
-            />
-            <AlertLink to="/settings/account/emails" icon="icon-mail">
-              {t('Looking to add or remove an email address? Use the emails panel.')}
-            </AlertLink>
-          </Box>
+          <JsonForm
+            forms={accountNotificationFields}
+            renderFooter={({title}) => {
+              if (FINE_TUNE_FOOTERS[title]) {
+                return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
+              }
+              return null;
+            }}
+          />
+          <AlertLink to="/settings/account/emails" icon="icon-mail">
+            {t('Looking to add or remove an email address? Use the emails panel.')}
+          </AlertLink>
         </Form>
       </div>
     );

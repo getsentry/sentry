@@ -5,7 +5,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
-import {PanelItem} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -53,7 +52,7 @@ class RuleRow extends React.Component<Props, State> {
       : t('All Environments');
 
     return (
-      <RuleItem>
+      <React.Fragment>
         <RuleType>{t('Issue')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
@@ -62,29 +61,27 @@ class RuleRow extends React.Component<Props, State> {
           </RuleDescription>
         </div>
 
-        <TriggerAndActions>
-          <div>
-            <MatchTypeHeader>
-              {tct('[matchType] of the following:', {
-                matchType: data.actionMatch,
-              })}
-            </MatchTypeHeader>
-            {data.conditions.length !== 0 && (
-              <Conditions>
-                {data.conditions.map((condition, i) => (
-                  <div key={i}>{condition.name}</div>
-                ))}
-              </Conditions>
-            )}
-          </div>
+        <ConditionsWithHeader>
+          <MatchTypeHeader>
+            {tct('[matchType] of the following:', {
+              matchType: data.actionMatch,
+            })}
+          </MatchTypeHeader>
+          {data.conditions.length !== 0 && (
+            <Conditions>
+              {data.conditions.map((condition, i) => (
+                <div key={i}>{condition.name}</div>
+              ))}
+            </Conditions>
+          )}
+        </ConditionsWithHeader>
 
-          <Actions>
-            {data.actions.map((action, i) => (
-              <div key={i}>{action.name}</div>
-            ))}
-          </Actions>
-        </TriggerAndActions>
-      </RuleItem>
+        <Actions>
+          {data.actions.map((action, i) => (
+            <Action key={i}>{action.name}</Action>
+          ))}
+        </Actions>
+      </React.Fragment>
     );
   }
 
@@ -96,36 +93,39 @@ class RuleRow extends React.Component<Props, State> {
       location,
     });
 
+    const numberOfTriggers = data.triggers.length;
+
     return (
-      <RuleItem>
-        <RuleType>{t('Metric')}</RuleType>
-        <div>
+      <React.Fragment>
+        <RuleType rowSpans={numberOfTriggers}>{t('Metric')}</RuleType>
+        <RuleNameAndDescription rowSpans={numberOfTriggers}>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
           <RuleDescription />
-        </div>
+        </RuleNameAndDescription>
 
-        <div>
-          {data.triggers.length !== 0 &&
-            data.triggers.map((trigger, i) => (
-              <TriggerAndActions key={i}>
-                <Trigger>
+        {numberOfTriggers !== 0 &&
+          data.triggers.map((trigger, i) => {
+            const hideBorder = i !== numberOfTriggers - 1;
+            return (
+              <React.Fragment key={i}>
+                <Trigger key={`trigger-${i}`} hideBorder={hideBorder}>
                   <StatusBadge>{trigger.label}</StatusBadge>
-                  <div>
+                  <TriggerDescription>
                     {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
                     {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
                     {trigger.alertThreshold}/{data.timeWindow}
                     {t('min')}
-                  </div>
+                  </TriggerDescription>
                 </Trigger>
-                <Actions>
+                <Actions key={`actions-${i}`} hideBorder={hideBorder}>
                   {trigger.actions?.map((action, j) => (
-                    <div key={j}>{action.desc}</div>
+                    <Action key={j}>{action.desc}</Action>
                   ))}
                 </Actions>
-              </TriggerAndActions>
-            ))}
-        </div>
-      </RuleItem>
+              </React.Fragment>
+            );
+          })}
+      </React.Fragment>
     );
   }
 
@@ -138,18 +138,24 @@ class RuleRow extends React.Component<Props, State> {
 
 export default RuleRow;
 
-const RuleItem = styled(PanelItem)`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr 3fr 6fr;
-  grid-auto-flow: column;
-`;
+type RowSpansProp = {
+  rowSpans?: number;
+};
 
-const RuleType = styled('div')`
+type HasBorderProp = {
+  hideBorder?: boolean;
+};
+
+const RuleType = styled('div')<RowSpansProp>`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;
+  ${p => p.rowSpans && `grid-row: auto / span ${p.rowSpans}`};
+`;
+
+const RuleNameAndDescription = styled('div')<RowSpansProp>`
+  ${p => p.rowSpans && `grid-row: auto / span ${p.rowSpans}`};
 `;
 
 const RuleName = styled(Link)`
@@ -164,14 +170,18 @@ const Conditions = styled('div')`
 `;
 
 // For tests
-const Actions = styled('div')``;
-
-const TriggerAndActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-flow: column;
+const Actions = styled('div')<HasBorderProp>`
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1)};
+
+  ${p => p.hideBorder && `border-bottom: none`};
+`;
+
+const Action = styled('div')`
+  line-height: 14px;
+`;
+
+const ConditionsWithHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const MatchTypeHeader = styled('div')`
@@ -184,11 +194,19 @@ const MatchTypeHeader = styled('div')`
 const RuleDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin: ${space(0.5)} 0;
+  white-space: nowrap;
 `;
 
-const Trigger = styled('div')`
+const Trigger = styled('div')<HasBorderProp>`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  ${p => p.hideBorder && `border-bottom: none`};
+`;
+
+const TriggerDescription = styled('div')`
+  white-space: nowrap;
 `;
 
 const StatusBadge = styled('div')`

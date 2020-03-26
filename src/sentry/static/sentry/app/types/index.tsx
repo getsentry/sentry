@@ -384,6 +384,11 @@ export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
 };
 
+export type AppOrProviderOrPlugin =
+  | SentryApp
+  | IntegrationProvider
+  | PluginWithProjectList;
+
 export type GlobalSelection = {
   projects: number[];
   environments: string[];

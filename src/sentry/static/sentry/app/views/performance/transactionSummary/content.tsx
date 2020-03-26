@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
 import Tags from 'app/views/eventsV2/tags';
 import EventsV2 from 'app/utils/discover/eventsv2';

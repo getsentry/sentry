@@ -9,10 +9,10 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
+import EventView from 'app/utils/discover/eventView';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
-import EventView from './eventView';
 import SavedQueryButtonGroup from './savedQuery';
 import {HeaderBox, HeaderControls} from './styles';
 
