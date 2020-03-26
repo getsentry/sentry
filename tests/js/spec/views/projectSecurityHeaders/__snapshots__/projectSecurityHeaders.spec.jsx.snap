@@ -115,81 +115,48 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         flexible={false}
         withPadding={false}
       >
-        <PanelItem
-          flexDirection="column"
+        <ReportItem
           key="csp/"
-          p={0}
+          p={2}
         >
-          <Styled(div)
-            alignItems="center"
-            flex="1"
-            p={2}
+          <HeaderName>
+            Content Security Policy (CSP)
+          </HeaderName>
+          <forwardRef<Button>
+            priority="primary"
+            to="csp/"
           >
-            <Styled(div)
-              flex="1"
-            >
-              <HeaderName>
-                Content Security Policy (CSP)
-              </HeaderName>
-            </Styled(div)>
-            <forwardRef<Button>
-              priority="primary"
-              to="csp/"
-            >
-              Instructions
-            </forwardRef<Button>>
-          </Styled(div)>
-        </PanelItem>
-        <PanelItem
-          flexDirection="column"
+            Instructions
+          </forwardRef<Button>>
+        </ReportItem>
+        <ReportItem
           key="expect-ct/"
-          p={0}
+          p={2}
         >
-          <Styled(div)
-            alignItems="center"
-            flex="1"
-            p={2}
+          <HeaderName>
+            Certificate Transparency (Expect-CT)
+          </HeaderName>
+          <forwardRef<Button>
+            priority="primary"
+            to="expect-ct/"
           >
-            <Styled(div)
-              flex="1"
-            >
-              <HeaderName>
-                Certificate Transparency (Expect-CT)
-              </HeaderName>
-            </Styled(div)>
-            <forwardRef<Button>
-              priority="primary"
-              to="expect-ct/"
-            >
-              Instructions
-            </forwardRef<Button>>
-          </Styled(div)>
-        </PanelItem>
-        <PanelItem
-          flexDirection="column"
+            Instructions
+          </forwardRef<Button>>
+        </ReportItem>
+        <ReportItem
           key="hpkp/"
-          p={0}
+          p={2}
         >
-          <Styled(div)
-            alignItems="center"
-            flex="1"
-            p={2}
+          <HeaderName>
+            HTTP Public Key Pinning (HPKP)
+          </HeaderName>
+          <forwardRef<Button>
+            priority="primary"
+            to="hpkp/"
           >
-            <Styled(div)
-              flex="1"
-            >
-              <HeaderName>
-                HTTP Public Key Pinning (HPKP)
-              </HeaderName>
-            </Styled(div)>
-            <forwardRef<Button>
-              priority="primary"
-              to="hpkp/"
-            >
-              Instructions
-            </forwardRef<Button>>
-          </Styled(div)>
-        </PanelItem>
+            Instructions
+          </forwardRef<Button>>
+        </ReportItem>
       </PanelBody>
     </Panel>
   </div>
