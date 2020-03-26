@@ -220,7 +220,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 <SearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
-                  defaultQuery={this.getQuery()}
+                  query={this.getQuery()}
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>
