@@ -18,7 +18,7 @@ from ..tasks import assemble_download
 
 
 class DataExportQuerySerializer(serializers.Serializer):
-    limit = serializers.IntegerField(allow_null=True)
+    limit = serializers.IntegerField(allow_null=True, required=False)
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     query_info = serializers.JSONField(required=True)
 

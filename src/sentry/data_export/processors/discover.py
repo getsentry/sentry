@@ -38,9 +38,10 @@ class DiscoverProcessor(object):
     @staticmethod
     def get_projects(project_ids):
         try:
-            # TODO(Leander): Convert to list based project ids
-            project = Project.objects.get_from_cache(id=project_ids)
-            return [project]
+            if isinstance(project_ids, list):
+                return Project.objects.filter(id__in=project_ids)
+            else:
+                return [Project.objects.get_from_cache(id=project_ids)]
         except Project.DoesNotExist:
             raise ExportError("Requested project does not exist")
 
