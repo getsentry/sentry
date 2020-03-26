@@ -19,20 +19,19 @@ exports[`EventDataSection renders formatted 1`] = `
       Additional Data
     </h3>
     <ButtonBar
+      active="formatted"
       merged={true}
     >
       <forwardRef<Button>
-        className="active"
+        barId="formatted"
         onClick={[Function]}
-        priority="primary"
         size="xsmall"
       >
         Formatted
       </forwardRef<Button>>
       <forwardRef<Button>
-        className=""
+        barId="raw"
         onClick={[Function]}
-        priority="default"
         size="xsmall"
       >
         Raw
@@ -62,20 +61,19 @@ exports[`EventDataSection renders raw 1`] = `
       Additional Data
     </h3>
     <ButtonBar
+      active="raw"
       merged={true}
     >
       <forwardRef<Button>
-        className=""
+        barId="formatted"
         onClick={[Function]}
-        priority="default"
         size="xsmall"
       >
         Formatted
       </forwardRef<Button>>
       <forwardRef<Button>
-        className="active"
+        barId="raw"
         onClick={[Function]}
-        priority="primary"
         size="xsmall"
       >
         Raw

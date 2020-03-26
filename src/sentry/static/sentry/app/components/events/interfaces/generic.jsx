@@ -46,21 +46,15 @@ export default class GenericInterface extends Component {
 
     const title = (
       <div>
-        <ButtonBar merged>
+        <ButtonBar merged active={view}>
           <Button
-            className={view === 'report' ? 'active' : ''}
-            priority={view === 'report' ? 'primary' : 'default'}
+            barId="report"
             size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
           </Button>
-          <Button
-            className={view === 'raw' ? 'active' : ''}
-            priority={view === 'raw' ? 'primary' : 'default'}
-            size="xsmall"
-            onClick={this.toggleView.bind(this, 'raw')}
-          >
+          <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
             {t('Raw')}
           </Button>
         </ButtonBar>
