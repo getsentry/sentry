@@ -14,41 +14,29 @@ import {displayCrashFreePercent} from '../../utils';
 
 type Props = {
   crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
-  startDate?: string;
 };
 
-const TotalCrashFreeUsers = ({crashFreeTimeBreakdown, startDate}: Props) => {
-  if (!startDate) {
+const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
+  if (!crashFreeTimeBreakdown?.length) {
     return null;
   }
 
-  const periodToDays = {
-    '1d': 1,
-    '1w': 7,
-    '2w': 14,
-    '4w': 28,
-  };
+  const timeline = crashFreeTimeBreakdown
+    .map(({date, crashFreeUsers, totalUsers}, index, data) => {
+      // count number of crash free users from knowing percent and total
+      const crashFreeUserCount = Math.round(((crashFreeUsers ?? 0) * totalUsers) / 100);
+      // first item of timeline is release creation date, then we want to have relative date label
+      const dateLabel =
+        index === 0
+          ? t('Release created')
+          : `${moment(data[0].date).from(date, true)} ${t('later')}`;
 
-  const periodToLabels = {
-    '1d': t('Last day'),
-    '1w': t('Last week'),
-    '2w': t('Last 2 weeks'),
-    '4w': t('Last month'),
-  };
-
-  const timeline = Object.entries(crashFreeTimeBreakdown)
-    // convert '1d', '1w', etc. to date objects
-    .map(([period, value]) => {
-      const date = moment().subtract(periodToDays[period], 'days');
-      const crashFreeUserCount = Math.round(
-        ((value.crashFreeUsers ?? 0) * value.totalUsers) / 100
-      );
-      return {...value, crashFreeUserCount, period, date};
+      return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
     })
-    // sort them by latest
-    .sort((a, b) => (a.date.isAfter(b.date) ? -1 : 1))
-    // remove those that are before release was created
-    .filter(item => item.date.isAfter(startDate));
+    // remove those timeframes that are in the future
+    .filter(item => item.date.isBefore())
+    // we want timeline to go from bottom to up
+    .reverse();
 
   if (!timeline.length) {
     return null;
@@ -68,7 +56,7 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown, startDate}: Props) => {
               </Text>
             </InnerRow>
             <InnerRow>
-              <Text>{periodToLabels[row.period]}</Text>
+              <Text>{row.dateLabel}</Text>
               <Text right>
                 {defined(row.crashFreeUsers)
                   ? displayCrashFreePercent(row.crashFreeUsers)
@@ -77,14 +65,6 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown, startDate}: Props) => {
             </InnerRow>
           </Row>
         ))}
-        <Row>
-          <InnerRow>
-            <Text bold>{moment(startDate).format('MMMM D')}</Text>
-          </InnerRow>
-          <InnerRow>
-            <Text>{t('Release created')}</Text>
-          </InnerRow>
-        </Row>
       </Timeline>
     </Wrapper>
   );

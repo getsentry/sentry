@@ -37,6 +37,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
     return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
   }
@@ -58,6 +60,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
+        'healthStat',
       ]),
       summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
@@ -161,9 +164,9 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {organization, location} = this.props;
-    const {loading, releases} = this.state;
+    const {loading, releases, reloading} = this.state;
 
-    if (loading) {
+    if ((loading && !reloading) || (loading && !releases.length)) {
       return <LoadingIndicator />;
     }
 
@@ -182,6 +185,7 @@ class ReleasesList extends AsyncView<Props, State> {
               release={release}
               project={projects.find(p => p.slug === release.projectSlug)}
               location={location}
+              reloading={reloading}
             />
           ))
         }
@@ -216,7 +220,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 <SearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
-                  defaultQuery={this.getQuery()}
+                  query={this.getQuery()}
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>
