@@ -190,9 +190,11 @@ class LatencyChart extends AsyncComponent<Props, State> {
     if (this.state.chartData === null) {
       return '\u2015';
     }
-    return this.state.chartData.data.reduce((acc, item) => {
-      return acc + item.count;
-    }, 0);
+    return this.state.chartData.data
+      .reduce((acc, item) => {
+        return acc + item.count;
+      }, 0)
+      .toLocaleString();
   }
 
   render() {
