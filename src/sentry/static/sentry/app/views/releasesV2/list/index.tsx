@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import {forceCheck} from 'react-lazyload';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -69,6 +70,14 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    super.componentDidUpdate(prevProps, prevState);
+
+    if (prevState.releases !== this.state.releases) {
+      forceCheck();
+    }
   }
 
   getQuery() {
@@ -159,7 +168,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    return t('There are no releases.');
+    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
   }
 
   renderInnerBody() {
