@@ -144,76 +144,20 @@ exports[`ProjectPlugins renders 1`] = `
                           <div
                             className="css-12wruw9-StyledTextBlock ejthpj81"
                           >
-                            <WithOrganizationMockWrapper
-                              access={
-                                Array [
-                                  "org:integrations",
-                                ]
-                              }
-                            >
-                              <withConfig(Access)
+                            <span>
+                              <WithOrganizationMockWrapper
                                 access={
                                   Array [
                                     "org:integrations",
                                   ]
                                 }
-                                organization={
-                                  Object {
-                                    "access": Array [
-                                      "org:read",
-                                      "org:write",
-                                      "org:admin",
-                                      "org:integrations",
-                                      "project:read",
-                                      "project:write",
-                                      "project:admin",
-                                      "team:read",
-                                      "team:write",
-                                      "team:admin",
-                                    ],
-                                    "features": Array [],
-                                    "id": "3",
-                                    "name": "Organization Name",
-                                    "onboardingTasks": Array [],
-                                    "projects": Array [],
-                                    "scrapeJavaScript": true,
-                                    "slug": "org-slug",
-                                    "status": Object {
-                                      "id": "active",
-                                      "name": "active",
-                                    },
-                                    "teams": Array [],
-                                  }
-                                }
                               >
-                                <Access
+                                <withConfig(Access)
                                   access={
                                     Array [
                                       "org:integrations",
                                     ]
                                   }
-                                  config={
-                                    Object {
-                                      "features": Set {},
-                                      "messages": Array [],
-                                      "user": Object {
-                                        "email": "foo@example.com",
-                                        "flags": Object {
-                                          "newsletter_consent_prompt": false,
-                                        },
-                                        "hasPasswordAuth": true,
-                                        "id": "1",
-                                        "isAuthenticated": true,
-                                        "name": "Foo Bar",
-                                        "options": Object {
-                                          "timezone": "UTC",
-                                        },
-                                        "permissions": Set {},
-                                        "username": "foo@example.com",
-                                      },
-                                    }
-                                  }
-                                  isSuperuser={false}
                                   organization={
                                     Object {
                                       "access": Array [
@@ -242,47 +186,105 @@ exports[`ProjectPlugins renders 1`] = `
                                       "teams": Array [],
                                     }
                                   }
-                                  renderNoAccessMessage={false}
-                                  requireAll={true}
                                 >
-                                  <span
-                                    key="5"
+                                  <Access
+                                    access={
+                                      Array [
+                                        "org:integrations",
+                                      ]
+                                    }
+                                    config={
+                                      Object {
+                                        "features": Set {},
+                                        "messages": Array [],
+                                        "user": Object {
+                                          "email": "foo@example.com",
+                                          "flags": Object {
+                                            "newsletter_consent_prompt": false,
+                                          },
+                                          "hasPasswordAuth": true,
+                                          "id": "1",
+                                          "isAuthenticated": true,
+                                          "name": "Foo Bar",
+                                          "options": Object {
+                                            "timezone": "UTC",
+                                          },
+                                          "permissions": Set {},
+                                          "username": "foo@example.com",
+                                        },
+                                      }
+                                    }
+                                    isSuperuser={false}
+                                    organization={
+                                      Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "org:integrations",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "features": Array [],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "projects": Array [],
+                                        "scrapeJavaScript": true,
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
+                                      }
+                                    }
+                                    renderNoAccessMessage={false}
+                                    requireAll={true}
                                   >
                                     <span
-                                      key="0"
+                                      key="5"
                                     >
-                                      Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the 
-                                    </span>
-                                    <Link
-                                      key="2"
-                                      to="/settings/org-slug/integrations"
-                                    >
+                                      <span
+                                        key="0"
+                                      >
+                                        Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the 
+                                      </span>
                                       <Link
-                                        onlyActiveOnIndex={false}
-                                        style={Object {}}
+                                        key="2"
                                         to="/settings/org-slug/integrations"
                                       >
-                                        <a
-                                          onClick={[Function]}
+                                        <Link
+                                          onlyActiveOnIndex={false}
                                           style={Object {}}
+                                          to="/settings/org-slug/integrations"
                                         >
-                                          <span
-                                            key="1"
+                                          <a
+                                            onClick={[Function]}
+                                            style={Object {}}
                                           >
-                                            organization integrations
-                                          </span>
-                                        </a>
+                                            <span
+                                              key="1"
+                                            >
+                                              organization integrations
+                                            </span>
+                                          </a>
+                                        </Link>
                                       </Link>
-                                    </Link>
-                                    <span
-                                      key="3"
-                                    >
-                                       settings to manage them.
+                                      <span
+                                        key="3"
+                                      >
+                                         settings to manage them.
+                                      </span>
                                     </span>
-                                  </span>
-                                </Access>
-                              </withConfig(Access)>
-                            </WithOrganizationMockWrapper>
+                                  </Access>
+                                </withConfig(Access)>
+                              </WithOrganizationMockWrapper>
+                            </span>
                           </div>
                         </StyledTextBlock>
                       </div>
