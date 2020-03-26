@@ -403,7 +403,9 @@ export class OrganizationIntegrations extends AsyncComponent<
                       ...categoryList.map(category => [category, category]),
                     ]}
                   />
-                ) : null}
+                ) : (
+                  <div />
+                )}
                 <SearchInput
                   value={this.state.searchInput || ''}
                   onChange={this.onSearchChange}
