@@ -30,29 +30,15 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
                 "name": "An issue is first seen",
             },
             {
-                "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-                "name": "An issue changes state from resolved to unresolved",
-            },
-            {
-                "id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-                "name": "An issue changes state from ignored to unresolved",
-            },
-            {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
                 "name": "An event is seen",
-            },
-            {
-                "name": "An event's level is equal to fatal",
-                "id": "sentry.rules.conditions.level.LevelCondition",
-                "match": "eq",
-                "level": "50",
             },
         ]
 
         Rule.objects.filter(project=self.project).delete()
 
         Rule.objects.create(
-            project=self.project, data={"conditions": [condition_data], "actions": action_data}
+            project=self.project, data={"conditions": condition_data, "actions": action_data}
         )
 
         self.login_as(self.user)
