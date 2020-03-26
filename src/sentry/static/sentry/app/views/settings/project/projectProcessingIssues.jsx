@@ -438,13 +438,11 @@ class ProjectProcessingIssues extends React.Component {
         <SettingsPageHeader title={title} />
         <TextBlock>
           {t(
-            `
-          For some platforms the event processing requires configuration or
+            `For some platforms the event processing requires configuration or
           manual action.  If a misconfiguration happens or some necessary
           steps are skipped, issues can occur during processing. (The most common
           reason for this is missing debug symbols.) In these cases you can see
-          all the problems here with guides of how to correct them.
-        `
+          all the problems here with guides of how to correct them.`
           )}
         </TextBlock>
         {this.renderDebugTable()}
