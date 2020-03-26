@@ -149,7 +149,7 @@ def process_discover(data_export, file, limit, environment_id):
             use_aggregate_conditions=True,
         )
 
-    with snuba_error_handler():
+    with snuba_error_handler(logger=logger):
         # Get a single entry to prepare the header row
         sample = data_fn(0, 1)["data"]
         if len(sample) == 0:
@@ -161,7 +161,7 @@ def process_discover(data_export, file, limit, environment_id):
     # Iterate through all the GroupTagValues
     writer = create_writer(file, sample[0].keys())
     iteration = 0
-    with snuba_error_handler():
+    with snuba_error_handler(logger=logger):
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
