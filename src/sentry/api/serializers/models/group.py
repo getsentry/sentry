@@ -67,9 +67,7 @@ logger = logging.getLogger(__name__)
 
 def merge_list_dictionaries(dict1, dict2):
     for key, val in six.iteritems(dict2):
-        if key not in dict1:
-            dict1[key] = []
-        dict1[key].extend(val)
+        dict1.setdefault(key, []).extend(val)
 
 
 class GroupSerializerBase(Serializer):
