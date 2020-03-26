@@ -40,3 +40,19 @@ def snuba_error_handler(logger):
         ):
             message = "Internal error. Your query failed to run."
         raise ExportError(message)
+
+
+# TODO(python3): For now, this function must be run to ensure only ascii is passed into the 'csv' module
+# It can be removed once converted to Python 3, See https://docs.python.org/2/library/csv.html
+# This function was adapted from https://stackoverflow.com/questions/13101653/python-convert-complex-dictionary-of-strings-from-unicode-to-ascii
+def convert_to_ascii(input):
+    if isinstance(input, dict):
+        return {
+            convert_to_ascii(key): convert_to_ascii(value) for key, value in six.iteritems(input)
+        }
+    elif isinstance(input, list):
+        return [convert_to_ascii(element) for element in input]
+    elif isinstance(input, six.text_type):
+        return input.encode("utf-8")
+    else:
+        return input

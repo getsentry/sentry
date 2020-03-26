@@ -13,7 +13,7 @@ from sentry.utils.sdk import capture_exception
 
 from .base import ExportError, ExportQueryType, SNUBA_MAX_RESULTS
 from .models import ExportedData
-from .utils import snuba_error_handler
+from .utils import convert_to_ascii, snuba_error_handler
 from .processors.issues_by_tag import IssuesByTagProcessor
 
 
@@ -117,8 +117,6 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
 def process_discover(data_export, file, limit, environment_id):
     """
     Convert the discovery query to a CSV, writing it to the provided file.
-    Returns the suggested file name.
-    (Adapted from 'src/sentry/api/endpoints/organization_events.py')
     """
     payload = data_export.query_info
 
@@ -165,7 +163,10 @@ def process_discover(data_export, file, limit, environment_id):
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            raw_data = data_fn(offset, SNUBA_MAX_RESULTS)["data"]
+            raw_data_unicode = data_fn(offset, SNUBA_MAX_RESULTS)["data"]
+            # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
+            # See associated comment in './utils.py'
+            raw_data = convert_to_ascii(raw_data_unicode)
             if len(raw_data) == 0:
                 break
             if limit and limit < next_offset:
