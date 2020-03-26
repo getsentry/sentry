@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+import logging
 
 from django.conf import settings
 from django.db.models import Min, Q
@@ -59,6 +60,9 @@ disabled = object()
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(dict1, dict2):
@@ -237,32 +241,38 @@ class GroupSerializerBase(Serializer):
 
         annotations_by_group_id = defaultdict(list)
 
-        # find every org that's part of the item list
-        # theoretically there should only be one org
         organization_id_list = list(set(item.project.organization_id for item in item_list))
+        # if no groups, then we can't proceed but this seems to be a valid use case
+        if not item_list:
+            return {}
+        if len(organization_id_list) > 1:
+            # this should never happen but if it does we should know about it
+            logger.warn(
+                u"Found multiple organizations for groups: %s, with orgs: %s"
+                % ([item.id for item in item_list], organization_id_list)
+            )
 
-        # find all the integration installs for those orgs that are have issue tracking
-        for integration in Integration.objects.filter(organizations__in=organization_id_list):
+        # should only have 1 org at this point
+        organization_id = organization_id_list[0]
+
+        # find all the integration installss that have issue tracking
+        for integration in Integration.objects.filter(organizations=organization_id):
             if not (
                 integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
                 or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
             ):
                 continue
 
-            for organization in integration.organizations.all():
-                # only check the orgs that are part of the list of orgs related to the items
-                if organization.id not in organization_id_list:
-                    continue
-                install = integration.get_installation(organization.id)
-                local_annotations_by_group_id = (
-                    safe_execute(
-                        install.get_annotations_for_group_list,
-                        group_list=item_list,
-                        _with_transaction=False,
-                    )
-                    or {}
+            install = integration.get_installation(organization_id)
+            local_annotations_by_group_id = (
+                safe_execute(
+                    install.get_annotations_for_group_list,
+                    group_list=item_list,
+                    _with_transaction=False,
                 )
-                merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+                or {}
+            )
+            merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
 
         # find the external issues for sentry apps and add them in
         local_annotations_by_group_id = (
