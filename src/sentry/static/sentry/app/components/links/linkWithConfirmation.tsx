@@ -21,7 +21,7 @@ class LinkWithConfirmation extends React.PureComponent<Props> {
     const {className, disabled, title, children, ...otherProps} = this.props;
     return (
       <Confirm {...otherProps} disabled={disabled}>
-        <a href="" className={classNames(className || '', {disabled})} title={title}>
+        <a href="#" className={classNames(className || '', {disabled})} title={title}>
           {children}
         </a>
       </Confirm>
