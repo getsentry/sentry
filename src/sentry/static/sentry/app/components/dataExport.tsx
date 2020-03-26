@@ -69,7 +69,7 @@ class DataExport extends React.Component<Props, State> {
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <Tooltip title="Wait right there. We'll email you.">
+          <Tooltip title="You can get on with your life. We'll email you when your data's ready.">
             <button className="btn btn-default btn-sm" disabled>
               {t("We're working on it...")}
             </button>

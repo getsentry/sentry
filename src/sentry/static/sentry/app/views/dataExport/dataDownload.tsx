@@ -118,9 +118,9 @@ class DataDownload extends AsyncView<Props, State> {
               'Make a new one with your latest data. Your old download will never see it coming.'
             )}
           </p>
-          <Button href={actionLink} priority="primary">
+          <DownloadButton href={actionLink} priority="primary">
             {t('Start a New Download')}
-          </Button>
+          </DownloadButton>
         </Body>
       </React.Fragment>
     );
@@ -191,6 +191,10 @@ const Body = styled('div')`
   p {
     margin: ${space(1.5)} 0;
   }
+`;
+
+const DownloadButton = styled(Button)`
+  margin-bottom: ${space(1.5)};
 `;
 
 export default DataDownload;
