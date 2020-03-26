@@ -126,6 +126,7 @@ class EventSdkUpdates extends React.Component {
           >
             {t('We recommend you ')}
             <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
+            {'.'}
           </Alert>
         ))}
       </EventDataSection>

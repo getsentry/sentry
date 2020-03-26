@@ -46,7 +46,9 @@ exports[`ConfirmDelete renders 1`] = `
                   <div
                     className="css-12wruw9-StyledTextBlock ejthpj81"
                   >
-                    Are you sure?
+                    <span>
+                      Are you sure?
+                    </span>
                   </div>
                 </StyledTextBlock>
               </div>
