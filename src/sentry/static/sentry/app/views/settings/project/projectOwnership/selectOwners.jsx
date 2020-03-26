@@ -1,5 +1,4 @@
 import debounce from 'lodash/debounce';
-import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -131,7 +130,7 @@ export default class SelectOwners extends React.Component {
       ...this.createMentionableTeam(team),
       disabled: true,
       label: (
-        <Flex justifyContent="space-between">
+        <Container>
           <DisabledLabel>
             <Tooltip
               position="left"
@@ -155,7 +154,7 @@ export default class SelectOwners extends React.Component {
               icon={<IconAdd circle />}
             />
           </Tooltip>
-        </Flex>
+        </Container>
       ),
     };
   };
@@ -196,6 +195,7 @@ export default class SelectOwners extends React.Component {
   closeSelectMenu() {
     // Close select menu
     if (this.selectRef) {
+      // eslint-disable-next-line react/no-find-dom-node
       const input = ReactDOM.findDOMNode(this.selectRef).querySelector(
         '.Select-input input'
       );
@@ -313,6 +313,11 @@ export default class SelectOwners extends React.Component {
     );
   }
 }
+
+const Container = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
 const DisabledLabel = styled('div')`
   opacity: 0.5;
