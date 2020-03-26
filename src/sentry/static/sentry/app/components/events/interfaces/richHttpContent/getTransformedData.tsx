@@ -15,6 +15,10 @@ function getTransformedData(data: any): [string, string][] {
       });
   }
 
+  if (typeof data === 'object') {
+    return Object.keys(data).map(key => [key, data[key]]);
+  }
+
   return [];
 }
 
