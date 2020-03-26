@@ -9,16 +9,12 @@ import {
   IntegrationInstallationStatus,
   SentryAppStatus,
   IntegrationFeature,
-  AppOrProviderOrPlugin,
-  SentryApp,
-  PluginWithProjectList,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
-const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -44,9 +40,6 @@ export const getSortIntegrationsByWeightActive = (organization?: Organization) =
       return variant && variant === '1';
   }
 };
-
-export const getCategorySelectActive = () =>
-  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -239,29 +232,3 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
 
   return [...new Set(transform)];
 };
-
-export const getCategoriesForIntegration = (
-  integration: AppOrProviderOrPlugin
-): string[] => {
-  if (isSentryApp(integration)) {
-    return ['internal', 'unpublished'].includes(integration.status)
-      ? [integration.status]
-      : getCategories(integration.featureData);
-  }
-  if (isPlugin(integration)) {
-    return getCategories(integration.featureDescriptions);
-  }
-  return getCategories(integration.metadata.features);
-};
-
-export function isSentryApp(
-  integration: AppOrProviderOrPlugin
-): integration is SentryApp {
-  return !!(integration as SentryApp).uuid;
-}
-
-export function isPlugin(
-  integration: AppOrProviderOrPlugin
-): integration is PluginWithProjectList {
-  return integration.hasOwnProperty('shortName');
-}
