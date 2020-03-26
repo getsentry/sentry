@@ -80,6 +80,10 @@ class ReleasesList extends AsyncView<Props, State> {
        * Manually trigger checking for elements in viewport.
        * Helpful when LazyLoad components enter the viewport without resize or scroll events,
        * https://github.com/twobin/react-lazyload#forcecheck
+       *
+       * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+       * This is how we re-check them without scrolling once releases change as this view
+       * uses shouldReload=true and there is no reloading happening.
        */
       forceCheck();
     }
