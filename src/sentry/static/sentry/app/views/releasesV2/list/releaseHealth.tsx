@@ -15,7 +15,7 @@ import Tooltip from 'app/components/tooltip';
 
 import HealthStatsChart from './healthStatsChart';
 import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
-import HealthStatsTitle, {StatsSubject} from './healthStatsTitle';
+import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 import AdoptionTooltip from './adoptionTooltip';
 
@@ -45,7 +45,7 @@ const ReleaseHealth = ({release, location}: Props) => {
       <StyledPanelHeader>
         <HeaderLayout>
           <DailyUsersColumn>
-            <HealthStatsTitle location={location} activeSubject={activeStatsSubject} />
+            <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
             <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
           </DailyUsersColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>

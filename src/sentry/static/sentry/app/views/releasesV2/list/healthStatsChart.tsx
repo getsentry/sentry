@@ -5,7 +5,7 @@ import LazyLoad from 'react-lazyload';
 import {t} from 'app/locale';
 import BarChart from 'app/components/barChart';
 
-import {StatsSubject} from './healthStatsTitle';
+import {StatsSubject} from './healthStatsSubject';
 import {StatsPeriod} from './healthStatsPeriod';
 
 type DefaultProps = {
