@@ -1,6 +1,4 @@
 import React from 'react';
-//TODO(alberto): Refactor out lodash/get
-import get from 'lodash/get';
 import set from 'lodash/set';
 import pick from 'lodash/pick';
 import isNumber from 'lodash/isNumber';
@@ -230,8 +228,7 @@ class TraceView extends React.PureComponent<Props, State> {
 function getTraceContext(
   event: Readonly<SentryTransactionEvent>
 ): TraceContextType | undefined {
-  //TODO(alberto): Refactor out lodash/get
-  const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
+  const traceContext: TraceContextType | undefined = event?.contexts?.trace;
 
   return traceContext;
 }
