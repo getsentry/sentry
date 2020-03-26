@@ -186,7 +186,7 @@ RUN set -x \
     && mkdir -p $SENTRY_CONF
 
 COPY --from=sdist /dist/*.whl /tmp/dist/
-RUN pip install /tmp/dist/*.whl
+RUN pip install /tmp/dist/*.whl && pip check
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 COPY ./docker/docker-entrypoint.sh /
