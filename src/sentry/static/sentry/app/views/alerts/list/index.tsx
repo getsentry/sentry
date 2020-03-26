@@ -244,9 +244,9 @@ class IncidentsListContainer extends React.Component<Props> {
           <Alert type="info" icon="icon-circle-info">
             {t('This feature is in beta and currently shows only metric alerts. ')}
 
-            <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+            <ExternalLink href="mailto:alerting-feedback@sentry.io">
               {t('Please contact us if you have any feedback.')}
-            </FeedbackLink>
+            </ExternalLink>
           </Alert>
           <IncidentsList {...this.props} />
         </PageContent>
@@ -258,11 +258,6 @@ class IncidentsListContainer extends React.Component<Props> {
 const StyledPageHeading = styled(PageHeading)`
   display: flex;
   align-items: center;
-`;
-
-const FeedbackLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-left: ${space(1)};
 `;
 
 const Actions = styled('div')`
