@@ -10,7 +10,7 @@ from ..base import ExportError
 
 class IssuesByTagProcessor(object):
     """
-    Export processor for data exports of issues data based on a provided tag
+    Processor for exports of issues data based on a provided tag
     """
 
     def __init__(self, project_id, group_id, key, environment_id):
