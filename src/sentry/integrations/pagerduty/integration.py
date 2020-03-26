@@ -76,23 +76,23 @@ class PagerDutyIntegration(IntegrationInstallation):
     def update_organization_config(self, data):
         if "service_table" in data:
             service_rows = data["service_table"]
+            # validate fields
+            bad_rows = filter(lambda x: not x["service"] or not x["integration_key"], service_rows)
+            if bad_rows:
+                raise IntegrationError("Name and key are required")
+
             with transaction.atomic():
                 exising_service_items = PagerDutyService.objects.filter(
                     organization_integration=self.org_integration
                 )
+
                 for service_item in exising_service_items:
                     # find the matching row from the input
                     matched_rows = filter(lambda x: x["id"] == service_item.id, service_rows)
                     if matched_rows:
                         matched_row = matched_rows[0]
-                        service_name = matched_row["service"]
-                        key = matched_row["integration_key"]
-
-                        # must provide name and key
-                        if not service_name or not key:
-                            raise IntegrationError("Name and key are required")
-                        service_item.integration_key = key
-                        service_item.service_name = service_name
+                        service_item.integration_key = matched_row["integration_key"]
+                        service_item.service_name = matched_row["service"]
                         service_item.save()
                     else:
                         service_item.delete()
@@ -102,13 +102,11 @@ class PagerDutyIntegration(IntegrationInstallation):
                 for row in new_rows:
                     service_name = row["service"]
                     key = row["integration_key"]
-
-                    if key and service_name:
-                        PagerDutyService.objects.create(
-                            organization_integration=self.org_integration,
-                            service_name=service_name,
-                            integration_key=key,
-                        )
+                    PagerDutyService.objects.create(
+                        organization_integration=self.org_integration,
+                        service_name=service_name,
+                        integration_key=key,
+                    )
 
     def get_config_data(self):
         service_list = []
