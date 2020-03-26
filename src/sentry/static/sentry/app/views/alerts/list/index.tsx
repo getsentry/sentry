@@ -182,10 +182,6 @@ class IncidentsListContainer extends React.Component<Props> {
 
     const status = getQueryStatus(query.status);
 
-    const isOpenActive = status === 'open';
-    const isClosedActive = status === 'closed';
-    const isAllActive = status === 'all';
-
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
@@ -219,28 +215,25 @@ class IncidentsListContainer extends React.Component<Props> {
                 {t('Settings')}
               </Button>
 
-              <ButtonBar merged>
+              <ButtonBar merged active={status}>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
+                  barId="open"
                   size="small"
-                  className={isOpenActive ? ' active' : ''}
-                  priority={isOpenActive ? 'primary' : 'default'}
                 >
                   {t('Active')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
+                  barId="closed"
                   size="small"
-                  className={isClosedActive ? ' active' : ''}
-                  priority={isClosedActive ? 'primary' : 'default'}
                 >
                   {t('Resolved')}
                 </Button>
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
+                  barId="all"
                   size="small"
-                  className={isAllActive ? ' active' : ''}
-                  priority={isAllActive ? 'primary' : 'default'}
                 >
                   {t('All')}
                 </Button>
