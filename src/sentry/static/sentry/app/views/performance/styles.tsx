@@ -51,7 +51,7 @@ export const GridRow = styled('tr')<{numOfColumns: number}>`
     const numOfExtraColumns = numOfColumns - 2;
 
     if (numOfExtraColumns > 0) {
-      return `auto 120px repeat(${numOfExtraColumns}, minmax(70px, 120px))`;
+      return `auto 120px repeat(${numOfExtraColumns}, minmax(70px, 100px))`;
     }
 
     return 'auto 120px';
