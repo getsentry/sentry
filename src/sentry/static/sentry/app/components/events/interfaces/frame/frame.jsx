@@ -385,12 +385,12 @@ const RepeatedContent = styled(VertCenterWrapper)`
 `;
 
 const PackageInfo = styled('div')`
-  order: 2;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    order: 0;
-  }
   display: grid;
   grid-template-columns: auto 1fr;
+  order: 2;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    order: 0;
+  }
 `;
 
 const NativeLineContent = styled('div')`
@@ -400,11 +400,7 @@ const NativeLineContent = styled('div')`
   grid-template-columns: 117px 1fr;
   align-items: flex-start;
   justify-content: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    grid-template-columns: 200px 1fr;
-    grid-template-rows: 1fr;
-  }
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     grid-template-columns: 150px 117px 1fr auto;
   }
 `;
@@ -427,7 +423,7 @@ const Symbol = styled('span')`
   grid-column-end: -1;
   order: 3;
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     order: 0;
     grid-column-start: auto;
     grid-column-end: auto;
@@ -439,9 +435,7 @@ const StyledIconRefresh = styled(IconRefresh)`
 `;
 
 const LeadHint = styled('div')`
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    ${overflowEllipsis}
-  }
+  ${overflowEllipsis}
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

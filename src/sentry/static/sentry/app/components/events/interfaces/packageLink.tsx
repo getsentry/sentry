@@ -65,15 +65,11 @@ const Package = styled('a')<Partial<Props>>`
       opacity: 1;
     }
   }
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    ${overflowEllipsis}
-  }
+  ${overflowEllipsis}
 `;
 
 const TooltipContent = styled('span')`
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    ${overflowEllipsis}
-  }
+  ${overflowEllipsis}
 `;
 
 export default PackageLink;

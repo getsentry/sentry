@@ -95,9 +95,14 @@ const Toggle = styled('span')`
   visibility: hidden;
   position: relative;
   top: 1px;
+  display: none;
 
   &:hover {
     opacity: 1;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    display: inline;
   }
 `;
 
@@ -123,20 +128,19 @@ const Address = styled('span')`
   flex-grow: 0;
   flex-shrink: 0;
   display: block;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.5)} 0 0;
+  order: 1;
 
   &:hover ${Toggle} {
     visibility: visible;
   }
 
-  order: 1;
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    ${overflowEllipsis}
-  }
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    padding: 0 ${space(0.5)};
     width: 117px;
     order: 0;
   }
+  ${overflowEllipsis}
 `;
 
 export default TogglableAddress;
