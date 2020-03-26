@@ -69,7 +69,9 @@ const ReleaseCard = ({release, project, location, reloading}: Props) => (
           </VersionColumn>
 
           <ProjectsColumn>
-            <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
+            {project && (
+              <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
+            )}
           </ProjectsColumn>
 
           <CommitsColumn>
