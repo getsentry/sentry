@@ -76,6 +76,11 @@ class ReleasesList extends AsyncView<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
 
     if (prevState.releases !== this.state.releases) {
+      /**
+       * Manually trigger checking for elements in viewport.
+       * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+       * https://github.com/twobin/react-lazyload#forcecheck
+       */
       forceCheck();
     }
   }
