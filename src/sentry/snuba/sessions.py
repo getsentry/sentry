@@ -323,7 +323,7 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
             filter_keys=filter_keys,
         )["data"][0]
         return {
-            "date": start,
+            "date": end,
             "total_users": row["users"],
             "crash_free_users": 100 - row["users_crashed"] / float(row["users"]) * 100
             if row["users"]
@@ -334,18 +334,22 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
             else None,
         }
 
+    last = None
     rv = []
     for offset in (
         timedelta(days=1),
         timedelta(days=2),
         timedelta(days=7),
         timedelta(days=14),
-        timedelta(days=14),
+        timedelta(days=30),
     ):
         item_start = start + offset
         if item_start > now:
+            if last is None or (item_start - last).days > 1:
+                rv.append(_query_stats(now))
             break
         rv.append(_query_stats(item_start))
+        last = item_start
 
     return rv
 
