@@ -10,14 +10,8 @@ exports[`AccountIdentities renders empty 1`] = `
       title="Identities"
     />
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Styled(div)
-          px={2}
-        >
-          Identities
-        </Styled(div)>
+      <PanelHeader>
+        Identities
       </PanelHeader>
       <PanelBody
         flexible={false}
@@ -42,41 +36,27 @@ exports[`AccountIdentities renders list 1`] = `
       title="Identities"
     />
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Styled(div)
-          px={2}
-        >
-          Identities
-        </Styled(div)>
+      <PanelHeader>
+        Identities
       </PanelHeader>
       <PanelBody
         flexible={false}
         withPadding={false}
       >
-        <PanelItem
-          alignItems="center"
+        <IdentityPanelItem
           key="1"
-          p={0}
+          p={2}
         >
-          <Styled(div)
-            flex="1"
-            p={2}
-          >
+          <div>
             GitHub
-          </Styled(div)>
-          <Styled(div)
-            p={2}
+          </div>
+          <forwardRef<Button>
+            onClick={[Function]}
+            size="small"
           >
-            <forwardRef<Button>
-              onClick={[Function]}
-              size="small"
-            >
-              Disconnect
-            </forwardRef<Button>>
-          </Styled(div)>
-        </PanelItem>
+            Disconnect
+          </forwardRef<Button>>
+        </IdentityPanelItem>
       </PanelBody>
     </Panel>
   </div>
