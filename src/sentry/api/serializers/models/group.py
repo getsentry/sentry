@@ -238,6 +238,7 @@ class GroupSerializerBase(Serializer):
         annotations_by_group_id = defaultdict(list)
 
         # find every org that's part of the item list
+        # theoretically there should only be one org
         organization_id_list = list(set(item.project.organization_id for item in item_list))
 
         # find all the integration installs for those orgs that are have issue tracking
@@ -249,6 +250,9 @@ class GroupSerializerBase(Serializer):
                 continue
 
             for organization in integration.organizations.all():
+                # only check the orgs that are part of the list of orgs related to the items
+                if organization.id not in organization_id_list:
+                    continue
                 install = integration.get_installation(organization.id)
                 local_annotations_by_group_id = (
                     safe_execute(
