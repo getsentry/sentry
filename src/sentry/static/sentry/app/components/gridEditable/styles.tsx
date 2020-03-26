@@ -308,11 +308,12 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   &:hover::before {
     position: absolute;
     top: 0;
-    left: 3px;
+    left: 2px;
     content: ' ';
     display: block;
-    width: 5px;
+    width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purpleLight};
+    background-color: ${p => p.theme.purple};
+    opacity: 0.4;
   }
 `;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 
-import UsersChart from '../../list/usersChart';
+import HealthStatsChart from '../../list/healthStatsChart';
 import {mockData} from '../../list/mock';
 import {SectionHeading, Wrapper} from './styles';
 
@@ -13,9 +13,10 @@ type Props = {};
 const SessionDuration = ({}: Props) => (
   <StyledWrapper>
     <SectionHeading>{t('Session Duration')}</SectionHeading>
-    <UsersChart
+    <HealthStatsChart
       data={{'24h': mockData[0].graphData['24h'].slice(0, 15)}}
-      statsPeriod="24h"
+      period="24h"
+      subject="sessions"
       height={50}
     />
   </StyledWrapper>

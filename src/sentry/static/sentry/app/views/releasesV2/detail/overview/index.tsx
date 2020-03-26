@@ -110,7 +110,6 @@ class ReleaseOverview extends AsyncView<Props> {
                     {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                        startDate={release.dateReleased ?? release.dateCreated}
                       />
                     )}
                     {/* TODO(releasesV2): hidden for now */}

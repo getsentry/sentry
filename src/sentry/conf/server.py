@@ -504,6 +504,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
+    "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.tasks.assemble",
@@ -515,7 +516,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
-    "sentry.tasks.data_export",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -1339,7 +1339,7 @@ SENTRY_WATCHERS = (
 # If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
@@ -1774,7 +1774,7 @@ MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pa
 
 # Log error and abort processing (without dropping event) when process_event is
 # taking more than n seconds to process event
-SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
@@ -1788,6 +1788,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
     "sentry.web.frontend",
     "sentry.api.endpoints",
+    "sentry.data_export.endpoints",
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
 )

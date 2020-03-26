@@ -1,7 +1,18 @@
 import {assert} from 'app/types/utils';
 
+export type Sort = {
+  kind: 'asc' | 'desc';
+  field: string;
+};
+
+// Contains the URL field value & the related table column width.
+// Can be parsed into a Column using explodeField()
+export type Field = {
+  field: string;
+  width?: number;
+};
+
 export type ColumnType =
-  | '*' // Matches to everything TODO(mark) remove this in favour of explicit type lists.
   | 'string'
   | 'integer'
   | 'number'
@@ -23,6 +34,22 @@ export type AggregateParameter =
       dataType: ColumnType;
       defaultValue?: string;
       required: boolean;
+    };
+
+export type AggregationRefinement = string | undefined;
+
+// The parsed result of a Field.
+// Functions and Fields are handled as subtypes to enable other
+// code to work more simply.
+// This type can be converted into a Field.field using generateFieldAsString()
+export type Column =
+  | {
+      kind: 'field';
+      field: string;
+    }
+  | {
+      kind: 'function';
+      function: [Aggregation, string, AggregationRefinement];
     };
 
 // Refer to src/sentry/api/event_search.py
@@ -183,7 +210,6 @@ assert(
 );
 
 export type Aggregation = keyof typeof AGGREGATIONS | '';
-export type AggregationRefinement = string | undefined;
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
@@ -261,7 +287,7 @@ export const FIELDS = {
 } as const;
 assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
 
-export type Field = keyof typeof FIELDS | string | '';
+export type Fields = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
 export const TRACING_FIELDS = [
@@ -280,3 +306,49 @@ export const TRACING_FIELDS = [
   'rps',
   'rpm',
 ];
+
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+
+export function explodeFieldString(field: string): Column {
+  const results = field.match(AGGREGATE_PATTERN);
+
+  if (results && results.length >= 3) {
+    return {
+      kind: 'function',
+      function: [
+        results[1] as Aggregation,
+        results[2],
+        results[3] as AggregationRefinement,
+      ],
+    };
+  }
+
+  return {kind: 'field', field};
+}
+
+export function explodeField(field: Field): Column {
+  const results = explodeFieldString(field.field);
+
+  return results;
+}
+
+/**
+ * Get the alias that the API results will have for a given aggregate function name
+ */
+export function getAggregateAlias(field: string): string {
+  if (!field.match(AGGREGATE_PATTERN)) {
+    return field;
+  }
+  return field
+    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
+    .replace(/\./g, '_')
+    .replace(/\,/g, '_')
+    .replace(/_+$/, '');
+}
+
+/**
+ * Check if a field name looks like an aggregate function or known aggregate alias.
+ */
+export function isAggregateField(field: string): boolean {
+  return field.match(AGGREGATE_PATTERN) !== null;
+}

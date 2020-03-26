@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 
 import {
   ProcessedSpanType,

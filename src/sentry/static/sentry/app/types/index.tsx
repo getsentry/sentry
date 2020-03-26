@@ -131,8 +131,11 @@ export type ProjectRelease = {
 };
 
 export type Health = {
-  crashFreeUsers: number | null;
   totalUsers: number;
+  totalUsers24h: number;
+  totalSessions: number;
+  totalSessions24h: number;
+  crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
@@ -380,6 +383,11 @@ export type PluginProjectItem = {
 export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
 };
+
+export type AppOrProviderOrPlugin =
+  | SentryApp
+  | IntegrationProvider
+  | PluginWithProjectList;
 
 export type GlobalSelection = {
   projects: number[];
@@ -1077,10 +1085,9 @@ export type SentryServiceStatus = {
 };
 
 export type CrashFreeTimeBreakdown = {
-  [key: string]: {
-    totalSessions: number;
-    crashFreeSessions: number | null;
-    crashFreeUsers: number | null;
-    totalUsers: number;
-  };
-};
+  date: string;
+  totalSessions: number;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+}[];
