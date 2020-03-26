@@ -154,7 +154,7 @@ class GroupTagValues extends AsyncComponent<
 const TableWrapper = styled('div')`
   h3 {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
   }
   .m-left {
     margin-left: ${space(1.5)};
