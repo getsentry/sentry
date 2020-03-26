@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
-import {getFieldRenderer} from 'app/views/eventsV2/utils';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {assert} from 'app/types/utils';
 import EventsV2 from 'app/utils/discover/eventsv2';
 
@@ -94,7 +94,7 @@ class UserStats extends React.Component<Props> {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
   display: flex;
 
   color: ${p => p.theme.gray3};
@@ -106,14 +106,13 @@ const Container = styled('div')`
 
 const StatTitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
-
-  margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const StatNumber = styled('div')`
-  font-size: 36px;
-  line-height: 50px;
-
+  font-size: 32px;
+  line-height: 40px;
   color: ${p => p.theme.gray4};
 `;
 

@@ -248,16 +248,22 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
     #
-    # We assume that all potential PII is produced as part of stacktrace
-    # processors and event enhancers.
+    # *Right now* the only sensitive data that is added in stacktrace
+    # processing are usernames in filepaths, so we run directly after
+    # stacktrace processors and `get_event_enhancers`.
     #
-    # We assume that plugins for eg sessionstack (running via
-    # `plugin.get_event_preprocessors`) are not producing data that should be
-    # PII-stripped, ever.
+    # We do not yet want to deal with context data produced by plugins like
+    # sessionstack or fullstory (which are in `get_event_preprocessors`), as
+    # this data is very unlikely to be sensitive data. This is why scrubbing
+    # happens somewhere in the middle of the pipeline.
     #
-    # XXX(markus): Javascript event error translation is happening after this block
-    # because it uses `get_event_preprocessors` instead of
-    # `get_event_enhancers`, possibly move?
+    # On the other hand, Javascript event error translation is happening after
+    # this block because it uses `get_event_preprocessors` instead of
+    # `get_event_enhancers`.
+    #
+    # We are fairly confident, however, that this should run *before*
+    # re-normalization as it is hard to find sensitive data in partially
+    # trimmed strings.
     if (
         has_changed
         and options.get("processing.can-use-scrubbers")

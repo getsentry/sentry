@@ -14,8 +14,8 @@ import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {IconBookmark, IconDelete} from 'app/icons';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from '../eventView';
 import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 

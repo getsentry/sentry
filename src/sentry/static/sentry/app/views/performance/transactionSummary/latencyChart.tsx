@@ -19,7 +19,7 @@ import {
 } from 'app/views/eventsV2/styles';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';

@@ -2,15 +2,11 @@ from __future__ import absolute_import
 
 import json
 import logging
-import six
-from enum import Enum
-from datetime import timedelta
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
-from sentry.constants import ExportQueryType
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -21,23 +17,14 @@ from sentry.db.models import (
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
+from .base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION
+
 logger = logging.getLogger(__name__)
-
-
-# Arbitrary, subject to change
-DEFAULT_EXPIRATION = timedelta(weeks=4)
-
-
-class ExportStatus(six.text_type, Enum):
-    Early = "EARLY"  # The download is being prepared
-    Valid = "VALID"  # The download is ready for the user
-    Expired = "EXPIRED"  # The download has been deleted
 
 
 class ExportedData(Model):
     """
-    Stores references to asynchronous data export jobs being stored
-    in the Google Cloud Platform temporary storage solution.
+    Stores references to asynchronous data export jobs
     """
 
     __core__ = False
@@ -67,6 +54,13 @@ class ExportedData(Model):
         payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
+
+    @property
+    def file_name(self):
+        date = self.date_added.strftime("%Y-%B-%d")
+        export_type = ExportQueryType.as_str(self.query_type)
+        # Example: Discover_2020-July-21_27.csv
+        return "{}_{}_{}.csv".format(export_type, date, self.id)
 
     @staticmethod
     def format_date(date):
@@ -102,7 +96,7 @@ class ExportedData(Model):
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
         msg = MessageBuilder(
-            subject="Your Download is Ready!",
+            subject="Your data is ready.",
             context={"url": url, "expiration": self.format_date(self.date_expired)},
             type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
@@ -115,7 +109,7 @@ class ExportedData(Model):
         from sentry.utils.email import MessageBuilder
 
         msg = MessageBuilder(
-            subject="Unable to Export Data",
+            subject="We couldn't export your data.",
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,

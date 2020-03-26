@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -118,7 +117,7 @@ class AccountNotificationsByProject extends React.Component {
     const {projects, field} = this.props;
     const projectsByOrg = groupByOrganization(projects);
 
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
@@ -164,7 +163,7 @@ class AccountNotificationsByOrganization extends React.Component {
 
   getFieldData() {
     const {field, organizations} = this.props;
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
@@ -280,15 +279,15 @@ export default class AccountNotificationFineTuning extends AsyncView {
         <Panel>
           <PanelBody>
             <PanelHeader hasButtons={isProject}>
-              <Box flex="1">{isProject ? t('Projects') : t('Organizations')}</Box>
-              <Box>
+              <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
+              <div>
                 {isProject &&
                   this.renderSearchInput({
                     placeholder: t('Search Projects'),
                     url,
                     stateKey,
                   })}
-              </Box>
+              </div>
             </PanelHeader>
 
             <Form
@@ -322,3 +321,7 @@ export default class AccountNotificationFineTuning extends AsyncView {
     );
   }
 }
+
+const Heading = styled('div')`
+  flex: 1;
+`;

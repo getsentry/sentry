@@ -17,10 +17,10 @@ import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
 import {SectionHeading} from './styles';
 import {fetchTagFacets, Tag} from './utils';
-import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
   api: Client;

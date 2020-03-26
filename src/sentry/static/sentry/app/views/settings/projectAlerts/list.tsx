@@ -5,12 +5,11 @@ import styled from '@emotion/styled';
 import {IconAdd} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
@@ -45,14 +44,6 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitle(t('Alert Rules'), projectId);
-  }
-
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('There are no alerts configured for this project.')}</p>
-      </EmptyStateWarning>
-    );
   }
 
   renderResults() {
@@ -120,24 +111,21 @@ class ProjectAlertRules extends AsyncView<Props, State> {
         />
         <PermissionAlert />
 
-        <Panel>
-          <RuleHeader>
-            <div>{t('Type')}</div>
-            <div>{t('Name')}</div>
-            <TriggerAndActions>
-              <div>{t('Conditions/Triggers')}</div>
-              <div>{t('Action(s)')}</div>
-            </TriggerAndActions>
-          </RuleHeader>
-
-          <PanelBody>
-            {loading
-              ? super.renderLoading()
-              : !!rules.length
-              ? this.renderResults()
-              : this.renderEmpty()}
-          </PanelBody>
-        </Panel>
+        <ScrollWrapper>
+          <StyledPanelTable
+            isLoading={loading}
+            isEmpty={!loading && !rules.length}
+            emptyMessage={t('There are no alerts configured for this project.')}
+            headers={[
+              <div key="type">{t('Type')}</div>,
+              <div key="name">{t('Name')}</div>,
+              <div key="conditions">{t('Conditions/Triggers')}</div>,
+              <div key="actions">{t('Action(s)')}</div>,
+            ]}
+          >
+            {() => this.renderResults()}
+          </StyledPanelTable>
+        </ScrollWrapper>
       </React.Fragment>
     );
   }
@@ -145,17 +133,17 @@ class ProjectAlertRules extends AsyncView<Props, State> {
 
 export default ProjectAlertRules;
 
-const RuleHeader = styled(PanelHeader)`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr 3fr 6fr;
-  grid-auto-flow: column;
+const ScrollWrapper = styled('div')`
+  width: 100%;
+  overflow-x: auto;
 `;
 
-const TriggerAndActions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-flow: column;
+/**
+ * TODO(billy): Not sure if this should be default for PanelTable or not
+ */
+const StyledPanelTable = styled(PanelTable)`
+  width: fit-content;
+  min-width: 100%;
 `;
 
 const HeaderActions = styled('div')`

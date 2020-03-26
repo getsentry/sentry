@@ -11,7 +11,7 @@ import withProjects from 'app/utils/withProjects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import NoProjectMessage from 'app/components/noProjectMessage';

@@ -9,8 +9,8 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Event, OrganizationSummary} from 'app/types';
 import Version from 'app/components/version';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from './eventView';
 import {getExpandedResults} from './utils';
 import {SectionHeading} from './styles';
 

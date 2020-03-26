@@ -79,18 +79,16 @@ class EventDataSection extends React.Component<Props> {
             </Permalink>
             {titleNode}
             {type === 'extra' && (
-              <ButtonBar merged>
+              <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
-                  className={!raw ? 'active' : ''}
-                  priority={!raw ? 'primary' : 'default'}
+                  barId="formatted"
                   size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, false)}
                 >
                   {t('Formatted')}
                 </Button>
                 <Button
-                  className={raw ? 'active' : ''}
-                  priority={raw ? 'primary' : 'default'}
+                  barId="raw"
                   size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, true)}
                 >

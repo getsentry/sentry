@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import EventView, {isAPIPayloadSimilar} from 'app/views/eventsV2/eventView';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
 
 type ChildrenProps = {
