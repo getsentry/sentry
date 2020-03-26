@@ -94,9 +94,21 @@ def find_reference_event(reference_event):
     if reference_event.end:
         end = reference_event.end + timedelta(seconds=5)
 
+    fake_columns = [col for col in reference_event.fields if not is_real_column(col)]
+    if fake_columns:
+        snuba_args = {
+            "start": start,
+            "end": end,
+            "filter_keys": {"project_id": [project.id], "event_id": [event_id]},
+        }
+        snuba_args.update(resolve_field_list(fake_columns, snuba_args, auto_fields=False))
+    else:
+        snuba_args = {}
+
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        aggregations=snuba_args.get("aggregations"),
         start=start,
         end=end,
         dataset=Dataset.Discover,
@@ -636,11 +648,19 @@ def timeseries_query(
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     if top_events:
-        groupby = [resolve_column(col) for col in top_events[0].fields]
-        selected_columns += groupby
+        event_fields = top_events[0].fields
+        selected_columns += event_fields
         top_events = {event.slug: find_reference_event(event) for event in top_events}
+        group_conditions = []
+        for field in event_fields:
+            # project is handled by filter_keys already
+            if field == "project":
+                continue
+            values = list({event.get(field) for event in top_events.values() if field in event})
+            if values:
+                group_conditions.append([field, "IN", values])
     else:
-        groupby = []
+        group_conditions = []
 
     # TODO(evanh): These can be removed once we migrate the frontend / saved queries
     # to use the new function values
@@ -659,6 +679,7 @@ def timeseries_query(
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=False))
+
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
         if ref_conditions:
@@ -676,13 +697,13 @@ def timeseries_query(
 
     result = raw_query(
         aggregations=snuba_args.get("aggregations"),
-        conditions=snuba_args.get("conditions"),
+        conditions=snuba_args.get("conditions") + group_conditions,
         filter_keys=snuba_args.get("filter_keys"),
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
         rollup=rollup,
         orderby="time",
-        groupby=["time"] + groupby,
+        groupby=["time"] + snuba_args.get("groupby"),
         dataset=Dataset.Discover,
         limit=10000,
         referrer=referrer,

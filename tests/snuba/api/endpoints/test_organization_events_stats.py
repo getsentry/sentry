@@ -535,7 +535,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "event_id": "a{}".format(i) * 16,
                     "message": "very bad",
                     "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group1"],
+                    "fingerprint": ["group2"],
                     "user": {"email": self.user.email},
                 },
                 project_id=self.project.id,
@@ -544,7 +544,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "event_id": "c{}".format(i) * 16,
                     "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "fingerprint": ["group1"],
                     "user": {"email": "foo@example.com"},
                 },
@@ -554,7 +554,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "event_id": "d{}".format(i) * 16,
                     "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
                     "fingerprint": ["group1"],
                     "user": {"email": "foo@example.com"},
                 },
@@ -579,6 +579,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         data = response.data
+        assert len(data) == 3
 
         event1_data = data["{}:{}".format(self.project.slug, event1.event_id)]
         assert event1_data["values"] == {"message": "oh my", "email": "bob@example.com"}
@@ -591,6 +592,60 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         event3_data = data["{}:{}".format(self.project.slug, event3.event_id)]
         assert event3_data["values"] == {"message": "very bad", "email": "foo@example.com"}
         assert [attrs for time, attrs in event3_data["data"]] == [[{"count": 3}], [{"count": 3}]]
+
+        assert len(data) == 3
+
+    def test_top_events_with_projects(self):
+        for i in range(3):
+            event1 = self.store_event(
+                data={
+                    "event_id": "e{}".format(i) * 16,
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": "bob@example.com"},
+                    "fingerprint": ["group3"],
+                },
+                project_id=self.project.id,
+            )
+            event2 = self.store_event(
+                data={
+                    "event_id": "a{}".format(i) * 16,
+                    "message": "voof",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group1"],
+                    "user": {"email": self.user.email},
+                },
+                project_id=self.project2.id,
+            )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["message", "project"],
+                    "topEvents": [
+                        "{}:{}".format(self.project.slug, event1.event_id),
+                        "{}:{}".format(self.project2.slug, event2.event_id),
+                    ],
+                },
+                format="json",
+            )
+
+        data = response.data
+        print (data)
+
+        assert len(data) == 2
+
+        event1_data = data["{}:{}".format(self.project.slug, event1.event_id)]
+        assert event1_data["values"] == {"message": "poof", "project": self.project.slug}
+        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
+
+        event2_data = data["{}:{}".format(self.project2.slug, event2.event_id)]
+        assert event2_data["values"] == {"message": "voof", "project": self.project2.slug}
+        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
 
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
