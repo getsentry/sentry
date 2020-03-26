@@ -162,15 +162,14 @@ const RuleName = styled(Link)`
   font-weight: bold;
 `;
 
-const Conditions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
+const Listing = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
 `;
 
-// For tests
-const Actions = styled('div')<HasBorderProp>`
+const Conditions = styled(Listing)``;
+
+const Actions = styled(Listing)<HasBorderProp>`
   font-size: ${p => p.theme.fontSizeSmall};
 
   ${p => p.hideBorder && `border-bottom: none`};
