@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -52,11 +51,7 @@ export default class OrganizationRateLimit extends React.Component {
         <SettingsPageHeader title={t('Rate Limits')} />
 
         <Panel>
-          <PanelHeader disablePadding>
-            <Box px={2} flex="1">
-              {t('Adjust Limits')}
-            </Box>
-          </PanelHeader>
+          <PanelHeader>{t('Adjust Limits')}</PanelHeader>
           <PanelBody>
             <PanelAlert type="info">
               {t(`Rate limits allow you to control how much data is stored for this
