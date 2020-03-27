@@ -253,7 +253,12 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
-            "release_id", "release__version", "project__slug", "project__name", "project__id"
+            "release_id",
+            "release__version",
+            "project__slug",
+            "project__name",
+            "project__id",
+            "project__platform",
         )
 
         if with_health_data:
@@ -271,6 +276,7 @@ class ReleaseSerializer(Serializer):
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
+                "platform": pr["project__platform"],
             }
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
@@ -346,7 +352,12 @@ class ReleaseSerializer(Serializer):
             }
 
         def expose_project(project):
-            rv = {"id": project["id"], "slug": project["slug"], "name": project["name"]}
+            rv = {
+                "id": project["id"],
+                "slug": project["slug"],
+                "name": project["name"],
+                "platform": project["platform"],
+            }
             if "health_data" in project:
                 rv["healthData"] = expose_health_data(project["health_data"])
             return rv
