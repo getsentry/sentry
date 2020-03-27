@@ -9,16 +9,16 @@ import {Panel} from 'app/components/panels';
 import {IconQuestion, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
-import Tooltip from 'app/components/tooltip';
-import AsyncComponent from 'app/components/asyncComponent';
+import ErrorPanel from 'app/components/charts/components/errorPanel';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
   SubHeading,
-  ErrorPanel,
-} from 'app/views/eventsV2/styles';
+} from 'app/components/charts/styles';
+import Tooltip from 'app/components/tooltip';
+import AsyncComponent from 'app/components/asyncComponent';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';

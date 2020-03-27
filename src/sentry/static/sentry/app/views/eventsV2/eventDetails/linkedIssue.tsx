@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+import {SectionHeading} from 'app/components/charts/styles';
 import GroupChart from 'app/components/stream/groupChart';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
@@ -13,8 +14,6 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
-
-import {SectionHeading} from '../styles';
 
 type Props = {
   groupId: string;

@@ -4,11 +4,15 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Client} from 'app/api';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
-
-import {ChartControls, SectionHeading, SectionValue} from './styles';
 
 type Props = {
   api: Client;
@@ -83,8 +87,10 @@ class ChartFooter extends React.Component<Props, State> {
 
     return (
       <ChartControls>
-        <SectionHeading>{t('Total Events')}</SectionHeading>
-        <SectionValue>{value}</SectionValue>
+        <InlineContainer>
+          <SectionHeading>{t('Total Events')}</SectionHeading>
+          <SectionValue>{value}</SectionValue>
+        </InlineContainer>
       </ChartControls>
     );
   }

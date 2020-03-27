@@ -3,8 +3,12 @@ import React from 'react';
 import {t} from 'app/locale';
 import {SelectValue} from 'app/types';
 import YAxisSelector from 'app/views/events/yAxisSelector';
-
-import {ChartControls, InlineContainer, SectionHeading, SectionValue} from './styles';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
 
 type Props = {
   total: number | null;

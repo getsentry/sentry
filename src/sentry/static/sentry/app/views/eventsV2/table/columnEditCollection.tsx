@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
 import {
   UserSelectValues,
   setBodyUserSelect,
@@ -14,7 +15,6 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
-import {SectionHeading} from '../styles';
 import {FieldValue, FieldValueKind} from './types';
 import {ColumnEditRow} from './columnEditRow';
 

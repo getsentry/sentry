@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import {Client} from 'app/api';
 import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import SentryTypes from 'app/sentryTypes';
+import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
@@ -19,8 +20,6 @@ import {Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-
-import {SectionHeading} from './styles';
 
 type Props = {
   api: Client;

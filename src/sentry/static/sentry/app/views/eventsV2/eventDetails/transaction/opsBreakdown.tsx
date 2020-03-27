@@ -9,12 +9,11 @@ import {
   SpanEntry,
   RawSpanType,
 } from 'app/components/events/interfaces/spans/types';
+import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
-import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
 
