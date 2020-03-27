@@ -264,14 +264,16 @@ export class Frame extends React.Component {
     const [hint, hintType] = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
+    const leadHint = this.renderLeadHint();
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <DefaultLine className="title as-table">
           <NativeLineContent>
             <PackageInfo>
-              {this.renderLeadHint()}
+              {leadHint}
               <PackageLink
+                withLeadHint={leadHint !== null}
                 packagePath={data.package}
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
@@ -445,6 +447,7 @@ const StyledIconRefresh = styled(IconRefresh)`
 
 const LeadHint = styled('div')`
   ${overflowEllipsis}
+  width: 67px;
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
