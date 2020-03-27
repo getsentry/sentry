@@ -1,3 +1,5 @@
+import {DocumentIntegration} from 'app/types';
+
 export const INSTALLED = 'Installed' as const;
 export const NOT_INSTALLED = 'Not Installed' as const;
 export const PENDING = 'Pending' as const;
@@ -53,7 +55,9 @@ export const POPULARITY_WEIGHT: {
   splunk: 2,
 } as const;
 
-export const documentIntegrations = {
+export const documentIntegrations: {
+  [key: string]: DocumentIntegration;
+} = {
   datadog: {
     slug: 'datadog',
     name: 'Datadog',
@@ -72,4 +76,4 @@ export const documentIntegrations = {
       {title: 'Report Issue', url: 'https://github.com'},
     ],
   },
-} as const;
+};
