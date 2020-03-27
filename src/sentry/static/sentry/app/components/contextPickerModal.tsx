@@ -246,7 +246,9 @@ class ContextPickerModal extends React.Component<Props> {
       return (
         <div>
           {tct('You have no projects. Click [link] to make one.', {
-            link: <Link href={`/organizations/${organization}/projects/new/`}>here</Link>,
+            link: (
+              <Link to={`/organizations/${organization}/projects/new/`}>{t('here')}</Link>
+            ),
           })}
         </div>
       );

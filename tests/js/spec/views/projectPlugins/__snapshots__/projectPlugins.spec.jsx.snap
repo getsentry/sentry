@@ -140,23 +140,79 @@ exports[`ProjectPlugins renders 1`] = `
                           </span>
                         </IconWrapper>
                         <StyledTextBlock>
-                          <div
-                            className="css-12wruw9-StyledTextBlock ejthpj81"
+                          <span
+                            className="css-6y2q80-StyledTextBlock ejthpj81"
                           >
-                            <span>
-                              <WithOrganizationMockWrapper
+                            <WithOrganizationMockWrapper
+                              access={
+                                Array [
+                                  "org:integrations",
+                                ]
+                              }
+                            >
+                              <withConfig(Access)
                                 access={
                                   Array [
                                     "org:integrations",
                                   ]
                                 }
+                                organization={
+                                  Object {
+                                    "access": Array [
+                                      "org:read",
+                                      "org:write",
+                                      "org:admin",
+                                      "org:integrations",
+                                      "project:read",
+                                      "project:write",
+                                      "project:admin",
+                                      "team:read",
+                                      "team:write",
+                                      "team:admin",
+                                    ],
+                                    "features": Array [],
+                                    "id": "3",
+                                    "name": "Organization Name",
+                                    "onboardingTasks": Array [],
+                                    "projects": Array [],
+                                    "scrapeJavaScript": true,
+                                    "slug": "org-slug",
+                                    "status": Object {
+                                      "id": "active",
+                                      "name": "active",
+                                    },
+                                    "teams": Array [],
+                                  }
+                                }
                               >
-                                <withConfig(Access)
+                                <Access
                                   access={
                                     Array [
                                       "org:integrations",
                                     ]
                                   }
+                                  config={
+                                    Object {
+                                      "features": Set {},
+                                      "messages": Array [],
+                                      "user": Object {
+                                        "email": "foo@example.com",
+                                        "flags": Object {
+                                          "newsletter_consent_prompt": false,
+                                        },
+                                        "hasPasswordAuth": true,
+                                        "id": "1",
+                                        "isAuthenticated": true,
+                                        "name": "Foo Bar",
+                                        "options": Object {
+                                          "timezone": "UTC",
+                                        },
+                                        "permissions": Set {},
+                                        "username": "foo@example.com",
+                                      },
+                                    }
+                                  }
+                                  isSuperuser={false}
                                   organization={
                                     Object {
                                       "access": Array [
@@ -185,106 +241,48 @@ exports[`ProjectPlugins renders 1`] = `
                                       "teams": Array [],
                                     }
                                   }
+                                  renderNoAccessMessage={false}
+                                  requireAll={true}
                                 >
-                                  <Access
-                                    access={
-                                      Array [
-                                        "org:integrations",
-                                      ]
-                                    }
-                                    config={
-                                      Object {
-                                        "features": Set {},
-                                        "messages": Array [],
-                                        "user": Object {
-                                          "email": "foo@example.com",
-                                          "flags": Object {
-                                            "newsletter_consent_prompt": false,
-                                          },
-                                          "hasPasswordAuth": true,
-                                          "id": "1",
-                                          "isAuthenticated": true,
-                                          "name": "Foo Bar",
-                                          "options": Object {
-                                            "timezone": "UTC",
-                                          },
-                                          "permissions": Set {},
-                                          "username": "foo@example.com",
-                                        },
-                                      }
-                                    }
-                                    isSuperuser={false}
-                                    organization={
-                                      Object {
-                                        "access": Array [
-                                          "org:read",
-                                          "org:write",
-                                          "org:admin",
-                                          "org:integrations",
-                                          "project:read",
-                                          "project:write",
-                                          "project:admin",
-                                          "team:read",
-                                          "team:write",
-                                          "team:admin",
-                                        ],
-                                        "features": Array [],
-                                        "id": "3",
-                                        "name": "Organization Name",
-                                        "onboardingTasks": Array [],
-                                        "projects": Array [],
-                                        "scrapeJavaScript": true,
-                                        "slug": "org-slug",
-                                        "status": Object {
-                                          "id": "active",
-                                          "name": "active",
-                                        },
-                                        "teams": Array [],
-                                      }
-                                    }
-                                    renderNoAccessMessage={false}
-                                    requireAll={true}
+                                  <span
+                                    key="5"
                                   >
                                     <span
-                                      key="5"
+                                      key="0"
                                     >
-                                      <span
-                                        key="0"
-                                      >
-                                        Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the 
-                                      </span>
+                                      Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the 
+                                    </span>
+                                    <Link
+                                      key="2"
+                                      to="/settings/org-slug/integrations"
+                                    >
                                       <Link
-                                        key="2"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
                                         to="/settings/org-slug/integrations"
                                       >
-                                        <Link
-                                          onlyActiveOnIndex={false}
+                                        <a
+                                          onClick={[Function]}
                                           style={Object {}}
-                                          to="/settings/org-slug/integrations"
                                         >
-                                          <a
-                                            onClick={[Function]}
-                                            style={Object {}}
+                                          <span
+                                            key="1"
                                           >
-                                            <span
-                                              key="1"
-                                            >
-                                              organization integrations
-                                            </span>
-                                          </a>
-                                        </Link>
+                                            organization integrations
+                                          </span>
+                                        </a>
                                       </Link>
-                                      <span
-                                        key="3"
-                                      >
-                                         settings to manage them.
-                                      </span>
+                                    </Link>
+                                    <span
+                                      key="3"
+                                    >
+                                       settings to manage them.
                                     </span>
-                                  </Access>
-                                </withConfig(Access)>
-                              </WithOrganizationMockWrapper>
-                            </span>
-                          </div>
+                                  </span>
+                                </Access>
+                              </withConfig(Access)>
+                            </WithOrganizationMockWrapper>
+                          </span>
                         </StyledTextBlock>
                       </div>
                     </Component>
@@ -579,6 +577,9 @@ exports[`ProjectPlugins renders 1`] = `
                                               __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                 Object {
                                                   "$$typeof": Symbol(react.forward_ref),
+                                                  "propTypes": Object {
+                                                    "openInNewTab": [Function],
+                                                  },
                                                   "render": [Function],
                                                 }
                                               }
@@ -590,7 +591,7 @@ exports[`ProjectPlugins renders 1`] = `
                                               }
                                               href="https://github.com/getsentry/sentry"
                                             >
-                                              <ForwardRef
+                                              <ForwardRef(ExternalLink)
                                                 className="css-1nx57m5-grayText"
                                                 href="https://github.com/getsentry/sentry"
                                               >
@@ -602,7 +603,7 @@ exports[`ProjectPlugins renders 1`] = `
                                                 >
                                                   Sentry Team
                                                 </a>
-                                              </ForwardRef>
+                                              </ForwardRef(ExternalLink)>
                                             </EmotionCssPropInternal>
                                             <span>
                                                
@@ -983,6 +984,9 @@ exports[`ProjectPlugins renders 1`] = `
                                               __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                 Object {
                                                   "$$typeof": Symbol(react.forward_ref),
+                                                  "propTypes": Object {
+                                                    "openInNewTab": [Function],
+                                                  },
                                                   "render": [Function],
                                                 }
                                               }
@@ -994,7 +998,7 @@ exports[`ProjectPlugins renders 1`] = `
                                               }
                                               href="https://github.com/getsentry/sentry"
                                             >
-                                              <ForwardRef
+                                              <ForwardRef(ExternalLink)
                                                 className="css-1nx57m5-grayText"
                                                 href="https://github.com/getsentry/sentry"
                                               >
@@ -1006,7 +1010,7 @@ exports[`ProjectPlugins renders 1`] = `
                                                 >
                                                   Sentry Team
                                                 </a>
-                                              </ForwardRef>
+                                              </ForwardRef(ExternalLink)>
                                             </EmotionCssPropInternal>
                                           </div>
                                         </div>

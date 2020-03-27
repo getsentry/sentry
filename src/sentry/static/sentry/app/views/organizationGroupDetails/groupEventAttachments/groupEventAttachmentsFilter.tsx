@@ -31,10 +31,14 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   return (
     <FilterWrapper>
       <ButtonBar merged active={activeButton}>
-        <Button id="all" size="small" to={{pathname, query: allAttachmentsQuery}}>
+        <Button barId="all" size="small" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        <Button id="onlyCrash" size="small" to={{pathname, query: onlyCrashReportsQuery}}>
+        <Button
+          barId="onlyCrash"
+          size="small"
+          to={{pathname, query: onlyCrashReportsQuery}}
+        >
           {t('Only Crash Reports')}
         </Button>
       </ButtonBar>

@@ -174,7 +174,7 @@ export default class DetailsBody extends React.Component<Props> {
           <ActivityPageContent>
             <StyledNavTabs underlined>
               <li className="active">
-                <Link>{t('Activity')}</Link>
+                <Link to="">{t('Activity')}</Link>
               </li>
 
               <SeenByTab>
@@ -219,7 +219,7 @@ export default class DetailsBody extends React.Component<Props> {
                         slugs={incident && incident.projects}
                         orgId={params.orgId}
                       >
-                        {({initiallyLoaded, projects, fetching}) => (
+                        {({initiallyLoaded, fetching, projects}) => (
                           <SideHeaderLink
                             disabled={!incident || fetching || !initiallyLoaded}
                             to={this.getDiscoverUrl(
