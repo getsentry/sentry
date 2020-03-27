@@ -10,6 +10,7 @@ import os.path
 import re
 import socket
 import sys
+import platform
 import tempfile
 
 import sentry
@@ -117,8 +118,13 @@ RELAY_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
 )
 
+if platform.system() == "Linux":
+    nginx_conf_file = "nginx.linux.conf"
+else:
+    nginx_conf_file = "nginx.conf"
+
 REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx_conf_file")
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
