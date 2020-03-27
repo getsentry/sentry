@@ -162,7 +162,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       style: {marginLeft: space(1)},
       size,
       priority,
-      'data-test-id': 'add-button',
+      'data-test-id': 'install-button',
       disabled: disabledFromFeatures || !userHasAccess,
       organization,
     };

@@ -22,12 +22,11 @@ class OrganizationAbstractDetailViewPage(BasePage):
     configurations_text = "Configurations"
 
     def click_install_button(self):
-        self.browser.click('[data-test-id="add-button"]')
+        self.browser.click('[data-test-id="install-button"]')
 
-    # uninstalls any configuration (not a particualr one)
+    # uninstalls any configuration (not a particular one)
     def uninstall(self):
         self.browser.click('[aria-label="Uninstall"]')
-        # sleep(10)
         self.browser.click('[data-test-id="confirm-button"]')
 
     def switch_to_configuration_view(self):
@@ -41,3 +40,9 @@ class OrganizationIntegrationDetailViewPage(OrganizationAbstractDetailViewPage):
         integration_setup_window.fill_in_setup_form(installation_data)
         integration_setup_window.continue_button.click()
         self.driver.switch_to_window(self.driver.window_handles[0])
+
+
+class OrganizationSentryAppDetailViewPage(OrganizationAbstractDetailViewPage):
+    def uninstall(self):
+        self.browser.click('[data-test-id="sentry-app-uninstall"]')
+        self.browser.click('[data-test-id="confirm-button"]')
