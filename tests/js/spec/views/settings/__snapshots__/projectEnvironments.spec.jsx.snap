@@ -1047,23 +1047,19 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   onHide={[Function]}
                   shouldShowAction={true}
                 >
-                  <PanelItem
-                    alignItems="center"
-                    justifyContent="space-between"
+                  <EnvironmentItem
                     p={2}
                   >
                     <div
-                      className="css-d2dsxt-PanelItem ej5ox20"
+                      className="css-1es7aj-PanelItem-EnvironmentItem e1pnz46f0"
                     >
-                      <Styled(div)
-                        alignItems="center"
-                      >
+                      <Name>
                         <div
-                          className="css-zkfaav"
+                          className="css-1f9cg5n-Name e1pnz46f1"
                         >
                           zzz
                         </div>
-                      </Styled(div)>
+                      </Name>
                       <WithOrganizationMockWrapper
                         access={
                           Array [
@@ -1172,14 +1168,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                 size="xsmall"
                               >
                                 <forwardRef<Button>
-                                  className="css-1g4cmym-EnvironmentButton e1pnz46f0"
+                                  className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="xsmall"
                                 >
                                   <Button
                                     align="center"
-                                    className="css-1g4cmym-EnvironmentButton e1pnz46f0"
+                                    className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                     disabled={false}
                                     forwardRef={null}
                                     onClick={[Function]}
@@ -1188,7 +1184,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <StyledButton
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="css-1g4cmym-EnvironmentButton e1pnz46f0"
+                                      className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                       disabled={false}
                                       forwardRef={null}
                                       onClick={[Function]}
@@ -1198,7 +1194,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                       <Component
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                        className="e1pnz46f2 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
                                         forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
@@ -1207,7 +1203,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                         <button
                                           aria-disabled={false}
                                           aria-label="Show"
-                                          className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                          className="e1pnz46f2 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -1233,7 +1229,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                         </withConfig(Access)>
                       </WithOrganizationMockWrapper>
                     </div>
-                  </PanelItem>
+                  </EnvironmentItem>
                 </EnvironmentRow>
               </div>
             </FlexBox>

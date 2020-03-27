@@ -312,6 +312,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             <a
                               className="btn btn-sm btn-default disabled"
                               disabled={true}
+                              href="#"
                               onClick={[Function]}
                               title="Unmerging 0 events"
                             >
@@ -1231,7 +1232,13 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                                     }
                                                   }
                                                 >
-                                                  TypeError
+                                                  <GuideAnchor
+                                                    disabled={true}
+                                                    position="bottom"
+                                                    target="issue_title"
+                                                  >
+                                                    TypeError
+                                                  </GuideAnchor>
                                                 </span>
                                               </EventOrGroupTitle>
                                             </a>
@@ -1984,7 +1991,13 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                                     }
                                                   }
                                                 >
-                                                  TypeError
+                                                  <GuideAnchor
+                                                    disabled={true}
+                                                    position="bottom"
+                                                    target="issue_title"
+                                                  >
+                                                    TypeError
+                                                  </GuideAnchor>
                                                 </span>
                                               </EventOrGroupTitle>
                                             </a>

@@ -81,10 +81,11 @@ const IconWrapper = styled('span')`
   margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 0;
 `;
 
-const StyledTextBlock = styled('div')`
-  display: flex;
-  align-items: center;
+const StyledTextBlock = styled('span')`
+  line-height: 1.5;
   flex-grow: 1;
+  position: relative;
+  margin: auto;
 `;
 
 const Alert = styled(
