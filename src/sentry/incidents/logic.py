@@ -273,7 +273,7 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
     """
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
-    start, end = calculate_incident_time_range(incident, windowed_stats)
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
