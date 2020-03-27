@@ -124,7 +124,7 @@ else:
     nginx_conf_file = "nginx.conf"
 
 REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx_conf_file")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", nginx_conf_file)
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
