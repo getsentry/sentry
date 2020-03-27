@@ -429,12 +429,10 @@ def _do_process_event(
             ):
                 return
         except RetryProcessing:
-            # If `create_failed_event` indicates that we need to retry we
-            # invoke outselves again.  This happens when the reprocessing
+            # If `create_failed_event` indicates that we need to retry we start
+            # processing from the beginning again. This happens when the reprocessing
             # revision changed while we were processing.
-            from_reprocessing = process_task is process_event_from_reprocessing
-            submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
-            process_task.delay(cache_key, start_time=start_time, event_id=event_id)
+            _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
             return
 
         default_cache.set(cache_key, data, 3600)
