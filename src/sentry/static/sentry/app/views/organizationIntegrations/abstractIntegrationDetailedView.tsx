@@ -69,7 +69,7 @@ class AbstractIntegrationDetailedView<
    */
 
   //The analytics type used in analytics which is snake case
-  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' {
+  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' | 'document' {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -95,7 +95,7 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  get installationStatus(): IntegrationInstallationStatus {
+  get installationStatus(): IntegrationInstallationStatus | null {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -276,7 +276,9 @@ class AbstractIntegrationDetailedView<
           <Flex>
             <Name>{this.integrationName}</Name>
             <StatusWrapper>
-              <IntegrationStatus status={this.installationStatus} />
+              {this.installationStatus && (
+                <IntegrationStatus status={this.installationStatus} />
+              )}
             </StatusWrapper>
           </Flex>
           <Flex>

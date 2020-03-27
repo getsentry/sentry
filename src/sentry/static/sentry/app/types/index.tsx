@@ -389,6 +389,16 @@ export type AppOrProviderOrPlugin =
   | IntegrationProvider
   | PluginWithProjectList;
 
+export type DocumentIntegration = {
+  slug: string;
+  name: string;
+  author: string;
+  docUrl: string;
+  description: string;
+  features: IntegrationFeature[];
+  resourceLinks: Array<{title: string; url: string}>;
+};
+
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
