@@ -156,7 +156,7 @@ class SpanTree extends React.Component<PropType> {
 
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = isJavaScriptSDK(event.sdk?.name) === false;
+    const shouldIncludeGap = !isJavaScriptSDK(event.sdk?.name);
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
