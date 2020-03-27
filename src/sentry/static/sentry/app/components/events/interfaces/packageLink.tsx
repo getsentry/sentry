@@ -31,7 +31,7 @@ class PackageLink extends React.Component<Props> {
       <Package onClick={this.handleClick} isClickable={isClickable}>
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <TooltipContent>{trimPackage(packagePath)}</TooltipContent>
+            <PackageName>{trimPackage(packagePath)}</PackageName>
           </Tooltip>
         ) : (
           <span>{'<unknown>'}</span>
@@ -66,9 +66,13 @@ const Package = styled('a')<Partial<Props>>`
     }
   }
   ${overflowEllipsis}
+
+  > *:first-child {
+    vertical-align: middle;
+  }
 `;
 
-const TooltipContent = styled('span')`
+const PackageName = styled('span')`
   ${overflowEllipsis}
 `;
 
