@@ -1,4 +1,8 @@
+import {LocationDescriptor} from 'history';
+import pick from 'lodash/pick';
+
 import {Client} from 'app/api';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
 import {EventsStats, Organization, YAxisEventsStats} from 'app/types';
@@ -77,3 +81,66 @@ export const doEventsRequest = (
     },
   });
 };
+
+export type EventQuery = {
+  field: string[];
+  project?: string | string[];
+  sort?: string | string[];
+  query: string;
+  per_page?: number;
+  referrer?: string;
+};
+
+export type TagSegment = {
+  count: number;
+  name: string;
+  value: string;
+  url: LocationDescriptor;
+  isOther?: boolean;
+  key?: string;
+};
+
+export type Tag = {
+  key: string;
+  topValues: Array<TagSegment>;
+};
+
+/**
+ * Fetches tag facets for a query
+ */
+export async function fetchTagFacets(
+  api: Client,
+  orgSlug: string,
+  query: EventQuery
+): Promise<Tag[]> {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
+  const queryOption = {...urlParams, query: query.query};
+
+  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
+    query: queryOption,
+  });
+}
+
+/**
+ * Fetches total count of events for a given query
+ */
+export async function fetchTotalCount(
+  api: Client,
+  orgSlug: String,
+  query: EventQuery
+): Promise<number> {
+  const urlParams = pick(query, Object.values(URL_PARAM));
+
+  const queryOption = {...urlParams, query: query.query};
+
+  type Response = {
+    count: number;
+  };
+
+  return api
+    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
+      query: queryOption,
+    })
+    .then((res: Response) => res.count);
+}
