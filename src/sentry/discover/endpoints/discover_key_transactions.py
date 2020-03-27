@@ -73,7 +73,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         results = query(
             fields,
-            None,
+            request.GET.get("query"),
             params,
             orderby=orderby,
             referrer="discover.key_transactions",
