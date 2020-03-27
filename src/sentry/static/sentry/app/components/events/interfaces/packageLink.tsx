@@ -36,7 +36,9 @@ class PackageLink extends React.Component<Props> {
       >
         {defined(packagePath) ? (
           <Tooltip title={packagePath}>
-            <PackageName>{trimPackage(packagePath)}</PackageName>
+            <PackageName isClickable={isClickable} withLeadHint={withLeadHint}>
+              {trimPackage(packagePath)}
+            </PackageName>
           </Tooltip>
         ) : (
           <span>{'<unknown>'}</span>
@@ -55,11 +57,7 @@ const LinkChevron = styled(InlineSvg)`
   vertical-align: top;
 `;
 
-const PackageName = styled('span')`
-  ${overflowEllipsis}
-`;
-
-const Package = styled('a')<Partial<Props> & {withLeadHint: boolean}>`
+const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
   padding: 0 0 0 ${space(0.5)};
@@ -81,9 +79,11 @@ const Package = styled('a')<Partial<Props> & {withLeadHint: boolean}>`
   display: flex;
   align-items: center;
   ${p => p.withLeadHint && `max-width: 76px;`}
-  ${PackageName} {
-    max-width: ${p => (p.withLeadHint && p.isClickable ? '45px' : '104px')};
-  }
+`;
+
+const PackageName = styled('span')<Pick<Props, 'isClickable' | 'withLeadHint'>>`
+  max-width: ${p => (p.withLeadHint && p.isClickable ? '45px' : '104px')};
+  ${overflowEllipsis}
 `;
 
 export default PackageLink;
