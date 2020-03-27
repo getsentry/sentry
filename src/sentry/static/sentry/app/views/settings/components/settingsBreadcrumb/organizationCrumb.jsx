@@ -1,7 +1,7 @@
-import {Flex} from 'reflexbox';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
@@ -66,9 +66,9 @@ class OrganizationCrumb extends React.Component {
               params: {...params, orgId: organization.slug},
             })}
           >
-            <Flex alignItems="center">
+            <BadgeWrapper>
               <IdBadge avatarSize={18} organization={organization} />
-            </Flex>
+            </BadgeWrapper>
           </CrumbLink>
         }
         onSelect={this.handleSelect}
@@ -87,6 +87,11 @@ class OrganizationCrumb extends React.Component {
     );
   }
 }
+
+const BadgeWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 export {OrganizationCrumb};
 export default withLatestContext(OrganizationCrumb);
