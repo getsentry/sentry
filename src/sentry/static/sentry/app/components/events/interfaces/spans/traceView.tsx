@@ -213,6 +213,7 @@ class TraceView extends React.PureComponent<Props, State> {
           >
             {this.renderHeader(dragProps, parsedTrace)}
             <SpanTree
+              event={event}
               eventView={eventView}
               trace={parsedTrace}
               dragProps={dragProps}
