@@ -85,6 +85,7 @@ const StyledTextBlock = styled('span')`
   line-height: 1.5;
   flex-grow: 1;
   position: relative;
+  margin: auto;
 `;
 
 const Alert = styled(
