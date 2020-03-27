@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 from django.db import transaction
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
-from sentry import features
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.discover.models import KeyTransaction
@@ -13,18 +11,32 @@ from sentry.discover.endpoints.serializers import KeyTransactionSerializer
 from sentry.snuba.discover import query
 
 
-class KeyTransactionEndpoint(OrganizationEventsV2EndpointBase):
+class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (OrganizationPermission,)
 
-    def has_feature(self, request, organization):
-        return features.has("organizations:performance-view", organization, actor=request.user)
+    def get(self, request, organization):
+        """ Get the Key Transactions for a user """
+        if not self.has_feature(request, organization):
+            return self.response(status=404)
 
-    def get_project(self, request, organization):
-        projects = self.get_projects(request, organization)
+        project = self.get_project(request, organization)
 
-        if len(projects) != 1:
-            raise ParseError("Only 1 project per Key Transaction")
-        return projects[0]
+        transaction = request.GET.get("transaction")
+
+        try:
+            KeyTransaction.objects.get(
+                organization=organization,
+                owner=request.user,
+                project=project,
+                transaction=transaction,
+            )
+            return Response({"isKey": True}, status=200)
+        except KeyTransaction.DoesNotExist:
+            return Response({"isKey": False}, status=200)
+
+
+class KeyTransactionEndpoint(KeyTransactionBase):
+    permission_classes = (OrganizationPermission,)
 
     def post(self, request, organization):
         """ Create a Key Transaction """
