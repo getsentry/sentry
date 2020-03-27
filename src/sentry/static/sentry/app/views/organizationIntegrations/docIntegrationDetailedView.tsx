@@ -6,6 +6,7 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {DocumentIntegration} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import ExternalLink from 'app/components/links/externalLink';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import {documentIntegrations} from './constants';
@@ -61,12 +62,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton() {
     return (
-      <a
-        href={this.integration.docUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={this.trackClick}
-      >
+      <ExternalLink href={this.integration.docUrl} onClick={this.trackClick}>
         <LearnMoreButton
           size="small"
           priority="primary"
@@ -75,11 +71,11 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         >
           {t('Learn More')}
         </LearnMoreButton>
-      </a>
+      </ExternalLink>
     );
   }
 
-  //no configuraitons
+  //no configuratons
   renderConfigurations() {
     return null;
   }
