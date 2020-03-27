@@ -514,6 +514,7 @@ class NotifyEmailForm(forms.Form):
 class NotifyEmailAction(EventAction):
     form_cls = NotifyEmailForm
     label = "Send an email to {targetType}"
+    prompt = "Send an email"
     metrics_slug = "EmailAction"
     mail_adapter = MailAdapter()
 
