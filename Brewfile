@@ -4,6 +4,9 @@ brew 'pyenv'
 brew 'openssl'
 brew 'readline'
 
+# required for yarn test -u
+brew 'watchman'
+
 # required to build some of sentry's dependencies
 brew 'pkgconfig'
 brew 'libxmlsec1'
