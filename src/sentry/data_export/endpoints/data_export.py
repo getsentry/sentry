@@ -47,7 +47,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-
         # Ensure discover features are enabled if necessary
         if data["query_type"] == ExportQueryType.DISCOVER_STR and not features.has(
             "organizations:discover-basic", organization, actor=request.user

@@ -144,6 +144,6 @@ def process_discover(data_export, file, limit, environment_id):
 
 
 def create_writer(file, fields):
-    writer = csv.DictWriter(file, fields)
+    writer = csv.DictWriter(file, fields, extrasaction="ignore")
     writer.writeheader()
     return writer

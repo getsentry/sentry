@@ -7,7 +7,6 @@ from sentry.snuba import discover
 from sentry.models import Project
 
 from ..base import ExportError
-from ..utils import snuba_error_handler
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +28,7 @@ class DiscoverProcessor(object):
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"], query=discover_query["query"], params=self.params
         )
-        with snuba_error_handler(logger=logger):
-            sample = self.data_fn(0, 1)["data"]
-            if len(sample) == 0:
-                raise ExportError("No available data for the provided query")
-        self.header_fields = sample[0].keys()
+        self.header_fields = discover_query["field"]
 
     @staticmethod
     def get_projects(project_ids):
