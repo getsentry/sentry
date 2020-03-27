@@ -427,16 +427,12 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
-        snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, windowed_stats=False
-        )
+        snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
         assert snapshot.start == incident.date_started
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
-        snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, windowed_stats=True
-        )
+        snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
         assert snapshot.start == incident.date_started
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
@@ -557,9 +553,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident(self.organization)
         incident.update(status=IncidentStatus.CLOSED.value)
         snapshot = create_incident_snapshot(incident)
-        expected_snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.date_closed, windowed_stats=True
-        )
+        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
 
         assert snapshot.event_stats_snapshot.start == expected_snapshot.start
         assert snapshot.event_stats_snapshot.end == expected_snapshot.end

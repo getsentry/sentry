@@ -257,9 +257,7 @@ def create_incident_snapshot(incident, windowed_stats=False):
     """
     assert incident.status == IncidentStatus.CLOSED.value
 
-    event_stats_snapshot = create_event_stat_snapshot(
-        incident, incident.date_started, incident.date_closed, windowed_stats=windowed_stats
-    )
+    event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
     return IncidentSnapshot.objects.create(
         incident=incident,
@@ -269,15 +267,16 @@ def create_incident_snapshot(incident, windowed_stats=False):
     )
 
 
-def create_event_stat_snapshot(incident, start, end, windowed_stats=False):
+def create_event_stat_snapshot(incident, windowed_stats=False):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
 
     event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
+    start, end = calculate_incident_time_range(incident, windowed_stats)
     return TimeSeriesSnapshot.objects.create(
-        start=start,  # TODO: Change this if windowed_stats is True?
-        end=end,  # TODO: Change this if windowed_stats is True?
+        start=start,
+        end=end,
         values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
         period=event_stats.rollup,
     )
@@ -303,24 +302,11 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
 
     query_args_list = []
     for incident in incidents:
-        # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
-        time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
-        time_window_delta = timedelta(minutes=time_window)
-        params = {
-            "start": incident.date_started - time_window_delta if start is None else start,
-            "end": incident.current_end_date if end is None else end,
-        }
-        if windowed_stats:
-            now = timezone.now()
-            params["end"] = params["start"] + timedelta(
-                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
-            )
-            params["start"] = params["start"] - timedelta(
-                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
-            )
-            if params["end"] > now:
-                params["end"] = now
-                params["start"] = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+        params = {}
+
+        params["start"], params["end"] = calculate_incident_time_range(
+            incident, start, end, windowed_stats=True
+        )
 
         group_ids = incident_groups[incident.id]
         if group_ids:
@@ -341,6 +327,23 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
         query_args_list.append(snuba_args)
 
     return query_args_list
+
+
+def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
+    # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
+    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
+    time_window_delta = timedelta(minutes=time_window)
+    start = incident.date_started - time_window_delta if start is None else start
+    end = incident.current_end_date if end is None else end
+    if windowed_stats:
+        now = timezone.now()
+        end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        if end > now:
+            end = now
+            start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+
+    return start, end
 
 
 def calculate_incident_prewindow(start, end, incident=None):
@@ -422,17 +425,17 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
     affect the snapshots. Only the live fetched stats.
     """
     incident_stats = {}
-    # closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
-    # snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
-    # for snapshot in snapshots:
-    #     event_stats = snapshot.event_stats_snapshot
-    #     incident_stats[snapshot.incident_id] = {
-    #         "event_stats": SnubaTSResult(
-    #             event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
-    #         ),
-    #         "total_events": snapshot.total_events,
-    #         "unique_users": snapshot.unique_users,
-    #     }
+    closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
+    snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
+    for snapshot in snapshots:
+        event_stats = snapshot.event_stats_snapshot
+        incident_stats[snapshot.incident_id] = {
+            "event_stats": SnubaTSResult(
+                event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
+            ),
+            "total_events": snapshot.total_events,
+            "unique_users": snapshot.unique_users,
+        }
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
