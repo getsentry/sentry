@@ -238,7 +238,7 @@ class IncidentsListContainer extends React.Component<Props> {
           </PageHeader>
 
           <Alert type="info" icon="icon-circle-info">
-            {t('This page is in beta and currently shows only ')}
+            {t('This page is in beta and currently only shows ')}
             <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/">
               {t('metric alerts')}
             </ExternalLink>
