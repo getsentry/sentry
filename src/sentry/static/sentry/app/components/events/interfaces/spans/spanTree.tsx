@@ -345,7 +345,7 @@ const TraceViewContainer = styled('div')`
 function isJavaScriptSDK(sdkName?: string): boolean {
   if (!sdkName) {
     return false;
-  }  
+  }
   // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
   return sdkName.toLowerCase() === 'sentry.javascript.browser';
 }
