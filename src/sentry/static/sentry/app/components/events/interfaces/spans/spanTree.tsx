@@ -342,17 +342,12 @@ const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-function isJavaScriptSDK(sdkName: string | undefined): boolean {
+function isJavaScriptSDK(sdkName?: string): boolean {
   if (!sdkName) {
     return false;
-  }
-
-  sdkName = sdkName.toLowerCase();
-
-  // based on
-  // https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-
-  return sdkName === 'sentry.javascript.browser';
+  }  
+  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+  return sdkName.toLowerCase() === 'sentry.javascript.browser';
 }
 
 export default SpanTree;
