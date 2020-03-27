@@ -264,7 +264,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if name in no_conversion:
         return name
 
-    if not name or QUOTED_LITERAL_RE.match(name):
+    if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
     return DATASETS[dataset].get(name, u"tags[{}]".format(name))
