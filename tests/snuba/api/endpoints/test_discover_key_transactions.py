@@ -122,6 +122,42 @@ class KeyTransactionTest(APITestCase):
             ]
         }
 
+    def test_get_no_key_transacitons(self):
+        event_data = load_data("transaction")
+        start_timestamp = iso_format(before_now(minutes=1))
+        end_timestamp = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+
+        transactions = [
+            (self.project, "/foo_transaction/"),
+            (self.project, "/blah_transaction/"),
+            (self.project, "/zoo_transaction/"),
+        ]
+
+        for project, transaction in transactions:
+            event_data["transaction"] = transaction
+            self.store_event(data=event_data, project_id=project.id)
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                {
+                    "project": [self.project.id],
+                    "orderby": "transaction",
+                    "field": [
+                        "transaction",
+                        "transaction_status",
+                        "project",
+                        "rpm()",
+                        "error_rate()",
+                        "percentile(transaction.duration, 0.95)",
+                    ],
+                },
+            )
+
+        assert response.status_code == 404
+
     @patch("django.utils.timezone.now")
     def test_get_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)

@@ -56,6 +56,9 @@ class KeyTransactionEndpoint(OrganizationEventsV2EndpointBase):
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
 
+        if not queryset.exists():
+            raise ResourceDoesNotExist
+
         results = query(
             fields,
             None,
