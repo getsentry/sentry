@@ -1,4 +1,3 @@
-import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
@@ -8,11 +7,11 @@ import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
-import HeroIcon from 'app/components/heroIcon';
 import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   itemList: Repository[];
@@ -51,13 +50,9 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
 
       {hasItemList ? (
         <Panel>
-          <PanelHeader disablePadding>
-            <Flex>
-              <Box px={2}>{t('Added Repositories')}</Box>
-            </Flex>
-          </PanelHeader>
+          <PanelHeader>{t('Added Repositories')}</PanelHeader>
           <PanelBody>
-            <Box>
+            <div>
               {itemList.map(repo => (
                 <RepositoryRow
                   key={repo.id}
@@ -68,25 +63,23 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
                   onRepositoryChange={onRepositoryChange}
                 />
               ))}
-            </Box>
+            </div>
           </PanelBody>
         </Panel>
       ) : (
-        <Panel className="align-center p-x-2 p-y-1">
-          <Box mb={1}>
-            <HeroIcon src="icon-commit" />
-          </Box>
-          <h3>{t('Sentry is better with commit data')}</h3>
-          <TextBlock>
-            {t(
+        <Panel>
+          <EmptyMessage
+            icon="icon-commit"
+            title={t('Sentry is better with commit data')}
+            description={t(
               'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
             )}
-          </TextBlock>
-          <Box mb={1}>
-            <Button href="https://docs.sentry.io/learn/releases/">
-              {t('Learn more')}
-            </Button>
-          </Box>
+            action={
+              <Button href="https://docs.sentry.io/learn/releases/">
+                {t('Learn more')}
+              </Button>
+            }
+          />
         </Panel>
       )}
     </div>
