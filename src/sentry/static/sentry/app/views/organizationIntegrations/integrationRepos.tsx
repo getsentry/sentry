@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
 import React from 'react';
@@ -210,12 +209,8 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
-        <Box flex={1} pl={2}>
-          {t('Repositories')}
-        </Box>
-        <Box pr={1} style={{textTransform: 'none'}}>
-          {this.renderDropdown()}
-        </Box>
+        <HeaderText>{t('Repositories')}</HeaderText>
+        <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
       </PanelHeader>
     );
 
@@ -256,6 +251,16 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const HeaderText = styled('div')`
+  padding-left: ${space(2)};
+  flex: 1;
+`;
+
+const DropdownWrapper = styled('div')`
+  padding-right: ${space(1)};
+  text-transform: none;
+`;
 
 const StyledReposLabel = styled('div')`
   width: 250px;
