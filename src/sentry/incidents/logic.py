@@ -255,6 +255,7 @@ def create_incident_snapshot(incident, windowed_stats=False):
     Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
+
     assert incident.status == IncidentStatus.CLOSED.value
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
@@ -305,7 +306,7 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
         params = {}
 
         params["start"], params["end"] = calculate_incident_time_range(
-            incident, start, end, windowed_stats=True
+            incident, start, end, windowed_stats=windowed_stats
         )
 
         group_ids = incident_groups[incident.id]

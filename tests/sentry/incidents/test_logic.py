@@ -28,6 +28,7 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_event_stat_snapshot,
+    calculate_incident_time_range,
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
@@ -428,13 +429,14 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
         snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
-        assert snapshot.start == incident.date_started
+        assert snapshot.start == incident.date_started - timedelta(minutes=1)
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
         snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
-        assert snapshot.start == incident.date_started
-        assert snapshot.end == incident.current_end_date
+        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert snapshot.start == expected_start
+        assert snapshot.end == expected_end
         assert [row[1] for row in snapshot.values] == [2, 1]
 
 
@@ -552,7 +554,22 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
     def test(self):
         incident = self.create_incident(self.organization)
         incident.update(status=IncidentStatus.CLOSED.value)
-        snapshot = create_incident_snapshot(incident)
+        snapshot = create_incident_snapshot(incident, windowed_stats=False)
+        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
+
+        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
+        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
+        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
+        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
+        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
+        aggregates = get_incident_aggregates(incident)
+        assert snapshot.unique_users == aggregates["unique_users"]
+        assert snapshot.total_events == aggregates["count"]
+
+    def test_windowed(self):
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value)
+        snapshot = create_incident_snapshot(incident, windowed_stats=True)
         expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
 
         assert snapshot.event_stats_snapshot.start == expected_snapshot.start
@@ -566,7 +583,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
 
 @freeze_time()
-class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
+class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
     def test(self):
         closed_incident = create_incident(
             self.organization,
@@ -594,8 +611,9 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
         ):
             event_stats = get_incident_event_stats(incident, windowed_stats=True)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            expected_start = incident_stats["event_stats"].start
-            expected_end = incident_stats["event_stats"].end
+            expected_start, expected_end = calculate_incident_time_range(
+                incident, windowed_stats=True
+            )
             assert event_stats.start == expected_start
             assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup
