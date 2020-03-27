@@ -287,7 +287,10 @@ from sentry.data_export.endpoints.data_export_details import DataExportDetailsEn
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
-from sentry.discover.endpoints.discover_key_transactions import KeyTransactionEndpoint
+from sentry.discover.endpoints.discover_key_transactions import (
+    KeyTransactionEndpoint,
+    IsKeyTransactionEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
 )
@@ -659,6 +662,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
                     KeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
+                    IsKeyTransactionEndpoint.as_view(),
+                    name="sentry-api-0-organization-is-key-transactions",
                 ),
                 # Dashboards
                 url(

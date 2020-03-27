@@ -158,6 +158,42 @@ class KeyTransactionTest(APITestCase):
 
         assert response.status_code == 404
 
+    def test_is_key_transaciton(self):
+        event_data = load_data("transaction")
+        start_timestamp = iso_format(before_now(minutes=1))
+        end_timestamp = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url, {"project": [self.project.id], "transaction": event_data["transaction"]}
+            )
+
+        assert response.status_code == 200
+        assert response.data["isKey"]
+
+    def test_is_not_key_transaciton(self):
+        event_data = load_data("transaction")
+        start_timestamp = iso_format(before_now(minutes=1))
+        end_timestamp = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url, {"project": [self.project.id], "transaction": event_data["transaction"]}
+            )
+
+        assert response.status_code == 200
+        assert not response.data["isKey"]
+
     @patch("django.utils.timezone.now")
     def test_get_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
