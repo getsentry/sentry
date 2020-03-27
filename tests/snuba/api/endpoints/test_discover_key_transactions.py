@@ -2,17 +2,18 @@ from __future__ import absolute_import
 
 import pytz
 import six
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat.mock import patch
 from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
 from sentry.utils.samples import load_data
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class KeyTransactionTest(APITestCase):
+class KeyTransactionTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(KeyTransactionTest, self).setUp()
 
@@ -467,3 +468,128 @@ class KeyTransactionTest(APITestCase):
             )
 
         assert response.status_code == 403
+
+    @patch("django.utils.timezone.now")
+    def test_key_transaction_stats(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        data = load_data("transaction")
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
+        data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=30)),
+                "start_timestamp": iso_format(before_now(minutes=31)),
+            }
+        )
+        for event_id in event_ids:
+            data["event_id"] = event_id
+            self.store_event(data=data, project_id=self.project.id)
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(hours=2)),
+                    "end": iso_format(before_now()),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "project": [self.project.id],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        assert [{"count": 3}] in [attrs for time, attrs in response.data["data"]]
+
+    @patch("django.utils.timezone.now")
+    def test_key_transaction_with_query(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+            "timestamp": iso_format(before_now(minutes=30)),
+            "start_timestamp": iso_format(before_now(minutes=31)),
+        }
+        fixtures = (("d" * 32, "yes"), ("e" * 32, "no"), ("f" * 32, "yes"))
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["tags"]["important"] = fixture[1]
+            self.store_event(data=data, project_id=self.project.id)
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.project.organization,
+            transaction=prototype["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "query": "tags[important]:yes",
+                    "project": [self.project.id],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        assert [{"count": 2}] in [attrs for time, attrs in response.data["data"]]
+
+    @patch("django.utils.timezone.now")
+    def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=32), "yes"),
+            ("e" * 32, before_now(hours=1, minutes=2), "no"),
+            ("f" * 32, before_now(hours=1, minutes=35), "yes"),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
+            data["tags"]["important"] = fixture[2]
+            self.store_event(data=data, project_id=self.project.id)
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "interval": "30m",
+                    "yAxis": "count()",
+                    "query": "tags[important]: yes",
+                    "project": [self.project.id],
+                },
+            )
+
+        assert response.status_code == 404
