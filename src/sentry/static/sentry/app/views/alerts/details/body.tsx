@@ -40,14 +40,14 @@ export default class DetailsBody extends React.Component<Props> {
     const {incident, params, stats} = this.props;
     const {orgId} = params;
 
-    if (!projects || !projects.length || !incident) {
+    if (!projects || !projects.length || !incident || !stats) {
       return '';
     }
 
     const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const start = getUtcDateString(stats?.eventStats.data[0][0] * 1000);
+    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
     const end = getUtcDateString(
-      stats?.eventStats.data[stats?.eventStats.data.length - 1][0] * 1000
+      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
     );
 
     const discoverQuery: NewQuery = {
