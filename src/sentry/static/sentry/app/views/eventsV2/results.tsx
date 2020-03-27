@@ -272,7 +272,6 @@ export const Top = styled('div')`
 export const Main = styled('div')<{eventView: EventView}>`
   grid-column: 1/2;
   max-width: 100%;
-  overflow: hidden;
 `;
 export const Side = styled('div')<{eventView: EventView}>`
   grid-column: 2/3;
