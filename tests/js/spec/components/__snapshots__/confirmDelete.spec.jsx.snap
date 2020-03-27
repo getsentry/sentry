@@ -43,13 +43,11 @@ exports[`ConfirmDelete renders 1`] = `
                 className="ref-error css-1cl10ra-Alert ejthpj82"
               >
                 <StyledTextBlock>
-                  <div
-                    className="css-12wruw9-StyledTextBlock ejthpj81"
+                  <span
+                    className="css-6y2q80-StyledTextBlock ejthpj81"
                   >
-                    <span>
-                      Are you sure?
-                    </span>
-                  </div>
+                    Are you sure?
+                  </span>
                 </StyledTextBlock>
               </div>
             </Component>
