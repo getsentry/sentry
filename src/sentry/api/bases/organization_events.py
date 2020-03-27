@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+from datetime import timedelta
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
 
@@ -8,11 +9,24 @@ from rest_framework.exceptions import ParseError
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_filter, InvalidSearchQuery, get_json_meta_type
+from sentry.api.event_search import (
+    get_filter,
+    InvalidSearchQuery,
+    get_json_meta_type,
+    get_function_alias,
+)
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba.discover import ReferenceEvent
-from sentry.utils.compat import map
+from sentry.utils.compat import map, zip
+from sentry.utils.dates import parse_stats_period
+
+
+# Maximum number of results we are willing to fetch.
+# Clients should adapt the interval width based on their
+# display width.
+MAX_POINTS = 4500
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -130,6 +144,54 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         del result[key]
 
         return results
+
+    def get_event_stats_data(self, request, organization, get_event_stats):
+        try:
+            columns = request.GET.getlist("yAxis", ["count()"])
+            query = request.GET.get("query")
+            params = self.get_filter_params(request, organization)
+            rollup = self.get_rollup(request, params)
+            # Backwards compatibility for incidents which uses the old
+            # column aliases as it straddles both versions of events/discover.
+            # We will need these aliases until discover2 flags are enabled for all
+            # users.
+            column_map = {
+                "user_count": "count_unique(user)",
+                "event_count": "count()",
+                "rpm()": "rpm(%d)" % rollup,
+                "rps()": "rps(%d)" % rollup,
+            }
+            query_columns = [column_map.get(column, column) for column in columns]
+            reference_event = self.reference_event(
+                request, organization, params.get("start"), params.get("end")
+            )
+
+            result = get_event_stats(query_columns, query, params, rollup, reference_event)
+        except InvalidSearchQuery as err:
+            raise ParseError(detail=six.text_type(err))
+        serializer = SnubaTSResultSerializer(organization, None, request.user)
+        if len(columns) > 1:
+            # Return with requested yAxis as the key
+            return {
+                column: serializer.serialize(result, get_function_alias(query_column))
+                for column, query_column in zip(columns, query_columns)
+            }
+        else:
+            return serializer.serialize(result)
+
+    def get_rollup(self, request, params):
+        interval = parse_stats_period(request.GET.get("interval", "1h"))
+        if interval is None:
+            interval = timedelta(hours=1)
+
+        date_range = params["end"] - params["start"]
+        if date_range.total_seconds() / interval.total_seconds() > MAX_POINTS:
+            raise InvalidSearchQuery(
+                "Your interval and date range would create too many results. "
+                "Use a larger interval, or a smaller date range."
+            )
+
+        return int(interval.total_seconds())
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
