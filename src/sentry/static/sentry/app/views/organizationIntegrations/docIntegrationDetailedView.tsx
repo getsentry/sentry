@@ -30,11 +30,11 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get description() {
-    return this.integration.description || '';
+    return this.integration.description;
   }
 
   get author() {
-    return this.integration.author || '';
+    return this.integration.author;
   }
 
   get resourceLinks() {
