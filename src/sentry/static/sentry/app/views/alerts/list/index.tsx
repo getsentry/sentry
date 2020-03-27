@@ -188,11 +188,7 @@ class IncidentsListContainer extends React.Component<Props> {
           <PageHeader>
             <StyledPageHeading>
               {t('Alerts')}{' '}
-              <BetaTag
-                title={t(
-                  'This feature may change in the future and currently only shows metric alerts'
-                )}
-              />
+              <BetaTag title={t('This page is in beta and may change in the future.')} />
             </StyledPageHeading>
 
             <Actions>
@@ -242,7 +238,7 @@ class IncidentsListContainer extends React.Component<Props> {
           </PageHeader>
 
           <Alert type="info" icon="icon-circle-info">
-            {t('This feature is in beta and currently shows only metric alerts. ')}
+            {t('This page is in beta and currently shows only metric alerts. ')}
 
             <ExternalLink href="mailto:alerting-feedback@sentry.io">
               {t('Please contact us if you have any feedback.')}
