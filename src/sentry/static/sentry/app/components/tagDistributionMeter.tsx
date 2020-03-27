@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
+import {TagSegment} from 'app/actionCreators/events';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -19,15 +20,6 @@ type DefaultProps = {
   renderLoading: () => React.ReactNode;
   renderEmpty: () => React.ReactNode;
   renderError: () => React.ReactNode;
-};
-
-export type TagSegment = {
-  count: number;
-  name: string;
-  value: string;
-  url: LocationDescriptor;
-  isOther?: boolean;
-  key?: string;
 };
 
 type Props = DefaultProps & {

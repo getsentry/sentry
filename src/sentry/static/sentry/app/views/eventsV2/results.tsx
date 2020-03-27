@@ -10,6 +10,7 @@ import {Organization, GlobalSelection} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -28,7 +29,7 @@ import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
-import {generateTitle, fetchTotalCount} from './utils';
+import {generateTitle} from './utils';
 import {ContentBox} from './styles';
 
 type Props = {

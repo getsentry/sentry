@@ -9,10 +9,11 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {SavedQuery, NewQuery, SelectValue} from 'app/types';
+import {EventQuery} from 'app/actionCreators/events';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
-import {EventQuery, decodeColumnOrder, decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeColumnOrder, decodeScalar} from 'app/views/eventsV2/utils';
 
 import {
   Sort,

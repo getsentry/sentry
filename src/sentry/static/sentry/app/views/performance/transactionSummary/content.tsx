@@ -20,11 +20,12 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
+  totalValues: number | null;
 };
 
 class SummaryContent extends React.Component<Props> {
   render() {
-    const {transactionName, location, eventView, organization} = this.props;
+    const {transactionName, location, eventView, organization, totalValues} = this.props;
 
     return (
       <React.Fragment>
@@ -55,6 +56,7 @@ class SummaryContent extends React.Component<Props> {
                 eventView={eventView}
                 tableData={tableData}
                 isLoading={isLoading}
+                totalValues={totalValues}
               />
             )}
           </EventsV2>
@@ -65,7 +67,7 @@ class SummaryContent extends React.Component<Props> {
               eventView={eventView}
             />
             <Tags
-              totalValues={null}
+              totalValues={totalValues}
               eventView={eventView}
               organization={organization}
               location={location}

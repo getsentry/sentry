@@ -3,22 +3,27 @@ import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/browser';
 
+import {Client} from 'app/api';
 import {t} from 'app/locale';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import EventView from 'app/utils/discover/eventView';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import NoProjectMessage from 'app/components/noProjectMessage';
+import withApi from 'app/utils/withApi';
 
 import SummaryContent from './content';
 
 type Props = {
+  api: Client;
   location: Location;
   params: Params;
   organization: Organization;
@@ -28,6 +33,7 @@ type Props = {
 
 type State = {
   eventView: EventView | undefined;
+  totalValues: number | null;
 };
 
 class TransactionSummary extends React.Component<Props, State> {
@@ -36,6 +42,7 @@ class TransactionSummary extends React.Component<Props, State> {
       this.props.location,
       getTransactionName(this.props)
     ),
+    totalValues: null,
   };
 
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -46,6 +53,43 @@ class TransactionSummary extends React.Component<Props, State> {
         getTransactionName(nextProps)
       ),
     };
+  }
+
+  componentDidMount() {
+    this.fetchTotalCount();
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {location} = this.props;
+    const {eventView} = this.state;
+
+    if (eventView && prevState.eventView) {
+      const currentQuery = eventView.getEventsAPIPayload(location);
+      const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+      if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+        this.fetchTotalCount();
+      }
+    }
+  }
+
+  async fetchTotalCount() {
+    const {api, organization, location} = this.props;
+    const {eventView} = this.state;
+    if (!eventView || !eventView.isValid()) {
+      return;
+    }
+
+    this.setState({totalValues: null});
+    try {
+      const totals = await fetchTotalCount(
+        api,
+        organization.slug,
+        eventView.getEventsAPIPayload(location)
+      );
+      this.setState({totalValues: totals});
+    } catch (err) {
+      Sentry.captureException(err);
+    }
   }
 
   getDocumentTitle(): string {
@@ -62,7 +106,7 @@ class TransactionSummary extends React.Component<Props, State> {
 
   render() {
     const {organization, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, totalValues} = this.state;
     const transactionName = getTransactionName(this.props);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
@@ -87,6 +131,7 @@ class TransactionSummary extends React.Component<Props, State> {
                 organization={organization}
                 eventView={eventView}
                 transactionName={transactionName}
+                totalValues={totalValues}
               />
             </NoProjectMessage>
           </StyledPageContent>
@@ -143,4 +188,4 @@ function generateSummaryEventView(
   );
 }
 
-export default withProjects(withOrganization(TransactionSummary));
+export default withApi(withProjects(withOrganization(TransactionSummary)));

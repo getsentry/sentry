@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Client} from 'app/api';
-import {fetchTotalCount} from 'app/views/eventsV2/utils';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
 
