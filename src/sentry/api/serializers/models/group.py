@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+import logging
 
 from django.conf import settings
 from django.db.models import Min, Q
@@ -59,6 +60,14 @@ disabled = object()
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+logger = logging.getLogger(__name__)
+
+
+def merge_list_dictionaries(dict1, dict2):
+    for key, val in six.iteritems(dict2):
+        dict1.setdefault(key, []).extend(val)
 
 
 class GroupSerializerBase(Serializer):
@@ -147,6 +156,8 @@ class GroupSerializerBase(Serializer):
 
     def get_attrs(self, item_list, user):
         from sentry.plugins.base import plugins
+        from sentry.integrations import IntegrationFeatures
+        from sentry.models import PlatformExternalIssue
 
         GroupMeta.objects.populate_cache(item_list)
 
@@ -226,41 +237,67 @@ class GroupSerializerBase(Serializer):
 
         seen_stats = self._get_seen_stats(item_list, user)
 
+        annotations_by_group_id = defaultdict(list)
+
+        organization_id_list = list(set(item.project.organization_id for item in item_list))
+        # if no groups, then we can't proceed but this seems to be a valid use case
+        if not item_list:
+            return {}
+        if len(organization_id_list) > 1:
+            # this should never happen but if it does we should know about it
+            logger.warn(
+                u"Found multiple organizations for groups: %s, with orgs: %s"
+                % ([item.id for item in item_list], organization_id_list)
+            )
+
+        # should only have 1 org at this point
+        organization_id = organization_id_list[0]
+
+        # find all the integration installss that have issue tracking
+        for integration in Integration.objects.filter(organizations=organization_id):
+            if not (
+                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            ):
+                continue
+
+            install = integration.get_installation(organization_id)
+            local_annotations_by_group_id = (
+                safe_execute(
+                    install.get_annotations_for_group_list,
+                    group_list=item_list,
+                    _with_transaction=False,
+                )
+                or {}
+            )
+            merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
+        # find the external issues for sentry apps and add them in
+        local_annotations_by_group_id = (
+            safe_execute(
+                PlatformExternalIssue.get_annotations_for_group_list,
+                group_list=item_list,
+                _with_transaction=False,
+            )
+            or {}
+        )
+        merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
             annotations = []
+            annotations.extend(annotations_by_group_id[item.id])
+
+            # add the annotations for plugins
+            # note that the model GroupMeta where all the information is stored is already cached at the top of this function
+            # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
-
-            from sentry.integrations import IntegrationFeatures
-
-            for integration in Integration.objects.filter(
-                organizations=item.project.organization_id
-            ):
-                if not (
-                    integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                    or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-                ):
-                    continue
-
-                install = integration.get_installation(item.project.organization_id)
-                annotations.extend(
-                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
-                )
-
-            from sentry.models import PlatformExternalIssue
-
-            annotations.extend(
-                safe_execute(
-                    PlatformExternalIssue.get_annotations, group=item, _with_transaction=False
-                )
-                or ()
-            )
 
             resolution_actor = None
             resolution_type = None

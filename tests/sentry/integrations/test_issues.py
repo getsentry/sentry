@@ -149,12 +149,12 @@ class IssueDefaultTest(TestCase):
         label = self.installation.get_issue_display_name(self.external_issue)
         link = self.installation.get_issue_url(self.external_issue.key)
 
-        assert self.installation.get_annotations(self.group) == [
-            '<a href="%s">%s</a>' % (link, label)
-        ]
+        assert self.installation.get_annotations_for_group_list([self.group]) == {
+            self.group.id: ['<a href="%s">%s</a>' % (link, label)]
+        }
 
         integration = Integration.objects.create(provider="example", external_id="4444")
         integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
 
-        assert installation.get_annotations(self.group) == []
+        assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
