@@ -238,8 +238,11 @@ class IncidentsListContainer extends React.Component<Props> {
           </PageHeader>
 
           <Alert type="info" icon="icon-circle-info">
-            {t('This page is in beta and currently shows only metric alerts. ')}
-
+            {t('This page is in beta and currently shows only ')}
+            <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/">
+              {t('metric alerts')}
+            </ExternalLink>
+            {t('. ')}
             <ExternalLink href="mailto:alerting-feedback@sentry.io">
               {t('Please contact us if you have any feedback.')}
             </ExternalLink>
