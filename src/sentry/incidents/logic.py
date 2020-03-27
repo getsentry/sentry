@@ -426,17 +426,20 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
     affect the snapshots. Only the live fetched stats.
     """
     incident_stats = {}
-    closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
-    snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
-    for snapshot in snapshots:
-        event_stats = snapshot.event_stats_snapshot
-        incident_stats[snapshot.incident_id] = {
-            "event_stats": SnubaTSResult(
-                event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
-            ),
-            "total_events": snapshot.total_events,
-            "unique_users": snapshot.unique_users,
-        }
+    if windowed_stats is True:
+        # At the moment, snapshots are only ever created with windowed_stats as True
+        # so if they send False, we need to do a live calculation below.
+        closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
+        snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
+        for snapshot in snapshots:
+            event_stats = snapshot.event_stats_snapshot
+            incident_stats[snapshot.incident_id] = {
+                "event_stats": SnubaTSResult(
+                    event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
+                ),
+                "total_events": snapshot.total_events,
+                "unique_users": snapshot.unique_users,
+            }
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
