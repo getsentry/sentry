@@ -53,14 +53,23 @@ export const POPULARITY_WEIGHT: {
   splunk: 2,
 } as const;
 
-export const documentIntegrations = [
-  {
+export const documentIntegrations = {
+  datadog: {
     slug: 'datadog',
     name: 'Datadog',
     author: 'Datadog',
-    docUrl: 'https://datadog.com',
-    description: 'asdfasdfadfasfdasf',
-    features: [],
-    resourceLinks: [{title: 'github', url: 'http//github.com'}],
+    docUrl: 'https://www.datadoghq.com/',
+    description:
+      'Quickly discover relationships between production apps and systems performance. Seeing correlations between Sentry events and metrics from infra services like AWS, Elasticsearch, Docker, and Kafka can save time detecting sources of future spikes.',
+    features: [
+      {
+        featureGate: 'data-forwarding',
+        description: 'Forward any events you choose from Sentry.',
+      },
+    ],
+    resourceLinks: [
+      {title: 'View Source', url: 'https://sentry.io'},
+      {title: 'Report Issue', url: 'https://github.com'},
+    ],
   },
-] as const;
+} as const;
