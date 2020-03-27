@@ -101,7 +101,7 @@ const Toggle = styled('span')`
     opacity: 1;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     display: inline;
   }
 `;
