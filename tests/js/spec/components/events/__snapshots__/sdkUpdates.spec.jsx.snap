@@ -88,119 +88,117 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                     </span>
                   </IconWrapper>
                   <StyledTextBlock>
-                    <div
-                      className="css-12wruw9-StyledTextBlock ejthpj81"
+                    <span
+                      className="css-7xf7tp-StyledTextBlock ejthpj81"
                     >
-                      <span>
-                        We recommend you 
-                        <EventSdkUpdateSuggestion
-                          event={
-                            Object {
-                              "id": "123",
-                              "sdk": Object {
-                                "name": "sentry.python",
-                                "version": "0.1.0",
+                      We recommend you 
+                      <EventSdkUpdateSuggestion
+                        event={
+                          Object {
+                            "id": "123",
+                            "sdk": Object {
+                              "name": "sentry.python",
+                              "version": "0.1.0",
+                            },
+                            "sdkUpdates": Array [
+                              Object {
+                                "enables": Array [
+                                  Object {
+                                    "enables": Array [],
+                                    "integrationName": "django",
+                                    "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
+                                    "type": "enableIntegration",
+                                  },
+                                ],
+                                "newSdkVersion": "0.9.0",
+                                "sdkName": "sentry.python",
+                                "sdkUrl": null,
+                                "type": "updateSdk",
                               },
-                              "sdkUpdates": Array [
-                                Object {
-                                  "enables": Array [
+                            ],
+                          }
+                        }
+                        suggestion={
+                          Object {
+                            "enables": Array [
+                              Object {
+                                "enables": Array [],
+                                "integrationName": "django",
+                                "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
+                                "type": "enableIntegration",
+                              },
+                            ],
+                            "newSdkVersion": "0.9.0",
+                            "sdkName": "sentry.python",
+                            "sdkUrl": null,
+                            "type": "updateSdk",
+                          }
+                        }
+                      >
+                        <span>
+                          update your SDK from version 0.1.0 to version 0.9.0
+                           so you can
+                          <AlertUl>
+                            <ul
+                              className="css-1m5k0q4-AlertUl emcdiy70"
+                            >
+                              <li
+                                key="{\\"enables\\":[],\\"integrationName\\":\\"django\\",\\"integrationUrl\\":\\"https://docs.sentry.io/platforms/python/django/\\",\\"type\\":\\"enableIntegration\\"}"
+                              >
+                                <EventSdkUpdateSuggestion
+                                  event={
+                                    Object {
+                                      "id": "123",
+                                      "sdk": Object {
+                                        "name": "sentry.python",
+                                        "version": "0.1.0",
+                                      },
+                                      "sdkUpdates": Array [
+                                        Object {
+                                          "enables": Array [
+                                            Object {
+                                              "enables": Array [],
+                                              "integrationName": "django",
+                                              "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
+                                              "type": "enableIntegration",
+                                            },
+                                          ],
+                                          "newSdkVersion": "0.9.0",
+                                          "sdkName": "sentry.python",
+                                          "sdkUrl": null,
+                                          "type": "updateSdk",
+                                        },
+                                      ],
+                                    }
+                                  }
+                                  suggestion={
                                     Object {
                                       "enables": Array [],
                                       "integrationName": "django",
                                       "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
                                       "type": "enableIntegration",
-                                    },
-                                  ],
-                                  "newSdkVersion": "0.9.0",
-                                  "sdkName": "sentry.python",
-                                  "sdkUrl": null,
-                                  "type": "updateSdk",
-                                },
-                              ],
-                            }
-                          }
-                          suggestion={
-                            Object {
-                              "enables": Array [
-                                Object {
-                                  "enables": Array [],
-                                  "integrationName": "django",
-                                  "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
-                                  "type": "enableIntegration",
-                                },
-                              ],
-                              "newSdkVersion": "0.9.0",
-                              "sdkName": "sentry.python",
-                              "sdkUrl": null,
-                              "type": "updateSdk",
-                            }
-                          }
-                        >
-                          <span>
-                            update your SDK from version 0.1.0 to version 0.9.0
-                             so you can
-                            <AlertUl>
-                              <ul
-                                className="css-1m5k0q4-AlertUl emcdiy70"
-                              >
-                                <li
-                                  key="{\\"enables\\":[],\\"integrationName\\":\\"django\\",\\"integrationUrl\\":\\"https://docs.sentry.io/platforms/python/django/\\",\\"type\\":\\"enableIntegration\\"}"
+                                    }
+                                  }
                                 >
-                                  <EventSdkUpdateSuggestion
-                                    event={
-                                      Object {
-                                        "id": "123",
-                                        "sdk": Object {
-                                          "name": "sentry.python",
-                                          "version": "0.1.0",
-                                        },
-                                        "sdkUpdates": Array [
-                                          Object {
-                                            "enables": Array [
-                                              Object {
-                                                "enables": Array [],
-                                                "integrationName": "django",
-                                                "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
-                                                "type": "enableIntegration",
-                                              },
-                                            ],
-                                            "newSdkVersion": "0.9.0",
-                                            "sdkName": "sentry.python",
-                                            "sdkUrl": null,
-                                            "type": "updateSdk",
-                                          },
-                                        ],
-                                      }
-                                    }
-                                    suggestion={
-                                      Object {
-                                        "enables": Array [],
-                                        "integrationName": "django",
-                                        "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
-                                        "type": "enableIntegration",
-                                      }
-                                    }
+                                  <ForwardRef
+                                    href="https://docs.sentry.io/platforms/python/django/"
                                   >
-                                    <ForwardRef
+                                    <a
                                       href="https://docs.sentry.io/platforms/python/django/"
+                                      rel="noreferrer noopener"
+                                      target="_blank"
                                     >
-                                      <a
-                                        href="https://docs.sentry.io/platforms/python/django/"
-                                        rel="noreferrer noopener"
-                                        target="_blank"
-                                      >
-                                        enable the 'django' integration
-                                      </a>
-                                    </ForwardRef>
-                                  </EventSdkUpdateSuggestion>
-                                </li>
-                              </ul>
-                            </AlertUl>
-                          </span>
-                        </EventSdkUpdateSuggestion>
-                        .
-                      </span>
-                    </div>
+                                      enable the 'django' integration
+                                    </a>
+                                  </ForwardRef>
+                                </EventSdkUpdateSuggestion>
+                              </li>
+                            </ul>
+                          </AlertUl>
+                        </span>
+                      </EventSdkUpdateSuggestion>
+                      .
+                    </span>
                   </StyledTextBlock>
                 </div>
               </Component>
