@@ -180,7 +180,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                                     }
                                   }
                                 >
-                                  <ForwardRef
+                                  <ForwardRef(ExternalLink)
                                     href="https://docs.sentry.io/platforms/python/django/"
                                   >
                                     <a
@@ -190,7 +190,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                                     >
                                       enable the 'django' integration
                                     </a>
-                                  </ForwardRef>
+                                  </ForwardRef(ExternalLink)>
                                 </EventSdkUpdateSuggestion>
                               </li>
                             </ul>
