@@ -4,8 +4,6 @@ from exam import mock
 
 from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
-
-
 from tests.acceptance.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
@@ -48,6 +46,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         detail_view_page.switch_to_configuration_view()
         assert self.browser.element_exists('[aria-label="Configure"]')
+        self.browser.snapshot(name="integrations - example integration detail configurations")
 
     def test_uninstallation(self):
         model = Integration.objects.create(
