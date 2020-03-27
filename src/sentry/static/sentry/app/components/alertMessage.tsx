@@ -52,13 +52,11 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledMessage = styled('span')`
-  padding: ${space(0.25)} 0;
   display: block;
-  margin-right: 30px;
+  margin: auto ${space(4)} auto 0;
 `;
 
 const StyledCloseButton = styled(Button)`
-  margin: ${space(0.5)} 0 ${space(0.5)} auto;
   background-color: transparent;
   opacity: 0.4;
   transition: opacity 0.1s linear;
