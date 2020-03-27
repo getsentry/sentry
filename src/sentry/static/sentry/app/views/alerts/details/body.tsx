@@ -45,9 +45,9 @@ export default class DetailsBody extends React.Component<Props> {
     }
 
     const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+    const start = getUtcDateString(stats?.eventStats.data[0][0] * 1000);
     const end = getUtcDateString(
-      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
+      stats?.eventStats.data[stats?.eventStats.data.length - 1][0] * 1000
     );
 
     const discoverQuery: NewQuery = {
