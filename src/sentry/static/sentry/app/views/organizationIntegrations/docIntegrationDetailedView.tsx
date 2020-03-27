@@ -52,9 +52,21 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     return this.integration.features;
   }
 
+  trackClick = () => {
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.installation_start',
+      eventName: 'Integrations: Installation Start',
+    });
+  };
+
   renderTopButton() {
     return (
-      <a href={this.integration.docUrl} target="_blank" rel="noopener noreferrer">
+      <a
+        href={this.integration.docUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={this.trackClick}
+      >
         <LearnMoreButton
           size="small"
           priority="primary"
