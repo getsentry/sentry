@@ -141,7 +141,7 @@ exports[`ProjectPlugins renders 1`] = `
                         </IconWrapper>
                         <StyledTextBlock>
                           <span
-                            className="css-7xf7tp-StyledTextBlock ejthpj81"
+                            className="css-6y2q80-StyledTextBlock ejthpj81"
                           >
                             <WithOrganizationMockWrapper
                               access={
