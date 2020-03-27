@@ -10,7 +10,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import {fetchTotalCount} from 'app/views/eventsV2/utils';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
 

@@ -4,6 +4,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
@@ -28,7 +29,7 @@ import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 
-import {EventQuery, generateTitle} from '../utils';
+import {generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
