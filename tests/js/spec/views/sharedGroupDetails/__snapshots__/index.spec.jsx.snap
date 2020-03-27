@@ -660,7 +660,7 @@ exports[`SharedGroupDetails renders 1`] = `
                           className="hidden-xs"
                           href="/api/"
                         >
-                          <ForwardRef
+                          <ForwardRef(ExternalLink)
                             className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
                             href="/api/"
                           >
@@ -672,12 +672,12 @@ exports[`SharedGroupDetails renders 1`] = `
                             >
                               API
                             </a>
-                          </ForwardRef>
+                          </ForwardRef(ExternalLink)>
                         </FooterLink>
                         <FooterLink
                           href="/docs/"
                         >
-                          <ForwardRef
+                          <ForwardRef(ExternalLink)
                             className="css-aovf7d-FooterLink e1xhjlxg0"
                             href="/docs/"
                           >
@@ -689,27 +689,25 @@ exports[`SharedGroupDetails renders 1`] = `
                             >
                               Docs
                             </a>
-                          </ForwardRef>
+                          </ForwardRef(ExternalLink)>
                         </FooterLink>
                         <FooterLink
                           className="hidden-xs"
                           href="https://github.com/getsentry/sentry"
-                          rel="noreferrer"
                         >
-                          <ForwardRef
+                          <ForwardRef(ExternalLink)
                             className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
                             href="https://github.com/getsentry/sentry"
-                            rel="noreferrer"
                           >
                             <a
                               className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
                               href="https://github.com/getsentry/sentry"
-                              rel="noreferrer"
+                              rel="noreferrer noopener"
                               target="_blank"
                             >
                               Contribute
                             </a>
-                          </ForwardRef>
+                          </ForwardRef(ExternalLink)>
                         </FooterLink>
                       </div>
                       <a

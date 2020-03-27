@@ -18,11 +18,7 @@ const Footer = () => {
             {t('API')}
           </FooterLink>
           <FooterLink href="/docs/">{t('Docs')}</FooterLink>
-          <FooterLink
-            className="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
+          <FooterLink className="hidden-xs" href="https://github.com/getsentry/sentry">
             {t('Contribute')}
           </FooterLink>
           {config.isOnPremise && (

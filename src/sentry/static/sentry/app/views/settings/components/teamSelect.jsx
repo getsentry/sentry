@@ -153,7 +153,7 @@ const TeamRow = props => {
   const {orgId, team, onRemove, disabled, confirmMessage} = props;
   return (
     <TeamPanelItem>
-      <StyledLink to={`/settings/${orgId}/teams/${team}/`}>#{team}</StyledLink>
+      <StyledLink to={`/settings/${orgId}/teams/${team}/`}>{`#${team}`}</StyledLink>
       <Confirm
         message={confirmMessage}
         bypass={!confirmMessage}

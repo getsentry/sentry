@@ -51,30 +51,39 @@ const ProjectHeaderProjectSelector = withRouter(
       }
     };
 
+    renderDropDownLabelContent = (getActorProps, activeProject) => {
+      if (activeProject) {
+        const {to, href} = this.getProjectUrlProps(activeProject);
+        return (
+          <IdBadge
+            project={activeProject}
+            avatarSize={20}
+            displayName={
+              <ProjectNameLink to={to || href}>
+                {this.getProjectLabel(activeProject)}
+              </ProjectNameLink>
+            }
+          />
+        );
+      }
+
+      return (
+        <SelectProject
+          {...getActorProps({
+            role: 'button',
+          })}
+        >
+          {t('Select a project')}
+        </SelectProject>
+      );
+    };
+
     render() {
       return (
         <ProjectSelector {...this.props} onSelect={this.handleSelect}>
-          {({getActorProps, selectedItem, activeProject}) => (
+          {({getActorProps, activeProject}) => (
             <DropdownLabel>
-              {activeProject ? (
-                <IdBadge
-                  project={activeProject}
-                  avatarSize={20}
-                  displayName={
-                    <ProjectNameLink {...this.getProjectUrlProps(activeProject)}>
-                      {this.getProjectLabel(activeProject)}
-                    </ProjectNameLink>
-                  }
-                />
-              ) : (
-                <SelectProject
-                  {...getActorProps({
-                    role: 'button',
-                  })}
-                >
-                  {t('Select a project')}
-                </SelectProject>
-              )}
+              {this.renderDropDownLabelContent(getActorProps, activeProject)}
               <DropdownIcon />
             </DropdownLabel>
           )}

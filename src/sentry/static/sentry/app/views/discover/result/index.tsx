@@ -187,7 +187,7 @@ class Result extends React.Component<ResultProps, ResultState> {
         <PageHeading>
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
-        <SavedQueryAction onClick={this.props.onToggleEdit}>
+        <SavedQueryAction to="" onClick={this.props.onToggleEdit}>
           <IconEdit />
         </SavedQueryAction>
       </React.Fragment>

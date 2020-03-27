@@ -67,7 +67,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
             flexibleControlStateSize
             help={tct('The DSN tells the SDK where to send the events to. [link]', {
               link: showDsn ? (
-                <Link onClick={this.toggleDeprecatedDsn}>
+                <Link to="" onClick={this.toggleDeprecatedDsn}>
                   {showDeprecatedDsn
                     ? t('Hide deprecated DSN')
                     : t('Show deprecated DSN')}

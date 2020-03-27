@@ -55,7 +55,6 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                 "alignItems": "center",
               }
             }
-            target="_self"
             to="/organizations/new/"
           >
             <Link
@@ -67,7 +66,6 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                   "alignItems": "center",
                 }
               }
-              target="_self"
               to="/organizations/new/"
             >
               <a
@@ -79,7 +77,6 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                     "alignItems": "center",
                   }
                 }
-                target="_self"
               >
                 <MenuItemLabel
                   hasMenu={false}
@@ -332,21 +329,18 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         >
           <Link
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-            target="_self"
             to="/settings/org-slug/"
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
               onlyActiveOnIndex={false}
               style={Object {}}
-              target="_self"
               to="/settings/org-slug/"
             >
               <a
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onClick={[Function]}
                 style={Object {}}
-                target="_self"
               >
                 <MenuItemLabel
                   hasMenu={false}
@@ -375,21 +369,18 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         >
           <Link
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-            target="_self"
             to="/settings/org-slug/teams/"
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
               onlyActiveOnIndex={false}
               style={Object {}}
-              target="_self"
               to="/settings/org-slug/teams/"
             >
               <a
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onClick={[Function]}
                 style={Object {}}
-                target="_self"
               >
                 <MenuItemLabel
                   hasMenu={false}
@@ -803,21 +794,18 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-              target="_self"
               to="/settings/account/"
             >
               <Link
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onlyActiveOnIndex={false}
                 style={Object {}}
-                target="_self"
                 to="/settings/account/"
               >
                 <a
                   className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                   onClick={[Function]}
                   style={Object {}}
-                  target="_self"
                 >
                   <MenuItemLabel
                     hasMenu={false}
@@ -846,21 +834,18 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-              target="_self"
               to="/settings/account/api/"
             >
               <Link
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onlyActiveOnIndex={false}
                 style={Object {}}
-                target="_self"
                 to="/settings/account/api/"
               >
                 <a
                   className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                   onClick={[Function]}
                   style={Object {}}
-                  target="_self"
                 >
                   <MenuItemLabel
                     hasMenu={false}
@@ -989,25 +974,22 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
     </SidebarMenuItem>
     <SidebarMenuItem
       href="https://forum.sentry.io/"
-      openInNewTab={true}
     >
       <StyledSidebarMenuItemLink
         href="https://forum.sentry.io/"
-        openInNewTab={true}
       >
         <SidebarMenuItemLink
           className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
           href="https://forum.sentry.io/"
-          openInNewTab={true}
         >
-          <Link
+          <ForwardRef(ExternalLink)
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
             href="https://forum.sentry.io/"
-            target="_blank"
           >
             <a
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
               href="https://forum.sentry.io/"
+              rel="noreferrer noopener"
               target="_blank"
             >
               <MenuItemLabel
@@ -1020,31 +1002,28 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
                 </span>
               </MenuItemLabel>
             </a>
-          </Link>
+          </ForwardRef(ExternalLink)>
         </SidebarMenuItemLink>
       </StyledSidebarMenuItemLink>
     </SidebarMenuItem>
     <SidebarMenuItem
       href="https://status.sentry.io/"
-      openInNewTab={true}
     >
       <StyledSidebarMenuItemLink
         href="https://status.sentry.io/"
-        openInNewTab={true}
       >
         <SidebarMenuItemLink
           className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
           href="https://status.sentry.io/"
-          openInNewTab={true}
         >
-          <Link
+          <ForwardRef(ExternalLink)
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
             href="https://status.sentry.io/"
-            target="_blank"
           >
             <a
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
               href="https://status.sentry.io/"
+              rel="noreferrer noopener"
               target="_blank"
             >
               <MenuItemLabel
@@ -1057,7 +1036,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
                 </span>
               </MenuItemLabel>
             </a>
-          </Link>
+          </ForwardRef(ExternalLink)>
         </SidebarMenuItemLink>
       </StyledSidebarMenuItemLink>
     </SidebarMenuItem>
@@ -1097,7 +1076,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
         <div
           className="css-166h1v-Text ekutvbl3"
         >
-          <ForwardRef
+          <ForwardRef(ExternalLink)
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
           >
             <a
@@ -1107,7 +1086,7 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
             >
               Read More
             </a>
-          </ForwardRef>
+          </ForwardRef(ExternalLink)>
         </div>
       </Text>
     </div>
@@ -1202,7 +1181,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   role="button"
                   size="small"
                 >
-                  <ForwardRef
+                  <ForwardRef(ExternalLink)
                     aria-disabled={false}
                     aria-label="Learn more"
                     className="css-12ogwys-StyledButton edwq9my0"
@@ -1233,7 +1212,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                         </span>
                       </ButtonLabel>
                     </a>
-                  </ForwardRef>
+                  </ForwardRef(ExternalLink)>
                 </Component>
               </StyledButton>
             </Button>
@@ -1544,21 +1523,18 @@ exports[`Sidebar renders without org and router 1`] = `
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-              target="_self"
               to="/settings/account/"
             >
               <Link
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onlyActiveOnIndex={false}
                 style={Object {}}
-                target="_self"
                 to="/settings/account/"
               >
                 <a
                   className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                   onClick={[Function]}
                   style={Object {}}
-                  target="_self"
                 >
                   <MenuItemLabel
                     hasMenu={false}
@@ -1587,21 +1563,18 @@ exports[`Sidebar renders without org and router 1`] = `
           >
             <Link
               className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
-              target="_self"
               to="/settings/account/api/"
             >
               <Link
                 className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                 onlyActiveOnIndex={false}
                 style={Object {}}
-                target="_self"
                 to="/settings/account/api/"
               >
                 <a
                   className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
                   onClick={[Function]}
                   style={Object {}}
-                  target="_self"
                 >
                   <MenuItemLabel
                     hasMenu={false}

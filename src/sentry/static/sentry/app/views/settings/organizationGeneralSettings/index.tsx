@@ -85,7 +85,6 @@ class OrganizationGeneralSettings extends React.Component<Props> {
                   <LinkWithConfirmation
                     className="btn btn-danger"
                     priority="danger"
-                    size="small"
                     title={t('Remove %s organization', organization && organization.name)}
                     message={
                       <div>

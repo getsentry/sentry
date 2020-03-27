@@ -57,7 +57,7 @@ const TagsTable = (props: Props) => {
                       <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{renderTagValue()}</Link>
+                    <Link to={target || ''}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>

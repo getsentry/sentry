@@ -123,28 +123,27 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           >
             <StyledLink
               href="https://docs.sentry.io/workflow/integrations/integration-platform/"
+              openInNewTab={false}
               priority="warning"
               size="normal"
-              target="_self"
               withoutMarginBottom={false}
             >
               <Component
                 className="css-1fqt8dl-StyledLink e1ylhppg0"
                 href="https://docs.sentry.io/workflow/integrations/integration-platform/"
+                openInNewTab={false}
                 priority="warning"
                 size="normal"
-                target="_self"
                 withoutMarginBottom={false}
               >
-                <Link
+                <ForwardRef(ExternalLink)
                   className="css-1fqt8dl-StyledLink e1ylhppg0"
                   href="https://docs.sentry.io/workflow/integrations/integration-platform/"
-                  target="_self"
+                  openInNewTab={false}
                 >
                   <a
                     className="css-1fqt8dl-StyledLink e1ylhppg0"
                     href="https://docs.sentry.io/workflow/integrations/integration-platform/"
-                    target="_self"
                   >
                     <AlertLinkText>
                       <div
@@ -177,7 +176,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       </span>
                     </IconLink>
                   </a>
-                </Link>
+                </ForwardRef(ExternalLink)>
               </Component>
             </StyledLink>
           </AlertLink>
