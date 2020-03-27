@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -12,7 +13,6 @@ import Version from 'app/components/version';
 import EventView from 'app/utils/discover/eventView';
 
 import {getExpandedResults} from './utils';
-import {SectionHeading} from './styles';
 
 type Props = {
   organization: OrganizationSummary;
