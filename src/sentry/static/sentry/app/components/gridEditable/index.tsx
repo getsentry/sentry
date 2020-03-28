@@ -4,6 +4,7 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
+import {ExportQueryType} from 'app/components/dataExport';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -311,7 +312,6 @@ class GridEditable<
         {({hasFeature}) => (
           <React.Fragment>
             {this.renderDownloadButton(hasFeature)}
-            {this.renderDownloadCsvButton(hasFeature)}
             {this.renderEditButton(hasFeature)}
           </React.Fragment>
         )}
@@ -320,21 +320,15 @@ class GridEditable<
   }
 
   renderDownloadButton(canEdit: boolean) {
-    const disabled = this.props.isLoading || canEdit === false;
-    return (
-      <HeaderDownloadButton
-        payload={{
-          queryType: 'Discover',
-          queryInfo: this.props.location.query,
-        }}
-        disabled={disabled}
-      >
-        <IconDownload size="xs" />
-        {t('Export All')}
-      </HeaderDownloadButton>
-    );
+    const {data} = this.props;
+    if (data.length < 50) {
+      return this.renderBrowserExportButton(canEdit);
+    } else {
+      return this.renderAsyncExportButton(canEdit);
+    }
   }
-  renderDownloadCsvButton(canEdit: boolean) {
+
+  renderBrowserExportButton(canEdit: boolean) {
     const disabled = this.props.isLoading || canEdit === false;
     const onClick = disabled ? undefined : this.props.actions.downloadAsCsv;
 
@@ -347,6 +341,23 @@ class GridEditable<
         <IconDownload size="xs" />
         {t('Export Page')}
       </HeaderButton>
+    );
+  }
+
+  renderAsyncExportButton(canEdit: boolean) {
+    const {isLoading, location} = this.props;
+    const disabled = isLoading || canEdit === false;
+    return (
+      <HeaderDownloadButton
+        payload={{
+          queryType: ExportQueryType.Discover,
+          queryInfo: location.query,
+        }}
+        disabled={disabled}
+      >
+        <IconDownload size="xs" />
+        {t('Export All')}
+      </HeaderDownloadButton>
     );
   }
 
