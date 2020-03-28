@@ -84,9 +84,6 @@ class Sidebar extends React.Component {
     logExperiment({
       organization,
       key: 'OnboardingSidebarV2Experiment',
-      unitName: 'org_id',
-      unitId: parseInt(organization?.id, 10),
-      param: 'exposed',
     });
   }
 

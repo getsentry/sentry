@@ -2,6 +2,7 @@ import {Route} from 'react-router';
 
 import {NavigationSection} from 'app/views/settings/types';
 import {User, Organization, Project, IntegrationProvider} from 'app/types';
+import {ExperimentKey} from 'app/types/experiments';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -197,25 +198,13 @@ type AnalyticsTrackAdhocEvent = (
  */
 type AnalyticsLogExperiment = (opts: {
   /**
-   * The organization for org based experiments
+   * The organization. Must be provided for organization experiments.
    */
   organization?: Organization;
   /**
    * The experiment key
    */
-  key: keyof Organization['experiments'] | keyof User['experiments'];
-  /**
-   * The name of the exposed unit
-   */
-  unitName: string;
-  /**
-   * The value of the unit to group by
-   */
-  unitId: string | number;
-  /**
-   * The parameter name used for the exposed key
-   */
-  param: string;
+  key: ExperimentKey;
 }) => void;
 
 /**
