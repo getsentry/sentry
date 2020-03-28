@@ -25,8 +25,10 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
     # Get the ExportedData object
     try:
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})
+        metrics.incr("dataexport.start", instance="success")
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
+        metrics.incr("dataexport.start", instance="failure")
         capture_exception(error)
         return
 
@@ -54,6 +56,7 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
                     file.putfile(tf, logger=logger)
                     data_export.finalize_upload(file=file)
                     logger.info("dataexport.end", extra={"data_export_id": data_export_id})
+                    metrics.incr("dataexport.end")
             except IntegrityError as error:
                 metrics.incr("dataexport.error", instance=six.text_type(error))
                 logger.error(
