@@ -176,7 +176,7 @@
     "fsevents": "^2.1.2"
   },
   "resolutions": {
-    "**/rrweb": "^0.7.28"
+    "**/rrweb": "^0.7.30"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
