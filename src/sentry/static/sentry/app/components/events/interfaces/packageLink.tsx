@@ -77,7 +77,7 @@ const Package = styled('a')<Partial<Props>>`
     }
   }
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   ${p => p.withLeadHint && `max-width: 76px;`}
 `;
 

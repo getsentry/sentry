@@ -390,6 +390,7 @@ const PackageInfo = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
   order: 2;
+  align-items: flex-start;
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     order: 0;
   }
