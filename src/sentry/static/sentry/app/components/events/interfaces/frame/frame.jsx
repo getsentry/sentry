@@ -408,12 +408,9 @@ const NativeLineContent = styled('div')`
     grid-template-columns: 150px 117px 1fr auto;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
+      props.theme.breakpoints[3]}) {
     grid-template-columns: 130px 117px 1fr auto;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    grid-template-columns: 150px 117px 1fr auto;
   }
 `;
 

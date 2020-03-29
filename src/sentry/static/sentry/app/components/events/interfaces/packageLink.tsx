@@ -77,8 +77,16 @@ const Package = styled('a')<Partial<Props>>`
     }
   }
   display: flex;
+
   align-items: flex-start;
+
   ${p => p.withLeadHint && `max-width: 76px;`}
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) and (max-width: ${p =>
+  p.theme.breakpoints[3]})  {
+    ${p => p.withLeadHint && `max-width: 63px;`}
+  }
+
 `;
 
 const PackageName = styled('span')<Pick<Props, 'isClickable' | 'withLeadHint'>>`
