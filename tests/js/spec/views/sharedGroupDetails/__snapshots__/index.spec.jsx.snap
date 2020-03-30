@@ -578,7 +578,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 className=""
                               >
                                 <div
-                                  className=" css-1tpn1lm-DataSection e1z0bih40"
+                                  className=" css-14ma22z-DataSection e1z0bih40"
                                 >
                                   <SectionHeader
                                     id="message"

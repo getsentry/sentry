@@ -274,19 +274,28 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               >
                 {t('Add Rule')}
               </StyledLink>
+              {!hideButtonBar && (
+                <StyledButtonBar gap={1.5}>
+                  <Button
+                    size="small"
+                    onClick={this.handleCancelForm}
+                    disabled={disabled}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    size="small"
+                    priority="primary"
+                    onClick={this.handleSaveForm}
+                    disabled={disabled}
+                  >
+                    {t('Save Rules')}
+                  </Button>
+                </StyledButtonBar>
+              )}
             </PanelAction>
           </PanelBody>
         </Panel>
-        {!hideButtonBar && (
-          <StyledButtonBar gap={1.5}>
-            <Button onClick={this.handleCancelForm} disabled={disabled}>
-              {t('Cancel')}
-            </Button>
-            <Button priority="primary" onClick={this.handleSaveForm} disabled={disabled}>
-              {t('Save Rules')}
-            </Button>
-          </StyledButtonBar>
-        )}
       </React.Fragment>
     );
   }
@@ -300,7 +309,10 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const PanelAction = styled('div')`
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

@@ -1,4 +1,3 @@
-import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -141,7 +140,8 @@ const MergedGroup = styled('div')`
   ${p => p.busy && 'opacity: 0.2'};
 `;
 
-const ActionColumn = styled(Flex)`
+const ActionColumn = styled('div')`
+  display: flex;
   padding: 0 10px;
   align-items: center;
 
@@ -150,9 +150,9 @@ const ActionColumn = styled(Flex)`
   }
 `;
 
-const Controls = styled(({expanded: _expanded, ...props}) => (
-  <Flex justifyContent="space-between" {...props} />
-))`
+const Controls = styled('div')`
+  display: flex;
+  justify-content: space-between;
   border-top: 1px solid ${p => p.theme.borderLight};
   background-color: #f3f1f6;
   padding: ${space(0.5)} 0;
@@ -188,7 +188,8 @@ const MergedEventList = styled('div')`
   border: none;
 `;
 
-const EventDetails = styled(Flex)`
+const EventDetails = styled('div')`
+  display: flex;
   justify-content: space-between;
 
   .event-list & {
