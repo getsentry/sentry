@@ -11,6 +11,9 @@ class Feature(object):
     ISSUE_LINK = 1
     STACKTRACE_LINK = 2
     EVENT_HOOKS = 3
+    PROJECT_MANAGEMENT = 4
+    INCIDENT_MANAGEMENT = 5
+    FEATURE_FLAG = 6
 
     @classmethod
     def as_choices(cls):
@@ -19,6 +22,9 @@ class Feature(object):
             (cls.ISSUE_LINK, "integrations-issue-link"),
             (cls.STACKTRACE_LINK, "integrations-stacktrace-link"),
             (cls.EVENT_HOOKS, "integrations-event-hooks"),
+            (cls.PROJECT_MANAGEMENT, "integrations-project-management"),
+            (cls.INCIDENT_MANAGEMENT, "integrations-incident-management"),
+            (cls.FEATURE_FLAG, "integrations-feature-flag"),
         )
 
     @classmethod
@@ -31,10 +37,16 @@ class Feature(object):
             return "integrations-stacktrace-link"
         elif feature == cls.EVENT_HOOKS:
             return "integrations-event-hooks"
+        elif feature == cls.PROJECT_MANAGEMENT:
+            return "integrations-project-management"
+        elif feature == cls.INCIDENT_MANAGEMENT:
+            return "integrations-incident-management"
+        elif feature == cls.FEATURE_FLAG:
+            return "integrations-feature-flag"
 
     @classmethod
     def description(cls, feature, name):
-        if feature == cls.API:
+        if feature in [cls.API, cls.PROJECT_MANAGEMENT, cls.INCIDENT_MANAGEMENT, cls.FEATURE_FLAG]:
             return (
                 "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
                 % name
