@@ -7,20 +7,19 @@ import * as Sentry from '@sentry/browser';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
+import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import SentryTypes from 'app/sentryTypes';
+import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import Placeholder from 'app/components/placeholder';
-import TagDistributionMeter, {TagSegment} from 'app/components/tagDistributionMeter';
+import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-
-import {SectionHeading} from './styles';
-import {fetchTagFacets, Tag} from './utils';
 
 type Props = {
   api: Client;

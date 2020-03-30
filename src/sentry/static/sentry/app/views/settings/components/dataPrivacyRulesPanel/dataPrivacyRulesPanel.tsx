@@ -14,7 +14,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
@@ -248,12 +248,9 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
             {additionalContext}{' '}
             {tct('For more details, see [linkToDocs].', {
               linkToDocs: (
-                <Link
-                  href="https://docs.sentry.io/data-management/advanced-datascrubbing/"
-                  target="_blank"
-                >
+                <ExternalLink href="https://docs.sentry.io/data-management/advanced-datascrubbing/">
                   {t('full documentation on data scrubbing')}
-                </Link>
+                </ExternalLink>
               ),
             })}
           </PanelAlert>
@@ -277,19 +274,28 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               >
                 {t('Add Rule')}
               </StyledLink>
+              {!hideButtonBar && (
+                <StyledButtonBar gap={1.5}>
+                  <Button
+                    size="small"
+                    onClick={this.handleCancelForm}
+                    disabled={disabled}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    size="small"
+                    priority="primary"
+                    onClick={this.handleSaveForm}
+                    disabled={disabled}
+                  >
+                    {t('Save Rules')}
+                  </Button>
+                </StyledButtonBar>
+              )}
             </PanelAction>
           </PanelBody>
         </Panel>
-        {!hideButtonBar && (
-          <StyledButtonBar gap={1.5}>
-            <Button onClick={this.handleCancelForm} disabled={disabled}>
-              {t('Cancel')}
-            </Button>
-            <Button priority="primary" onClick={this.handleSaveForm} disabled={disabled}>
-              {t('Save Rules')}
-            </Button>
-          </StyledButtonBar>
-        )}
       </React.Fragment>
     );
   }
@@ -303,7 +309,10 @@ const StyledPanelHeader = styled(PanelHeader)`
 `;
 
 const PanelAction = styled('div')`
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(1.5)} ${space(2)};
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

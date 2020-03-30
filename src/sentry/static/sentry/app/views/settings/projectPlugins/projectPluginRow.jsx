@@ -1,5 +1,4 @@
 import {css} from '@emotion/core';
-import {Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -62,10 +61,10 @@ class ProjectPluginRow extends React.PureComponent {
           const LinkOrSpan = hasAccess ? Link : 'span';
 
           return (
-            <Flex key={id} className={slug} flex="1" alignItems="center">
+            <PluginItem key={id} className={slug}>
               <PluginInfo>
                 <StyledPluginIcon size={48} pluginId={id} />
-                <Flex justifyContent="center" flexDirection="column">
+                <PluginDescription>
                   <PluginName>
                     {`${name} `}
                     {getDynamicText({
@@ -91,7 +90,7 @@ class ProjectPluginRow extends React.PureComponent {
                       </span>
                     )}
                   </div>
-                </Flex>
+                </PluginDescription>
               </PluginInfo>
               <Switch
                 size="lg"
@@ -99,7 +98,7 @@ class ProjectPluginRow extends React.PureComponent {
                 isActive={enabled}
                 toggle={this.handleChange}
               />
-            </Flex>
+            </PluginItem>
           );
         }}
       </Access>
@@ -109,7 +108,18 @@ class ProjectPluginRow extends React.PureComponent {
 
 export default withOrganization(withProject(ProjectPluginRow));
 
-// Includes icon, name, version, configure link
+const PluginItem = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const PluginDescription = styled('div')`
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+`;
+
 const PluginInfo = styled('div')`
   display: flex;
   flex: 1;
