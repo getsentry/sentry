@@ -137,7 +137,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (
       <AddButton
-        data-test-id="add-button"
+        data-test-id="install-button"
         disabled={disabledFromFeatures || !userHasAccess}
         onClick={this.handleAddToProject}
         size="small"

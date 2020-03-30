@@ -241,7 +241,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         disabled={disabledFromFeatures || !userHasAccess}
         onClick={() => this.handleInstall()}
         style={{marginLeft: space(1)}}
-        data-test-id="install"
+        data-test-id="install-button"
       >
         {t('Accept & Install')}
       </InstallButton>
