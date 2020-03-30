@@ -45,7 +45,10 @@ describe('Command Palette Modal', function() {
       url: '/organizations/org-slug/config/integrations/',
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {

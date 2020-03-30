@@ -81,9 +81,6 @@ export class IntegrationListDirectory extends AsyncComponent<
     logExperiment({
       organization: this.props.organization,
       key: 'IntegrationDirectorySortWeightExperiment',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'variant',
     });
   }
 
@@ -403,7 +400,9 @@ export class IntegrationListDirectory extends AsyncComponent<
                       ...categoryList.map(category => [category, category]),
                     ]}
                   />
-                ) : null}
+                ) : (
+                  <div />
+                )}
                 <SearchInput
                   value={this.state.searchInput || ''}
                   onChange={this.onSearchChange}

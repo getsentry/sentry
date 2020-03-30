@@ -848,6 +848,9 @@ SENTRY_FEATURES = {
     "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
+    # Prefix host with organization ID when giving users DSNs (can be
+    # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
+    "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1103,6 +1106,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
+
+# Hostname prefix to add for organizations that are opted into the
+# `organizations:org-subdomains` feature.
+SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters

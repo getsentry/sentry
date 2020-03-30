@@ -28,6 +28,7 @@ type Props = {
   target?: string;
   position?: string;
   disabled?: boolean;
+  offset?: string;
 };
 
 type State = {
@@ -48,6 +49,7 @@ const GuideAnchor = createReactClass<Props, State>({
     target: PropTypes.string,
     position: PropTypes.string,
     disabled: PropTypes.bool,
+    offset: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
@@ -204,7 +206,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   renderHovercardExp() {
-    const {children, position} = this.props;
+    const {children, position, offset} = this.props;
 
     return (
       <StyledHovercard
@@ -212,6 +214,7 @@ const GuideAnchor = createReactClass<Props, State>({
         body={this.getHovercardExpBody()}
         tipColor={theme.purple}
         position={position}
+        offset={offset}
       >
         <span ref={el => (this.containerElement = el)}>{children}</span>
       </StyledHovercard>

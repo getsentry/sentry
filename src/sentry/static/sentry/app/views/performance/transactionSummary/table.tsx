@@ -41,6 +41,7 @@ type Props = {
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
+  totalValues: number | null;
 };
 
 class SummaryContentTable extends React.Component<Props> {
@@ -158,7 +159,7 @@ class SummaryContentTable extends React.Component<Props> {
   }
 
   render() {
-    const {eventView, location, organization} = this.props;
+    const {eventView, location, organization, totalValues} = this.props;
 
     let title = t('Slowest Requests');
     let chartQuery = eventView.query;
@@ -182,6 +183,7 @@ class SummaryContentTable extends React.Component<Props> {
           start={eventView.start}
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
+          totalValues={totalValues}
         />
         <Header>
           <HeaderTitle>{title}</HeaderTitle>
