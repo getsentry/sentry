@@ -128,30 +128,27 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         <div
                           className="css-xopa6g-PanelItem ej5ox20"
                         >
-                          <Styled(div)
-                            pr={2}
-                            width={0.5}
-                          >
+                          <SubscriptionDetails>
                             <div
-                              className="css-y3xl3n"
+                              className="css-f7qdjq-SubscriptionDetails er83abj0"
                             >
                               <SubscriptionName>
                                 <div
-                                  className="css-hqhyap-SubscriptionName er83abj0"
+                                  className="css-dvhern-SubscriptionName er83abj1"
                                 >
                                   Product & Feature Updates
                                 </div>
                               </SubscriptionName>
                               <Description>
                                 <div
-                                  className="css-nc4ode-Description er83abj1"
+                                  className="css-10gzpqv-Description er83abj2"
                                 >
                                   Everything you need to know about Sentry features, integrations, partnerships, and launches.
                                 </div>
                               </Description>
                               <SubscribedDescription>
                                 <div
-                                  className="css-1d4k482-Description-SubscribedDescription er83abj2"
+                                  className="css-tn06kc-Description-SubscribedDescription er83abj3"
                                 >
                                   <div>
                                     test@sentry.io
@@ -170,55 +167,51 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 </div>
                               </SubscribedDescription>
                             </div>
-                          </Styled(div)>
-                          <Styled(div)>
-                            <div
-                              className="css-vurnku"
+                          </SubscriptionDetails>
+                          <div>
+                            <ForwardRef
+                              isActive={true}
+                              size="lg"
+                              toggle={[Function]}
                             >
-                              <ForwardRef
+                              <Switch
+                                forwardRef={null}
                                 isActive={true}
                                 size="lg"
                                 toggle={[Function]}
                               >
-                                <Switch
-                                  forwardRef={null}
+                                <SwitchButton
+                                  aria-checked={true}
+                                  data-test-id="switch"
                                   isActive={true}
+                                  onClick={[Function]}
+                                  role="checkbox"
                                   size="lg"
-                                  toggle={[Function]}
+                                  type="button"
                                 >
-                                  <SwitchButton
+                                  <button
                                     aria-checked={true}
+                                    className="css-nsv6v6-SwitchButton ezmyi9u0"
                                     data-test-id="switch"
-                                    isActive={true}
                                     onClick={[Function]}
                                     role="checkbox"
                                     size="lg"
                                     type="button"
                                   >
-                                    <button
-                                      aria-checked={true}
-                                      className="css-nsv6v6-SwitchButton ezmyi9u0"
-                                      data-test-id="switch"
-                                      onClick={[Function]}
-                                      role="checkbox"
+                                    <Toggle
+                                      isActive={true}
                                       size="lg"
-                                      type="button"
                                     >
-                                      <Toggle
-                                        isActive={true}
+                                      <span
+                                        className="css-kwqtwq-Toggle ezmyi9u1"
                                         size="lg"
-                                      >
-                                        <span
-                                          className="css-kwqtwq-Toggle ezmyi9u1"
-                                          size="lg"
-                                        />
-                                      </Toggle>
-                                    </button>
-                                  </SwitchButton>
-                                </Switch>
-                              </ForwardRef>
-                            </div>
-                          </Styled(div)>
+                                      />
+                                    </Toggle>
+                                  </button>
+                                </SwitchButton>
+                              </Switch>
+                            </ForwardRef>
+                          </div>
                         </div>
                       </PanelItem>
                       <PanelItem
@@ -229,84 +222,77 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         <div
                           className="css-xopa6g-PanelItem ej5ox20"
                         >
-                          <Styled(div)
-                            pr={2}
-                            width={0.5}
-                          >
+                          <SubscriptionDetails>
                             <div
-                              className="css-y3xl3n"
+                              className="css-f7qdjq-SubscriptionDetails er83abj0"
                             >
                               <SubscriptionName>
                                 <div
-                                  className="css-hqhyap-SubscriptionName er83abj0"
+                                  className="css-dvhern-SubscriptionName er83abj1"
                                 >
                                   Sentry Newsletter
                                 </div>
                               </SubscriptionName>
                               <Description>
                                 <div
-                                  className="css-nc4ode-Description er83abj1"
+                                  className="css-10gzpqv-Description er83abj2"
                                 >
                                   Our monthly update on what's new with Sentry and the community.
                                 </div>
                               </Description>
                               <SubscribedDescription>
                                 <div
-                                  className="css-1d4k482-Description-SubscribedDescription er83abj2"
+                                  className="css-tn06kc-Description-SubscribedDescription er83abj3"
                                 >
                                   Not currently subscribed
                                 </div>
                               </SubscribedDescription>
                             </div>
-                          </Styled(div)>
-                          <Styled(div)>
-                            <div
-                              className="css-vurnku"
+                          </SubscriptionDetails>
+                          <div>
+                            <ForwardRef
+                              isActive={false}
+                              size="lg"
+                              toggle={[Function]}
                             >
-                              <ForwardRef
+                              <Switch
+                                forwardRef={null}
                                 isActive={false}
                                 size="lg"
                                 toggle={[Function]}
                               >
-                                <Switch
-                                  forwardRef={null}
+                                <SwitchButton
+                                  aria-checked={false}
+                                  data-test-id="switch"
                                   isActive={false}
+                                  onClick={[Function]}
+                                  role="checkbox"
                                   size="lg"
-                                  toggle={[Function]}
+                                  type="button"
                                 >
-                                  <SwitchButton
+                                  <button
                                     aria-checked={false}
+                                    className="css-1tqvyh8-SwitchButton ezmyi9u0"
                                     data-test-id="switch"
-                                    isActive={false}
                                     onClick={[Function]}
                                     role="checkbox"
                                     size="lg"
                                     type="button"
                                   >
-                                    <button
-                                      aria-checked={false}
-                                      className="css-1tqvyh8-SwitchButton ezmyi9u0"
-                                      data-test-id="switch"
-                                      onClick={[Function]}
-                                      role="checkbox"
+                                    <Toggle
+                                      isActive={false}
                                       size="lg"
-                                      type="button"
                                     >
-                                      <Toggle
-                                        isActive={false}
+                                      <span
+                                        className="css-j7jjrc-Toggle ezmyi9u1"
                                         size="lg"
-                                      >
-                                        <span
-                                          className="css-j7jjrc-Toggle ezmyi9u1"
-                                          size="lg"
-                                        />
-                                      </Toggle>
-                                    </button>
-                                  </SwitchButton>
-                                </Switch>
-                              </ForwardRef>
-                            </div>
-                          </Styled(div)>
+                                      />
+                                    </Toggle>
+                                  </button>
+                                </SwitchButton>
+                              </Switch>
+                            </ForwardRef>
+                          </div>
                         </div>
                       </PanelItem>
                        
