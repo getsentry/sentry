@@ -165,7 +165,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     username = AllowedEmailField(
         label=_("Email"),
         max_length=128,
-        widget=forms.TextInput(attrs={"placeholder": "you@example.com"}),
+        widget=forms.TextInput(attrs={"placeholder": "you@example.com", "id": "registration-username"}),
         required=True,
     )
     subscribe = CustomTypedChoiceField(
@@ -226,7 +226,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
 
 class RegistrationForm(PasswordlessRegistrationForm):
     password = forms.CharField(
-        required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret"})
+        required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret", "id": "registration-password"})
     )
 
     def clean_password(self):
