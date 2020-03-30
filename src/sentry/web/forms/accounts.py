@@ -165,7 +165,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     username = AllowedEmailField(
         label=_("Email"),
         max_length=128,
-        widget=forms.TextInput(attrs={"placeholder": "you@example.com", "id": "registration-username"}),
+        widget=forms.TextInput(attrs={"placeholder": "you@example.com"}),
         required=True,
     )
     subscribe = CustomTypedChoiceField(
