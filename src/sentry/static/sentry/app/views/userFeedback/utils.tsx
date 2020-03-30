@@ -7,11 +7,8 @@ const DEFAULT_STATUS = 'unresolved';
 
 /**
  * Get query for API given the current location.search string
- *
- * @param {String} search
- * @returns {Object}
  */
-export function getQuery(search) {
+export function getQuery(search: string) {
   const query = qs.parse(search);
 
   const status = typeof query.status !== 'undefined' ? query.status : DEFAULT_STATUS;
