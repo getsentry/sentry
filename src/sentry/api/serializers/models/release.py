@@ -14,6 +14,7 @@ from sentry.models import (
     Commit,
     CommitAuthor,
     Deploy,
+    ProjectPlatform,
     Release,
     ReleaseProject,
     ReleaseProjectEnvironment,
@@ -253,8 +254,20 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
-            "release_id", "release__version", "project__slug", "project__name", "project__id"
+            "release_id",
+            "release__version",
+            "project__slug",
+            "project__name",
+            "project__id",
+            "project__platform",
         )
+
+        platforms = ProjectPlatform.objects.filter(
+            project_id__in=set(x["project__id"] for x in project_releases)
+        ).values_list("project_id", "platform")
+        platforms_by_project = defaultdict(list)
+        for project_id, platform in platforms:
+            platforms_by_project[project_id].append(platform)
 
         if with_health_data:
             health_data = get_release_health_data_overview(
@@ -271,6 +284,8 @@ class ReleaseSerializer(Serializer):
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
+                "platform": pr["project__platform"],
+                "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
             if health_data is not None:
                 pr_rv["health_data"] = health_data.get((pr["project__id"], pr["release__version"]))
@@ -346,7 +361,13 @@ class ReleaseSerializer(Serializer):
             }
 
         def expose_project(project):
-            rv = {"id": project["id"], "slug": project["slug"], "name": project["name"]}
+            rv = {
+                "id": project["id"],
+                "slug": project["slug"],
+                "name": project["name"],
+                "platform": project["platform"],
+                "platforms": project["platforms"],
+            }
             if "health_data" in project:
                 rv["healthData"] = expose_health_data(project["health_data"])
             return rv

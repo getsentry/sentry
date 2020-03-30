@@ -622,77 +622,67 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                   <Controls
                     expanded={true}
                   >
-                    <Component
-                      className="css-lznge2-Controls e9r3vga2"
-                      expanded={true}
+                    <div
+                      className="css-fy82kz-Controls e9r3vga2"
                     >
-                      <Styled(div)
-                        className="css-lznge2-Controls e9r3vga2"
-                        justifyContent="space-between"
+                      <FlowLayout
+                        onClick={[Function]}
+                        truncate={true}
                       >
                         <div
-                          className="e9r3vga2 css-1q6dsi8-Controls"
+                          className="css-dk1sds-FlowLayout e1uibv5p0"
+                          onClick={[Function]}
                         >
-                          <FlowLayout
-                            onClick={[Function]}
-                            truncate={true}
-                          >
+                          <ActionColumn>
                             <div
-                              className="css-dk1sds-FlowLayout e1uibv5p0"
-                              onClick={[Function]}
+                              className="css-3ag3is-ActionColumn e9r3vga1"
                             >
-                              <ActionColumn>
-                                <div
-                                  className="css-1r34rbx-ActionColumn e9r3vga1"
-                                >
-                                  <Checkbox
-                                    checked={false}
-                                    id="2c4887696f708c476a81ce4e834c4b02"
-                                    onChange={[Function]}
-                                    value="2c4887696f708c476a81ce4e834c4b02"
-                                  >
-                                    <input
-                                      checked={false}
-                                      id="2c4887696f708c476a81ce4e834c4b02"
-                                      onChange={[Function]}
-                                      type="checkbox"
-                                      value="2c4887696f708c476a81ce4e834c4b02"
-                                    />
-                                  </Checkbox>
-                                </div>
-                              </ActionColumn>
-                              <Fingerprint
-                                htmlFor="2c4887696f708c476a81ce4e834c4b02"
-                                onClick={[Function]}
+                              <Checkbox
+                                checked={false}
+                                id="2c4887696f708c476a81ce4e834c4b02"
+                                onChange={[Function]}
+                                value="2c4887696f708c476a81ce4e834c4b02"
                               >
-                                <label
-                                  className="css-cx2dep-Fingerprint e9r3vga3"
-                                  htmlFor="2c4887696f708c476a81ce4e834c4b02"
-                                  onClick={[Function]}
-                                >
-                                  2c4887696f708c476a81ce4e834c4b02
-                                </label>
-                              </Fingerprint>
-                            </div>
-                          </FlowLayout>
-                          <div>
-                            <span />
-                            <Collapse
-                              onClick={[Function]}
-                            >
-                              <span
-                                className="css-1kppo88-Collapse e9r3vga4"
-                                onClick={[Function]}
-                              >
-                                <i
-                                  className="icon-arrow-up"
+                                <input
+                                  checked={false}
+                                  id="2c4887696f708c476a81ce4e834c4b02"
+                                  onChange={[Function]}
+                                  type="checkbox"
+                                  value="2c4887696f708c476a81ce4e834c4b02"
                                 />
-                              </span>
-                            </Collapse>
-                          </div>
+                              </Checkbox>
+                            </div>
+                          </ActionColumn>
+                          <Fingerprint
+                            htmlFor="2c4887696f708c476a81ce4e834c4b02"
+                            onClick={[Function]}
+                          >
+                            <label
+                              className="css-cx2dep-Fingerprint e9r3vga3"
+                              htmlFor="2c4887696f708c476a81ce4e834c4b02"
+                              onClick={[Function]}
+                            >
+                              2c4887696f708c476a81ce4e834c4b02
+                            </label>
+                          </Fingerprint>
                         </div>
-                      </Styled(div)>
-                    </Component>
+                      </FlowLayout>
+                      <div>
+                        <span />
+                        <Collapse
+                          onClick={[Function]}
+                        >
+                          <span
+                            className="css-1kppo88-Collapse e9r3vga4"
+                            onClick={[Function]}
+                          >
+                            <i
+                              className="icon-arrow-up"
+                            />
+                          </span>
+                        </Collapse>
+                      </div>
+                    </div>
                   </Controls>
                   <MergedEventList
                     className="event-list"
@@ -704,7 +694,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                         className="event-details"
                       >
                         <div
-                          className="event-details css-1ryg55t-EventDetails e9r3vga6"
+                          className="event-details css-1e55uf7-EventDetails e9r3vga6"
                         >
                           <FlowLayout
                             truncate={true}
@@ -1381,77 +1371,67 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                   <Controls
                     expanded={true}
                   >
-                    <Component
-                      className="css-lznge2-Controls e9r3vga2"
-                      expanded={true}
+                    <div
+                      className="css-fy82kz-Controls e9r3vga2"
                     >
-                      <Styled(div)
-                        className="css-lznge2-Controls e9r3vga2"
-                        justifyContent="space-between"
+                      <FlowLayout
+                        onClick={[Function]}
+                        truncate={true}
                       >
                         <div
-                          className="e9r3vga2 css-1q6dsi8-Controls"
+                          className="css-dk1sds-FlowLayout e1uibv5p0"
+                          onClick={[Function]}
                         >
-                          <FlowLayout
-                            onClick={[Function]}
-                            truncate={true}
-                          >
+                          <ActionColumn>
                             <div
-                              className="css-dk1sds-FlowLayout e1uibv5p0"
-                              onClick={[Function]}
+                              className="css-3ag3is-ActionColumn e9r3vga1"
                             >
-                              <ActionColumn>
-                                <div
-                                  className="css-1r34rbx-ActionColumn e9r3vga1"
-                                >
-                                  <Checkbox
-                                    checked={false}
-                                    id="e05da55328a860b21f62e371f0a7507d"
-                                    onChange={[Function]}
-                                    value="e05da55328a860b21f62e371f0a7507d"
-                                  >
-                                    <input
-                                      checked={false}
-                                      id="e05da55328a860b21f62e371f0a7507d"
-                                      onChange={[Function]}
-                                      type="checkbox"
-                                      value="e05da55328a860b21f62e371f0a7507d"
-                                    />
-                                  </Checkbox>
-                                </div>
-                              </ActionColumn>
-                              <Fingerprint
-                                htmlFor="e05da55328a860b21f62e371f0a7507d"
-                                onClick={[Function]}
+                              <Checkbox
+                                checked={false}
+                                id="e05da55328a860b21f62e371f0a7507d"
+                                onChange={[Function]}
+                                value="e05da55328a860b21f62e371f0a7507d"
                               >
-                                <label
-                                  className="css-cx2dep-Fingerprint e9r3vga3"
-                                  htmlFor="e05da55328a860b21f62e371f0a7507d"
-                                  onClick={[Function]}
-                                >
-                                  e05da55328a860b21f62e371f0a7507d
-                                </label>
-                              </Fingerprint>
-                            </div>
-                          </FlowLayout>
-                          <div>
-                            <span />
-                            <Collapse
-                              onClick={[Function]}
-                            >
-                              <span
-                                className="css-1kppo88-Collapse e9r3vga4"
-                                onClick={[Function]}
-                              >
-                                <i
-                                  className="icon-arrow-up"
+                                <input
+                                  checked={false}
+                                  id="e05da55328a860b21f62e371f0a7507d"
+                                  onChange={[Function]}
+                                  type="checkbox"
+                                  value="e05da55328a860b21f62e371f0a7507d"
                                 />
-                              </span>
-                            </Collapse>
-                          </div>
+                              </Checkbox>
+                            </div>
+                          </ActionColumn>
+                          <Fingerprint
+                            htmlFor="e05da55328a860b21f62e371f0a7507d"
+                            onClick={[Function]}
+                          >
+                            <label
+                              className="css-cx2dep-Fingerprint e9r3vga3"
+                              htmlFor="e05da55328a860b21f62e371f0a7507d"
+                              onClick={[Function]}
+                            >
+                              e05da55328a860b21f62e371f0a7507d
+                            </label>
+                          </Fingerprint>
                         </div>
-                      </Styled(div)>
-                    </Component>
+                      </FlowLayout>
+                      <div>
+                        <span />
+                        <Collapse
+                          onClick={[Function]}
+                        >
+                          <span
+                            className="css-1kppo88-Collapse e9r3vga4"
+                            onClick={[Function]}
+                          >
+                            <i
+                              className="icon-arrow-up"
+                            />
+                          </span>
+                        </Collapse>
+                      </div>
+                    </div>
                   </Controls>
                   <MergedEventList
                     className="event-list"
@@ -1463,7 +1443,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                         className="event-details"
                       >
                         <div
-                          className="event-details css-1ryg55t-EventDetails e9r3vga6"
+                          className="event-details css-1e55uf7-EventDetails e9r3vga6"
                         >
                           <FlowLayout
                             truncate={true}
