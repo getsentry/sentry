@@ -121,10 +121,14 @@ RELAY_CONFIG_DIR = os.path.normpath(
 if platform.system() == "Linux":
     nginx_conf_file = "nginx.linux.conf"
 else:
-    nginx_conf_file = "nginx.conf"
+    nginx_conf_file = "nginx.default.conf"
 
-REVERSE_PROXY_CONFIG = os.path.normpath(
+REVERSE_PROXY_NGINX_CONFIG = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", nginx_conf_file)
+)
+
+REVERSE_PROXY_SERVER_CONFIG = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "server.conf")
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
@@ -1423,7 +1427,10 @@ SENTRY_DEVSERVICES = {
     "reverse_proxy": {
         "image": "nginx:1.16.1",
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
-        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
+        "volumes": {
+            REVERSE_PROXY_NGINX_CONFIG: {"bind": "/etc/nginx/nginx.conf"},
+            REVERSE_PROXY_SERVER_CONFIG: {"bind": "/etc/nginx/server.conf"},
+        },
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
