@@ -10,7 +10,7 @@ import {Organization} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -188,11 +188,7 @@ class IncidentsListContainer extends React.Component<Props> {
           <PageHeader>
             <StyledPageHeading>
               {t('Alerts')}{' '}
-              <BetaTag
-                title={t(
-                  'This feature may change in the future and currently only shows metric alerts'
-                )}
-              />
+              <BetaTag title={t('This page is in beta and may change in the future.')} />
             </StyledPageHeading>
 
             <Actions>
@@ -242,8 +238,11 @@ class IncidentsListContainer extends React.Component<Props> {
           </PageHeader>
 
           <Alert type="info" icon="icon-circle-info">
-            {t('This feature is in beta and currently shows only metric alerts. ')}
-
+            {tct('This page is in beta and currently only shows [link:metric alerts]. ', {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
+              ),
+            })}
             <ExternalLink href="mailto:alerting-feedback@sentry.io">
               {t('Please contact us if you have any feedback.')}
             </ExternalLink>
