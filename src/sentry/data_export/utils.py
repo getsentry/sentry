@@ -14,15 +14,15 @@ def snuba_error_handler(logger):
     try:
         yield
     except snuba.QueryOutsideRetentionError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise ExportError("Invalid date range. Please try a more recent date range.")
     except snuba.QueryIllegalTypeOfArgument as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise ExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         message = "Internal error. Please try again."
         if isinstance(

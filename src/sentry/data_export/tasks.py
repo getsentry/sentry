@@ -25,10 +25,10 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
     # Get the ExportedData object
     try:
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})
-        metrics.incr("dataexport.start", instance="success")
+        metrics.incr("dataexport.start", instance="success: true", sample_rate=1.0)
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
-        metrics.incr("dataexport.start", instance="failure")
+        metrics.incr("dataexport.start", instance="success: false", sample_rate=1.0)
         capture_exception(error)
         return
 
@@ -56,9 +56,9 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
                     file.putfile(tf, logger=logger)
                     data_export.finalize_upload(file=file)
                     logger.info("dataexport.end", extra={"data_export_id": data_export_id})
-                    metrics.incr("dataexport.end")
+                    metrics.incr("dataexport.end", sample_rate=1.0)
             except IntegrityError as error:
-                metrics.incr("dataexport.error", instance=six.text_type(error))
+                metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
                 logger.error(
                     "dataexport.error: {}".format(six.text_type(error)),
                     extra={"query": data_export.payload, "org": data_export.organization_id},
@@ -69,7 +69,7 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
     except NotImplementedError as error:
         return data_export.email_failure(message=six.text_type(error))
     except BaseException as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
         logger.error(
             "dataexport.error: {}".format(six.text_type(error)),
             extra={"query": data_export.payload, "org": data_export.organization_id},
@@ -90,7 +90,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
             environment_id=environment_id,
         )
     except ExportError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", instance=six.text_type(error), sample_rate=1.0)
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise error
 
