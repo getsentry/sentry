@@ -170,7 +170,8 @@ def find_histogram_buckets(field, params, conditions):
             u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
         )
 
-    alias = u"max_{}".format(column)
+    max_alias = u"max_{}".format(column)
+    min_alias = u"min_{}".format(column)
 
     conditions = deepcopy(conditions) if conditions else []
     found = False
@@ -187,19 +188,23 @@ def find_histogram_buckets(field, params, conditions):
         end=params.get("end"),
         dataset=Dataset.Discover,
         conditions=translated_args["conditions"],
-        aggregations=[["max", "duration", alias]],
+        aggregations=[["max", "duration", max_alias], ["min", "duration", min_alias]],
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
         return "histogram({}, 1, 1)".format(column)
 
-    bucket_max = results["data"][0][alias]
+    bucket_max = results["data"][0][max_alias]
+    bucket_min = results["data"][0][min_alias]
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
+    bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
+    if bucket_size <= 1.0:
+        raise InvalidSearchQuery(
+            u"Cannot calculate histogram for {}. Resulting buckets are too small.".format(field)
+        )
 
-    bucket_number = ceil(bucket_max / float(num_buckets))
-
-    return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_number)
+    return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_size)
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
