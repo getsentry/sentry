@@ -99,11 +99,10 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getMethodTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={36}
+            height={34}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
             isDisabled={disabled}
-            size=""
             openOnFocus
             required
           />
@@ -114,7 +113,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getRuleTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={36}
+            height={34}
             value={type}
             onChange={({value}) => this.handleChange('type', value)}
             isDisabled={disabled}
@@ -197,7 +196,7 @@ const WrapperFields = styled('div')`
 
 const From = styled('div')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
-  height: 36px;
+  height: 34px;
   align-items: center;
   display: flex;
 `;
@@ -210,14 +209,18 @@ const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
       cursor: not-allowed;
       pointer-events: auto;
     `}
+
+  > *:first-child {
+    min-height: 34px;
+  }
 `;
 
 const StyledTextField = styled(TextField)<{error?: string}>`
   width: 100%;
-  height: 36px;
+  height: 34px;
   font-size: ${p => p.theme.fontSizeSmall};
   input {
-    height: 36px;
+    height: 34px;
   }
   ${p =>
     !p.error &&
@@ -239,6 +242,6 @@ const StyledIconTrash = styled(Button)<{fullHeight?: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     width: 40px;
-    height: ${p => (p.fullHeight ? '100%' : '36px')};
+    height: ${p => (p.fullHeight ? '100%' : '34px')};
   }
 `;
