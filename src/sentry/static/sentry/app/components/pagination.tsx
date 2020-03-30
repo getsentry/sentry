@@ -60,7 +60,6 @@ class Pagination extends React.Component<Props> {
             aria-label={t('Previous')}
             size="large"
             icon={<IconChevron direction="left" size="sm" />}
-            disabled={links.previous.results === false}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
             }}
@@ -68,7 +67,6 @@ class Pagination extends React.Component<Props> {
           <Button
             aria-label={t('Next')}
             size="large"
-            disabled={links.next.results === false}
             icon={<IconChevron direction="right" size="sm" />}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
