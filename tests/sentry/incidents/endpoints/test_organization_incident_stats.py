@@ -48,4 +48,4 @@ class OrganizationIncidentDetailsTest(APITestCase):
 
         assert resp.data["totalEvents"] == 0
         assert resp.data["uniqueUsers"] == 0
-        assert [data[1] for data in resp.data["eventStats"]["data"]] == [[]] * 61
+        assert [data[1] for data in resp.data["eventStats"]["data"]] == [[]] * 201

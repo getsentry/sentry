@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {
@@ -12,7 +11,7 @@ import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
-import {getUtcDateString, intervalToMilliseconds} from 'app/utils/dates';
+import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
@@ -38,25 +37,18 @@ type Props = {
 
 export default class DetailsBody extends React.Component<Props> {
   getDiscoverUrl(projects: Project[]) {
-    const {incident, params} = this.props;
+    const {incident, params, stats} = this.props;
     const {orgId} = params;
 
-    if (!projects || !projects.length || !incident) {
+    if (!projects || !projects.length || !incident || !stats) {
       return '';
     }
 
     const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const timeWindowInMs = intervalToMilliseconds(timeWindowString);
-    const startBeforeTimeWindow = moment(incident.dateStarted).subtract(
-      timeWindowInMs,
-      'ms'
+    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+    const end = getUtcDateString(
+      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
     );
-    const end = incident.dateClosed ?? getUtcDateString(new Date());
-
-    // We want the discover chart to start at "dateStarted" - "timeWindow" - "20%"
-    const additionalWindowBeforeStart =
-      moment(end).diff(startBeforeTimeWindow, 'ms') * 0.2;
-    const start = startBeforeTimeWindow.subtract(additionalWindowBeforeStart, 'ms');
 
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -72,7 +64,7 @@ export default class DetailsBody extends React.Component<Props> {
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      start: getUtcDateString(start),
+      start,
       end,
     };
 

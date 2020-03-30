@@ -16,7 +16,7 @@ class OrganizationIncidentStatsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
-        stats = bulk_get_incident_stats([incident], prewindow=True)[0]
+        stats = bulk_get_incident_stats([incident], windowed_stats=True)[0]
         event_stats_serializer = SnubaTSResultSerializer(organization, None, request.user)
         results = {
             "eventStats": event_stats_serializer.serialize(stats["event_stats"]),
