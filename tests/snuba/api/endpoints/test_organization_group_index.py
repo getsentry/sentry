@@ -488,6 +488,51 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 organization_id=self.organization.id,
             )
 
+    def test_assigned_to_pagination(self):
+        self.login_as(user=self.user)
+        group_1 = self.store_event(
+            data={"timestamp": iso_format(before_now(days=29)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={"timestamp": iso_format(before_now(days=8)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(days=10)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={"timestamp": iso_format(before_now(days=29)), "fingerprint": ["group-3"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(days=6)), "fingerprint": ["group-4"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"timestamp": iso_format(before_now(days=10)), "fingerprint": ["group-5"]},
+            project_id=self.project.id,
+        )
+
+        group_2.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+        GroupAssignee.objects.assign(group_1, self.user)
+        GroupAssignee.objects.assign(group_2, self.user)
+
+        response = self.get_response(limit=10, query="assigned:{}".format(self.user.email))
+        assert len(response.data) == 2
+        response = self.get_response(limit=1, query="assigned:{}".format(self.user.email))
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_1.id)
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_response(
+            limit=1, cursor=cursor, query="assigned:{}".format(self.user.email)
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_2.id)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
