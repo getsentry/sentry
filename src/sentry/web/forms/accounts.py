@@ -226,7 +226,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
 
 class RegistrationForm(PasswordlessRegistrationForm):
     password = forms.CharField(
-        required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret", "id": "registration-password"})
+        required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret"})
     )
 
     def clean_password(self):
