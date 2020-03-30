@@ -38,7 +38,7 @@ class Feature(object):
         elif feature == cls.EVENT_HOOKS:
             return "integrations-event-hooks"
         elif feature == cls.PROJECT_MANAGEMENT:
-            return "integrations-project-managment"
+            return "integrations-project-management"
         elif feature == cls.INCIDENT_MANAGEMENT:
             return "integrations-incident-management"
         elif feature == cls.FEATURE_FLAG:
