@@ -15,6 +15,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
+import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -34,7 +35,7 @@ import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {SectionHeading, ContentBox, HeaderBox} from '../styles';
+import {ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
