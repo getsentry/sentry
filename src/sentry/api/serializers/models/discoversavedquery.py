@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import DiscoverSavedQuery
 
@@ -32,7 +32,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "version": obj.version or obj.query.get("version", 1),
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
-            "createdBy": six.text_type(obj.created_by_id) if obj.created_by_id else None,
+            "createdBy": serialize(obj.created_by),
         }
 
         for key in query_keys:

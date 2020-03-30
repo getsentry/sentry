@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
-import {SubHeading} from 'app/components/charts/styles';
-import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import theme from 'app/utils/theme';
-import {IconBookmark} from 'app/icons/iconBookmark';
+import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconSentry} from 'app/icons';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import {User} from 'app/types';
 import Card from 'app/components/card';
 
 type Props = {
@@ -17,6 +17,7 @@ type Props = {
   queryDetail?: string;
   starred?: boolean;
   to: object;
+  createdBy: User | undefined;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
@@ -39,23 +40,24 @@ class QueryCard extends React.PureComponent<Props> {
       queryDetail,
       renderContextMenu,
       renderGraph,
+      createdBy,
     } = this.props;
 
     return (
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
         <StyledQueryCard interactive>
           <QueryCardHeader>
-            <CardHeading>
-              {title}
-              {starred && (
-                <StyledIconBookmark
-                  color={theme.yellow}
-                  data-test-id="is-saved-query"
-                  solid
-                />
-              )}
-            </CardHeading>
-            <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
+            <QueryCardContent>
+              <QueryTitle>{title}</QueryTitle>
+              <QueryDetail>{queryDetail}</QueryDetail>
+            </QueryCardContent>
+            {starred ? (
+              <StyledUserAvatar user={createdBy} />
+            ) : (
+              <Avatar>
+                <StyledIconSentry />
+              </Avatar>
+            )}
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
           <QueryCardFooter>
@@ -68,6 +70,36 @@ class QueryCard extends React.PureComponent<Props> {
   }
 }
 
+const StyledUserAvatar = styled(UserAvatar)`
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  border: 3px solid ${p => p.theme.offWhite2};
+`;
+
+const QueryCardContent = styled('div')`
+  flex-grow: 1;
+  overflow: hidden;
+  margin-right: ${space(1)};
+`;
+
+const Avatar = styled('div')`
+  border: 3px solid ${p => p.theme.offWhite2};
+  background-color: ${p => p.theme.gray4};
+  color: ${p => p.theme.white};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+`;
+
+const StyledIconSentry = styled(IconSentry)`
+  margin-bottom: 2px;
+`;
+
 const StyledQueryCard = styled(Card)`
   justify-content: space-between;
   height: 100%;
@@ -78,31 +110,21 @@ const StyledQueryCard = styled(Card)`
 `;
 
 const QueryCardHeader = styled('div')`
-  position: relative;
+  display: flex;
   padding: ${space(1.5)} ${space(2)};
-  overflow: hidden;
-  line-height: 1.4;
-  flex-grow: 1;
 `;
 
-const StyledIconBookmark = styled(IconBookmark)`
-  position: absolute;
-  top: 14px;
-  right: ${space(2)};
+const QueryTitle = styled('div')`
+  color: ${p => p.theme.textColor};
+  ${overflowEllipsis};
 `;
 
-const CardHeading = styled(SubHeading)`
-  width: 95%;
-`;
-
-const StyledQueryDetail = styled('div')`
+const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray2};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
+  line-height: 1.5;
+  ${overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`

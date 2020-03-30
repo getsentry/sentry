@@ -121,6 +121,7 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
+          createdBy={eventView.createdBy}
           renderGraph={() => (
             <MiniGraph
               location={location}
@@ -168,6 +169,7 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
+          createdBy={eventView.createdBy}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
