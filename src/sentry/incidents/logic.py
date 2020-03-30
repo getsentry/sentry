@@ -318,11 +318,10 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=
         snuba_args = {
             "start": snuba_filter.start,
             "end": snuba_filter.end,
-            "conditions": snuba_filter.conditions,
+            "conditions": resolve_discover_aliases(snuba_filter)[0].conditions,
             "filter_keys": snuba_filter.filter_keys,
             "having": [],
         }
-        snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
         query_args_list.append(snuba_args)
 
     return query_args_list
