@@ -7,9 +7,9 @@ import Count from 'app/components/count';
 
 type Props = {
   totalUsers: number;
-  totalUsers24h: number;
+  totalUsers24h: number | null;
   totalSessions: number;
-  totalSessions24h: number;
+  totalSessions24h: number | null;
 };
 
 const AdoptionTooltip = ({
@@ -29,7 +29,7 @@ const AdoptionTooltip = ({
       <Row>
         <Title>{t('Total Users')}:</Title>
         <Value>
-          <Count value={totalUsers ?? 0} />
+          <Count value={totalUsers} />
         </Value>
       </Row>
       <Divider />
@@ -43,7 +43,7 @@ const AdoptionTooltip = ({
       <Row>
         <Title>{t('Total Sessions')}:</Title>
         <Value>
-          <Count value={totalSessions ?? 0} />
+          <Count value={totalSessions} />
         </Value>
       </Row>
     </Wrapper>

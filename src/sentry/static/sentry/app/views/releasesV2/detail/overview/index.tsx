@@ -112,8 +112,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}
                       />
                     )}
-                    {/* TODO(releasesV2): hidden for now */}
-                    {/* <SessionDuration /> */}
                   </Sidebar>
                 </ContentBox>
               )}
