@@ -256,6 +256,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     """
     Handles event symbolication using the external service: symbolicator.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
     """
     return _do_symbolicate_event(
         cache_key=cache_key,
@@ -447,6 +451,16 @@ def _do_process_event(
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs):
+    """
+    Handles event processing (for those events that need it)
+
+    This excludes symbolication via symbolicator service (see symbolicate_event).
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    :param boolean data_has_changed: set to True if the event data was changed in previous tasks
+    """
     return _do_process_event(
         cache_key=cache_key,
         start_time=start_time,

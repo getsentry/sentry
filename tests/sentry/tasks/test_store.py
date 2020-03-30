@@ -160,7 +160,7 @@ def test_symbolicate_event_call_process(
 
     assert mock_save_event.delay.call_count == 0
     mock_process_event.delay.assert_called_once_with(
-        cache_key="e:1", start_time=1, event_id=EVENT_ID, has_changed=True
+        cache_key="e:1", start_time=1, event_id=EVENT_ID, data_has_changed=True
     )
 
 
