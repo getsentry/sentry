@@ -148,8 +148,7 @@ class U2fInterface extends React.Component {
               `
              Unfortunately your browser does not support U2F. You need to use
              a different two-factor method or switch to a browser that supports
-             it (Google Chrome or Microsoft Edge).
-            `
+             it (Google Chrome or Microsoft Edge).`
             )}
           </p>
         </div>

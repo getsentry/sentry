@@ -3,24 +3,20 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# rootart <dijakroot@gmail.com>, 2015
-# Sokil <mayhem@ukr.net>, 2015
-# Eugene ghostishev, 2013-2014
-# Viktor Kharkovets <slam.3lnc@live.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2020-03-26 15:07+0000\n"
-"PO-Revision-Date: 2020-03-26 15:12+0000\n"
-"Last-Translator: Eugene ghostishev\n"
-"Language-Team: Ukrainian (http://www.transifex.com/getsentry/sentry/language/uk/)\n"
+"PO-Revision-Date: 2020-03-26 15:10+0000\n"
+"Last-Translator: Billy Vong <billy@sentry.io>\n"
+"Language-Team: Acoli (http://www.transifex.com/getsentry/sentry/language/ach/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
-"Language: uk\n"
-"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+"Language: ach\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: admin.py:163 admin.py:177
 #: static/sentry/app/components/events/contexts/user/getUserKnownDataDetails.tsx:29
@@ -29,7 +25,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationMembers/inviteMember/index.jsx:211
 #: web/forms/accounts.py:326
 msgid "Username"
-msgstr "Ім’я користувача"
+msgstr ""
 
 #: admin.py:166 admin.py:180
 msgid "Required. 128 characters or fewer. Letters, digits and @/./+/-/_ only."
@@ -41,25 +37,25 @@ msgstr ""
 
 #: admin.py:194
 msgid "Personal info"
-msgstr "Інформація про мене"
+msgstr ""
 
 #: admin.py:195
 #: static/sentry/app/views/settings/organizationDeveloperSettings/permissionsObserver.tsx:79
 msgid "Permissions"
-msgstr "Права доступу"
+msgstr ""
 
 #: admin.py:196
 msgid "Important dates"
-msgstr "Важливі дати"
+msgstr ""
 
 #: admin.py:275
 msgid "Password changed successfully."
-msgstr "Пароль успішно змінено."
+msgstr ""
 
 #: admin.py:285
 #, python-format
 msgid "Change password: %s"
-msgstr "Змініть пароль: %s"
+msgstr ""
 
 #: api/endpoints/organization_auth_provider_send_reminders.py:12
 #: web/frontend/organization_auth_settings.py:21
@@ -112,7 +108,7 @@ msgstr ""
 #: static/sentry/app/components/events/interfaces/stacktrace.jsx:59
 #: static/sentry/app/components/events/interfaces/threads/threads.jsx:204
 msgid "Stacktrace"
-msgstr "Stacktrace"
+msgstr ""
 
 #: assistant/guides.py:38
 msgid ""
@@ -145,7 +141,7 @@ msgstr ""
 #: static/sentry/app/views/settings/projectTags.jsx:55
 #: static/sentry/app/views/settings/projectTags.jsx:69
 msgid "Tags"
-msgstr "Теґ"
+msgstr ""
 
 #: assistant/guides.py:56
 msgid ""
@@ -267,8 +263,6 @@ msgid_plural ""
 "characters."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: auth/password_validation.py:101
 #, python-format
@@ -276,8 +270,6 @@ msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: auth/password_validation.py:119
 #, python-format
@@ -289,8 +281,6 @@ msgid_plural ""
 "characters."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: auth/password_validation.py:129
 #, python-format
@@ -299,8 +289,6 @@ msgid_plural ""
 "Your password must contain no more than %(max_length)d characters."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: auth/password_validation.py:143
 msgid "This password is entirely numeric."
@@ -699,7 +687,7 @@ msgstr ""
 
 #: constants.py:45 static/sentry/app/views/issueList/sortOptions.jsx:50
 msgid "Priority"
-msgstr "Пріоритет"
+msgstr ""
 
 #: constants.py:46 constants.py:53
 #: static/sentry/app/components/issueLink.tsx:91
@@ -707,23 +695,23 @@ msgstr "Пріоритет"
 #: static/sentry/app/views/organizationGroupDetails/groupTagValues.tsx:135
 #: static/sentry/app/views/settings/account/accountSecurity/accountSecuritySessionHistory.jsx:96
 msgid "Last Seen"
-msgstr "Останній раз:"
+msgstr ""
 
 #: constants.py:47 constants.py:53
 #: static/sentry/app/components/issueLink.tsx:87
 #: static/sentry/app/views/issueList/sortOptions.jsx:48
 #: static/sentry/app/views/settings/account/accountSecurity/accountSecuritySessionHistory.jsx:95
 msgid "First Seen"
-msgstr "Перший раз:"
+msgstr ""
 
 #: constants.py:48 static/sentry/app/views/issueList/sortOptions.jsx:52
 #: static/sentry/app/views/monitors/monitorForm.jsx:207
 msgid "Frequency"
-msgstr "Частота"
+msgstr ""
 
 #: constants.py:53
 msgid "Score"
-msgstr "Рахунок"
+msgstr ""
 
 #: constants.py:233
 #, python-brace-format
@@ -1142,7 +1130,7 @@ msgstr ""
 #: static/sentry/app/views/releases/list/releaseListHeader.jsx:19
 #: static/sentry/app/views/settings/project/navigationConfiguration.tsx:16
 msgid "Project"
-msgstr "Проект"
+msgstr ""
 
 #: integrations/vsts/issues.py:77
 msgid "MyProject"
@@ -1150,7 +1138,7 @@ msgstr ""
 
 #: interfaces/http.py:172
 msgid "Request"
-msgstr "Запит"
+msgstr ""
 
 #: interfaces/stacktrace.py:508
 msgid "Stacktrace (most recent call first):"
@@ -1197,7 +1185,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/teamProjects.jsx:226
 #: static/sentry/app/views/settings/projectDataPrivacy/utils.tsx:70
 msgid "Remove"
-msgstr "Видалити"
+msgstr ""
 
 #: models/authenticator.py:271
 msgid "Recovery Codes"
@@ -1306,17 +1294,17 @@ msgstr ""
 
 #: models/email.py:19 models/user.py:51 models/useremail.py:24
 msgid "email address"
-msgstr "адреса e-mail"
+msgstr ""
 
 #: models/group.py:265 static/sentry/app/views/userFeedback/index.tsx:136
 msgid "Unresolved"
-msgstr "Не вирішено"
+msgstr ""
 
 #: models/group.py:266 models/groupresolution.py:36
 #: static/sentry/app/views/alerts/list/index.tsx:249
 #: static/sentry/app/views/alerts/status.tsx:28
 msgid "Resolved"
-msgstr "Вирішено"
+msgstr ""
 
 #: models/group.py:267
 msgid "Ignored"
@@ -1324,15 +1312,15 @@ msgstr ""
 
 #: models/group.py:291
 msgid "grouped messages"
-msgstr "згруповані повідомлення"
+msgstr ""
 
 #: models/group.py:292
 msgid "grouped message"
-msgstr "згруповане повідомлення"
+msgstr ""
 
 #: models/group.py:449
 msgid "error"
-msgstr "помилка"
+msgstr ""
 
 #: models/grouphash.py:21
 msgid "Locked (Migration in Progress)"
@@ -1384,7 +1372,7 @@ msgstr ""
 
 #: models/user.py:47
 msgid "username"
-msgstr "ім'я користувача"
+msgstr ""
 
 #: models/user.py:50
 msgid "name"
@@ -1392,7 +1380,7 @@ msgstr ""
 
 #: models/user.py:53
 msgid "staff status"
-msgstr "персонал"
+msgstr ""
 
 #: models/user.py:55
 msgid "Designates whether the user can log into this admin site."
@@ -1400,7 +1388,7 @@ msgstr ""
 
 #: models/user.py:58
 msgid "active"
-msgstr "активний"
+msgstr ""
 
 #: models/user.py:61 static/sentry/app/views/admin/adminUserEdit.jsx:46
 msgid ""
@@ -1457,7 +1445,7 @@ msgstr ""
 
 #: models/user.py:114
 msgid "date joined"
-msgstr "від"
+msgstr ""
 
 #: models/user.py:115
 msgid "last active"
@@ -1466,12 +1454,12 @@ msgstr ""
 #: models/user.py:125
 #: static/sentry/app/views/releasesV2/list/releaseHealth.tsx:107
 msgid "user"
-msgstr "користувач"
+msgstr ""
 
 #: models/user.py:126
 #: static/sentry/app/views/releases/detail/groupListHeader.tsx:25
 msgid "users"
-msgstr "користувачі"
+msgstr ""
 
 #: models/useremail.py:28
 msgid "verified"
@@ -1521,11 +1509,11 @@ msgstr ""
 #: static/sentry/app/components/errors/notFound.tsx:10
 #: templates/sentry/404.html:5
 msgid "Page Not Found"
-msgstr "Сторінку не знайдено"
+msgstr ""
 
 #: templates/sentry/404.html:14
 msgid "The page you are looking for was not found."
-msgstr "Сторінку не знайдено."
+msgstr ""
 
 #: templates/sentry/404.html:15
 msgid "You may wish to try the following:"
@@ -1533,11 +1521,11 @@ msgstr ""
 
 #: templates/sentry/404.html:21
 msgid "Return to the dashboard"
-msgstr "Повернутись на головну"
+msgstr ""
 
 #: templates/sentry/500.html:5
 msgid "Internal Server Error"
-msgstr "Внутрішня помилка сервера"
+msgstr ""
 
 #: static/sentry/app/components/subscribeButton.tsx:31
 #: templates/sentry/account/email_unsubscribe_project.html:7
@@ -1578,7 +1566,7 @@ msgstr ""
 #: templates/sentry/account/email_unsubscribe_project.html:23
 #: templates/sentry/unsubscribe-notifications.html:17
 msgid "Cancel"
-msgstr "Скасувати"
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:6
 #: templates/sentry/account/recover/confirm.html:9
@@ -1589,15 +1577,15 @@ msgstr "Скасувати"
 #: templates/sentry/account/recover/sent.html:6
 #: templates/sentry/account/recover/sent.html:9
 msgid "Recover Account"
-msgstr "Відновити Обліковий запис"
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:11
 msgid "You have confirmed your email, and may now update your password below."
-msgstr "Ви підтвердили Вашу email-адресу, тепер можете змінити пароль."
+msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:21
 msgid "Change Password"
-msgstr "Змінити Пароль"
+msgstr ""
 
 #: templates/sentry/account/recover/expired.html:6
 #: templates/sentry/account/recover/expired.html:10
@@ -1629,7 +1617,7 @@ msgstr ""
 
 #: templates/sentry/account/recover/index.html:22
 msgid "Send Email"
-msgstr "Відправити Email"
+msgstr ""
 
 #: templates/sentry/account/set_password/confirm.html:6
 #: templates/sentry/account/set_password/confirm.html:9
@@ -1652,7 +1640,7 @@ msgstr ""
 #: static/sentry/app/components/modals/sudoModal.jsx:142
 #: templates/sentry/account/sudo.html:7
 msgid "Confirm Password"
-msgstr "Підтвердження паролю"
+msgstr ""
 
 #: templates/sentry/account/sudo.html:26
 msgid "Confirm your Identity"
@@ -1688,7 +1676,7 @@ msgstr ""
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Login"
-msgstr "Вхід"
+msgstr ""
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1733,7 +1721,7 @@ msgstr ""
 #: templates/sentry/integrations/jira-server-config.html:53
 #: templates/sentry/integrations/vsts-config.html:36
 msgid "Submit"
-msgstr "Відправити"
+msgstr ""
 
 #: templates/sentry/integrations/dialog-complete.html:8
 msgid "Integration Setup Complete"
@@ -1813,7 +1801,7 @@ msgstr ""
 #: static/sentry/app/views/releases/list/releaseLandingCard.jsx:22
 #: templates/sentry/integrations/gitlab-config.html:72
 msgid "Next"
-msgstr "Наступний"
+msgstr ""
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
@@ -1874,7 +1862,7 @@ msgstr ""
 #: templates/sentry/organization-login.html:58
 #: templates/sentry/organization-login.html:130
 msgid "Register"
-msgstr "Зареєструватися"
+msgstr ""
 
 #: static/sentry/app/views/auth/login.jsx:77 templates/sentry/login.html:25
 msgid "Single Sign-On"
@@ -1943,28 +1931,28 @@ msgstr ""
 #: static/sentry/app/views/settings/project/serviceHookSettingsForm.jsx:46
 #: templates/sentry/partial/_form.html:17
 msgid "Save Changes"
-msgstr "Зберегти зміни"
+msgstr ""
 
 #: templates/sentry/partial/form_base.html:5
 msgid "Please correct the errors below."
-msgstr "Виправле помилки."
+msgstr ""
 
 #: static/sentry/app/views/settings/project/projectOwnership/ruleBuilder.jsx:128
 #: static/sentry/app/views/settings/project/serviceHookSettingsForm.jsx:53
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:223
 #: templates/sentry/partial/interfaces/http_email.html:9
 msgid "URL"
-msgstr "URL"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http_email.html:15
 msgid "Method"
-msgstr "Метод"
+msgstr ""
 
 #: static/sentry/app/views/alerts/details/body.tsx:215
 #: static/sentry/app/views/issueList/createSavedSearchButton.jsx:134
 #: templates/sentry/partial/interfaces/http_email.html:21
 msgid "Query"
-msgstr "Запит"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent/richHttpContent.tsx:24
 #: templates/sentry/partial/interfaces/http_email.html:29
@@ -1974,20 +1962,20 @@ msgstr ""
 #: static/sentry/app/components/events/contextSummary/contextSummaryUser.tsx:44
 #: templates/sentry/partial/interfaces/user_email.html:14
 msgid "ID:"
-msgstr "ID:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:20
 msgid "IP Address:"
-msgstr "Адреса IP:"
+msgstr ""
 
 #: static/sentry/app/components/events/contextSummary/contextSummaryUser.tsx:38
 #: templates/sentry/partial/interfaces/user_email.html:26
 msgid "Username:"
-msgstr "Ім’я користувача:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user_email.html:32
 msgid "Email:"
-msgstr "Email:"
+msgstr ""
 
 #: templates/sentry/pipeline-error.html:6
 msgid "Setup Error"
@@ -2036,7 +2024,7 @@ msgstr ""
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr "Налаштування вдало збережені."
+msgstr ""
 
 #: templates/sentry/reactivate-account.html:5
 #: templates/sentry/reactivate-account.html:18
@@ -2093,36 +2081,36 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "b"
-msgstr "б"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "m"
-msgstr "м"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:168
 msgid "k"
-msgstr "к"
+msgstr ""
 
 #: static/sentry/app/views/settings/account/accountSecurity/accountSecurityDetails.jsx:43
 #: templatetags/sentry_helpers.py:211
 msgid "never"
-msgstr "ніколи"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:215
 msgid "0 minutes"
-msgstr "0 хвилин"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:216
 msgid "just now"
-msgstr "щойно"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:217
 msgid "1 day"
-msgstr "1 день"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:218
 msgid "yesterday"
-msgstr "вчора"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:219
 #, python-format
@@ -2137,7 +2125,7 @@ msgstr ""
 #: static/sentry/app/views/settings/account/navigationConfiguration.tsx:8
 #: web/forms/accounts.py:43 web/forms/accounts.py:251
 msgid "Account"
-msgstr "Аккаунт"
+msgstr ""
 
 #: static/sentry/app/views/auth/loginForm.jsx:135 web/forms/accounts.py:45
 #: web/forms/accounts.py:253
@@ -2149,7 +2137,7 @@ msgstr ""
 #: static/sentry/app/views/auth/loginForm.jsx:143
 #: static/sentry/app/views/auth/registerForm.jsx:120 web/forms/accounts.py:48
 msgid "Password"
-msgstr "Пароль"
+msgstr ""
 
 #: static/sentry/app/views/auth/loginForm.jsx:142 web/forms/accounts.py:49
 msgid "password"
@@ -2204,7 +2192,7 @@ msgstr ""
 #: web/forms/accounts.py:160 web/forms/accounts.py:325
 #: web/frontend/error_page_embed.py:30
 msgid "Name"
-msgstr "Ім’я"
+msgstr ""
 
 #: static/sentry/app/components/events/contexts/user/getUserKnownDataDetails.tsx:44
 #: static/sentry/app/views/admin/adminUserEdit.jsx:38
@@ -2215,7 +2203,7 @@ msgstr "Ім’я"
 #: web/forms/accounts.py:166 web/forms/accounts.py:327
 #: web/frontend/error_page_embed.py:31
 msgid "Email"
-msgstr "Email"
+msgstr ""
 
 #: web/forms/accounts.py:173
 msgid "Email updates"
@@ -2237,7 +2225,7 @@ msgstr ""
 
 #: web/forms/accounts.py:298 web/forms/accounts.py:338
 msgid "Current password"
-msgstr "Поточний пароль"
+msgstr ""
 
 #: web/forms/accounts.py:300
 msgid "You will need to enter your current account password to make changes."
@@ -2253,7 +2241,7 @@ msgstr ""
 
 #: web/forms/accounts.py:329
 msgid "New password"
-msgstr "Новий пароль"
+msgstr ""
 
 #: web/forms/accounts.py:335
 msgid "Verify new password"
@@ -2271,7 +2259,7 @@ msgstr ""
 #: static/sentry/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:140
 #: web/forms/accounts.py:471
 msgid "Language"
-msgstr "Мова"
+msgstr ""
 
 #: web/forms/accounts.py:477
 msgid "Stacktrace order"
@@ -2283,7 +2271,7 @@ msgstr ""
 
 #: web/forms/accounts.py:488
 msgid "Time zone"
-msgstr "Часова зона"
+msgstr ""
 
 #: web/forms/accounts.py:493
 msgid "Use a 24-hour clock"
@@ -2357,7 +2345,7 @@ msgstr ""
 
 #: web/forms/fields.py:53
 msgid "Invalid username"
-msgstr "Неправильне ім’я користувача"
+msgstr ""
 
 #: web/forms/fields.py:60
 msgid "Not set"
@@ -2761,8 +2749,6 @@ msgid "one time…"
 msgid_plural "%s times…"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/actions/ignore.jsx:190
 #: static/sentry/app/components/actions/ignore.jsx:237
@@ -2775,8 +2761,6 @@ msgid "one user…"
 msgid_plural "%s users…"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/actions/ignore.jsx:88
 msgid "Change status to unresolved"
@@ -2880,7 +2864,7 @@ msgstr ""
 #: static/sentry/app/views/onboarding/projectSetup/inviteMembers.jsx:83
 #: static/sentry/app/views/settings/organizationTeams/teamMembers.jsx:227
 msgid "Invite Member"
-msgstr "Запросити Користувача"
+msgstr ""
 
 #: static/sentry/app/components/assistant/getGuidesContent.tsx:111
 msgid ""
@@ -3081,7 +3065,7 @@ msgstr ""
 #: static/sentry/app/views/settings/account/accountSecurity/accountSecurityEnroll.jsx:60
 #: static/sentry/app/views/settings/account/accountSecurity/accountSecurityEnroll.jsx:89
 msgid "Confirm"
-msgstr "Підтвердити"
+msgstr ""
 
 #: static/sentry/app/components/confirmDelete.tsx:59
 #, python-format
@@ -3123,7 +3107,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/organizationTeams.jsx:60
 #: static/sentry/app/views/settings/project/projectTeams.jsx:126
 msgid "Create Team"
-msgstr "Створити команду"
+msgstr ""
 
 #: static/sentry/app/components/createTeamForm.jsx:51
 msgid "Team Slug"
@@ -3189,7 +3173,7 @@ msgstr ""
 #: static/sentry/app/views/releasesV2/list/releaseCard.tsx:32
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:231
 msgid "Version"
-msgstr "Версія"
+msgstr ""
 
 #: static/sentry/app/components/customResolutionModal.tsx:81
 msgid "e.g. 1.0.4"
@@ -3260,40 +3244,30 @@ msgid "week"
 msgid_plural "weeks"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/duration.tsx:29
 msgid "day"
 msgid_plural "days"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/duration.tsx:33
 msgid "hour"
 msgid_plural "hours"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/duration.tsx:37
 msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/duration.tsx:41
 msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/errorBoundary.tsx:87
 msgid "There was a problem rendering this component"
@@ -3611,8 +3585,6 @@ msgid "There was %s error encountered while processing this event"
 msgid_plural "There were %s errors encountered while processing this event"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/events/errors.jsx:57
 #: static/sentry/app/views/settings/project/projectEnvironments.jsx:143
@@ -3718,7 +3690,7 @@ msgstr ""
 #: static/sentry/app/components/events/interfaces/csp.jsx:70
 #: static/sentry/app/components/events/interfaces/generic.jsx:64
 msgid "Raw"
-msgstr "Рядок"
+msgstr ""
 
 #: static/sentry/app/components/events/eventEntries.jsx:168
 msgid "There was an error rendering this data."
@@ -3730,7 +3702,7 @@ msgstr ""
 
 #: static/sentry/app/components/events/eventExtraData/eventExtraData.tsx:42
 msgid "Additional Data"
-msgstr "Додаткові данні"
+msgstr ""
 
 #: static/sentry/app/components/events/eventExtraData/getEventExtraDataKnownDataDetails.tsx:19
 msgid "Crashed Process"
@@ -3767,7 +3739,7 @@ msgstr ""
 #: static/sentry/app/components/events/interfaces/assembly.tsx:41
 #: static/sentry/app/views/settings/project/projectOwnership/ruleBuilder.jsx:127
 msgid "Path"
-msgstr "Шлях"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/breadcrumbs.jsx:150
 msgid "Search breadcrumbs..."
@@ -3791,11 +3763,11 @@ msgstr ""
 
 #: static/sentry/app/components/events/interfaces/crashHeader.jsx:108
 msgid "most recent call first"
-msgstr "спочатку новіші виклики"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/crashHeader.jsx:108
 msgid "most recent call last"
-msgstr "спочатку старіші виклики"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/crashHeader.jsx:139
 msgid "App Only"
@@ -4078,7 +4050,7 @@ msgstr ""
 #: static/sentry/app/components/events/interfaces/exception.jsx:48
 #: static/sentry/app/views/organizationGroupDetails/groupSimilar/similarToolbar.jsx:64
 msgid "Exception"
-msgstr "Виключення"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/exceptionMechanism.jsx:58
 #: static/sentry/app/views/monitors/monitorForm.jsx:104
@@ -4087,7 +4059,7 @@ msgstr "Виключення"
 #: static/sentry/app/views/settings/project/projectProcessingIssues.jsx:374
 #: static/sentry/app/views/sharedGroupDetails/index.jsx:116
 msgid "Details"
-msgstr "Деталі"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/exceptionMechanism.jsx:89
 msgid "code"
@@ -4200,7 +4172,7 @@ msgstr ""
 #: static/sentry/app/views/settings/projectAlerts/issueEditor/index.tsx:359
 #: static/sentry/app/views/settings/projectAlerts/ruleRow.tsx:61
 msgid "Environment"
-msgstr "Оточення"
+msgstr ""
 
 #: static/sentry/app/components/events/interfaces/richHttpContent/richHttpContentClippedBoxBodySection.tsx:82
 msgid "Body"
@@ -4298,8 +4270,6 @@ msgid "Processing Error:"
 msgid_plural "Processing Errors:"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/events/packageData.tsx:32
 msgid "Assemblies"
@@ -4307,7 +4277,7 @@ msgstr ""
 
 #: static/sentry/app/components/events/packageData.tsx:36
 msgid "Packages"
-msgstr "Пакунки"
+msgstr ""
 
 #: static/sentry/app/components/events/sdkUpdates.jsx:127
 msgid "We recommend you "
@@ -4338,7 +4308,7 @@ msgstr ""
 #: static/sentry/app/components/eventsTable/eventsTable.jsx:27
 #: static/sentry/app/views/events/eventsTable.jsx:134
 msgid "User"
-msgstr "Користувач"
+msgstr ""
 
 #: static/sentry/app/components/forms/apiForm.tsx:35
 msgid "There was an error saving your changes."
@@ -4394,7 +4364,7 @@ msgstr ""
 #: static/sentry/app/components/group/pluginActions.jsx:122
 #: static/sentry/app/components/group/sentryAppExternalIssueActions.tsx:175
 msgid "Link"
-msgstr "Посилання"
+msgstr ""
 
 #: static/sentry/app/components/group/externalIssueActions.tsx:62
 #: static/sentry/app/components/group/pluginActions.jsx:51
@@ -4473,7 +4443,7 @@ msgstr ""
 #: static/sentry/app/views/monitors/monitors.jsx:100
 #: static/sentry/app/views/settings/projectPlugins/projectPluginRow.jsx:73
 msgid "n/a"
-msgstr "н/д"
+msgstr ""
 
 #: static/sentry/app/components/group/seenInfo.jsx:57
 msgid "Globally:"
@@ -4562,7 +4532,7 @@ msgstr ""
 #: static/sentry/app/views/alerts/details/header.tsx:110
 #: static/sentry/app/views/settings/account/navigationConfiguration.tsx:24
 msgid "Notifications"
-msgstr "Сповіщення"
+msgstr ""
 
 #: static/sentry/app/components/group/suggestedOwnerHovercard.jsx:57
 #: static/sentry/app/views/releases/detail/releaseHeader.jsx:41
@@ -4652,7 +4622,7 @@ msgstr ""
 #: static/sentry/app/views/settings/incidentRules/ruleConditionsForm.tsx:28
 #: static/sentry/app/views/settings/projectAlerts/issueEditor/index.tsx:48
 msgid "24 hours"
-msgstr "24 години"
+msgstr ""
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:82
 msgid "Forever"
@@ -4807,8 +4777,6 @@ msgid "%s invite"
 msgid_plural "%s invites"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/modals/inviteMembersModal/index.tsx:269
 msgid "Sent [invites], [failed] failed to send."
@@ -4829,8 +4797,6 @@ msgid "Send invite"
 msgid_plural "Send invites (%s)"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/modals/inviteMembersModal/index.tsx:295
 #: static/sentry/app/components/modals/inviteMembersModal/index.tsx:298
@@ -4839,8 +4805,6 @@ msgid "Send invite request"
 msgid_plural "Send invite requests (%s)"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/modals/inviteMembersModal/index.tsx:312
 msgid "Invite New Members"
@@ -5287,7 +5251,7 @@ msgstr ""
 #: static/sentry/app/views/eventsV2/table/columnEditModal.tsx:66
 #: static/sentry/app/views/eventsV2/table/columnEditModal.tsx:67
 msgid "Apply"
-msgstr "Застосувати"
+msgstr ""
 
 #: static/sentry/app/components/organizations/timeRangeSelector/dateRange/index.jsx:135
 msgid "Invalid start time"
@@ -5321,7 +5285,7 @@ msgstr ""
 #: static/sentry/app/components/pagination.tsx:73
 #: static/sentry/app/views/events/eventsChart.jsx:78
 msgid "Previous"
-msgstr "Попередній"
+msgstr ""
 
 #: static/sentry/app/components/passwordStrength.jsx:74
 msgid "Strength: [textScore]"
@@ -5470,8 +5434,6 @@ msgid "%s commit"
 msgid_plural "%s commits"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/releaseStats.tsx:24
 #: static/sentry/app/views/releasesV2/list/releaseCard.tsx:42
@@ -5485,8 +5447,6 @@ msgid "%s author"
 msgid_plural "%s authors"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/repositoryFileSummary.jsx:14
 #, python-format
@@ -5494,8 +5454,6 @@ msgid "Show %s collapsed file"
 msgid_plural "Show %s collapsed files"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/repositoryRow.tsx:113
 msgid ""
@@ -5634,7 +5592,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/teamProjects.jsx:190
 #: static/sentry/app/views/settings/settingsIndex.tsx:146
 msgid "Projects"
-msgstr "Проекти"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/index.jsx:358
 #: static/sentry/app/views/alerts/utils.tsx:64
@@ -5649,7 +5607,7 @@ msgstr "Проекти"
 #: static/sentry/app/views/settings/project/serviceHookSettingsForm.jsx:60
 #: static/sentry/app/views/settings/projectAlerts/ruleRow.tsx:114
 msgid "Events"
-msgstr "Події"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/index.jsx:381
 #: static/sentry/app/components/sidebar/index.jsx:471
@@ -5677,7 +5635,7 @@ msgstr ""
 #: static/sentry/app/views/settings/project/navigationConfiguration.tsx:31
 #: static/sentry/app/views/settings/projectAlerts/list.tsx:96
 msgid "Alerts"
-msgstr "Сповіщення"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/index.jsx:429
 #: static/sentry/app/data/forms/inboundFilters.jsx:55
@@ -5724,7 +5682,7 @@ msgstr ""
 
 #: static/sentry/app/components/sidebar/index.jsx:522
 msgid "Stats"
-msgstr "Статистика"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/index.jsx:533
 #: static/sentry/app/views/admin/adminSettings.jsx:50
@@ -5734,7 +5692,7 @@ msgstr "Статистика"
 #: static/sentry/app/views/settings/organizationTeams/teamDetails.jsx:173
 #: static/sentry/app/views/settings/projectAlerts/list.tsx:100
 msgid "Settings"
-msgstr "Налаштування"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/onboardingStatus.tsx:69
 msgid "Getting started with Sentry: [br] [done] / [all] tasks completed"
@@ -5763,7 +5721,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/teamMembers.jsx:289
 #: static/sentry/app/views/settings/settingsIndex.tsx:156
 msgid "Members"
-msgstr "Користувачі"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/sidebarDropdown/index.tsx:108
 #: static/sentry/app/views/settings/organization/navigationConfiguration.tsx:35
@@ -5771,7 +5729,7 @@ msgstr "Користувачі"
 #: static/sentry/app/views/settings/project/projectTeams.jsx:119
 #: static/sentry/app/views/settings/settingsIndex.tsx:151
 msgid "Teams"
-msgstr "Команди"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/sidebarDropdown/index.tsx:132
 msgid "User settings"
@@ -5784,7 +5742,7 @@ msgstr ""
 #: static/sentry/app/components/sidebar/sidebarDropdown/index.tsx:138
 #: static/sentry/app/views/admin/adminUserEdit.jsx:54
 msgid "Admin"
-msgstr "Адмін"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/sidebarDropdown/index.tsx:97
 msgid "Organization settings"
@@ -5800,7 +5758,7 @@ msgstr ""
 
 #: static/sentry/app/components/sidebar/sidebarItem.tsx:116
 msgid "New"
-msgstr "Новий"
+msgstr ""
 
 #: static/sentry/app/components/sidebar/sidebarOrgSummary.tsx:19
 #, python-format
@@ -5808,8 +5766,6 @@ msgid "%s project"
 msgid_plural "%s projects"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/sidebar/sidebarPanelItem.tsx:29
 msgid "Read More"
@@ -5896,8 +5852,6 @@ msgid "There is %s issue blocking event processing"
 msgid_plural "There are %s issues blocking event processing"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/stream/processingIssueHint.jsx:53
 msgid "last event from [ago]"
@@ -5910,8 +5864,6 @@ msgid "Reprocessing %s event …"
 msgid_plural "Reprocessing %s events …"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/stream/processingIssueHint.jsx:72
 #, python-format
@@ -5919,8 +5871,6 @@ msgid "There is %s event pending reprocessing."
 msgid_plural "There are %s events pending reprocessing."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/components/stream/processingIssueHint.jsx:86
 msgid "Show details"
@@ -6205,7 +6155,7 @@ msgstr ""
 
 #: static/sentry/app/data/forms/organizationGeneralSettings.jsx:10
 msgid "General"
-msgstr "Головне"
+msgstr ""
 
 #: static/sentry/app/data/forms/organizationGeneralSettings.jsx:17
 msgid "A unique ID used to identify this organization"
@@ -6507,8 +6457,6 @@ msgid "%s minute"
 msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/data/forms/projectDebugFiles.jsx:103
 msgid "http symbol server ssqp symstore symsrv"
@@ -6588,8 +6536,6 @@ msgid "%s day"
 msgid_plural "%s days"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/data/forms/projectGeneralSettings.jsx:106
 #, python-format
@@ -6597,8 +6543,6 @@ msgid "%s hour"
 msgid_plural "%s hours"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/data/forms/projectGeneralSettings.jsx:109
 msgid ""
@@ -6748,7 +6692,7 @@ msgstr ""
 #: static/sentry/app/data/forms/projectGeneralSettings.jsx:377
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeyDetails.jsx:109
 msgid "Allowed Domains"
-msgstr "Дозволені домени"
+msgstr ""
 
 #: static/sentry/app/data/forms/projectGeneralSettings.jsx:378
 msgid "Separate multiple entries with a newline"
@@ -6864,7 +6808,7 @@ msgstr ""
 
 #: static/sentry/app/data/platformCategories.tsx:83
 msgid "Server"
-msgstr "Сервер"
+msgstr ""
 
 #: static/sentry/app/data/platformCategories.tsx:84
 msgid "Mobile"
@@ -7100,7 +7044,7 @@ msgstr ""
 
 #: static/sentry/app/views/acceptOrganizationInvite.tsx:126
 msgid "Create a new account"
-msgstr "Створити новий обліковий запис"
+msgstr ""
 
 #: static/sentry/app/views/acceptOrganizationInvite.tsx:130
 msgid "Login using an existing account"
@@ -7198,7 +7142,7 @@ msgstr ""
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:54
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:402
 msgid "Project Settings"
-msgstr "Налаштування проекту"
+msgstr ""
 
 #: static/sentry/app/views/acceptProjectTransfer.jsx:82
 msgid "Please select which [organization] you want for the project [project]."
@@ -7212,7 +7156,7 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:34
 msgid "Server Version"
-msgstr "Версія Сервера."
+msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:37
 #, python-format
@@ -7221,19 +7165,19 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:56
 msgid "Python Version"
-msgstr "Версія Python"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:60
 msgid "Configuration File"
-msgstr "Файл конфігурації"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:64
 msgid "Uptime"
-msgstr "Uptime"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:74
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr "Оточення не знайдене (можливо ви використовуєте вбудований веб-сервер Sentry)."
+msgstr ""
 
 #: static/sentry/app/views/admin/adminEnvironment.jsx:79
 msgid "Configuration [configPath]"
@@ -7250,32 +7194,32 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:47
 msgid "SMTP Settings"
-msgstr "Налаштування SMTP"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:50
 msgid "From Address"
-msgstr "З адреси"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:55
 msgid "Host"
-msgstr "Хост"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:64
 #: static/sentry/app/views/admin/adminMail.jsx:70
 msgid "not set"
-msgstr "не встановлене"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:74
 msgid "TLS?"
-msgstr "TLS?"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:76
 msgid "Yes"
-msgstr "Так"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:76
 msgid "No"
-msgstr "Ні"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:79
 msgid "Mailing List Namespace"
@@ -7283,13 +7227,13 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:85
 msgid "Test Settings"
-msgstr "Перевірити Налаштування"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:88
 msgid ""
 "Send an email to your account's email address to confirm that everything is "
 "configured correctly."
-msgstr "Відправити повідомлення на вашу адресу e-mail, для підтвердження того, що все налаштовано правильно."
+msgstr ""
 
 #: static/sentry/app/views/admin/adminMail.jsx:94
 #, python-format
@@ -7315,7 +7259,7 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminPackages.jsx:21
 msgid "Extensions"
-msgstr "Втулки"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminPackages.jsx:35
 msgid "No extensions registered"
@@ -7323,7 +7267,7 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminPackages.jsx:38
 msgid "Modules"
-msgstr "Модулі"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminPackages.jsx:52
 msgid "No modules registered"
@@ -7339,11 +7283,11 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:101
 msgid "Disable the account."
-msgstr "Відключити цей обліковий запис."
+msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:102
 msgid "Permanently remove the user and their data."
-msgstr "Видалити користувача та його дані НАЗАВЖДИ."
+msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:109
 msgid "Nevermind"
@@ -7365,7 +7309,7 @@ msgstr ""
 #: static/sentry/app/views/organizationGroupDetails/header.jsx:174
 #: static/sentry/app/views/settings/projectAlerts/ruleRow.tsx:114
 msgid "Users"
-msgstr "Користувачі"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:162
 #, python-format
@@ -7374,7 +7318,7 @@ msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:181
 msgid "Remove User"
-msgstr "Видалити користувача"
+msgstr ""
 
 #: static/sentry/app/views/admin/adminUserEdit.jsx:32
 msgid "The username is the unique id of the user in the system"
@@ -7529,7 +7473,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationMembers/components/membersFilter.tsx:88
 #: static/sentry/app/views/settings/organizationMembers/organizationMemberDetail.tsx:248
 msgid "Status"
-msgstr "Статус"
+msgstr ""
 
 #: static/sentry/app/views/alerts/details/header.tsx:107
 #: static/sentry/app/views/alerts/list/index.tsx:143
@@ -8041,7 +7985,7 @@ msgstr ""
 #: static/sentry/app/views/eventsV2/data.tsx:44
 #: static/sentry/app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog.tsx:22
 msgid "All Events"
-msgstr "Всі Події"
+msgstr ""
 
 #: static/sentry/app/views/eventsV2/data.tsx:56
 msgid "Transactions"
@@ -8061,7 +8005,7 @@ msgstr ""
 
 #: static/sentry/app/views/eventsV2/eventDetails/content.tsx:300
 msgid "Event ID"
-msgstr "ID події"
+msgstr ""
 
 #: static/sentry/app/views/eventsV2/eventDetails/content.tsx:311
 msgid "Preview JSON"
@@ -8428,8 +8372,6 @@ msgid "%s issue on this page selected."
 msgid_plural "%s issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/issueList/actions.jsx:601
 msgid "Select the first [count] issues that match this search query."
@@ -8927,8 +8869,6 @@ msgid "%2$s migrated %1$s fingerprint from %3$s to %4$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s to %4$s"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/organizationActivity/activityFeedItem.jsx:228
 #: static/sentry/app/views/organizationGroupDetails/groupActivityItem.jsx:127
@@ -9069,7 +9009,7 @@ msgstr ""
 
 #: static/sentry/app/views/organizationGroupDetails/actions.jsx:289
 msgid "Bookmark"
-msgstr "Додати у вибране"
+msgstr ""
 
 #: static/sentry/app/views/organizationGroupDetails/actions.jsx:320
 #: static/sentry/app/views/organizationGroupDetails/actions.jsx:323
@@ -9153,16 +9093,12 @@ msgid "%2$s migrated %1$s fingerprint to %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints to %3$s"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/organizationGroupDetails/groupActivityItem.jsx:131
 msgid "%2$s migrated %1$s fingerprint from %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/organizationGroupDetails/groupActivityItem.jsx:143
 #, python-format
@@ -9199,8 +9135,6 @@ msgid "%2$s merged %1$s issue into this issue"
 msgid_plural "%2$s merged %1$s issues into this issue"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/organizationGroupDetails/groupActivityItem.jsx:27
 #, python-format
@@ -9290,7 +9224,7 @@ msgstr ""
 #: static/sentry/app/views/settings/incidentRules/triggers/actionsPanel/index.tsx:170
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeysList.jsx:79
 msgid "Actions"
-msgstr "Події"
+msgstr ""
 
 #: static/sentry/app/views/organizationGroupDetails/groupEventAttachments/types.tsx:4
 msgid "Minidump"
@@ -9517,7 +9451,7 @@ msgstr ""
 #: static/sentry/app/views/organizationIntegrations/integrationListDirectory.tsx:371
 #: static/sentry/app/views/settings/organization/navigationConfiguration.tsx:82
 msgid "Integrations"
-msgstr "Інтеграції"
+msgstr ""
 
 #: static/sentry/app/views/organizationIntegrations/integrationListDirectory.tsx:398
 msgid "No Integrations found for \"[searchTerm]\"."
@@ -9592,7 +9526,7 @@ msgstr ""
 
 #: static/sentry/app/views/organizationJoinRequest.tsx:91
 msgid "Email Address"
-msgstr "Адреса e-mail"
+msgstr ""
 
 #: static/sentry/app/views/organizationStats/organizationStatsDetails.jsx:122
 msgid "Accepted"
@@ -9667,7 +9601,7 @@ msgstr ""
 
 #: static/sentry/app/views/projectInstall/createProject.jsx:121
 msgid "Project Name"
-msgstr "Назва проекту"
+msgstr ""
 
 #: static/sentry/app/views/projectInstall/createProject.jsx:131
 msgid "Assign a Team"
@@ -9677,7 +9611,7 @@ msgstr ""
 #: static/sentry/app/views/settings/components/teamSelect.jsx:142
 #: static/sentry/app/views/settings/incidentRules/triggers/actionsPanel/index.tsx:34
 msgid "Team"
-msgstr "Команда"
+msgstr ""
 
 #: static/sentry/app/views/projectInstall/createProject.jsx:139
 msgid "Select a Team"
@@ -9913,7 +9847,7 @@ msgstr ""
 #: static/sentry/app/views/releases/detail/releaseHeader.jsx:37
 #: static/sentry/app/views/releasesV2/detail/releaseHeader.tsx:44
 msgid "Overview"
-msgstr "Огляд"
+msgstr ""
 
 #: static/sentry/app/views/releases/detail/releaseHeader.jsx:39
 #: static/sentry/app/views/releasesV2/detail/overview/issues.tsx:91
@@ -9968,8 +9902,6 @@ msgid "%s new issue"
 msgid_plural "%s new issues"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/releases/list/index.jsx:141
 #: static/sentry/app/views/settings/projectDebugFiles.jsx:107
@@ -10147,7 +10079,7 @@ msgstr ""
 #: static/sentry/app/views/releasesV2/list/index.tsx:189
 #: static/sentry/app/views/settings/components/settingsSearch/index.jsx:41
 msgid "Search"
-msgstr "Пошук"
+msgstr ""
 
 #: static/sentry/app/views/releasesV2/list/releaseCard.tsx:52
 msgid "New issues"
@@ -10326,7 +10258,7 @@ msgstr ""
 #: static/sentry/app/views/settings/account/accountIdentities.jsx:57
 #: static/sentry/app/views/settings/account/navigationConfiguration.tsx:50
 msgid "Identities"
-msgstr "Ідентифікації"
+msgstr ""
 
 #: static/sentry/app/views/settings/account/accountIdentities.jsx:62
 msgid "There are no identities associated with this account"
@@ -10816,7 +10748,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/incidentRules/ruleConditionsForm.tsx:23
 msgid "15 minutes"
-msgstr "15 хвилин"
+msgstr ""
 
 #: static/sentry/app/views/settings/incidentRules/ruleConditionsForm.tsx:25
 msgid "1 hour"
@@ -11055,7 +10987,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeysList.jsx:45
 #: static/sentry/app/views/settings/settingsIndex.tsx:235
 msgid "API Keys"
-msgstr "Ключі API"
+msgstr ""
 
 #: static/sentry/app/views/settings/organization/navigationConfiguration.tsx:61
 #: static/sentry/app/views/settings/organizationAuditLog/auditLogList.jsx:96
@@ -11113,7 +11045,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeyDetails.jsx:97
 msgid "API Key"
-msgstr "API Ключ"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeysList.jsx:112
 msgid "Are you sure you want to remove this API key?"
@@ -11142,7 +11074,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeysList.jsx:74
 msgid "Key"
-msgstr "Ключ"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationApiKeys/organizationApiKeysList.jsx:85
 msgid "No API keys for this organization"
@@ -11377,7 +11309,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:269
 msgid "Revoke"
-msgstr "Анулювати"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:274
 msgid "No tokens created yet."
@@ -11393,7 +11325,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/actionButtons.tsx:41
 msgid "Dashboard"
-msgstr "Головна"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/actionButtons.tsx:53
 msgid "Publish"
@@ -11512,7 +11444,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationMembers/inviteMember/index.jsx:237
 #: static/sentry/app/views/settings/organizationTeams/teamMembers.jsx:253
 msgid "Add Member"
-msgstr "Додати користувача"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationMembers/inviteMember/index.jsx:91
 msgid "Error with request, please reload"
@@ -11907,8 +11839,6 @@ msgid "%s Member"
 msgid_plural "%s Members"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/settings/organizationTeams/allTeamsRow.jsx:168
 msgid "Leave Team"
@@ -11954,7 +11884,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/organizationTeams/teamDetails.jsx:165
 msgid "Team Details"
-msgstr "Подробиці Команди"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationTeams/teamMembers.jsx:115
 msgid "Unable to load organization members."
@@ -12011,7 +11941,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/teamProjects.jsx:198
 #: static/sentry/app/views/settings/organizationTeams/teamProjects.jsx:209
 msgid "Add Project"
-msgstr "Додати проект"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationTeams/teamProjects.jsx:205
 msgid "No projects"
@@ -12025,7 +11955,7 @@ msgstr ""
 #: static/sentry/app/views/settings/organizationTeams/teamSettings/index.jsx:108
 #: static/sentry/app/views/settings/organizationTeams/teamSettings/index.jsx:111
 msgid "Remove Team"
-msgstr "Видалити Команду"
+msgstr ""
 
 #: static/sentry/app/views/settings/organizationTeams/teamSettings/index.jsx:51
 msgid "Team name changed"
@@ -12167,7 +12097,7 @@ msgstr ""
 #: static/sentry/app/views/settings/project/projectEnvironments.jsx:195
 #: static/sentry/app/views/settings/project/projectEnvironments.jsx:203
 msgid "Hidden"
-msgstr "Приховане"
+msgstr ""
 
 #: static/sentry/app/views/settings/project/projectEnvironments.jsx:203
 msgid "Active Environments"
@@ -12235,16 +12165,12 @@ msgid "total event"
 msgid_plural "total events"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/settings/project/projectFilters/projectFiltersChart.jsx:151
 msgid "event"
 msgid_plural "events"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/settings/project/projectFilters/projectFiltersChart.jsx:169
 msgid "Errors filtered in the last 30 days (by day)"
@@ -12310,7 +12236,7 @@ msgstr ""
 #: static/sentry/app/views/settings/project/projectKeys/details/keySettings.tsx:113
 #: static/sentry/app/views/settings/projectPlugins/projectPlugins.jsx:49
 msgid "Enabled"
-msgstr "Увімкнено"
+msgstr ""
 
 #: static/sentry/app/views/settings/project/projectKeys/details/keySettings.tsx:135
 msgid "JavaScript Loader"
@@ -12416,7 +12342,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/project/projectKeys/list/index.tsx:181
 msgid "Generate New Key"
-msgstr "Створити Новий Ключ"
+msgstr ""
 
 #: static/sentry/app/views/settings/project/projectKeys/list/index.tsx:187
 msgid ""
@@ -12596,8 +12522,6 @@ msgid "Click here to trigger processing for %s pending event"
 msgid_plural "Click here to trigger processing for %s pending events"
 msgstr[0] ""
 msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
 
 #: static/sentry/app/views/settings/project/projectProcessingIssues.jsx:31
 msgid "A required debug information file was missing."
@@ -12685,7 +12609,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/project/projectReleaseTracking.jsx:126
 msgid "Client Configuration"
-msgstr "Налаштування Клієнта"
+msgstr ""
 
 #: static/sentry/app/views/settings/project/projectReleaseTracking.jsx:129
 msgid ""
@@ -12978,7 +12902,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/projectAlerts/issueEditor/index.tsx:45
 msgid "60 minutes"
-msgstr "60 хвилин"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectAlerts/issueEditor/index.tsx:455
 msgid "Rule name"
@@ -13359,7 +13283,7 @@ msgstr ""
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:260
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:298
 msgid "Remove Project"
-msgstr "Видалити Проект"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:261
 msgid ""
@@ -13435,11 +13359,11 @@ msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:430
 msgid "Project Details"
-msgstr "Деталі Проектів"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:442
 msgid "Event Settings"
-msgstr "Налаштування події"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:452
 msgid "Grouping Settings"
@@ -13462,7 +13386,7 @@ msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:511
 msgid "Client Security"
-msgstr "Безпека Клієнта"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectGeneralSettings.jsx:522
 msgid ""
@@ -13481,15 +13405,15 @@ msgstr ""
 
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:168
 msgid "Enable Plugin"
-msgstr "Увімкнути плагін"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:179
 msgid "Disable Plugin"
-msgstr "Вимкнути плагін"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:189
 msgid "Reset Configuration"
-msgstr "Скинути налаштування"
+msgstr ""
 
 #: static/sentry/app/views/settings/projectPlugins/details.jsx:214
 msgid "Plugin Information"
@@ -13757,7 +13681,7 @@ msgstr ""
 
 #: static/sentry/app/views/teamCreate.jsx:32
 msgid "Create a New Team"
-msgstr "Створити нову команду"
+msgstr ""
 
 #: static/sentry/app/views/userFeedback/userFeedbackEmpty.tsx:105
 msgid "No User Feedback Collected"

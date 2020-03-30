@@ -102,8 +102,7 @@ class ProjectInstallPlatform extends React.Component {
             `
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with [platform], view
-             [docLink:our complete documentation].
-            `,
+             [docLink:our complete documentation].`,
             {
               platform: platform.name,
               docLink: <a href={platform.link} />,
