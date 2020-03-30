@@ -11,6 +11,9 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
+ALIAS_FIELDS = [("user", ["user.name", "user.email", "user.username", "user.ip"])]
+
+
 class DiscoverProcessor(object):
     """
     Processor for exports of discover data based on a provided query
@@ -25,10 +28,10 @@ class DiscoverProcessor(object):
             "start": self.start,
             "end": self.end,
         }
+        self.header_fields = discover_query["field"]
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"], query=discover_query["query"], params=self.params
         )
-        self.header_fields = discover_query["field"]
 
     @staticmethod
     def get_projects(project_ids):
@@ -55,3 +58,17 @@ class DiscoverProcessor(object):
             )
 
         return data_fn
+
+    def alias_fields(self, raw_dict):
+        """
+        For each of the aliases in ALIAS_FIELDS,
+        replace the 'base' field with the 'alternate' list.
+        """
+        for base, alternates in ALIAS_FIELDS:
+            if not self.header_fields.count(base) > 0:
+                continue
+            for alt in alternates:
+                if raw_dict.get(alt):
+                    raw_dict[base] = raw_dict[alt]
+                    break
+        return raw_dict
