@@ -38,7 +38,8 @@ class Migration(migrations.Migration):
                          (2, b'integrations-stacktrace-link'),
                          (3, b'integrations-event-hooks'),
                          (4, b'integrations-project-management'),
-                         (5, b'integrations-incident-managment')],
+                         (5, b'integrations-incident-managment'),
+                         (6, b'integrations-feature-flag')],
                 default=0),
         ),
     ]
