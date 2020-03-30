@@ -59,16 +59,23 @@ class DiscoverProcessor(object):
 
         return data_fn
 
-    def alias_fields(self, raw_dict):
+    def alias_fields(self, raw_data):
         """
         For each of the aliases in ALIAS_FIELDS,
         replace the 'base' field with the 'alternate' list.
         """
-        for base, alternates in ALIAS_FIELDS:
-            if not self.header_fields.count(base) > 0:
-                continue
-            for alt in alternates:
-                if raw_dict.get(alt):
-                    raw_dict[base] = raw_dict[alt]
-                    break
-        return raw_dict
+        # Go through every raw dict response
+        for item in raw_data:
+            # Go through each set of aliases
+            for base, alternates in ALIAS_FIELDS:
+                # If this alias isn't in the requested columns, skip it
+                if not self.header_fields.count(base) > 0:
+                    continue
+                # Check if the alternate field is present
+                # if so: replace the base
+                # if not: fallback to the next alternate
+                for alt in alternates:
+                    if item.get(alt):
+                        item[base] = item[alt]
+                        break
+        return raw_data
