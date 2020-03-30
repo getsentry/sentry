@@ -24,6 +24,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
 
     def test_add_sentry_app(self):
         self.load_page(self.sentry_app.slug)
+        self.browser.snapshot("integrations - sentry app detail uninstalled")
 
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
@@ -39,6 +40,8 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         )
 
         self.load_page(self.sentry_app.slug)
+        self.browser.snapshot("integrations - sentry app detail installed")
+
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
 
         detail_view_page.uninstall()

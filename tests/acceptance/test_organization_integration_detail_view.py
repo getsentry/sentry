@@ -32,6 +32,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.provider.name = "Example Installation"
 
         self.load_page("example")
+        self.browser.snapshot("integrations - integration detail overview")
 
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
@@ -46,7 +47,6 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         detail_view_page.switch_to_configuration_view()
         assert self.browser.element_exists('[aria-label="Configure"]')
-        self.browser.snapshot(name="integrations - example integration detail configurations")
 
     def test_uninstallation(self):
         model = Integration.objects.create(
@@ -58,8 +58,10 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         model.add_organization(self.organization, self.user)
         self.load_page("slack", configuration_tab=True)
+        self.browser.snapshot(name="integrations - integration detail one configuration")
 
         detail_view_page = OrganizationIntegrationDetailViewPage(browser=self.browser)
         assert self.browser.element_exists('[aria-label="Configure"]')
         detail_view_page.uninstall()
         assert not self.browser.element_exists('[aria-label="Configure"]')
+        self.browser.snapshot(name="integrations - integration detail no configurations")
