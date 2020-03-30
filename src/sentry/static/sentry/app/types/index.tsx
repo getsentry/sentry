@@ -162,15 +162,14 @@ export type ProjectRelease = {
   authors: User[];
   newGroups: number;
   healthData: Health | null;
-  projectSlug: string;
-  projectId: number;
+  project: ReleaseProject;
 };
 
 export type Health = {
   totalUsers: number;
-  totalUsers24h: number;
+  totalUsers24h: number | null;
   totalSessions: number;
-  totalSessions24h: number;
+  totalSessions24h: number | null;
   crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
@@ -178,10 +177,11 @@ export type Health = {
   sessionsErrored: number;
   adoption: number | null;
   hasHealthData: boolean;
+  durationP50: number | null;
+  durationP90: number | null;
 };
-export type HealthGraphData = {
-  [key: string]: [number, number][];
-};
+
+export type HealthGraphData = Record<string, [number, number][]>;
 
 export type Team = {
   id: string;
@@ -859,7 +859,9 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  healthData?: Health | null;
+  platform: string;
+  platforms: string[];
+  healthData: Health;
 };
 
 export type BaseRelease = {
