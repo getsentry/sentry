@@ -107,18 +107,11 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       return;
     }
     const {location} = this.props;
-
-    // Only bars that are 'active' will have itemStyle set.
-    // See transformData()
-    const isActive = value.data.hasOwnProperty('itemStyle');
     const valueIndex = value.dataIndex;
 
     // If the active bar is clicked again we need to remove the constraints.
-    const startDuration = isActive
-      ? undefined
-      : chartData.data[valueIndex].histogram_transaction_duration_15;
-    const endDuration =
-      typeof startDuration === 'number' ? startDuration + this.bucketWidth : undefined;
+    const startDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
+    const endDuration = startDuration + this.bucketWidth;
 
     const target = {
       pathname: location.pathname,
@@ -163,7 +156,6 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     if (chartData === null) {
       return null;
     }
-    const {location} = this.props;
     const xAxis = {
       type: 'category',
       truncate: true,
@@ -181,7 +173,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
         grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
-        series={transformData(chartData.data, location, this.bucketWidth)}
+        series={transformData(chartData.data, this.bucketWidth)}
         colors={['rgba(140, 79, 189, 0.3)']}
         onClick={this.handleClick}
       />
@@ -232,24 +224,14 @@ function LatencyChart({totalValues, ...props}: WrapperProps) {
 /**
  * Convert a discover response into a barchart compatible series
  */
-function transformData(data: ApiResult[], location: Location, bucketWidth: number) {
+function transformData(data: ApiResult[], bucketWidth: number) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
     const midPoint = Math.ceil(bucket + bucketWidth / 2);
-    const value: any = {
+    return {
       value: item.count,
       name: getDuration(midPoint / 1000, 2, true),
     };
-    if (
-      location.query.startDuration &&
-      typeof location.query.startDuration === 'string'
-    ) {
-      const start = parseInt(location.query.startDuration, 10);
-      if (bucket >= start && bucket < start + bucketWidth) {
-        value.itemStyle = {color: theme.purpleLight};
-      }
-    }
-    return value;
   });
 
   return [
