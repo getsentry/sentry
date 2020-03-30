@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import {forceCheck} from 'react-lazyload';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -120,7 +121,8 @@ class ReleasesList extends AsyncView<Props, State> {
   };
 
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release =>
+    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
+    return flatMap(releases, release =>
       release.projects.map(project => {
         const {
           version,
