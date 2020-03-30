@@ -16,11 +16,11 @@ const COLORS = {
 } as const;
 
 export const DataSection = styled('div')`
-  padding: ${space(3)} ${space(4)} 0 40px;
+  padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.borderLight};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} 0;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(3)} ${space(4)} 0 40px;
   }
 `;
 

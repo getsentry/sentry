@@ -51,5 +51,7 @@ const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
 export default EventTags;
 
 const StyledEventDataSection = styled(EventDataSection)`
-  padding-bottom: ${space(3)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: ${space(3)};
+  }
 `;
