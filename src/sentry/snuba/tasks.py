@@ -103,9 +103,7 @@ def delete_subscription_from_snuba(query_subscription_id):
 
 
 def _create_in_snuba(subscription):
-    conditions = resolve_discover_aliases(
-        {"conditions": get_filter(subscription.query).conditions}
-    )[0]["conditions"]
+    conditions = resolve_discover_aliases(get_filter(subscription.query))[0].conditions
     environments = list(subscription.environments.all())
     if environments:
         conditions.append(["environment", "IN", [env.name for env in environments]])

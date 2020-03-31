@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
 
 from sentry import nodestore
 from sentry.snuba.events import Columns
@@ -20,6 +21,10 @@ class Filter(object):
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - defualt None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
+
+    selected_columns (Sequence[str]): List of columns to select
+    aggregations (Sequence[Any, str|None, str]): Aggregate functions to fetch.
+    groupby (Sequence[str]): List of columns to group results by
     """
 
     def __init__(
@@ -31,6 +36,11 @@ class Filter(object):
         project_ids=None,
         group_ids=None,
         event_ids=None,
+        selected_columns=None,
+        aggregations=None,
+        rollup=None,
+        groupby=None,
+        orderby=None,
     ):
         self.start = start
         self.end = end
@@ -39,6 +49,12 @@ class Filter(object):
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
+
+        self.rollup = rollup
+        self.selected_columns = selected_columns if selected_columns is not None else []
+        self.aggregations = aggregations if aggregations is not None else []
+        self.groupby = groupby
+        self.orderby = orderby
 
     @property
     def filter_keys(self):
@@ -57,6 +73,22 @@ class Filter(object):
             filter_keys["event_id"] = self.event_ids
 
         return filter_keys
+
+    @property
+    def date_params(self):
+        """
+        Get the datetime parameters as a dictionary
+        """
+        return {"start": self.start, "end": self.end}
+
+    def update_with(self, updates):
+        keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")
+        for key in keys:
+            if key in updates:
+                setattr(self, key, updates[key])
+
+    def clone(self):
+        return deepcopy(self)
 
 
 class EventStorage(Service):
@@ -80,13 +112,18 @@ class EventStorage(Service):
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
     def get_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"  # NOQA
+        self,
+        snuba_filter,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events",  # NOQA
     ):
         """
         Fetches a list of events given a set of criteria.
 
         Arguments:
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
@@ -95,7 +132,12 @@ class EventStorage(Service):
         raise NotImplementedError
 
     def get_unfetched_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"  # NOQA
+        self,
+        snuba_filter,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_unfetched_events",  # NOQA
     ):
         """
         Same as get_events but returns events without their node datas loaded.
@@ -107,7 +149,7 @@ class EventStorage(Service):
         we just need the event IDs in order to process the deletions.
 
         Arguments:
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
@@ -125,47 +167,47 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, filter):  # NOQA
+    def get_next_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, filter):  # NOQA
+    def get_prev_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, filter):  # NOQA
+    def get_earliest_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, filter):  # NOQA
+    def get_latest_event_id(self, event, snuba_filter):  # NOQA
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:
         event (Event): Event object
-        filter (Filter): Filter
+        snuba_filter (Filter): Filter
         """
         raise NotImplementedError
 
