@@ -3,6 +3,7 @@ import pick from 'lodash/pick';
 import omitBy from 'lodash/omitBy';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
+import mean from 'lodash/mean';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -129,7 +130,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     const transformedData =
       yAxis === 'sessionDuration'
         ? this.transformSessionDurationData(response.stats)
-        : this.transformCountData(response.stats, yAxis);
+        : this.transformCountData(response.stats, yAxis, response.statTotals);
 
     return {...transformedData, crashFreeTimeBreakdown: response.usersBreakdown};
   };
@@ -175,8 +176,11 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformCountData(responseData, yAxis: string): Omit<Data, 'crashFreeTimeBreakdown'> {
-    let summary = 0;
+  transformCountData(
+    responseData,
+    yAxis: string,
+    responseTotals
+  ): Omit<Data, 'crashFreeTimeBreakdown'> {
     // here we can configure colors of the chart
     const chartData: ChartData = {
       crashed: {
@@ -200,14 +204,16 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     responseData.forEach(entry => {
       const [timeframe, values] = entry;
       const date = timeframe * 1000;
-      summary += values[yAxis];
       chartData.crashed.data.push({name: date, value: values[`${yAxis}_crashed`]});
       chartData.abnormal.data.push({name: date, value: values[`${yAxis}_abnormal`]});
       chartData.errored.data.push({name: date, value: values[`${yAxis}_errored`]});
       chartData.total.data.push({name: date, value: values[yAxis]});
     });
 
-    return {chartData: Object.values(chartData), chartSummary: summary.toLocaleString()};
+    return {
+      chartData: Object.values(chartData),
+      chartSummary: responseTotals[yAxis].toLocaleString(),
+    };
   }
 
   transformRateData(
@@ -282,17 +288,19 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       data: [],
     };
 
-    responseData.forEach(entry => {
-      const [timeframe, values] = entry;
-      const date = timeframe * 1000;
-      chartData.data.push({name: date, value: Math.round(values.duration_p50)});
-    });
-
     const sessionDurationAverage = Math.round(
-      meanBy(
-        chartData.data.filter(item => defined(item.value)),
-        'value'
-      )
+      mean(
+        responseData
+          .map(([timeframe, values]) => {
+            chartData.data.push({
+              name: timeframe * 1000,
+              value: Math.round(values.duration_p50),
+            });
+
+            return values.duration_p50;
+          })
+          .filter(duration => defined(duration))
+      ) || 0
     );
     const summary = getExactDuration(sessionDurationAverage ?? 0);
 

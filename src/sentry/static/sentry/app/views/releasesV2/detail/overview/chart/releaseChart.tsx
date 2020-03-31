@@ -39,13 +39,33 @@ class ReleaseChart extends React.Component<Props> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case 'sessionDuration':
-        return typeof value === 'number' ? getExactDuration(value, true) : value;
+        return typeof value === 'number' ? getExactDuration(value, true) : '-';
       case 'crashFree':
         return defined(value) ? `${value}%` : '-';
       case 'sessions':
       case 'users':
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
+    }
+  };
+
+  configureYAxis = () => {
+    const {yAxis} = this.props;
+    switch (yAxis) {
+      case 'crashFree':
+        return {
+          max: 100,
+          scale: true,
+          axisLabel: {
+            formatter: '{value}%',
+            color: theme.gray1,
+          },
+        };
+      case 'sessionDuration':
+      case 'sessions':
+      case 'users':
+      default:
+        return undefined;
     }
   };
 
@@ -87,18 +107,7 @@ class ReleaseChart extends React.Component<Props> {
           top: '32px',
           bottom: '12px',
         }}
-        yAxis={
-          yAxis === 'crashFree'
-            ? {
-                max: 100,
-                scale: true,
-                axisLabel: {
-                  formatter: '{value}%',
-                  color: theme.gray1,
-                },
-              }
-            : undefined
-        }
+        yAxis={this.configureYAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
       />
     );
