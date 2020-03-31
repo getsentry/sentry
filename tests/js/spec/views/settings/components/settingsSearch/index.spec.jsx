@@ -47,7 +47,10 @@ describe('SettingsSearch', function() {
       query: 'foo',
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       query: 'foo',

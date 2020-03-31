@@ -1,7 +1,7 @@
-import {Link} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Link from 'app/components/links/link';
 import {ApiApplication} from 'app/types';
 import {Client} from 'app/api';
 import {PanelItem} from 'app/components/panels';

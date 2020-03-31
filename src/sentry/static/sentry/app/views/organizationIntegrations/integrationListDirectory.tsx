@@ -63,7 +63,7 @@ type State = {
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
-export class OrganizationIntegrations extends AsyncComponent<
+export class IntegrationListDirectory extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
@@ -81,9 +81,6 @@ export class OrganizationIntegrations extends AsyncComponent<
     logExperiment({
       organization: this.props.organization,
       key: 'IntegrationDirectorySortWeightExperiment',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'variant',
     });
   }
 
@@ -403,7 +400,9 @@ export class OrganizationIntegrations extends AsyncComponent<
                       ...categoryList.map(category => [category, category]),
                     ]}
                   />
-                ) : null}
+                ) : (
+                  <div />
+                )}
                 <SearchInput
                   value={this.state.searchInput || ''}
                   onChange={this.onSearchChange}
@@ -457,4 +456,4 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(OrganizationIntegrations);
+export default withOrganization(IntegrationListDirectory);

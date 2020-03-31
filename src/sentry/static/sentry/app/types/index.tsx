@@ -9,6 +9,42 @@ import {
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
 
+declare global {
+  interface Window {
+    /**
+     * Assets public location
+     */
+    __sentryGlobalStaticPrefix: string;
+    /**
+     * The config object provided by the backend.
+     */
+    __initialData: Config;
+    /**
+     * Sentry SDK configuration
+     */
+    __SENTRY__OPTIONS: Config['sentryConfig'];
+    /**
+     * The authenticated user identity, a bare-bones version of User
+     */
+    __SENTRY__USER: Config['userIdentity'];
+    /**
+     * Sentrys version string
+     */
+    __SENTRY__VERSION?: string;
+    /**
+     * The CSRF cookie ised on the backend
+     */
+    csrfCookieName?: string;
+    /**
+     * Primary entrypoint for rendering the sentry app. This is typically
+     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
+     * after config hydration.
+     */
+    SentryRenderApp: () => void;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
+  }
+}
+
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
@@ -126,23 +162,26 @@ export type ProjectRelease = {
   authors: User[];
   newGroups: number;
   healthData: Health | null;
-  projectSlug: string;
-  projectId: number;
+  project: ReleaseProject;
 };
 
 export type Health = {
-  crashFreeUsers: number | null;
   totalUsers: number;
+  totalUsers24h: number | null;
+  totalSessions: number;
+  totalSessions24h: number | null;
+  crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
   hasHealthData: boolean;
+  durationP50: number | null;
+  durationP90: number | null;
 };
-export type HealthGraphData = {
-  [key: string]: [number, number][];
-};
+
+export type HealthGraphData = Record<string, [number, number][]>;
 
 export type Team = {
   id: string;
@@ -386,6 +425,16 @@ export type AppOrProviderOrPlugin =
   | IntegrationProvider
   | PluginWithProjectList;
 
+export type DocumentIntegration = {
+  slug: string;
+  name: string;
+  author: string;
+  docUrl: string;
+  description: string;
+  features: IntegrationFeature[];
+  resourceLinks: Array<{title: string; url: string}>;
+};
+
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
@@ -470,7 +519,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
+  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -489,6 +538,8 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
+  apmSampling: number;
+  dsn_requests: string;
 };
 
 export type EventOrGroupType =
@@ -808,7 +859,9 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  healthData?: Health | null;
+  platform: string;
+  platforms: string[];
+  healthData: Health;
 };
 
 export type BaseRelease = {
@@ -1082,10 +1135,9 @@ export type SentryServiceStatus = {
 };
 
 export type CrashFreeTimeBreakdown = {
-  [key: string]: {
-    totalSessions: number;
-    crashFreeSessions: number | null;
-    crashFreeUsers: number | null;
-    totalUsers: number;
-  };
-};
+  date: string;
+  totalSessions: number;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+}[];

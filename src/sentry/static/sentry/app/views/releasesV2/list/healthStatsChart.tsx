@@ -5,18 +5,22 @@ import LazyLoad from 'react-lazyload';
 import {t} from 'app/locale';
 import BarChart from 'app/components/barChart';
 
+import {StatsSubject} from './healthStatsSubject';
+import {StatsPeriod} from './healthStatsPeriod';
+
 type DefaultProps = {
   height: number;
 };
 
 type Props = DefaultProps & {
-  statsPeriod: '24h' | '14d';
+  period: StatsPeriod;
+  subject: StatsSubject;
   data: {
     [statsPeriod: string]: [number, number][];
   };
 };
 
-class UsersChart extends React.Component<Props> {
+class HealthStatsChart extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     height: 24,
   };
@@ -25,14 +29,23 @@ class UsersChart extends React.Component<Props> {
     // Sometimes statsPeriod updates before graph data has been
     // pulled from server / propagated down to components ...
     // don't update until data is available
-    const {data, statsPeriod} = nextProps;
-    return data.hasOwnProperty(statsPeriod);
+    const {data, period} = nextProps;
+    return data.hasOwnProperty(period);
+  }
+
+  getChartLabel() {
+    const {subject} = this.props;
+    if (subject === 'users') {
+      return t('users');
+    }
+
+    return t('sessions');
   }
 
   render() {
-    const {height, statsPeriod, data} = this.props;
+    const {height, period, data} = this.props;
 
-    const stats = statsPeriod ? data[statsPeriod] : null;
+    const stats = period ? data[period] : null;
 
     if (!stats || !stats.length) {
       return null;
@@ -45,7 +58,7 @@ class UsersChart extends React.Component<Props> {
         <BarChart
           points={chartData}
           height={height}
-          label={t('sessions')}
+          label={this.getChartLabel()}
           minHeights={[3]}
           gap={1}
         />
@@ -54,4 +67,4 @@ class UsersChart extends React.Component<Props> {
   }
 }
 
-export default UsersChart;
+export default HealthStatsChart;

@@ -2,15 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import {SubHeading} from 'app/components/charts/styles';
+import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import theme from 'app/utils/theme';
 import {IconBookmark} from 'app/icons/iconBookmark';
-import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import Card from 'app/components/card';
-
-import {SubHeading} from './styles';
 
 type Props = {
   title?: string;
