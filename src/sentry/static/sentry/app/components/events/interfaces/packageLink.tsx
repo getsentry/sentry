@@ -64,7 +64,7 @@ const Package = styled('a')<Partial<Props>>`
   color: ${p => p.theme.foreground};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
   ${PackageStatusIcon} {
-    opacity: 1;
+    opacity: 0;
   }
   &:hover {
     color: ${p => p.theme.foreground};
