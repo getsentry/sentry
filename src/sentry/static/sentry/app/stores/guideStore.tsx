@@ -156,12 +156,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     };
     trackAnalyticsEvent(data);
 
-    logExperiment({
-      key: 'AssistantGuideExperiment',
-      unitName: 'user_id',
-      unitId: parseInt(user.id, 10),
-      param: 'exposed',
-    });
+    logExperiment({key: 'AssistantGuideExperiment'});
   },
 
   updatePrevGuide(nextGuide) {

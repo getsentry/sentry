@@ -102,7 +102,7 @@ export default class EditSavedQuery extends React.Component<
               </div>
             </QueryActionsGroup>
             <div>
-              <SavedQueryAction data-test-id="delete" onClick={onDeleteQuery}>
+              <SavedQueryAction to="" data-test-id="delete" onClick={onDeleteQuery}>
                 <InlineSvg src="icon-trash" />
               </SavedQueryAction>
             </div>

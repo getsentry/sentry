@@ -210,6 +210,9 @@ class Fixtures(object):
     def create_platform_external_issue(self, *args, **kwargs):
         return Factories.create_platform_external_issue(*args, **kwargs)
 
+    def create_integration_external_issue(self, *args, **kwargs):
+        return Factories.create_integration_external_issue(*args, **kwargs)
+
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization

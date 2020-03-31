@@ -38,7 +38,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       className=""
     >
       <div
-        className=" css-1tpn1lm-DataSection e1z0bih40"
+        className=" css-14ma22z-DataSection e1z0bih40"
       >
         <SectionContents>
           <div
@@ -180,7 +180,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                                     }
                                   }
                                 >
-                                  <ForwardRef
+                                  <ForwardRef(ExternalLink)
                                     href="https://docs.sentry.io/platforms/python/django/"
                                   >
                                     <a
@@ -190,7 +190,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                                     >
                                       enable the 'django' integration
                                     </a>
-                                  </ForwardRef>
+                                  </ForwardRef(ExternalLink)>
                                 </EventSdkUpdateSuggestion>
                               </li>
                             </ul>

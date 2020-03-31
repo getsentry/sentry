@@ -4,6 +4,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
@@ -14,6 +15,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
+import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
@@ -27,13 +29,13 @@ import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 
-import {EventQuery, generateTitle} from '../utils';
+import {generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {SectionHeading, ContentBox, HeaderBox} from '../styles';
+import {ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(

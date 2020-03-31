@@ -21,9 +21,12 @@ from sentry.models import (
     GroupSubscription,
     GroupStatus,
     GroupTombstone,
+    GroupMeta,
     Release,
+    Integration,
 )
 from sentry.testutils import APITestCase
+from sentry.plugins.base import plugins
 
 
 class GroupDetailsTest(APITestCase):
@@ -136,6 +139,43 @@ class GroupDetailsTest(APITestCase):
 
         assert response.data["annotations"] == [
             u'<a href="https://example.com/issues/2">Issue#2</a>'
+        ]
+
+    def test_plugin_external_issue_annotation(self):
+        group = self.create_group()
+        GroupMeta.objects.create(group=group, key="trello:tid", value="134")
+
+        plugins.get("trello").enable(group.project)
+        plugins.get("trello").set_option("key", "some_value", group.project)
+        plugins.get("trello").set_option("token", "another_value", group.project)
+
+        self.login_as(user=self.user)
+
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.data["annotations"] == [
+            u'<a href="https://trello.com/c/134">Trello-134</a>'
+        ]
+
+    def test_integration_external_issue_annotation(self):
+        group = self.create_group()
+        integration = Integration.objects.create(
+            provider="jira",
+            external_id="some_id",
+            name="Hello world",
+            metadata={"base_url": "https://example.com"},
+        )
+        integration.add_organization(group.organization, self.user)
+        self.create_integration_external_issue(group=group, integration=integration, key="api-123")
+
+        self.login_as(user=self.user)
+
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.data["annotations"] == [
+            u'<a href="https://example.com/browse/api-123">api-123</a>'
         ]
 
     def test_permalink_superuser(self):

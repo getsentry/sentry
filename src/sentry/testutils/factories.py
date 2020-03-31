@@ -66,6 +66,8 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    ExternalIssue,
+    GroupLink,
     ReleaseFile,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
@@ -736,6 +738,22 @@ class Factories(object):
         return PlatformExternalIssue.objects.create(
             group_id=group.id, service_type=service_type, display_name=display_name, web_url=web_url
         )
+
+    @staticmethod
+    def create_integration_external_issue(group=None, integration=None, key=None):
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id, integration_id=integration.id, key=key
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        return external_issue
 
     @staticmethod
     def create_incident(
