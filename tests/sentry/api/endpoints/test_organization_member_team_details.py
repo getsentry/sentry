@@ -213,7 +213,6 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.member
         ).exists()
 
-        # access request created
         assert OrganizationAccessRequest.objects.filter(
             team=self.team, member=self.member, requester=None
         ).exists()
@@ -227,7 +226,6 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.admin
         ).exists()
 
-        # access request created
         assert OrganizationAccessRequest.objects.filter(
             team=self.team, member=self.admin, requester=None
         ).exists()
@@ -241,7 +239,6 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.member
         ).exists()
 
-        # access request created
         assert OrganizationAccessRequest.objects.filter(
             team=self.team, member=self.member, requester=self.team_member.user
         ).exists()
@@ -256,10 +253,25 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
             team=self.team, organizationmember=self.member
         ).exists()
 
-        # access request created
         assert OrganizationAccessRequest.objects.filter(
             team=self.team, member=self.member, requester=self.admin.user
         ).exists()
+
+    def test_multiple_of_the_same_access_request(self):
+        self.login_as(self.member.user)
+        resp = self.get_response(self.org.slug, self.admin.id, self.team.slug)
+        assert resp.status_code == 202
+
+        self.login_as(self.team_member.user)
+        resp = self.get_response(self.org.slug, self.admin.id, self.team.slug)
+        assert resp.status_code == 202
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.admin
+        ).exists()
+
+        oar = OrganizationAccessRequest.objects.get(team=self.team, member=self.admin)
+        assert oar.requester == self.member.user
 
 
 class DeleteOrganizationMemberTeamTest(MemberTeamFixtures):
