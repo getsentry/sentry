@@ -626,9 +626,6 @@ class Sidebar extends React.Component {
 
 const SidebarContainer = createReactClass({
   displayName: 'SidebarContainer',
-  contextTypes: {
-    location: PropTypes.any,
-  },
   mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
   getInitialState() {
     return {
@@ -647,9 +644,7 @@ const SidebarContainer = createReactClass({
   },
 
   render() {
-    return (
-      <Sidebar {...this.props} collapsed={this.state.collapsed} location={location} />
-    );
+    return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
   },
 });
 
