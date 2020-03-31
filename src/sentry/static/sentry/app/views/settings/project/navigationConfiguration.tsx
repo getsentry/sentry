@@ -9,7 +9,10 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({project, organization}: ConfigParams): NavigationSection[] {
+export default function getConfiguration({
+  project,
+  organization,
+}: ConfigParams): NavigationSection[] {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
