@@ -426,9 +426,9 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             rv = rows[0]
             totals = {
                 "users": rv["users"],
-                "useres_crashed": rv["users_crashed"],
-                "useres_abnormal": rv["users_abnormal"],
-                "useres_errored": rv["users_errored"] - rv["users_crashed"],
+                "users_crashed": rv["users_crashed"],
+                "users_abnormal": rv["users_abnormal"],
+                "users_errored": rv["users_errored"] - rv["users_crashed"],
             }
 
     return stats, totals
