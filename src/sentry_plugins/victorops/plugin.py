@@ -36,10 +36,16 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Configure rule based VictorOps alerts to automatically be triggered.
+            Manage incidents and outages by sending Sentry notifications to VictorOps.
+            """,
+            IntegrationFeatures.INCIDENT_MANAGEMENT,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
             """,
             IntegrationFeatures.ALERT_RULE,
-        )
+        ),
     ]
 
     def is_configured(self, project, **kwargs):

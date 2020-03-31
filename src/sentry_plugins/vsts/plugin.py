@@ -21,12 +21,20 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
     feature_descriptions = [
         FeatureDescription(
             """
+            Authorize repositories to be added to your Sentry organization to augment
+            sentry issues with commit data with [deployment
+            tracking](https://docs.sentry.io/learn/releases/).
+            """,
+            IntegrationFeatures.COMMITS,
+        ),
+        FeatureDescription(
+            """
             Create and link Sentry issue groups directly to a Azure DevOps work item in any of
             your projects, providing a quick way to jump from Sentry bug to tracked
             work item!
             """,
             IntegrationFeatures.ISSUE_BASIC,
-        )
+        ),
     ]
 
     issue_fields = frozenset(["id", "title", "url"])

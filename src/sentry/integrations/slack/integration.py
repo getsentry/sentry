@@ -25,15 +25,9 @@ FEATURES = [
     FeatureDescription(
         """
         Unfurls Sentry URLs directly within Slack, providing you context and
-        actionability on issues right at your fingertips.
+        actionability on issues right at your fingertips. Resolve, ignore, and assign issues with minimal context switching.
         """,
         IntegrationFeatures.CHAT_UNFURL,
-    ),
-    FeatureDescription(
-        """
-        Resolve, ignore, and assign issues with minimal context switching.
-        """,
-        IntegrationFeatures.ACTION_NOTIFICATION,
     ),
     FeatureDescription(
         """
@@ -65,13 +59,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     key = "slack"
     name = "Slack"
     metadata = metadata
-    features = frozenset(
-        [
-            IntegrationFeatures.ACTION_NOTIFICATION,
-            IntegrationFeatures.CHAT_UNFURL,
-            IntegrationFeatures.ALERT_RULE,
-        ]
-    )
+    features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # Scopes differ depending on if it's a workspace app
     identity_oauth_scopes = (

@@ -125,10 +125,16 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Configure rule based SMS notifications to be sent via Twilio.
+            Set up SMS notifications to be sent to your mobile device via Twilio.
+            """,
+            IntegrationFeatures.MOBILE,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
             """,
             IntegrationFeatures.ALERT_RULE,
-        )
+        ),
     ]
 
     def is_configured(self, project, **kwargs):

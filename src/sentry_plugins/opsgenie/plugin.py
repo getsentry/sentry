@@ -57,10 +57,16 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Configure rule based OpsGenie alerts to automatically be triggered.
+            Manage incidents and outages by sending Sentry notifications to OpsGenie.
+            """,
+            IntegrationFeatures.INCIDENT_MANAGEMENT,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
             """,
             IntegrationFeatures.ALERT_RULE,
-        )
+        ),
     ]
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
