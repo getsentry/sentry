@@ -51,6 +51,8 @@ class Pagination extends React.Component<Props> {
     const path = this.props.to || location.pathname;
     const query = location.query;
     const links = parseLinkHeader(pageLinks);
+    const previousDisabled = links.previous.results === false;
+    const nextDisabled = links.next.results === false;
 
     return (
       <div className={className}>
@@ -58,22 +60,22 @@ class Pagination extends React.Component<Props> {
           <Button
             aria-label={t('Previous')}
             size="large"
-            disabled={links.previous.results === false}
+            disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
             }}
           >
-            <IconSpan className="icon-arrow-left" />
+            <IconSpan className="icon-arrow-left" disabled={previousDisabled} />
           </Button>
           <Button
             aria-label={t('Next')}
             size="large"
-            disabled={links.next.results === false}
+            disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
             }}
           >
-            <IconSpan className="icon-arrow-right" />
+            <IconSpan className="icon-arrow-right" disabled={nextDisabled} />
           </Button>
         </ButtonBar>
       </div>
@@ -95,6 +97,6 @@ export default styled(Pagination)`
 
 // TODO this component and the icons should be replaced with IconChevron but
 // that icon has rendering issues on percy.
-const IconSpan = styled('span')`
-  color: ${p => p.theme.foreground};
+const IconSpan = styled('span')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.foreground)};
 `;
