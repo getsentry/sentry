@@ -16,7 +16,6 @@ import {
   SectionHeading,
   SectionValue,
   SubHeading,
-  TipDialog,
 } from 'app/components/charts/styles';
 import Tooltip from 'app/components/tooltip';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -165,18 +164,6 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       <ErrorPanel>
         <IconWarning color={theme.gray2} size="lg" />
       </ErrorPanel>
-    );
-  }
-
-  renderZoomError() {
-    const {zoomErrorPosition} = this.state;
-    if (zoomErrorPosition === null) {
-      return null;
-    }
-    return (
-      <TipDialog x={zoomErrorPosition.x} y={zoomErrorPosition.y}>
-        {t('This cannot zoom in any further')}
-      </TipDialog>
     );
   }
 
