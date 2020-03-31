@@ -687,7 +687,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
 
         assert response.status_code == 200, response.content
-        print (data)
         assert len(data) == 2
 
         event1_data = data[self.event1_slug]
@@ -739,11 +738,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "field": ["transaction", "avg(transaction.duration)"],
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
                     "topEvents": [self.transaction_slug],
                 },
                 format="json",
             )
+
+        duration = self.transaction.data["timestamp"] - self.transaction.data["start_timestamp"]
 
         data = response.data
 
@@ -753,9 +754,58 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data = data[self.transaction_slug]
         assert transaction_data["values"] == {
             "transaction": self.transaction.transaction,
-            "avg_transaction_duration": 120000.0,
+            "avg_transaction_duration": duration * 1000.0,
+            "p99": duration * 1000.0,
         }
         assert [attrs for time, attrs in transaction_data["data"]] == [
             [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_functions_on_different_transactions(self):
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["transaction"] = "/foo_bar/"
+        transaction2 = self.store_event(transaction_data, project_id=self.project.id)
+        transaction2_slug = "{}:{}".format(self.project.slug, transaction2.event_id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "topEvents": [self.transaction_slug, transaction2_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 2
+
+        transaction_data = data[self.transaction_slug]
+        assert transaction_data["values"] == {
+            "transaction": self.transaction.transaction,
+            "avg_transaction_duration": 120000.0,
+            "p99": 120000.0,
+        }
+        assert [attrs for time, attrs in transaction_data["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+        transaction_data = data[transaction2_slug]
+        assert transaction_data["values"] == {
+            "transaction": transaction2.transaction,
+            "avg_transaction_duration": 240000.0,
+            "p99": 240000.0,
+        }
+        assert [attrs for time, attrs in transaction_data["data"]] == [
+            [{"count": 1}],
             [{"count": 0}],
         ]
