@@ -1,4 +1,3 @@
-import {Flex, Box} from 'reflexbox';
 import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
@@ -9,6 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
 import Version from 'app/components/version';
+import space from 'app/styles/space';
 
 const DEPLOY_COUNT = 2;
 
@@ -31,7 +31,7 @@ export default class Deploys extends React.Component {
 
     if (deploys.length) {
       return (
-        <DeployBox p={2} pt={1}>
+        <DeployContainer>
           {deploys.map(deploy => (
             <Deploy
               key={`${deploy.environment}-${deploy.version}`}
@@ -40,7 +40,7 @@ export default class Deploys extends React.Component {
               organization={organization}
             />
           ))}
-        </DeployBox>
+        </DeployContainer>
       );
     } else {
       return <NoDeploys />;
@@ -58,7 +58,7 @@ class Deploy extends React.Component {
     const {deploy, project} = this.props;
 
     return (
-      <DeployRow justifyContent="space-between">
+      <DeployRow>
         <Environment>{deploy.environment}</Environment>
 
         <StyledTextOverflow>
@@ -70,23 +70,26 @@ class Deploy extends React.Component {
           />
         </StyledTextOverflow>
 
-        <Flex width={90} justifyContent="flex-end" flexGrow={1} flexShrink={0}>
-          <DeployTimeWrapper>
-            {getDynamicText({
-              value: moment(deploy.dateFinished).fromNow(),
-              fixed: '3 hours ago',
-            })}
-          </DeployTimeWrapper>
-        </Flex>
+        <DeployTimeWrapper>
+          {getDynamicText({
+            value: moment(deploy.dateFinished).fromNow(),
+            fixed: '3 hours ago',
+          })}
+        </DeployTimeWrapper>
       </DeployRow>
     );
   }
 }
 
-const DeployRow = styled(Flex)`
+const DeployRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
   color: ${p => p.theme.gray2};
   font-size: 12px;
-  margin-top: 8px;
+
+  &:not(:last-of-type) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const Environment = styled(TextOverflow)`
@@ -94,7 +97,7 @@ const Environment = styled(TextOverflow)`
   text-transform: uppercase;
   width: 80px;
   border: 1px solid ${p => p.theme.offWhite2};
-  margin-right: 8px;
+  margin-right: ${space(1)};
   background-color: ${p => p.theme.offWhite};
   text-align: center;
   border-radius: ${p => p.theme.borderRadius};
@@ -102,34 +105,42 @@ const Environment = styled(TextOverflow)`
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
-  margin-right: 8px;
+  margin-right: ${space(1)};
 `;
 
 const DeployTimeWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 90px;
+  flex-grow: 1;
+  flex-shrink: 0;
+  text-align: right;
 `;
 
 class NoDeploys extends React.Component {
   render() {
     return (
-      <DeployBox p={2}>
-        <Background alignItems="center" justifyContent="center">
+      <DeployContainer>
+        <Background>
           <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>
         </Background>
-      </DeployBox>
+      </DeployContainer>
     );
   }
 }
 
-const DeployBox = styled(Box)`
+const DeployContainer = styled('div')`
   height: 92px;
+  padding: ${space(2)};
 `;
 
-const Background = styled(Flex)`
+const Background = styled('div')`
+  display: flex;
   height: 100%;
   background-color: ${p => p.theme.offWhite};
+  align-items: center;
+  justify-content: center;
 `;
