@@ -56,7 +56,7 @@ class ReleaseOverview extends AsyncView<Props> {
   getYAxis(): YAxis {
     const {yAxis} = this.props.location.query;
 
-    return typeof yAxis === 'string' ? (yAxis as YAxis) : 'sessions';
+    return typeof yAxis === 'string' ? (yAxis as YAxis) : YAxis.SESSIONS;
   }
 
   render() {

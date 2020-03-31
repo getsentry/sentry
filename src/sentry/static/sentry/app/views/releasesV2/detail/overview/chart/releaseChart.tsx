@@ -38,21 +38,43 @@ class ReleaseChart extends React.Component<Props> {
   formatTooltipValue = (value: string | number | null) => {
     const {yAxis} = this.props;
     switch (yAxis) {
-      case 'sessionDuration':
-        return typeof value === 'number' ? getExactDuration(value, true) : value;
-      case 'crashFree':
-        return defined(value) ? `${value}%` : '-';
-      case 'sessions':
-      case 'users':
+      case YAxis.SESSION_DURATION:
+        return typeof value === 'number' ? getExactDuration(value, true) : '\u2015';
+      case YAxis.CRASH_FREE:
+        return defined(value) ? `${value}%` : '\u2015';
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
+    }
+  };
+
+  configureYAxis = () => {
+    const {yAxis} = this.props;
+    switch (yAxis) {
+      case YAxis.CRASH_FREE:
+        return {
+          max: 100,
+          scale: true,
+          axisLabel: {
+            formatter: '{value}%',
+            color: theme.gray1,
+          },
+        };
+      case YAxis.SESSION_DURATION:
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
+      default:
+        return undefined;
     }
   };
 
   render() {
     const {utc, releaseSeries, timeseriesData, yAxis, zoomRenderProps} = this.props;
     const Chart =
-      yAxis === 'crashFree' || yAxis === 'sessionDuration' ? AreaChart : LineChart;
+      yAxis === YAxis.CRASH_FREE || yAxis === YAxis.SESSION_DURATION
+        ? AreaChart
+        : LineChart;
 
     const legend = {
       right: 16,
@@ -87,18 +109,7 @@ class ReleaseChart extends React.Component<Props> {
           top: '32px',
           bottom: '12px',
         }}
-        yAxis={
-          yAxis === 'crashFree'
-            ? {
-                max: 100,
-                scale: true,
-                axisLabel: {
-                  formatter: '{value}%',
-                  color: theme.gray1,
-                },
-              }
-            : undefined
-        }
+        yAxis={this.configureYAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
       />
     );
