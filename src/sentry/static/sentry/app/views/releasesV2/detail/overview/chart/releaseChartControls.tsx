@@ -12,7 +12,12 @@ import {
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-export type YAxis = 'sessions' | 'users' | 'crashFree' | 'sessionDuration';
+export enum YAxis {
+  SESSIONS = 'sessions',
+  USERS = 'users',
+  CRASH_FREE = 'crashFree',
+  SESSION_DURATION = 'sessionDuration',
+}
 
 type Props = {
   summary: React.ReactNode;
@@ -23,32 +28,32 @@ type Props = {
 const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
   const yAxisOptions = [
     {
-      value: 'sessions',
+      value: YAxis.SESSIONS,
       label: t('Session Count'),
     },
     {
-      value: 'sessionDuration',
+      value: YAxis.SESSION_DURATION,
       label: t('Session Duration'),
     },
     {
-      value: 'users',
+      value: YAxis.USERS,
       label: t('User Count'),
     },
     {
-      value: 'crashFree',
+      value: YAxis.CRASH_FREE,
       label: t('Crash Free Rate'),
     },
   ];
 
   const getSummaryHeading = () => {
     switch (yAxis) {
-      case 'users':
+      case YAxis.USERS:
         return t('Total Active Users');
-      case 'crashFree':
+      case YAxis.CRASH_FREE:
         return t('Average Rate');
-      case 'sessionDuration':
+      case YAxis.SESSION_DURATION:
         return t('Average Duration');
-      case 'sessions':
+      case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
     }
