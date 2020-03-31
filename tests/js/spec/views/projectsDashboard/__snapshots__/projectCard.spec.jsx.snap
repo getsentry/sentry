@@ -980,18 +980,13 @@ exports[`ProjectCard renders 1`] = `
             }
           >
             <NoDeploys>
-              <DeployBox
-                p={2}
-              >
+              <DeployContainer>
                 <div
-                  className="css-d9a0z6-DeployBox elff1ar4"
+                  className="css-aosuvv-DeployContainer elff1ar4"
                 >
-                  <Background
-                    alignItems="center"
-                    justifyContent="center"
-                  >
+                  <Background>
                     <div
-                      className="css-4zyp61-Background elff1ar5"
+                      className="css-18zws67-Background elff1ar5"
                     >
                       <forwardRef<Button>
                         external={true}
@@ -1067,7 +1062,7 @@ exports[`ProjectCard renders 1`] = `
                     </div>
                   </Background>
                 </div>
-              </DeployBox>
+              </DeployContainer>
             </NoDeploys>
           </Deploys>
         </div>
