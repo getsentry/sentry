@@ -63,5 +63,5 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
 `;
 
 const StyledIconSentry = styled(IconSentry)`
-  padding-bottom: 2px;
+  padding-bottom: 3px;
 `;

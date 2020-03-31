@@ -52,9 +52,9 @@ class QueryCard extends React.PureComponent<Props> {
             </QueryCardContent>
             <AvatarWrapper>
               {starred ? (
-                <ActivityAvatar type="user" user={createdBy} size={40} />
+                <ActivityAvatar type="user" user={createdBy} size={34} />
               ) : (
-                <ActivityAvatar type="system" size={40} />
+                <ActivityAvatar type="system" size={34} />
               )}
             </AvatarWrapper>
           </QueryCardHeader>
@@ -72,6 +72,7 @@ class QueryCard extends React.PureComponent<Props> {
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.offWhite2};
   border-radius: 50%;
+  height: 100%;
 `;
 
 const QueryCardContent = styled('div')`
