@@ -61,10 +61,11 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
                 metrics.incr(
                     "dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0
                 )
-                logger.error(
+                logger.info(
                     "dataexport.error: {}".format(six.text_type(error)),
                     extra={"query": data_export.payload, "org": data_export.organization_id},
                 )
+                capture_exception(error)
                 raise ExportError("Failed to save the assembled file")
     except ExportError as error:
         return data_export.email_failure(message=six.text_type(error))
@@ -72,10 +73,11 @@ def assemble_download(data_export_id, limit=None, environment_id=None):
         return data_export.email_failure(message=six.text_type(error))
     except BaseException as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        logger.error(
+        logger.info(
             "dataexport.error: {}".format(six.text_type(error)),
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
+        capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
 
 
@@ -93,7 +95,8 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
         )
     except ExportError as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
         raise error
 
     # Iterate through all the GroupTagValues
