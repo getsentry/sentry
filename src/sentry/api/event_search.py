@@ -858,7 +858,7 @@ def get_filter(query=None, params=None):
                     convert_search_filter_to_snuba_query(term, key=field)
                     for field in FIELD_ALIASES[USER_ALIAS]["fields"]
                 ]
-                if term.operator == "!=":
+                if term.operator == "!=" and term.value.value != "":
                     kwargs["conditions"].extend(user_conditions)
                 else:
                     kwargs["conditions"].append(user_conditions)

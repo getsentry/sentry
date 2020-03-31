@@ -371,7 +371,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data["transaction"] = "/transactions/{}".format(key)
             data["timestamp"] = iso_format(before_now(minutes=1))
             data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-            event_data = dict(user_data)
+            event_data = user_data.copy()
             event_data[key] = "undefined"
             data["user"] = event_data
             self.store_event(data, project_id=project.id)
