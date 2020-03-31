@@ -77,7 +77,7 @@ class Filter(object):
     @property
     def date_params(self):
         """
-        Get the datettime parameters as a dictionary
+        Get the datetime parameters as a dictionary
         """
         return {"start": self.start, "end": self.end}
 
