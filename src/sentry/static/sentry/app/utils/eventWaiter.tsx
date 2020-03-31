@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import React from 'react';
 
 import {analytics} from 'app/utils/analytics';
@@ -61,10 +62,30 @@ class EventWaiter extends React.Component<Props, State> {
 
   pollHandler = async () => {
     const {api, organization, project, onIssueRecieved} = this.props;
+    let firstEvent = null;
 
-    const {firstEvent} = await api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/`
-    );
+    try {
+      ({firstEvent} = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`
+      ));
+    } catch (resp) {
+      if (!resp) {
+        return;
+      }
+
+      // This means org or project does not exist, we need to stop polling
+      if (resp.status === 404) {
+        // TODO: Add some UX around this... redirect? error message?
+        this.stopPolling();
+        return;
+      }
+
+      Sentry.setExtras({
+        status: resp.status,
+        detail: resp.responseJSON?.detail,
+      });
+      Sentry.captureException(new Error('Error polling for first event'));
+    }
 
     if (firstEvent === null) {
       return;
