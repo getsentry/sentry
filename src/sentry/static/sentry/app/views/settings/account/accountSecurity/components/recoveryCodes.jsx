@@ -47,18 +47,18 @@ class RecoveryCodes extends React.Component {
 
           <Actions>
             <Clipboard hideUnsupported value={formattedCodes}>
-              <Button size="small" label="copy">
+              <Button size="small" label={t('copy')}>
                 <IconCopy />
               </Button>
             </Clipboard>
-            <Button size="small" onClick={this.printCodes} label="print">
+            <Button size="small" onClick={this.printCodes} label={t('print')}>
               <IconPrint />
             </Button>
             <Button
               size="small"
               download="sentry-recovery-codes.txt"
               href={`data:text/plain;charset=utf-8,${formattedCodes}`}
-              label="download"
+              label={t('download')}
             >
               <IconDownload />
             </Button>
