@@ -123,7 +123,6 @@
     "svg-sprite-loader": "^3.9.0",
     "svgo": "^1.0.3",
     "svgo-loader": "^2.1.0",
-    "ts-loader": "^6.2.1",
     "typescript": "3.7",
     "u2f-api": "1.0.10",
     "webpack": "4.41.6",
