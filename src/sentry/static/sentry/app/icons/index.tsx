@@ -4,6 +4,7 @@ export {IconArrow} from './iconArrow';
 export {IconAttachment} from './iconAttachment';
 export {IconBitbucket} from './iconBitbucket';
 export {IconBookmark} from './iconBookmark';
+export {IconBusiness} from './iconBusiness';
 export {IconBroadcast} from './iconBroadcast';
 export {IconCalendar} from './iconCalendar';
 export {IconChat} from './iconChat';
