@@ -190,20 +190,19 @@ matrix:
       name: 'Frontend [test]'
       env: TEST_SUITE=js
       before_install:
-        - *base_install
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
         - ./bin/yarn install --frozen-lockfile
 
     - python: 2.7
-      name: 'Frontend [webpack]'
+      name: 'Frontend [build]'
       env: TEST_SUITE=js-build
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Command Line'

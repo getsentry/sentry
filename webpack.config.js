@@ -206,10 +206,6 @@ const babelLoaderConfig = {
   options: babelOptions,
 };
 
-const tsLoaderConfig = {
-  loader: 'ts-loader',
-};
-
 /**
  * Main Webpack config for Sentry React SPA.
  */
@@ -237,18 +233,10 @@ let appConfig = {
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.[tj]sx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
         use: babelLoaderConfig,
-      },
-      {
-        test: /\.tsx?$/,
-        include: [staticPrefix],
-        exclude: /(vendor|node_modules|dist)/,
-        // Make sure we typecheck in CI, but not for local dev since that is run with
-        // the fork-ts plugin
-        use: SHOULD_FORK_TS ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
       },
       {
         test: /\.po$/,
