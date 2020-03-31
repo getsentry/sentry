@@ -194,8 +194,8 @@ describe('groupEventDetails', () => {
 
     const buttons = wrapper
       .find('.event-toolbar')
-      .find('.btn-group')
-      .find('Link');
+      .find('ButtonBar')
+      .find('Button');
 
     expect(buttons.at(0).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/1/events/oldest/',
