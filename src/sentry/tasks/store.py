@@ -310,138 +310,6 @@ def retry_symbolicate_event(symbolicate_task_name, task_kwargs, **kwargs):
     symbolicate_task.delay(**task_kwargs)
 
 
-def _do_process_event(
-    cache_key, start_time, event_id, process_task, data=None, data_has_changed=None
-):
-    from sentry.plugins.base import plugins
-
-    # TODO: remove me after the new symbolicate_event code is deployed
-    if options.get("sentry:call-old-process-event", False):
-        metrics.incr("tasks.store.called-old-process-event")
-        return _do_process_event_OLD(cache_key, start_time, event_id, process_task, data)
-
-    if data is None:
-        data = default_cache.get(cache_key)
-
-    if data is None:
-        metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "process"}, skip_internal=False
-        )
-        error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
-        return
-
-    has_changed = False if data_has_changed is None else data_has_changed
-
-    data = CanonicalKeyDict(data)
-
-    project_id = data["project"]
-    event_id = data["event_id"]
-
-    project = Project.objects.get_from_cache(id=project_id)
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
-
-    # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
-
-    # Stacktrace based event processors.
-    new_data = process_stacktraces(data)
-    if new_data is not None:
-        has_changed = True
-        data = new_data
-
-    # Second round of datascrubbing after stacktrace and language-specific
-    # processing. First round happened as part of ingest.
-    #
-    # *Right now* the only sensitive data that is added in stacktrace
-    # processing are usernames in filepaths, so we run directly after
-    # stacktrace processors and `get_event_enhancers`.
-    #
-    # We do not yet want to deal with context data produced by plugins like
-    # sessionstack or fullstory (which are in `get_event_preprocessors`), as
-    # this data is very unlikely to be sensitive data. This is why scrubbing
-    # happens somewhere in the middle of the pipeline.
-    #
-    # On the other hand, Javascript event error translation is happening after
-    # this block because it uses `get_event_preprocessors` instead of
-    # `get_event_enhancers`.
-    #
-    # We are fairly confident, however, that this should run *before*
-    # re-normalization as it is hard to find sensitive data in partially
-    # trimmed strings.
-    if (
-        has_changed
-        and options.get("processing.can-use-scrubbers")
-        and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
-    ):
-        with metrics.timer("tasks.store.datascrubbers.scrub"):
-            project_config = get_project_config(project)
-
-            new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
-
-            # XXX(markus): When datascrubbing is finally "totally stable", we might want
-            # to drop the event if it crashes to avoid saving PII
-            if new_data is not None:
-                data.data = new_data
-
-    # TODO(dcramer): ideally we would know if data changed by default
-    # Default event processors.
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
-        for processor in processors or ():
-            result = safe_execute(processor, data)
-            if result:
-                data = result
-                has_changed = True
-
-    assert data["project"] == project_id, "Project cannot be mutated by plugins"
-
-    # We cannot persist canonical types in the cache, so we need to
-    # downgrade this.
-    if isinstance(data, CANONICAL_TYPES):
-        data = dict(data.items())
-
-    if has_changed:
-        # Run some of normalization again such that we don't:
-        # - persist e.g. incredibly large stacktraces from minidumps
-        # - store event timestamps that are older than our retention window
-        #   (also happening with minidumps)
-        normalizer = StoreNormalizer(
-            remove_other=False, is_renormalize=True, **DEFAULT_STORE_NORMALIZER_ARGS
-        )
-        data = normalizer.normalize_event(dict(data))
-
-        issues = data.get("processing_issues")
-
-        try:
-            if issues and create_failed_event(
-                cache_key,
-                data,
-                project_id,
-                list(issues.values()),
-                event_id=event_id,
-                start_time=start_time,
-                reprocessing_rev=reprocessing_rev,
-            ):
-                return
-        except RetryProcessing:
-            # If `create_failed_event` indicates that we need to retry we start
-            # processing from the beginning again. This happens when the reprocessing
-            # revision changed while we were processing.
-            _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
-            return
-
-        default_cache.set(cache_key, data, 3600)
-
-    submit_save_event(project, cache_key, event_id, start_time, data)
-
-
-##########################################################################################
-# This is the old version of retry_process_event, meant to be run only during the deploy #
-##########################################################################################
 @instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
@@ -466,10 +334,9 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
     process_task.delay(**task_kwargs)
 
 
-########################################################################################
-# This is the old version of _do_process_event, meant to be run only during the deploy #
-########################################################################################
-def _do_process_event_OLD(cache_key, start_time, event_id, process_task, data=None):
+def _do_process_event(
+    cache_key, start_time, event_id, process_task, data=None, data_has_changed=None
+):
     from sentry.plugins.base import plugins
 
     if data is None:
@@ -492,7 +359,7 @@ def _do_process_event_OLD(cache_key, start_time, event_id, process_task, data=No
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
-    has_changed = False
+    has_changed = False if data_has_changed is None else data_has_changed
 
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
@@ -620,9 +487,7 @@ def _do_process_event_OLD(cache_key, start_time, event_id, process_task, data=No
             # If `create_failed_event` indicates that we need to retry we
             # invoke outselves again.  This happens when the reprocessing
             # revision changed while we were processing.
-            from_reprocessing = process_task is process_event_from_reprocessing
-            submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
-            process_task.delay(cache_key, start_time=start_time, event_id=event_id)
+            _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
             return
 
         default_cache.set(cache_key, data, 3600)
