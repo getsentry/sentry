@@ -41,8 +41,8 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const tabs = [
     {title: t('Overview'), to: releasePath},
     {title: t('Commits'), to: `${releasePath}commits/`},
-    {title: t('Artifacts'), to: `${releasePath}artifacts/`},
     {title: t('Files Changed'), to: `${releasePath}files-changed/`},
+    {title: t('Artifacts'), to: `${releasePath}artifacts/`},
   ];
 
   return (
