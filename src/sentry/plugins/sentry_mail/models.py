@@ -418,6 +418,12 @@ class MailPlugin(NotificationPlugin):
         if name == "user-reports.created":
             self.handle_user_report(payload, **kwargs)
 
+    def can_configure_for_project(self, project):
+        return (
+            super(MailPlugin, self).can_configure_for_project(project)
+            and not project.flags.has_issue_alerts_targeting
+        )
+
 
 # Legacy compatibility
 MailProcessor = MailPlugin
