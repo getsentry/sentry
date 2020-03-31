@@ -91,12 +91,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     }));
 
     try {
-      if (yAxis === 'crashFree') {
+      if (yAxis === YAxis.CRASH_FREE) {
         data = await this.fetchRateData();
       } else {
         // session duration uses same endpoint as sessions
         data = await this.fetchCountData(
-          yAxis === 'sessionDuration' ? 'sessions' : yAxis
+          yAxis === YAxis.SESSION_DURATION ? YAxis.SESSIONS : yAxis
         );
       }
     } catch {
@@ -128,7 +128,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     });
 
     const transformedData =
-      yAxis === 'sessionDuration'
+      yAxis === YAxis.SESSION_DURATION
         ? this.transformSessionDurationData(response.stats)
         : this.transformCountData(response.stats, yAxis, response.statTotals);
 
@@ -142,13 +142,13 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       api.requestPromise(this.statsPath, {
         query: {
           ...this.baseQueryParams,
-          type: 'users',
+          type: YAxis.USERS,
         },
       }),
       api.requestPromise(this.statsPath, {
         query: {
           ...this.baseQueryParams,
-          type: 'sessions',
+          type: YAxis.SESSIONS,
         },
       }),
     ]);
@@ -267,10 +267,13 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       return {averagePercent, percentageData};
     };
 
-    const usersPercentages = calculateDatePercentage(responseUsersData, 'users');
+    const usersPercentages = calculateDatePercentage(responseUsersData, YAxis.USERS);
     chartData.users.data = usersPercentages.percentageData;
 
-    const sessionsPercentages = calculateDatePercentage(responseSessionsData, 'sessions');
+    const sessionsPercentages = calculateDatePercentage(
+      responseSessionsData,
+      YAxis.SESSIONS
+    );
     chartData.sessions.data = sessionsPercentages.percentageData;
 
     const summary = tct('[usersPercent] users, [sessionsPercent] sessions', {

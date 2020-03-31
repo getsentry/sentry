@@ -38,12 +38,12 @@ class ReleaseChart extends React.Component<Props> {
   formatTooltipValue = (value: string | number | null) => {
     const {yAxis} = this.props;
     switch (yAxis) {
-      case 'sessionDuration':
+      case YAxis.SESSION_DURATION:
         return typeof value === 'number' ? getExactDuration(value, true) : '\u2015';
-      case 'crashFree':
+      case YAxis.CRASH_FREE:
         return defined(value) ? `${value}%` : '\u2015';
-      case 'sessions':
-      case 'users':
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
       default:
         return typeof value === 'number' ? value.toLocaleString() : value;
     }
@@ -52,7 +52,7 @@ class ReleaseChart extends React.Component<Props> {
   configureYAxis = () => {
     const {yAxis} = this.props;
     switch (yAxis) {
-      case 'crashFree':
+      case YAxis.CRASH_FREE:
         return {
           max: 100,
           scale: true,
@@ -61,9 +61,9 @@ class ReleaseChart extends React.Component<Props> {
             color: theme.gray1,
           },
         };
-      case 'sessionDuration':
-      case 'sessions':
-      case 'users':
+      case YAxis.SESSION_DURATION:
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
       default:
         return undefined;
     }
@@ -72,7 +72,9 @@ class ReleaseChart extends React.Component<Props> {
   render() {
     const {utc, releaseSeries, timeseriesData, yAxis, zoomRenderProps} = this.props;
     const Chart =
-      yAxis === 'crashFree' || yAxis === 'sessionDuration' ? AreaChart : LineChart;
+      yAxis === YAxis.CRASH_FREE || yAxis === YAxis.SESSION_DURATION
+        ? AreaChart
+        : LineChart;
 
     const legend = {
       right: 16,
