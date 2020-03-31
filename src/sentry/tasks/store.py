@@ -128,7 +128,10 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     from_reprocessing = process_task is process_event_from_reprocessing
 
-    new_process_behavior = options.get("sentry:preprocess-use-new-behavior", False)
+    new_process_behavior = bool(options.get("sentry:preprocess-use-new-behavior", False))
+    metrics.incr(
+        "tasks.store.preprocess_event.new_process_behavior", tags={"value": new_process_behavior}
+    )
 
     if new_process_behavior and should_process_with_symbolicator(data):
         submit_symbolicate(
@@ -263,7 +266,16 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         default_cache.set(cache_key, data, 3600)
 
-    submit_process(project, from_reprocessing, cache_key, event_id, start_time, data, has_changed)
+    submit_process(
+        project,
+        from_reprocessing,
+        cache_key,
+        event_id,
+        start_time,
+        data,
+        has_changed,
+        new_process_behavior=True,
+    )
 
 
 @instrumented_task(
@@ -386,6 +398,10 @@ def _do_process_event(
 
     has_changed = bool(data_has_changed)
     new_process_behavior = bool(new_process_behavior)
+
+    metrics.incr(
+        "tasks.store.process_event.new_process_behavior", tags={"value": new_process_behavior}
+    )
 
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)

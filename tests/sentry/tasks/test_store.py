@@ -188,7 +188,7 @@ def test_symbolicate_event_call_process(
         start_time=1,
         event_id=EVENT_ID,
         data_has_changed=True,
-        new_process_behavior=None,
+        new_process_behavior=True,
     )
 
 
