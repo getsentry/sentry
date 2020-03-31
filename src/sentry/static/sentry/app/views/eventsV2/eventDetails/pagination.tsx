@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import isPropValid from '@emotion/is-prop-valid';
 
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import {IconPrevious, IconNext} from 'app/icons';
 import {t} from 'app/locale';
-import Link from 'app/components/links/link';
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -62,74 +62,40 @@ const Pagination = (props: Props) => {
   const links = buildTargets(event, eventView, organization);
 
   return (
-    <Paginator>
-      <StyledIconLink
+    <Paginator merged>
+      <Button
+        size="small"
         to={links.oldest || ''}
         disabled={links.previous === null || links.oldest === null}
-      >
-        <InlineSvg src="icon-prev" />
-      </StyledIconLink>
-      <StyledTextLink
+        icon={<IconPrevious size="xs" />}
+      />
+      <Button
+        size="small"
         data-test-id="older-event"
         to={links.previous}
         disabled={links.previous === null}
       >
         {t('Older')}
-      </StyledTextLink>
-      <StyledTextLink
+      </Button>
+      <Button
+        size="small"
         data-test-id="newer-event"
         to={links.next}
         disabled={links.next === null}
       >
         {t('Newer')}
-      </StyledTextLink>
-      <StyledIconLink
+      </Button>
+      <Button
+        size="small"
         to={links.latest || ''}
         disabled={links.next === null || links.latest === null}
-        isLast
-      >
-        <InlineSvg src="icon-next" />
-      </StyledIconLink>
+        icon={<IconNext size="xs" />}
+      />
     </Paginator>
   );
 };
 
-const StyledTextLink = styled(Link, {shouldForwardProp: isPropValid})<{
-  disabled?: boolean;
-  isLast?: boolean;
-}>`
-  color: ${p => (p.disabled ? p.theme.disabled : 'inherit')};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  padding: ${space(0.25)};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 2;
-  ${p => (p.isLast ? '' : `border-right: 1px solid ${p.theme.borderDark};`)}
-  ${p => (p.disabled ? 'pointer-events: none;' : '')}
-
-  &:hover,
-  &:active {
-    color: inherit;
-  }
-
-  &:active {
-    box-shadow: inset 0 2px rgba(0, 0, 0, 0.05);
-  }
-`;
-
-const StyledIconLink = styled(StyledTextLink, {shouldForwardProp: isPropValid})`
-  flex-grow: 1;
-`;
-
-const Paginator = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderDark};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 2px rgba(0, 0, 0, 0.05);
+const Paginator = styled(ButtonBar)`
   margin-top: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

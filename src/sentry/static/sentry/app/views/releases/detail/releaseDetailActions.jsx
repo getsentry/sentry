@@ -35,18 +35,16 @@ export default class ReleaseDetailsActions extends React.Component {
   render() {
     return (
       <div className="m-b-1">
-        <div className="btn-group">
-          <Confirm
-            onConfirm={this.handleDelete}
-            message={t(
-              'Deleting this release is permanent. Are you sure you wish to continue?'
-            )}
-          >
-            <Button size="small" icon="icon-trash">
-              {t('Delete')}
-            </Button>
-          </Confirm>
-        </div>
+        <Confirm
+          onConfirm={this.handleDelete}
+          message={t(
+            'Deleting this release is permanent. Are you sure you wish to continue?'
+          )}
+        >
+          <Button size="small" icon="icon-trash">
+            {t('Delete')}
+          </Button>
+        </Confirm>
       </div>
     );
   }
