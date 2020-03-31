@@ -90,9 +90,6 @@ describe('GuideStore', function() {
 
     expect(logExperiment).toHaveBeenCalledWith({
       key: 'AssistantGuideExperiment',
-      unitName: 'user_id',
-      unitId: parseInt(user.id, 10),
-      param: 'exposed',
     });
   });
 

@@ -3,6 +3,12 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
@@ -52,7 +58,7 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     <ChartControls>
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
-        <Value key="total-value">{summary}</Value>
+        <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
 
       {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
@@ -82,33 +88,6 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     </ChartControls>
   );
 };
-
-const InlineContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const ChartControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.borderLight};
-`;
-
-const SectionHeading = styled('h4')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
-`;
-
-const Value = styled('span')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
-`;
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};

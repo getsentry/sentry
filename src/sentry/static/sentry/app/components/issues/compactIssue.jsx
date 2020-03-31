@@ -86,7 +86,7 @@ class CompactIssueHeader extends React.Component {
         <IssueHeaderMetaWrapper>
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
-            <Link to={issueLink}>
+            <Link to={issueLink || ''}>
               <span className="icon icon-soundoff" />
               <span className="icon icon-star-solid" />
               {this.getTitle()}

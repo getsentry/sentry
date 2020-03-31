@@ -13190,19 +13190,19 @@ rrweb-player@^0.4.0:
   dependencies:
     rrweb "^0.7.25"
 
-rrweb-snapshot@^0.7.25:
-  version "0.7.25"
-  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-0.7.25.tgz#2da22440718601aa53e2d0dae83d679b986d0687"
-  integrity sha512-KXlq8XVC/a0R3AjyL8XopscQDerVv4dk/qQLyBpwPOcssSrtBpZOSVoYpbJlp40FwrP5NB6zYpvU3AM78nvYyA==
+rrweb-snapshot@^0.7.26:
+  version "0.7.26"
+  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-0.7.26.tgz#339769cdcfc53db4fec279501706ff6129671cb2"
+  integrity sha512-z4k6swLNI5YPDFFcYp19Ggo2kE12cWG1OZCanlaMvwSOi82OOZ229ckYBCPYHbYQnCwuBF5KSMZi2i0CwpWHng==
 
-rrweb@^0.7.25, rrweb@^0.7.28:
-  version "0.7.28"
-  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-0.7.28.tgz#7603d659506bce771f0c95549b66c55efb0ddf8f"
-  integrity sha512-hCrZEECk+88EOKeDphfhG1LnYkt3intVagABzKQ8Ip0hSwaj0j0gwNh2hJloYfzXy7X1OeXqWsYvziw0FEy8Qg==
+rrweb@^0.7.25, rrweb@^0.7.30:
+  version "0.7.30"
+  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-0.7.30.tgz#5a2ba3e667b5f663fc207574188fcfcd450467df"
+  integrity sha512-ODA0W2cas5yoU1jLO/UVNUrr99jIfv5nQ7jrD7gfFG09O0YaMV9I9p5SkAztQe6gv2QvxgFsyFxzWjpfD7btvw==
   dependencies:
     "@types/smoothscroll-polyfill" "^0.3.0"
     mitt "^1.1.3"
-    rrweb-snapshot "^0.7.25"
+    rrweb-snapshot "^0.7.26"
     smoothscroll-polyfill "^0.4.3"
 
 rst-selector-parser@^2.2.3:

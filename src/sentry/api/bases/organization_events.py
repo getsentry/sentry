@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import six
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError
 
 
+from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_filter, InvalidSearchQuery, get_json_meta_type
@@ -128,3 +130,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         del result[key]
 
         return results
+
+
+class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+    def has_feature(self, request, organization):
+        return features.has("organizations:performance-view", organization, actor=request.user)
+
+    def get_project(self, request, organization):
+        projects = self.get_projects(request, organization)
+
+        if len(projects) != 1:
+            raise ParseError("Only 1 project per Key Transaction")
+        return projects[0]
