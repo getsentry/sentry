@@ -16,6 +16,7 @@ import {
   SectionHeading,
   SectionValue,
   SubHeading,
+  TipDialog,
 } from 'app/components/charts/styles';
 import Tooltip from 'app/components/tooltip';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -26,6 +27,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
+const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
   'environment',
   'project',
@@ -50,6 +52,7 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   chartData: {data: ApiResult[]} | null;
+  zoomError?: boolean;
 };
 
 /**
@@ -71,7 +74,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       id: '',
       name: '',
       version: 2,
-      fields: ['histogram(transaction.duration,15)', 'count()'],
+      fields: [`histogram(transaction.duration,${NUM_BUCKETS})`, 'count()'],
       orderby: 'histogram_transaction_duration_15',
       projects: project,
       range: statsPeriod,
@@ -101,6 +104,13 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     return !isEqual(pick(prevProps, QUERY_KEYS), pick(this.props, QUERY_KEYS));
   }
 
+  handleMouseOver = () => {
+    // Hide the zoom error tooltip on the next hover.
+    if (this.state.zoomError) {
+      this.setState({zoomError: false});
+    }
+  };
+
   handleClick = value => {
     const {chartData} = this.state;
     if (chartData === null) {
@@ -112,6 +122,13 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     // If the active bar is clicked again we need to remove the constraints.
     const startDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
     const endDuration = startDuration + this.bucketWidth;
+    // Re-render showing a zoom error above the current bar..
+    if ((endDuration - startDuration) / NUM_BUCKETS < 2) {
+      this.setState({
+        zoomError: true,
+      });
+      return;
+    }
 
     const target = {
       pathname: location.pathname,
@@ -151,8 +168,20 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     );
   }
 
+  renderZoomError() {
+    const {zoomErrorPosition} = this.state;
+    if (zoomErrorPosition === null) {
+      return null;
+    }
+    return (
+      <TipDialog x={zoomErrorPosition.x} y={zoomErrorPosition.y}>
+        {t('This cannot zoom in any further')}
+      </TipDialog>
+    );
+  }
+
   renderBody() {
-    const {chartData} = this.state;
+    const {chartData, zoomError} = this.state;
     if (chartData === null) {
       return null;
     }
@@ -168,15 +197,50 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       },
     };
 
+    // Use a custom tooltip formatter as we need to replace
+    // the tooltip content entirely when zooming is no longer available.
+    const tooltip = {
+      formatter(series) {
+        const seriesData = Array.isArray(series) ? series : [series];
+        let contents: string[] = [];
+        if (!zoomError) {
+          // Replicate the necessary logic from app/components/charts/components/tooltip.jsx
+          contents = seriesData.map(item => {
+            const label = item.seriesName;
+            const value = item.value[1].toLocaleString();
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
+              '</div>',
+            ].join('');
+          });
+          const seriesLabel = seriesData[0].value[0];
+          contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
+        } else {
+          contents = [
+            '<div class="tooltip-series tooltip-series-solo">',
+            t('This cannot zoom in any further'),
+            '</div>',
+          ];
+        }
+        contents.push('<div class="tooltip-arrow"></div>');
+        return contents.join('');
+      },
+    };
+
     return (
-      <BarChart
-        grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
-        xAxis={xAxis}
-        yAxis={{type: 'value'}}
-        series={transformData(chartData.data, this.bucketWidth)}
-        colors={['rgba(140, 79, 189, 0.3)']}
-        onClick={this.handleClick}
-      />
+      <React.Fragment>
+        <BarChart
+          grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
+          xAxis={xAxis}
+          yAxis={{type: 'value'}}
+          series={transformData(chartData.data, this.bucketWidth)}
+          tooltip={tooltip}
+          colors={['rgba(140, 79, 189, 0.3)']}
+          onClick={this.handleClick}
+          onMouseOver={this.handleMouseOver}
+        />
+      </React.Fragment>
     );
   }
 }
