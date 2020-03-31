@@ -9,7 +9,7 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({project}: ConfigParams): NavigationSection[] {
+export default function getConfiguration({project, organization}: ConfigParams): NavigationSection[] {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
@@ -50,7 +50,7 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
           path: `${pathPrefix}/data-privacy/`,
           title: t('Data Privacy'),
           description: t('Configure Datascrubbers for a project'),
-          show: ({features}) => features!.has('datascrubbers-v2'),
+          show: () => organization.features?.includes('datascrubbers-v2'),
           badge: () => 'new',
         },
         {
