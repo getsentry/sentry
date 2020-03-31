@@ -542,7 +542,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            snuba_groups, snuba_total = self.snuba_search(
+            kwargs = dict(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -553,6 +553,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 get_sample=True,
                 search_filters=search_filters,
             )
+            if not too_many_candidates:
+                kwargs["group_ids"] = group_ids
+
+            snuba_groups, snuba_total = self.snuba_search(**kwargs)
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result

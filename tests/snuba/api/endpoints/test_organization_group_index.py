@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from sentry.utils.compat.mock import patch, Mock
 
+from sentry import options
 from sentry.models import (
     Activity,
     ApiToken,
@@ -30,6 +30,8 @@ from sentry.models import (
     UserOption,
     Release,
 )
+from sentry.utils.compat.mock import patch, Mock
+
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -487,6 +489,60 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 default_user_id=self.user.id,
                 organization_id=self.organization.id,
             )
+
+    # This seems like a random override, but this test needed a way to override
+    # the orderby being sent to snuba for a certain call. This function has a simple
+    # return value and can be used to set variables in the snuba payload.
+    @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
+    def test_assigned_to_pagination(self, patched_params_update):
+        old_sample_size = options.get("snuba.search.hits-sample-size")
+        assert options.set("snuba.search.hits-sample-size", 1)
+
+        days = range(4)
+        days.reverse()
+
+        self.login_as(user=self.user)
+        groups = []
+        for day in days:
+            group = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(days=day)),
+                    "fingerprint": ["group-{}".format(day)],
+                },
+                project_id=self.project.id,
+            ).group
+            groups.append(group)
+
+        assigned_groups = groups[:2]
+        for ag in assigned_groups:
+            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+            GroupAssignee.objects.assign(ag, self.user)
+
+        patched_params_update.side_effect = [
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id], "orderby": ["-last_seen"]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+        ]
+
+        response = self.get_response(limit=1, query="assigned:{}".format(self.user.email))
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(assigned_groups[1].id)
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_response(
+            limit=1, cursor=cursor, query="assigned:{}".format(self.user.email)
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(assigned_groups[0].id)
+
+        assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
