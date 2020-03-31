@@ -118,7 +118,7 @@ def get_project_releases_by_stability(
 
 def _make_stats(start, rollup, buckets, default=0):
     rv = []
-    start = int(to_timestamp(start) // rollup) * rollup
+    start = int(to_timestamp(start) // rollup + 1) * rollup
     for x in range(buckets):
         rv.append([start, default])
         start += rollup
