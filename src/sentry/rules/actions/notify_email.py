@@ -1,50 +1,120 @@
+"""
+Used for notifying via email
+"""
 from __future__ import absolute_import
 
 import itertools
 import logging
 import six
+from enum import Enum
 
-import sentry
-
-from django.core.urlresolvers import reverse
+from django import forms
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import options
-from sentry.models import ProjectOwnership, User
-
+from sentry import digests, ratelimits
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
+from sentry.models import ProjectOwnership, User, Team, Project
 from sentry.plugins.base.structs import Notification
+from sentry.plugins.sentry_mail.models import MailPlugin
+from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import MessageBuilder, group_id_to_email
-from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
-
-from sentry.plugins.sentry_mail.activity import emails
 
 NOTSET = object()
 
 logger = logging.getLogger(__name__)
 
 
+class NotifyEmailActionTargetType(Enum):
+    ISSUE_OWNERS = "IssueOwners"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+CHOICES = [
+    (NotifyEmailActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
+    (NotifyEmailActionTargetType.TEAM.value, "Team"),
+    (NotifyEmailActionTargetType.MEMBER.value, "Member"),
+]
+
+from sentry.utils.linksign import generate_signed_link
+
+
 class MailAdapter(object):
-    title = "Mail"
-    conf_key = "mail"
-    slug = "mail"
-    version = sentry.VERSION
-    author = "Sentry Team"
-    author_url = "https://github.com/getsentry/sentry"
+    """
+    Adapter for the `MailPlugin`. This class attempts to decouple `MailPlugin` from the email notification question.
+    On complete decoupling, consider renaming this class to `MailProcessor`
+
+    Logic that was used solely for sending mail notifications is extracted into this class.
+
+    We want the mail behaviours in the `MailAdapter` to be as similar as possible to the `MailPlugin`.
+    Thus, keys are still fetched from the `MailPlugin` as they are used to access project options for mail.
+    Essentially, we still treat MailPlugin as a source of truth for keys.
+    """
+
     project_default_enabled = True
     project_conf_form = None
-    subject_prefix = None
+    logger = logging.getLogger("sentry.notify_email_action.MailAdapter")
+    legacy_mail = MailPlugin()
 
-    def _subject_prefix(self):
-        if self.subject_prefix is not None:
-            return self.subject_prefix
-        return options.get("mail.subject-prefix")
+    def rule_notify(self, event, futures, target_type, target_identifier=None):
+        from sentry.models import ProjectOption
+        from sentry.tasks.digests import deliver_digest
+        from sentry.digests import get_option_key as get_digest_option_key
+        from sentry.digests.notifications import event_to_record, unsplit_key_for_targeted_action
+        from sentry import digests
+
+        rules = []
+        extra = {
+            "event_id": event.event_id,
+            "group_id": event.group_id,
+            "is_from_mail_action_adapter": True,
+        }
+        log_event = "dispatched"
+        for future in futures:
+            rules.append(future.rule)
+            extra["rule_id"] = future.rule.id
+            if not future.kwargs:
+                continue
+            raise NotImplementedError(
+                "The default behavior for notification de-duplication does not support args"
+            )
+
+        project = event.group.project
+        extra["project_id"] = project.id
+
+        if digests.enabled(project):
+
+            def get_digest_option(key):
+                return ProjectOption.objects.get_value(
+                    project, get_digest_option_key(self.legacy_mail.get_conf_key(), key)
+                )
+
+            digest_key = unsplit_key_for_targeted_action(
+                event.group.project, target_type, target_identifier
+            )
+            extra["digest_key"] = digest_key
+            immediate_delivery = digests.add(
+                digest_key,
+                event_to_record(event, rules),
+                increment_delay=get_digest_option("increment_delay"),
+                maximum_delay=get_digest_option("maximum_delay"),
+            )
+            if immediate_delivery:
+                deliver_digest.delay(digest_key)
+            else:
+                log_event = "digested"
+
+        else:
+            notification = Notification(event=event, rules=rules)
+            self.notify(notification, target_type, target_identifier)
+
+        self.logger.info("notification.%s" % log_event, extra=extra)
 
     def _build_message(
         self,
@@ -60,13 +130,14 @@ class MailAdapter(object):
         send_to=None,
         type=None,
     ):
-        if send_to is None:
-            send_to = self.get_send_to(project)
         if not send_to:
-            logger.debug("Skipping message rendering, no users to send to.")
+            self.logger.debug("Skipping message rendering, no users to send to.")
             return
 
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
+        subject_prefix = (
+            self.legacy_mail.get_option("subject_prefix", project)
+            or self.legacy_mail._subject_prefix()
+        )
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
@@ -89,80 +160,146 @@ class MailAdapter(object):
         if message is not None:
             return message.send_async()
 
-    def get_notification_settings_url(self):
-        return absolute_uri(reverse("sentry-account-settings-notifications"))
+    def get_sendable_users(self, project):
+        """
+        Return a collection of user IDs that are eligible to receive
+        notifications for the provided project.
+        """
+        return project.get_notification_recipients(self.legacy_mail.alert_option_key)
 
-    def get_project_url(self, project):
-        return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
-
-    def is_configured(self, project, **kwargs):
-        # Nothing to configure here
-        return True
-
-    def should_notify(self, group, event):
-        send_to = self.get_sendable_users(group.project)
+    def should_notify(self, group):
+        project = group.project
+        send_to = self.get_sendable_users(project)
         if not send_to:
             return False
 
-        return super(MailAdapter, self).should_notify(group, event)
+        if not group.is_unresolved():
+            return False
 
-    def get_send_to(self, project, event=None):
+        # If digests are not enabled, perform rate limit checks. While digests cannot be disabled for mail at the time
+        # of writing, this logic is kept for backwards compatibility.
+        if not (
+            hasattr(self, "notify_digest") and digests.enabled(project)
+        ) and self.__is_rate_limited(project):
+            self.logger.info("notification.rate_limited", extra={"project_id": project.id})
+            return False
+
+        return True
+
+    def __is_rate_limited(self, project):
+        return ratelimits.is_limited(project=project, key=self.legacy_mail.get_conf_key(), limit=10)
+
+    def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
         Returns a list of user IDs for the users that should receive
         notifications for the provided project.
 
         This result may come from cached data.
         """
+
+        def return_set(xs):
+            from collections import Iterable
+
+            if isinstance(xs, set):
+                return xs
+
+            if isinstance(xs, Iterable):
+                return set(xs) if xs else set()
+
+            return {xs} if xs is not None else set()
+
         if not (project and project.teams.exists()):
-            logger.debug("Tried to send notification to invalid project: %r", project)
+            self.logger.debug("Tried to send notification to invalid project: %r", project)
+            return set()
+
+        if not event:
+            return return_set(self.get_send_to_all_in_project(project))
+
+        send_to = []
+        if target_type == NotifyEmailActionTargetType.ISSUE_OWNERS.value:
+            send_to = self.get_send_to_owners(event, project)
+        elif target_type == NotifyEmailActionTargetType.MEMBER.value:
+            send_to = self.get_send_to_member(target_identifier)
+        elif target_type == NotifyEmailActionTargetType.TEAM.value:
+            send_to = self.get_send_to_team(project, target_identifier)
+        return return_set(send_to)
+
+    def get_send_to_owners(self, event, project):
+        owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        if owners != ProjectOwnership.Everyone:
+            if not owners:
+                metrics.incr(
+                    "features.owners.send_to",
+                    tags={"organization": project.organization_id, "outcome": "empty"},
+                    skip_internal=True,
+                )
+                return set()
+
+            metrics.incr(
+                "features.owners.send_to",
+                tags={"organization": project.organization_id, "outcome": "match"},
+                skip_internal=True,
+            )
+            send_to_set = set()
+            teams_to_resolve = set()
+            for owner in owners:
+                if owner.type == User:
+                    send_to_set.add(owner.id)
+                else:
+                    teams_to_resolve.add(owner.id)
+
+            # get all users in teams
+            if teams_to_resolve:
+                send_to_set |= set(
+                    User.objects.filter(
+                        is_active=True,
+                        sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
+                    ).values_list("id", flat=True)
+                )
+
+            return send_to_set - self.disabled_users_from_project(project)
+        else:
+            return self.get_send_to_all_in_project(project)
+
+    def disabled_users_from_project(self, project):
+        alert_settings = project.get_member_alert_settings(self.legacy_mail.alert_option_key)
+        disabled_users = set(user for user, setting in alert_settings.items() if setting == 0)
+        return disabled_users
+
+    def get_send_to_team(self, project, target_identifier):
+        if target_identifier is None:
             return []
+        try:
+            team = Team.objects.get(id=int(target_identifier))
+        except Team.DoesNotExist:
+            return []
+        return set(
+            team.member_set.values_list("user_id", flat=True)
+        ) - self.disabled_users_from_project(project)
 
-        if event:
-            owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-            if owners != ProjectOwnership.Everyone:
-                if not owners:
-                    metrics.incr(
-                        "features.owners.send_to",
-                        tags={"organization": project.organization_id, "outcome": "empty"},
-                        skip_internal=True,
-                    )
-                    return []
+    @staticmethod
+    def get_send_to_member(target_identifier):
+        """
+        No checking for disabled users is done. If a user explicitly specifies a member as a target to send to, it
+        should overwrite the user's personal mail settings.
+        :param target_identifier:
+        :return: Iterable[int] id of member that should be sent to.
+        """
+        if target_identifier is None:
+            return []
+        try:
+            user = User.objects.get(id=int(target_identifier))
+        except User.DoesNotExist:
+            return []
+        return [user.id]
 
-                metrics.incr(
-                    "features.owners.send_to",
-                    tags={"organization": project.organization_id, "outcome": "match"},
-                    skip_internal=True,
-                )
-                send_to_list = set()
-                teams_to_resolve = set()
-                for owner in owners:
-                    if owner.type == User:
-                        send_to_list.add(owner.id)
-                    else:
-                        teams_to_resolve.add(owner.id)
-
-                # get all users in teams
-                if teams_to_resolve:
-                    send_to_list |= set(
-                        User.objects.filter(
-                            is_active=True,
-                            sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
-                        ).values_list("id", flat=True)
-                    )
-
-                alert_settings = project.get_member_alert_settings(self.alert_option_key)
-                disabled_users = set(
-                    user for user, setting in alert_settings.items() if setting == 0
-                )
-                return send_to_list - disabled_users
-            else:
-                metrics.incr(
-                    "features.owners.send_to",
-                    tags={"organization": project.organization_id, "outcome": "everyone"},
-                    skip_internal=True,
-                )
-
-        cache_key = "%s:send_to:%s" % (self.get_conf_key(), project.pk)
+    def get_send_to_all_in_project(self, project):
+        metrics.incr(
+            "features.owners.send_to",
+            tags={"organization": project.organization_id, "outcome": "everyone"},
+            skip_internal=True,
+        )
+        cache_key = "%s:send_to:%s" % (self.legacy_mail.get_conf_key(), project.pk)
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = [s for s in self.get_sendable_users(project) if s]
@@ -178,7 +315,7 @@ class MailAdapter(object):
             kwargs={"project_id": project.id},
         )
 
-    def notify(self, notification, **kwargs):
+    def notify(self, notification, target_type, target_identifier=None, **kwargs):
         from sentry.models import Commit, Release
 
         event = notification.event
@@ -260,7 +397,12 @@ class MailAdapter(object):
             "X-Sentry-Reply-To": group_id_to_email(group.id),
         }
 
-        for user_id in self.get_send_to(project=project, event=event):
+        for user_id in self.get_send_to(
+            project=project,
+            target_type=target_type,
+            target_identifier=target_identifier,
+            event=event,
+        ):
             self.add_unsubscribe_link(context, user_id, project, "alert_email")
 
             self._send_mail(
@@ -283,8 +425,8 @@ class MailAdapter(object):
             date=dateformat.format(date, "N j, Y, P e"),
         )
 
-    def notify_digest(self, project, digest):
-        user_ids = self.get_send_to(project)
+    def notify_digest(self, project, digest, target_type, target_identifier=None):
+        user_ids = self.get_send_to(project, target_type, target_identifier)
         for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
@@ -301,7 +443,7 @@ class MailAdapter(object):
                     key=lambda record: record.timestamp,
                 )
                 notification = Notification(record.value.event, rules=record.value.rules)
-                return self.notify(notification)
+                return self.notify(notification, target_type, target_identifier)
 
             context = {
                 "start": start,
@@ -329,90 +471,78 @@ class MailAdapter(object):
                 send_to=[user_id],
             )
 
-    def notify_about_activity(self, activity):
-        email_cls = emails.get(activity.type)
-        if not email_cls:
-            logger.debug(
-                u"No email associated with activity type `{}`".format(activity.get_type_display())
+
+class NotifyEmailForm(forms.Form):
+    targetType = forms.ChoiceField(choices=CHOICES)
+    targetIdentifier = BoundedBigIntegerField().formfield(
+        required=False, help_text="Only required if 'Member' or 'Team' is selected"
+    )
+
+    def __init__(self, project, *args, **kwargs):
+        super(NotifyEmailForm, self).__init__(*args, **kwargs)
+        self.project = project
+
+    def clean(self):
+        cleaned_data = super(NotifyEmailForm, self).clean()
+        targetType = cleaned_data.get("targetType")
+        targetIdentifier = cleaned_data.get("targetIdentifier")
+
+        if targetType == NotifyEmailActionTargetType.ISSUE_OWNERS.value:
+            self.cleaned_data["targetType"] = targetType
+            return
+
+        if targetIdentifier is None:
+            msg = forms.ValidationError("You need to specify a Team or Member to send a mail to.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        if targetType == NotifyEmailActionTargetType.TEAM.value and not list(
+            Project.objects.filter(teams__id=targetIdentifier, id=self.project.id)
+        ):
+            msg = forms.ValidationError("This team is not part of the project.")
+            self.add_error("targetIdentifier", msg)
+            return
+
+        if targetType == NotifyEmailActionTargetType.MEMBER.value and not list(
+            User.objects.get_from_projects(self.project.organization.id, [self.project]).filter(
+                id=targetIdentifier
             )
+        ):
+            msg = forms.ValidationError("This user is not part of the project.")
+            self.add_error("targetIdentifier", msg)
             return
 
-        email = email_cls(activity)
-        email.send()
+        self.cleaned_data["targetType"] = targetType
+        self.cleaned_data["targetIdentifier"] = targetIdentifier
 
-    def handle_user_report(self, payload, project, **kwargs):
-        from sentry.models import Group, GroupSubscription, GroupSubscriptionReason
 
-        group = Group.objects.get(id=payload["report"]["issue"]["id"])
+class NotifyEmailAction(EventAction):
+    form_cls = NotifyEmailForm
+    label = "Send an email to {targetType}"
+    prompt = "Send an email"
+    metrics_slug = "EmailAction"
+    mail_adapter = MailAdapter()
 
-        participants = GroupSubscription.objects.get_participants(group=group)
+    def __init__(self, *args, **kwargs):
+        super(NotifyEmailAction, self).__init__(*args, **kwargs)
+        self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
 
-        if not participants:
+    def after(self, event, state):
+        extra = {"event_id": event.event_id}
+
+        group = event.group
+
+        if not self.mail_adapter.should_notify(group=group):
+            extra["group_id"] = group.id
+            self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
-        org = group.organization
-        enhanced_privacy = org.flags.enhanced_privacy
-
-        context = {
-            "project": project,
-            "project_link": absolute_uri(
-                u"/{}/{}/".format(project.organization.slug, project.slug)
-            ),
-            "issue_link": absolute_uri(
-                u"/{}/{}/issues/{}/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
-                )
-            ),
-            # TODO(dcramer): we dont have permalinks to feedback yet
-            "link": absolute_uri(
-                u"/{}/{}/issues/{}/feedback/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
-                )
-            ),
-            "group": group,
-            "report": payload["report"],
-            "enhanced_privacy": enhanced_privacy,
-        }
-
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
-        subject_prefix = force_text(subject_prefix)
-        subject = force_text(
-            u"{}{} - New Feedback from {}".format(
-                subject_prefix, group.qualified_short_id, payload["report"]["name"]
+        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        yield self.future(
+            lambda event, futures: self.mail_adapter.rule_notify(
+                event, futures, self.data["targetType"], self.data.get("targetIdentifier", None)
             )
         )
 
-        headers = {"X-Sentry-Project": project.slug}
-
-        # TODO(dcramer): this is copypasta'd from activity notifications
-        # and while it'd be nice to re-use all of that, they are currently
-        # coupled to <Activity> instances which makes this tough
-        for user, reason in participants.items():
-            context.update(
-                {
-                    "reason": GroupSubscriptionReason.descriptions.get(
-                        reason, "are subscribed to this issue"
-                    ),
-                    "unsubscribe_link": generate_signed_link(
-                        user.id,
-                        "sentry-account-email-unsubscribe-issue",
-                        kwargs={"issue_id": group.id},
-                    ),
-                }
-            )
-
-            msg = MessageBuilder(
-                subject=subject,
-                template="sentry/emails/activity/new-user-feedback.txt",
-                html_template="sentry/emails/activity/new-user-feedback.html",
-                headers=headers,
-                type="notify.user-report",
-                context=context,
-                reference=group,
-            )
-            msg.add_users([user.id], project=project)
-            msg.send_async()
-
-    def handle_signal(self, name, payload, **kwargs):
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
+    def get_form_instance(self):
+        return self.form_cls(self.project, self.data)

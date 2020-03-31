@@ -17,12 +17,40 @@ logger = logging.getLogger("sentry.digests")
 
 Notification = namedtuple("Notification", "event rules")
 
+TARGETED_MAIL_ACTION_SYMBOL = "targeted_mail"
+
+
+def is_targeted_action_key(key):
+    return key.startswith("{symbol}:".format(symbol=TARGETED_MAIL_ACTION_SYMBOL))
+
+
+def split_key_for_targeted_action(key):
+    from sentry.rules.actions.notify_email import MailAdapter
+
+    _, _, project_id, target_type, target_identifier_str = key.split(":", 4)
+    return (
+        MailAdapter(),
+        Project.objects.get(pk=project_id),
+        target_type,
+        int(target_identifier_str),
+    )
+
 
 def split_key(key):
     from sentry.plugins.base import plugins
 
     plugin_slug, _, project_id = key.split(":", 2)
     return plugins.get(plugin_slug), Project.objects.get(pk=project_id)
+
+
+def unsplit_key_for_targeted_action(project, target_type, target_id=None):
+    sanitised_target_id = target_id if target_id is not None else -1
+    return u"{targeted_action_symbol}:p:{project.id}:{target_type}:{sanitised_target_id}".format(
+        targeted_action_symbol=TARGETED_MAIL_ACTION_SYMBOL,
+        project=project,
+        target_type=target_type,
+        sanitised_target_id=sanitised_target_id,
+    )
 
 
 def unsplit_key(plugin, project):
