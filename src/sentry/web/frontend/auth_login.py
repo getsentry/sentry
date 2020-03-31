@@ -73,7 +73,12 @@ class AuthLoginView(BaseView):
 
     def get_register_form(self, request, initial=None):
         op = request.POST.get("op")
-        return RegistrationForm(request.POST if op == "register" else None, initial=initial)
+        return RegistrationForm(
+            request.POST if op == "register" else None,
+            initial=initial,
+            # Custom auto_id to avoid ID collision with AuthenticationForm.
+            auto_id="id_registration_%s"
+        )
 
     def can_register(self, request):
         return bool(auth.has_user_registration() or request.session.get("can_register"))
