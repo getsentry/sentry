@@ -67,14 +67,19 @@ def is_real_column(col):
     return True
 
 
-def find_reference_event(reference_event):
+def find_reference_event(reference_event, real=True):
     try:
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
 
     # We don't need to run a query if there are no columns
-    if not reference_event.fields:
+    columns = (
+        [field for field in reference_event.fields if is_real_column(field)]
+        if real
+        else reference_event.fields
+    )
+    if not columns:
         return None
 
     try:
@@ -92,7 +97,7 @@ def find_reference_event(reference_event):
         "filter_keys": {"project_id": [project.id], "event_id": [event_id]},
     }
 
-    snuba_args.update(resolve_field_list(reference_event.fields, snuba_args, auto_fields=False))
+    snuba_args.update(resolve_field_list(columns, snuba_args, auto_fields=False))
 
     snuba_args, _ = resolve_discover_aliases(snuba_args)
 
@@ -105,7 +110,7 @@ def find_reference_event(reference_event):
         groupby=snuba_args.get("groupby"),
         dataset=Dataset.Discover,
         limit=1,
-        referrer="discover.find_reference_event",
+        referrer="discover.find_reference_event" if real else "discover.find_full_reference_event",
     )
     if "error" in event or len(event["data"]) != 1:
         raise InvalidSearchQuery("Invalid reference event")
@@ -642,7 +647,7 @@ def timeseries_query(
     if top_events:
         event_fields = top_events[0].fields
         selected_columns += event_fields
-        top_events = {event.slug: find_reference_event(event) for event in top_events}
+        top_events = {event.slug: find_reference_event(event, real=False) for event in top_events}
         group_conditions = []
         for field in event_fields:
             # project is handled by filter_keys already
