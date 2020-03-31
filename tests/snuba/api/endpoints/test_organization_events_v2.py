@@ -359,6 +359,48 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
 
+    def test_negative_user_search(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
+
+        # Load events with data that shouldn't match
+        for key in user_data:
+            data = load_data("transaction")
+            data["transaction"] = "/transactions/{}".format(key)
+            data["timestamp"] = iso_format(before_now(minutes=1))
+            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+            event_data = dict(user_data)
+            event_data[key] = "undefined"
+            data["user"] = event_data
+            self.store_event(data, project_id=project.id)
+
+        # Load a matching event
+        data = load_data("transaction")
+        data["transaction"] = "/transactions/matching"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"] = user_data
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "user"],
+                    "query": "!user:undefined",
+                    "statsPeriod": "14d",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["user.email"] == user_data["email"]
+
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
         project1 = self.create_project()

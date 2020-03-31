@@ -1213,6 +1213,17 @@ class GetSnubaQueryArgsTest(TestCase):
         assert ["user.email", "=", "123"] in conditions[0]
         assert ["user.ip", "=", "123"] in conditions[0]
 
+    def test_general_negative_user_field(self):
+        conditions = get_filter("!user:123").conditions
+        assert len(conditions) == 4
+        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[0]
+        assert [
+            [["isNull", ["user.username"]], "=", 1],
+            ["user.username", "!=", "123"],
+        ] == conditions[1]
+        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[2]
+        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[3]
+
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
         assert result.having == [["rpm", ">", 100]]

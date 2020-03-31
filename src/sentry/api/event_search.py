@@ -854,12 +854,14 @@ def get_filter(query=None, params=None):
                         )
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
-                kwargs["conditions"].append(
-                    [
-                        convert_search_filter_to_snuba_query(term, key=field)
-                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-                    ]
-                )
+                user_conditions = [
+                    convert_search_filter_to_snuba_query(term, key=field)
+                    for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                ]
+                if term.operator == "!=":
+                    kwargs["conditions"].extend(user_conditions)
+                else:
+                    kwargs["conditions"].append(user_conditions)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
