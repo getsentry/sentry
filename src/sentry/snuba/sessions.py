@@ -365,18 +365,19 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     buckets = int((end - start).total_seconds() / rollup)
     stats = _make_stats(start, rollup, buckets, default=None)
 
+    totals = {stat: 0, stat + "_crashed": 0, stat + "_abnormal": 0, stat + "_errored": 0}
+
     for rv in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[
             "bucketed_started",
-            "release",
             stat,
             stat + "_crashed",
             stat + "_abnormal",
             stat + "_errored",
             "duration_quantiles",
         ],
-        groupby=["bucketed_started", "release", "project_id"],
+        groupby=["bucketed_started"],
         start=start,
         end=end,
         rollup=rollup,
@@ -394,6 +395,12 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
 
+        # Session stats we can sum up directly without another query
+        # as the data becomes available.
+        if stat == "sessions":
+            for k in totals:
+                totals[k] += rv[k]
+
     for idx, bucket in enumerate(stats):
         if bucket[1] is None:
             stats[idx][1] = {
@@ -405,4 +412,23 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
                 "duration_p90": None,
             }
 
-    return stats
+    # For users we need a secondary query over the entire time range
+    if stat == "users":
+        rows = raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["users", "users_crashed", "users_abnormal", "users_errored"],
+            start=start,
+            end=end,
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"]
+        if rows:
+            rv = rows[0]
+            totals = {
+                "users": rv["users"],
+                "useres_crashed": rv["users_crashed"],
+                "useres_abnormal": rv["users_abnormal"],
+                "useres_errored": rv["users_errored"] - rv["users_crashed"],
+            }
+
+    return stats, totals
