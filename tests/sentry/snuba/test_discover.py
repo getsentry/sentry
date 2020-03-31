@@ -1114,7 +1114,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_translations(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
@@ -1163,7 +1163,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_bad_histogram_translations(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
@@ -1208,9 +1208,26 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_narrow_range(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 505, "min_transaction.duration": 490}]}
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(transaction.duration, 15)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                orderby="histogram_transaction_duration_10",
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert "Resulting buckets are too small." in six.text_type(err)
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_empty_results(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [{"histogram_transaction_duration_10_1000": 10000, "count": 1}],
@@ -1233,7 +1250,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_full_results(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
@@ -1260,7 +1277,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_asc_sort(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
@@ -1289,7 +1306,7 @@ class QueryTransformTest(TestCase):
         seed = range(0, 11, 2)
         seed.reverse()
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
@@ -1316,7 +1333,7 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_no_sort(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000}]},
+            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
@@ -1347,11 +1364,11 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_on_weird_bucket(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 869}]},
+            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 10}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_87"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_86"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_87": i * 87, "count": i}
+                    {"histogram_transaction_duration_10_86": i * 86, "count": i}
                     for i in range(1, 10, 2)
                 ],
             },
@@ -1366,10 +1383,10 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 87 for i in range(11)]
+        expected = [i * 86 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
+            assert result["count"] == (exp / 86 if (exp / 86) % 2 == 1 else 0)
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
