@@ -66,7 +66,14 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None
+    project,
+    from_reprocessing,
+    cache_key,
+    event_id,
+    start_time,
+    data,
+    data_has_changed=None,
+    new_process_behavior=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -74,6 +81,7 @@ def submit_process(
         start_time=start_time,
         event_id=event_id,
         data_has_changed=data_has_changed,
+        new_process_behavior=new_process_behavior,
     )
 
 
@@ -120,14 +128,25 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     from_reprocessing = process_task is process_event_from_reprocessing
 
-    if should_process_with_symbolicator(data):
+    new_process_behavior = options.get("sentry:preprocess-use-new-behavior", False)
+
+    if new_process_behavior and should_process_with_symbolicator(data):
         submit_symbolicate(
             project, from_reprocessing, cache_key, event_id, start_time, original_data
         )
         return
 
     if should_process(data):
-        submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+        submit_process(
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            original_data,
+            data_has_changed=False,
+            new_process_behavior=new_process_behavior,
+        )
         return
 
     submit_save_event(project, cache_key, event_id, start_time, original_data)
@@ -335,7 +354,13 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
 
 
 def _do_process_event(
-    cache_key, start_time, event_id, process_task, data=None, data_has_changed=None
+    cache_key,
+    start_time,
+    event_id,
+    process_task,
+    data=None,
+    data_has_changed=None,
+    new_process_behavior=None,
 ):
     from sentry.plugins.base import plugins
 
@@ -359,20 +384,24 @@ def _do_process_event(
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
-    has_changed = False if data_has_changed is None else data_has_changed
+    has_changed = bool(data_has_changed)
+    new_process_behavior = bool(new_process_behavior)
 
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
     try:
-        # Event enhancers.  These run before anything else.
-        for plugin in plugins.all(version=2):
-            enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-            for enhancer in enhancers or ():
-                enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
-                if enhanced:
-                    data = enhanced
-                    has_changed = True
+        if not new_process_behavior:
+            # Event enhancers.  These run before anything else.
+            for plugin in plugins.all(version=2):
+                enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+                for enhancer in enhancers or ():
+                    enhanced = safe_execute(
+                        enhancer, data, _passthrough_errors=(RetrySymbolication,)
+                    )
+                    if enhanced:
+                        data = enhanced
+                        has_changed = True
 
         # Stacktrace based event processors.
         new_data = process_stacktraces(data)
@@ -501,7 +530,14 @@ def _do_process_event(
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs):
+def process_event(
+    cache_key,
+    start_time=None,
+    event_id=None,
+    data_has_changed=None,
+    new_process_behavior=None,
+    **kwargs
+):
     """
     Handles event processing (for those events that need it)
 
@@ -518,6 +554,7 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
         event_id=event_id,
         process_task=process_event,
         data_has_changed=data_has_changed,
+        new_process_behavior=new_process_behavior,
     )
 
 
