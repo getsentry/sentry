@@ -282,10 +282,7 @@ def test_scrubbing_after_processing(
 
     (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
     assert key == "e:1"
-    assert event["extra"] == {
-        u"aaa": u"[Filtered]" if setting_method == "datascrubbers" else u"[redacted]",
-        u"aaa2": u"event preprocessor",
-    }
+    assert event["extra"] == {u"aaa": u"[Filtered]", u"aaa2": u"event preprocessor"}
     assert duration == 3600
 
     mock_save_event.delay.assert_called_once_with(
