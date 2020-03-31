@@ -22,11 +22,17 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
+            Manage incidents and outages by sending Sentry notifications to PagerDuty.
+            """,
+            IntegrationFeatures.INCIDENT_MANAGEMENT,
+        ),
+        FeatureDescription(
+            """
             Configure rule based PagerDuty alerts to automatically be triggered in a specific
             service - or in multiple services!
             """,
             IntegrationFeatures.ALERT_RULE,
-        )
+        ),
     ]
 
     def error_message_from_json(self, data):
