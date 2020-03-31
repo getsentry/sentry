@@ -39,9 +39,9 @@ class ReleaseChart extends React.Component<Props> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case 'sessionDuration':
-        return typeof value === 'number' ? getExactDuration(value, true) : '-';
+        return typeof value === 'number' ? getExactDuration(value, true) : '\u2015';
       case 'crashFree':
-        return defined(value) ? `${value}%` : '-';
+        return defined(value) ? `${value}%` : '\u2015';
       case 'sessions':
       case 'users':
       default:
