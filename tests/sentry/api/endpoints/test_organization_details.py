@@ -379,6 +379,28 @@ class OrganizationUpdateTest(APITestCase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.VISIBLE
 
+    def test_relay_pii_config(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+        with self.feature("organizations:datascrubbers-v2"):
+            value = '{"applications": {"freeform": []}}'
+            resp = self.client.put(url, data={"relayPiiConfig": value})
+            assert resp.status_code == 200, resp.content
+            assert org.get_option("sentry:relay_pii_config") == value
+            assert resp.data["relayPiiConfig"] == value
+
+    def test_relay_pii_config_forbidden(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+
+        value = '{"applications": {"freeform": []}}'
+        resp = self.client.put(url, data={"relayPiiConfig": value})
+        assert resp.status_code == 400
+        assert b"feature" in resp.content
+        assert org.get_option("sentry:relay_pii_config") is None
+
 
 class OrganizationDeleteTest(APITestCase):
     @patch("sentry.api.endpoints.organization_details.uuid4")
