@@ -2,12 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import ActivityAvatar from 'app/components/activity/item/avatar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {IconSentry} from 'app/icons';
-import UserAvatar from 'app/components/avatar/userAvatar';
 import {User} from 'app/types';
 import Card from 'app/components/card';
 
@@ -17,7 +16,7 @@ type Props = {
   queryDetail?: string;
   starred?: boolean;
   to: object;
-  createdBy: User | undefined;
+  createdBy?: User | undefined;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
@@ -51,13 +50,13 @@ class QueryCard extends React.PureComponent<Props> {
               <QueryTitle>{title}</QueryTitle>
               <QueryDetail>{queryDetail}</QueryDetail>
             </QueryCardContent>
-            {starred ? (
-              <StyledUserAvatar user={createdBy} />
-            ) : (
-              <Avatar>
-                <StyledIconSentry />
-              </Avatar>
-            )}
+            <AvatarWrapper>
+              {starred ? (
+                <ActivityAvatar type="user" user={createdBy} size={40} />
+              ) : (
+                <ActivityAvatar type="system" size={40} />
+              )}
+            </AvatarWrapper>
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
           <QueryCardFooter>
@@ -70,34 +69,15 @@ class QueryCard extends React.PureComponent<Props> {
   }
 }
 
-const StyledUserAvatar = styled(UserAvatar)`
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.offWhite2};
+  border-radius: 50%;
 `;
 
 const QueryCardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   margin-right: ${space(1)};
-`;
-
-const Avatar = styled('div')`
-  border: 3px solid ${p => p.theme.offWhite2};
-  background-color: ${p => p.theme.gray4};
-  color: ${p => p.theme.white};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-`;
-
-const StyledIconSentry = styled(IconSentry)`
-  margin-bottom: 2px;
 `;
 
 const StyledQueryCard = styled(Card)`

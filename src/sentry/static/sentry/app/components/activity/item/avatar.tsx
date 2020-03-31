@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconSentry} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 
@@ -24,7 +24,7 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
     // Return Sentry avatar
     return (
       <SystemAvatar className={className} size={size}>
-        <Logo src="icon-sentry" size={`${Math.round(size * 0.8)}px`} />
+        <StyledIconSentry size="md" />
       </SystemAvatar>
     );
   }
@@ -57,8 +57,11 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
   align-items: center;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
+  background-color: ${p => p.theme.gray5};
+  color: ${p => p.theme.white};
+  border-radius: 50%;
 `;
 
-const Logo = styled(InlineSvg)`
-  color: ${p => p.theme.gray5};
+const StyledIconSentry = styled(IconSentry)`
+  padding-bottom: 2px;
 `;
