@@ -31,11 +31,17 @@ incidents triggered from Sentry alerts.
 FEATURES = [
     FeatureDescription(
         """
+        Manage incidents and outages by sending Sentry notifications to PagerDuty.
+        """,
+        IntegrationFeatures.INCIDENT_MANAGEMENT,
+    ),
+    FeatureDescription(
+        """
         Configure rule based PagerDuty alerts to automatically be triggered in a specific
         service - or in multiple services!
         """,
         IntegrationFeatures.ALERT_RULE,
-    )
+    ),
 ]
 
 setup_alert = {

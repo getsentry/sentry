@@ -29,10 +29,16 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Configure rule based Pushover notifications to be sent.
+            Have Pushover notifications get sent to your mobile device with the Pushover app.
+            """,
+            IntegrationFeatures.MOBILE,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
             """,
             IntegrationFeatures.ALERT_RULE,
-        )
+        ),
     ]
 
     def is_configured(self, project):

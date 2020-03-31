@@ -68,7 +68,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         if release is None:
             raise ResourceDoesNotExist
 
-        stats = get_project_release_stats(
+        stats, totals = get_project_release_stats(
             project_id=params["project_id"][0],
             release=version,
             stat=stats_type,
@@ -95,7 +95,10 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 }
             )
 
-        return Response(serialize({"stats": stats, "usersBreakdown": users_breakdown}), status=200)
+        return Response(
+            serialize({"stats": stats, "statTotals": totals, "usersBreakdown": users_breakdown}),
+            status=200,
+        )
 
     def get_rollup(self, request, params):
         interval = parse_stats_period(request.GET.get("interval", "24h"))

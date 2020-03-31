@@ -90,12 +90,13 @@ class IntegrationFeatures(Enum):
     *must* match the suffix of the organization feature flag name.
     """
 
-    ACTION_NOTIFICATION = "actionable-notification"
+    INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
     COMMITS = "commits"
     CHAT_UNFURL = "chat-unfurl"
     ALERT_RULE = "alert-rule"
+    MOBILE = "mobile"
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
