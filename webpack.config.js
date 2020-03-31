@@ -231,6 +231,10 @@ let appConfig = {
   },
   context: staticPrefix,
   module: {
+    /**
+     * XXX: Modifying the order/contents of these rules may break `getsentry`
+     * Please remember to test it.
+     */
     rules: [
       {
         test: /\.[tj]sx?$/,
