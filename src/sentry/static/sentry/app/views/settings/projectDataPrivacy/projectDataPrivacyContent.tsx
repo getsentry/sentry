@@ -9,36 +9,29 @@ import Form from 'app/views/settings/components/forms/form';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
-import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 
 import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
 
-type Props = {
-  organization: Organization;
-  params: {
-    orgId: string;
-    projectId: string;
-  };
-};
+type Props = {};
 
 class ProjectDataPrivacyContent extends AsyncView<Props> {
   static contextTypes = {
     organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
     // left the router contextType to satisfy the compiler
     router: PropTypes.object,
   };
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['data', `/projects/${orgId}/${projectId}/`]];
+    const {organization, project} = this.context;
+    return [['data', `/projects/${organization.slug}/${project.slug}/`]];
   }
 
   renderBody() {
-    const {organization} = this.context;
+    const {organization, project} = this.context;
     const initialData = this.state.data;
-    const {orgId, projectId} = this.props.params;
-    const endpoint = `/projects/${orgId}/${projectId}/`;
+    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
     const relayPiiConfig = initialData?.relayPiiConfig;
@@ -82,7 +75,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
                 'These rules can be configured at the organization level in [linkToOrganizationSecurityAndPrivacy].',
                 {
                   linkToOrganizationSecurityAndPrivacy: (
-                    <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                    <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
                       {t('Security and Privacy')}
                     </Link>
                   ),

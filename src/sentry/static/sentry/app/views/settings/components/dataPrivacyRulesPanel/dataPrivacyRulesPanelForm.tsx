@@ -16,6 +16,7 @@ import {
   getMethodTypeSelectorFieldLabel,
 } from './utils';
 import DataPrivacyRulesPanelSelectorField from './dataPrivacyRulesPanelSelectorField';
+import {Suggestion} from './dataPrivacyRulesPanelSelectorFieldTypes';
 
 type Rule = {
   id: number;
@@ -28,6 +29,9 @@ type Rule = {
 type Props = {
   onDelete: (ruleId: Rule['id']) => void;
   onChange: (rule: Rule) => void;
+  selectorSuggestions: Array<Suggestion>;
+  selectedEventId?: string;
+  handleEventIdChange?: (string) => void;
   rule: Rule;
   disabled?: boolean;
 };
@@ -128,6 +132,9 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             }}
             value={from}
             onBlur={this.handleValidation('from')}
+            selectorSuggestions={this.props.selectorSuggestions}
+            selectedEventId={this.props.selectedEventId}
+            handleEventIdChange={this.props.handleEventIdChange}
             error={errors.from}
             disabled={disabled}
           />

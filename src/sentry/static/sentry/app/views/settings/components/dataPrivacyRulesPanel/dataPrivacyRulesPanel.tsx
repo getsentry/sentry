@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
@@ -17,9 +18,10 @@ import {
 import ExternalLink from 'app/components/links/externalLink';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
+import {Suggestion} from './dataPrivacyRulesPanelSelectorFieldTypes';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
 
-const DEFAULT_RULE_FROM_VALUE = '$string';
+const DEFAULT_RULE_FROM_VALUE = '';
 
 type Rule = React.ComponentProps<typeof DataPrivacyRulesPanelForm>['rule'];
 
@@ -48,22 +50,35 @@ type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
+  selectorSuggestions: Array<Suggestion>;
+  selectedEventId?: string;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
+  };
+
   state: State = {
     rules: [],
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
+    selectorSuggestions: [],
+    selectedEventId: undefined,
   };
 
   componentDidMount() {
     this.loadRules();
+    this.loadSelectorSuggestions();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
     if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
       this.loadRules();
+    }
+    if (prevState.selectedEventId !== this.state.selectedEventId) {
+      this.loadSelectorSuggestions();
     }
   }
 
@@ -119,6 +134,37 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       addErrorMessage(t('Unable to load the rules'));
     }
   }
+
+  loadSelectorSuggestions = async () => {
+    const {organization, project} = this.context;
+
+    const queryParams = [
+      ["project", project?.id],
+      ["eventId", this.state.selectedEventId]
+    ]
+      .filter(([_k, v]) => !!v).map(([k, v]) => `${k}=${v}`)
+      .join("&");
+
+    let selectorSuggestions: Array<Suggestion> = [];
+
+    const rawSuggestions = await this.api.requestPromise(
+      `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/?${queryParams}`,
+      {method: 'GET'}
+    );
+
+    for(const suggestion of rawSuggestions.suggestions || []) {
+      selectorSuggestions.push(suggestion);
+    }
+
+    this.setState({selectorSuggestions});
+  };
+
+  handleEventIdChange = (newValue: string) => {
+    const eventId = newValue.replace(/-/g, '').trim();
+    if (!eventId || eventId.length == 32) {
+      this.setState({selectedEventId: eventId || undefined});
+    }
+  };
 
   handleAddRule = () => {
     this.setState(prevState => ({
@@ -260,6 +306,9 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 key={rule.id}
                 onDelete={this.handleDeleteRule}
                 onChange={this.handleChange}
+                selectorSuggestions={this.state.selectorSuggestions}
+                selectedEventId={this.state.selectedEventId}
+                handleEventIdChange={this.handleEventIdChange}
                 rule={rule}
                 disabled={disabled}
               />
