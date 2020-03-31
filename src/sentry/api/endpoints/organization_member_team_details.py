@@ -111,12 +111,16 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         return queryset.select_related("user").get()
 
     def _create_access_request(self, request, team, member):
+        omt, created = OrganizationAccessRequest.objects.get_or_create(team=team, member=member)
+
+        if not created:
+            return
+
         requester = request.user if request.user != member.user else None
-        omt, created = OrganizationAccessRequest.objects.get_or_create(
-            team=team, member=member, requester=requester
-        )
-        if created:
-            omt.send_request_email()
+        if requester:
+            omt.update(requester=requester)
+
+        omt.send_request_email()
 
     def post(self, request, organization, member_id, team_slug):
         """

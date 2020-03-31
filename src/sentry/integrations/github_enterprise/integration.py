@@ -37,19 +37,19 @@ Sentry.
 FEATURES = [
     FeatureDescription(
         """
-        Create and link Sentry issue groups directly to a GitHub issue or pull
-        request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
-        """,
-        IntegrationFeatures.ISSUE_BASIC,
-    ),
-    FeatureDescription(
-        """
         Authorize repositories to be added to your Sentry organization to augment
         sentry issues with commit data with [deployment
         tracking](https://docs.sentry.io/learn/releases/).
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
     ),
 ]
 
