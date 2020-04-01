@@ -107,7 +107,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             status: status === 'open' ? 'active' : status,
           })}
 
-          {hasAlertRule
+          {!hasAlertRule
             ? tct(' Start by [link].', {
                 status: status === 'open' ? 'active' : status,
                 link: (
