@@ -108,17 +108,16 @@ class GroupTagValues extends AsyncComponent<
     });
 
     return (
-      <TableWrapper>
-        <h3>
+      <React.Fragment>
+        <Header>
           {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <Button
+          <BrowserExportButton
             size="small"
             priority="default"
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="m-left m-right"
           >
             {t('Export Page to CSV')}
-          </Button>
+          </BrowserExportButton>
           <a />
           <DataExport
             payload={{
@@ -130,7 +129,7 @@ class GroupTagValues extends AsyncComponent<
               },
             }}
           />
-        </h3>
+        </Header>
         <table className="table table-striped">
           <thead>
             <tr>
@@ -147,22 +146,17 @@ class GroupTagValues extends AsyncComponent<
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
           </small>
         </p>
-      </TableWrapper>
+      </React.Fragment>
     );
   }
 }
+const Header = styled('h3')`
+  display: flex;
+  align-items: flex-end;
+`;
 
-const TableWrapper = styled('div')`
-  h3 {
-    display: flex;
-    align-items: flex-end;
-  }
-  .m-left {
-    margin-left: ${space(1.5)};
-  }
-  .m-right {
-    margin-right: ${space(1.5)};
-  }
+const BrowserExportButton = styled(Button)`
+  margin: 0 ${space(1.5)};
 `;
 
 const TableHeader = styled('th')<{width: number}>`
