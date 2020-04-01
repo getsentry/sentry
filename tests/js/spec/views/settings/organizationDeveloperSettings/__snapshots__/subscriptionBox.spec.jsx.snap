@@ -19,6 +19,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "3",
       "name": "Organization Name",

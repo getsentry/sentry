@@ -19,6 +19,7 @@ export function Organization(params = {}) {
       id: 'active',
       name: 'active',
     },
+    experiments: {},
     scrapeJavaScript: true,
     features: [],
     onboardingTasks: [],

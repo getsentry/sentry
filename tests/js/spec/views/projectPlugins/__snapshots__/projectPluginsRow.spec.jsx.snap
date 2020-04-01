@@ -40,6 +40,7 @@ exports[`ProjectPluginRow renders 1`] = `
         "access": Array [
           "project:write",
         ],
+        "experiments": Object {},
         "features": Array [],
         "id": "3",
         "name": "Organization Name",
@@ -78,6 +79,7 @@ exports[`ProjectPluginRow renders 1`] = `
           "access": Array [
             "project:write",
           ],
+          "experiments": Object {},
           "features": Array [],
           "id": "3",
           "name": "Organization Name",
@@ -126,6 +128,7 @@ exports[`ProjectPluginRow renders 1`] = `
               "access": Array [
                 "project:write",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
@@ -174,6 +177,7 @@ exports[`ProjectPluginRow renders 1`] = `
                 "access": Array [
                   "project:write",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
