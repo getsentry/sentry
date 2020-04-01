@@ -18,7 +18,6 @@ from ..tasks import assemble_download
 
 
 class DataExportQuerySerializer(serializers.Serializer):
-    limit = serializers.IntegerField(allow_null=True, required=False)
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     query_info = serializers.JSONField(required=True)
 
@@ -53,7 +52,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             "organizations:discover-basic", organization, actor=request.user
         ):
             return Response({"detail": "You do not have access to discover features"}, status=403)
-
         try:
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
