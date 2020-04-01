@@ -14,13 +14,14 @@ import FormFieldControlState from 'app/views/settings/components/forms/formField
 import PanelAlert from 'app/components/panels/panelAlert';
 import ReturnButton from 'app/views/settings/components/forms/returnButton';
 import space from 'app/styles/space';
+import Alert from 'app/components/alert';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
  * which case we will receive an Event, but if they do we should handle
  * the case where they return a value as the first argument.
  */
-const getValueFromEvent = (valueOrEvent, e) => {
+const getValueFromEvent = (valueOrEvent?: any, e?: any) => {
   const event = e || valueOrEvent;
   const value = defined(e) ? valueOrEvent : event && event.target && event.target.value;
 
@@ -34,6 +35,8 @@ const getValueFromEvent = (valueOrEvent, e) => {
 // Disables a lot of functionality but allows you to use fields
 // without wrapping them in a Form
 class MockModel {
+  props: any;
+  initialData: object;
   constructor(props) {
     this.props = props;
 
@@ -61,9 +64,24 @@ class MockModel {
  * form model, that will be called to determine the value of the prop upon an
  * observed change in the model.
  */
-const propsToObserver = ['inline', 'highlighted', 'visible', 'disabled'];
+const propsToObserver = ['inline', 'highlighted', 'visible', 'disabled'] as const;
 
-class FormField extends React.Component {
+type Props = {
+  name: string;
+  style?: Object;
+  saveOnBlur?: boolean;
+  saveMessage?: React.ReactNode | Function;
+  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  children: (renderProps) => React.ReactNode;
+  visible?: (props) => boolean;
+  onKeyDown?: (value, event) => void;
+  onBlur?: (value, event) => void;
+  hideErrorMessage?: boolean;
+  selectionInfoFunction?: (props) => null | React.ReactNode;
+} & FieldControl['props'] &
+  Field['props'];
+
+class FormField extends React.Component<Props> {
   static propTypes = {
     name: PropTypes.string.isRequired,
 
@@ -135,7 +153,9 @@ class FormField extends React.Component {
     this.getModel().removeField(this.props.name);
   }
 
-  getError(_props, _context) {
+  input?: React.Ref<HTMLElement>;
+
+  getError() {
     return this.getModel().getError(this.props.name);
   }
 
@@ -182,6 +202,8 @@ class FormField extends React.Component {
     const model = this.getModel();
 
     if (onChange) {
+      //TODO(TS): fix properly
+      // @ts-ignore
       onChange(value, event);
     }
 
@@ -250,15 +272,14 @@ class FormField extends React.Component {
       selectionInfoFunction,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
-      // eslint-disable-next-line no-unused-vars
-      defaultValue,
+      defaultValue: _defaultValue,
       ...props
     } = this.props;
     const id = this.getId();
     const model = this.getModel();
     const saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
-    const makeField = extraProps => (
+    const makeField = (extraProps?: any) => (
       <React.Fragment>
         <Field
           id={id}
@@ -374,7 +395,7 @@ class FormField extends React.Component {
 
     const observedProps = propsToObserver
       .filter(p => typeof this.props[p] === 'function')
-      .map(p => [p, () => this.props[p]({...this.props, model})]);
+      .map(p => [p, () => (this.props as any)[p]({...this.props, model})]);
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.
@@ -382,7 +403,7 @@ class FormField extends React.Component {
       return makeField();
     }
 
-    const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
+    const reducer: any = (a, [prop, fn]) => ({...a, [prop]: fn()});
     const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));
 
     return <Observer>{observedPropsFn}</Observer>;

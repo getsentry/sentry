@@ -17,7 +17,27 @@ import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
 import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
-class Field extends React.Component {
+type Props = {
+  alignRight?: boolean;
+  required?: boolean;
+  visible?: boolean | Function;
+  disabled?: boolean | Function;
+  disabledReason?: string;
+  flexibleControlStateSize?: boolean;
+  label?: React.ReactNode;
+  help?: React.ReactNode | React.ReactElement | Function;
+  id?: string;
+  children?: React.ReactNode | ((props) => React.ReactNode) | any; //TODO(TS)
+  controlClassName?: string;
+  style?: object;
+  error?: string;
+  p?: number; //TODO(TS): Do we need this?
+  validate?: Function; //TODO(TS): Do we need this?
+} & Omit<FieldControl['props'], 'disabled' | 'className' | 'help' | 'errorState'> &
+  Omit<Parameters<typeof FieldWrapper>[0], 'hasControlState'> &
+  Omit<ControlState['props'], 'error'>;
+
+class Field extends React.Component<Props> {
   static propTypes = {
     /**
      * Aligns Control to the right

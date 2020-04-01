@@ -367,7 +367,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
                 {app.status !== 'internal' && (
-                  <FormField name="clientId" label="Client ID" overflow>
+                  <FormField name="clientId" label="Client ID">
                     {({value}) => (
                       <TextCopyInput>
                         {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
@@ -375,7 +375,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                     )}
                   </FormField>
                 )}
-                <FormField overflow name="clientSecret" label="Client Secret">
+                <FormField name="clientSecret" label="Client Secret">
                   {({value}) =>
                     value ? (
                       <Tooltip
