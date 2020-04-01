@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
+import {TableData} from 'app/views/eventsV2/table/types';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
@@ -38,6 +39,7 @@ type Props = {
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
   eventView: EventView;
+  spansWithErrors: TableData | null | undefined;
 };
 
 type State = {
@@ -181,7 +183,7 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const {orgId, eventView} = this.props;
+    const {orgId, eventView, spansWithErrors} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -199,6 +201,7 @@ class TraceView extends React.PureComponent<Props, State> {
               dragProps={dragProps}
               filterSpans={this.state.filterSpans}
               orgId={orgId}
+              spansWithErrors={spansWithErrors}
             />
           </CursorGuideHandler.Provider>
         )}

@@ -26,6 +26,7 @@ export type SpanEntry = {
 };
 
 export type SentryTransactionEvent = {
+  title?: string;
   entries: Array<SpanEntry>;
   startTimestamp: number;
   endTimestamp: number;

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
+import {TableData} from 'app/views/eventsV2/table/types';
 
 import {
   ProcessedSpanType,
@@ -43,6 +44,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   event: SentryTransactionEvent;
+  spansWithErrors: TableData | null | undefined;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -136,7 +138,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event} = this.props;
+    const {orgId, eventView, event, spansWithErrors} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
@@ -249,6 +251,7 @@ class SpanTree extends React.Component<PropType> {
           numOfSpanChildren={0}
           renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
+          spansWithErrors={spansWithErrors}
           spanBarHatch
         />
       ) : null;
@@ -277,6 +280,7 @@ class SpanTree extends React.Component<PropType> {
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
             spanBarHatch={false}
+            spansWithErrors={spansWithErrors}
           />
         </React.Fragment>
       ),
