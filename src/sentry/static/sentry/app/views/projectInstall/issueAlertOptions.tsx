@@ -23,18 +23,18 @@ enum Actions {
   CREATE_ALERT_LATER,
 }
 
-const UNIQUE_USER_FREQUENCY_CONDITION: string =
+const UNIQUE_USER_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
-const EVENT_FREQUENCY_CONDITION: string =
+const EVENT_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
-const NOTIFY_EVENT_ACTION: string = 'sentry.rules.actions.notify_event.NotifyEventAction';
+const NOTIFY_EVENT_ACTION = 'sentry.rules.actions.notify_event.NotifyEventAction';
 
 const METRIC_CONDITION_MAP = {
   [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
-const DEFAULT_PLACEHOLDER_VALUE: string = '10';
+const DEFAULT_PLACEHOLDER_VALUE = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
@@ -43,6 +43,7 @@ type Props = AsyncComponent['props'] & {
 };
 
 type State = AsyncComponent['state'] & {
+  // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
   intervalChoices: [string, string][] | undefined;
   threshold: string;
@@ -66,7 +67,7 @@ function getConditionFrom(
   metricValue: MetricValues,
   threshold: string
 ): {interval: string; id: string; value: string} {
-  let condition;
+  let condition: string;
   switch (metricValue) {
     case MetricValues.ERRORS:
       condition = EVENT_FREQUENCY_CONDITION;
