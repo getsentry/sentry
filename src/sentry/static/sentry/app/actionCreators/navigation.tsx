@@ -1,16 +1,17 @@
-import React from 'react';
-import get from 'lodash/get';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {Location} from 'history';
+import React from 'react';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import NavigationActions from 'app/actions/navigationActions';
 
-export function navigateTo(to: string, router: InjectedRouter) {
+// TODO(ts): figure out better typing for react-router here
+export function navigateTo(to: string, router: InjectedRouter & {location?: Location}) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
-  const comingFromProjectId = get(router, 'location.query.project');
+  const comingFromProjectId = router?.location?.query?.project;
 
   if (needOrg || needProject) {
     openModal(
@@ -20,7 +21,9 @@ export function navigateTo(to: string, router: InjectedRouter) {
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
-          comingFromProjectId={comingFromProjectId}
+          comingFromProjectId={
+            Array.isArray(comingFromProjectId) ? '' : comingFromProjectId || ''
+          }
           onFinish={path => {
             modalProps.closeModal();
             setTimeout(() => router.push(path), 0);
