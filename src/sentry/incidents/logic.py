@@ -426,7 +426,7 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
     affect the snapshots. Only the live fetched stats.
     """
     incident_stats = {}
-    if windowed_stats is True:
+    if windowed_stats:
         # At the moment, snapshots are only ever created with windowed_stats as True
         # so if they send False, we need to do a live calculation below.
         closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]

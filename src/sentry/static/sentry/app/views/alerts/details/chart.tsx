@@ -37,6 +37,35 @@ function getNearbyIndex(data: Data, needle: number) {
   return index !== -1 ? index - 1 : data.length - 1;
 }
 
+/**
+ * We can't just pass an x value to the chartrs, so we calculate a y value
+ *  between points using the average of the two points it's between.
+ *
+ * @param data Data array
+ * @param index The (lower) index of the two points used to calculate the average
+ */
+function getAverageBetweenPoints(data: Data, index: number) {
+  if (index >= data.length - 1) {
+    return getDataValue(data[data.length - 1]);
+  } else if (index < 0) {
+    return data[0][1].count;
+  } else {
+    const pt1 = getDataValue(data[index]);
+    const pt2 = getDataValue(data[index + 1]);
+    return (pt1 + pt2) / 2;
+  }
+}
+
+function getDataValue(data: [number, {count: number}[]]) {
+  if (data === undefined) {
+    return 0;
+  } else if (data[1].count !== undefined) {
+    return data[1].count;
+  } else {
+    return 0;
+  }
+}
+
 type Props = {
   data: Data;
   aggregation: AlertRuleAggregations;
@@ -47,24 +76,36 @@ type Props = {
 export default class Chart extends React.PureComponent<Props> {
   render() {
     const {aggregation, data, detected, closed} = this.props;
+    const detectedTs = detected && moment.utc(detected).unix();
+    const closedTs = closed && moment.utc(closed).unix();
+    const showClosedMarker = data
+      ? false
+      : data[data.length - 1][0] >= closedTs
+      ? true
+      : false;
 
     const chartData = data.map(([ts, val]) => [
       ts * 1000,
       val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
     ]);
 
-    const detectedTs = detected && moment.utc(detected).unix();
-    const closedTs = closed && moment.utc(closed).unix();
-
     const nearbyDetectedTimestampIndex = detectedTs && getNearbyIndex(data, detectedTs);
-    const nearbyClosedTimestampIndex = closedTs && getNearbyIndex(data, closedTs);
+    const detectedYValue =
+      nearbyDetectedTimestampIndex &&
+      getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
+    const detectedCoordinate = [detectedTs * 1000, detectedYValue];
+    chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
 
-    const detectedCoordinate = chartData && chartData[nearbyDetectedTimestampIndex];
-    const closedCoordinate =
-      chartData &&
-      closedTs &&
-      typeof nearbyClosedTimestampIndex !== 'undefined' &&
-      chartData[nearbyClosedTimestampIndex];
+    let closedCoordinate = undefined;
+    if (showClosedMarker) {
+      const nearbyClosedTimestampIndex = closedTs && getNearbyIndex(data, closedTs);
+      const closedYValue =
+        nearbyClosedTimestampIndex &&
+        getAverageBetweenPoints(data, nearbyClosedTimestampIndex);
+      closedCoordinate = [closedTs * 1000, closedYValue];
+      chartData.splice(nearbyClosedTimestampIndex + 1, 0, closedCoordinate);
+    }
+
     const seriesName = getDisplayForAlertRuleAggregation(aggregation);
 
     return (
@@ -75,7 +116,7 @@ export default class Chart extends React.PureComponent<Props> {
           {
             // e.g. Events or Users
             seriesName,
-            dataArray: chartData?.slice(0, -1),
+            dataArray: chartData,
             markPoint: MarkPoint({
               data: [
                 {

@@ -154,7 +154,7 @@ export default class DetailsBody extends React.Component<Props> {
             <Chart
               aggregation={incident.aggregation}
               data={stats.eventStats.data}
-              detected={incident.dateDetected}
+              detected={incident.dateStarted}
               closed={incident.dateClosed}
             />
           ) : (
