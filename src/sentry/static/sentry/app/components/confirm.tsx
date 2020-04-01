@@ -258,7 +258,12 @@ class Confirm extends React.PureComponent<Props, State> {
               disabled,
               onClick: this.handleToggle,
             })}
-        <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
+        <Modal
+          data-testid="confirm-modal"
+          show={this.state.isModalOpen}
+          animation={false}
+          onHide={this.handleToggle}
+        >
           {header && <div className="modal-header">{header}</div>}
           <div className="modal-body">{confirmMessage}</div>
           <div className="modal-footer">

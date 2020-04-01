@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Confirm renders 1`] = `
+<button
+  data-testid="confirm-button-children"
+>
+  Confirm?
+</button>
+`;

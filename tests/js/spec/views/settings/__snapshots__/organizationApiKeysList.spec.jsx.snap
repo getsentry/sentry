@@ -455,6 +455,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               autoFocus={true}
                               backdrop={true}
                               bsClass="modal"
+                              data-testid="confirm-modal"
                               dialogComponentClass={[Function]}
                               enforceFocus={true}
                               keyboard={true}

@@ -59,7 +59,7 @@ export default class AvatarList extends React.Component<Props> {
       <AvatarListWrapper className={className}>
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-            <CollapsedUsers size={avatarSize}>
+            <CollapsedUsers size={avatarSize} data-testid="avatarList-collapsedusers">
               {numCollapsedUsers < 99 && <Plus>+</Plus>}
               {numCollapsedUsers}
             </CollapsedUsers>

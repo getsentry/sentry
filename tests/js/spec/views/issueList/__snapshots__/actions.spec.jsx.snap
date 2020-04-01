@@ -41,6 +41,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
 <ModalDialog
   bsClass="modal"
   className="in"
+  data-testid="confirm-modal"
   onClick={[Function]}
   role="document"
   style={Object {}}
@@ -48,6 +49,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
 >
   <div
     className="in modal"
+    data-testid="confirm-modal"
     onClick={[Function]}
     role="dialog"
     style={
@@ -355,6 +357,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
 <ModalDialog
   bsClass="modal"
   className="in"
+  data-testid="confirm-modal"
   onClick={[Function]}
   role="document"
   style={Object {}}
@@ -362,6 +365,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
 >
   <div
     className="in modal"
+    data-testid="confirm-modal"
     onClick={[Function]}
     role="dialog"
     style={

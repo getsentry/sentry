@@ -1,0 +1,284 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
+<div
+  class="css-1kbnx78-AvatarListWrapper e1mtf41h0"
+>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <div
+      class="css-1xikpge-CollapsedUsers-Circle e1mtf41h2"
+      data-testid="avatarList-collapsedusers"
+      size="28"
+    >
+      <span
+        class="css-jn99p5-Plus e1mtf41h3"
+      >
+        +
+      </span>
+      1
+    </div>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Jan"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#6c5fc7"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          J
+        </text>
+      </svg>
+    </span>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Daniel"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#f9a66d"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          D
+        </text>
+      </svg>
+    </span>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Matej"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#6c5fc7"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          M
+        </text>
+      </svg>
+    </span>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Billy"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#ec5e44"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          B
+        </text>
+      </svg>
+    </span>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Mark"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#57be8c"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          M
+        </text>
+      </svg>
+    </span>
+  </span>
+</div>
+`;
+
+exports[`AvatarList renders with user letter avatars 1`] = `
+<div
+  class="css-1kbnx78-AvatarListWrapper e1mtf41h0"
+>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Jan"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#6c5fc7"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          J
+        </text>
+      </svg>
+    </span>
+  </span>
+  <span
+    aria-describedby="tooltip-123456"
+    class="css-1y4rfpo-Container eowlwvy0"
+  >
+    <span
+      class="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
+      style="width: 28px; height: 28px;"
+      title="Daniel"
+      type="letter_avatar"
+    >
+      <svg
+        class="css-1oxr9oh-LetterAvatar e12lgfev0"
+        viewBox="0 0 120 120"
+      >
+        <rect
+          fill="#f9a66d"
+          height="120"
+          rx="15"
+          ry="15"
+          width="120"
+          x="0"
+          y="0"
+        />
+        <text
+          fill="#FFFFFF"
+          font-size="65"
+          style="dominant-baseline: central;"
+          text-anchor="middle"
+          x="50%"
+          y="50%"
+        >
+          D
+        </text>
+      </svg>
+    </span>
+  </span>
+</div>
+`;
