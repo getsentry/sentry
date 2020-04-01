@@ -121,8 +121,8 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     // If the active bar is clicked again we need to remove the constraints.
     const startDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
     const endDuration = startDuration + this.bucketWidth;
-    // Re-render showing a zoom error above the current bar..
-    if ((endDuration - startDuration) / NUM_BUCKETS < 2) {
+    // Re-render showing a zoom error above the current bar.
+    if ((endDuration - startDuration) / NUM_BUCKETS < 0.6) {
       this.setState({
         zoomError: true,
       });
@@ -206,7 +206,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
         } else {
           contents = [
             '<div class="tooltip-series tooltip-series-solo">',
-            t('This cannot zoom in any further'),
+            t('You cannot zoom in any further'),
             '</div>',
           ];
         }
@@ -278,7 +278,7 @@ function LatencyChart({totalValues, ...props}: WrapperProps) {
 function transformData(data: ApiResult[], bucketWidth: number) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
-    const midPoint = Math.ceil(bucket + bucketWidth / 2);
+    const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
     return {
       value: item.count,
       name: getDuration(midPoint / 1000, 2, true),

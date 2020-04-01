@@ -5,7 +5,7 @@ import six
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
-from math import ceil
+from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
@@ -192,19 +192,16 @@ def find_histogram_buckets(field, params, conditions):
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
-        return "histogram({}, 1, 1)".format(column)
+        return "histogram({}, 1, 1, 0)".format(column)
 
-    bucket_max = results["data"][0][max_alias]
     bucket_min = results["data"][0][min_alias]
+    bucket_max = results["data"][0][max_alias]
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
     bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
-    if bucket_size <= 1.0:
-        raise InvalidSearchQuery(
-            u"Cannot calculate histogram for {}. Resulting buckets are too small.".format(field)
-        )
+    offset = floor(bucket_min / bucket_size)
 
-    return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_size)
+    return "histogram({}, {:g}, {:g}, {:g})".format(column, num_buckets, bucket_size, offset)
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
@@ -212,7 +209,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     if len(parts) < 2:
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
-    bucket_size, num_buckets = int(parts[-1]), int(parts[-2])
+    bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
     if len(results) == num_buckets:
         return results
 
@@ -236,7 +233,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
                 break
 
     for i in range(num_buckets):
-        bucket = bucket_size * i
+        bucket = bucket_offset + (bucket_size * i)
         if bucket not in bucket_map:
             bucket_map[bucket] = build_new_bucket_row(bucket)
 
@@ -244,7 +241,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     if is_sorted:
         i, diff, end = (0, 1, num_buckets) if not is_reversed else (num_buckets, -1, 0)
         while i <= end:
-            bucket = bucket_size * i
+            bucket = bucket_offset + (bucket_size * i)
             if bucket in bucket_map:
                 new_results.append(bucket_map[bucket])
             i += diff

@@ -1116,8 +1116,8 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000_0": 1000, "count": 1123}],
             },
         ]
         discover.query(
@@ -1132,7 +1132,7 @@ class QueryTransformTest(TestCase):
                 [
                     "multiply",
                     [["floor", [["divide", ["duration", 1000]]]], 1000],
-                    "histogram_transaction_duration_10_1000",
+                    "histogram_transaction_duration_10_1000_0",
                 ]
             ],
             aggregations=[
@@ -1149,7 +1149,7 @@ class QueryTransformTest(TestCase):
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
-            groupby=["histogram_transaction_duration_10_1000"],
+            groupby=["histogram_transaction_duration_10_1000_0"],
             conditions=[],
             end=None,
             start=None,
@@ -1165,8 +1165,8 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000_0": 1000, "count": 1123}],
             },
         ]
         with pytest.raises(InvalidSearchQuery) as err:
@@ -1210,27 +1210,36 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_narrow_range(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 505, "min_transaction.duration": 490}]}
+            {"data": [{"max_transaction.duration": 505, "min_transaction.duration": 490}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_15_1_490"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_15_1_490": 490, "count": 1},
+                    {"histogram_transaction_duration_15_1_490": 492, "count": 2},
+                    {"histogram_transaction_duration_15_1_490": 500, "count": 4},
+                    {"histogram_transaction_duration_15_1_490": 501, "count": 3},
+                ],
+            },
         ]
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.query(
-                selected_columns=["histogram(transaction.duration, 15)", "count()"],
-                query="",
-                params={"project_id": [self.project.id]},
-                orderby="histogram_transaction_duration_10",
-                auto_fields=True,
-                use_aggregate_conditions=False,
-            )
-        assert "Resulting buckets are too small." in six.text_type(err)
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 15)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_15",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+        expected = (1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0)
+        for result, exp in zip(results["data"], expected):
+            assert result["histogram_transaction_duration_15"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_empty_results(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000": 10000, "count": 1}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000_0": 10000, "count": 1}],
             },
         ]
 
@@ -1252,9 +1261,9 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(11)
                 ],
             },
@@ -1279,9 +1288,9 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(0, 11, 2)
                 ],
             },
@@ -1308,9 +1317,9 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i} for i in seed
+                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i} for i in seed
                 ],
             },
         ]
@@ -1335,9 +1344,9 @@ class QueryTransformTest(TestCase):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
+                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(0, 10, 2)
                 ],
             },
@@ -1364,11 +1373,11 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_on_weird_bucket(self, mock_query):
         mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 10}]},
+            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_86"}, {"name": "count"}],
+                "meta": [{"name": "histogram_transaction_duration_10_87_0"}, {"name": "count"}],
                 "data": [
-                    {"histogram_transaction_duration_10_86": i * 86, "count": i}
+                    {"histogram_transaction_duration_10_87_0": i * 87, "count": i}
                     for i in range(1, 10, 2)
                 ],
             },
@@ -1383,10 +1392,10 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 86 for i in range(11)]
+        expected = [i * 87 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 86 if (exp / 86) % 2 == 1 else 0)
+            assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
