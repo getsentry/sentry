@@ -31,8 +31,7 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
 
     def test_list(self):
         with self.feature(FEATURE_NAME):
-            release = self.create_release(project=self.project, version="1.0")
-            self.create_group(first_release=release, project=self.project, message="Foo bar")
+            self.create_release(project=self.project, version="1.0")
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
             self.browser.snapshot("organization releases v2 - with releases")
