@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorRobot from 'app/components/errorRobot';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import withApi from 'app/utils/withApi';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
@@ -126,4 +127,4 @@ class NoGroupsHandler extends React.Component<Props, State> {
   }
 }
 
-export default NoGroupsHandler;
+export default withApi(NoGroupsHandler);
