@@ -10,7 +10,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {PageContent} from 'app/styles/organization';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import Alert from 'app/components/alert';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {StyledPageHeader} from 'app/views/eventsV2/landing';

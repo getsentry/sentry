@@ -808,7 +808,7 @@ function routes() {
           path=":integrationSlug/"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/pluginDetailedView'
+              /* webpackChunkName: "PluginDetailedView" */ 'app/views/organizationIntegrations/pluginDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -822,18 +822,31 @@ function routes() {
           path=":integrationSlug"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
+              /* webpackChunkName: "SentryAppDetailedView" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
         />
       </Route>
 
+      <Redirect from="document-integrations/" to="integrations/" />
+      <Route name="Integrations" path="document-integrations/">
+        <Route
+          name="Details"
+          path=":integrationSlug"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/docIntegrationDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route name="Integrations" path="integrations/">
         <IndexRoute
           componentPromise={() =>
             import(
-              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations/integrationListDirectory'
+              /* webpackChunkName: "IntegrationListDirectory" */ 'app/views/organizationIntegrations/integrationListDirectory'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -843,7 +856,7 @@ function routes() {
           path=":integrationSlug"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/integrationDetailedView'
+              /* webpackChunkName: "IntegrationDetailedView" */ 'app/views/organizationIntegrations/integrationDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -997,6 +1010,16 @@ function routes() {
       />
 
       <Route
+        path="/organizations/:orgId/data-export/:dataExportId"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="/join-request/:orgId/"
         componentPromise={() =>
           import(
@@ -1106,15 +1129,6 @@ function routes() {
           <IndexRoute component={errorHandler(IssueListOverview)} />
           <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
         </Route>
-        <Route
-          path="/organizations/:orgId/data-export/:dataExportId"
-          componentPromise={() =>
-            import(
-              /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
-            )
-          }
-          component={errorHandler(LazyLoad)}
-        />
         {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
         <Route

@@ -2,41 +2,33 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import flatten from 'lodash/flatten';
-import memoize from 'lodash/memoize';
-import moment from 'moment';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSettings} from 'app/icons';
 import {Organization} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import Count from 'app/components/count';
-import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ExternalLink from 'app/components/links/externalLink';
-import IdBadge from 'app/components/idBadge';
-import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
-import getDynamicText from 'app/utils/getDynamicText';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 import {Incident} from '../types';
-import SparkLine from './sparkLine';
-import Status from '../status';
+import {TableLayout, TitleAndSparkLine} from './styles';
+import AlertListRow from './row';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
@@ -69,51 +61,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     ];
   }
 
-  /**
-   * Memoized function to find a project from a list of projects
-   */
-  getProject = memoize((slug, projects) =>
-    projects.find(project => project.slug === slug)
-  );
-
-  renderListItem({incident, initiallyLoaded, projects}) {
-    const {orgId} = this.props.params;
-    const started = moment(incident.dateStarted);
-    const duration = moment
-      .duration(moment(incident.dateClosed || new Date()).diff(started))
-      .as('seconds');
-    const slug = incident.projects[0];
-
-    return (
-      <IncidentPanelItem key={incident.id}>
-        <TableLayout>
-          <TitleAndSparkLine>
-            <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
-              {incident.title}
-            </TitleLink>
-            <SparkLine incident={incident} />
-          </TitleAndSparkLine>
-          <ProjectColumn>
-            <IdBadge
-              project={!initiallyLoaded ? {slug} : this.getProject(slug, projects)}
-            />
-          </ProjectColumn>
-          <Status incident={incident} />
-          <div>
-            {started.format('L')}
-            <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
-          </div>
-          <NumericColumn>
-            <Count value={incident.uniqueUsers} />
-          </NumericColumn>
-          <NumericColumn>
-            <Count value={incident.totalEvents} />
-          </NumericColumn>
-        </TableLayout>
-      </IncidentPanelItem>
-    );
-  }
-
   renderEmpty() {
     return (
       <EmptyStateWarning>
@@ -141,13 +88,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <TableLayout>
               <TitleAndSparkLine>
                 <div>{t('Alert')}</div>
-                <div>{t('Trend')}</div>
+                <RightAlignedHeader>{t('Trend')}</RightAlignedHeader>
               </TitleAndSparkLine>
               <div>{t('Project')}</div>
               <div>{t('Status')}</div>
               <div>{t('Start time (duration)')}</div>
-              <NumericColumn>{t('Users affected')}</NumericColumn>
-              <NumericColumn>{t('Total events')}</NumericColumn>
+              <RightAlignedHeader>{t('Users affected')}</RightAlignedHeader>
+              <RightAlignedHeader>{t('Total events')}</RightAlignedHeader>
             </TableLayout>
           </PanelHeader>
 
@@ -158,9 +105,15 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 {incidentList.length === 0 && this.renderEmpty()}
                 <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
                   {({initiallyLoaded, projects}) =>
-                    incidentList.map(incident =>
-                      this.renderListItem({incident, initiallyLoaded, projects})
-                    )
+                    incidentList.map(incident => (
+                      <AlertListRow
+                        key={incident.id}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects}
+                        incident={incident}
+                        orgId={orgId}
+                      />
+                    ))
                   }
                 </Projects>
               </React.Fragment>
@@ -229,21 +182,13 @@ class IncidentsListContainer extends React.Component<Props> {
 
     const status = getQueryStatus(query.status);
 
-    const isOpenActive = status === 'open';
-    const isClosedActive = status === 'closed';
-    const isAllActive = status === 'all';
-
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
             <StyledPageHeading>
               {t('Alerts')}{' '}
-              <BetaTag
-                title={t(
-                  'This feature may change in the future and currently only shows metric alerts'
-                )}
-              />
+              <BetaTag title={t('This page is in beta and may change in the future.')} />
             </StyledPageHeading>
 
             <Actions>
@@ -266,28 +211,25 @@ class IncidentsListContainer extends React.Component<Props> {
                 {t('Settings')}
               </Button>
 
-              <ButtonBar merged>
+              <ButtonBar merged active={status}>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
+                  barId="open"
                   size="small"
-                  className={isOpenActive ? ' active' : ''}
-                  priority={isOpenActive ? 'primary' : 'default'}
                 >
                   {t('Active')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
+                  barId="closed"
                   size="small"
-                  className={isClosedActive ? ' active' : ''}
-                  priority={isClosedActive ? 'primary' : 'default'}
                 >
                   {t('Resolved')}
                 </Button>
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
+                  barId="all"
                   size="small"
-                  className={isAllActive ? ' active' : ''}
-                  priority={isAllActive ? 'primary' : 'default'}
                 >
                   {t('All')}
                 </Button>
@@ -296,11 +238,14 @@ class IncidentsListContainer extends React.Component<Props> {
           </PageHeader>
 
           <Alert type="info" icon="icon-circle-info">
-            {t('This feature is in beta and currently shows only metric alerts. ')}
-
-            <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+            {tct('This page is in beta and currently only shows [link:metric alerts]. ', {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
+              ),
+            })}
+            <ExternalLink href="mailto:alerting-feedback@sentry.io">
               {t('Please contact us if you have any feedback.')}
-            </FeedbackLink>
+            </ExternalLink>
           </Alert>
           <IncidentsList {...this.props} />
         </PageContent>
@@ -314,11 +259,6 @@ const StyledPageHeading = styled(PageHeading)`
   align-items: center;
 `;
 
-const FeedbackLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-left: ${space(1)};
-`;
-
 const Actions = styled('div')`
   display: grid;
   align-items: center;
@@ -326,41 +266,7 @@ const Actions = styled('div')`
   grid-auto-flow: column;
 `;
 
-const TableLayout = styled('div')`
-  display: grid;
-  grid-template-columns: 4fr 1fr 1fr 2fr 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
-  width: 100%;
-  align-items: center;
-`;
-
-const LightDuration = styled(Duration)`
-  color: ${p => p.theme.gray1};
-  font-size: 0.9em;
-  margin-left: ${space(1)};
-`;
-
-const TitleAndSparkLine = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-right: ${space(2)};
-  overflow: hidden;
-`;
-
-const TitleLink = styled(Link)`
-  ${overflowEllipsis}
-`;
-
-const IncidentPanelItem = styled(PanelItem)`
-  padding: ${space(1)} ${space(2)};
-`;
-
-const ProjectColumn = styled('div')`
-  overflow: hidden;
-`;
-
-const NumericColumn = styled('div')`
+const RightAlignedHeader = styled('div')`
   text-align: right;
 `;
 

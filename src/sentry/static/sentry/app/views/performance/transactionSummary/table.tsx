@@ -12,14 +12,16 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Link from 'app/components/links/link';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import EventView from 'app/views/eventsV2/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {getFieldRenderer, MetaType, getAggregateAlias} from 'app/views/eventsV2/utils';
+import EventView, {MetaType} from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {
   generateEventSlug,
   eventDetailsRouteWithEventView,
 } from 'app/views/eventsV2/eventDetails/utils';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {
   TableGrid,
@@ -39,6 +41,7 @@ type Props = {
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
+  totalValues: number | null;
 };
 
 class SummaryContentTable extends React.Component<Props> {
@@ -46,9 +49,7 @@ class SummaryContentTable extends React.Component<Props> {
     const {eventView, tableData} = this.props;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
-
     const columnOrder = eventView.getColumns();
-
     const generateSortLink = () => undefined;
 
     return columnOrder.map((column, index) => (
@@ -124,6 +125,7 @@ class SummaryContentTable extends React.Component<Props> {
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
+      // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = getAggregateAlias(field);
       const fieldType = tableMeta[fieldName];
 
@@ -157,22 +159,34 @@ class SummaryContentTable extends React.Component<Props> {
   }
 
   render() {
-    const {eventView, location, organization} = this.props;
+    const {eventView, location, organization, totalValues} = this.props;
+
+    let title = t('Slowest Requests');
+    let chartQuery = eventView.query;
+    if (location.query.startDuration || location.query.endDuration) {
+      // Remove duration conditions from the chart query as we want it
+      // to always reflect the full dataset.
+      const parsed = tokenizeSearch(chartQuery);
+      title = t('Requests %s and %s in duration', ...parsed['transaction.duration']);
+      delete parsed['transaction.duration'];
+      chartQuery = stringifyQueryObject(parsed);
+    }
 
     return (
       <div>
         <LatencyChart
           organization={organization}
           location={location}
-          query={eventView.query}
+          query={chartQuery}
           project={eventView.project}
           environment={eventView.environment}
           start={eventView.start}
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
+          totalValues={totalValues}
         />
         <Header>
-          <HeaderTitle>{t('Slowest Requests')}</HeaderTitle>
+          <HeaderTitle>{title}</HeaderTitle>
           <HeaderButtonContainer>
             <Button
               to={eventView.getResultsViewUrlTarget(organization.slug)}

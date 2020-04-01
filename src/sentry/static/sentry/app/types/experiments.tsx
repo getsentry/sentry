@@ -1,6 +1,14 @@
 import {experimentList, unassignedValue} from 'app/data/experimentConfig';
 
 /**
+ * The grouping of the experiment
+ */
+export enum ExperimentType {
+  Organization = 'organization',
+  User = 'user',
+}
+
+/**
  * An experiment configuration object defines an experiment in the frontend.
  * This drives various logic in experiment helpers.
  */
@@ -14,10 +22,10 @@ export type ExperimentConfig = {
    * The type of experiment. This configures what group the experiment is
    * performed on.
    *
-   * A `organization` experiment assigns the whole organization.
-   * A `user` experiment assigns a single user.
+   * A Organization experiment assigns the whole organization.
+   * A User experiment assigns a single user.
    */
-  type: 'organization' | 'user';
+  type: ExperimentType;
   /**
    * The parameter used to access the assignment value
    */
@@ -56,18 +64,18 @@ export type Experiments = {
 /**
  * Represents an active experiment key
  */
-export type ExperimentKey = ExperimentList['key'];
+export type ExperimentKey = keyof Experiments;
 
 type GetExperimentAssignment<E extends ExperimentList['key']> = {
   [K in E]: Experiments[K]['assignments'][number];
 };
 
 export type OrgExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, 'organization'>['key']
+  TypeSelect<ExperimentList, ExperimentType.Organization>['key']
 >;
 
 export type UserExperiments = GetExperimentAssignment<
-  TypeSelect<ExperimentList, 'user'>['key']
+  TypeSelect<ExperimentList, ExperimentType.User>['key']
 >;
 
 export type ExperimentAssignment = GetExperimentAssignment<ExperimentList['key']>;

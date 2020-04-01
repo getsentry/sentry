@@ -450,7 +450,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(six.text_type(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
-            search_value = operator + search_value if operator != "=" else search_value
+            search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_rel_time_filter(self, node, children):
@@ -662,7 +662,7 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     return [operator, [left, right]]
 
 
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=None):
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
@@ -1016,7 +1016,9 @@ class IntervalDefault(NumberRange):
     def has_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without default")
-        elif not isinstance(params["start"], datetime) or not isinstance(params["end"], datetime):
+        elif not isinstance(params.get("start"), datetime) or not isinstance(
+            params.get("end"), datetime
+        ):
             raise InvalidFunctionArgument("function called with invalid default")
 
         interval = (params["end"] - params["start"]).total_seconds()
@@ -1334,7 +1336,7 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
+def resolve_field_list(fields, snuba_filter, auto_fields=True):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -1362,14 +1364,14 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             fields.append("project.id")
 
     for field in fields:
-        column_additions, agg_additions = resolve_field(field, params)
+        column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
             columns.extend(column_additions)
 
         if agg_additions:
             aggregations.extend(agg_additions)
 
-    rollup = snuba_args.get("rollup")
+    rollup = snuba_filter.rollup
     if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
@@ -1392,7 +1394,7 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
-        project_ids = snuba_args.get("filter_keys", {}).get("project_id", [])
+        project_ids = snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [
@@ -1411,7 +1413,7 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
-    orderby = snuba_args.get("orderby")
+    orderby = snuba_filter.orderby
     if orderby:
         orderby = resolve_orderby(orderby, columns, aggregations)
 

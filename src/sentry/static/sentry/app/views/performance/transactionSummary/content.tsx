@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
 import Tags from 'app/views/eventsV2/tags';
 import EventsV2 from 'app/utils/discover/eventsv2';
@@ -20,11 +20,12 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
+  totalValues: number | null;
 };
 
 class SummaryContent extends React.Component<Props> {
   render() {
-    const {transactionName, location, eventView, organization} = this.props;
+    const {transactionName, location, eventView, organization, totalValues} = this.props;
 
     return (
       <React.Fragment>
@@ -55,6 +56,7 @@ class SummaryContent extends React.Component<Props> {
                 eventView={eventView}
                 tableData={tableData}
                 isLoading={isLoading}
+                totalValues={totalValues}
               />
             )}
           </EventsV2>
@@ -65,7 +67,7 @@ class SummaryContent extends React.Component<Props> {
               eventView={eventView}
             />
             <Tags
-              totalValues={null}
+              totalValues={totalValues}
               eventView={eventView}
               organization={organization}
               location={location}
@@ -77,14 +79,12 @@ class SummaryContent extends React.Component<Props> {
   }
 }
 
-const StyledTitleHeader = styled('h2')`
+const StyledTitleHeader = styled('span')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  line-height: 1.2;
-
   color: ${p => p.theme.gray4};
   grid-column: 1/2;
   align-self: center;
+  min-height: 30px;
   ${overflowEllipsis};
 `;
 

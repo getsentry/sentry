@@ -1,39 +1,38 @@
 import styled from '@emotion/styled';
 import React from 'react';
-import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
 type Size = 'small' | 'normal';
 type Priority = 'info' | 'warning' | 'success' | 'error' | 'muted';
 
-type PropsWithHref = {href: string};
-type PropsWithTo = {to: LocationDescriptor};
+type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
+
 type OtherProps = {
-  icon?: string;
+  icon?: string | React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 };
+
 type DefaultProps = {
   size: Size;
   priority: Priority;
   withoutMarginBottom: boolean;
   openInNewTab: boolean;
+  href?: string;
 };
 
-type Props = (PropsWithHref | PropsWithTo) & OtherProps & DefaultProps;
+type Props = OtherProps & DefaultProps & Partial<Pick<LinkProps, 'to'>>;
 
-// TODO(Priscila): Improve it as soon as we merge this PR: https://github.com/getsentry/sentry/pull/17346
-type StyledLinkProps = PropsWithHref &
-  PropsWithTo &
-  Omit<DefaultProps, 'openInNewTab'> &
-  Pick<OtherProps, 'onClick'> & {
-    target: '_blank' | '_self';
-  };
+type StyledLinkProps = DefaultProps &
+  Partial<Pick<LinkProps, 'to'>> &
+  Omit<LinkProps, 'to' | 'size'>;
 
-export default class AlertLink extends React.Component<Props> {
+class AlertLink extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     priority: 'warning',
     size: 'normal',
@@ -50,30 +49,44 @@ export default class AlertLink extends React.Component<Props> {
       onClick,
       withoutMarginBottom,
       openInNewTab,
+      to,
+      href,
     } = this.props;
     return (
       <StyledLink
-        to={(this.props as PropsWithTo).to}
-        href={(this.props as PropsWithHref).href}
+        to={to}
+        href={href}
         onClick={onClick}
         size={size}
         priority={priority}
         withoutMarginBottom={withoutMarginBottom}
-        target={openInNewTab ? '_blank' : '_self'}
+        openInNewTab={openInNewTab}
       >
-        {icon && <StyledInlineSvg src={icon} size="1.5em" spacingSize={size} />}
+        {icon && (
+          <IconWrapper>
+            {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
+          </IconWrapper>
+        )}
         <AlertLinkText>{children}</AlertLinkText>
-        <InlineSvg src="icon-chevron-right" size="1em" />
+        <IconLink>
+          <IconChevron direction="right" />
+        </IconLink>
       </StyledLink>
     );
   }
 }
 
-const StyledLink = styled((props: StyledLinkProps) => (
-  <Link {...omit(props, ['withoutMarginBottom', 'priority', 'size'])} />
-))`
+export default AlertLink;
+
+const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) => {
+  const linkProps = omit(props, ['withoutMarginBottom', 'priority', 'size']);
+  if (href) {
+    return <ExternalLink {...linkProps} href={href} openInNewTab={openInNewTab} />;
+  }
+
+  return <Link {...linkProps} to={to || ''} />;
+})`
   display: flex;
-  align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.gray4};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
@@ -82,20 +95,22 @@ const StyledLink = styled((props: StyledLinkProps) => (
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
-  &:hover {
-    border-color: ${p => p.theme.blueLight};
-  }
-
   &.focus-visible {
     outline: none;
     box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
   }
 `;
 
-const AlertLinkText = styled('div')`
-  flex-grow: 1;
+const IconWrapper = styled('span')`
+  display: flex;
+  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 0;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)<{spacingSize: Size}>`
-  margin-right: ${p => (p.spacingSize === 'small' ? space(1) : space(1.5))};
+const IconLink = styled(IconWrapper)`
+  margin: ${space(0.5)} 0;
+`;
+
+const AlertLinkText = styled('div')`
+  line-height: 1.5;
+  flex-grow: 1;
 `;

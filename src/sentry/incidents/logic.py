@@ -43,6 +43,11 @@ from sentry.snuba.subscriptions import (
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
 
+# We can return an incident as "windowed" which returns a range of points around the start of the incident
+# It attempts to center the start of the incident, only showing earlier data if there isn't enough time
+# after the incident started to display the correct start date.
+WINDOWED_STATS_DATA_POINTS = 200
+
 
 class AlreadyDeletedError(Exception):
     pass
@@ -245,16 +250,15 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def create_incident_snapshot(incident, prewindow=True):
+def create_incident_snapshot(incident, windowed_stats=False):
     """
     Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
+
     assert incident.status == IncidentStatus.CLOSED.value
 
-    event_stats_snapshot = create_event_stat_snapshot(
-        incident, incident.date_started, incident.date_closed, prewindow
-    )
+    event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
     return IncidentSnapshot.objects.create(
         incident=incident,
@@ -264,14 +268,13 @@ def create_incident_snapshot(incident, prewindow=True):
     )
 
 
-def create_event_stat_snapshot(incident, start, end, prewindow):
+def create_event_stat_snapshot(incident, windowed_stats=False):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
-    if prewindow:
-        start = start - calculate_incident_prewindow(start, end, incident)
 
-    event_stats = get_incident_event_stats(incident, start, end)
+    event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
+    start, end = calculate_incident_time_range(incident, windowed_stats=windowed_stats)
     return TimeSeriesSnapshot.objects.create(
         start=start,
         end=end,
@@ -280,13 +283,13 @@ def create_event_stat_snapshot(incident, start, end, prewindow):
     )
 
 
-def build_incident_query_params(incident, start=None, end=None, prewindow=False):
-    return bulk_build_incident_query_params([incident], start=start, end=end, prewindow=prewindow)[
-        0
-    ]
+def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
+    return bulk_build_incident_query_params(
+        [incident], start=start, end=end, windowed_stats=windowed_stats
+    )[0]
 
 
-def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=False):
+def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_stats=False):
     incident_groups = defaultdict(list)
     for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
         "incident_id", "group_id"
@@ -300,13 +303,12 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=
 
     query_args_list = []
     for incident in incidents:
-        params = {
-            "start": incident.date_started if start is None else start,
-            "end": incident.current_end_date if end is None else end,
-        }
-        if prewindow:
-            prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
-            params["start"] = params["start"] - prewindow_time_range
+        params = {}
+
+        params["start"], params["end"] = calculate_incident_time_range(
+            incident, start, end, windowed_stats=windowed_stats
+        )
+
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -318,14 +320,30 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=
         snuba_args = {
             "start": snuba_filter.start,
             "end": snuba_filter.end,
-            "conditions": snuba_filter.conditions,
+            "conditions": resolve_discover_aliases(snuba_filter)[0].conditions,
             "filter_keys": snuba_filter.filter_keys,
             "having": [],
         }
-        snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
         query_args_list.append(snuba_args)
 
     return query_args_list
+
+
+def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
+    # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
+    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
+    time_window_delta = timedelta(minutes=time_window)
+    start = incident.date_started - time_window_delta if start is None else start
+    end = incident.current_end_date if end is None else end
+    if windowed_stats:
+        now = timezone.now()
+        end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        if end > now:
+            end = now
+            start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+
+    return start, end
 
 
 def calculate_incident_prewindow(start, end, incident=None):
@@ -337,18 +355,18 @@ def calculate_incident_prewindow(start, end, incident=None):
     return prewindow
 
 
-def get_incident_event_stats(incident, start=None, end=None, data_points=50, prewindow=False):
+def get_incident_event_stats(incident, start=None, end=None, windowed_stats=False):
     """
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
     query_params = bulk_build_incident_query_params(
-        [incident], start=start, end=end, prewindow=prewindow
+        [incident], start=start, end=end, windowed_stats=windowed_stats
     )
-    return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
+    return bulk_get_incident_event_stats([incident], query_params)[0]
 
 
-def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
+def bulk_get_incident_event_stats(incidents, query_params_list):
     snuba_params_list = [
         SnubaQueryParams(
             aggregations=[
@@ -360,7 +378,10 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
             ],
             orderby="time",
             groupby=["time"],
-            rollup=max(int(incident.duration.total_seconds() / data_points), 1),
+            rollup=incident.alert_rule.time_window * 60
+            if incident.alert_rule is not None
+            else 1
+            * 60,  # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
             limit=10000,
             **query_param
         )
@@ -373,13 +394,13 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     ]
 
 
-def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
+def get_incident_aggregates(incident, start=None, end=None, windowed_stats=False):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     - count: Total count of events
     - unique_users: Total number of unique users
     """
-    query_params = build_incident_query_params(incident, start, end, prewindow)
+    query_params = build_incident_query_params(incident, start, end, windowed_stats)
     return bulk_get_incident_aggregates([query_params])[0]
 
 
@@ -396,30 +417,39 @@ def bulk_get_incident_aggregates(query_params_list):
     return [result["data"][0] for result in results]
 
 
-def bulk_get_incident_stats(incidents, prewindow=False):
+def bulk_get_incident_stats(incidents, windowed_stats=False):
     """
     Returns bulk stats for a list of incidents. This includes unique user count,
     total event count and event stats.
-    Note that even though this function accepts a prewindow parameter, it does not
-    affect the snapshots if they were created using a prewindow. Only the live fetched stats.
+    Note that even though this function accepts a windowed_stats parameter, it does not
+    affect the snapshots. Only the live fetched stats.
     """
-    closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
     incident_stats = {}
-    snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
-    for snapshot in snapshots:
-        event_stats = snapshot.event_stats_snapshot
-        incident_stats[snapshot.incident_id] = {
-            "event_stats": SnubaTSResult(
-                event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
-            ),
-            "total_events": snapshot.total_events,
-            "unique_users": snapshot.unique_users,
-        }
+    if windowed_stats is True:
+        # At the moment, snapshots are only ever created with windowed_stats as True
+        # so if they send False, we need to do a live calculation below.
+        closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
+        snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
+        for snapshot in snapshots:
+            event_stats = snapshot.event_stats_snapshot
+            incident_stats[snapshot.incident_id] = {
+                "event_stats": SnubaTSResult(
+                    event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
+                ),
+                "total_events": snapshot.total_events,
+                "unique_users": snapshot.unique_users,
+            }
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=prewindow)
-        all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
+        query_params_list = bulk_build_incident_query_params(to_fetch, windowed_stats=False)
+        if windowed_stats:
+            windowed_query_params_list = bulk_build_incident_query_params(
+                to_fetch, windowed_stats=True
+            )
+            all_event_stats = bulk_get_incident_event_stats(to_fetch, windowed_query_params_list)
+        else:
+            all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
             incident_stats[incident.id] = {

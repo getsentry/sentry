@@ -1,32 +1,41 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import {browserHistory} from 'react-router';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 
 import {Panel} from 'app/components/panels';
 import {IconQuestion, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
-import Tooltip from 'app/components/tooltip';
-import AsyncComponent from 'app/components/asyncComponent';
+import ErrorPanel from 'app/components/charts/components/errorPanel';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
   SubHeading,
-  ErrorPanel,
-} from 'app/views/eventsV2/styles';
+} from 'app/components/charts/styles';
+import Tooltip from 'app/components/tooltip';
+import AsyncComponent from 'app/components/asyncComponent';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-type ViewProps = Pick<
-  EventView,
-  'environment' | 'project' | 'query' | 'start' | 'end' | 'statsPeriod'
->;
+const QUERY_KEYS = [
+  'environment',
+  'project',
+  'query',
+  'start',
+  'end',
+  'statsPeriod',
+] as const;
+
+type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type ApiResult = {
   histogram_transaction_duration_15: number;
@@ -44,9 +53,9 @@ type State = AsyncComponent['state'] & {
 };
 
 /**
- * Fetch the chart data and then render the chart panel.
+ * Fetch the chart data and then render the graph.
  */
-class LatencyChart extends AsyncComponent<Props, State> {
+class LatencyHistogram extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
       organization,
@@ -89,13 +98,51 @@ class LatencyChart extends AsyncComponent<Props, State> {
     if (this.state.loading) {
       return false;
     }
-    return (
-      prevProps.query !== this.props.query ||
-      prevProps.environment !== this.props.environment ||
-      prevProps.start !== this.props.start ||
-      prevProps.end !== this.props.end ||
-      prevProps.statsPeriod !== this.props.statsPeriod
-    );
+    return !isEqual(pick(prevProps, QUERY_KEYS), pick(this.props, QUERY_KEYS));
+  }
+
+  handleClick = value => {
+    const {chartData} = this.state;
+    if (chartData === null) {
+      return;
+    }
+    const {location} = this.props;
+
+    // Only bars that are 'active' will have itemStyle set.
+    // See transformData()
+    const isActive = value.data.hasOwnProperty('itemStyle');
+    const valueIndex = value.dataIndex;
+
+    // If the active bar is clicked again we need to remove the constraints.
+    const startDuration = isActive
+      ? undefined
+      : chartData.data[valueIndex].histogram_transaction_duration_15;
+    const endDuration =
+      typeof startDuration === 'number' ? startDuration + this.bucketWidth : undefined;
+
+    const target = {
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        startDuration,
+        endDuration,
+      },
+    };
+    browserHistory.push(target);
+  };
+
+  get bucketWidth() {
+    if (this.state.chartData === null) {
+      return 0;
+    }
+    // We can assume that all buckets are of equal width, use the first two
+    // buckets to get the width. The value of each histogram function indicates
+    // the beginning of the bucket.
+    const data = this.state.chartData.data;
+    return data.length > 2
+      ? data[1].histogram_transaction_duration_15 -
+          data[0].histogram_transaction_duration_15
+      : 0;
   }
 
   renderLoading() {
@@ -116,6 +163,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
     if (chartData === null) {
       return null;
     }
+    const {location} = this.props;
     const xAxis = {
       type: 'category',
       truncate: true,
@@ -127,73 +175,80 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
-    const tooltip = {
-      valueFormatter(value: number) {
-        return getDuration(value / 1000, 2);
-      },
-    };
 
     return (
       <BarChart
         grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
-        series={transformData(chartData.data)}
+        series={transformData(chartData.data, location, this.bucketWidth)}
         colors={['rgba(140, 79, 189, 0.3)']}
-        tooltip={tooltip}
+        onClick={this.handleClick}
       />
     );
   }
+}
 
-  calculateTotal() {
-    if (this.state.chartData === null) {
-      return '\u2015';
-    }
-    return this.state.chartData.data.reduce((acc, item) => {
-      return acc + item.count;
-    }, 0);
+function calculateTotal(total: number | null) {
+  if (total === null) {
+    return '\u2015';
   }
+  return total.toLocaleString();
+}
 
-  render() {
-    return (
-      <Panel>
-        <PaddedSubHeading>
-          <span>{t('Latency Distribution')}</span>
-          <Tooltip
-            position="top"
-            title={t(
-              `This graph shows the volume of transactions that completed within each duration bucket.
+type WrapperProps = ViewProps & {
+  organization: OrganizationSummary;
+  location: Location;
+  totalValues: number | null;
+};
+
+function LatencyChart({totalValues, ...props}: WrapperProps) {
+  return (
+    <Panel>
+      <PaddedSubHeading>
+        <span>{t('Latency Distribution')}</span>
+        <Tooltip
+          position="top"
+          title={t(
+            `This graph shows the volume of transactions that completed within each duration bucket.
                X-axis values represent the median value of each bucket.
                `
-            )}
-          >
-            <IconQuestion size="sm" color={theme.gray6} />
-          </Tooltip>
-        </PaddedSubHeading>
-        {super.render()}
-        <ChartControls>
-          <InlineContainer>
-            <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-            <SectionValue key="total-value">{this.calculateTotal()}</SectionValue>
-          </InlineContainer>
-        </ChartControls>
-      </Panel>
-    );
-  }
+          )}
+        >
+          <IconQuestion size="sm" color={theme.gray6} />
+        </Tooltip>
+      </PaddedSubHeading>
+      <LatencyHistogram {...props} />
+      <ChartControls>
+        <InlineContainer>
+          <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
+          <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
+        </InlineContainer>
+      </ChartControls>
+    </Panel>
+  );
 }
 
 /**
  * Convert a discover response into a barchart compatible series
  */
-function transformData(data: ApiResult[]) {
-  let previous: number = 0;
-
+function transformData(data: ApiResult[], location: Location, bucketWidth: number) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
-    const midPoint = previous + Math.ceil((bucket - previous) / 2);
-    const value = {value: item.count, name: getDuration(midPoint / 1000, 2)};
-    previous = bucket + 1;
-
+    const midPoint = Math.ceil(bucket + bucketWidth / 2);
+    const value: any = {
+      value: item.count,
+      name: getDuration(midPoint / 1000, 2, true),
+    };
+    if (
+      location.query.startDuration &&
+      typeof location.query.startDuration === 'string'
+    ) {
+      const start = parseInt(location.query.startDuration, 10);
+      if (bucket >= start && bucket < start + bucketWidth) {
+        value.itemStyle = {color: theme.purpleLight};
+      }
+    }
     return value;
   });
 

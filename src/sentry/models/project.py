@@ -105,13 +105,13 @@ class Project(Model, PendingDeletionMixin):
     flags = BitField(
         flags=(
             ("has_releases", "This Project has sent release data"),
-            ("has_sourcemaps", "This Project has processed source maps"),
+            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
         ),
         default=0,
         null=True,
     )
 
-    objects = ProjectManager(cache_fields=["pk", "slug"])
+    objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:

@@ -8,8 +8,9 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.models import ExportedData, File
-from sentry.models.exporteddata import DEFAULT_EXPIRATION, ExportStatus
+from sentry.data_export.base import ExportQueryType, ExportStatus, DEFAULT_EXPIRATION
+from sentry.data_export.models import ExportedData
+from sentry.models import File
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 from sentry.utils.compat.mock import patch
@@ -46,6 +47,12 @@ class ExportedDataTest(TestCase):
         assert isinstance(self.data_export.payload, dict)
         keys = self.data_export.query_info.keys() + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
+
+    def test_file_name_property(self):
+        assert isinstance(self.data_export.file_name, six.string_types)
+        file_name = self.data_export.file_name
+        assert file_name.startswith(ExportQueryType.as_str(self.data_export.query_type))
+        assert file_name.endswith(six.text_type(self.data_export.id) + ".csv")
 
     def test_format_date(self):
         assert ExportedData.format_date(self.data_export.date_finished) is None
@@ -118,7 +125,7 @@ class ExportedDataTest(TestCase):
             )
         )
         expected_email_args = {
-            "subject": "Your Download is Ready!",
+            "subject": "Your data is ready.",
             "context": {
                 "url": expected_url,
                 "expiration": ExportedData.format_date(date=self.data_export.date_expired),
@@ -140,7 +147,7 @@ class ExportedDataTest(TestCase):
         with self.tasks():
             self.data_export.email_failure(self.TEST_STRING)
         expected_email_args = {
-            "subject": "Unable to Export Data",
+            "subject": "We couldn't export your data.",
             "context": {
                 "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,

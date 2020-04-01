@@ -6,7 +6,7 @@ from datetime import timedelta
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import features
+from sentry import features, eventstore
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery, get_function_alias
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -132,8 +132,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         elif y_axis == "user_count":
             y_axis = "count_unique(user)"
 
+        snuba_filter = eventstore.Filter(
+            {
+                "start": snuba_args.get("start"),
+                "end": snuba_args.get("end"),
+                "rollup": snuba_args.get("rollup"),
+            }
+        )
         try:
-            resolved = resolve_field_list([y_axis], {})
+            resolved = resolve_field_list([y_axis], snuba_filter)
         except InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
         try:

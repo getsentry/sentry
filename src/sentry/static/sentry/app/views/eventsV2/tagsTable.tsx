@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -9,10 +10,9 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Event, OrganizationSummary} from 'app/types';
 import Version from 'app/components/version';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from './eventView';
 import {getExpandedResults} from './utils';
-import {SectionHeading} from './styles';
 
 type Props = {
   organization: OrganizationSummary;
@@ -57,7 +57,7 @@ const TagsTable = (props: Props) => {
                       <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{renderTagValue()}</Link>
+                    <Link to={target || ''}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>

@@ -1,189 +1,28 @@
 import Papa from 'papaparse';
-import partial from 'lodash/partial';
-import pick from 'lodash/pick';
 import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, StringMap, Organization, OrganizationSummary} from 'app/types';
-import {Client} from 'app/api';
+import {Event, Organization, OrganizationSummary} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
-import {TagSegment} from 'app/components/tagDistributionMeter';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-
+import EventView from 'app/utils/discover/eventView';
 import {
-  AGGREGATE_ALIASES,
-  SPECIAL_FIELDS,
-  FIELD_FORMATTERS,
-  FieldTypes,
-  FieldFormatterRenderFunctionPartial,
-  ALL_VIEWS,
-  TRANSACTION_VIEWS,
-} from './data';
-import EventView, {Field, Column} from './eventView';
-import {
-  Aggregation,
-  AggregationRefinement,
+  Field,
+  Column,
   AGGREGATIONS,
   FIELDS,
-} from './eventQueryParams';
+  explodeFieldString,
+  getAggregateAlias,
+} from 'app/utils/discover/fields';
+
+import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import {TableColumn, TableDataRow} from './table/types';
-
-export type EventQuery = {
-  field: string[];
-  project?: string | string[];
-  sort?: string | string[];
-  query: string;
-  per_page?: number;
-  referrer?: string;
-};
-
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
-
-function explodeFieldString(field: string): Column {
-  const results = field.match(AGGREGATE_PATTERN);
-
-  if (results && results.length >= 3) {
-    return {
-      kind: 'function',
-      function: [
-        results[1] as Aggregation,
-        results[2],
-        results[3] as AggregationRefinement,
-      ],
-    };
-  }
-
-  return {kind: 'field', field};
-}
-
-export function explodeField(field: Field): Column {
-  const results = explodeFieldString(field.field);
-
-  return results;
-}
-
-/**
- * Takes a view and determines if there are any aggregate fields in it.
- *
- * @param {Object} view
- * @returns {Boolean}
- */
-export function hasAggregateField(eventView: EventView): boolean {
-  return eventView
-    .getFields()
-    .some(
-      field => AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN)
-    );
-}
-
-/**
- * Check if a field name looks like an aggregate function or known aggregate alias.
- */
-export function isAggregateField(field: string): boolean {
-  return (
-    AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN) !== null
-  );
-}
-
-export type Tag = {
-  key: string;
-  topValues: Array<TagSegment>;
-};
-
-/**
- * Fetches tag facets for a query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {String} query
- * @returns {Promise<Object>}
- */
-export function fetchTagFacets(
-  api: Client,
-  orgSlug: string,
-  query: EventQuery
-): Promise<Tag[]> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
-
-  const queryOption = {...urlParams, query: query.query};
-
-  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
-    query: queryOption,
-  });
-}
-
-/**
- * Fetches total count of events for a given query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {string} query
- * @returns {Promise<Number>}
- */
-export function fetchTotalCount(
-  api: Client,
-  orgSlug: String,
-  query: EventQuery
-): Promise<number> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
-
-  const queryOption = {...urlParams, query: query.query};
-
-  type Response = {
-    count: number;
-  };
-
-  return api
-    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
-      query: queryOption,
-    })
-    .then((res: Response) => res.count);
-}
-
-export type MetaType = StringMap<FieldTypes>;
-
-/**
- * Get the field renderer for the named field and metadata
- *
- * @param {String} field name
- * @param {object} metadata mapping.
- * @returns {Function}
- */
-export function getFieldRenderer(
-  field: string,
-  meta: MetaType
-): FieldFormatterRenderFunctionPartial {
-  if (SPECIAL_FIELDS.hasOwnProperty(field)) {
-    return SPECIAL_FIELDS[field].renderFunc;
-  }
-  const fieldName = getAggregateAlias(field);
-  const fieldType = meta[fieldName];
-
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
-  }
-  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
-}
-
-/**
- * Get the alias that the API results will have for a given aggregate function name
- */
-export function getAggregateAlias(field: string): string {
-  if (!field.match(AGGREGATE_PATTERN)) {
-    return field;
-  }
-  return field
-    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
-    .replace(/\./g, '_')
-    .replace(/\,/g, '_')
-    .replace(/_+$/, '');
-}
 
 export type QueryWithColumnState =
   | Query
@@ -203,13 +42,15 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
+// TODO(mark) these types are coupled to the gridEditable component types and
+// I'd prefer the types to be more general purpose but that will require a second pass.
 export function decodeColumnOrder(
   fields: Readonly<Field[]>
 ): TableColumn<React.ReactText>[] {
   return fields.map((f: Field) => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
-    const col = explodeField(f);
+    const col = explodeFieldString(f.field);
     column.key = f.field;
     column.name = f.field;
     column.width = f.width || COL_WIDTH_UNDEFINED;
@@ -333,16 +174,16 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   return encodedDataUrl;
 }
 
-// A map between a field alias to a transform function to convert the aggregated field alias into
-// its un-aggregated form
-const TRANSFORM_AGGREGATES: {[field: string]: string | undefined} = {
+// A map between aggregate function names and its un-aggregated form
+const TRANSFORM_AGGREGATES: {[field: string]: string} = {
   p99: 'transaction.duration',
   p95: 'transaction.duration',
   p75: 'transaction.duration',
   last_seen: 'timestamp',
   latest_event: 'id',
-  apdex: undefined,
-  impact: undefined,
+  apdex: '',
+  impact: '',
+  error_rate: '',
 };
 
 /**
@@ -353,17 +194,14 @@ const TRANSFORM_AGGREGATES: {[field: string]: string | undefined} = {
  */
 export function getExpandedResults(
   eventView: EventView,
-  additionalConditions: StringMap<string>,
+  additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): EventView {
   // Find aggregate fields and flag them for updates.
   const fieldsToUpdate: number[] = [];
   eventView.fields.forEach((field: Field, index: number) => {
-    const column = explodeField(field);
-    if (
-      column.kind === 'function' ||
-      (column.kind === 'field' && AGGREGATE_ALIASES.includes(column.field))
-    ) {
+    const column = explodeFieldString(field.field);
+    if (column.kind === 'function') {
       fieldsToUpdate.push(index);
     }
   });
@@ -375,18 +213,23 @@ export function getExpandedResults(
   // make a best effort to replace aggregated columns with their non-aggregated form
   fieldsToUpdate.forEach((indexToUpdate: number) => {
     const currentField: Field = nextView.fields[indexToUpdate];
-    const exploded = explodeField(currentField);
+    const exploded = explodeFieldString(currentField.field);
 
     let fieldNameAlias: string = '';
-    if (exploded.kind === 'function' && TRANSFORM_AGGREGATES[exploded.function[0]]) {
+    if (
+      exploded.kind === 'function' &&
+      TRANSFORM_AGGREGATES.hasOwnProperty(exploded.function[0])
+    ) {
       fieldNameAlias = exploded.function[0];
     } else if (exploded.kind === 'field') {
       fieldNameAlias = exploded.field;
     }
 
-    if (fieldNameAlias && TRANSFORM_AGGREGATES.hasOwnProperty(fieldNameAlias)) {
+    if (
+      fieldNameAlias !== undefined &&
+      TRANSFORM_AGGREGATES.hasOwnProperty(fieldNameAlias)
+    ) {
       const nextFieldName = TRANSFORM_AGGREGATES[fieldNameAlias];
-
       if (!nextFieldName || transformedFields.has(nextFieldName)) {
         // this field is either duplicated in another column, or nextFieldName is undefined.
         // in either case, we remove this column
@@ -446,22 +289,19 @@ export function getExpandedResults(
 function generateAdditionalConditions(
   eventView: EventView,
   dataRow?: TableDataRow | Event
-): StringMap<string> {
+): Record<string, string> {
   const specialKeys = Object.values(URL_PARAM);
-  const conditions: StringMap<string> = {};
+  const conditions: Record<string, string> = {};
 
   if (!dataRow) {
     return conditions;
   }
 
   eventView.fields.forEach((field: Field) => {
-    const column = explodeField(field);
+    const column = explodeFieldString(field.field);
 
     // Skip aggregate fields
-    if (
-      column.kind === 'function' ||
-      (column.kind === 'field' && AGGREGATE_ALIASES.includes(column.field))
-    ) {
+    if (column.kind === 'function') {
       return;
     }
 
@@ -499,7 +339,7 @@ function generateAdditionalConditions(
 
 function generateExpandedConditions(
   eventView: EventView,
-  additionalConditions: StringMap<string>,
+  additionalConditions: Record<string, string>,
   dataRow?: TableDataRow | Event
 ): string {
   const parsedQuery = tokenizeSearch(eventView.query);

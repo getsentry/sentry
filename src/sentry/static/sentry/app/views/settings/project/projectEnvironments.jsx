@@ -1,4 +1,3 @@
-import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -222,10 +221,8 @@ class EnvironmentRow extends React.Component {
     const {environment, shouldShowAction, isSystemRow, isHidden, actionText} = this.props;
 
     return (
-      <PanelItem alignItems="center" justifyContent="space-between">
-        <Flex alignItems="center">
-          {isSystemRow ? t('All Environments') : environment.name}
-        </Flex>
+      <EnvironmentItem>
+        <Name>{isSystemRow ? t('All Environments') : environment.name}</Name>
         <Access access={['project:write']}>
           {({hasAccess}) => (
             <div>
@@ -241,10 +238,21 @@ class EnvironmentRow extends React.Component {
             </div>
           )}
         </Access>
-      </PanelItem>
+      </EnvironmentItem>
     );
   }
 }
+
+const EnvironmentItem = styled(PanelItem)`
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Name = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
 const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;

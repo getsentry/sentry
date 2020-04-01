@@ -16,7 +16,7 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
@@ -161,5 +161,5 @@ const OrganizationDashboardWrapper = styled('div')`
 
 export {Dashboard};
 export default withApi(
-  withOrganization(withTeamsForUser(profiler()(OrganizationDashboard)))
+  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
 );
