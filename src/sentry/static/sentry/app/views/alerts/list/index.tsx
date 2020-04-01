@@ -99,39 +99,24 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     const hasAlertRule = this.state.hasAlertRule;
-    if (hasAlertRule === true) {
-      return (
-        <EmptyStateWarning>
-          <p>
-            {tct('No [status] metric alerts. ', {
-              status: status === 'open' ? 'active' : status,
-            })}
 
-            {hasAlertRule
-              ? tct(' Start by [link].', {
-                  status: status === 'open' ? 'active' : status,
-                  link: (
-                    <ExternalLink onClick={this.handleAddAlertRule}>
-                      creating your first rule
-                    </ExternalLink>
-                  ),
-                })
-              : ''}
-          </p>
-        </EmptyStateWarning>
-      );
-    }
     return (
       <EmptyStateWarning>
         <p>
-          {tct('No [status] metric alerts. Start by [link].', {
+          {tct('No [status] metric alerts. ', {
             status: status === 'open' ? 'active' : status,
-            link: (
-              <ExternalLink onClick={this.handleAddAlertRule}>
-                creating your first rule
-              </ExternalLink>
-            ),
           })}
+
+          {hasAlertRule
+            ? tct(' Start by [link].', {
+                status: status === 'open' ? 'active' : status,
+                link: (
+                  <ExternalLink onClick={this.handleAddAlertRule}>
+                    creating your first rule
+                  </ExternalLink>
+                ),
+              })
+            : ''}
         </p>
       </EmptyStateWarning>
     );
