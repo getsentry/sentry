@@ -96,6 +96,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
