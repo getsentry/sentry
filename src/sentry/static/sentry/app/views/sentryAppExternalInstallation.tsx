@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import get from 'lodash/get';
 import styled from '@emotion/styled';
 
 import {
@@ -73,7 +72,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     //if the app is unpublished for a different org
     return (
       selectedOrgSlug &&
-      get(sentryApp, 'owner.slug') !== selectedOrgSlug &&
+      sentryApp?.owner?.slug !== selectedOrgSlug &&
       sentryApp.status === 'unpublished'
     );
   }
@@ -220,7 +219,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
     if (this.isSentryAppUnavailableForOrg) {
       // use the slug of the owner if we have it, otherwise use 'another organization'
-      const ownerSlug = get(sentryApp, 'owner.slug', 'another organization');
+      const ownerSlug = sentryApp?.owner?.slug ?? 'another organization';
       return (
         <Alert type="error" icon="icon-circle-exclamation">
           {tct(

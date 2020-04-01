@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 
 import space from 'app/styles/space';
 
@@ -412,7 +411,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
 
     const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
-    const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
+    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
 
     type AccType = {
       nextSpanNumber: number;

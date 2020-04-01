@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import get from 'lodash/get';
 
 import Frame from 'app/components/events/interfaces/frame/frame';
 import {t} from 'app/locale';
@@ -43,10 +42,8 @@ export default class StacktraceContent extends React.Component {
     this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp);
 
   findImageForAddress(address) {
-    const images = get(
-      this.props.event.entries.find(entry => entry.type === 'debugmeta'),
-      'data.images'
-    );
+    const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
+      ?.data?.images;
 
     return images
       ? images.find(img => {

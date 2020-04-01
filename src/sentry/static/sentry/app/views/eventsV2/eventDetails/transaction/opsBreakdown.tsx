@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import isFinite from 'lodash/isFinite';
 
 import {Event} from 'app/types';
@@ -51,7 +50,7 @@ class OpsBreakdown extends React.Component<Props> {
       };
     }
 
-    const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
+    const traceContext: TraceContextType | undefined = event?.contexts?.trace;
 
     if (!traceContext) {
       return {
@@ -64,7 +63,7 @@ class OpsBreakdown extends React.Component<Props> {
       (entry: {type: string}) => entry.type === 'spans'
     );
 
-    let spans: RawSpanType[] = get(spanEntry, 'data', []);
+    let spans: RawSpanType[] = spanEntry?.data ?? [];
 
     spans =
       spans.length > 0
