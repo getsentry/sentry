@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -31,13 +30,6 @@ const makePortal = () => {
 };
 
 class SidebarPanel extends React.Component<Props> {
-  static propTypes = {
-    title: PropTypes.string,
-    collapsed: PropTypes.bool,
-    orientation: PropTypes.oneOf(['top', 'left']),
-    hidePanel: PropTypes.func,
-  };
-
   constructor(props: Props) {
     super(props);
     this.portalEl = getSidebarPanelContainer() || makePortal();
