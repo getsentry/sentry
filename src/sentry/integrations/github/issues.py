@@ -1,10 +1,6 @@
 from __future__ import absolute_import
 
-import sentry_sdk
-
 from django.core.urlresolvers import reverse
-from sentry_sdk.tracing import Span
-
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.utils.http import absolute_uri
@@ -32,15 +28,10 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         comment = data.get("comment")
         if comment:
-            with sentry_sdk.start_span(
-                Span(op="GithubIssueBasic", transaction="create_comment", sampled=True)
-            ) as span:
-                try:
-                    client.create_comment(repo=repo, issue_id=issue_num, data={"body": comment})
-                except ApiError as e:
-                    span.set_http_status(e.code)
-                    span.set_data("message", self.message_from_error(e))
-                    raise IntegrationError(self.message_from_error(e))
+            try:
+                client.create_comment(repo=repo, issue_id=issue_num, data={"body": comment})
+            except ApiError as e:
+                raise IntegrationError(self.message_from_error(e))
 
     def get_persisted_default_config_fields(self):
         return ["repo"]
@@ -94,30 +85,25 @@ class GitHubIssueBasic(IssueBasicMixin):
         if not repo:
             raise IntegrationError("repo kwarg must be provided")
 
-        with sentry_sdk.start_span(
-            Span(op="GithubIssueBasic", transaction="create_issue", sampled=True)
-        ) as span:
-            try:
-                issue = client.create_issue(
-                    repo=repo,
-                    data={
-                        "title": data["title"],
-                        "body": data["description"],
-                        "assignee": data.get("assignee"),
-                    },
-                )
-            except ApiError as e:
-                span.set_http_status(e.code)
-                span.set_data("message", self.message_from_error(e))
-                raise IntegrationError(self.message_from_error(e))
+        try:
+            issue = client.create_issue(
+                repo=repo,
+                data={
+                    "title": data["title"],
+                    "body": data["description"],
+                    "assignee": data.get("assignee"),
+                },
+            )
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
 
-            return {
-                "key": issue["number"],
-                "title": issue["title"],
-                "description": issue["body"],
-                "url": issue["html_url"],
-                "repo": repo,
-            }
+        return {
+            "key": issue["number"],
+            "title": issue["title"],
+            "description": issue["body"],
+            "url": issue["html_url"],
+            "repo": repo,
+        }
 
     def get_link_issue_config(self, group, **kwargs):
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
