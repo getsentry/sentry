@@ -37,7 +37,12 @@
     <h2>Sentry Integration Configuration</h2>
     {% if login_required %}
       <div class="aui-message aui-message-info">
-        <p>Please login to your Sentry account to access the Sentry Add-on configuration</p>
+        <p>Please login to your Sentry account to access the Sentry Add-on configuration.</p>
+        {% if is_safari %}
+          <p>You may also need to <a href="https://www.whatismybrowser.com/guides/how-to-enable-cookies/safari"  target="_blank">enable 3rd-party cookies in your browser.</a></p>
+        {% else %}
+          <p>You may also need to enable 3rd-party cookies in your browser.</p>
+        {% endif %}
         <p>You must disable your ad-blocker to install this integration, as it relies on 3rd-party cookies.</p>
       </div>
       <div class="signin">

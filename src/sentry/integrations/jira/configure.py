@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+
+from ua_parser import user_agent_parser
 from jwt import ExpiredSignatureError
 
 from django import forms
@@ -56,8 +58,18 @@ class JiraConfigureView(View):
             return self.get_response({"refresh_required": True})
 
         if not request.user.is_authenticated():
+            parsed_user_agent = user_agent_parser.ParseUserAgent(
+                request.META.get("HTTP_USER_AGENT", "")
+            )
+            # not enabling cross site cookies seems to be a common problem with Safari
+            # as a result, there is a Safari specific link to instructions when is_safari=true
+            is_safari = parsed_user_agent.get("family") == "Safari"
             return self.get_response(
-                {"login_required": True, "login_url": absolute_uri(reverse("sentry-login"))}
+                {
+                    "login_required": True,
+                    "is_safari": is_safari,
+                    "login_url": absolute_uri(reverse("sentry-login")),
+                }
             )
 
         organizations = list(
