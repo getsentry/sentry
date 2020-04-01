@@ -38,8 +38,8 @@ function getNearbyIndex(data: Data, needle: number) {
 }
 
 /**
- * We can't just pass an x value to the chartrs, so we calculate a y value
- *  between points using the average of the two points it's between.
+ * We can't just pass an x value to the charts, so we calculate a y value
+ * between points using the average of the two points it's between.
  *
  * @param data Data array
  * @param index The (lower) index of the two points used to calculate the average
