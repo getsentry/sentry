@@ -12,6 +12,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.dates import get_rollup_from_request
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
@@ -42,7 +43,15 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"data": []})
 
         snuba_args = self.get_field(request, snuba_args)
-        rollup = self.get_rollup(request, snuba_args)
+        rollup = get_rollup_from_request(
+            request,
+            snuba_args,
+            "1h",
+            InvalidSearchQuery(
+                "Your interval and date range would create too many results. "
+                "Use a larger interval, or a smaller date range."
+            ),
+        )
 
         result = transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),
