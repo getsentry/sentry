@@ -200,7 +200,10 @@ def find_histogram_buckets(field, params, conditions):
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
     bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
-    offset = floor(bucket_min / bucket_size)
+
+    # Determine the first bucket that will show up in our results so that we can
+    # zerofill correctly.
+    offset = floor(bucket_min / bucket_size) * bucket_size
 
     return "histogram({}, {:g}, {:g}, {:g})".format(column, num_buckets, bucket_size, offset)
 

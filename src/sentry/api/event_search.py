@@ -1104,7 +1104,7 @@ FUNCTIONS = {
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
     # Internally, snuba.discover.query() expands the user request into this value by
-    # calculating the bucket size.
+    # calculating the bucket size and start_offset.
     "histogram": {
         "name": "histogram",
         "args": [

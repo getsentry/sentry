@@ -1234,6 +1234,35 @@ class QueryTransformTest(TestCase):
             assert result["count"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_zerofill_uneven_start_end(self, mock_query):
+        # the start end values don't align well with bucket boundaries.
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 507, "min_transaction.duration": 392}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_12_384"}, {"name": "count"}],
+                "data": [
+                    {"histogram_transaction_duration_10_12_384": 396, "count": 1},
+                    {"histogram_transaction_duration_10_12_384": 420, "count": 2},
+                    {"histogram_transaction_duration_10_12_384": 456, "count": 4},
+                    {"histogram_transaction_duration_10_12_384": 492, "count": 3},
+                ],
+            },
+        ]
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+        data = results["data"]
+        assert len(data) == 10, data
+        expected = (0, 1, 0, 2, 0, 0, 4, 0, 0, 3)
+        for result, exp in zip(data, expected):
+            assert result["count"] == exp
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_empty_results(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
