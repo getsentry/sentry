@@ -662,3 +662,17 @@ class MailPluginOwnersTest(TestCase):
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
         self.assert_notify(event_all_users, [self.user.email])
+
+
+class TestCanConfigureForProject(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    def test_does_not_have_alerts_targeting(self):
+        self.project.flags.has_issue_alerts_targeting = False
+        assert self.plugin.can_configure_for_project(self.project)
+
+    def test_has_alerts_targeting(self):
+        self.project.flags.has_issue_alerts_targeting = True
+        assert not self.plugin.can_configure_for_project(self.project)

@@ -36,7 +36,7 @@ describe('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Export Data');
+    expect(wrapper.text()).toBe('Export All to CSV');
   });
 
   it('should render custom children if provided', function() {

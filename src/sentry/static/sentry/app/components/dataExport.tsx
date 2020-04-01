@@ -89,7 +89,7 @@ class DataExport extends React.Component<Props, State> {
             title="Put your data to work. Start your export and we'll email you when it's finished."
             {...this.props}
           >
-            {children ? children : t('Export Data')}
+            {children ? children : t('Export All to CSV')}
           </Button>
         )}
       </Feature>

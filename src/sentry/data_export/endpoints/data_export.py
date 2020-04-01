@@ -31,13 +31,14 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-
-        # Ensure new data-exports features are enabled
+        # Ensure new data-export features are enabled
         if not features.has("organizations:data-export", organization):
             return Response(status=404)
 
         limit = request.data.get("limit")
-        serializer = DataExportQuerySerializer(data=request.data)
+        serializer = DataExportQuerySerializer(
+            data=request.data, context={"organization": organization, "user": request.user}
+        )
         try:
             environment_id = self._get_environment_id_from_request(request, organization.id)
         except Environment.DoesNotExist as error:
@@ -66,13 +67,17 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
             status = 200
             if created:
-                metrics.incr("dataexport.start", tags={"query_type": data["query_type"]})
+                metrics.incr(
+                    "dataexport.enqueue", tags={"query_type": data["query_type"]}, sample_rate=1.0
+                )
                 assemble_download.delay(
                     data_export_id=data_export.id, limit=limit, environment_id=environment_id
                 )
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
-            metrics.incr("dataexport.invalid", tags={"query_type": data.get("query_type")})
+            metrics.incr(
+                "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
+            )
             return Response({"detail": six.text_type(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)
