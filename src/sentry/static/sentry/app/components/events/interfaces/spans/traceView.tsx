@@ -1,7 +1,5 @@
 import React from 'react';
-import set from 'lodash/set';
 import pick from 'lodash/pick';
-import isNumber from 'lodash/isNumber';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -10,18 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
-import {RawSpanType, SpanEntry, SentryTransactionEvent, ParsedTraceType} from './types';
-import {isValidSpanID, generateRootSpan, getSpanID, getSpanParentSpanID} from './utils';
+import {RawSpanType, SentryTransactionEvent, ParsedTraceType} from './types';
+import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
-
-export type TraceContextType = {
-  op?: string;
-  type?: 'trace';
-  span_id?: string;
-  trace_id?: string;
-  parent_span_id?: string;
-};
 
 type IndexedFusedSpan = {
   span: RawSpanType;
@@ -45,12 +35,12 @@ export type FilterSpans = {
 type Props = {
   orgId: string;
   event: Readonly<SentryTransactionEvent>;
+  parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
   eventView: EventView;
 };
 
 type State = {
-  parsedTrace: ParsedTraceType;
   filterSpans: FilterSpans | undefined;
 };
 
@@ -61,18 +51,10 @@ class TraceView extends React.PureComponent<Props, State> {
     super(props);
 
     this.state = {
-      parsedTrace: parseTrace(props.event),
       filterSpans: undefined,
     };
 
     this.filterOnSpans(props.searchQuery);
-  }
-
-  static getDerivedStateFromProps(props: Props, state: State): State {
-    return {
-      ...state,
-      parsedTrace: parseTrace(props.event),
-    };
   }
 
   componentDidUpdate(prevProps) {
@@ -92,7 +74,7 @@ class TraceView extends React.PureComponent<Props, State> {
       return;
     }
 
-    const {parsedTrace} = this.state;
+    const {parsedTrace} = this.props;
 
     const {spans} = parsedTrace;
 
@@ -189,7 +171,7 @@ class TraceView extends React.PureComponent<Props, State> {
   );
 
   render() {
-    const {event} = this.props;
+    const {event, parsedTrace} = this.props;
 
     if (!getTraceContext(event)) {
       return (
@@ -199,7 +181,6 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const parsedTrace = this.state.parsedTrace;
     const {orgId, eventView} = this.props;
 
     return (
@@ -224,115 +205,6 @@ class TraceView extends React.PureComponent<Props, State> {
       </DragManager>
     );
   }
-}
-
-function getTraceContext(
-  event: Readonly<SentryTransactionEvent>
-): TraceContextType | undefined {
-  const traceContext: TraceContextType | undefined = event?.contexts?.trace;
-
-  return traceContext;
-}
-
-function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
-  const spanEntry: SpanEntry | undefined = event.entries.find(
-    (entry: {type: string}) => entry.type === 'spans'
-  );
-
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
-
-  const traceContext = getTraceContext(event);
-  const traceID = (traceContext && traceContext.trace_id) || '';
-  const rootSpanID = (traceContext && traceContext.span_id) || '';
-  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
-  const parentSpanID = traceContext && traceContext.parent_span_id;
-
-  if (!spanEntry || spans.length <= 0) {
-    return {
-      op: rootSpanOpName,
-      childSpans: {},
-      traceStartTimestamp: event.startTimestamp,
-      traceEndTimestamp: event.endTimestamp,
-      traceID,
-      rootSpanID,
-      parentSpanID,
-      numOfSpans: 0,
-      spans: [],
-    };
-  }
-
-  // we reduce spans to become an object mapping span ids to their children
-
-  const init: ParsedTraceType = {
-    op: rootSpanOpName,
-    childSpans: {},
-    traceStartTimestamp: event.startTimestamp,
-    traceEndTimestamp: event.endTimestamp,
-    traceID,
-    rootSpanID,
-    parentSpanID,
-    numOfSpans: spans.length,
-    spans,
-  };
-
-  const reduced: ParsedTraceType = spans.reduce((acc, span) => {
-    if (!isValidSpanID(getSpanParentSpanID(span))) {
-      return acc;
-    }
-
-    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id!] ?? [];
-
-    spanChildren.push(span);
-
-    set(acc.childSpans, span.parent_span_id!, spanChildren);
-
-    if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
-      acc.traceStartTimestamp = span.start_timestamp;
-    }
-
-    // establish trace end timestamp
-
-    const hasEndTimestamp = isNumber(span.timestamp);
-
-    if (!acc.traceEndTimestamp) {
-      if (hasEndTimestamp) {
-        acc.traceEndTimestamp = span.timestamp;
-        return acc;
-      }
-
-      acc.traceEndTimestamp = span.start_timestamp;
-      return acc;
-    }
-
-    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
-      acc.traceEndTimestamp = span.timestamp;
-      return acc;
-    }
-
-    if (span.start_timestamp > acc.traceEndTimestamp) {
-      acc.traceEndTimestamp = span.start_timestamp;
-    }
-
-    return acc;
-  }, init);
-
-  // sort span children by their start timestamps in ascending order
-
-  Object.values(reduced.childSpans).forEach(spanChildren => {
-    spanChildren.sort((firstSpan, secondSpan) => {
-      if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
-        return -1;
-      }
-
-      if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
-        return 0;
-      }
-
-      return 1;
-    });
-  });
-
-  return reduced;
 }
 
 export default TraceView;

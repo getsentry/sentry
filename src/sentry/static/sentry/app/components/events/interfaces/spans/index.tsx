@@ -9,20 +9,22 @@ import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 
-import {SentryTransactionEvent} from './types';
+import {SentryTransactionEvent, ParsedTraceType} from './types';
+import {parseTrace} from './utils';
 import TraceView from './traceView';
 
-type PropType = {
+type Props = {
   orgId: string;
   event: SentryTransactionEvent;
   eventView: EventView;
 };
 
 type State = {
+  parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
 };
 
-class SpansInterface extends React.Component<PropType, State> {
+class SpansInterface extends React.Component<Props, State> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -30,7 +32,15 @@ class SpansInterface extends React.Component<PropType, State> {
 
   state: State = {
     searchQuery: undefined,
+    parsedTrace: parseTrace(this.props.event),
   };
+
+  static getDerivedStateFromProps(props: Props, state: State): State {
+    return {
+      ...state,
+      parsedTrace: parseTrace(props.event),
+    };
+  }
 
   handleSpanFilter = (searchQuery: string) => {
     this.setState({
@@ -55,6 +65,7 @@ class SpansInterface extends React.Component<PropType, State> {
             searchQuery={this.state.searchQuery}
             orgId={orgId}
             eventView={eventView}
+            parsedTrace={this.state.parsedTrace}
           />
         </Panel>
       </div>

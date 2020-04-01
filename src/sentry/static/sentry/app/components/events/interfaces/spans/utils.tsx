@@ -1,9 +1,19 @@
 import isString from 'lodash/isString';
 import moment from 'moment';
+import set from 'lodash/set';
+import isNumber from 'lodash/isNumber';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
 
-import {ParsedTraceType, ProcessedSpanType, GapSpanType, RawSpanType} from './types';
+import {
+  ParsedTraceType,
+  ProcessedSpanType,
+  GapSpanType,
+  RawSpanType,
+  SpanEntry,
+  SentryTransactionEvent,
+  TraceContextType,
+} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -367,4 +377,113 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   }
 
   return span.parent_span_id;
+}
+
+export function getTraceContext(
+  event: Readonly<SentryTransactionEvent>
+): TraceContextType | undefined {
+  const traceContext: TraceContextType | undefined = event?.contexts?.trace;
+
+  return traceContext;
+}
+
+export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
+  const spanEntry: SpanEntry | undefined = event.entries.find(
+    (entry: {type: string}) => entry.type === 'spans'
+  );
+
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+
+  const traceContext = getTraceContext(event);
+  const traceID = (traceContext && traceContext.trace_id) || '';
+  const rootSpanID = (traceContext && traceContext.span_id) || '';
+  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
+  const parentSpanID = traceContext && traceContext.parent_span_id;
+
+  if (!spanEntry || spans.length <= 0) {
+    return {
+      op: rootSpanOpName,
+      childSpans: {},
+      traceStartTimestamp: event.startTimestamp,
+      traceEndTimestamp: event.endTimestamp,
+      traceID,
+      rootSpanID,
+      parentSpanID,
+      numOfSpans: 0,
+      spans: [],
+    };
+  }
+
+  // we reduce spans to become an object mapping span ids to their children
+
+  const init: ParsedTraceType = {
+    op: rootSpanOpName,
+    childSpans: {},
+    traceStartTimestamp: event.startTimestamp,
+    traceEndTimestamp: event.endTimestamp,
+    traceID,
+    rootSpanID,
+    parentSpanID,
+    numOfSpans: spans.length,
+    spans,
+  };
+
+  const reduced: ParsedTraceType = spans.reduce((acc, span) => {
+    if (!isValidSpanID(getSpanParentSpanID(span))) {
+      return acc;
+    }
+
+    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id!] ?? [];
+
+    spanChildren.push(span);
+
+    set(acc.childSpans, span.parent_span_id!, spanChildren);
+
+    if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
+      acc.traceStartTimestamp = span.start_timestamp;
+    }
+
+    // establish trace end timestamp
+
+    const hasEndTimestamp = isNumber(span.timestamp);
+
+    if (!acc.traceEndTimestamp) {
+      if (hasEndTimestamp) {
+        acc.traceEndTimestamp = span.timestamp;
+        return acc;
+      }
+
+      acc.traceEndTimestamp = span.start_timestamp;
+      return acc;
+    }
+
+    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+      acc.traceEndTimestamp = span.timestamp;
+      return acc;
+    }
+
+    if (span.start_timestamp > acc.traceEndTimestamp) {
+      acc.traceEndTimestamp = span.start_timestamp;
+    }
+
+    return acc;
+  }, init);
+
+  // sort span children by their start timestamps in ascending order
+
+  Object.values(reduced.childSpans).forEach(spanChildren => {
+    spanChildren.sort((firstSpan, secondSpan) => {
+      if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
+        return -1;
+      }
+
+      if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
+        return 0;
+      }
+
+      return 1;
+    });
+  });
+
+  return reduced;
 }
