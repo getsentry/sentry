@@ -1,9 +1,9 @@
 import React from 'react';
-import {Location} from 'history';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import {forceCheck} from 'react-lazyload';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -22,20 +22,24 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Projects from 'app/utils/projects';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 
-type Props = {
-  params: Params;
-  location: Location;
+type RouteParams = {
+  orgId: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  router: ReactRouter.InjectedRouter;
-} & AsyncView['props'];
+};
 
 type State = AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
     return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
   }
@@ -57,6 +61,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
+        'healthStat',
       ]),
       summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
@@ -65,6 +70,23 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    super.componentDidUpdate(prevProps, prevState);
+
+    if (prevState.releases !== this.state.releases) {
+      /**
+       * Manually trigger checking for elements in viewport.
+       * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+       * https://github.com/twobin/react-lazyload#forcecheck
+       *
+       * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+       * This is how we re-check them without scrolling once releases change as this view
+       * uses shouldReload=true and there is no reloading happening.
+       */
+      forceCheck();
+    }
   }
 
   getQuery() {
@@ -97,68 +119,73 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release =>
+    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
+    return flatMap(releases, release =>
       release.projects.map(project => {
-        const {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-        } = release;
-        const {slug, id, healthData} = project;
         return {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-          healthData: healthData!,
-          projectSlug: slug,
-          projectId: id,
-          // TODO(releasesv2): make api send also project platform
+          ...release,
+          healthData: project.healthData,
+          project,
         };
       })
     );
   }
 
-  renderInnerBody() {
-    const {organization, location} = this.props;
-    const {loading, releases} = this.state;
+  renderLoading() {
+    return this.renderBody();
+  }
 
-    if (loading) {
+  renderEmptyMessage() {
+    const {location} = this.props;
+    const searchQuery = this.getQuery();
+
+    if (searchQuery && searchQuery.length) {
+      return (
+        <EmptyStateWarning small>{`${t(
+          'There are no releases that match'
+        )}: '${searchQuery}'.`}</EmptyStateWarning>
+      );
+    }
+
+    if (this.getSort() !== 'date') {
+      const relativePeriod = getRelativeSummary(
+        location.query.statsPeriod || DEFAULT_STATS_PERIOD
+      ).toLowerCase();
+
+      return (
+        <EmptyStateWarning small>
+          {`${t('There are no releases with data in the')} ${relativePeriod}.`}
+        </EmptyStateWarning>
+      );
+    }
+
+    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+  }
+
+  renderInnerBody() {
+    const {location} = this.props;
+    const {loading, releases, reloading} = this.state;
+
+    if ((loading && !reloading) || (loading && !releases.length)) {
       return <LoadingIndicator />;
     }
 
     if (!releases.length) {
-      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+      return this.renderEmptyMessage();
     }
 
     const projectReleases = this.transformToProjectRelease(releases);
 
-    return (
-      <Projects orgId={organization.slug} slugs={projectReleases.map(r => r.projectSlug)}>
-        {({projects}) =>
-          projectReleases.map((release: ProjectRelease) => (
-            <ReleaseCard
-              key={`${release.version}-${release.dateCreated}`}
-              release={release}
-              project={projects.find(p => p.slug === release.projectSlug)}
-              location={location}
-            />
-          ))
-        }
-      </Projects>
-    );
+    return projectReleases.map((release: ProjectRelease) => (
+      <ReleaseCard
+        key={`${release.version}-${release.project.slug}`}
+        release={release}
+        project={release.project}
+        location={location}
+        reloading={reloading}
+      />
+    ));
   }
 
   renderBody() {
@@ -188,7 +215,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 <SearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
-                  defaultQuery={this.getQuery()}
+                  query={this.getQuery()}
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>

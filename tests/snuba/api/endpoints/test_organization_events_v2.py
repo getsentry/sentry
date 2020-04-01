@@ -2172,7 +2172,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
-                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
                 self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -2190,15 +2190,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 10
+        assert len(data) == 11
         expected = [
-            (1000, 5),
-            (2000, 4),
-            (3000, 0),
-            (4000, 3),
+            (0, 5),
+            (1000, 4),
+            (2000, 0),
+            (3000, 3),
+            (4000, 0),
             (5000, 0),
-            (6000, 0),
-            (7000, 2),
+            (6000, 2),
+            (7000, 0),
             (8000, 0),
             (9000, 0),
             (10000, 1),
@@ -2224,7 +2225,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
-                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
                 self.store_event(data, project_id=project.id)
 
         # Add a transaction that totally throws off the buckets
@@ -2250,15 +2251,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 10
+        assert len(data) == 11
         expected = [
-            (1000, 5),
-            (2000, 4),
-            (3000, 0),
-            (4000, 3),
+            (0, 5),
+            (1000, 4),
+            (2000, 0),
+            (3000, 3),
+            (4000, 0),
             (5000, 0),
-            (6000, 0),
-            (7000, 2),
+            (6000, 2),
+            (7000, 0),
             (8000, 0),
             (9000, 0),
             (10000, 1),

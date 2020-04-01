@@ -9,7 +9,7 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 const TWENTY_FOUR_HOURS = 1440;
 const ONE_HOUR = 60;
 
-type DateTimeObject = {
+export type DateTimeObject = {
   start: Date | null;
   end: Date | null;
   period?: string;

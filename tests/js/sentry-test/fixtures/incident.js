@@ -12,12 +12,7 @@ export function Incident(params) {
     title: 'Too many Chrome errors',
     status: 0,
     projects: [],
-    totalEvents: 100,
-    uniqueUsers: 20,
     isSubscribed: true,
-    eventStats: {
-      data: [],
-    },
     alertRule: IncidentRule(),
     ...params,
   };

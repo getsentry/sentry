@@ -176,7 +176,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
             max_batch_size=1,
             max_batch_time=10,
             group_id=group_id,
-            consumer_type=ConsumerType.Events,
+            consumer_types=[ConsumerType.Events],
             auto_offset_reset="earliest",
         )
 

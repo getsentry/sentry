@@ -11,13 +11,10 @@ import {Organization} from 'app/types';
 
 import SidebarMenuItem from './sidebarMenuItem';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
-import {SidebarOrientation} from './types';
+import {CommonSidebarProps} from './types';
 
-type Props = {
+type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
   organization: Organization;
-  collapsed: boolean;
-  hidePanel: () => void;
-  orientation: SidebarOrientation;
 };
 
 const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) => (
@@ -41,10 +38,10 @@ const SidebarHelp = ({orientation, collapsed, hidePanel, organization}: Props) =
             <SidebarMenuItem onClick={openHelpSearchModal}>
               {t('Search Docs and FAQs')}
             </SidebarMenuItem>
-            <SidebarMenuItem href="https://forum.sentry.io/" openInNewTab>
+            <SidebarMenuItem href="https://forum.sentry.io/">
               {t('Community Discussions')}
             </SidebarMenuItem>
-            <SidebarMenuItem href="https://status.sentry.io/" openInNewTab>
+            <SidebarMenuItem href="https://status.sentry.io/">
               {t('Service Status')}
             </SidebarMenuItem>
           </HelpMenu>

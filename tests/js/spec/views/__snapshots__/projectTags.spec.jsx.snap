@@ -169,7 +169,7 @@ exports[`ProjectTags renders 1`] = `
               Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to 
             </span>
-            <ForwardRef
+            <ForwardRef(ExternalLink)
               href="https://docs.sentry.io/hosted/learn/context/"
               key="2"
             >
@@ -184,7 +184,7 @@ exports[`ProjectTags renders 1`] = `
                   add custom tags
                 </span>
               </a>
-            </ForwardRef>
+            </ForwardRef(ExternalLink)>
             <span
               key="3"
             >
@@ -363,6 +363,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -410,54 +411,42 @@ exports[`ProjectTags renders 1`] = `
                                                     align="center"
                                                     size="xsmall"
                                                   >
-                                                    <Component
-                                                      align="center"
+                                                    <span
                                                       className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                      size="xsmall"
                                                     >
-                                                      <span
-                                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      <Icon
+                                                        hasChildren={false}
+                                                        size="xsmall"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <span
+                                                          className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <Component
-                                                            className="css-1j44i9a-Icon edwq9my2"
-                                                            hasChildren={false}
-                                                            size="xsmall"
+                                                          <StyledInlineSvg
+                                                            size="12px"
+                                                            src="icon-trash"
                                                           >
-                                                            <span
-                                                              className="css-1j44i9a-Icon edwq9my2"
-                                                              size="xsmall"
+                                                            <ForwardRef
+                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                              size="12px"
+                                                              src="icon-trash"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <svg
+                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                height="12px"
+                                                                viewBox={Object {}}
+                                                                width="12px"
                                                               >
-                                                                <ForwardRef
-                                                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
-                                                                >
-                                                                  <svg
-                                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
-                                                                  >
-                                                                    <use
-                                                                      href="#test"
-                                                                      xlinkHref="#test"
-                                                                    />
-                                                                  </svg>
-                                                                </ForwardRef>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
+                                                                <use
+                                                                  href="#test"
+                                                                  xlinkHref="#test"
+                                                                />
+                                                              </svg>
+                                                            </ForwardRef>
+                                                          </StyledInlineSvg>
+                                                        </span>
+                                                      </Icon>
+                                                    </span>
                                                   </ButtonLabel>
                                                 </button>
                                               </Component>
@@ -569,6 +558,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -616,54 +606,42 @@ exports[`ProjectTags renders 1`] = `
                                                     align="center"
                                                     size="xsmall"
                                                   >
-                                                    <Component
-                                                      align="center"
+                                                    <span
                                                       className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                      size="xsmall"
                                                     >
-                                                      <span
-                                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      <Icon
+                                                        hasChildren={false}
+                                                        size="xsmall"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <span
+                                                          className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <Component
-                                                            className="css-1j44i9a-Icon edwq9my2"
-                                                            hasChildren={false}
-                                                            size="xsmall"
+                                                          <StyledInlineSvg
+                                                            size="12px"
+                                                            src="icon-trash"
                                                           >
-                                                            <span
-                                                              className="css-1j44i9a-Icon edwq9my2"
-                                                              size="xsmall"
+                                                            <ForwardRef
+                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                              size="12px"
+                                                              src="icon-trash"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <svg
+                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                height="12px"
+                                                                viewBox={Object {}}
+                                                                width="12px"
                                                               >
-                                                                <ForwardRef
-                                                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
-                                                                >
-                                                                  <svg
-                                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
-                                                                  >
-                                                                    <use
-                                                                      href="#test"
-                                                                      xlinkHref="#test"
-                                                                    />
-                                                                  </svg>
-                                                                </ForwardRef>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
+                                                                <use
+                                                                  href="#test"
+                                                                  xlinkHref="#test"
+                                                                />
+                                                              </svg>
+                                                            </ForwardRef>
+                                                          </StyledInlineSvg>
+                                                        </span>
+                                                      </Icon>
+                                                    </span>
                                                   </ButtonLabel>
                                                 </button>
                                               </Component>
@@ -775,6 +753,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -822,54 +801,42 @@ exports[`ProjectTags renders 1`] = `
                                                     align="center"
                                                     size="xsmall"
                                                   >
-                                                    <Component
-                                                      align="center"
+                                                    <span
                                                       className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                      size="xsmall"
                                                     >
-                                                      <span
-                                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      <Icon
+                                                        hasChildren={false}
+                                                        size="xsmall"
                                                       >
-                                                        <Icon
-                                                          hasChildren={false}
+                                                        <span
+                                                          className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <Component
-                                                            className="css-1j44i9a-Icon edwq9my2"
-                                                            hasChildren={false}
-                                                            size="xsmall"
+                                                          <StyledInlineSvg
+                                                            size="12px"
+                                                            src="icon-trash"
                                                           >
-                                                            <span
-                                                              className="css-1j44i9a-Icon edwq9my2"
-                                                              size="xsmall"
+                                                            <ForwardRef
+                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                              size="12px"
+                                                              src="icon-trash"
                                                             >
-                                                              <StyledInlineSvg
-                                                                size="12px"
-                                                                src="icon-trash"
+                                                              <svg
+                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                height="12px"
+                                                                viewBox={Object {}}
+                                                                width="12px"
                                                               >
-                                                                <ForwardRef
-                                                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                  size="12px"
-                                                                  src="icon-trash"
-                                                                >
-                                                                  <svg
-                                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                    height="12px"
-                                                                    viewBox={Object {}}
-                                                                    width="12px"
-                                                                  >
-                                                                    <use
-                                                                      href="#test"
-                                                                      xlinkHref="#test"
-                                                                    />
-                                                                  </svg>
-                                                                </ForwardRef>
-                                                              </StyledInlineSvg>
-                                                            </span>
-                                                          </Component>
-                                                        </Icon>
-                                                      </span>
-                                                    </Component>
+                                                                <use
+                                                                  href="#test"
+                                                                  xlinkHref="#test"
+                                                                />
+                                                              </svg>
+                                                            </ForwardRef>
+                                                          </StyledInlineSvg>
+                                                        </span>
+                                                      </Icon>
+                                                    </span>
                                                   </ButtonLabel>
                                                 </button>
                                               </Component>
@@ -977,7 +944,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <span
                                             aria-describedby="tooltip-123456"
-                                            className="css-sce1yi-Container eowlwvy0"
+                                            className="css-1y4rfpo-Container eowlwvy0"
                                             onBlur={[Function]}
                                             onFocus={[Function]}
                                             onMouseEnter={[Function]}
@@ -1002,6 +969,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >
@@ -1049,54 +1017,42 @@ exports[`ProjectTags renders 1`] = `
                                                               align="center"
                                                               size="xsmall"
                                                             >
-                                                              <Component
-                                                                align="center"
+                                                              <span
                                                                 className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                                size="xsmall"
                                                               >
-                                                                <span
-                                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                <Icon
+                                                                  hasChildren={false}
+                                                                  size="xsmall"
                                                                 >
-                                                                  <Icon
-                                                                    hasChildren={false}
+                                                                  <span
+                                                                    className="css-1j44i9a-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <Component
-                                                                      className="css-1j44i9a-Icon edwq9my2"
-                                                                      hasChildren={false}
-                                                                      size="xsmall"
+                                                                    <StyledInlineSvg
+                                                                      size="12px"
+                                                                      src="icon-trash"
                                                                     >
-                                                                      <span
-                                                                        className="css-1j44i9a-Icon edwq9my2"
-                                                                        size="xsmall"
+                                                                      <ForwardRef
+                                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                        size="12px"
+                                                                        src="icon-trash"
                                                                       >
-                                                                        <StyledInlineSvg
-                                                                          size="12px"
-                                                                          src="icon-trash"
+                                                                        <svg
+                                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                          height="12px"
+                                                                          viewBox={Object {}}
+                                                                          width="12px"
                                                                         >
-                                                                          <ForwardRef
-                                                                            className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                            size="12px"
-                                                                            src="icon-trash"
-                                                                          >
-                                                                            <svg
-                                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                              height="12px"
-                                                                              viewBox={Object {}}
-                                                                              width="12px"
-                                                                            >
-                                                                              <use
-                                                                                href="#test"
-                                                                                xlinkHref="#test"
-                                                                              />
-                                                                            </svg>
-                                                                          </ForwardRef>
-                                                                        </StyledInlineSvg>
-                                                                      </span>
-                                                                    </Component>
-                                                                  </Icon>
-                                                                </span>
-                                                              </Component>
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </ForwardRef>
+                                                                    </StyledInlineSvg>
+                                                                  </span>
+                                                                </Icon>
+                                                              </span>
                                                             </ButtonLabel>
                                                           </button>
                                                         </Component>
@@ -1208,7 +1164,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <span
                                             aria-describedby="tooltip-123456"
-                                            className="css-sce1yi-Container eowlwvy0"
+                                            className="css-1y4rfpo-Container eowlwvy0"
                                             onBlur={[Function]}
                                             onFocus={[Function]}
                                             onMouseEnter={[Function]}
@@ -1233,6 +1189,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >
@@ -1280,54 +1237,42 @@ exports[`ProjectTags renders 1`] = `
                                                               align="center"
                                                               size="xsmall"
                                                             >
-                                                              <Component
-                                                                align="center"
+                                                              <span
                                                                 className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                                size="xsmall"
                                                               >
-                                                                <span
-                                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                <Icon
+                                                                  hasChildren={false}
+                                                                  size="xsmall"
                                                                 >
-                                                                  <Icon
-                                                                    hasChildren={false}
+                                                                  <span
+                                                                    className="css-1j44i9a-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <Component
-                                                                      className="css-1j44i9a-Icon edwq9my2"
-                                                                      hasChildren={false}
-                                                                      size="xsmall"
+                                                                    <StyledInlineSvg
+                                                                      size="12px"
+                                                                      src="icon-trash"
                                                                     >
-                                                                      <span
-                                                                        className="css-1j44i9a-Icon edwq9my2"
-                                                                        size="xsmall"
+                                                                      <ForwardRef
+                                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                        size="12px"
+                                                                        src="icon-trash"
                                                                       >
-                                                                        <StyledInlineSvg
-                                                                          size="12px"
-                                                                          src="icon-trash"
+                                                                        <svg
+                                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                                          height="12px"
+                                                                          viewBox={Object {}}
+                                                                          width="12px"
                                                                         >
-                                                                          <ForwardRef
-                                                                            className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                            size="12px"
-                                                                            src="icon-trash"
-                                                                          >
-                                                                            <svg
-                                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                              height="12px"
-                                                                              viewBox={Object {}}
-                                                                              width="12px"
-                                                                            >
-                                                                              <use
-                                                                                href="#test"
-                                                                                xlinkHref="#test"
-                                                                              />
-                                                                            </svg>
-                                                                          </ForwardRef>
-                                                                        </StyledInlineSvg>
-                                                                      </span>
-                                                                    </Component>
-                                                                  </Icon>
-                                                                </span>
-                                                              </Component>
+                                                                          <use
+                                                                            href="#test"
+                                                                            xlinkHref="#test"
+                                                                          />
+                                                                        </svg>
+                                                                      </ForwardRef>
+                                                                    </StyledInlineSvg>
+                                                                  </span>
+                                                                </Icon>
+                                                              </span>
                                                             </ButtonLabel>
                                                           </button>
                                                         </Component>

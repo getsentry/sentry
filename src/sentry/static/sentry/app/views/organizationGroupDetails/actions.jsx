@@ -14,7 +14,7 @@ import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
@@ -91,7 +91,6 @@ class DeleteActions extends React.Component {
   render() {
     return (
       <div className="btn-group">
-        <GuideAnchor target="ignore_delete_discard" />
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
@@ -271,17 +270,21 @@ const GroupDetailsActions = createReactClass({
 
     return (
       <div className="group-actions">
-        <ResolveActions
-          hasRelease={hasRelease}
-          latestRelease={project.latestRelease}
-          onUpdate={this.onUpdate}
-          orgId={organization.slug}
-          projectId={project.slug}
-          isResolved={isResolved}
-          isAutoResolved={isResolved && group.statusDetails.autoResolved}
-        />
+        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
+          <ResolveActions
+            hasRelease={hasRelease}
+            latestRelease={project.latestRelease}
+            onUpdate={this.onUpdate}
+            orgId={organization.slug}
+            projectId={project.slug}
+            isResolved={isResolved}
+            isAutoResolved={isResolved && group.statusDetails.autoResolved}
+          />
+        </GuideAnchor>
 
-        <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
+          <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+        </GuideAnchor>
 
         <div className="btn-group">
           <div

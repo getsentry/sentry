@@ -1,40 +1,48 @@
 import React from 'react';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization, Release, Deploy} from 'app/types';
+import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import {PageContent} from 'app/styles/organization';
-import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
+import AsyncComponent from 'app/components/asyncComponent';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconInfo} from 'app/icons';
+import space from 'app/styles/space';
 
 import ReleaseHeader from './releaseHeader';
+import PickProjectToContinue from './pickProjectToContinue';
 
-const ReleaseContext = React.createContext<Release | undefined>(undefined);
+type ReleaseContext = {release: Release; project: ReleaseProject};
+const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
-type Props = {
+type RouteParams = {
+  orgId: string;
+  release: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  location: Location;
-  router: ReactRouter.InjectedRouter;
-  params: Params;
-} & AsyncView['props'];
+  selection: GlobalSelection;
+};
 
 type State = {
   release: Release;
   deploys: Deploy[];
 } & AsyncView['state'];
 
-// TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(
@@ -55,6 +63,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
+      // TODO(releasesV2): summaryStatsPeriod + healthStatsPeriod?
       health: 1,
     };
 
@@ -68,26 +77,33 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  renderError(error: Error, disableLog = false, disableReport = false) {
-    const {errors} = this.state;
-    const has404Errors = Object.values(errors).find(e => e?.status === 404);
+  handleError(e, args) {
+    const {router, location} = this.props;
+    const possiblyWrongProject = e.status === 404 || e.status === 403;
 
-    if (has404Errors) {
-      return (
-        <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
-            {t('This release may not be in your selected project')}
-          </Alert>
-        </PageContent>
-      );
+    if (possiblyWrongProject) {
+      // refreshing this page without project ID will bring up a project selector
+      router.replace({
+        ...location,
+        query: {...location.query, project: undefined},
+      });
+      return;
     }
-
-    return super.renderError(error, disableLog, disableReport);
+    super.handleError(e, args);
   }
 
   renderBody() {
-    const {organization, location} = this.props;
-    const {release, deploys} = this.state;
+    const {organization, location, selection} = this.props;
+    const {release, deploys, reloading} = this.state;
+    const project = release.projects.find(p => p.id === selection.projects[0]);
+
+    if (!project || !release) {
+      if (reloading) {
+        return <LoadingIndicator />;
+      }
+
+      return null;
+    }
 
     return (
       <NoProjectMessage organization={organization}>
@@ -97,9 +113,10 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             orgId={organization.slug}
             release={release}
             deploys={deploys}
+            project={project}
           />
 
-          <ReleaseContext.Provider value={release}>
+          <ReleaseContext.Provider value={{release, project}}>
             {this.props.children}
           </ReleaseContext.Provider>
         </StyledPageContent>
@@ -108,16 +125,79 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-const ReleasesV2DetailContainer = (props: Props) => (
-  <React.Fragment>
-    <GlobalSelectionHeader organization={props.organization} />
-    <ReleasesV2Detail {...props} />
-  </React.Fragment>
-);
+class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+  shouldReload = true;
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {organization, params} = this.props;
+    // fetch projects this release belongs to
+    return [
+      [
+        'release',
+        `/organizations/${organization.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/`,
+      ],
+    ];
+  }
+
+  isProjectMissingInUrl() {
+    const projectId = this.props.location.query.project;
+
+    return !projectId || typeof projectId !== 'string';
+  }
+
+  renderProjectsFooterMessage() {
+    return (
+      <ProjectsFooterMessage>
+        <IconInfo size="xs" /> {t('Only projects with this release are visible.')}
+      </ProjectsFooterMessage>
+    );
+  }
+
+  renderBody() {
+    const {organization, params, router} = this.props;
+    const {projects} = this.state.release;
+
+    if (this.isProjectMissingInUrl()) {
+      return (
+        <PickProjectToContinue
+          orgSlug={organization.slug}
+          version={params.release}
+          router={router}
+          projects={projects}
+        />
+      );
+    }
+
+    return (
+      <React.Fragment>
+        <GlobalSelectionHeader
+          organization={organization}
+          lockedMessageSubject={t('release')}
+          shouldForceProject={projects.length === 1}
+          forceProject={projects.length === 1 ? projects[0] : undefined}
+          specificProjectSlugs={projects.map(p => p.slug)}
+          disableMultipleProjectSelection
+          showProjectSettingsLink
+          projectsFooterMessage={this.renderProjectsFooterMessage()}
+        />
+        <ReleasesV2Detail {...this.props} />
+      </React.Fragment>
+    );
+  }
+}
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const ProjectsFooterMessage = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: min-content 1fr;
+  grid-gap: ${space(1)};
+`;
+
 export {ReleasesV2DetailContainer, ReleaseContext};
-export default withOrganization(ReleasesV2DetailContainer);
+export default withGlobalSelection(withOrganization(ReleasesV2DetailContainer));

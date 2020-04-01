@@ -6,7 +6,7 @@ export type GuideStep = {
    * "invisible", it will not be pinged but will be scrolled to.
    * Otherwise the anchor will be pinged and scrolled to.
    */
-  target: string;
+  target?: string;
   description: React.ReactNode;
 };
 
@@ -14,7 +14,7 @@ export type Guide = {
   guide: string;
   requiredTargets: string[];
   steps: GuideStep[];
-  seen?: boolean;
+  seen: boolean;
 };
 
 export type GuidesContent = {

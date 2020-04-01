@@ -221,6 +221,7 @@ class TeamMembers extends React.Component {
       <StyledMembersLabel>
         {t('Members')}
         <StyledCreateMemberLink
+          to=""
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >

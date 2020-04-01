@@ -3,20 +3,20 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
 
-import space from 'app/styles/space';
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
+import {IconInfo} from 'app/icons/iconInfo';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Hovercard from 'app/components/hovercard';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import Hovercard from 'app/components/hovercard';
-import {IconInfo} from 'app/icons/iconInfo';
 
 class SuggestedOwners extends React.Component {
   static propTypes = {
@@ -207,37 +207,37 @@ class SuggestedOwners extends React.Component {
         )}
         <Access access={['project:write']}>
           <div className="m-b-1">
-            <GuideAnchor target="owners">
-              <OwnerRuleHeading>
-                <span>{t('Ownership Rules')}</span>
-                <ClassNames>
-                  {({css}) => (
-                    <Hovercard
-                      containerClassName={css`
-                        display: inline-flex;
-                        padding: 0 !important;
-                      `}
-                      body={this.getInfoHovercardBody()}
-                    >
-                      <IconInfo size="xs" />
-                    </Hovercard>
-                  )}
-                </ClassNames>
-              </OwnerRuleHeading>
+            <OwnerRuleHeading>
+              <span>{t('Ownership Rules')}</span>
+              <ClassNames>
+                {({css}) => (
+                  <Hovercard
+                    containerClassName={css`
+                      display: inline-flex;
+                      padding: 0 !important;
+                    `}
+                    body={this.getInfoHovercardBody()}
+                  >
+                    <IconInfo size="xs" />
+                  </Hovercard>
+                )}
+              </ClassNames>
+            </OwnerRuleHeading>
+            <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+              <Button
+                onClick={() =>
+                  openCreateOwnershipRule({
+                    project,
+                    organization,
+                    issueId: group.id,
+                  })
+                }
+                size="small"
+                className="btn btn-default btn-sm btn-create-ownership-rule"
+              >
+                {t('Create Ownership Rule')}
+              </Button>
             </GuideAnchor>
-            <Button
-              onClick={() =>
-                openCreateOwnershipRule({
-                  project,
-                  organization,
-                  issueId: group.id,
-                })
-              }
-              size="small"
-              className="btn btn-default btn-sm btn-create-ownership-rule"
-            >
-              {t('Create Ownership Rule')}
-            </Button>
           </div>
         </Access>
       </React.Fragment>

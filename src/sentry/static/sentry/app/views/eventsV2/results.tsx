@@ -10,6 +10,7 @@ import {Organization, GlobalSelection} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -20,6 +21,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -27,8 +29,7 @@ import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
-import EventView, {isAPIPayloadSimilar} from './eventView';
-import {generateTitle, fetchTotalCount} from './utils';
+import {generateTitle} from './utils';
 import {ContentBox} from './styles';
 
 type Props = {
@@ -271,7 +272,6 @@ export const Top = styled('div')`
 export const Main = styled('div')<{eventView: EventView}>`
   grid-column: 1/2;
   max-width: 100%;
-  overflow: hidden;
 `;
 export const Side = styled('div')<{eventView: EventView}>`
   grid-column: 2/3;

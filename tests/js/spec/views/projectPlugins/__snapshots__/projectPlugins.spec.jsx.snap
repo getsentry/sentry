@@ -102,40 +102,46 @@ exports[`ProjectPlugins renders 1`] = `
                     type="warning"
                   >
                     <Component
-                      className="e1cszazt0 css-952s9x-Alert-PanelAlert ejthpj82"
+                      className="e1cszazt0 css-utenda-Alert-PanelAlert ejthpj82"
                       icon="icon-circle-exclamation"
                       iconSize="24px"
                       system={true}
                       type="warning"
                     >
                       <div
-                        className="ref-warning e1cszazt0 css-952s9x-Alert-PanelAlert ejthpj82"
+                        className="ref-warning e1cszazt0 css-utenda-Alert-PanelAlert ejthpj82"
                       >
-                        <StyledInlineSvg
-                          size="24px"
-                          src="icon-circle-exclamation"
-                        >
-                          <ForwardRef
-                            className="css-p7z0xe-InlineSvg-StyledInlineSvg ejthpj80"
-                            size="24px"
-                            src="icon-circle-exclamation"
+                        <IconWrapper>
+                          <span
+                            className="css-dhrf1z-IconWrapper ejthpj80"
                           >
-                            <svg
-                              className="css-p7z0xe-InlineSvg-StyledInlineSvg ejthpj80"
-                              height="24px"
-                              viewBox={Object {}}
-                              width="24px"
+                            <InlineSvg
+                              size="24px"
+                              src="icon-circle-exclamation"
                             >
-                              <use
-                                href="#test"
-                                xlinkHref="#test"
-                              />
-                            </svg>
-                          </ForwardRef>
-                        </StyledInlineSvg>
+                              <ForwardRef
+                                className="css-tbsmsq-InlineSvg enyz4ql0"
+                                size="24px"
+                                src="icon-circle-exclamation"
+                              >
+                                <svg
+                                  className="css-tbsmsq-InlineSvg enyz4ql0"
+                                  height="24px"
+                                  viewBox={Object {}}
+                                  width="24px"
+                                >
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </ForwardRef>
+                            </InlineSvg>
+                          </span>
+                        </IconWrapper>
                         <StyledTextBlock>
-                          <div
-                            className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
+                          <span
+                            className="css-6y2q80-StyledTextBlock ejthpj81"
                           >
                             <WithOrganizationMockWrapper
                               access={
@@ -276,7 +282,7 @@ exports[`ProjectPlugins renders 1`] = `
                                 </Access>
                               </withConfig(Access)>
                             </WithOrganizationMockWrapper>
-                          </div>
+                          </span>
                         </StyledTextBlock>
                       </div>
                     </Component>
@@ -528,43 +534,38 @@ exports[`ProjectPlugins renders 1`] = `
                               renderNoAccessMessage={false}
                               requireAll={true}
                             >
-                              <Styled(div)
-                                alignItems="center"
+                              <PluginItem
                                 className="amazon-sqs"
-                                flex="1"
                                 key="amazon-sqs"
                               >
                                 <div
-                                  className="amazon-sqs css-1j7oo6s"
+                                  className="amazon-sqs css-efgwqc-PluginItem e1y7j6vq0"
                                 >
                                   <PluginInfo>
                                     <div
-                                      className="css-1jrzgda-PluginInfo e1y7j6vq0"
+                                      className="css-1jrzgda-PluginInfo e1y7j6vq2"
                                     >
                                       <StyledPluginIcon
                                         pluginId="amazon-sqs"
                                         size={48}
                                       >
                                         <div
-                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq2"
+                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
                                           size={48}
                                         />
                                       </StyledPluginIcon>
-                                      <Styled(div)
-                                        flexDirection="column"
-                                        justifyContent="center"
-                                      >
+                                      <PluginDescription>
                                         <div
-                                          className="css-bq2mgp"
+                                          className="css-1rlsayk-PluginDescription e1y7j6vq1"
                                         >
                                           <PluginName>
                                             <div
-                                              className="css-1rrljgj-PluginName e1y7j6vq1"
+                                              className="css-1rrljgj-PluginName e1y7j6vq3"
                                             >
                                               Amazon SQS 
                                               <Version>
                                                 <span
-                                                  className="css-1czymow-Version e1y7j6vq3"
+                                                  className="css-1czymow-Version e1y7j6vq5"
                                                 >
                                                   v8.23.0.dev0
                                                 </span>
@@ -576,6 +577,9 @@ exports[`ProjectPlugins renders 1`] = `
                                               __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                 Object {
                                                   "$$typeof": Symbol(react.forward_ref),
+                                                  "propTypes": Object {
+                                                    "openInNewTab": [Function],
+                                                  },
                                                   "render": [Function],
                                                 }
                                               }
@@ -587,7 +591,7 @@ exports[`ProjectPlugins renders 1`] = `
                                               }
                                               href="https://github.com/getsentry/sentry"
                                             >
-                                              <ForwardRef
+                                              <ForwardRef(ExternalLink)
                                                 className="css-1nx57m5-grayText"
                                                 href="https://github.com/getsentry/sentry"
                                               >
@@ -599,7 +603,7 @@ exports[`ProjectPlugins renders 1`] = `
                                                 >
                                                   Sentry Team
                                                 </a>
-                                              </ForwardRef>
+                                              </ForwardRef(ExternalLink)>
                                             </EmotionCssPropInternal>
                                             <span>
                                                
@@ -633,7 +637,7 @@ exports[`ProjectPlugins renders 1`] = `
                                             </span>
                                           </div>
                                         </div>
-                                      </Styled(div)>
+                                      </PluginDescription>
                                     </div>
                                   </PluginInfo>
                                   <ForwardRef
@@ -683,7 +687,7 @@ exports[`ProjectPlugins renders 1`] = `
                                     </Switch>
                                   </ForwardRef>
                                 </div>
-                              </Styled(div)>
+                              </PluginItem>
                             </Access>
                           </withConfig(Access)>
                         </WithOrganizationMockWrapper>
@@ -937,43 +941,38 @@ exports[`ProjectPlugins renders 1`] = `
                               renderNoAccessMessage={false}
                               requireAll={true}
                             >
-                              <Styled(div)
-                                alignItems="center"
+                              <PluginItem
                                 className="github"
-                                flex="1"
                                 key="github"
                               >
                                 <div
-                                  className="github css-1j7oo6s"
+                                  className="github css-efgwqc-PluginItem e1y7j6vq0"
                                 >
                                   <PluginInfo>
                                     <div
-                                      className="css-1jrzgda-PluginInfo e1y7j6vq0"
+                                      className="css-1jrzgda-PluginInfo e1y7j6vq2"
                                     >
                                       <StyledPluginIcon
                                         pluginId="github"
                                         size={48}
                                       >
                                         <div
-                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq2"
+                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
                                           size={48}
                                         />
                                       </StyledPluginIcon>
-                                      <Styled(div)
-                                        flexDirection="column"
-                                        justifyContent="center"
-                                      >
+                                      <PluginDescription>
                                         <div
-                                          className="css-bq2mgp"
+                                          className="css-1rlsayk-PluginDescription e1y7j6vq1"
                                         >
                                           <PluginName>
                                             <div
-                                              className="css-1rrljgj-PluginName e1y7j6vq1"
+                                              className="css-1rrljgj-PluginName e1y7j6vq3"
                                             >
                                               GitHub 
                                               <Version>
                                                 <span
-                                                  className="css-1czymow-Version e1y7j6vq3"
+                                                  className="css-1czymow-Version e1y7j6vq5"
                                                 >
                                                   v8.23.0.dev0
                                                 </span>
@@ -985,6 +984,9 @@ exports[`ProjectPlugins renders 1`] = `
                                               __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                 Object {
                                                   "$$typeof": Symbol(react.forward_ref),
+                                                  "propTypes": Object {
+                                                    "openInNewTab": [Function],
+                                                  },
                                                   "render": [Function],
                                                 }
                                               }
@@ -996,7 +998,7 @@ exports[`ProjectPlugins renders 1`] = `
                                               }
                                               href="https://github.com/getsentry/sentry"
                                             >
-                                              <ForwardRef
+                                              <ForwardRef(ExternalLink)
                                                 className="css-1nx57m5-grayText"
                                                 href="https://github.com/getsentry/sentry"
                                               >
@@ -1008,11 +1010,11 @@ exports[`ProjectPlugins renders 1`] = `
                                                 >
                                                   Sentry Team
                                                 </a>
-                                              </ForwardRef>
+                                              </ForwardRef(ExternalLink)>
                                             </EmotionCssPropInternal>
                                           </div>
                                         </div>
-                                      </Styled(div)>
+                                      </PluginDescription>
                                     </div>
                                   </PluginInfo>
                                   <ForwardRef
@@ -1060,7 +1062,7 @@ exports[`ProjectPlugins renders 1`] = `
                                     </Switch>
                                   </ForwardRef>
                                 </div>
-                              </Styled(div)>
+                              </PluginItem>
                             </Access>
                           </withConfig(Access)>
                         </WithOrganizationMockWrapper>

@@ -140,6 +140,11 @@ export function escape(str: string): string {
 }
 
 export function percent(value: number, totalValue: number): number {
+  // prevent division by zero
+  if (totalValue === 0) {
+    return 0;
+  }
+
   return (value / totalValue) * 100;
 }
 
@@ -277,3 +282,8 @@ export function generateQueryWithTag(
 }
 
 export const isFunction = (value: any): value is Function => typeof value === 'function';
+
+// NOTE: only escapes a " if it's not already escaped
+export function escapeDoubleQuotes(str) {
+  return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}

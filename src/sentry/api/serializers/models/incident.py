@@ -5,8 +5,6 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.incidents.logic import bulk_get_incident_stats
 from sentry.incidents.models import (
     Incident,
     IncidentGroup,
@@ -15,7 +13,6 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.utils.db import attach_foreignkey
-from sentry.utils.compat import zip
 
 
 @register(Incident)
@@ -28,18 +25,12 @@ class IncidentSerializer(Serializer):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
         results = {}
-        for incident, stats in zip(item_list, bulk_get_incident_stats(item_list, prewindow=True)):
-            results[incident] = {
-                "projects": incident_projects.get(incident.id, []),
-                "event_stats": stats["event_stats"],
-                "total_events": stats["total_events"],
-                "unique_users": stats["unique_users"],
-            }
+        for incident in item_list:
+            results[incident] = {"projects": incident_projects.get(incident.id, [])}
 
         return results
 
     def serialize(self, obj, attrs, user):
-        serializer = SnubaTSResultSerializer(obj.organization, None, user)
         return {
             "id": six.text_type(obj.id),
             "identifier": six.text_type(obj.identifier),
@@ -54,9 +45,6 @@ class IncidentSerializer(Serializer):
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
             "dateClosed": obj.date_closed,
-            "eventStats": serializer.serialize(attrs["event_stats"]),
-            "totalEvents": attrs["total_events"],
-            "uniqueUsers": attrs["unique_users"],
         }
 
 

@@ -16,11 +16,11 @@ const COLORS = {
 } as const;
 
 export const DataSection = styled('div')`
-  padding: ${space(3)} ${space(4)} 0 40px;
+  padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.borderLight};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} 0;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(3)} ${space(4)} 0 40px;
   }
 `;
 
@@ -36,7 +36,7 @@ export const BannerContainer = styled('div')<BannerProps>`
   border-bottom: 1px solid ${p => COLORS[p.priority].border};
 
   /* Muted box & processing errors are in different parts of the DOM */
-  & + ${DataSection}, & + div > ${DataSection} {
+  & + ${DataSection}:first-child, & + div > ${DataSection}:first-child {
     border-top: 0;
   }
 `;

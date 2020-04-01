@@ -905,6 +905,48 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_duration_aliases(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("23.4m", 1000 * 60 * 23.4),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+            ("1.23h", 1000 * 60 * 60 * 1.23),
+            ("3wk", 1000 * 60 * 60 * 24 * 7 * 3),
+            ("2.1w", 1000 * 60 * 60 * 24 * 7 * 2.1),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "p95"],
+                query="http.method:GET p95:>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["contexts[http.method]", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[["quantile(0.95)", "duration", "p95"]],
+                having=[["p95", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_alias_aggregate_conditions_with_brackets(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -968,6 +1010,47 @@ class QueryTransformTest(TestCase):
             offset=None,
             referrer=None,
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_aggregate_duration_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+
+        test_cases = [
+            ("1ms", 1),
+            ("1.5s", 1500),
+            ("1.00min", 1000 * 60),
+            ("3.45hr", 1000 * 60 * 60 * 3.45),
+        ]
+        for query_string, value in test_cases:
+            discover.query(
+                selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
+                query="http.method:GET avg(transaction.duration):>{}".format(query_string),
+                params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
+            )
+            mock_query.assert_called_with(
+                selected_columns=["transaction"],
+                conditions=[["contexts[http.method]", "=", "GET"]],
+                filter_keys={"project_id": [self.project.id]},
+                groupby=["transaction"],
+                dataset=Dataset.Discover,
+                aggregations=[
+                    ["avg", "duration", "avg_transaction_duration"],
+                    ["max", "time", "max_time"],
+                ],
+                having=[["avg_transaction_duration", ">", value]],
+                end=end_time,
+                start=start_time,
+                orderby=None,
+                limit=50,
+                offset=None,
+                referrer=None,
+            )
 
     @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_condition_missing_selected_column(self, mock_query):
@@ -1130,7 +1213,7 @@ class QueryTransformTest(TestCase):
             {"data": [{"max_transaction.duration": 10000}]},
             {
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
-                "data": [],
+                "data": [{"histogram_transaction_duration_10_1000": 10000, "count": 1}],
             },
         ]
 
@@ -1143,7 +1226,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(10)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
 
@@ -1155,7 +1238,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10)
+                    for i in range(11)
                 ],
             },
         ]
@@ -1169,7 +1252,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
@@ -1182,7 +1265,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10, 2)
+                    for i in range(0, 11, 2)
                 ],
             },
         ]
@@ -1196,14 +1279,14 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = range(1, 10, 2)
+        seed = range(0, 11, 2)
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000}]},
@@ -1224,11 +1307,11 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 1000 for i in range(1, 10)]
+        expected = [i * 1000 for i in range(11)]
         expected.reverse()
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 1 else 0)
+            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_missing_results_no_sort(self, mock_query):
@@ -1238,7 +1321,7 @@ class QueryTransformTest(TestCase):
                 "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
                 "data": [
                     {"histogram_transaction_duration_10_1000": i * 1000, "count": i}
-                    for i in range(1, 10, 2)
+                    for i in range(0, 10, 2)
                 ],
             },
         ]
@@ -1252,12 +1335,12 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [1000, 3000, 5000, 7000, 9000]
+        expected = [0, 2000, 4000, 6000, 8000]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
 
-        expected_extra_buckets = set([2000, 4000, 6000, 8000, 10000])
+        expected_extra_buckets = set([1000, 3000, 5000, 7000, 9000])
         extra_buckets = set(r["histogram_transaction_duration_10"] for r in results["data"][5:])
         assert expected_extra_buckets == extra_buckets
 
@@ -1283,7 +1366,7 @@ class QueryTransformTest(TestCase):
             use_aggregate_conditions=False,
         )
 
-        expected = [i * 87 for i in range(1, 10)]
+        expected = [i * 87 for i in range(11)]
         for result, exp in zip(results["data"], expected):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)

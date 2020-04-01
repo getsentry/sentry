@@ -35,19 +35,19 @@ exports[`ConfirmDelete renders 1`] = `
             type="error"
           >
             <Component
-              className="css-1c7awzo-Alert ejthpj82"
+              className="css-1cl10ra-Alert ejthpj82"
               iconSize="24px"
               type="error"
             >
               <div
-                className="ref-error css-1c7awzo-Alert ejthpj82"
+                className="ref-error css-1cl10ra-Alert ejthpj82"
               >
                 <StyledTextBlock>
-                  <div
-                    className="css-1n7zgo7-TextBlock-StyledTextBlock ejthpj81"
+                  <span
+                    className="css-6y2q80-StyledTextBlock ejthpj81"
                   >
                     Are you sure?
-                  </div>
+                  </span>
                 </StyledTextBlock>
               </div>
             </Component>
@@ -222,16 +222,11 @@ exports[`ConfirmDelete renders 1`] = `
                     <ButtonLabel
                       align="center"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Cancel
-                        </span>
-                      </Component>
+                        Cancel
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>
@@ -288,17 +283,11 @@ exports[`ConfirmDelete renders 1`] = `
                       align="center"
                       priority="primary"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Confirm
-                        </span>
-                      </Component>
+                        Confirm
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>

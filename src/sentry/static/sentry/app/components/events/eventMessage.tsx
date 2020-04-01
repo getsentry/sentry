@@ -13,6 +13,7 @@ type Props = {
   message?: React.ReactNode;
   annotations?: React.ReactNode;
   className?: string;
+  hasGuideAnchor?: boolean;
 };
 
 const EventMessage = ({
@@ -28,7 +29,9 @@ const EventMessage = ({
         {level}
       </StyledErrorLevel>
     )}
+
     {message && <Message>{message}</Message>}
+
     {annotations}
   </div>
 );

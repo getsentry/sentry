@@ -4,8 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
-import debounce from 'lodash/debounce';
 import createReactClass from 'create-react-class';
+import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {
@@ -14,7 +14,7 @@ import {
   NEGATION_OPERATOR,
   SEARCH_WILDCARD,
 } from 'app/constants';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {
@@ -24,19 +24,19 @@ import {
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
 import {fetchReleases} from 'app/actionCreators/releases';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
-import InlineSvg from 'app/components/inlineSvg';
 import DropdownLink from 'app/components/dropdownLink';
+import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import SearchDropdown from './searchDropdown';
 
@@ -96,6 +96,24 @@ const getDropdownElementStyles = p => `
 `;
 
 class SmartSearchBar extends React.Component {
+  /**
+   * Given a query, and the current cursor position, return the string-delimiting
+   * index of the search term designated by the cursor.
+   */
+  static getLastTermIndex = (query, cursor) => {
+    // TODO: work with quoted-terms
+    const cursorOffset = query.slice(cursor).search(/\s|$/);
+    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+  };
+
+  /**
+   * Returns an array of query terms, including incomplete terms
+   *
+   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+   */
+  static getQueryTerms = (query, cursor) =>
+    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+
   static propTypes = {
     api: PropTypes.object,
 
@@ -185,24 +203,6 @@ class SmartSearchBar extends React.Component {
     router: PropTypes.object,
   };
 
-  /**
-   * Given a query, and the current cursor position, return the string-delimiting
-   * index of the search term designated by the cursor.
-   */
-  static getLastTermIndex = (query, cursor) => {
-    // TODO: work with quoted-terms
-    const cursorOffset = query.slice(cursor).search(/\s|$/);
-    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-  };
-
-  /**
-   * Returns an array of query terms, including incomplete terms
-   *
-   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-   */
-  static getQueryTerms = (query, cursor) =>
-    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-
   static defaultProps = {
     defaultQuery: '',
     query: null,
@@ -263,8 +263,10 @@ class SmartSearchBar extends React.Component {
     const {organization, savedSearchType} = this.props;
     evt.preventDefault();
 
-    analytics('search.searched', {
-      org_id: parseInt(organization.id, 10),
+    trackAnalyticsEvent({
+      eventKey: 'search.searched',
+      eventName: 'Search: Performed search',
+      organization_id: organization.id,
       query: removeSpace(this.state.query),
       search_type: savedSearchType === 0 ? 'issues' : 'events',
       search_source: 'main_search',
@@ -332,12 +334,19 @@ class SmartSearchBar extends React.Component {
   };
 
   onKeyDown = evt => {
+    const {key} = evt;
+
+    // If tab or enter is pressed while the search bar is in a loading state then
+    // we should prevent any the form from submitting from this component
+    if ((key === 'Tab' || key === 'Enter') && this.state.loading) {
+      evt.preventDefault();
+    }
+
     if (!this.state.searchItems.length) {
       return;
     }
 
     const {useFormWrapper} = this.props;
-    const {key} = evt;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
     if (key === 'ArrowDown' || key === 'ArrowUp') {
@@ -388,8 +397,14 @@ class SmartSearchBar extends React.Component {
         activeSearchItem: nextActiveSearchItem,
         searchItems: searchItems.slice(0),
       });
-    } else if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
+    }
+
+    if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
       evt.preventDefault();
+
+      if (this.state.loading) {
+        return;
+      }
 
       const {activeSearchItem, searchItems} = this.state;
       const [groupIndex, childrenIndex] = findSearchItemByIndex(
@@ -401,12 +416,23 @@ class SmartSearchBar extends React.Component {
       if (item && !this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
       }
-    } else if (key === 'Enter' && !useFormWrapper && !isSelectingDropdownItems) {
-      // If enter is pressed, and we are not wrapping input in a `<form>`, and
-      // we are not selecting an item from the dropdown, then we should consider
-      // the user as finished selecting and perform a "search" since there is no
-      // `<form>` to catch and call `this.onSubmit`
-      this.doSearch();
+      return;
+    }
+
+    if (key === 'Enter') {
+      // If we are still loading dropdown, do nothing
+      if (this.state.loading) {
+        return;
+      }
+
+      if (!useFormWrapper && !isSelectingDropdownItems) {
+        // If enter is pressed, and we are not wrapping input in a `<form>`, and
+        // we are not selecting an item from the dropdown, then we should consider
+        // the user as finished selecting and perform a "search" since there is no
+        // `<form>` to catch and call `this.onSubmit`
+        this.doSearch();
+      }
+      return;
     }
   };
 
@@ -828,18 +854,22 @@ class SmartSearchBar extends React.Component {
       });
     }
 
-    analytics('search.pin', {
-      org_id: parseInt(organization.id, 10),
+    trackAnalyticsEvent({
+      eventKey: 'search.pin',
+      eventName: 'Search: Pin',
+      organization_id: organization.id,
       action: !!pinnedSearch ? 'unpin' : 'pin',
       search_type: savedSearchType === 0 ? 'issues' : 'events',
-      query: pinnedSearch || this.state.query,
+      query: pinnedSearch?.query ?? this.state.query,
     });
   };
 
   onAutoComplete = (replaceText, item) => {
     if (item.type === 'recent-search') {
-      analytics('search.searched', {
-        org_id: parseInt(this.props.organization.id, 10),
+      trackAnalyticsEvent({
+        eventKey: 'search.searched',
+        eventName: 'Search: Performed search',
+        organization_id: this.props.organization.id,
         query: replaceText,
         source: this.props.savedSearchType === 0 ? 'issues' : 'events',
         search_source: 'recent_search',

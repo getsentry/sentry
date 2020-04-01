@@ -30,6 +30,8 @@ const GroupList = createReactClass({
     withChart: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     endpointPath: PropTypes.string,
+    renderEmptyMessage: PropTypes.func,
+    queryParams: PropTypes.object,
   },
 
   contextTypes: {
@@ -63,7 +65,8 @@ const GroupList = createReactClass({
     return (
       !isEqual(this.state, nextState) ||
       nextProps.endpointPath !== this.props.endpointPath ||
-      nextProps.query !== this.props.query
+      nextProps.query !== this.props.query ||
+      !isEqual(nextProps.queryParams, this.props.queryParams)
     );
   },
 
@@ -71,7 +74,8 @@ const GroupList = createReactClass({
     if (
       prevProps.orgId !== this.props.orgId ||
       prevProps.endpointPath !== this.props.endpointPath ||
-      prevProps.query !== this.props.query
+      prevProps.query !== this.props.query ||
+      !isEqual(prevProps.queryParams, this.props.queryParams)
     ) {
       this.fetchData();
     }
@@ -114,10 +118,11 @@ const GroupList = createReactClass({
   },
 
   getGroupListEndpoint() {
-    const {orgId, endpointPath} = this.props;
+    const {orgId, endpointPath, queryParams} = this.props;
     const path = endpointPath ?? `/organizations/${orgId}/issues/`;
+    const queryParameters = queryParams ?? this.getQueryParams();
 
-    return `${path}?${qs.stringify(this.getQueryParams())}`;
+    return `${path}?${qs.stringify(queryParameters)}`;
   },
 
   getQueryParams() {
@@ -160,7 +165,7 @@ const GroupList = createReactClass({
   },
 
   render() {
-    const {orgId, canSelectGroups, withChart} = this.props;
+    const {orgId, canSelectGroups, withChart, renderEmptyMessage} = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
@@ -168,6 +173,9 @@ const GroupList = createReactClass({
     } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     } else if (groups.length === 0) {
+      if (typeof renderEmptyMessage === 'function') {
+        return renderEmptyMessage();
+      }
       return (
         <Panel>
           <PanelBody>

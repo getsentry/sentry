@@ -1,7 +1,5 @@
 import 'echarts/lib/component/tooltip';
 
-import get from 'lodash/get';
-
 import {getFormattedDate} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
@@ -23,6 +21,17 @@ function defaultValueFormatter(value) {
   return value;
 }
 
+function getSeriesValue(series, offset) {
+  if (Array.isArray(series.data)) {
+    return series.data[offset];
+  }
+  if (Array.isArray(series.data.value)) {
+    return series.data.value[offset];
+  }
+
+  return undefined;
+}
+
 function getFormatter({
   filter,
   isGroupedByDate,
@@ -35,8 +44,9 @@ function getFormatter({
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
-    // However, real series will have `data` as a tuple of (key, value)
-    const value = seriesParam.data && seriesParam.data.length && seriesParam.data[1];
+    // However, real series will have `data` as a tuple of (label, value) or be
+    // an object with value/label keys.
+    const value = getSeriesValue(seriesParam, 0);
     if (typeof filter === 'function') {
       return filter(value);
     }
@@ -81,10 +91,12 @@ function getFormatter({
 
     const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
 
-    // If axis, timestamp comes from axis, otherwise for a single item it is defined in its data
+    // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
+    // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
+    // there is item specific formatting being used.
     const timestamp = isAxisItem
       ? seriesParams[0].axisValue
-      : get(seriesParams, '[0].data[0]');
+      : getSeriesValue(seriesParams[0], 0);
 
     const label =
       seriesParams.length &&
@@ -96,12 +108,13 @@ function getFormatter({
         .filter(getFilter)
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
-          const value = valueFormatter(s.data[1]);
+          const value = valueFormatter(getSeriesValue(s, 1));
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
       '</div>',
       `<div class="tooltip-date">${label}</div>`,
+      `<div class="tooltip-arrow"></div>`,
     ].join('');
   };
 }
@@ -134,11 +147,29 @@ export default function Tooltip({
     trigger: 'item',
     backgroundColor: 'transparent',
     transitionDuration: 0,
+    padding: 0,
     position(pos, _params, dom, _rec, _size) {
       // Center the tooltip slightly above the cursor.
       const tipWidth = dom.clientWidth;
       const tipHeight = dom.clientHeight;
-      return [pos[0] - tipWidth / 2, pos[1] - tipHeight - 16];
+
+      // Determine new left edge.
+      let leftPos = pos[0] - tipWidth / 2;
+      let arrowPosition = '50%';
+      const rightEdge = pos[0] + tipWidth;
+
+      // If the tooltip would go off viewport shift the tooltip over with a gap.
+      if (rightEdge >= window.innerWidth - 30) {
+        leftPos -= rightEdge - window.innerWidth + 30;
+        arrowPosition = `${pos[0] - leftPos}px`;
+      }
+      // Reposition the arrow.
+      const arrow = dom.querySelector('.tooltip-arrow');
+      if (arrow) {
+        arrow.style.left = arrowPosition;
+      }
+
+      return {left: leftPos, top: pos[1] - tipHeight - 20};
     },
     formatter,
     ...props,

@@ -913,10 +913,9 @@ describe('IssueList,', function() {
 
       expect(
         wrapper
-          .find('Pagination a')
+          .find('Pagination Button')
           .first()
-          .prop('className')
-          .includes('disabled')
+          .prop('disabled')
       ).toBe(true);
 
       issuesRequest = MockApiClient.addMockResponse({
@@ -930,7 +929,7 @@ describe('IssueList,', function() {
 
       // Click next
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .last()
         .simulate('click');
 
@@ -953,15 +952,14 @@ describe('IssueList,', function() {
 
       expect(
         wrapper
-          .find('Pagination a')
+          .find('Pagination Button')
           .first()
-          .prop('className')
-          .includes('disabled')
+          .prop('disabled')
       ).toBe(false);
 
       // Click next again
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .last()
         .simulate('click');
 
@@ -984,7 +982,7 @@ describe('IssueList,', function() {
 
       // Click previous
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .first()
         .simulate('click');
 
@@ -1007,7 +1005,7 @@ describe('IssueList,', function() {
 
       // Click previous back to initial page
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .first()
         .simulate('click');
       await tick();

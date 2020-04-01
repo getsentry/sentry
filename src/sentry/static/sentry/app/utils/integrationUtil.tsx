@@ -8,12 +8,17 @@ import {
   SentryAppInstallation,
   IntegrationInstallationStatus,
   SentryAppStatus,
+  IntegrationFeature,
+  AppOrProviderOrPlugin,
+  SentryApp,
+  PluginWithProjectList,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
+const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -40,9 +45,12 @@ export const getSortIntegrationsByWeightActive = (organization?: Organization) =
   }
 };
 
+export const getCategorySelectActive = () =>
+  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
+
 export type SingleIntegrationEvent = {
   eventKey:
-    | 'integrations.install_modal_opened'
+    | 'integrations.install_modal_opened' //TODO: remove
     | 'integrations.installation_start'
     | 'integrations.installation_complete'
     | 'integrations.integration_viewed' //for the integration overview
@@ -53,9 +61,10 @@ export type SingleIntegrationEvent = {
     | 'integrations.disabled'
     | 'integrations.config_saved'
     | 'integrations.integration_tab_clicked'
-    | 'integrations.plugin_add_to_project_clicked';
+    | 'integrations.plugin_add_to_project_clicked'
+    | 'integrations.upgrade_plan_modal_opened';
   eventName:
-    | 'Integrations: Install Modal Opened'
+    | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
     | 'Integrations: Integration Viewed'
@@ -66,10 +75,12 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Disabled'
     | 'Integrations: Integration Tab Clicked'
     | 'Integrations: Config Saved'
-    | 'Integrations: Plugin Add to Project Clicked';
+    | 'Integrations: Plugin Add to Project Clicked'
+    | 'Integrations: Upgrade Plan Modal Opened';
   integration: string; //the slug
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
+  plan?: string;
 } & (SentryAppEvent | NonSentryAppEvent);
 
 type SentryAppEvent = {
@@ -101,7 +112,6 @@ type IntegrationsEventParams = (
 ) & {
   view?:
     | 'external_install'
-    | 'integrations_page'
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
@@ -205,3 +215,53 @@ export const getSentryAppInstallStatus = (install: SentryAppInstallation | undef
   }
   return 'Not Installed';
 };
+
+export const getCategories = (features: IntegrationFeature[]): string[] => {
+  const transform = features.map(({featureGate}) => {
+    const feature = featureGate
+      .replace(/integrations/g, '')
+      .replace(/-/g, ' ')
+      .trim();
+    switch (feature) {
+      case 'actionable notification':
+        return 'notification action';
+      case 'issue basic':
+      case 'issue sync':
+        return 'project management';
+      case 'commits':
+        return 'source code management';
+      case 'chat unfurl':
+        return 'chat';
+      default:
+        return feature;
+    }
+  });
+
+  return [...new Set(transform)];
+};
+
+export const getCategoriesForIntegration = (
+  integration: AppOrProviderOrPlugin
+): string[] => {
+  if (isSentryApp(integration)) {
+    return ['internal', 'unpublished'].includes(integration.status)
+      ? [integration.status]
+      : getCategories(integration.featureData);
+  }
+  if (isPlugin(integration)) {
+    return getCategories(integration.featureDescriptions);
+  }
+  return getCategories(integration.metadata.features);
+};
+
+export function isSentryApp(
+  integration: AppOrProviderOrPlugin
+): integration is SentryApp {
+  return !!(integration as SentryApp).uuid;
+}
+
+export function isPlugin(
+  integration: AppOrProviderOrPlugin
+): integration is PluginWithProjectList {
+  return integration.hasOwnProperty('shortName');
+}

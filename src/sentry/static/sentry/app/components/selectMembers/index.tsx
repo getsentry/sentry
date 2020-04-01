@@ -57,6 +57,7 @@ type Props = {
   onInputChange?: (value: any) => any;
   disabled?: boolean;
   placeholder?: string;
+  styles?: {control?: (provided: any) => any};
 };
 
 type State = {
@@ -83,6 +84,9 @@ class SelectMembers extends React.Component<Props, State> {
     onChange: PropTypes.func.isRequired,
     onInputChange: PropTypes.func,
     disabled: PropTypes.bool,
+    styles: PropTypes.shape({
+      control: PropTypes.func,
+    }),
   };
 
   state: State = {
@@ -330,7 +334,7 @@ class SelectMembers extends React.Component<Props, State> {
   };
 
   render() {
-    const {placeholder} = this.props;
+    const {placeholder, styles} = this.props;
 
     // If memberList is still loading we need to disable a placeholder Select,
     // otherwise `react-select` will call `loadOptions` and prematurely load
@@ -355,6 +359,7 @@ class SelectMembers extends React.Component<Props, State> {
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.state.options?.find(({value}) => value === this.props.value)}
+        styles={styles}
       />
     );
   }

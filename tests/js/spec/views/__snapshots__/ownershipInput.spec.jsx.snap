@@ -987,56 +987,43 @@ exports[`Project Ownership Input renders 1`] = `
                       priority="primary"
                       size="small"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-19gcr2f-ButtonLabel edwq9my1"
-                        priority="primary"
-                        size="small"
                       >
-                        <span
-                          className="css-19gcr2f-ButtonLabel edwq9my1"
+                        <Icon
+                          hasChildren={false}
+                          size="small"
                         >
-                          <Icon
-                            hasChildren={false}
+                          <span
+                            className="css-1j44i9a-Icon edwq9my2"
                             size="small"
                           >
-                            <Component
-                              className="css-1j44i9a-Icon edwq9my2"
-                              hasChildren={false}
-                              size="small"
+                            <ForwardRef(IconAdd)
+                              circle={true}
+                              size="xs"
                             >
-                              <span
-                                className="css-1j44i9a-Icon edwq9my2"
-                                size="small"
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
                               >
-                                <ForwardRef(IconAdd)
-                                  circle={true}
-                                  size="xs"
-                                >
-                                  <svg
-                                    fill="currentColor"
-                                    height="12px"
-                                    viewBox="0 0 16 16"
-                                    width="12px"
-                                  >
-                                    <g>
-                                      <path
-                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                      />
-                                      <path
-                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                      />
-                                      <path
-                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                      />
-                                    </g>
-                                  </svg>
-                                </ForwardRef(IconAdd)>
-                              </span>
-                            </Component>
-                          </Icon>
-                        </span>
-                      </Component>
+                                <g>
+                                  <path
+                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                  />
+                                  <path
+                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                  />
+                                  <path
+                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                  />
+                                </g>
+                              </svg>
+                            </ForwardRef(IconAdd)>
+                          </span>
+                        </Icon>
+                      </span>
                     </ButtonLabel>
                   </button>
                 </Component>
@@ -1073,7 +1060,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-2r1wnf-StyledTextArea en3n9di2"
+        className="css-2r1wnf-StyledTextArea en3n9di3"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1087,7 +1074,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-2r1wnf-StyledTextArea en3n9di2"
+          className="css-2r1wnf-StyledTextArea en3n9di3"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1098,17 +1085,14 @@ url:http://example.com/settings/* #product"
         />
       </TextareaAutosize>
     </StyledTextArea>
-    <Styled(div)
-      alignItems="center"
-      justifyContent="space-between"
-    >
+    <ActionBar>
       <div
-        className="css-s3axrf"
+        className="css-hgonoe-ActionBar en3n9di0"
       >
         <div />
         <SaveButton>
           <div
-            className="css-q90es8-SaveButton en3n9di1"
+            className="css-q90es8-SaveButton en3n9di2"
           >
             <forwardRef<Button>
               disabled={false}
@@ -1156,18 +1140,11 @@ url:http://example.com/settings/* #product"
                         priority="primary"
                         size="small"
                       >
-                        <Component
-                          align="center"
+                        <span
                           className="css-19gcr2f-ButtonLabel edwq9my1"
-                          priority="primary"
-                          size="small"
                         >
-                          <span
-                            className="css-19gcr2f-ButtonLabel edwq9my1"
-                          >
-                            Save Changes
-                          </span>
-                        </Component>
+                          Save Changes
+                        </span>
                       </ButtonLabel>
                     </button>
                   </Component>
@@ -1177,7 +1154,7 @@ url:http://example.com/settings/* #product"
           </div>
         </SaveButton>
       </div>
-    </Styled(div)>
+    </ActionBar>
   </div>
 </OwnerInput>
 `;

@@ -1,74 +1,100 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
+import {Location} from 'history';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Button from 'app/components/button';
 import GroupList from 'app/views/releases/detail/groupList';
 import space from 'app/styles/space';
-import {Panel} from 'app/components/panels';
-import EventView from 'app/views/eventsV2/eventView';
+import {Panel, PanelBody} from 'app/components/panels';
+import EventView from 'app/utils/discover/eventView';
 import {formatVersion} from 'app/utils/formatters';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {GlobalSelection} from 'app/types';
+import Feature from 'app/components/acl/feature';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+
+enum IssuesType {
+  NEW = 'new',
+  RESOLVED = 'resolved',
+  ALL = 'all',
+}
+
+type IssuesQueryParams = {
+  limit: number;
+  sort: string;
+  query: string;
+};
 
 type Props = {
   orgId: string;
   version: string;
+  selection: GlobalSelection;
+  projectId: number;
+  location: Location;
 };
 
 type State = {
-  issuesType: string;
+  issuesType: IssuesType;
 };
 
 class Issues extends React.Component<Props, State> {
   // TODO(releasesV2): we may want to put this in the URL, for now it stays just in state (issues stream is still subject to change)
-  state = {
-    issuesType: 'new',
+  state: State = {
+    issuesType: IssuesType.NEW,
   };
 
-  // TODO(releasesV2): figure out the query we want + do we want to pass globalSelectionHeader values?
   getDiscoverUrl() {
-    const {version, orgId} = this.props;
+    const {version, orgId, projectId} = this.props;
 
     const discoverQuery = {
       id: undefined,
       version: 2,
       name: `${t('Release')} ${formatVersion(version)}`,
-      fields: ['title', 'count(id)', 'event.type', 'user', 'last_seen'],
-      query: `release:${version}`,
-
-      projects: [],
-      range: '',
-      start: '',
-      end: '',
-      environment: [''],
+      fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+      query: `release:${version} !event.type:transaction`,
+      orderby: '-last_seen',
+      projects: [projectId],
     } as const;
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
     return discoverView.getResultsViewUrlTarget(orgId);
   }
 
-  getIssuesEndpoint(): {path: string; query: string} {
-    const {version, orgId} = this.props;
+  getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
+    const {version, orgId, location} = this.props;
     const {issuesType} = this.state;
+    const queryParams = {
+      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+      limit: 50,
+      sort: 'new',
+    };
 
     switch (issuesType) {
-      case 'all':
-        return {path: `/organizations/${orgId}/issues/`, query: `release:"${version}"`};
-      case 'resolved':
+      case IssuesType.ALL:
+        return {
+          path: `/organizations/${orgId}/issues/`,
+          queryParams: {...queryParams, query: `release:"${version}"`},
+        };
+      case IssuesType.RESOLVED:
         return {
           path: `/organizations/${orgId}/releases/${version}/resolved/`,
-          query: '',
+          queryParams: {...queryParams, query: ''},
         };
-      case 'new':
+      case IssuesType.NEW:
       default:
         return {
           path: `/organizations/${orgId}/issues/`,
-          query: `first-release:"${version}"`,
+          queryParams: {...queryParams, query: `first-release:"${version}"`},
         };
     }
   }
 
-  handleIssuesTypeSelection = (issuesType: string) => {
+  handleIssuesTypeSelection = (issuesType: IssuesType) => {
     this.setState({issuesType});
   };
 
@@ -81,10 +107,39 @@ class Issues extends React.Component<Props, State> {
     );
   }
 
+  renderEmptyMessage = () => {
+    const {selection} = this.props;
+    const {issuesType} = this.state;
+
+    const selectedTimePeriod = DEFAULT_RELATIVE_PERIODS[selection.datetime.period];
+    const displayedPeriod = selectedTimePeriod
+      ? selectedTimePeriod.toLowerCase()
+      : t('given timeframe');
+
+    return (
+      <Panel>
+        <PanelBody>
+          <EmptyStateWarning small withIcon={false}>
+            {issuesType === IssuesType.NEW &&
+              tct('No new issues in this release for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })}
+            {issuesType === IssuesType.RESOLVED &&
+              t('No resolved issues in this release.')}
+            {issuesType === IssuesType.ALL &&
+              tct('No issues in this release for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })}
+          </EmptyStateWarning>
+        </PanelBody>
+      </Panel>
+    );
+  };
+
   render() {
     const {issuesType} = this.state;
     const {orgId} = this.props;
-    const {path, query} = this.getIssuesEndpoint();
+    const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: 'new', label: t('New Issues')},
       {value: 'resolved', label: t('Resolved Issues')},
@@ -111,16 +166,20 @@ class Issues extends React.Component<Props, State> {
             ))}
           </DropdownControl>
 
-          <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          <Feature features={['discover-basic']}>
+            <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+          </Feature>
         </ControlsWrapper>
 
         <TableWrapper>
           <GroupList
             orgId={orgId}
             endpointPath={path}
-            query={query}
+            queryParams={queryParams}
+            query=""
             canSelectGroups={false}
             withChart={false}
+            renderEmptyMessage={this.renderEmptyMessage}
           />
         </TableWrapper>
       </React.Fragment>
@@ -148,4 +207,4 @@ const LabelText = styled('em')`
   color: ${p => p.theme.gray2};
 `;
 
-export default Issues;
+export default withGlobalSelection(Issues);

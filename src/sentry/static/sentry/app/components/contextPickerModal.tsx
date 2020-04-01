@@ -1,4 +1,3 @@
-import {ModalBody, ModalHeader} from 'react-bootstrap';
 import ReactSelect, {components} from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -17,22 +16,13 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import IdBadge from 'app/components/idBadge';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 
-type Props = {
+type Props = ModalRenderProps & {
   /**
    * The destination route
    */
   nextPath: string;
-
-  /**
-   * Container for modal header
-   */
-  Header: typeof ModalHeader;
-
-  /**
-   * Container for modal body
-   */
-  Body: typeof ModalBody;
 
   /**
    * List of available organizations
@@ -144,6 +134,7 @@ class ContextPickerModal extends React.Component<Props> {
       replaceRouterParams(nextPath, {
         orgId: org,
         projectId: projects[0].slug,
+        project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
       })
     );
   };
@@ -255,7 +246,9 @@ class ContextPickerModal extends React.Component<Props> {
       return (
         <div>
           {tct('You have no projects. Click [link] to make one.', {
-            link: <Link href={`/organizations/${organization}/projects/new/`}>here</Link>,
+            link: (
+              <Link to={`/organizations/${organization}/projects/new/`}>{t('here')}</Link>
+            ),
           })}
         </div>
       );
@@ -333,7 +326,12 @@ class ContextPickerModal extends React.Component<Props> {
 type ContainerProps = Omit<
   Props,
   'projects' | 'loading' | 'organizations' | 'organization' | 'onSelectOrganization'
->;
+> & {
+  /**
+   * List of slugs we want to be able to choose from
+   */
+  projectSlugs?: string[];
+};
 
 type ContainerState = {
   organizations?: Organization[];
@@ -368,9 +366,15 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
   },
 
   render() {
+    const {projectSlugs} = this.props; // eslint-disable-line react/prop-types
+
     if (this.state.selectedOrganization) {
       return (
-        <Projects orgId={this.state.selectedOrganization} allProjects>
+        <Projects
+          orgId={this.state.selectedOrganization}
+          allProjects={!projectSlugs?.length}
+          slugs={projectSlugs}
+        >
           {renderProps => this.renderModal(renderProps)}
         </Projects>
       );

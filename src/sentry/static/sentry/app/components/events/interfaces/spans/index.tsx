@@ -7,7 +7,7 @@ import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 
 import {SentryTransactionEvent} from './types';
 import TraceView from './traceView';

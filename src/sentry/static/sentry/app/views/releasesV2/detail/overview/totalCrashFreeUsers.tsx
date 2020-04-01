@@ -1,36 +1,74 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {CrashFreeTimeBreakdown} from 'app/types';
+import {defined} from 'app/utils';
+import Count from 'app/components/count';
 
 import {SectionHeading, Wrapper} from './styles';
+import {displayCrashFreePercent} from '../../utils';
 
-type Props = {};
+type Props = {
+  crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
+};
 
-// TODO(releasesV2): waiting for API
-const TotalCrashFreeUsers = ({}: Props) => (
-  <Wrapper>
-    <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
-    <Timeline>
-      {[1, 2, 3, 4].map((_, index) => (
-        <Row key={index}>
-          <InnerRow>
-            <Text bold>March 7</Text>
-            <Text bold right>
-              4.8k users
-            </Text>
-          </InnerRow>
-          <InnerRow>
-            <Text>1 wk later</Text>
-            <Text right>30%</Text>
-          </InnerRow>
-        </Row>
-      ))}
-    </Timeline>
-  </Wrapper>
-);
+const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
+  if (!crashFreeTimeBreakdown?.length) {
+    return null;
+  }
+
+  const timeline = crashFreeTimeBreakdown
+    .map(({date, crashFreeUsers, totalUsers}, index, data) => {
+      // count number of crash free users from knowing percent and total
+      const crashFreeUserCount = Math.round(((crashFreeUsers ?? 0) * totalUsers) / 100);
+      // first item of timeline is release creation date, then we want to have relative date label
+      const dateLabel =
+        index === 0
+          ? t('Release created')
+          : `${moment(data[0].date).from(date, true)} ${t('later')}`;
+
+      return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
+    })
+    // remove those timeframes that are in the future
+    .filter(item => item.date.isBefore())
+    // we want timeline to go from bottom to up
+    .reverse();
+
+  if (!timeline.length) {
+    return null;
+  }
+
+  return (
+    <Wrapper>
+      <SectionHeading>{t('Total Crash Free Users')}</SectionHeading>
+      <Timeline>
+        {timeline.map(row => (
+          <Row key={row.date.toString()}>
+            <InnerRow>
+              <Text bold>{row.date.format('MMMM D')}</Text>
+              <Text bold right>
+                <Count value={row.crashFreeUserCount} />{' '}
+                {tn('user', 'users', row.crashFreeUserCount)}
+              </Text>
+            </InnerRow>
+            <InnerRow>
+              <Text>{row.dateLabel}</Text>
+              <Text right>
+                {defined(row.crashFreeUsers)
+                  ? displayCrashFreePercent(row.crashFreeUsers)
+                  : '-'}
+              </Text>
+            </InnerRow>
+          </Row>
+        ))}
+      </Timeline>
+    </Wrapper>
+  );
+};
 
 const Timeline = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
@@ -67,12 +105,13 @@ const InnerRow = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
 
-  padding-bottom: ${space(0.75)};
+  padding-bottom: ${space(0.5)};
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   font-weight: ${p => (p.bold ? 600 : 400)};
   text-align: ${p => (p.right ? 'right' : 'left')};
+  padding-bottom: ${space(0.25)};
   ${overflowEllipsis};
 `;
 

@@ -19,7 +19,12 @@ export default class BarChart extends React.Component {
           BarSeries({
             name: s.seriesName,
             stack: stacked ? 'stack1' : null,
-            data: s.data.map(({value, name}) => [name, value]),
+            data: s.data.map(({value, name, itemStyle}) => {
+              if (itemStyle === undefined) {
+                return [name, value];
+              }
+              return {value: [name, value], itemStyle};
+            }),
           })
         )}
       />

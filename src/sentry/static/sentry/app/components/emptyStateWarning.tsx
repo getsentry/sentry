@@ -11,19 +11,26 @@ import space from 'app/styles/space';
 type Props = {
   small?: boolean;
   children?: React.ReactNode;
+  withIcon?: boolean;
+  className?: string;
 };
 
-const EmptyStateWarning = ({small = false, children}: Props) =>
+const EmptyStateWarning = ({
+  small = false,
+  withIcon = true,
+  children,
+  className,
+}: Props) =>
   small ? (
-    <EmptyMessage>
+    <EmptyMessage className={className}>
       <SmallMessage>
-        <StyledIconWarning color={theme.gray2} size="lg" />
+        {withIcon && <StyledIconWarning color={theme.gray2} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
-    <EmptyStreamWrapper data-test-id="empty-state">
-      <HeroIcon src="icon-circle-exclamation" size="54" />
+    <EmptyStreamWrapper data-test-id="empty-state" className={className}>
+      {withIcon && <HeroIcon src="icon-circle-exclamation" size="54" />}
       {children}
     </EmptyStreamWrapper>
   );

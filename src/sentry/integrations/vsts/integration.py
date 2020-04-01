@@ -24,7 +24,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
@@ -48,6 +48,14 @@ your Sentry and Azure DevOps organization together.
 FEATURES = [
     FeatureDescription(
         """
+        Authorize repositories to be added to your Sentry organization to augment
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
         Create and link Sentry issue groups directly to a Azure DevOps work item in any of
         your projects, providing a quick way to jump from Sentry bug to tracked
         work item!
@@ -56,7 +64,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Automatically synchronize assignees to and from Azure DevOps. Don't get
+        Automatically synchronize comments and assignees to and from Azure DevOps. Don't get
         confused who's fixing what, let us handle ensuring your issues and work
         items match up to your Sentry and Azure DevOps assignees.
         """,
@@ -66,13 +74,6 @@ FEATURES = [
         """
         Never forget to close a resolved workitem! Resolving an issue in Sentry
         will resolve your linked workitems and viceversa.
-        """,
-        IntegrationFeatures.ISSUE_SYNC,
-    ),
-    FeatureDescription(
-        """
-        Synchronize comments on Sentry Issues directly to the linked Azure
-        DevOps workitems.
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),

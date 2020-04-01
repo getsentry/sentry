@@ -33,7 +33,7 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjects from 'app/utils/withProjects';
+import withProjectsSpecified from 'app/utils/withProjectsSpecified';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
@@ -50,9 +50,19 @@ class GlobalSelectionHeader extends React.Component {
     router: PropTypes.object,
 
     /**
-     * List of projects to display in project selector
+     * List of projects to display in project selector (comes from HoC)
      */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
+
+    /**
+     * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
+     */
+    specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
+
+    /**
+     * Remove ability to select multiple projects even if organization has feature 'global-views'
+     */
+    disableMultipleProjectSelection: PropTypes.bool,
 
     /**
      * Whether or not the projects are currently being loaded in
@@ -137,6 +147,28 @@ class GlobalSelectionHeader extends React.Component {
     onUpdateEnvironments: PropTypes.func,
     onChangeTime: PropTypes.func,
     onUpdateTime: PropTypes.func,
+
+    /**
+     * If true, there will be a back to issues stream icon link
+     */
+    showIssueStreamLink: PropTypes.bool,
+
+    /**
+     * If true, there will be a project settings icon link
+     * (forceProject prop needs to be present to know the right project slug)
+     */
+    showProjectSettingsLink: PropTypes.bool,
+
+    /**
+     * Subject that will be used in a tooltip that is shown on a lock icon hover
+     * E.g. This 'issue' is unique to a project
+     */
+    lockedMessageSubject: PropTypes.string,
+
+    /**
+     * Message to display at the bottom of project list
+     */
+    projectsFooterMessage: PropTypes.node,
   };
 
   static defaultProps = {
@@ -144,6 +176,7 @@ class GlobalSelectionHeader extends React.Component {
     showEnvironmentSelector: true,
     showDateSelector: true,
     resetParamsOnChange: [],
+    disableMultipleProjectSelection: false,
   };
 
   constructor(props) {
@@ -281,6 +314,7 @@ class GlobalSelectionHeader extends React.Component {
       selection,
       forceUrlSync,
       forceProject,
+      shouldForceProject,
     } = this.props;
 
     if (hasCustomRouting) {
@@ -300,7 +334,7 @@ class GlobalSelectionHeader extends React.Component {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
         singleProjectIsEnforced = true;
-        this.enforceSingleProject({forceProject});
+        this.enforceSingleProject({shouldForceProject, forceProject});
       }
     }
 
@@ -313,7 +347,7 @@ class GlobalSelectionHeader extends React.Component {
     ) {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
-        this.enforceSingleProject({forceProject});
+        this.enforceSingleProject({shouldForceProject, forceProject});
       }
     }
 
@@ -568,7 +602,13 @@ class GlobalSelectionHeader extends React.Component {
       showDateSelector,
       showEnvironmentSelector,
       allowClearTimeRange,
+      showIssueStreamLink,
+      showProjectSettingsLink,
+      lockedMessageSubject,
       timeRangeHint,
+      specificProjectSlugs,
+      disableMultipleProjectSelection,
+      projectsFooterMessage,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -581,8 +621,12 @@ class GlobalSelectionHeader extends React.Component {
     return (
       <Header className={className}>
         <HeaderItemPosition>
-          {shouldForceProject && this.getBackButton()}
-          <Projects orgId={organization.slug} limit={PROJECTS_PER_PAGE} globalSelection>
+          {showIssueStreamLink && this.getBackButton()}
+          <Projects
+            orgId={organization.slug}
+            limit={PROJECTS_PER_PAGE}
+            slugs={specificProjectSlugs}
+          >
             {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
               const paginatedProjectSelectorCallbacks = {
                 onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
@@ -615,8 +659,14 @@ class GlobalSelectionHeader extends React.Component {
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
                   onUpdate={this.handleUpdateProjects}
-                  multi={this.hasMultipleProjectSelection()}
+                  multi={
+                    !disableMultipleProjectSelection && this.hasMultipleProjectSelection()
+                  }
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
+                  showIssueStreamLink={showIssueStreamLink}
+                  showProjectSettingsLink={showProjectSettingsLink}
+                  lockedMessageSubject={lockedMessageSubject}
+                  footerMessage={projectsFooterMessage}
                 />
               );
             }}
@@ -669,7 +719,9 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withProjects(withRouter(withGlobalSelection(GlobalSelectionHeader)));
+export default withProjectsSpecified(
+  withRouter(withGlobalSelection(GlobalSelectionHeader))
+);
 
 const BackButtonWrapper = styled('div')`
   display: flex;

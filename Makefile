@@ -130,9 +130,13 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-test-js: node-version-check
+test-js-build: node-version-check
+	@echo "--> Running type check"
+	@$(YARN) run tsc
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
+
+test-js: node-version-check
 	@echo "--> Running JavaScript tests"
 	@$(YARN) run test-ci
 	@echo ""
@@ -215,7 +219,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js
 
 
 ############################
@@ -229,13 +233,14 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
+travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
 travis-test-relay-integration: test-relay-integration
@@ -253,6 +258,7 @@ travis-scan-acceptance: travis-noop
 travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
+travis-scan-js-build: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop

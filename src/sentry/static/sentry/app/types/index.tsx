@@ -1,12 +1,49 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {PlatformKey} from 'app/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'app/types/experiments';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
-import {PlatformKey} from 'app/data/platformCategories';
+
+declare global {
+  interface Window {
+    /**
+     * Assets public location
+     */
+    __sentryGlobalStaticPrefix: string;
+    /**
+     * The config object provided by the backend.
+     */
+    __initialData: Config;
+    /**
+     * Sentry SDK configuration
+     */
+    __SENTRY__OPTIONS: Config['sentryConfig'];
+    /**
+     * The authenticated user identity, a bare-bones version of User
+     */
+    __SENTRY__USER: Config['userIdentity'];
+    /**
+     * Sentrys version string
+     */
+    __SENTRY__VERSION?: string;
+    /**
+     * The CSRF cookie ised on the backend
+     */
+    csrfCookieName?: string;
+    /**
+     * Primary entrypoint for rendering the sentry app. This is typically
+     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
+     * after config hydration.
+     */
+    SentryRenderApp: () => void;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
+  }
+}
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -69,7 +106,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: Partial<ActiveOrgExperiments>;
+  experiments: Partial<OrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -125,23 +162,26 @@ export type ProjectRelease = {
   authors: User[];
   newGroups: number;
   healthData: Health | null;
-  projectSlug: string;
-  projectId: number;
+  project: ReleaseProject;
 };
 
 export type Health = {
-  crashFreeUsers: number | null;
   totalUsers: number;
+  totalUsers24h: number | null;
+  totalSessions: number;
+  totalSessions24h: number | null;
+  crashFreeUsers: number | null;
   crashFreeSessions: number | null;
   stats: HealthGraphData;
   sessionsCrashed: number;
   sessionsErrored: number;
   adoption: number | null;
   hasHealthData: boolean;
+  durationP50: number | null;
+  durationP90: number | null;
 };
-export type HealthGraphData = {
-  [key: string]: [number, number][];
-};
+
+export type HealthGraphData = Record<string, [number, number][]>;
 
 export type Team = {
   id: string;
@@ -234,6 +274,7 @@ type SentryEventBase = {
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+  projectID: string;
 
   tags: EventTag[];
 
@@ -322,7 +363,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
-  experiments: Partial<ActiveUserExperiments>;
+  experiments: Partial<UserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -377,6 +418,21 @@ export type PluginProjectItem = {
 
 export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
+};
+
+export type AppOrProviderOrPlugin =
+  | SentryApp
+  | IntegrationProvider
+  | PluginWithProjectList;
+
+export type DocumentIntegration = {
+  slug: string;
+  name: string;
+  author: string;
+  docUrl: string;
+  description: string;
+  features: IntegrationFeature[];
+  resourceLinks: Array<{title: string; url: string}>;
 };
 
 export type GlobalSelection = {
@@ -463,7 +519,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
+  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -482,6 +538,8 @@ export type Config = {
     whitelistUrls: string[];
   };
   distPrefix: string;
+  apmSampling: number;
+  dsn_requests: string;
 };
 
 export type EventOrGroupType =
@@ -526,7 +584,7 @@ export type Group = {
   shortId: string;
   stats: any; // TODO(ts)
   status: string;
-  statusDetails: {};
+  statusDetails: ResolutionStatusDetails;
   title: string;
   type: EventOrGroupType;
   userCount: number;
@@ -669,6 +727,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  featureData: IntegrationFeature[];
 };
 
 export type Integration = {
@@ -796,11 +855,13 @@ export type Release = {
   projects: ReleaseProject[];
 } & BaseRelease;
 
-type ReleaseProject = {
+export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  healthData?: Health | null;
+  platform: string;
+  platforms: string[];
+  healthData: Health;
 };
 
 export type BaseRelease = {
@@ -851,21 +912,13 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: object;
+  schema: SentryAppSchemaIssueLink;
   sentryApp: {
     uuid: string;
     slug: string;
     name: string;
   };
 };
-
-export type ActiveOrgExperiments = {
-  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
-  AlertDefaultsExperiment: 'controlV1' | '2OptionsV1' | '3OptionsV2';
-  IntegrationDirectorySortWeightExperiment: '1' | '0';
-};
-
-export type ActiveUserExperiments = {};
 
 type SavedQueryVersions = 1 | 2;
 
@@ -904,10 +957,6 @@ export type SelectValue<T> = {
   value: T;
 };
 
-export type StringMap<T> = {
-  [key: string]: T;
-};
-
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -944,6 +993,11 @@ export enum OnboardingTaskKey {
   ALERT_RULE = 'setup_alert_rules',
 }
 
+export type OnboardingSupplementComponentProps = {
+  task: OnboardingTask;
+  onCompleteTask: () => void;
+};
+
 export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
@@ -962,6 +1016,10 @@ export type OnboardingTaskDescriptor = {
    * Should the onboarding task currently be displayed
    */
   display: boolean;
+  /**
+   * An extra component that may be rendered within the onboarding task item.
+   */
+  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
 } & (
   | {
       actionType: 'app' | 'external';
@@ -982,7 +1040,14 @@ export type OnboardingTaskStatus = {
   data?: object;
 };
 
-export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
+export type OnboardingTask = OnboardingTaskStatus &
+  OnboardingTaskDescriptor & {
+    /**
+     * Onboarding tasks that are currently incomplete and must be completed
+     * before this task should be completed.
+     */
+    requisiteTasks: OnboardingTask[];
+  };
 
 export type Tag = {
   name: string;
@@ -1028,6 +1093,12 @@ export enum ResolutionStatus {
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
+  autoResolved?: boolean;
+  ignoreCount?: number;
+  ignoreUntil?: string;
+  ignoreUserCount?: number;
+  ignoreUserWindow?: string;
+  ignoreWindow?: string;
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
@@ -1062,3 +1133,11 @@ export type SentryServiceStatus = {
   incidents: SentryServiceIncident[];
   url: string;
 };
+
+export type CrashFreeTimeBreakdown = {
+  date: string;
+  totalSessions: number;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+}[];

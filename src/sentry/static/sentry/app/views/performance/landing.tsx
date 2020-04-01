@@ -10,12 +10,12 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {PageContent} from 'app/styles/organization';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import Alert from 'app/components/alert';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {StyledPageHeader} from 'app/views/eventsV2/landing';
 
-import {generatePerformanceQuery, DEFAULT_STATS_PERIOD} from './data';
+import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
 
@@ -29,10 +29,6 @@ type State = {
   eventView: EventView;
   error: string | undefined;
 };
-
-function generatePerformanceEventView(location: Location): EventView {
-  return EventView.fromNewQueryWithLocation(generatePerformanceQuery(location), location);
-}
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {

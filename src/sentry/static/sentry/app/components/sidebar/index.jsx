@@ -38,10 +38,12 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
+import {logExperiment} from 'app/utils/analytics';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
 import OnboardingStatus from './onboardingStatus';
+import LegacyOnboardingStatus from './legacyOnboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
@@ -66,7 +68,7 @@ class Sidebar extends React.Component {
       return;
     }
     // TODO(billy): We should consider moving this into a component
-    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[0]})`);
+    this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[1]})`);
     this.mq.addListener(this.handleMediaQueryChange);
     this.state.horizontal = this.mq.matches;
   }
@@ -77,6 +79,12 @@ class Sidebar extends React.Component {
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
+
+    const {organization} = this.props;
+    logExperiment({
+      organization,
+      key: 'OnboardingSidebarV2Experiment',
+    });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -539,6 +547,20 @@ class Sidebar extends React.Component {
 
         {hasOrganization && (
           <SidebarSectionGroup>
+            {organization.experiments?.OnboardingSidebarV2Experiment === 1 &&
+              !horizontal && (
+                <SidebarSection noMargin noPadding>
+                  <OnboardingStatus
+                    org={organization}
+                    currentPanel={currentPanel}
+                    onShowPanel={() => this.togglePanel('todos')}
+                    showPanel={showPanel}
+                    hidePanel={this.hidePanel}
+                    collapsed={collapsed}
+                  />
+                </SidebarSection>
+              )}
+
             <SidebarSection>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
@@ -570,18 +592,19 @@ class Sidebar extends React.Component {
               />
             </SidebarSection>
 
-            {!horizontal && (
-              <SidebarSection noMargin>
-                <OnboardingStatus
-                  org={organization}
-                  currentPanel={currentPanel}
-                  onShowPanel={() => this.togglePanel('todos')}
-                  showPanel={showPanel}
-                  hidePanel={this.hidePanel}
-                  collapsed={collapsed}
-                />
-              </SidebarSection>
-            )}
+            {organization.experiments?.OnboardingSidebarV2Experiment !== 1 &&
+              !horizontal && (
+                <SidebarSection noMargin>
+                  <LegacyOnboardingStatus
+                    org={organization}
+                    currentPanel={currentPanel}
+                    onShowPanel={() => this.togglePanel('todos')}
+                    showPanel={showPanel}
+                    hidePanel={this.hidePanel}
+                    collapsed={collapsed}
+                  />
+                </SidebarSection>
+              )}
 
             {!horizontal && (
               <SidebarSection>
@@ -603,9 +626,6 @@ class Sidebar extends React.Component {
 
 const SidebarContainer = createReactClass({
   displayName: 'SidebarContainer',
-  contextTypes: {
-    location: PropTypes.any,
-  },
   mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
   getInitialState() {
     return {
@@ -624,9 +644,7 @@ const SidebarContainer = createReactClass({
   },
 
   render() {
-    return (
-      <Sidebar {...this.props} collapsed={this.state.collapsed} location={location} />
-    );
+    return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
   },
 });
 
@@ -637,7 +655,7 @@ const responsiveFlex = css`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${theme.breakpoints[0]}) {
+  @media (max-width: ${theme.breakpoints[1]}) {
     flex-direction: row;
   }
 `;
@@ -658,7 +676,7 @@ const StyledSidebar = styled('div')`
   ${responsiveFlex};
   ${p => p.collapsed && `width: ${p.theme.sidebar.collapsedWidth};`};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     top: 0;
     left: 0;
     right: 0;
@@ -674,13 +692,14 @@ const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
 `;
 
-const SidebarSectionGroupPrimary = styled(SidebarSectionGroup)`
+const SidebarSectionGroupPrimary = styled('div')`
+  ${responsiveFlex};
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
   flex: 1;
   /* expand to fill the entire height on mobile */
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     height: 100%;
     align-items: center;
   }
@@ -692,7 +711,7 @@ const PrimaryItems = styled('div')`
   display: flex;
   flex-direction: column;
   -ms-overflow-style: -ms-autohiding-scrollbar;
-  @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[1]}) {
     border-bottom: 1px solid ${p => p.theme.gray3};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
@@ -705,7 +724,7 @@ const PrimaryItems = styled('div')`
       border-radius: 8px;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     overflow-y: visible;
     flex-direction: row;
     height: 100%;
@@ -722,7 +741,7 @@ const PrimaryItems = styled('div')`
 
 const SidebarSection = styled(SidebarSectionGroup)`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
-  padding: 0 19px;
+  ${p => !p.noPadding && 'padding: 0 19px'};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin: 0;
@@ -752,7 +771,7 @@ const StyledIconChevron = styled(({collapsed, ...props}) => (
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
 `;

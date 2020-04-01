@@ -2,41 +2,43 @@
 
 exports[`AlertLink renders 1`] = `
 <StyledLink
+  openInNewTab={false}
   priority="warning"
   size="normal"
-  target="_self"
   to="/settings/accounts/notifications"
   withoutMarginBottom={false}
 >
   <AlertLinkText>
     This is an external link button
   </AlertLinkText>
-  <InlineSvg
-    size="1em"
-    src="icon-chevron-right"
-  />
+  <IconLink>
+    <ForwardRef(IconChevron)
+      direction="right"
+    />
+  </IconLink>
 </StyledLink>
 `;
 
 exports[`AlertLink renders with icon 1`] = `
 <StyledLink
+  openInNewTab={false}
   priority="warning"
   size="normal"
-  target="_self"
   to="/settings/accounts/notifications"
   withoutMarginBottom={false}
 >
-  <StyledInlineSvg
-    size="1.5em"
-    spacingSize="normal"
-    src="icon-mail"
-  />
+  <IconWrapper>
+    <InlineSvg
+      src="icon-mail"
+    />
+  </IconWrapper>
   <AlertLinkText>
     This is an external link button
   </AlertLinkText>
-  <InlineSvg
-    size="1em"
-    src="icon-chevron-right"
-  />
+  <IconLink>
+    <ForwardRef(IconChevron)
+      direction="right"
+    />
+  </IconLink>
 </StyledLink>
 `;

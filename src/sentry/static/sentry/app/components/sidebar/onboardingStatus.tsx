@@ -1,150 +1,165 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getOnboardingTasks from 'app/components/onboardingWizard/getOnboardingTasks';
-import SidebarPanel from 'app/components/sidebar/sidebarPanel';
-import {tct} from 'app/locale';
-import TodoList from 'app/components/onboardingWizard/todoList';
-import Tooltip from 'app/components/tooltip';
-import {Organization} from 'app/types';
+import {getMergedTasks} from 'app/components/onboardingWizard/taskConfig';
+import {tct, t} from 'app/locale';
+import OnboardingSidebar from 'app/components/onboardingWizard/sidebar';
+import {Organization, OnboardingTaskStatus} from 'app/types';
+import space from 'app/styles/space';
+import theme, {Theme} from 'app/utils/theme';
+import ProgressRing, {
+  RingBackground,
+  RingBar,
+  RingText,
+} from 'app/components/progressRing';
 
-type Props = {
+import {CommonSidebarProps} from './types';
+
+type Props = CommonSidebarProps & {
   org: Organization;
-  currentPanel: string;
-  onShowPanel: () => void;
-  hidePanel: () => void;
-  showPanel: boolean;
-  collapsed: boolean;
 };
 
-function recordAnalytics(currentPanel: string, orgId: string) {
-  const data =
-    currentPanel === 'todos'
-      ? {eventKey: 'onboarding.wizard_opened', eventName: 'Onboarding Wizard Opened'}
-      : {eventKey: 'onboarding.wizard_closed', eventName: 'Onboarding Wizard Closed'};
-  trackAnalyticsEvent({...data, organization_id: orgId});
-}
+const isDone = (task: OnboardingTaskStatus) =>
+  task.status === 'complete' || task.status === 'skipped';
+
+const progressTextCss = () => css`
+  font-size: ${theme.fontSizeMedium};
+  font-weight: bold;
+`;
 
 class OnboardingStatus extends React.Component<Props> {
-  static propTypes = {
-    org: PropTypes.object.isRequired,
-    currentPanel: PropTypes.string,
-    onShowPanel: PropTypes.func,
-    showPanel: PropTypes.bool,
-    hidePanel: PropTypes.func,
-    collapsed: PropTypes.bool,
+  handleShowPanel = () => {
+    const {org, onShowPanel} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'onboarding.wizard_opened',
+      eventName: 'Onboarding Wizard Opened',
+      organization_id: org.id,
+    });
+    onShowPanel();
   };
 
-  componentDidUpdate(prevProps: Props) {
-    const {currentPanel, org} = this.props;
-    if (
-      currentPanel !== prevProps.currentPanel &&
-      (currentPanel || prevProps.currentPanel === 'todos')
-    ) {
-      recordAnalytics(currentPanel, org.id);
-    }
-  }
-
   render() {
-    const {collapsed, org, currentPanel, hidePanel, showPanel, onShowPanel} = this.props;
+    const {collapsed, org, currentPanel, orientation, hidePanel, showPanel} = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
     }
 
-    const doneTasks = (org.onboardingTasks || []).filter(
-      task => task.status === 'complete' || task.status === 'skipped'
+    const tasks = getMergedTasks(org);
+
+    const allDisplayedTasks = tasks.filter(task => task.display);
+    const doneTasks = allDisplayedTasks.filter(isDone);
+    const numberRemaining = allDisplayedTasks.length - doneTasks.length;
+
+    const pendingCompletionSeen = doneTasks.some(
+      task =>
+        allDisplayedTasks.some(displayedTask => displayedTask.task === task.task) &&
+        task.status === 'complete' &&
+        !task.completionSeen
     );
 
-    const tasks = getOnboardingTasks(org);
-    const allDisplayedTasks = tasks.filter(task => task.display);
+    const isActive = showPanel && currentPanel === 'todos';
 
-    if (doneTasks.length >= allDisplayedTasks.length) {
+    if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
       return null;
     }
 
-    const tooltipTitle = tct(
-      'Getting started with Sentry: [br] [done] / [all] tasks completed',
-      {
-        br: <br />,
-        done: doneTasks.length,
-        all: allDisplayedTasks.length,
-      }
-    );
-
     return (
       <React.Fragment>
-        <Tooltip title={tooltipTitle} containerDisplayMode="block">
-          <OnboardingProgressBar
-            onClick={onShowPanel}
-            isActive={currentPanel === 'todos'}
-            isCollapsed={collapsed}
-            progress={Math.round((doneTasks.length / allDisplayedTasks.length) * 100)}
+        <Container onClick={this.handleShowPanel} isActive={isActive}>
+          <ProgressRing
+            animateText
+            textCss={progressTextCss}
+            text={allDisplayedTasks.length - doneTasks.length}
+            value={(doneTasks.length / allDisplayedTasks.length) * 100}
+            backgroundColor="rgba(255, 255, 255, 0.15)"
+            progressEndcaps="round"
+            size={38}
+            barWidth={6}
           />
-        </Tooltip>
-        {showPanel && currentPanel === 'todos' && (
-          <SidebarPanel
+          {!collapsed && (
+            <div>
+              <Heading>{t('Setup Sentry')}</Heading>
+              <Remaining>
+                {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
+                {pendingCompletionSeen && <PendingSeenIndicator />}
+              </Remaining>
+            </div>
+          )}
+        </Container>
+        {isActive && (
+          <OnboardingSidebar
+            orientation={orientation}
             collapsed={collapsed}
-            title="Getting Started with Sentry"
-            hidePanel={hidePanel}
-          >
-            <TodoList />
-          </SidebarPanel>
+            onClose={hidePanel}
+          />
         )}
       </React.Fragment>
     );
   }
 }
 
-const hoverBg = css`
-  background: rgba(255, 255, 255, 0.3);
+const Heading = styled('div')`
+  transition: color 100ms;
+  font-size: ${p => p.theme.offWhite};
+  color: ${p => p.theme.gray1};
+  margin-bottom: ${space(0.25)};
 `;
 
-const OnboardingProgressBar = styled('div')<{
-  isActive: boolean;
-  isCollapsed: boolean;
-  progress: number;
-}>`
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-  position: relative;
+const Remaining = styled('div')`
+  transition: color 100ms;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray2};
+  display: grid;
+  grid-template-columns: max-content max-content;
+  grid-gap: ${space(0.75)};
+  align-items: center;
+`;
+
+const PendingSeenIndicator = styled('div')`
+  background: ${p => p.theme.red};
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
+`;
+
+const hoverCss = (p: {theme: Theme}) => css`
+  background: rgba(255, 255, 255, 0.05);
+
+  ${RingBackground} {
+    stroke: rgba(255, 255, 255, 0.3);
+  }
+  ${RingBar} {
+    stroke: ${p.theme.greenLight};
+  }
+  ${RingText} {
+    color: ${p.theme.white};
+  }
+
+  ${Heading} {
+    color: ${p.theme.white};
+  }
+  ${Remaining} {
+    color: ${p.theme.gray1};
+  }
+`;
+
+const Container = styled('div')<{isActive: boolean}>`
+  padding: 9px 19px 9px 16px;
   cursor: pointer;
-  z-index: 200;
-  margin: 0 auto;
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1.5)};
+  align-items: center;
+  transition: background 100ms;
 
-  width: ${p => (p.isCollapsed ? '16px' : '100%')};
-  height: ${p => (p.isCollapsed ? '150px' : '16px')};
-
-  ${p => p.isActive && hoverBg};
+  ${p => p.isActive && hoverCss(p)};
 
   &:hover {
-    ${hoverBg}
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  &:before {
-    content: '';
-    display: block;
-    position: absolute;
-    top: -10px;
-    bottom: -10px;
-    left: -10px;
-    right: -10px;
-  }
-
-  &:after {
-    content: '';
-    display: block;
-    border-radius: inherit;
-    background-color: ${p => p.theme.green};
-
-    width: ${p => (p.isCollapsed ? '100%' : `${p.progress}%`)};
-    height: ${p => (p.isCollapsed ? `${p.progress}%` : '100%')};
+    ${hoverCss};
   }
 `;
 

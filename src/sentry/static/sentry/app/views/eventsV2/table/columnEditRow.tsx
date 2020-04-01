@@ -5,20 +5,14 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import {SelectValue, StringMap} from 'app/types';
+import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Column, ColumnType, AggregateParameter} from 'app/utils/discover/fields';
 
 import {FieldValueKind, FieldValue} from './types';
-import {
-  FIELD_ALIASES,
-  ColumnType,
-  Aggregation,
-  AggregateParameter,
-} from '../eventQueryParams';
-import {Column} from '../eventView';
 
-type FieldOptions = StringMap<SelectValue<FieldValue>>;
+type FieldOptions = Record<string, SelectValue<FieldValue>>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
@@ -64,15 +58,6 @@ class ColumnEditRow extends React.Component<Props> {
             kind: 'function',
             function: [value.meta.name, current.function[1], current.function[2]],
           };
-        }
-        // Backwards compatibility for field alias versions of functions.
-        if (
-          current.kind === 'function' &&
-          column.kind === 'function' &&
-          current.function[1] &&
-          FIELD_ALIASES.includes(current.function[1])
-        ) {
-          column.function = [column.function[1] as Aggregation, '', undefined];
         }
         break;
       default:
@@ -178,16 +163,9 @@ class ColumnEditRow extends React.Component<Props> {
         // TODO move this closer to where it is used.
         fieldParameter = this.getFieldOrTagValue(column.function[1]);
       }
-    } else if (column.kind === 'field') {
-      if (FIELD_ALIASES.includes(column.field)) {
-        // Handle backwards compatible field aliases.
-        const aliasName = `function:${column.field}`;
-        if (fieldOptions[aliasName] !== undefined) {
-          field = fieldOptions[aliasName].value;
-        }
-      } else {
-        field = this.getFieldOrTagValue(column.field);
-      }
+    }
+    if (column.kind === 'field') {
+      field = this.getFieldOrTagValue(column.field);
     }
 
     // If our current field, or columnParameter is a virtual tag, add it to the option list.
@@ -428,7 +406,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   };
 
   render() {
-    const {onUpdate, ...props} = this.props;
+    const {onUpdate: _, ...props} = this.props;
     return (
       <StyledInput
         {...props}

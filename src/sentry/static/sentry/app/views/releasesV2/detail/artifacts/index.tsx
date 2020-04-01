@@ -1,50 +1,62 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
-import {GlobalSelection} from 'app/types';
 import Alert from 'app/components/alert';
 import space from 'app/styles/space';
 import ReleaseArtifactsV1 from 'app/views/releases/detail/releaseArtifacts';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
+import AsyncView from 'app/views/asyncView';
+import routeTitleGen from 'app/utils/routeTitle';
+import {formatVersion} from 'app/utils/formatters';
+import withOrganization from 'app/utils/withOrganization';
+import {Organization} from 'app/types';
 
 import {ReleaseContext} from '..';
 
-type Props = {
-  params: Params;
-  location: Location;
-  selection: GlobalSelection;
+type RouteParams = {
+  orgId: string;
+  release: string;
 };
 
-const ReleaseArtifacts = ({params, location, selection}: Props) => (
-  <ReleaseContext.Consumer>
-    {release => {
-      const project = release?.projects.find(p => p.id === selection.projects[0]);
-      // TODO(releasesV2): we will handle this later with forced project selector
-      if (!project) {
-        return null;
-      }
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+};
 
-      return (
-        <ContentBox>
-          <Alert type="warning">
-            {t(
-              'We are working on improving this experience, therefore Artifacts will be moving to Settings soon.'
-            )}
-          </Alert>
+class ReleaseArtifacts extends AsyncView<Props> {
+  static contextType = ReleaseContext;
 
-          <ReleaseArtifactsV1
-            params={params}
-            location={location}
-            projectId={project.slug}
-          />
-        </ContentBox>
-      );
-    }}
-  </ReleaseContext.Consumer>
-);
+  getTitle() {
+    const {params, organization} = this.props;
+    return routeTitleGen(
+      t('Artifacts - Release %s', formatVersion(params.release)),
+      organization.slug,
+      false
+    );
+  }
+
+  renderBody() {
+    const {project} = this.context;
+    const {params, location} = this.props;
+
+    return (
+      <ContentBox>
+        <Alert type="warning">
+          {t(
+            'We are working on improving this experience, therefore Artifacts will be moving to Settings soon.'
+          )}
+        </Alert>
+
+        <ReleaseArtifactsV1
+          params={params}
+          location={location}
+          projectId={project.slug}
+          smallEmptyMessage
+        />
+      </ContentBox>
+    );
+  }
+}
 
 const ContentBox = styled('div')`
   padding: ${space(4)};
@@ -52,4 +64,4 @@ const ContentBox = styled('div')`
   background-color: ${p => p.theme.white};
 `;
 
-export default withGlobalSelection(ReleaseArtifacts);
+export default withOrganization(ReleaseArtifacts);

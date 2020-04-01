@@ -154,14 +154,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
 export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
-declare global {
-  interface Window {
-    csrfCookieName?: string;
-    sentryEmbedCallback?: ((embed: any) => void) | null;
-  }
-}
-
-export const CSRF_COOKIE_NAME: string = window.csrfCookieName || 'sc';
+export const CSRF_COOKIE_NAME = window.csrfCookieName ?? 'sc';
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
@@ -227,11 +220,20 @@ export const DEFAULT_PER_PAGE = 50;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 // eslint-disable-next-line no-undef
-export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG;
+export const DEPLOY_PREVIEW_CONFIG = (process.env.DEPLOY_PREVIEW_CONFIG as unknown) as
+  | undefined
+  | {
+      branch: string;
+      commitSha: string;
+      githubOrg: string;
+      githubRepo: string;
+    };
 
 // Webpack configures EXPERIMENTAL_SPA.
 // eslint-disable-next-line no-undef
-export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA;
+export const EXPERIMENTAL_SPA = (process.env.EXPERIMENTAL_SPA as unknown) as
+  | undefined
+  | boolean;
 
 // so we don't use filtered values in certain display contexts
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
@@ -244,4 +246,4 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 };
 
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
-export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/workflow/discover2/';
+export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/performance/discover/';

@@ -2,10 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import {SubHeading} from 'app/components/charts/styles';
+import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import theme from 'app/utils/theme';
 import {IconBookmark} from 'app/icons/iconBookmark';
-import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import Card from 'app/components/card';
@@ -44,7 +45,7 @@ class QueryCard extends React.PureComponent<Props> {
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
         <StyledQueryCard interactive>
           <QueryCardHeader>
-            <StyledTitle>
+            <CardHeading>
               {title}
               {starred && (
                 <StyledIconBookmark
@@ -53,7 +54,7 @@ class QueryCard extends React.PureComponent<Props> {
                   solid
                 />
               )}
-            </StyledTitle>
+            </CardHeading>
             <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
@@ -90,12 +91,7 @@ const StyledIconBookmark = styled(IconBookmark)`
   right: ${space(2)};
 `;
 
-const StyledTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray5};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+const CardHeading = styled(SubHeading)`
   width: 95%;
 `;
 

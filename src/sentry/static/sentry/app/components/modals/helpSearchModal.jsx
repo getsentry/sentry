@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {ClassNames} from '@emotion/core';
+import {ClassNames, css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import Search from 'app/components/search';
@@ -19,14 +19,14 @@ class HelpSearchModal extends React.Component {
     return (
       <Body>
         <ClassNames>
-          {({css}) => (
+          {({css: injectedCss}) => (
             <Search
               {...this.props}
               sources={[HelpSource]}
               entryPoint="sidebar_help"
               minSearch={3}
               maxResults={10}
-              dropdownStyle={css`
+              dropdownStyle={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -68,6 +68,12 @@ const Input = styled('input')`
 
   &:focus {
     outline: none;
+  }
+`;
+
+export const modalCss = css`
+  .modal-content {
+    padding: 0;
   }
 `;
 
