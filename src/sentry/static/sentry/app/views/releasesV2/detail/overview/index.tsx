@@ -92,6 +92,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         {...releaseStatsProps}
                       />
                     ) : (
+                      // TODO(releasesV2): feature flag?
                       <DiscoverChartContainer
                         organization={organization}
                         selection={selection}
