@@ -53,8 +53,8 @@ ensure-pinned-pip: ensure-venv
 	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
 setup-git-config:
-	@git config branch.autosetuprebase always
-	@git config core.ignorecase false
+	@git config --local branch.autosetuprebase always
+	@git config --local core.ignorecase false
 	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
 
 setup-git: ensure-venv setup-git-config
