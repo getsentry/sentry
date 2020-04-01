@@ -12,6 +12,7 @@ from sentry import quotas
 from sentry.eventstream.base import EventStream
 from sentry.utils import snuba, json
 from sentry.utils.safe import get_path
+from sentry.utils.sdk import set_current_project
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ class SnubaProtocolEventStream(EventStream):
         skip_consume=False,
     ):
         project = event.project
+        set_current_project(project.id)
         retention_days = quotas.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data()
@@ -127,7 +129,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={'Received-Timestamp': six.text_type(received_timestamp)}
+            headers={"Received-Timestamp": six.text_type(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -253,7 +255,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
                     "POST",
                     "/tests/{}/eventstream".format(dataset),
                     body=json.dumps(data),
-                    headers={'X-Sentry-{}'.format(k): v for k, v in headers.items()},
+                    headers={"X-Sentry-{}".format(k): v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)

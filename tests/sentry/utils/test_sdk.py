@@ -4,10 +4,11 @@ from sentry_sdk import Hub
 
 from django.conf import settings
 from sentry.utils.sdk import configure_sdk, bind_organization_context
+from sentry.utils.compat import mock
 from sentry.app import raven
 
 from sentry.eventstore.models import Event
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry import nodestore
 
 
@@ -24,6 +25,24 @@ class SentryInternalClientTest(TestCase):
         assert event["project"] == settings.SENTRY_PROJECT
         assert event["event_id"] == event_id
         assert event["logentry"]["formatted"] == "internal client test"
+
+    def test_recursion_breaker(self):
+        configure_sdk()
+        Hub.current.bind_client(Hub.main.client)
+
+        # If this test terminates at all then we avoided recursion.
+        with self.tasks():
+            with mock.patch(
+                "sentry.event_manager.EventManager.save", side_effect=ValueError("oh no!")
+            ) as save:
+                event_id = raven.captureMessage("internal client test")
+
+        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+        assert event is None
+
+        assert_mock_called_once_with_partial(
+            save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(event_id)
+        )
 
     def test_encoding(self):
         configure_sdk()
