@@ -1231,7 +1231,7 @@ class QueryTransformTest(TestCase):
         )
         expected = (1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0)
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_15"] == exp
+            assert result["count"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
     def test_histogram_zerofill_empty_results(self, mock_query):
