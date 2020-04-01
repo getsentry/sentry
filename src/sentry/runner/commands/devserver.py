@@ -23,6 +23,9 @@ from sentry.runner.decorators import configuration, log_options
 )
 @click.option("--environment", default="development", help="The environment name.")
 @click.option(
+    "--skip", default=None, required=False, help="Names of daemons not to start (comma-delimited)"
+)
+@click.option(
     "--experimental-spa/--no-experimental-spa",
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
@@ -32,7 +35,9 @@ from sentry.runner.decorators import configuration, log_options
 )
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
+def devserver(
+    reload, watchers, workers, experimental_spa, styleguide, prefix, environment, skip, bind
+):
     "Starts a lightweight web server for development."
     if bind is None:
         # default configuration, the dev server address depends on weather we have a reverse proxy
@@ -232,11 +237,15 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     if styleguide:
         daemons += [("storybook", ["./bin/yarn", "storybook"])]
 
+    daemons_to_skip = set(skip.split(",")) if skip else ()
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
-        manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
+        cmdline = list2cmdline(cmd)
+        if name not in daemons_to_skip:
+            click.echo("Adding daemon '{}' with command: {}".format(name, cmdline))
+            manager.add_process(name, cmdline, quiet=False, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)
