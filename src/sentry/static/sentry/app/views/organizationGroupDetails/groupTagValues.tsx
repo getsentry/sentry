@@ -8,6 +8,7 @@ import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
+import Button from 'app/components/button';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -110,12 +111,15 @@ class GroupTagValues extends AsyncComponent<
       <TableWrapper>
         <h3>
           {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <a
+          <Button
+            size="small"
+            priority="default"
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="btn btn-default btn-sm m-left m-right"
+            className="m-left m-right"
           >
             {t('Export Page to CSV')}
-          </a>
+          </Button>
+          <a />
           <DataExport
             payload={{
               queryType: ExportQueryType.IssuesByTag,
@@ -149,6 +153,10 @@ class GroupTagValues extends AsyncComponent<
 }
 
 const TableWrapper = styled('div')`
+  h3 {
+    display: flex;
+    align-items: flex-end;
+  }
   .m-left {
     margin-left: ${space(1.5)};
   }

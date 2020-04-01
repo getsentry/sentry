@@ -3,7 +3,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
-import Tooltip from 'app/components/tooltip';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -22,6 +22,7 @@ type DataExportPayload = {
 
 type Props = {
   api: Client;
+  disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
 };
@@ -66,20 +67,30 @@ class DataExport extends React.Component<Props, State> {
 
   render() {
     const {inProgress, dataExportId} = this.state;
+    const {children, disabled} = this.props;
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <Tooltip title="You can get on with your life. We'll email you when your data's ready.">
-            <button className="btn btn-default btn-sm" disabled>
-              {t("We're working on it...")}
-            </button>
-          </Tooltip>
+          <Button
+            size="small"
+            priority="default"
+            title="You can get on with your life. We'll email you when your data's ready."
+            {...this.props}
+            disabled
+          >
+            {t("We're working on it...")}
+          </Button>
         ) : (
-          <Tooltip title="Put your data to work. Start your export and we'll email you when it's finished.">
-            <button className="btn btn-default btn-sm" onClick={this.startDataExport}>
-              {t('Export Data')}
-            </button>
-          </Tooltip>
+          <Button
+            onClick={this.startDataExport}
+            disabled={disabled || false}
+            size="small"
+            priority="default"
+            title="Put your data to work. Start your export and we'll email you when it's finished."
+            {...this.props}
+          >
+            {children ? children : t('Export All to CSV')}
+          </Button>
         )}
       </Feature>
     );
