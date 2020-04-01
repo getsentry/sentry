@@ -16,6 +16,10 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
+        self.project2 = self.create_project(
+            organization=self.org, teams=[self.team], name="Bengal 2"
+        )
+        self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
         self.path = u"/organizations/{}/releases-v2/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
@@ -25,9 +29,38 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.snapshot("organization releases v2 - no access")
 
-    def test(self):
+    def test_list(self):
         with self.feature(FEATURE_NAME):
+            release = self.create_release(project=self.project, version="1.0")
+            self.create_group(first_release=release, project=self.project, message="Foo bar")
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            # TODO(releasesv2): data is for now randomly hardcoded in the UI - this snapshot will always be different, turned off until finished api
-            # self.browser.snapshot("organization releases v2 list")
+            self.browser.snapshot("organization releases v2 - with releases")
+            # TODO(releasesV2): add health data
+
+    def test_detail(self):
+        with self.feature(FEATURE_NAME):
+            release = self.create_release(project=self.project, version="1.0")
+            self.browser.get(self.path + release.version)
+            self.browser.wait_until_not(".loading")
+            self.browser.snapshot("organization releases v2 - detail")
+            # TODO(releasesV2): add health data
+
+    def test_detail_pick_project(self):
+        with self.feature(FEATURE_NAME):
+            release = self.create_release(
+                project=self.project, project2=self.project2, version="1.0"
+            )
+            self.browser.get(self.path + release.version)
+            self.browser.wait_until_not(".loading")
+            self.browser.snapshot("organization releases v2 - detail - pick project")
+
+    def test_detail_global_header(self):
+        with self.feature(FEATURE_NAME):
+            release = self.create_release(
+                project=self.project, project2=self.project2, version="1.0"
+            )
+            self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
+            self.browser.wait_until_not(".loading")
+            self.browser.click('[data-test-id="global-header-project-selector"]')
+            self.browser.snapshot("organization releases v2 - detail - global project header")

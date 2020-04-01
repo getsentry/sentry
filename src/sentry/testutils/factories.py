@@ -303,7 +303,7 @@ class Factories(object):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None):
+    def create_release(project, user=None, version=None, date_added=None, project2=None):
         if version is None:
             version = hexlify(os.urandom(20))
 
@@ -315,6 +315,7 @@ class Factories(object):
         )
 
         release.add_project(project)
+        release.add_project(project2)
 
         Activity.objects.create(
             type=Activity.RELEASE,
