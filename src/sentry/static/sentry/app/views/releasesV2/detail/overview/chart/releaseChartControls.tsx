@@ -66,7 +66,7 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
         <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
 
-      {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
+      {/* TODO(releasesV2): this will be down the road replaced with discover's OptionSelector */}
       <InlineContainer>
         <SectionHeading>{t('Y-Axis')}</SectionHeading>
         <DropdownControl
