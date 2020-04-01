@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-from datetime import timedelta
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
 
@@ -20,13 +19,7 @@ from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba.discover import ReferenceEvent
 from sentry.utils.compat import map, zip
-from sentry.utils.dates import parse_stats_period
-
-
-# Maximum number of results we are willing to fetch.
-# Clients should adapt the interval width based on their
-# display width.
-MAX_POINTS = 4500
+from sentry.utils.dates import get_rollup_from_request
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -150,7 +143,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             columns = request.GET.getlist("yAxis", ["count()"])
             query = request.GET.get("query")
             params = self.get_filter_params(request, organization)
-            rollup = self.get_rollup(request, params)
+            rollup = get_rollup_from_request(
+                request,
+                params,
+                "1h",
+                InvalidSearchQuery(
+                    "Your interval and date range would create too many results. "
+                    "Use a larger interval, or a smaller date range."
+                ),
+            )
             # Backwards compatibility for incidents which uses the old
             # column aliases as it straddles both versions of events/discover.
             # We will need these aliases until discover2 flags are enabled for all
@@ -178,20 +179,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             }
         else:
             return serializer.serialize(result)
-
-    def get_rollup(self, request, params):
-        interval = parse_stats_period(request.GET.get("interval", "1h"))
-        if interval is None:
-            interval = timedelta(hours=1)
-
-        date_range = params["end"] - params["start"]
-        if date_range.total_seconds() / interval.total_seconds() > MAX_POINTS:
-            raise InvalidSearchQuery(
-                "Your interval and date range would create too many results. "
-                "Use a larger interval, or a smaller date range."
-            )
-
-        return int(interval.total_seconds())
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
