@@ -48,7 +48,7 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
     def test_detail_pick_project(self):
         with self.feature(FEATURE_NAME):
             release = self.create_release(
-                project=self.project, project2=self.project2, version="1.0"
+                project=self.project, additional_projects=[self.project2], version="1.0"
             )
             self.browser.get(self.path + release.version)
             self.browser.wait_until_not(".loading")
@@ -57,7 +57,7 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
     def test_detail_global_header(self):
         with self.feature(FEATURE_NAME):
             release = self.create_release(
-                project=self.project, project2=self.project2, version="1.0"
+                project=self.project, additional_projects=[self.project2], version="1.0"
             )
             self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
             self.browser.wait_until_not(".loading")
