@@ -167,7 +167,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location} = this.props;
     const {loading, releases, reloading} = this.state;
 
-    if ((loading && !reloading) || (loading && !releases.length)) {
+    if ((loading && !reloading) || (loading && !releases?.length)) {
       return <LoadingIndicator />;
     }
 
