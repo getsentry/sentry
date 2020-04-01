@@ -34,6 +34,7 @@ const DEFAULT_QUERY_STATUS = 'open';
 
 type Props = {
   organization: Organization;
+  hasAlertRule?: boolean;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
@@ -60,11 +61,78 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       ],
     ];
   }
+  onLoadAllEndpointsSuccess() {
+    const {incidentList} = this.state;
+    if (incidentList.length === 0) {
+      // Check if they have rules or not, to know which empty state message to display
+      const {params} = this.props;
+
+      this.setState({
+        loading: true,
+      });
+
+      this.api.request(`/organizations/${params && params.orgId}/alert-rules/`, {
+        method: 'GET',
+        success: data => {
+          this.setState({
+            hasAlertRule: data.length > 0 ? true : false,
+            loading: false,
+          });
+        },
+      });
+    }
+  }
+
+  /**
+   * Incidents list is currently at the organization level, but the link needs to
+   * go down to a specific project scope.
+   */
+  handleAddAlertRule = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
+    e.preventDefault();
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+  };
 
   renderEmpty() {
+    const {location} = this.props;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
+
+    const hasAlertRule = this.state.hasAlertRule;
+    if (hasAlertRule === true) {
+      return (
+        <EmptyStateWarning>
+          <p>
+            {tct('No [status] metric alerts. ', {
+              status: status === 'open' ? 'active' : status,
+            })}
+
+            {hasAlertRule
+              ? tct(' Start by [link].', {
+                  status: status === 'open' ? 'active' : status,
+                  link: (
+                    <ExternalLink onClick={this.handleAddAlertRule}>
+                      creating your first rule
+                    </ExternalLink>
+                  ),
+                })
+              : ''}
+          </p>
+        </EmptyStateWarning>
+      );
+    }
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Metric Alerts yet")}</p>
+        <p>
+          {tct('No [status] metric alerts. Start by [link].', {
+            status: status === 'open' ? 'active' : status,
+            link: (
+              <ExternalLink onClick={this.handleAddAlertRule}>
+                creating your first rule
+              </ExternalLink>
+            ),
+          })}
+        </p>
       </EmptyStateWarning>
     );
   }
