@@ -48,7 +48,7 @@ function getAverageBetweenPoints(data: Data, index: number) {
   if (index >= data.length - 1) {
     return getDataValue(data[data.length - 1]);
   } else if (index < 0) {
-    return data[0][1].count;
+    return getDataValue(data[0]);
   } else {
     const pt1 = getDataValue(data[index]);
     const pt2 = getDataValue(data[index + 1]);
@@ -57,13 +57,10 @@ function getAverageBetweenPoints(data: Data, index: number) {
 }
 
 function getDataValue(data: [number, {count: number}[]]) {
-  if (data === undefined) {
-    return 0;
-  } else if (data[1].count !== undefined) {
-    return data[1].count;
-  } else {
+  if (data === undefined || data[1].count === undefined) {
     return 0;
   }
+  return data[1].count;
 }
 
 type Props = {
