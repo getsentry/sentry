@@ -180,14 +180,15 @@ def find_histogram_buckets(field, params, conditions):
             found = True
     if not found:
         conditions.append(["event.type", "=", "transaction"])
-    translated_args, _ = resolve_discover_aliases({"conditions": conditions})
+    snuba_filter = eventstore.Filter(conditions=conditions)
+    translated_args, _ = resolve_discover_aliases(snuba_filter)
 
     results = raw_query(
         filter_keys={"project_id": params.get("project_id")},
         start=params.get("start"),
         end=params.get("end"),
         dataset=Dataset.Discover,
-        conditions=translated_args["conditions"],
+        conditions=translated_args.conditions,
         aggregations=[["max", "duration", max_alias], ["min", "duration", min_alias]],
     )
     if len(results["data"]) != 1:
@@ -289,7 +290,7 @@ def resolve_complex_column(col):
             args[i] = resolve_column(args[i])
 
 
-def resolve_discover_aliases(snuba_args, function_translations=None):
+def resolve_discover_aliases(snuba_filter, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
 
@@ -297,7 +298,7 @@ def resolve_discover_aliases(snuba_args, function_translations=None):
     `translated_columns` key containing the selected fields that need to
     be renamed in the result set.
     """
-    resolved = deepcopy(snuba_args)
+    resolved = snuba_filter.clone()
     translated_columns = {}
     derived_columns = set()
     if function_translations:
@@ -305,7 +306,7 @@ def resolve_discover_aliases(snuba_args, function_translations=None):
             derived_columns.add(snuba_name)
             translated_columns[snuba_name] = sentry_name
 
-    selected_columns = resolved.get("selected_columns")
+    selected_columns = resolved.selected_columns
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
@@ -315,9 +316,9 @@ def resolve_discover_aliases(snuba_args, function_translations=None):
                 selected_columns[idx] = name
                 translated_columns[name] = col
 
-        resolved["selected_columns"] = selected_columns
+        resolved.selected_columns = selected_columns
 
-    groupby = resolved.get("groupby")
+    groupby = resolved.groupby
     if groupby:
         for (idx, col) in enumerate(groupby):
             name = col
@@ -328,25 +329,25 @@ def resolve_discover_aliases(snuba_args, function_translations=None):
                 name = resolve_column(col)
 
             groupby[idx] = name
-        resolved["groupby"] = groupby
+        resolved.groupby = groupby
 
-    aggregations = resolved.get("aggregations")
+    aggregations = resolved.aggregations
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
             aggregation[1] = resolve_column(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [resolve_column(col) for col in aggregation[1]]
-    resolved["aggregations"] = aggregations
+    resolved.aggregations = aggregations
 
-    conditions = resolved.get("conditions")
+    conditions = resolved.conditions
     if conditions:
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, resolve_column)
             conditions[i] = replacement
-        resolved["conditions"] = [c for c in conditions if c]
+        resolved.conditions = [c for c in conditions if c]
 
-    orderby = resolved.get("orderby")
+    orderby = resolved.orderby
     if orderby:
         orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
         resolved_orderby = []
@@ -359,7 +360,7 @@ def resolve_discover_aliases(snuba_args, function_translations=None):
                     field if field in derived_columns else resolve_column(field),
                 )
             )
-        resolved["orderby"] = resolved_orderby
+        resolved.orderby = resolved_orderby
     return resolved, translated_columns
 
 
@@ -388,7 +389,7 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_args):
+def transform_results(result, translated_columns, snuba_filter):
     """
     Transform internal names back to the public schema ones.
 
@@ -405,10 +406,10 @@ def transform_results(result, translated_columns, snuba_args):
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
 
-    rollup = snuba_args.get("rollup")
+    rollup = snuba_filter.rollup
     if rollup and rollup > 0:
         result["data"] = zerofill(
-            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+            result["data"], snuba_filter.start, snuba_filter.end, rollup, snuba_filter.orderby
         )
 
     for col in result["meta"]:
@@ -419,7 +420,7 @@ def transform_results(result, translated_columns, snuba_args):
                     result["data"] = zerofill_histogram(
                         result["data"],
                         result["meta"],
-                        snuba_args["orderby"],
+                        snuba_filter.orderby,
                         sentry_name,
                         snuba_name,
                     )
@@ -521,21 +522,8 @@ def query(
     query = transform_deprecated_functions_in_query(query)
 
     snuba_filter = get_filter(query, params)
-
-    # TODO(mark) Refactor the need for this translation shim once all of
-    # discover is using this module. Remember to update all the functions
-    # in this module.
-    snuba_args = {
-        "start": snuba_filter.start,
-        "end": snuba_filter.end,
-        "conditions": snuba_filter.conditions,
-        "filter_keys": snuba_filter.filter_keys,
-        "orderby": orderby,
-        "having": [],
-    }
-
-    if use_aggregate_conditions:
-        snuba_args["having"] = snuba_filter.having
+    if not use_aggregate_conditions:
+        snuba_filter.having = []
 
     # We need to run a separate query to be able to properly bucket the values for the histogram
     # Do that here, and format the bucket number in to the columns before passing it through
@@ -565,25 +553,23 @@ def query(
             ordering = "{}{}".format("-" if is_reversed else "", ordering)
             new_orderby.append(ordering)
 
-        snuba_args["orderby"] = new_orderby
+        snuba_filter.orderby = new_orderby
 
-    snuba_args.update(
-        resolve_field_list(selected_columns, snuba_args, params=params, auto_fields=auto_fields)
+    snuba_filter.update_with(
+        resolve_field_list(selected_columns, snuba_filter, auto_fields=auto_fields)
     )
 
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
         if ref_conditions:
-            snuba_args["conditions"].extend(ref_conditions)
+            snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_args, translated_columns = resolve_discover_aliases(snuba_args, function_translations)
+    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter, function_translations)
 
     # Make sure that any aggregate conditions are also in the selected columns
-    for having_clause in snuba_args.get("having"):
-        found = any(
-            having_clause[0] == agg_clause[-1] for agg_clause in snuba_args.get("aggregations")
-        )
+    for having_clause in snuba_filter.having:
+        found = any(having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations)
         if not found:
             raise InvalidSearchQuery(
                 u"Aggregate {} used in a condition but is not a selected column.".format(
@@ -592,25 +578,25 @@ def query(
             )
 
     if conditions is not None:
-        snuba_args["conditions"].extend(conditions)
+        snuba_filter.conditions.extend(conditions)
 
     result = raw_query(
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
-        groupby=snuba_args.get("groupby"),
-        conditions=snuba_args.get("conditions"),
-        aggregations=snuba_args.get("aggregations"),
-        selected_columns=snuba_args.get("selected_columns"),
-        filter_keys=snuba_args.get("filter_keys"),
-        having=snuba_args.get("having"),
-        orderby=snuba_args.get("orderby"),
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        groupby=snuba_filter.groupby,
+        conditions=snuba_filter.conditions,
+        aggregations=snuba_filter.aggregations,
+        selected_columns=snuba_filter.selected_columns,
+        filter_keys=snuba_filter.filter_keys,
+        having=snuba_filter.having,
+        orderby=snuba_filter.orderby,
         dataset=Dataset.Discover,
         limit=limit,
         offset=offset,
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns, snuba_args)
+    return transform_results(result, translated_columns, snuba_filter)
 
 
 def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
@@ -641,38 +627,31 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     query = transform_deprecated_functions_in_query(query)
 
     snuba_filter = get_filter(query, params)
-    snuba_args = {
-        "start": snuba_filter.start,
-        "end": snuba_filter.end,
-        "conditions": snuba_filter.conditions,
-        "filter_keys": snuba_filter.filter_keys,
-        "having": snuba_filter.having,
-    }
-    if not snuba_args["start"] and not snuba_args["end"]:
+    if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
-    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=False))
+    snuba_filter.update_with(resolve_field_list(selected_columns, snuba_filter, auto_fields=False))
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
         if ref_conditions:
-            snuba_args["conditions"].extend(ref_conditions)
+            snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_args, _ = resolve_discover_aliases(snuba_args)
-    if not snuba_args["aggregations"]:
+    snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+    if not snuba_filter.aggregations:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
 
     # Change the alias of the first aggregation to count. This ensures compatibility
     # with other parts of the timeseries endpoint expectations
-    if len(snuba_args["aggregations"]) == 1:
-        snuba_args["aggregations"][0][2] = "count"
+    if len(snuba_filter.aggregations) == 1:
+        snuba_filter.aggregations[0][2] = "count"
 
     result = raw_query(
-        aggregations=snuba_args.get("aggregations"),
-        conditions=snuba_args.get("conditions"),
-        filter_keys=snuba_args.get("filter_keys"),
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
+        aggregations=snuba_filter.aggregations,
+        conditions=snuba_filter.conditions,
+        filter_keys=snuba_filter.filter_keys,
+        start=snuba_filter.start,
+        end=snuba_filter.end,
         rollup=rollup,
         orderby="time",
         groupby=["time"],
@@ -680,7 +659,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         limit=10000,
         referrer=referrer,
     )
-    result = zerofill(result["data"], snuba_args["start"], snuba_args["end"], rollup, "time")
+    result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
@@ -770,15 +749,8 @@ def get_facets(query, params, limit=10, referrer=None):
 
     snuba_filter = get_filter(query, params)
 
-    # TODO(mark) Refactor the need for this translation shim.
-    snuba_args = {
-        "start": snuba_filter.start,
-        "end": snuba_filter.end,
-        "conditions": snuba_filter.conditions,
-        "filter_keys": snuba_filter.filter_keys,
-    }
     # Resolve the public aliases into the discover dataset names.
-    snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
+    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
     excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
@@ -790,10 +762,10 @@ def get_facets(query, params, limit=10, referrer=None):
     # Get the most frequent tag keys
     key_names = raw_query(
         aggregations=[["count", None, "count"]],
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
-        conditions=snuba_args.get("conditions"),
-        filter_keys=snuba_args.get("filter_keys"),
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        conditions=snuba_filter.conditions,
+        filter_keys=snuba_filter.filter_keys,
         orderby=["-count", "tags_key"],
         groupby="tags_key",
         having=[excluded_tags],
@@ -824,10 +796,10 @@ def get_facets(query, params, limit=10, referrer=None):
     if fetch_projects:
         project_values = raw_query(
             aggregations=[["count", None, "count"]],
-            start=snuba_args.get("start"),
-            end=snuba_args.get("end"),
-            conditions=snuba_args.get("conditions"),
-            filter_keys=snuba_args.get("filter_keys"),
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
             groupby="project_id",
             orderby="-count",
             dataset=Dataset.Discover,
@@ -862,10 +834,10 @@ def get_facets(query, params, limit=10, referrer=None):
         tag = u"tags[{}]".format(tag_name)
         tag_values = raw_query(
             aggregations=[["count", None, "count"]],
-            conditions=snuba_args.get("conditions"),
-            start=snuba_args.get("start"),
-            end=snuba_args.get("end"),
-            filter_keys=snuba_args.get("filter_keys"),
+            conditions=snuba_filter.conditions,
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            filter_keys=snuba_filter.filter_keys,
             orderby=["-count"],
             groupby=[tag],
             limit=TOP_VALUES_DEFAULT_LIMIT,
@@ -883,14 +855,14 @@ def get_facets(query, params, limit=10, referrer=None):
         )
 
     if aggregate_tags:
-        conditions = snuba_args.get("conditions", [])
+        conditions = snuba_filter.conditions
         conditions.append(["tags_key", "IN", aggregate_tags])
         tag_values = raw_query(
             aggregations=[["count", None, "count"]],
             conditions=conditions,
-            start=snuba_args.get("start"),
-            end=snuba_args.get("end"),
-            filter_keys=snuba_args.get("filter_keys"),
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            filter_keys=snuba_filter.filter_keys,
             orderby=["tags_key", "-count"],
             groupby=["tags_key", "tags_value"],
             dataset=Dataset.Discover,

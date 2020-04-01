@@ -17,8 +17,8 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationPluginDetailedView, self).setUp()
         # need at least two projects
-        self.project = self.create_project(organization=self.organization)
-        self.create_project(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, name="Back end")
+        self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
