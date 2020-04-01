@@ -20,6 +20,7 @@ import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import ReleaseStatsRequest from './chart/releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
+import DiscoverChartContainer from './chart/discoverChartContainer';
 
 import {ReleaseContext} from '..';
 
@@ -60,7 +61,7 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 
   render() {
-    const {organization, params, selection, location, api, router} = this.props;
+    const {organization, selection, location, api, router} = this.props;
     const yAxis = this.getYAxis();
 
     return (
@@ -82,7 +83,7 @@ class ReleaseOverview extends AsyncView<Props> {
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
                   <Main>
-                    {hasHealthData && (
+                    {hasHealthData ? (
                       <ReleaseChartContainer
                         onYAxisChange={this.handleYAxisChange}
                         selection={selection}
@@ -90,11 +91,21 @@ class ReleaseOverview extends AsyncView<Props> {
                         router={router}
                         {...releaseStatsProps}
                       />
+                    ) : (
+                      // TODO(releasesV2): feature flag?
+                      <DiscoverChartContainer
+                        organization={organization}
+                        selection={selection}
+                        location={location}
+                        api={api}
+                        router={router}
+                        version={version}
+                      />
                     )}
                     <Issues
                       orgId={organization.slug}
                       projectId={project.id}
-                      version={params.release}
+                      version={version}
                       location={location}
                     />
                   </Main>
