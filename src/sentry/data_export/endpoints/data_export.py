@@ -61,13 +61,17 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
             status = 200
             if created:
-                metrics.incr("dataexport.start", tags={"query_type": data["query_type"]})
+                metrics.incr(
+                    "dataexport.enqueue", tags={"query_type": data["query_type"]}, sample_rate=1.0
+                )
                 assemble_download.delay(
                     data_export_id=data_export.id, limit=limit, environment_id=environment_id
                 )
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
-            metrics.incr("dataexport.invalid", tags={"query_type": data.get("query_type")})
+            metrics.incr(
+                "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
+            )
             return Response({"detail": six.text_type(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)

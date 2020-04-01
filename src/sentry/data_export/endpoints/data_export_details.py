@@ -33,7 +33,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
     def download(self, data_export):
-        metrics.incr("dataexport.download")
+        metrics.incr("dataexport.download", sample_rate=1.0)
         file = data_export.file
         raw_file = file.getfile()
         response = StreamingHttpResponse(

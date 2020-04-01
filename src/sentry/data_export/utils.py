@@ -4,6 +4,7 @@ import six
 from contextlib import contextmanager
 
 from sentry.utils import metrics, snuba
+from sentry.utils.sdk import capture_exception
 
 from .base import ExportError
 
@@ -14,16 +15,19 @@ def snuba_error_handler(logger):
     try:
         yield
     except snuba.QueryOutsideRetentionError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
-        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
         raise ExportError("Invalid date range. Please try a more recent date range.")
     except snuba.QueryIllegalTypeOfArgument as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
-        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
         raise ExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
-        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
         message = "Internal error. Please try again."
         if isinstance(
             error,
