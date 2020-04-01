@@ -22,7 +22,12 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
+UNSAFE_FILES = (
+    "sentry/event_manager.py",
+    "sentry/tasks/process_buffer.py",
+    "sentry/ingest/ingest_consumer.py",
+    "sentry/ingest/outcomes_consumer.py",
+)
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven

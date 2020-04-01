@@ -207,6 +207,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
+    set_current_project(project_id)
+
     event_id = data["event_id"]
 
     project = Project.objects.get_from_cache(id=project_id)
