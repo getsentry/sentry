@@ -105,6 +105,7 @@ export type InterfaceChromeHooks = {
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
+  'command-palette:action': CommandPaletteAction;
 };
 
 /**
@@ -264,6 +265,14 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    */
   id?: string;
 }>;
+
+// TODO(ts): When we convert search to use typescript we should remove the any
+// here and use the search item type.
+
+/**
+ * Adds a new command to the global command palette search.
+ */
+type CommandPaletteAction = () => any;
 
 /**
  * Returns an additional list of sidebar items.

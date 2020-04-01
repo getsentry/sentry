@@ -5,6 +5,7 @@ import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
 import {toggleLocaleDebug} from 'app/locale';
 import Access from 'app/components/acl/access';
+import Hook from 'app/components/hook';
 
 const ACTIONS = [
   {
@@ -54,6 +55,9 @@ class CommandSource extends React.Component {
     // Array of routes to search
     searchMap: PropTypes.array,
 
+    // Array of actions to add
+    actions: PropTypes.array,
+
     isSuperuser: PropTypes.bool,
 
     /**
@@ -79,7 +83,7 @@ class CommandSource extends React.Component {
   }
 
   componentDidMount() {
-    this.createSearch(ACTIONS);
+    this.createSearch(this.props.actions);
   }
 
   async createSearch(searchMap) {
@@ -117,9 +121,19 @@ class CommandSource extends React.Component {
   }
 }
 
+const CommandSourceWithHooks = props => (
+  <Hook name="command-palette:action">
+    {({hooks}) => <CommandSource {...props} actions={[...hooks, ...ACTIONS]} />}
+  </Hook>
+);
+
 const CommandSourceWithFeature = props => (
   <Access isSuperuser>
-    {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
+    {({hasSuperuser}) => (
+      <React.Fragment>
+        <CommandSourceWithHooks {...props} isSuperuser={hasSuperuser} />
+      </React.Fragment>
+    )}
   </Access>
 );
 
