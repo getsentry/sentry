@@ -545,6 +545,7 @@ const IssueListOverview = createReactClass({
     } else {
       body = (
         <NoGroupsHandler
+          api={this.api}
           organization={this.props.organization}
           query={this.getQuery()}
           selectedProjectIds={this.props.selection.projects}
