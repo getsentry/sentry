@@ -6,7 +6,6 @@ import six
 
 import sentry
 
-from django.core.urlresolvers import reverse
 from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
@@ -26,8 +25,6 @@ from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
 
-NOTSET = object()
-
 logger = logging.getLogger(__name__)
 
 
@@ -40,11 +37,8 @@ class MailPlugin(NotificationPlugin):
     author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
     project_conf_form = None
-    subject_prefix = None
 
     def _subject_prefix(self):
-        if self.subject_prefix is not None:
-            return self.subject_prefix
         return options.get("mail.subject-prefix")
 
     def _build_message(
@@ -89,9 +83,6 @@ class MailPlugin(NotificationPlugin):
         message = self._build_message(*args, **kwargs)
         if message is not None:
             return message.send_async()
-
-    def get_notification_settings_url(self):
-        return absolute_uri(reverse("sentry-account-settings-notifications"))
 
     def get_project_url(self, project):
         return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
