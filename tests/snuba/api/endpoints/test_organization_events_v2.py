@@ -681,43 +681,36 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/error_rate/success"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        event = self.store_event(data, project_id=project.id)
-
-        data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/error_rate/unknown"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
+        data["contexts"]["trace"]["status"] = "unknown_error"
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        for i in range(6):
+            data = load_data("transaction")
+            data["transaction"] = "/error_rate/{}".format(i)
+            data["timestamp"] = iso_format(before_now(minutes=1))
+            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"field": ["transaction", "error_rate()"], "query": "event.type:transaction"},
+                data={"field": ["error_rate()"], "query": "event.type:transaction"},
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["transaction"] == event.transaction
         assert data[0]["error_rate"] == 0.75
 
     def test_aggregation(self):
