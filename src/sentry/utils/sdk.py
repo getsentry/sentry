@@ -150,6 +150,7 @@ def configure_sdk():
         # Upstream should get the event first because it is most isolated from
         # the this sentry installation.
         if upstream_transport:
+            metrics.incr("internal.captured.events.upstream")
             # TODO(mattrobenolt): Bring this back safely.
             # from sentry import options
             # install_id = options.get('sentry:install-id')
@@ -160,6 +161,9 @@ def configure_sdk():
         if relay_transport:
             rate = options.get("store.use-relay-dsn-sample-rate")
             if rate and random.random() < rate:
+                # Record this before calling `is_current_event_safe` to make
+                # numbers comparable to InternalTransport
+                metrics.incr("internal.captured.events.relay")
                 if is_current_event_safe():
                     relay_transport.capture_event(event)
                 else:
@@ -168,6 +172,7 @@ def configure_sdk():
                 return
 
         if internal_transport:
+            metrics.incr("internal.captured.events.internal")
             internal_transport.capture_event(event)
 
     sentry_sdk.init(
