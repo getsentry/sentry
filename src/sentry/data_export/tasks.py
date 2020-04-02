@@ -130,8 +130,10 @@ def process_discover(data_export, file, limit, environment_id):
         metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise error
+    with snuba_error_handler(logger=logger):
+        vals = processor.data_fn(offset=0, limit=1)["data"]
 
-    writer = create_writer(file, processor.header_fields)
+    writer = create_writer(file, vals[0].keys())
     iteration = 0
     with snuba_error_handler(logger=logger):
         while True:

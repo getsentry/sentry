@@ -11,7 +11,10 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
-ALIAS_FIELDS = [("user", ["user.name", "user.email", "user.username", "user.ip"])]
+ALIAS_FIELDS = [
+    ("user", ["user.name", "user.email", "user.username", "user.ip"]),
+    ("issue", ["issue.id"]),
+]
 
 
 class DiscoverProcessor(object):
@@ -20,7 +23,7 @@ class DiscoverProcessor(object):
     """
 
     def __init__(self, organization_id, discover_query):
-        self.projects = self.get_projects(discover_query["project"])
+        self.projects = self.get_projects(organization_id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
         self.params = {
             "organization_id": organization_id,
@@ -34,7 +37,8 @@ class DiscoverProcessor(object):
         )
 
     @staticmethod
-    def get_projects(project_ids):
+    def get_projects(organization_id, query):
+        project_ids = query.get("project")
         try:
             if isinstance(project_ids, list):
                 return Project.objects.filter(id__in=project_ids)
