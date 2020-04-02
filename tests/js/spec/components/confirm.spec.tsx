@@ -42,7 +42,7 @@ describe('Confirm', () => {
     expect(queryByTestId('confirm-modal')).toBeNull();
   });
 
-  test('can stop propagation on the event', () => {
+  it('can stop propagation on the event', () => {
     // Please see: https://github.com/testing-library/react-testing-library/issues/572
 
     const handleConfirmMock = jest.fn();
