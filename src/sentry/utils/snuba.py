@@ -491,9 +491,10 @@ class SnubaQueryParams(object):
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
         # Snuba has end exclusive but our UI wants it generally to be inclusive.
-        # Since we also have hourly bucketed data in the session data set.
-        # This also shows up in unittests: https://github.com/getsentry/sentry/pull/15939
-        self.end = (end or datetime.utcnow()) + timedelta(seconds=1)
+        # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
+        # We generally however require that the API user is aware of the exclusive
+        # end.
+        self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
