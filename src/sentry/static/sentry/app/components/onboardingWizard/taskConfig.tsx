@@ -178,7 +178,7 @@ export function getOnboardingTasks(
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
       location: `/settings/${organization.slug}/projects/:projectId/alerts/`,
-      display: organization?.experiments?.OnboardingSidebarV2Experiment === 1,
+      display: true,
     },
   ];
 }
