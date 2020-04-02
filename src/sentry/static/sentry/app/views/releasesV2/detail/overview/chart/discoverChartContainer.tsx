@@ -1,7 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -59,16 +58,12 @@ class DiscoverChartContainer extends React.Component<Props, State> {
   async fetchTotalCount() {
     const {api, organization, location} = this.props;
 
-    try {
-      const totalEvents = await fetchTotalCount(
-        api,
-        organization.slug,
-        this.getEventView().getEventsAPIPayload(location)
-      );
-      this.setState({totalEvents});
-    } catch (err) {
-      Sentry.captureException(err);
-    }
+    const totalEvents = await fetchTotalCount(
+      api,
+      organization.slug,
+      this.getEventView().getEventsAPIPayload(location)
+    );
+    this.setState({totalEvents});
   }
 
   getEventView(): EventView {
