@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import OrganizationActions from 'app/actions/organizationActions';
@@ -65,7 +66,20 @@ export async function fetchOrganizationDetails(
       TeamActions.loadTeams(teams);
     }
   } catch (err) {
+    if (!err) {
+      return;
+    }
+
     OrganizationActions.fetchOrgError(err);
+
+    if (err.status === 403 || err.status === 401) {
+      if (err.responseJSON?.detail) {
+        addErrorMessage(err.responseJSON.detail);
+      }
+
+      return;
+    }
+
     Sentry.captureException(err);
   }
 }
