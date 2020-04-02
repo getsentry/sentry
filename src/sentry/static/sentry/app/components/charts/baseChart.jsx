@@ -348,13 +348,12 @@ const ChartContainer = styled('div')`
   .tooltip-arrow {
     top: 100%;
     left: 50%;
-    border: solid transparent;
+    border: 0px solid transparent;
     content: ' ';
     height: 0;
     width: 0;
     position: absolute;
     pointer-events: none;
-    border-color: transparent;
     border-top-color: ${theme.gray5};
     border-width: 8px;
     margin-left: -8px;
