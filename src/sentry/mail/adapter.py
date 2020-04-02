@@ -5,7 +5,7 @@ import logging
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import ProjectOwnership, User
+from sentry.models import ProjectOption, ProjectOwnership, User
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder
@@ -21,10 +21,14 @@ class MailAdapter(object):
     and eventually deprecate `MailPlugin` entirely.
     """
 
+    mail_option_key = "mail:subject_prefix"
     alert_option_key = "mail:alert"
 
-    def _subject_prefix(self):
-        return options.get("mail.subject-prefix")
+    def _build_subject_prefix(self, project):
+        subject_prefix = ProjectOption.objects.get_value(project, self.mail_option_key, None)
+        if not subject_prefix:
+            subject_prefix = options.get("mail.subject-prefix")
+        return force_text(subject_prefix)
 
     def _build_message(
         self,
@@ -46,8 +50,7 @@ class MailAdapter(object):
             logger.debug("Skipping message rendering, no users to send to.")
             return
 
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
-        subject_prefix = force_text(subject_prefix)
+        subject_prefix = self._build_subject_prefix(project)
         subject = force_text(subject)
 
         msg = MessageBuilder(

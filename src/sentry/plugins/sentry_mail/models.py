@@ -10,8 +10,6 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import options
-
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.mail.adapter import MailAdapter
 from sentry.plugins.base.structs import Notification
@@ -37,51 +35,8 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     mail_adapter = MailAdapter()
 
-    def _subject_prefix(self):
-        return options.get("mail.subject-prefix")
-
-    def _build_message(
-        self,
-        project,
-        subject,
-        template=None,
-        html_template=None,
-        body=None,
-        reference=None,
-        reply_reference=None,
-        headers=None,
-        context=None,
-        send_to=None,
-        type=None,
-    ):
-        if send_to is None:
-            send_to = self.get_send_to(project)
-        if not send_to:
-            logger.debug("Skipping message rendering, no users to send to.")
-            return
-
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
-        subject_prefix = force_text(subject_prefix)
-        subject = force_text(subject)
-
-        msg = MessageBuilder(
-            subject="%s%s" % (subject_prefix, subject),
-            template=template,
-            html_template=html_template,
-            body=body,
-            headers=headers,
-            type=type,
-            context=context,
-            reference=reference,
-            reply_reference=reply_reference,
-        )
-        msg.add_users(send_to, project=project)
-        return msg
-
     def _send_mail(self, *args, **kwargs):
-        message = self._build_message(*args, **kwargs)
-        if message is not None:
-            return message.send_async()
+        return self.mail_adapter._send_mail(*args, **kwargs)
 
     def get_project_url(self, project):
         return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
@@ -310,8 +265,7 @@ class MailPlugin(NotificationPlugin):
             "enhanced_privacy": enhanced_privacy,
         }
 
-        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
-        subject_prefix = force_text(subject_prefix)
+        subject_prefix = self.mail_adapter._build_subject_prefix(project)
         subject = force_text(
             u"{}{} - New Feedback from {}".format(
                 subject_prefix, group.qualified_short_id, payload["report"]["name"]
