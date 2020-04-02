@@ -18,6 +18,15 @@ class MailAdapter(object):
     and eventually deprecate `MailPlugin` entirely.
     """
 
+    alert_option_key = "mail:alert"
+
+    def get_sendable_users(self, project):
+        """
+        Return a collection of user IDs that are eligible to receive
+        notifications for the provided project.
+        """
+        return project.get_notification_recipients(self.alert_option_key)
+
     def get_send_to(self, project, event=None):
         """
         Returns a list of user IDs for the users that should receive
@@ -74,7 +83,7 @@ class MailAdapter(object):
                     skip_internal=True,
                 )
 
-        cache_key = "%s:send_to:%s" % (self.get_conf_key(), project.pk)
+        cache_key = "mail:send_to:{}".format(project.pk)
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = [s for s in self.get_sendable_users(project) if s]
