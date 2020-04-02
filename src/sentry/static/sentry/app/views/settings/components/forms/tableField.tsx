@@ -79,10 +79,9 @@ export default class TableField extends React.Component<Props> {
       onChange(nextValue, []);
 
       //nextValue is an array of ObservableObjectAdministration objects
-      const badValues = flatten(Object.values(nextValue).map(Object.entries)).filter(
+      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
         ([key, val]) => key !== 'id' && !val //don't allow empty values except if it's the ID field
       );
-      const validValues = badValues.length === 0;
 
       if (allowEmpty || validValues) {
         //TOOD: add debouncing or use a form save button
