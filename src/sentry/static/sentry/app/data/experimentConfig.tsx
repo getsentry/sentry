@@ -37,12 +37,6 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [1, 0, -1],
   },
-  {
-    key: 'AssistantGuideExperiment',
-    type: ExperimentType.User,
-    parameter: 'exposed',
-    assignments: [0, 1, -1],
-  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(
