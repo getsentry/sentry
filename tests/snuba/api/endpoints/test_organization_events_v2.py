@@ -4,6 +4,7 @@ import six
 import pytest
 import random
 from datetime import timedelta
+from math import ceil
 
 from django.core.urlresolvers import reverse
 
@@ -2202,15 +2203,18 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
-            (1, 999, 5),
-            (1000, 1999, 4),
-            (3000, 3999, 3),
-            (6000, 6999, 2),
+            (1, 500, 5),
+            (1000, 1500, 4),
+            (3000, 3500, 3),
+            (6000, 6500, 2),
             (10000, 10000, 1),  # just to make the math easy
         ]
+        values = []
         for bucket in latencies:
             for i in range(bucket[2]):
+                # Don't generate a wide range of variance as the buckets can mis-align.
                 milliseconds = random.randint(bucket[0], bucket[1])
+                values.append(milliseconds)
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
@@ -2229,22 +2233,22 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sort": "histogram_transaction_duration_10",
                 },
             )
-
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 11
+        bucket_size = ceil((max(values) - min(values)) / 10.0)
         expected = [
             (0, 5),
-            (1000, 4),
-            (2000, 0),
-            (3000, 3),
-            (4000, 0),
-            (5000, 0),
-            (6000, 2),
-            (7000, 0),
-            (8000, 0),
-            (9000, 0),
-            (10000, 1),
+            (bucket_size, 4),
+            (bucket_size * 2, 0),
+            (bucket_size * 3, 3),
+            (bucket_size * 4, 0),
+            (bucket_size * 5, 0),
+            (bucket_size * 6, 2),
+            (bucket_size * 7, 0),
+            (bucket_size * 8, 0),
+            (bucket_size * 9, 0),
+            (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
@@ -2255,15 +2259,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
-            (1, 999, 5),
-            (1000, 1999, 4),
-            (3000, 3999, 3),
-            (6000, 6999, 2),
+            (1, 500, 5),
+            (1000, 1500, 4),
+            (3000, 3500, 3),
+            (6000, 6500, 2),
             (10000, 10000, 1),  # just to make the math easy
         ]
+        values = []
         for bucket in latencies:
             for i in range(bucket[2]):
                 milliseconds = random.randint(bucket[0], bucket[1])
+                values.append(milliseconds)
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
@@ -2294,18 +2300,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 11
+        bucket_size = ceil((max(values) - min(values)) / 10.0)
         expected = [
             (0, 5),
-            (1000, 4),
-            (2000, 0),
-            (3000, 3),
-            (4000, 0),
-            (5000, 0),
-            (6000, 2),
-            (7000, 0),
-            (8000, 0),
-            (9000, 0),
-            (10000, 1),
+            (bucket_size, 4),
+            (bucket_size * 2, 0),
+            (bucket_size * 3, 3),
+            (bucket_size * 4, 0),
+            (bucket_size * 5, 0),
+            (bucket_size * 6, 2),
+            (bucket_size * 7, 0),
+            (bucket_size * 8, 0),
+            (bucket_size * 9, 0),
+            (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]

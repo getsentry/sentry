@@ -1502,13 +1502,13 @@ class ResolveFieldListTest(unittest.TestCase):
         )
 
     def test_histogram_function(self):
-        fields = ["histogram(transaction.duration, 10, 1000)", "count()"]
+        fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             [
                 "multiply",
                 [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
-                "histogram_transaction_duration_10_1000",
+                "histogram_transaction_duration_10_1000_0",
             ]
         ]
         assert result["aggregations"] == [
@@ -1517,26 +1517,26 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
-        assert result["groupby"] == ["histogram_transaction_duration_10_1000"]
+        assert result["groupby"] == ["histogram_transaction_duration_10_1000_0"]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(stack.colno, 10, 1000)"]
+            fields = ["histogram(stack.colno, 10, 1000, 0)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(stack.colno, 10, 1000): column argument invalid: stack.colno is not a duration column"
+            "histogram(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 3 arguments" in six.text_type(err)
+        assert "histogram(transaction.duration, 10): expected 4 arguments" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 1000, 1000)"]
+            fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(transaction.duration, 1000, 1000): num_buckets argument invalid: 1000 must be less than 500"
+            "histogram(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
             in six.text_type(err)
         )
 
