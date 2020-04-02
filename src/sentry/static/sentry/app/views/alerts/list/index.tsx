@@ -79,15 +79,15 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           }
         );
         this.setState({
-            hasAlertRule: alert_rules.length > 0 ? true : false,
-            loading: false,
-          });
+          hasAlertRule: alert_rules.length > 0 ? true : false,
+          loading: false,
+        });
       } catch (err) {
         this.setState({
-            hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
-            loading: false,
-          });
-      }         
+          hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
+          loading: false,
+        });
+      }
     }
   }
 
@@ -116,7 +116,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
           {!hasAlertRule
             ? tct('Start by [link:creating your first rule].', {
-                link: <ExternalLink onClick={this.handleAddAlertRule} />
+                link: <ExternalLink onClick={this.handleAddAlertRule} />,
               })
             : ''}
         </p>
