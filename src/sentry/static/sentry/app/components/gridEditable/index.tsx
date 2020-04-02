@@ -324,7 +324,14 @@ class GridEditable<
     if (data.length < 50) {
       return this.renderBrowserExportButton(canEdit);
     } else {
-      return this.renderAsyncExportButton(canEdit);
+      return (
+        <Feature
+          features={['organizations:data-export']}
+          renderDisabled={() => this.renderBrowserExportButton(canEdit)}
+        >
+          {this.renderAsyncExportButton(canEdit)}
+        </Feature>
+      );
     }
   }
 

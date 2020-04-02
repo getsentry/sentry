@@ -69,7 +69,7 @@ class DataExport extends React.Component<Props, State> {
     const {inProgress, dataExportId} = this.state;
     const {children, disabled} = this.props;
     return (
-      <Feature features={['data-export']}>
+      <Feature features={['organizations:data-export']}>
         {inProgress && dataExportId ? (
           <Button
             size="small"
