@@ -61,7 +61,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       ],
     ];
   }
-  onLoadAllEndpointsSuccess() {
+  async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
     if (incidentList.length === 0) {
       // Check if they have rules or not, to know which empty state message to display
@@ -71,15 +71,23 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         loading: true,
       });
 
-      this.api.request(`/organizations/${params && params.orgId}/alert-rules/`, {
-        method: 'GET',
-        success: data => {
-          this.setState({
-            hasAlertRule: data.length > 0 ? true : false,
+      try {
+        const alert_rules = await this.api.requestPromise(
+          `/organizations/${params && params.orgId}/alert-rules/`,
+          {
+            method: 'GET',
+          }
+        );
+        this.setState({
+            hasAlertRule: alert_rules.length > 0 ? true : false,
             loading: false,
           });
-        },
-      });
+      } catch (err) {
+        this.setState({
+            hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
+            loading: false,
+          });
+      }         
     }
   }
 
@@ -98,23 +106,17 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {query} = location;
     const status = getQueryStatus(query.status);
 
-    const hasAlertRule = this.state.hasAlertRule;
-
+    const hasAlertRule = this.state.hasAlertRule ? this.state.hasAlertRule : false;
     return (
       <EmptyStateWarning>
         <p>
           {tct('No [status] metric alerts. ', {
-            status: status === 'open' ? 'active' : status,
+            status: status === 'open' || status === 'all' ? 'active' : 'resolved',
           })}
 
           {!hasAlertRule
-            ? tct(' Start by [link].', {
-                status: status === 'open' ? 'active' : status,
-                link: (
-                  <ExternalLink onClick={this.handleAddAlertRule}>
-                    creating your first rule
-                  </ExternalLink>
-                ),
+            ? tct('Start by [link:creating your first rule].', {
+                link: <ExternalLink onClick={this.handleAddAlertRule} />
               })
             : ''}
         </p>
