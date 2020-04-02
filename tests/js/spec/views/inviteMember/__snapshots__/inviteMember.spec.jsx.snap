@@ -43,6 +43,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "1",
       "name": "Organization Name",
@@ -154,7 +155,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
-                spellCheck="false"
                 type="text"
                 value=""
               />
@@ -425,6 +425,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
               "team:write",
               "team:admin",
             ],
+            "experiments": Object {},
             "features": Array [],
             "id": "1",
             "name": "Organization Name",
@@ -480,6 +481,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "1",
               "name": "Organization Name",

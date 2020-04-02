@@ -1099,19 +1099,26 @@ FUNCTIONS = {
     "error_rate": {
         "name": "error_rate",
         "args": [],
-        "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
         "result_type": "number",
     },
+    # The user facing signature for this function is histogram(<column>, <num_buckets>)
+    # Internally, snuba.discover.query() expands the user request into this value by
+    # calculating the bucket size and start_offset.
     "histogram": {
         "name": "histogram",
         "args": [
             DurationColumnNoLookup("column"),
             NumberRange("num_buckets", 1, 500),
-            NumberRange("bucket", 0, None),
+            NumberRange("bucket_size", 0, None),
+            NumberRange("start_offset", 0, None),
         ],
         "column": [
             "multiply",
-            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            [
+                ["floor", [["divide", [u"{column}", ArgValue("bucket_size")]]]],
+                ArgValue("bucket_size"),
+            ],
             None,
         ],
         "result_type": "number",

@@ -13,10 +13,10 @@ import EventView from 'app/utils/discover/eventView';
 import {formatVersion} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {getUtcDateString} from 'app/utils/dates';
 
 enum IssuesType {
   NEW = 'new',
@@ -34,7 +34,6 @@ type Props = {
   orgId: string;
   version: string;
   selection: GlobalSelection;
-  projectId: number;
   location: Location;
 };
 
@@ -43,13 +42,14 @@ type State = {
 };
 
 class Issues extends React.Component<Props, State> {
-  // TODO(releasesV2): we may want to put this in the URL, for now it stays just in state (issues stream is still subject to change)
   state: State = {
     issuesType: IssuesType.NEW,
   };
 
   getDiscoverUrl() {
-    const {version, orgId, projectId} = this.props;
+    const {version, orgId, selection} = this.props;
+    const {projects, environments, datetime} = selection;
+    const {start, end, period} = datetime;
 
     const discoverQuery = {
       id: undefined,
@@ -58,7 +58,11 @@ class Issues extends React.Component<Props, State> {
       fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
       query: `release:${version} !event.type:transaction`,
       orderby: '-last_seen',
-      projects: [projectId],
+      range: period,
+      environments,
+      projects,
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
     } as const;
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -207,4 +211,4 @@ const LabelText = styled('em')`
   color: ${p => p.theme.gray2};
 `;
 
-export default withGlobalSelection(Issues);
+export default Issues;
