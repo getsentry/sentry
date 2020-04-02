@@ -217,7 +217,9 @@ def process_individual_attachment(message, projects):
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment.pop("attachment_type"), **attachment
     )
-    assert attachment.type == "event.attachment", attachment.type
+    if attachment.type != "event.attachment":
+        logger.exception("invalid individual attachment type: %s", attachment.type)
+        return
 
     file = File.objects.create(
         name=attachment.name,
