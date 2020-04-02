@@ -389,7 +389,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     const queryAndAlwaysErrorEvents = !query.includes(this.getEventType())
-      ? `${query} ${this.getEventType()}`
+      ? `${query} ${this.getEventType()}`.trim()
       : query;
 
     return (
