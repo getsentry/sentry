@@ -1099,7 +1099,7 @@ FUNCTIONS = {
     "error_rate": {
         "name": "error_rate",
         "args": [],
-        "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
         "result_type": "number",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
