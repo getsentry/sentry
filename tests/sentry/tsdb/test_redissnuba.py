@@ -27,12 +27,12 @@ def test_redissnuba_connects_to_correct_backend():
 
     for method in methods:
         for model in should_resolve_to_redis:
-            assert "redis" == selector_func(method, get_callargs(model))
+            assert "redis" == selector_func(method, get_callargs(model), None)
 
         for model in should_resolve_to_snuba:
             read_or_write, _ = method_specifications.get(method)
 
             if read_or_write == READ:
-                assert "snuba" == selector_func(method, get_callargs(model))
+                assert "snuba" == selector_func(method, get_callargs(model), None)
             else:
-                assert "dummy" == selector_func(method, get_callargs(model))
+                assert "dummy" == selector_func(method, get_callargs(model), None)
