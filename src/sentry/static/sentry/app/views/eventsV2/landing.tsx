@@ -199,10 +199,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.build_new_query',
+              eventName: 'Discoverv2: Build a new Discover Query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
         >
@@ -230,7 +229,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           onSearch={this.handleSearchQuery}
         />
         <StyledOr>or</StyledOr>
-        <StyledButton data-test-id="build-new-query" to={to} priority="primary">
+        <StyledButton
+          data-test-id="build-new-query"
+          to={to}
+          priority="primary"
+          onClick={() => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.build_new_query',
+              eventName: 'Discoverv2: Build a new Discover Query',
+              organization_id: parseInt(this.props.organization.id, 10),
+            });
+          }}
+        >
           {t('Build a new query')}
         </StyledButton>
       </StyledActions>
