@@ -2,10 +2,13 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.models import ProjectOwnership, User
+from django.utils.encoding import force_text
 
+from sentry import options
+from sentry.models import ProjectOwnership, User
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.email import MessageBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,52 @@ class MailAdapter(object):
     """
 
     alert_option_key = "mail:alert"
+
+    def _subject_prefix(self):
+        return options.get("mail.subject-prefix")
+
+    def _build_message(
+        self,
+        project,
+        subject,
+        template=None,
+        html_template=None,
+        body=None,
+        reference=None,
+        reply_reference=None,
+        headers=None,
+        context=None,
+        send_to=None,
+        type=None,
+    ):
+        if send_to is None:
+            send_to = self.get_send_to(project)
+        if not send_to:
+            logger.debug("Skipping message rendering, no users to send to.")
+            return
+
+        subject_prefix = self.get_option("subject_prefix", project) or self._subject_prefix()
+        subject_prefix = force_text(subject_prefix)
+        subject = force_text(subject)
+
+        msg = MessageBuilder(
+            subject="%s%s" % (subject_prefix, subject),
+            template=template,
+            html_template=html_template,
+            body=body,
+            headers=headers,
+            type=type,
+            context=context,
+            reference=reference,
+            reply_reference=reply_reference,
+        )
+        msg.add_users(send_to, project=project)
+        return msg
+
+    def _send_mail(self, *args, **kwargs):
+        message = self._build_message(*args, **kwargs)
+        if message is not None:
+            return message.send_async()
 
     def get_sendable_users(self, project):
         """
