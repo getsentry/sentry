@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import Feature from 'app/components/acl/feature';
 
 import ReleaseChartContainer from './chart';
 import Issues from './issues';
@@ -92,19 +93,21 @@ class ReleaseOverview extends AsyncView<Props> {
                         {...releaseStatsProps}
                       />
                     ) : (
-                      // TODO(releasesV2): feature flag?
-                      <DiscoverChartContainer
-                        organization={organization}
-                        selection={selection}
-                        location={location}
-                        api={api}
-                        router={router}
-                        version={version}
-                      />
+                      <Feature features={['discover-basic']}>
+                        <DiscoverChartContainer
+                          organization={organization}
+                          selection={selection}
+                          location={location}
+                          api={api}
+                          router={router}
+                          version={version}
+                        />
+                      </Feature>
                     )}
+
                     <Issues
                       orgId={organization.slug}
-                      projectId={project.id}
+                      selection={selection}
                       version={version}
                       location={location}
                     />

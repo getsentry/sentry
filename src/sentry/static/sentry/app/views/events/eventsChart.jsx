@@ -52,8 +52,8 @@ class EventsAreaChart extends React.Component {
 
   render() {
     const {
-      loading, // eslint-disable-line no-unused-vars
-      reloading, // eslint-disable-line no-unused-vars
+      loading: _loading,
+      reloading: _reloading,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -115,6 +115,9 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxis: PropTypes.string,
+    disablePrevious: PropTypes.bool,
+    currentSeriesName: PropTypes.string,
+    previousSeriesName: PropTypes.string,
   };
 
   render() {
@@ -130,11 +133,17 @@ class EventsChart extends React.Component {
       environments,
       showLegend,
       yAxis,
+      disablePrevious,
+      currentSeriesName: currentName,
+      previousSeriesName: previousName,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
-    const includePrevious = !start && !end;
-    const previousSeriesName = yAxis ? t('previous %s', yAxis) : undefined;
+    const includePrevious = !disablePrevious && !start && !end;
+
+    const previousSeriesName =
+      previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
+    const currentSeriesName = currentName ?? yAxis;
 
     const tooltip = {
       valueFormatter(value) {
@@ -171,7 +180,7 @@ class EventsChart extends React.Component {
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={yAxis}
+            currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             yAxis={yAxis}
           >
@@ -200,7 +209,7 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
-                          currentSeriesName={yAxis}
+                          currentSeriesName={currentSeriesName}
                           previousSeriesName={previousSeriesName}
                         />
                       </React.Fragment>
