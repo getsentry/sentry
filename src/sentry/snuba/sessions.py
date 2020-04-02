@@ -363,7 +363,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     # since snuba end queries are exclusive of the time and we're bucketing to
     # a full hour, we need to round to the next hour and add an extra second since
     # snuba is exclusive on the end.
-    end = to_datetime(to_timestamp(end) // DATASET_BUCKET + DATASET_BUCKET + 1)
+    end = to_datetime(to_timestamp(end) // DATASET_BUCKET * DATASET_BUCKET + 1)
 
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
