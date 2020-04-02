@@ -53,7 +53,6 @@ exports[`NumberField render() renders with optional attributes 1`] = `
       className="form-control"
       disabled={false}
       id="id-fieldName"
-      max={100}
       name="fieldName"
       onChange={[Function]}
       required={false}

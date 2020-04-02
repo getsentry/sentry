@@ -15,6 +15,7 @@ import {
   getRuleTypeSelectorFieldLabel,
   getMethodTypeSelectorFieldLabel,
 } from './utils';
+import DataPrivacyRulesPanelSelectorField from './dataPrivacyRulesPanelSelectorField';
 
 type Rule = {
   id: number;
@@ -121,9 +122,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             required
           />
           <From disabled={disabled}>{t('from')}</From>
-          <StyledTextField
-            name="from"
-            placeholder={t('ex. strings, numbers, custom')}
+          <DataPrivacyRulesPanelSelectorField
             onChange={(value: string) => {
               this.handleChange('from', value);
             }}
@@ -203,6 +202,7 @@ const From = styled('div')<{disabled?: boolean}>`
 
 const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   width: 100%;
+  line-height: 18px;
   ${p =>
     p.isDisabled &&
     `
@@ -215,9 +215,12 @@ const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   }
 `;
 
-const StyledTextField = styled(TextField)<{error?: string}>`
+const CustomRegularExpression = styled(TextField)<{error?: string}>`
+  grid-column-start: 1;
+  grid-column-end: -1;
   width: 100%;
   height: 34px;
+  font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   input {
     height: 34px;
@@ -227,12 +230,6 @@ const StyledTextField = styled(TextField)<{error?: string}>`
     `
       margin-bottom: 0;
     `}
-`;
-
-const CustomRegularExpression = styled(StyledTextField)`
-  grid-column-start: 1;
-  grid-column-end: -1;
-  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const StyledIconTrash = styled(Button)<{fullHeight?: boolean}>`
