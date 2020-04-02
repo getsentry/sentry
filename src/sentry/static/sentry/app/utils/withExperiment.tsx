@@ -20,9 +20,8 @@ type Options<E extends ExperimentKey, L extends boolean> = {
    */
   experiment: E;
   /**
-   * By default, when the experiment has an assignment value that is not the
-   * `unassignedValue`, this HoC will log the exposure of the experiment upon
-   * mounting of the component.
+   * By default this HoC will log the exposure of the experiment upon mounting
+   * of the component.
    *
    * If this is undesirable, for example if the experiment is hidden behind
    * some user action beyond this component being mounted, then you will want
