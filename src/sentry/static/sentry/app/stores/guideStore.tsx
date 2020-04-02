@@ -3,11 +3,13 @@ import Reflux from 'reflux';
 
 import {Client} from 'app/api';
 import {Guide, GuidesServerData, GuidesContent} from 'app/components/assistant/types';
-import {logExperiment, trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
+
+const guidesContent: GuidesContent = getGuidesContent();
 
 type GuideStoreState = {
   /**
@@ -97,9 +99,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       return;
     }
 
-    const user = ConfigStore.get('user');
-    const guidesContent: GuidesContent = getGuidesContent(user);
-
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
@@ -155,8 +154,6 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
       user_id: parseInt(user.id, 10),
     };
     trackAnalyticsEvent(data);
-
-    logExperiment({key: 'AssistantGuideExperiment'});
   },
 
   updatePrevGuide(nextGuide) {
