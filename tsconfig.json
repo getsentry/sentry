@@ -40,5 +40,5 @@
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
   "include": ["src", "tests"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "tests/js/spec/views/userFeedback/index.spec.tsx"]
 }
