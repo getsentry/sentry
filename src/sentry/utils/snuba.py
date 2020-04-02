@@ -490,6 +490,10 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        # Snuba has end exclusive but our UI wants it generally to be inclusive.
+        # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
+        # We generally however require that the API user is aware of the exclusive
+        # end.
         self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
