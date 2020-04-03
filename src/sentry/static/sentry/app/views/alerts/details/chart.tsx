@@ -75,27 +75,26 @@ export default class Chart extends React.PureComponent<Props> {
     const {aggregation, data, detected, closed} = this.props;
     const detectedTs = detected && moment.utc(detected).unix();
     const closedTs = closed && moment.utc(closed).unix();
-    const showClosedMarker = data
-      ? false
-      : data[data.length - 1][0] >= closedTs
-      ? true
-      : false;
-
     const chartData = data.map(([ts, val]) => [
       ts * 1000,
       val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
     ]);
 
-    const nearbyDetectedTimestampIndex = detectedTs && getNearbyIndex(data, detectedTs);
-    const detectedYValue =
-      nearbyDetectedTimestampIndex &&
-      getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
-    const detectedCoordinate = [detectedTs * 1000, detectedYValue];
-    chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
+    let detectedCoordinate: any = undefined;
+    if (detectedTs) {
+      const nearbyDetectedTimestampIndex = getNearbyIndex(data, detectedTs);
+      const detectedYValue =
+        nearbyDetectedTimestampIndex &&
+        getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
+      detectedCoordinate = [detectedTs * 1000, detectedYValue];
+      chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
+    }
 
-    let closedCoordinate = undefined;
-    if (showClosedMarker) {
-      const nearbyClosedTimestampIndex = closedTs && getNearbyIndex(data, closedTs);
+    let closedCoordinate: any = undefined;
+    const showClosedMarker =
+      data && closedTs && data[data.length - 1][0] >= closedTs ? true : false;
+    if (closedTs && showClosedMarker) {
+      const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
       const closedYValue =
         nearbyClosedTimestampIndex &&
         getAverageBetweenPoints(data, nearbyClosedTimestampIndex);
