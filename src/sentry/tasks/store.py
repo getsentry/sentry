@@ -220,9 +220,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     try:
-        symbolicated_data = safe_execute(
-            symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
-        )
+        with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+            symbolicated_data = safe_execute(
+                symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
+            )
         if symbolicated_data:
             data = symbolicated_data
             has_changed = True
@@ -232,14 +233,14 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
-                "process.slow", extra={"project_id": project_id, "event_id": event_id}
+                "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
             )
 
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
             error_logger.exception(
-                "process.failed.infinite_retry",
+                "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
             )
         else:
@@ -409,17 +410,21 @@ def _do_process_event(
         if not new_process_behavior:
             # Event enhancers.  These run before anything else.
             for plugin in plugins.all(version=2):
-                enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-                for enhancer in enhancers or ():
-                    enhanced = safe_execute(
-                        enhancer, data, _passthrough_errors=(RetrySymbolication,)
-                    )
-                    if enhanced:
-                        data = enhanced
-                        has_changed = True
+                with metrics.timer(
+                    "tasks.store.process_event.enhancers", tags={"plugin": plugin.slug}
+                ):
+                    enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+                    for enhancer in enhancers or ():
+                        enhanced = safe_execute(
+                            enhancer, data, _passthrough_errors=(RetrySymbolication,)
+                        )
+                        if enhanced:
+                            data = enhanced
+                            has_changed = True
 
         # Stacktrace based event processors.
-        new_data = process_stacktraces(data)
+        with metrics.timer("tasks.store.process_event.stacktraces"):
+            new_data = process_stacktraces(data)
         if new_data is not None:
             has_changed = True
             data = new_data
@@ -488,14 +493,15 @@ def _do_process_event(
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
-        for processor in processors or ():
-            result = safe_execute(processor, data)
-            if result:
-                data = result
-                has_changed = True
+        with metrics.timer("tasks.store.process_event.preprocessors", tags={"plugin": plugin.slug}):
+            processors = safe_execute(
+                plugin.get_event_preprocessors, data=data, _with_transaction=False
+            )
+            for processor in processors or ():
+                result = safe_execute(processor, data)
+                if result:
+                    data = result
+                    has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
