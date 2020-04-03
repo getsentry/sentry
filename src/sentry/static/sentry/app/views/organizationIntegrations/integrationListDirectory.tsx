@@ -19,7 +19,6 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getSortIntegrationsByWeightActive,
   getCategorySelectActive,
   isSentryApp,
   isPlugin,
@@ -35,8 +34,6 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
-import withExperiment from 'app/utils/withExperiment';
-import {ExperimentAssignment} from 'app/types/experiments';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -44,7 +41,6 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
-  experimentAssignment: ExperimentAssignment['IntegrationDirectorySortWeightExperiment'];
 };
 
 type State = {
@@ -220,13 +216,10 @@ export class IntegrationListDirectory extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive(this.props.experimentAssignment)) {
-      return integrations
-        .sort(this.sortByName)
-        .sort(this.sortByPopularity)
-        .sort(this.sortByInstalled);
-    }
-    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
+    return integrations
+      .sort(this.sortByName)
+      .sort(this.sortByPopularity)
+      .sort(this.sortByInstalled);
   }
 
   async componentDidUpdate(_: Props, prevState: State) {
@@ -446,8 +439,4 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(
-  withExperiment(IntegrationListDirectory, {
-    experiment: 'IntegrationDirectorySortWeightExperiment',
-  })
-);
+export default withOrganization(IntegrationListDirectory);

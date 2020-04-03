@@ -15,10 +15,8 @@ import {
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
-import {ExperimentAssignment} from 'app/types/experiments';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
 const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
@@ -33,19 +31,6 @@ export const clearAnalyticsSession = () => {
 
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-
-export const getSortIntegrationsByWeightActive = (
-  experimentAssignment: ExperimentAssignment['IntegrationDirectorySortWeightExperiment']
-) => {
-  switch (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT)) {
-    case '1':
-      return true;
-    case '0':
-      return false;
-    default:
-      return experimentAssignment === '1';
-  }
-};
 
 export const getCategorySelectActive = () =>
   localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
