@@ -250,7 +250,12 @@ def devserver(
     if styleguide:
         daemons += [("storybook", ["./bin/yarn", "storybook"])]
 
-    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else ()
+    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
+    valid_daemon_names = set(name for (name, cmd) in daemons).union(_DEFAULT_DAEMONS.keys())
+    unrecognized_skips = skip_daemons.difference(valid_daemon_names)
+    if unrecognized_skips:
+        raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_skips)))
+
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager(Printer(prefix=prefix))
