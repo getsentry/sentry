@@ -93,7 +93,7 @@ class MailPluginTest(TestCase):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
+    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
     def test_notify_users_does_email(self, _send_mail):
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -116,7 +116,7 @@ class MailPluginTest(TestCase):
         self.assertEquals(kwargs.get("reference"), group)
         assert kwargs.get("subject") == u"BAR-1 - hello world"
 
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
+    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
     def test_multiline_error(self, _send_mail):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
