@@ -9,8 +9,16 @@ from sentry.runner.decorators import configuration, log_options
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
+    "post-process-forwarder": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--loglevel=debug",
+        "--commit-batch-size=1",
+    ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
+    "storybook": ["./bin/yarn", "storybook"],
 }
 
 
@@ -187,18 +195,7 @@ def devserver(
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [
-                (
-                    "post-process-forwarder",
-                    [
-                        "sentry",
-                        "run",
-                        "post-process-forwarder",
-                        "--loglevel=debug",
-                        "--commit-batch-size=1",
-                    ],
-                )
-            ]
+            daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
@@ -248,7 +245,7 @@ def devserver(
     daemons += [_get_daemon("server")]
 
     if styleguide:
-        daemons += [("storybook", ["./bin/yarn", "storybook"])]
+        daemons += [_get_daemon("storybook")]
 
     skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
     valid_daemon_names = set(name for (name, cmd) in daemons).union(_DEFAULT_DAEMONS.keys())
