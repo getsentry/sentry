@@ -1,14 +1,14 @@
 #!/bin/bash
 
 ignored=(
-    # TODO medium priority: djangorestframework
-    # XXX: This is... unfortunately not present in safety's db right now. It is in synk though:
-    # https://snyk.io/vuln/SNYK-PYTHON-DJANGORESTFRAMEWORK-450194
-    # XSS in drf < 3.9.1. We could also probably backport this as we're quite a few minors behind.
-
-    # TODO low priority: pyyaml
+    # low priority: pyyaml
     # Arbitrary code execution in full_load/SafeLoader - doesn't apply to us.
     38100
+
+    # low priority: djangorestframework
+    # XXX: This is... unfortunately not present in safety's db right now. It is in synk though:
+    # https://snyk.io/vuln/SNYK-PYTHON-DJANGORESTFRAMEWORK-450194
+    # XSS in the "browsable api" drf < 3.9.1 view templates - doesn't apply to us.
 )
 
 # Take additional ignores from argv.
