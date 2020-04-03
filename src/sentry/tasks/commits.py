@@ -14,6 +14,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     Repository,
     User,
+    OrganizationMember,
 )
 from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry
@@ -149,12 +150,14 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
                 msg = generate_fetch_commits_error_email(release, six.text_type(e))
-                msg.send_async(to=[user.email])
+                emails = get_owner_emails(user, release.organization_id)
+                msg.send_async(to=emails)
             else:
                 msg = generate_fetch_commits_error_email(
                     release, "An internal system error occurred."
                 )
-                msg.send_async(to=[user.email])
+                emails = get_owner_emails(user, release.organization_id)
+                msg.send_async(to=emails)
         else:
             logger.info(
                 "fetch_commits.complete",
@@ -220,3 +223,17 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
 def is_integration_provider(provider):
     return provider and provider.startswith("integrations:")
+
+
+def get_owner_emails(user, orgId):
+    emails = []
+    if user.is_sentry_app:
+        members = OrganizationMember.objects.filter(
+            organization_id=orgId, role="owner", user_id__isnull=False
+        ).select_related("user")
+        for m in list(members):
+            emails.add(m.user.email)
+    else:
+        emails = [user.email]
+
+    return emails
