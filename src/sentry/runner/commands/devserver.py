@@ -6,6 +6,25 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.runner.decorators import configuration, log_options
 
+_DEFAULT_DAEMONS = {
+    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
+    "cron": ["sentry", "run", "cron", "--autoreload"],
+    "post-process-forwarder": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--loglevel=debug",
+        "--commit-batch-size=1",
+    ],
+    "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "server": ["sentry", "run", "web"],
+    "storybook": ["./bin/yarn", "storybook"],
+}
+
+
+def _get_daemon(name):
+    return (name, _DEFAULT_DAEMONS[name])
+
 
 @click.command()
 @click.option("--reload/--no-reload", default=True, help="Autoreloading of python files.")
@@ -26,7 +45,9 @@ from sentry.runner.decorators import configuration, log_options
     "--skip-daemons",
     default=None,
     required=False,
-    help="Names of daemons not to start (comma-delimited)",
+    help="List (comma-delimited) of daemons not to start (values: {})".format(
+        ", ".join(sorted(_DEFAULT_DAEMONS.keys()))
+    ),
 )
 @click.option(
     "--experimental-spa/--no-experimental-spa",
@@ -169,29 +190,15 @@ def devserver(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
-        daemons += [
-            ("worker", ["sentry", "run", "worker", "-c", "1", "--autoreload"]),
-            ("cron", ["sentry", "run", "cron", "--autoreload"]),
-        ]
+        daemons += [_get_daemon("worker"), _get_daemon("cron")]
 
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [
-                (
-                    "post-process-forwarder",
-                    [
-                        "sentry",
-                        "run",
-                        "post-process-forwarder",
-                        "--loglevel=debug",
-                        "--commit-batch-size=1",
-                    ],
-                )
-            ]
+            daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [("ingest", ["sentry", "run", "ingest-consumer", "--all-consumer-types"])]
+        daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
@@ -235,10 +242,10 @@ def devserver(
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
     server.prepare_environment()
-    daemons += [("server", ["sentry", "run", "web"])]
+    daemons += [_get_daemon("server")]
 
     if styleguide:
-        daemons += [("storybook", ["./bin/yarn", "storybook"])]
+        daemons += [_get_daemon("storybook")]
 
     skip_daemons = set(skip_daemons.split(",")) if skip_daemons else ()
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
@@ -247,7 +254,6 @@ def devserver(
     for name, cmd in daemons:
         cmdline = list2cmdline(cmd)
         if name not in skip_daemons:
-            click.echo("Adding daemon '{}' with command: {}".format(name, cmdline))
             manager.add_process(name, cmdline, quiet=False, cwd=cwd)
 
     manager.loop()
