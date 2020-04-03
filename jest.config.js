@@ -2,7 +2,7 @@
 module.exports = {
   verbose: false,
   collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx}',
+    'tests/js/spec/**/*.{js,jsx,tsx}',
     'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'lcov', 'cobertura'],
@@ -16,7 +16,10 @@ module.exports = {
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
-  modulePathIgnorePatterns: ['<rootDir>/src/sentry/static/sentry/dist'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/src/sentry/static/sentry/dist',
+    '<rootDir>/tests/js/spec/views/userFeedback/index.spec.tsx',
+  ],
   setupFiles: [
     '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.js',
     '<rootDir>/tests/js/throw-on-react-error.js',
@@ -24,7 +27,7 @@ module.exports = {
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
-  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).js?(x)'],
+  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
