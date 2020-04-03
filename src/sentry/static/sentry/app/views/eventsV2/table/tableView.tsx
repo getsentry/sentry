@@ -17,10 +17,10 @@ import EventView, {
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
-import {generateEventSlug, eventDetailsRouteWithEventView} from '../eventDetails/utils';
 import ColumnEditModal from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
