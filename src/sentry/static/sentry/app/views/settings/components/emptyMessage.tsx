@@ -6,42 +6,10 @@ import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
-const MarginStyles = `
-  margin-bottom: ${space(2)};
-  &:last-child {
-    margin: 0;
-  }
-`;
-
-const Description = styled(TextBlock)`
-  ${MarginStyles};
-`;
-
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: 20px;
-  line-height: 1.2;
-  ${MarginStyles};
-
-  & + ${Description} {
-    margin-top: -${space(0.5)}; /* Remove the illusion of bad padding by offsetting line-height */
-  }
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-  color: ${p => p.theme.gray1};
-  ${MarginStyles};
-`;
-
-const Action = styled('div')`
-  ${MarginStyles};
-`;
-
 type Props = {
   title?: React.ReactNode;
   description?: React.ReactNode;
-  icon?: string;
+  icon?: string | React.ReactNode;
   action?: React.ReactElement;
   size?: 'large' | 'medium';
 };
@@ -52,7 +20,11 @@ type WrapperProps = Pick<EmptyMessageProps, 'size'>;
 const EmptyMessage = styled(
   ({title, description, icon, children, action, ...props}: EmptyMessageProps) => (
     <div data-test-id="empty-message" {...props}>
-      {icon && <StyledInlineSvg src={icon} size="36px" />}
+      {icon && (
+        <IconWrapper>
+          {typeof icon === 'string' ? <InlineSvg src={icon} size="32px" /> : icon}
+        </IconWrapper>
+      )}
       {title && <Title>{title}</Title>}
       {description && <Description>{description}</Description>}
       {children && <Description noMargin>{children}</Description>}
@@ -73,10 +45,31 @@ const EmptyMessage = styled(
 EmptyMessage.propTypes = {
   title: PropTypes.node,
   description: PropTypes.node,
-  icon: PropTypes.string,
+  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   action: PropTypes.element,
   // Currently only the `large` option changes the size - can add more size options as necessary
   size: PropTypes.oneOf(['large', 'medium']),
 };
+
+const IconWrapper = styled('div')`
+  color: ${p => p.theme.gray1};
+  display: block;
+  margin-bottom: ${space(1)};
+`;
+
+const Title = styled('div')`
+  font-weight: bold;
+  font-size: 20px;
+  line-height: 1.2;
+  margin-bottom: ${space(1)};
+`;
+
+const Description = styled(TextBlock)`
+  margin: 0;
+`;
+
+const Action = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 export default EmptyMessage;
