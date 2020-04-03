@@ -17,10 +17,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {
-  generateEventSlug,
-  eventDetailsRouteWithEventView,
-} from 'app/views/eventsV2/eventDetails/utils';
+import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
