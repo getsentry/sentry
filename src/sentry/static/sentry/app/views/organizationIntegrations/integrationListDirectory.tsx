@@ -29,14 +29,14 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
-import {logExperiment} from 'app/utils/analytics';
 import SelectControl from 'app/components/forms/selectControl';
+import withExperiment from 'app/utils/withExperiment';
+import {ExperimentAssignment} from 'app/types/experiments';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -44,6 +44,7 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
+  experimentAssignment: ExperimentAssignment['IntegrationDirectorySortWeightExperiment'];
 };
 
 type State = {
@@ -72,17 +73,6 @@ export class IntegrationListDirectory extends AsyncComponent<
   shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
-
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'IntegrationDirectorySortWeightExperiment',
-    });
-  }
 
   getDefaultState() {
     return {
@@ -230,7 +220,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive(this.props.organization)) {
+    if (getSortIntegrationsByWeightActive(this.props.experimentAssignment)) {
       return integrations
         .sort(this.sortByName)
         .sort(this.sortByPopularity)
@@ -239,7 +229,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     return integrations.sort(this.sortByName).sort(this.sortByInstalled);
   }
 
-  async componentDidUpdate(_, prevState: State) {
+  async componentDidUpdate(_: Props, prevState: State) {
     if (this.state.list.length !== prevState.list.length) {
       await this.createSearch();
     }
@@ -456,4 +446,8 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(IntegrationListDirectory);
+export default withOrganization(
+  withExperiment(IntegrationListDirectory, {
+    experiment: 'IntegrationDirectorySortWeightExperiment',
+  })
+);

@@ -303,18 +303,23 @@ class Factories(object):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None):
+    def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
         if version is None:
             version = hexlify(os.urandom(20))
 
         if date_added is None:
             date_added = timezone.now()
 
+        if additional_projects is None:
+            additional_projects = []
+
         release = Release.objects.create(
             version=version, organization_id=project.organization_id, date_added=date_added
         )
 
         release.add_project(project)
+        for additional_project in additional_projects:
+            release.add_project(additional_project)
 
         Activity.objects.create(
             type=Activity.RELEASE,

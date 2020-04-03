@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
+import mock
 import six
 import uuid
-import mock
 
 from datetime import timedelta
 
@@ -18,6 +18,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsStatsEndpointTest, self).setUp()
         self.login_as(user=self.user)
+        self.authed_user = self.user
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 

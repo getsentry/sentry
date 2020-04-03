@@ -1,6 +1,6 @@
 import {css} from '@emotion/core';
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import {Location} from 'history';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
@@ -33,12 +33,12 @@ import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
-import SentryTypes from 'app/sentryTypes';
 import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import {logExperiment} from 'app/utils/analytics';
+import {Organization} from 'app/types';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -48,34 +48,44 @@ import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
+import {SidebarPanelKey, SidebarOrientation} from './types';
 
-class Sidebar extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    collapsed: PropTypes.bool,
-    location: PropTypes.object,
-  };
+type Props = {
+  location: Location;
+  organization: Organization;
+  collapsed: boolean;
+  children?: never;
+};
 
-  constructor(props) {
+type State = {
+  horizontal: boolean;
+  showPanel: boolean;
+  currentPanel: SidebarPanelKey;
+};
+
+class Sidebar extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
-    this.state = {
-      horizontal: false,
-      currentPanel: '',
-      showPanel: false,
-    };
 
     if (!window.matchMedia) {
       return;
     }
+
     // TODO(billy): We should consider moving this into a component
     this.mq = window.matchMedia(`(max-width: ${theme.breakpoints[1]})`);
     this.mq.addListener(this.handleMediaQueryChange);
     this.state.horizontal = this.mq.matches;
   }
 
+  state: State = {
+    horizontal: false,
+    currentPanel: '',
+    showPanel: false,
+  };
+
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.flyoutCloseHandler);
+    document.addEventListener('click', this.panelCloseHandler);
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
@@ -87,7 +97,7 @@ class Sidebar extends React.Component {
     });
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     const {collapsed, location} = this.props;
     const nextLocation = nextProps.location;
 
@@ -105,9 +115,13 @@ class Sidebar extends React.Component {
 
   // Sidebar doesn't use children, so don't use it to compare
   // Also ignore location, will re-render when routes change (instead of query params)
+  //
+  // NOTE(epurkhiser): The comment above is why I added `children?: never` as a
+  // type to this component. I'm not sure the implications of removing this so
+  // I've just left it for now.
   shouldComponentUpdate(
-    {children: _children, location: _location, ...nextPropsToCompare},
-    nextState
+    {children: _children, location: _location, ...nextPropsToCompare}: Props,
+    nextState: State
   ) {
     const {
       children: _childrenCurrent,
@@ -122,7 +136,7 @@ class Sidebar extends React.Component {
   }
 
   componentWillUnmount() {
-    document.removeEventListener('click', this.flyoutCloseHandler);
+    document.removeEventListener('click', this.panelCloseHandler);
     document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
@@ -131,7 +145,10 @@ class Sidebar extends React.Component {
     }
   }
 
-  doCollapse(collapsed) {
+  mq: MediaQueryList | null = null;
+  sidebarRef = React.createRef<HTMLDivElement>();
+
+  doCollapse(collapsed: boolean) {
     if (collapsed) {
       document.body.classList.add('collapsed');
     } else {
@@ -155,7 +172,7 @@ class Sidebar extends React.Component {
     }
   };
 
-  handleMediaQueryChange = changed => {
+  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
     this.setState({
       horizontal: changed.matches,
     });
@@ -163,7 +180,7 @@ class Sidebar extends React.Component {
 
   // Hide slideout panel
   hidePanel = () => {
-    if (!this.state.sidePanel && this.state.currentPanel === '') {
+    if (this.state.currentPanel === '') {
       return;
     }
 
@@ -174,7 +191,10 @@ class Sidebar extends React.Component {
   };
 
   // Keep the global selection querystring values in the path
-  navigateWithGlobalSelection = (pathname, evt) => {
+  navigateWithGlobalSelection = (
+    pathname: string,
+    evt: React.MouseEvent<HTMLAnchorElement>
+  ) => {
     const globalSelectionRoutes = [
       'dashboards',
       'issues',
@@ -207,14 +227,14 @@ class Sidebar extends React.Component {
   };
 
   // Show slideout panel
-  showPanel = panel => {
+  showPanel = (panel: SidebarPanelKey) => {
     this.setState({
       showPanel: true,
       currentPanel: panel,
     });
   };
 
-  togglePanel = panel => {
+  togglePanel = (panel: SidebarPanelKey) => {
     if (this.state.currentPanel === panel) {
       this.hidePanel();
     } else {
@@ -222,15 +242,19 @@ class Sidebar extends React.Component {
     }
   };
 
-  flyoutCloseHandler = evt => {
+  panelCloseHandler = (evt: MouseEvent) => {
+    if (!(evt.target instanceof Element)) {
+      return;
+    }
+
     // Ignore if click occurs within sidebar
     if (this.sidebarRef.current && this.sidebarRef.current.contains(evt.target)) {
       return;
     }
 
-    // Ignore if click occurs within sidebar flyout panel
-    const flyout = getSidebarPanelContainer();
-    if (flyout && flyout.contains(evt.target)) {
+    // Ignore if click occurs within the sidebar panel
+    const panel = getSidebarPanelContainer();
+    if (panel && panel.contains(evt.target)) {
       return;
     }
 
@@ -287,15 +311,13 @@ class Sidebar extends React.Component {
     return sidebarState;
   }
 
-  sidebarRef = React.createRef();
-
   render() {
     const {organization, collapsed} = this.props;
     const {currentPanel, showPanel, horizontal} = this.state;
     const config = ConfigStore.getConfig();
     const user = ConfigStore.get('user');
     const hasPanel = !!currentPanel;
-    const orientation = horizontal ? 'top' : 'left';
+    const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
     const sidebarItemProps = {
       orientation,
       collapsed,
@@ -310,7 +332,6 @@ class Sidebar extends React.Component {
         <SidebarSectionGroupPrimary>
           <SidebarSection>
             <SidebarDropdown
-              onClick={this.hidePanel}
               orientation={orientation}
               collapsed={collapsed}
               org={organization}
@@ -330,6 +351,7 @@ class Sidebar extends React.Component {
                     icon={<IconProject size="md" />}
                     label={t('Projects')}
                     to={`/organizations/${organization.slug}/projects/`}
+                    id="projects"
                   />
                   <SidebarItem
                     {...sidebarItemProps}
@@ -507,6 +529,7 @@ class Sidebar extends React.Component {
                       label={t('Releases v2')}
                       to={`/organizations/${organization.slug}/releases-v2/`}
                       id="releasesv2"
+                      isBeta
                     />
                   </Feature>
                 </SidebarSection>
@@ -556,7 +579,7 @@ class Sidebar extends React.Component {
                     onShowPanel={() => this.togglePanel('todos')}
                     showPanel={showPanel}
                     hidePanel={this.hidePanel}
-                    collapsed={collapsed}
+                    {...sidebarItemProps}
                   />
                 </SidebarSection>
               )}
@@ -601,7 +624,7 @@ class Sidebar extends React.Component {
                     onShowPanel={() => this.togglePanel('todos')}
                     showPanel={showPanel}
                     hidePanel={this.hidePanel}
-                    collapsed={collapsed}
+                    {...sidebarItemProps}
                   />
                 </SidebarSection>
               )}
@@ -609,6 +632,7 @@ class Sidebar extends React.Component {
             {!horizontal && (
               <SidebarSection>
                 <SidebarCollapseItem
+                  id="collapse"
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
                   icon={<StyledIconChevron collapsed={collapsed} />}
@@ -624,22 +648,22 @@ class Sidebar extends React.Component {
   }
 }
 
-const SidebarContainer = createReactClass({
+const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
   displayName: 'SidebarContainer',
-  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange')],
+  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any],
   getInitialState() {
     return {
       collapsed: PreferencesStore.getInitialState().collapsed,
     };
   },
 
-  onPreferenceChange(store) {
-    if (store.collapsed === this.state.collapsed) {
+  onPreferenceChange(preferences: typeof PreferencesStore.prefs) {
+    if (preferences.collapsed === this.state.collapsed) {
       return;
     }
 
     this.setState({
-      collapsed: store.collapsed,
+      collapsed: preferences.collapsed,
     });
   },
 
@@ -660,7 +684,7 @@ const responsiveFlex = css`
   }
 `;
 
-const StyledSidebar = styled('div')`
+const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
   background: linear-gradient(${p => p.theme.gray4}, ${p => p.theme.gray5});
   color: ${p => p.theme.sidebar.color};
@@ -739,7 +763,10 @@ const PrimaryItems = styled('div')`
   }
 `;
 
-const SidebarSection = styled(SidebarSectionGroup)`
+const SidebarSection = styled(SidebarSectionGroup)<{
+  noMargin?: boolean;
+  noPadding?: boolean;
+}>`
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
   ${p => !p.noPadding && 'padding: 0 19px'};
 

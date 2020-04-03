@@ -5,7 +5,7 @@ import six
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
-from math import ceil
+from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
@@ -38,6 +38,7 @@ __all__ = (
     "InvalidSearchQuery",
     "create_reference_event_conditions",
     "query",
+    "key_transaction_query",
     "timeseries_query",
     "get_pagination_ids",
     "get_facets",
@@ -91,23 +92,25 @@ def find_reference_event(reference_event, real=True):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    snuba_args = {
-        "start": reference_event.start - timedelta(seconds=5) if reference_event.start else None,
-        "end": reference_event.end + timedelta(seconds=5) if reference_event.end else None,
-        "filter_keys": {"project_id": [project.id], "event_id": [event_id]},
-    }
-
-    snuba_args.update(resolve_field_list(columns, snuba_args, auto_fields=False))
-
-    snuba_args, _ = resolve_discover_aliases(snuba_args)
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
+    snuba_filter = eventstore.Filter(
+        start=start, end=end, project_ids=[project.id], event_ids=[event_id]
+    )
+    snuba_filter.update_with(resolve_field_list(columns, snuba_filter, auto_fields=False))
+    snuba_filter, _ = resolve_discover_aliases(snuba_filter)
 
     event = raw_query(
-        selected_columns=snuba_args.get("selected_columns"),
-        filter_keys=snuba_args.get("filter_keys"),
-        aggregations=snuba_args.get("aggregations"),
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
-        groupby=snuba_args.get("groupby"),
+        selected_columns=snuba_filter.selected_columns,
+        filter_keys=snuba_filter.filter_keys,
+        aggregations=snuba_filter.aggregations,
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        groupby=snuba_filter.groupby,
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event" if real else "discover.find_full_reference_event",
@@ -179,7 +182,8 @@ def find_histogram_buckets(field, params, conditions):
             u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
         )
 
-    alias = u"max_{}".format(column)
+    max_alias = u"max_{}".format(column)
+    min_alias = u"min_{}".format(column)
 
     conditions = deepcopy(conditions) if conditions else []
     found = False
@@ -197,19 +201,23 @@ def find_histogram_buckets(field, params, conditions):
         end=params.get("end"),
         dataset=Dataset.Discover,
         conditions=translated_args.conditions,
-        aggregations=[["max", "duration", alias]],
+        aggregations=[["max", "duration", max_alias], ["min", "duration", min_alias]],
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
-        return "histogram({}, 1, 1)".format(column)
+        return "histogram({}, 1, 1, 0)".format(column)
 
-    bucket_max = results["data"][0][alias]
+    bucket_min = results["data"][0][min_alias]
+    bucket_max = results["data"][0][max_alias]
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
+    bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
 
-    bucket_number = ceil(bucket_max / float(num_buckets))
+    # Determine the first bucket that will show up in our results so that we can
+    # zerofill correctly.
+    offset = floor(bucket_min / bucket_size) * bucket_size
 
-    return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_number)
+    return "histogram({}, {:g}, {:g}, {:g})".format(column, num_buckets, bucket_size, offset)
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
@@ -217,7 +225,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     if len(parts) < 2:
         raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
 
-    bucket_size, num_buckets = int(parts[-1]), int(parts[-2])
+    bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
     if len(results) == num_buckets:
         return results
 
@@ -241,7 +249,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
                 break
 
     for i in range(num_buckets):
-        bucket = bucket_size * i
+        bucket = bucket_offset + (bucket_size * i)
         if bucket not in bucket_map:
             bucket_map[bucket] = build_new_bucket_row(bucket)
 
@@ -249,7 +257,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     if is_sorted:
         i, diff, end = (0, 1, num_buckets) if not is_reversed else (num_buckets, -1, 0)
         while i <= end:
-            bucket = bucket_size * i
+            bucket = bucket_offset + (bucket_size * i)
             if bucket in bucket_map:
                 new_results.append(bucket_map[bucket])
             i += diff
@@ -606,45 +614,51 @@ def query(
     return transform_results(result, translated_columns, snuba_filter)
 
 
-def timeseries_query(
-    selected_columns, query, params, rollup, top_events=None, reference_event=None, referrer=None
-):
+def key_transaction_conditions(queryset):
     """
-    High-level API for doing arbitrary user timeseries queries against events.
-
-    This function operates on the public event schema and
-    virtual fields/aggregate functions for selected columns and
-    conditions are supported through this function.
-
-    This function is intended to only get timeseries based
-    results and thus requires the `rollup` parameter.
-
-    Returns a SnubaTSResult object that has been zerofilled in
-    case of gaps.
-
-    selected_columns (Sequence[str]) List of public aliases to fetch.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    rollup (int) The bucket width in seconds
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                    conditions based on the provided reference.
-    referrer (str|None) A referrer string to help locate the origin of this query.
+        The snuba query for transactions is of the form
+        (transaction="1" AND project=1) OR (transaction="2" and project=2) ...
+        which the schema intentionally doesn't support so we cannot do an AND in OR
+        so here the "and" operator is being instead to do an AND in OR query
     """
-    if top_events:
-        event_fields = top_events[0].fields
-        selected_columns += event_fields
-        top_events = {event.slug: find_reference_event(event, real=False) for event in top_events}
-        group_conditions = []
-        for field in event_fields:
-            # project is handled by filter_keys already
-            if field == "project":
-                continue
-            values = list({event.get(field) for event in top_events.values() if field in event})
-            if values:
-                group_conditions.append([field, "IN", values])
-    else:
-        group_conditions = []
+    return [
+        [
+            # First layer is Ands
+            [
+                # Second layer is Ors
+                [
+                    "and",
+                    [
+                        [
+                            "equals",
+                            # Without the outer ' here, the transaction will be treated as another column
+                            # instead of a string. This isn't an injection risk since snuba is smart enough to
+                            # handle escaping for us.
+                            ["transaction", u"'{}'".format(transaction.transaction)],
+                        ],
+                        ["equals", ["project_id", transaction.project.id]],
+                    ],
+                ],
+                "=",
+                1,
+            ]
+            for transaction in queryset
+        ]
+    ]
 
+
+def key_transaction_query(selected_columns, user_query, params, orderby, referrer, queryset):
+    return query(
+        selected_columns,
+        user_query,
+        params,
+        orderby=orderby,
+        referrer=referrer,
+        conditions=key_transaction_conditions(queryset),
+    )
+
+
+def get_timeseries_snuba_filter(selected_columns, query, params, rollup, reference_event=None):
     # TODO(evanh): These can be removed once we migrate the frontend / saved queries
     # to use the new function values
     selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
@@ -670,9 +684,90 @@ def timeseries_query(
     if len(snuba_filter.aggregations) == 1:
         snuba_filter.aggregations[0][2] = "count"
 
+    return snuba_filter
+
+
+def key_transaction_timeseries_query(selected_columns, query, params, rollup, referrer, queryset):
+    """ Given a queryset of KeyTransactions perform a timeseries query
+
+        This function is intended to match the `timeseries_query` function,
+        but exists to avoid including conditions as a parameter on that function.
+
+        selected_columns (Sequence[str]) List of public aliases to fetch.
+        query (str) Filter query string to create conditions from.
+        params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+        rollup (int) The bucket width in seconds
+        referrer (str|None) A referrer string to help locate the origin of this query.
+        queryset (QuerySet) Filtered QuerySet of KeyTransactions
+    """
+    snuba_filter = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
+    snuba_filter.conditions.extend(key_transaction_conditions(queryset))
+
     result = raw_query(
         aggregations=snuba_filter.aggregations,
-        conditions=snuba_filter.conditions + group_conditions,
+        conditions=snuba_filter.conditions,
+        filter_keys=snuba_filter.filter_keys,
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        rollup=rollup,
+        orderby="time",
+        groupby=["time"],
+        dataset=Dataset.Discover,
+        limit=10000,
+        referrer=referrer,
+    )
+    result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+
+    return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
+
+
+def timeseries_query(
+    selected_columns, query, params, rollup, top_events=None, reference_event=None, referrer=None
+):
+    """
+    High-level API for doing arbitrary user timeseries queries against events.
+
+    This function operates on the public event schema and
+    virtual fields/aggregate functions for selected columns and
+    conditions are supported through this function.
+
+    This function is intended to only get timeseries based
+    results and thus requires the `rollup` parameter.
+
+    Returns a SnubaTSResult object that has been zerofilled in
+    case of gaps.
+
+    selected_columns (Sequence[str]) List of public aliases to fetch.
+    query (str) Filter query string to create conditions from.
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    rollup (int) The bucket width in seconds
+    reference_event (ReferenceEvent) A reference event object. Used to generate additional
+                    conditions based on the provided reference.
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    """
+    if top_events:
+        selected_columns += top_events[0].fields
+
+    snuba_filter = get_timeseries_snuba_filter(
+        selected_columns, query, params, rollup, reference_event
+    )
+
+    if top_events:
+        group_conditions = []
+        event_fields = top_events[0].fields
+        top_events = {event.slug: find_reference_event(event, real=False) for event in top_events}
+        for field in event_fields:
+            # project is handled by filter_keys already
+            if field == "project":
+                continue
+            values = list({event.get(field) for event in top_events.values() if field in event})
+            if values:
+                group_conditions.append([field, "IN", values])
+        snuba_filter.conditions.extend(group_conditions)
+
+    result = raw_query(
+        aggregations=snuba_filter.aggregations,
+        conditions=snuba_filter.conditions,
         filter_keys=snuba_filter.filter_keys,
         start=snuba_filter.start,
         end=snuba_filter.end,
