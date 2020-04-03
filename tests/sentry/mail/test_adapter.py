@@ -2,11 +2,17 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime
+
 import mock
+import pytz
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
 
+from sentry.digests.notifications import build_digest, event_to_record
+from sentry.event_manager import EventManager, get_event_type
+from sentry.mail.adapter import MailAdapter
 from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
@@ -17,13 +23,12 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.event_manager import EventManager, get_event_type
-from sentry.mail.adapter import MailAdapter
 from sentry.ownership import grammar
 from sentry.ownership.grammar import dump_schema, Matcher, Owner
 from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.email import MessageBuilder
 
 
 class BaseMailAdapterTest(object):
@@ -418,3 +423,81 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
             data=self.make_event_data("foo.cbl"), project_id=project.id
         )
         self.assert_notify(event_all_users, [user.email])
+
+
+class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
+    def test_get_digest_subject(self):
+        assert (
+            self.adapter.get_digest_subject(
+                mock.Mock(qualified_short_id="BAR-1"),
+                {mock.sentinel.group: 3},
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+            )
+            == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
+        )
+
+
+class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    def test_notify_digest(self, notify):
+        project = self.project
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            project_id=project.id,
+        )
+
+        rule = project.rule_set.all()[0]
+        digest = build_digest(
+            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+        )
+
+        with self.tasks():
+            self.adapter.notify_digest(project, digest)
+
+        assert notify.call_count == 0
+        assert len(mail.outbox) == 1
+
+        message = mail.outbox[0]
+        assert "List-ID" in message.message()
+
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    @mock.patch.object(MessageBuilder, "send_async", autospec=True)
+    def test_notify_digest_single_record(self, send_async, notify):
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.project.rule_set.all()[0]
+        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        self.adapter.notify_digest(self.project, digest)
+        assert send_async.call_count == 1
+        assert notify.call_count == 1
+
+    def test_notify_digest_subject_prefix(self):
+        ProjectOption.objects.set_value(
+            project=self.project, key=u"mail:subject_prefix", value="[Example prefix] "
+        )
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+
+        rule = self.project.rule_set.all()[0]
+
+        digest = build_digest(
+            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+        )
+
+        with self.tasks():
+            self.adapter.notify_digest(self.project, digest)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject.startswith("[Example prefix]")
