@@ -108,7 +108,6 @@ class PagerDutyIntegration(IntegrationInstallation):
                         integration_key=key,
                     )
 
-
     def get_config_data(self):
         service_list = []
         for s in self.services:
