@@ -150,13 +150,13 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
                 msg = generate_fetch_commits_error_email(release, six.text_type(e))
-                emails = get_owner_emails(user, release.organization_id)
+                emails = get_emails_for_user_or_org(user, release.organization_id)
                 msg.send_async(to=emails)
             else:
                 msg = generate_fetch_commits_error_email(
                     release, "An internal system error occurred."
                 )
-                emails = get_owner_emails(user, release.organization_id)
+                emails = get_emails_for_user_or_org(user, release.organization_id)
                 msg.send_async(to=emails)
         else:
             logger.info(
@@ -225,14 +225,14 @@ def is_integration_provider(provider):
     return provider and provider.startswith("integrations:")
 
 
-def get_owner_emails(user, orgId):
+def get_emails_for_user_or_org(user, orgId):
     emails = []
     if user.is_sentry_app:
         members = OrganizationMember.objects.filter(
             organization_id=orgId, role="owner", user_id__isnull=False
         ).select_related("user")
         for m in list(members):
-            emails.add(m.user.email)
+            emails.append(m.user.email)
     else:
         emails = [user.email]
 
