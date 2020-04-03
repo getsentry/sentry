@@ -153,16 +153,23 @@ export default function Tooltip({
       const tipWidth = dom.clientWidth;
       const tipHeight = dom.clientHeight;
 
-      // Determine new left edge.
+      // Get the left offset of the tip container (the chart)
+      // so that we can estimate overflows
+      const chartLeft = dom.parentNode.getBoundingClientRect().left;
+
+      // Determine the new left edge.
       let leftPos = pos[0] - tipWidth / 2;
       let arrowPosition = '50%';
-      const rightEdge = pos[0] + tipWidth;
+
+      // And the right edge taking into account the chart left offset
+      const rightEdge = chartLeft + pos[0] + tipWidth / 2;
 
       // If the tooltip would go off viewport shift the tooltip over with a gap.
-      if (rightEdge >= window.innerWidth - 30) {
-        leftPos -= rightEdge - window.innerWidth + 30;
+      if (rightEdge >= window.innerWidth - 20) {
+        leftPos -= rightEdge - window.innerWidth + 20;
         arrowPosition = `${pos[0] - leftPos}px`;
       }
+
       // Reposition the arrow.
       const arrow = dom.querySelector('.tooltip-arrow');
       if (arrow) {
