@@ -81,6 +81,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
           features={['projects:rate-limits']}
           hookName="feature-disabled:rate-limits"
           renderDisabled={({children, ...props}) =>
+            typeof children === 'function' &&
             children({...props, renderDisabled: disabledAlert})
           }
         >
@@ -97,7 +98,15 @@ class KeyRateLimitsForm extends React.Component<Props> {
                       number of events processed.`
                   )}
                 </PanelAlert>
-                {!hasFeature && renderDisabled({organization, project, features})}
+                {!hasFeature &&
+                  typeof renderDisabled === 'function' &&
+                  renderDisabled({
+                    organization,
+                    project,
+                    features,
+                    hasFeature,
+                    children: null,
+                  })}
                 <FormField
                   className="rate-limit-group"
                   name="rateLimit"

@@ -3,6 +3,7 @@ import {Route} from 'react-router';
 import {NavigationSection} from 'app/views/settings/types';
 import {User, Organization, Project, IntegrationProvider} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -161,6 +162,8 @@ type FeatureDisabledHook = (opts: {
    * Weather the feature is or is not enabled.
    */
   hasFeature: boolean;
+
+  children: FeatureDisabled['props']['children'];
 }) => React.ReactNode;
 
 /**
