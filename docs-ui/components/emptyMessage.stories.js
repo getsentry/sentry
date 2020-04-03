@@ -4,7 +4,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import {Panel, PanelHeader} from 'app/components/panels';
-import {IconUser} from 'app/icons/iconUser';
+import {IconTelescope, IconUser} from 'app/icons';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
@@ -92,7 +92,7 @@ storiesOf('UI|EmptyMessage', module)
     withInfo('Put this in a panel for maximum effect')(() => (
       <Panel dashedBorder>
         <EmptyMessage
-          icon={<IconUser size="xl" />}
+          icon={<IconTelescope size="xl" />}
           title="You're missing out on crucial functionality!"
           description="Enable this feature now to get the most out of Sentry. What are you waiting for? Do it!"
           action={
