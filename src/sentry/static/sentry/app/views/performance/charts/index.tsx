@@ -31,8 +31,7 @@ const YAXIS_OPTIONS = [
   {
     label: 'Throughput',
     value: 'rpm()',
-    tooltip:
-      'Throughput is the quantity of data being sent and received within a unit of time. ',
+    tooltip: 'Throughput is the number of recorded requests per minute (rpm).',
   },
 ];
 
