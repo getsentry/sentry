@@ -40,17 +40,10 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
     }
 
     async fetchTeams() {
-      // check if we can use organization teams/projects instead of fetching data
-      const {projects, teams} = this.props.organization;
-      if (projects && teams) {
-        // populate teams with projects information for use by wrapped components
-        this.populateTeamsWithProjects(teams, projects);
-        return;
-      }
-
       this.setState({
         loadingTeams: true,
       });
+
       try {
         metric.mark('user-teams-fetch-start');
         const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
