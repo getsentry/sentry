@@ -8,8 +8,8 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery, NewQuery, SelectValue} from 'app/types';
 import {EventQuery} from 'app/actionCreators/events';
+import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -256,6 +256,7 @@ class EventView {
   statsPeriod: string | undefined;
   environment: Readonly<string[]>;
   yAxis: string | undefined;
+  createdBy: User | undefined;
 
   constructor(props: {
     id: string | undefined;
@@ -269,6 +270,7 @@ class EventView {
     statsPeriod: string | undefined;
     environment: Readonly<string[]>;
     yAxis: string | undefined;
+    createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -297,6 +299,7 @@ class EventView {
     this.statsPeriod = props.statsPeriod;
     this.environment = environment;
     this.yAxis = props.yAxis;
+    this.createdBy = props.createdBy;
   }
 
   static fromLocation(location: Location): EventView {
@@ -314,6 +317,7 @@ class EventView {
       statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
+      createdBy: undefined,
     });
   }
 
@@ -379,6 +383,7 @@ class EventView {
         'environment'
       ),
       yAxis,
+      createdBy: saved.createdBy,
     });
   }
 
@@ -555,6 +560,7 @@ class EventView {
       statsPeriod: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      createdBy: this.createdBy,
     });
   }
 

@@ -937,13 +937,13 @@ export type NewQuery = {
   environment?: Readonly<string[]>;
   tags?: Readonly<string[]>;
   yAxis?: string;
+  createdBy?: User;
 };
 
 export type SavedQuery = NewQuery & {
   id: string;
   dateCreated: string;
   dateUpdated: string;
-  createdBy?: string;
 };
 
 export type SavedQueryState = {
