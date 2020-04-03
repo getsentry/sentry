@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from exam import fixture
 
 from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
+    ProjectOption,
     ProjectOwnership,
     User,
     UserOption,
@@ -153,3 +155,40 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         )
 
         assert user4.pk not in self.adapter.get_sendable_users(project)
+
+
+class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
+    def test_default_prefix(self):
+        assert self.adapter._build_subject_prefix(self.project) == "[Sentry] "
+
+    def test_project_level_prefix(self):
+        prefix = "[Example prefix] "
+        ProjectOption.objects.set_value(
+            project=self.project, key=u"mail:subject_prefix", value=prefix
+        )
+        assert self.adapter._build_subject_prefix(self.project) == prefix
+
+
+class MailAdapterBuildMessageTest(BaseMailAdapterTest, TestCase):
+    def test(self):
+        subject = "hello"
+        msg = self.adapter._build_message(self.project, subject)
+        assert msg._send_to == set([self.user.email])
+        assert msg.subject.endswith(subject)
+
+    def test_specify_send_to(self):
+        subject = "hello"
+        send_to_user = self.create_user("hello@timecube.com")
+        msg = self.adapter._build_message(self.project, subject, send_to=[send_to_user.id])
+        assert msg._send_to == set([send_to_user.email])
+        assert msg.subject.endswith(subject)
+
+
+class MailAdapterSendMailTest(BaseMailAdapterTest, TestCase):
+    def test(self):
+        subject = "hello"
+        with self.tasks():
+            self.adapter._send_mail(self.project, subject, body="hi")
+            msg = mail.outbox[0]
+            assert msg.subject.endswith(subject)
+            assert msg.recipients() == [self.user.email]
