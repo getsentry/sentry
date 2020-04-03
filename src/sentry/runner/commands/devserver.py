@@ -256,9 +256,8 @@ def devserver(
 
     manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
-        cmdline = list2cmdline(cmd)
         if name not in skip_daemons:
-            manager.add_process(name, cmdline, quiet=False, cwd=cwd)
+            manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)
