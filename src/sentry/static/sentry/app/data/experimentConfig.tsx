@@ -14,12 +14,6 @@ export const unassignedValue = -1;
  */
 export const experimentList = [
   {
-    key: 'TrialUpgradeV2Experiment',
-    type: ExperimentType.Organization,
-    parameter: 'variant',
-    assignments: ['upgrade', 'trial', -1],
-  },
-  {
     key: 'AlertDefaultsExperiment',
     type: ExperimentType.Organization,
     parameter: 'variant',
