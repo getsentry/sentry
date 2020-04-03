@@ -57,7 +57,7 @@ const IconWrapper = styled('div')`
 `;
 
 const Title = styled('h1')`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
 `;
 
