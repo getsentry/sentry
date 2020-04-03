@@ -156,8 +156,6 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        UserSocialAuth.objects.create(user=self.user, provider="dummy")
-
         mock_compare_commits.side_effect = Exception("secrets")
 
         with self.tasks():
