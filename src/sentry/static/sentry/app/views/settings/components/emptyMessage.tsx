@@ -53,14 +53,11 @@ EmptyMessage.propTypes = {
 
 const IconWrapper = styled('div')`
   color: ${p => p.theme.gray1};
-  display: block;
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: 20px;
-  line-height: 1.2;
+const Title = styled('h1')`
+  font-size: ${p => p.theme.headerFontSize};
   margin-bottom: ${space(1)};
 `;
 

@@ -152,7 +152,7 @@ exports[`ExceptionStacktraceContent default behaviour 1`] = `
             >
               <IconWrapper>
                 <div
-                  className="css-lylc6f-IconWrapper e1h3yfdx1"
+                  className="css-9jue1w-IconWrapper e1h3yfdx1"
                 >
                   <InlineSvg
                     size="32px"
@@ -179,11 +179,11 @@ exports[`ExceptionStacktraceContent default behaviour 1`] = `
                 </div>
               </IconWrapper>
               <Title>
-                <div
-                  className="css-ke0noi-Title e1h3yfdx2"
+                <h1
+                  className="css-wtohiw-Title e1h3yfdx2"
                 >
                   No app only stacktrace has been found!
-                </div>
+                </h1>
               </Title>
             </div>
           </Component>
