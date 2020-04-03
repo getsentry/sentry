@@ -50,6 +50,7 @@ type Props = {
   location: Location;
   yAxis: YAxis;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
+  disable: boolean;
 };
 type State = {
   reloading: boolean;
@@ -83,7 +84,11 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
   fetchData = async () => {
     let data: Data | null = null;
-    const {yAxis} = this.props;
+    const {yAxis, disable} = this.props;
+
+    if (disable) {
+      return;
+    }
 
     this.setState(state => ({
       reloading: state.data !== null,
