@@ -11,12 +11,18 @@ import InputField from 'app/views/settings/components/forms/inputField';
 import space from 'app/styles/space';
 import {IconAdd} from 'app/icons/iconAdd';
 
+const defaultProps = {
+  addButtonText: t('Add Item'),
+  allowEmpty: false,
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
+
 type Props = {
   columnLabels?: object;
   columnKeys?: string[];
-  addButtonText?: string;
-  allowEmpty?: boolean;
-} & InputField['props'];
+} & DefaultProps &
+  InputField['props'];
 
 export default class TableField extends React.Component<Props> {
   static propTypes = {
