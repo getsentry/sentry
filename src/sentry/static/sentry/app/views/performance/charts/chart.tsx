@@ -4,8 +4,9 @@ import * as ReactRouter from 'react-router';
 import {TimeSeriesData} from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Tooltip from 'app/components/tooltip';
 
-import {HeaderTitle, ChartContainer} from './styles';
+import {HeaderTitle, ChartContainer, StyledIconQuestion} from '../styles';
 
 type Props = {
   yAxis: string;
@@ -16,6 +17,7 @@ type Props = {
   projects: number[];
   environments: string[];
   loading: boolean;
+  tooltipCopy: string;
 };
 
 class Chart extends React.Component<Props> {
@@ -29,6 +31,7 @@ class Chart extends React.Component<Props> {
       projects,
       environments,
       loading,
+      tooltipCopy,
     } = this.props;
     const {timeseriesData} = data;
 
@@ -64,7 +67,12 @@ class Chart extends React.Component<Props> {
 
     return (
       <ChartContainer key="loaded">
-        <HeaderTitle>{yAxis}</HeaderTitle>
+        <HeaderTitle>
+          {yAxis}
+          <Tooltip position="top" title={tooltipCopy}>
+            <StyledIconQuestion size="sm" />
+          </Tooltip>
+        </HeaderTitle>
         <ChartZoom
           router={router}
           period={statsPeriod}

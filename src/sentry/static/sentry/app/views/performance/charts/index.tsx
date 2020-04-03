@@ -17,13 +17,22 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
-import {ChartsContainer, ChartsGrid} from './styles';
+import {ChartsContainer, ChartsGrid} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
 const YAXIS_OPTIONS = [
-  {label: 'Apdex', value: 'apdex(300)'},
-  {label: 'Throughput', value: 'rpm()'},
+  {
+    label: 'Apdex',
+    value: 'apdex(300)',
+    tooltip:
+      'Apdex is a ratio of satisfactory response times to unsatisfactory response times.',
+  },
+  {
+    label: 'Throughput',
+    value: 'rpm()',
+    tooltip: 'Throughput is the number of recorded requests per minute (rpm).',
+  },
 ];
 
 type Props = {
@@ -103,6 +112,7 @@ class Container extends React.Component<Props> {
                             utc={utc === 'true'}
                             projects={globalSelection.project}
                             environments={globalSelection.environment}
+                            tooltipCopy={yAxis.tooltip}
                           />
                         ),
                         fixed: 'events chart',

@@ -1,12 +1,11 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Panel} from 'app/components/panels';
-import {IconQuestion, IconWarning} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
@@ -15,16 +14,16 @@ import {
   InlineContainer,
   SectionHeading,
   SectionValue,
-  SubHeading,
 } from 'app/components/charts/styles';
-import Tooltip from 'app/components/tooltip';
 import AsyncComponent from 'app/components/asyncComponent';
+import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
+
+import {HeaderTitle, ChartsContainer, StyledIconQuestion} from '../styles';
 
 const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
@@ -218,7 +217,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <BarChart
-          grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
+          grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
           xAxis={xAxis}
           yAxis={{type: 'value'}}
           series={transformData(chartData.data, this.bucketWidth)}
@@ -248,20 +247,22 @@ type WrapperProps = ViewProps & {
 function LatencyChart({totalValues, ...props}: WrapperProps) {
   return (
     <Panel>
-      <PaddedSubHeading>
-        <span>{t('Latency Distribution')}</span>
-        <Tooltip
-          position="top"
-          title={t(
-            `This graph shows the volume of transactions that completed within each duration bucket.
-               X-axis values represent the median value of each bucket.
-               `
-          )}
-        >
-          <IconQuestion size="sm" color={theme.gray6} />
-        </Tooltip>
-      </PaddedSubHeading>
-      <LatencyHistogram {...props} />
+      <ChartsContainer>
+        <HeaderTitle>
+          {t('Latency Distribution')}
+          <Tooltip
+            position="top"
+            title={t(
+              `This graph shows the volume of transactions that completed within each duration bucket.
+                X-axis values represent the median value of each bucket.
+                `
+            )}
+          >
+            <StyledIconQuestion size="sm" />
+          </Tooltip>
+        </HeaderTitle>
+        <LatencyHistogram {...props} />
+      </ChartsContainer>
       <ChartControls>
         <InlineContainer>
           <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
@@ -292,15 +293,5 @@ function transformData(data: ApiResult[], bucketWidth: number) {
     },
   ];
 }
-
-const PaddedSubHeading = styled(SubHeading)`
-  display: flex;
-  align-items: flex-start;
-  margin: ${space(2)} 0 ${space(1)} ${space(3)};
-
-  & > span {
-    margin-right: ${space(1)};
-  }
-`;
 
 export default LatencyChart;
