@@ -22,7 +22,7 @@ import FormModel from 'app/views/settings/components/forms/model';
  * which case we will receive an Event, but if they do we should handle
  * the case where they return a value as the first argument.
  */
-const getValueFromEvent = (valueOrEvent?: any, e?: any) => {
+const getValueFromEvent = (valueOrEvent?, e?: MouseEvent) => {
   const event = e || valueOrEvent;
   const value = defined(e) ? valueOrEvent : event && event.target && event.target.value;
 
@@ -81,6 +81,7 @@ type Props = {
   children: (renderProps) => React.ReactNode;
   onKeyDown?: (value, event) => void;
   onBlur?: (value, event) => void;
+  onChange?: (value, event) => void;
   hideErrorMessage?: boolean;
   selectionInfoFunction?: (props) => null | React.ReactNode;
   inline?: ObserverOrValue<boolean>;
@@ -88,7 +89,6 @@ type Props = {
   visible?: boolean | ((props: Props) => boolean);
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
-  onChange?: any; //TODO(TS): Do we need this?
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 
@@ -213,8 +213,6 @@ class FormField extends React.Component<Props> {
     const model = this.getModel();
 
     if (onChange) {
-      //TODO(TS): fix properly
-      // @ts-ignore
       onChange(value, event);
     }
 

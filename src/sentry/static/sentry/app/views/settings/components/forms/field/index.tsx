@@ -35,9 +35,8 @@ type Props = {
   controlClassName?: string;
   style?: object;
   error?: string;
-  p?: number; //TODO(TS): Do we need this?
   validate?: Function; //TODO(TS): Do we need this?
-  className?: string; //TODO(TS): Do we need this?
+  className?: string; //Needed for styled components
 } & Omit<
   FieldControl['props'],
   'disabled' | 'inline' | 'className' | 'help' | 'errorState'
