@@ -59,6 +59,10 @@ type Props = ReactRouter.WithRouterProps & {
    */
   isNew?: boolean;
   /**
+   * Additional badge letting users know a tab is in beta.
+   */
+  isBeta?: boolean;
+  /**
    * Sidebar is at "top" or "left" of screen
    */
   orientation: SidebarOrientation;
@@ -75,6 +79,7 @@ const SidebarItem = ({
   active,
   hasPanel,
   isNew,
+  isBeta,
   collapsed,
   className,
   orientation,
@@ -112,6 +117,11 @@ const SidebarItem = ({
                 {isNew && (
                   <StyledTag priority="beta" size="small">
                     {t('New')}
+                  </StyledTag>
+                )}
+                {isBeta && (
+                  <StyledTag priority="beta" size="small">
+                    {t('Beta')}
                   </StyledTag>
                 )}
               </LabelHook>
