@@ -211,8 +211,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
-    project = Project.objects.get_from_cache(id=project_id)
-
     symbolication_function = get_symbolication_function(data)
 
     has_changed = False
@@ -229,8 +227,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             has_changed = True
 
     except RetrySymbolication as e:
-        error_logger.warn("retry symbolication")
-
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
                 "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
@@ -267,14 +263,14 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         default_cache.set(cache_key, data, 3600)
 
-    submit_process(
-        project,
-        from_reprocessing,
-        cache_key,
-        event_id,
-        start_time,
-        data,
-        has_changed,
+    process_task = process_event_from_reprocessing if from_reprocessing else process_event
+    _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_task,
+        data=data,
+        data_has_changed=has_changed,
         new_process_behavior=True,
     )
 
