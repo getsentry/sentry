@@ -443,20 +443,40 @@ class Sidebar extends React.Component<Props, State> {
                       id="alerts"
                     />
                   </Feature>
-
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/releases/`,
-                        evt
-                      )
-                    }
-                    icon={<IconReleases size="md" />}
-                    label={t('Releases')}
-                    to={`/organizations/${organization.slug}/releases/`}
-                    id="releases"
-                  />
+                  <Feature
+                    features={['releases-v2']}
+                    organization={organization}
+                    renderDisabled={() => (
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={(_id, evt) =>
+                          this.navigateWithGlobalSelection(
+                            `/organizations/${organization.slug}/releases/`,
+                            evt
+                          )
+                        }
+                        icon={<IconReleases size="md" />}
+                        label={t('Releases')}
+                        to={`/organizations/${organization.slug}/releases/`}
+                        id="releases"
+                      />
+                    )}
+                  >
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/releases-v2/`,
+                          evt
+                        )
+                      }
+                      icon={<IconReleases size="md" />}
+                      label={t('Releases')}
+                      to={`/organizations/${organization.slug}/releases-v2/`}
+                      id="releasesv2"
+                      isBeta
+                    />
+                  </Feature>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -514,22 +534,6 @@ class Sidebar extends React.Component<Props, State> {
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
-                    />
-                  </Feature>
-                  <Feature features={['releases-v2']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/releases-v2/`,
-                          evt
-                        )
-                      }
-                      icon={<IconReleases size="md" />}
-                      label={t('Releases v2')}
-                      to={`/organizations/${organization.slug}/releases-v2/`}
-                      id="releasesv2"
-                      isBeta
                     />
                   </Feature>
                 </SidebarSection>

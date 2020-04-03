@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -17,6 +18,9 @@ import SentryTypes from 'app/sentryTypes';
 import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import space from 'app/styles/space';
+import Link from 'app/components/links/link';
+import Feature from 'app/components/acl/feature';
 
 import {getQuery} from './utils';
 import ReleaseLanding from './releaseLanding';
@@ -175,11 +179,21 @@ class OrganizationReleases extends AsyncView {
               <PanelBody>{this.renderStreamBody()}</PanelBody>
             </Panel>
             <Pagination pageLinks={this.state.releaseListPageLinks} />
+            <Feature features={['releases-v2']} organization={organization}>
+              <SwitchLink to={`/organizations/${organization.slug}/releases-v2/`}>
+                {t('Go to New Releases')}
+              </SwitchLink>
+            </Feature>
           </div>
         </NoProjectMessage>
       </PageContent>
     );
   }
 }
+
+const SwitchLink = styled(Link)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(1)};
+`;
 
 export default withOrganization(withGlobalSelection(withProfiler(ReleasesContainer)));

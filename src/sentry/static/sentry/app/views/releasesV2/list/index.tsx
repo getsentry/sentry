@@ -24,6 +24,7 @@ import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import Link from 'app/components/links/link';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 
@@ -205,7 +206,7 @@ class ReleasesList extends AsyncView<Props, State> {
           <PageContent>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases v2')} <BetaTag />
+                {t('Releases')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
@@ -225,6 +226,9 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
+            <SwitchLink to={`/organizations/${organization.slug}/releases/`}>
+              {t('Go to Legacy Releases')}
+            </SwitchLink>
           </PageContent>
         </NoProjectMessage>
       </React.Fragment>
@@ -250,6 +254,11 @@ const SortAndFilterWrapper = styled('div')`
     grid-template-columns: none;
     grid-template-rows: 1fr 1fr 1fr;
   }
+`;
+
+const SwitchLink = styled(Link)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(1)};
 `;
 
 export default withOrganization(ReleasesList);
