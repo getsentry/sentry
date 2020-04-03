@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import random
 import inspect
 import json
 import logging
@@ -21,7 +22,12 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
+UNSAFE_FILES = (
+    "sentry/event_manager.py",
+    "sentry/tasks/process_buffer.py",
+    "sentry/ingest/ingest_consumer.py",
+    "sentry/ingest/outcomes_consumer.py",
+)
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -33,10 +39,31 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
+
+    with configure_scope() as scope:
+        project_id = scope._tags.get("project")
+
+        if project_id and project_id == settings.SENTRY_PROJECT:
+            return False
+
     for _, filename, _, _, _, _ in inspect.stack():
         if filename.endswith(UNSAFE_FILES):
             return False
+
     return True
+
+
+def set_current_project(project_id):
+    """
+    Set the current project on the SDK scope for outgoing crash reports.
+
+    This is a dedicated function because it is also important for the recursion
+    breaker to work. You really should set the project in every task that is
+    relevant to event processing, or that task may crash ingesting
+    sentry-internal errors, causing infinite recursion.
+    """
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
 
 def get_project_key():
@@ -93,32 +120,63 @@ def configure_sdk():
 
     # if this flag is set then the internal transport is disabled.  This is useful
     # for local testing in case the real python SDK behavior should be enforced.
-    if not sdk_options.pop("disable_internal_transport", False):
-        internal_transport = InternalTransport()
-        upstream_transport = None
-        if sdk_options.get("dsn"):
-            upstream_transport = make_transport(get_options(sdk_options))
+    #
+    # Make sure to pop all options that would be invalid for the SDK here
+    disable_internal_transport = sdk_options.pop("disable_internal_transport", False)
+    relay_dsn = sdk_options.pop("relay_dsn", None)
+    upstream_dsn = sdk_options.pop("dsn", None)
 
-        def capture_event(event):
-            if event.get("type") == "transaction" and options.get(
-                "transaction-events.force-disable-internal-project"
-            ):
+    if upstream_dsn:
+        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+    else:
+        upstream_transport = None
+
+    if not disable_internal_transport:
+        internal_transport = InternalTransport()
+    else:
+        internal_transport = None
+
+    if relay_dsn:
+        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+    else:
+        relay_transport = None
+
+    def capture_event(event):
+        if event.get("type") == "transaction" and options.get(
+            "transaction-events.force-disable-internal-project"
+        ):
+            return
+
+        # Upstream should get the event first because it is most isolated from
+        # the this sentry installation.
+        if upstream_transport:
+            metrics.incr("internal.captured.events.upstream")
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
+            upstream_transport.capture_event(event)
+
+        if relay_transport:
+            rate = options.get("store.use-relay-dsn-sample-rate")
+            if rate and random.random() < rate:
+                # Record this before calling `is_current_event_safe` to make
+                # numbers comparable to InternalTransport
+                metrics.incr("internal.captured.events.relay")
+                if is_current_event_safe():
+                    relay_transport.capture_event(event)
+                else:
+                    metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                    sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
                 return
 
-            # Make sure we log to upstream when available first
-            if upstream_transport is not None:
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                upstream_transport.capture_event(event)
-
+        if internal_transport:
+            metrics.incr("internal.captured.events.internal")
             internal_transport.capture_event(event)
 
-        sdk_options["transport"] = capture_event
-
     sentry_sdk.init(
+        transport=capture_event,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
@@ -133,7 +191,7 @@ def configure_sdk():
 def _create_noop_hub():
     def transport(event):
         with capture_internal_exceptions():
-            metrics.incr("internal.uncaptured.events", skip_internal=False)
+            metrics.incr("internal.uncaptured.events.noop-hub", skip_internal=False)
             sdk_logger.warn("internal-error.noop-hub")
 
     return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
@@ -166,7 +224,7 @@ class InternalTransport(Transport):
         # execution flow into the celery job triggered by StoreView. In other
         # words, UNSAFE_FILES is used in case the celery job for crashes and
         # that error is captured by the SDK.
-        with NOOP_HUB:
+        with sentry_sdk.Hub(NOOP_HUB):
             return self._capture_event(event)
 
     def _capture_event(self, event):

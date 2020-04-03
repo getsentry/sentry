@@ -2,19 +2,25 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+import {SelectValue} from 'app/types';
 import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import space from 'app/styles/space';
 
-const YAxisSelector = props => {
-  const {options, onChange, selected} = props;
+type Props = {
+  options: SelectValue<string>[];
+  selected: string;
+  onChange: (value: string) => void;
+  title: string;
+};
+
+function OptionSelector({options, onChange, selected, title}: Props) {
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
     <InlineContainer>
-      <SectionHeading>{t('Y-Axis')}</SectionHeading>
+      <SectionHeading>{title}</SectionHeading>
       <DropdownControl
         menuWidth="auto"
         alignRight
@@ -37,7 +43,7 @@ const YAxisSelector = props => {
       </DropdownControl>
     </InlineContainer>
   );
-};
+}
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
@@ -51,10 +57,11 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
 `;
 
-YAxisSelector.propTypes = {
+OptionSelector.propTypes = {
   options: PropTypes.array.isRequired,
   onChange: PropTypes.func.isRequired,
+  title: PropTypes.string.isRequired,
   selected: PropTypes.string,
 };
 
-export default YAxisSelector;
+export default OptionSelector;

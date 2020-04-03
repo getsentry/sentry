@@ -32,6 +32,12 @@ export type SentryTransactionEvent = {
   sdk?: {
     name?: string;
   };
+
+  // TODO(alberto):
+  // TODO(ts): type this
+  contexts?: {
+    trace?: any;
+  };
 };
 
 export type SpanChildrenLookupType = {[span_id: string]: Array<RawSpanType>};

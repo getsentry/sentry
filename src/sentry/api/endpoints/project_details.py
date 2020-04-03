@@ -10,7 +10,6 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
-from sentry_relay import validate_pii_config
 
 from sentry import features
 from sentry.utils.data_filters import FilterTypes
@@ -24,6 +23,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -174,25 +174,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return slug
 
     def validate_relayPiiConfig(self, value):
-        if not value:
-            return value
-
         organization = self.context["project"].organization
-        request = self.context["request"]
-        has_datascrubbers_v2 = features.has(
-            "organizations:datascrubbers-v2", organization, actor=request.user
-        )
-        if not has_datascrubbers_v2:
-            raise serializers.ValidationError(
-                "Organization does not have the datascrubbers-v2 feature enabled"
-            )
-
-        try:
-            validate_pii_config(value)
-        except ValueError as e:
-            raise serializers.ValidationError(e)
-
-        return value
+        return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
         if not value:

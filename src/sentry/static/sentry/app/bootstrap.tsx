@@ -107,10 +107,14 @@ const render = (Component: React.ComponentType) => {
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
 // it on demand.
 async function loadPasswordStrength(callback: Function) {
-  const module = await import(
-    /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
-  );
-  callback(module);
+  try {
+    const module = await import(
+      /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
+    );
+    callback(module);
+  } catch (err) {
+    // Ignore if client can't load this, it enhances UX a bit, but is optional
+  }
 }
 
 const globals = {

@@ -72,12 +72,12 @@ export default class TableField extends React.Component<Props> {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? (props.value as any[]) : [];
 
-    const saveChanges = (nextValue: object) => {
+    const saveChanges = (nextValue: object[]) => {
       onChange(nextValue, []);
 
-      //check for falsy values
-      const validValues = !flatten(Object.values(nextValue).map(Object.values)).some(
-        v => !v
+      //nextValue is an array of ObservableObjectAdministration objects
+      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
+        ([key, val]) => key !== 'id' && !val //don't allow empty values except if it's the ID field
       );
 
       if (allowEmpty || validValues) {
