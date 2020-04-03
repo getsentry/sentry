@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import {forceCheck} from 'react-lazyload';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -16,7 +17,7 @@ import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import IntroBanner from 'app/views/releasesV2/list/introBanner';
+// import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
@@ -119,7 +120,8 @@ class ReleasesList extends AsyncView<Props, State> {
   };
 
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release =>
+    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
+    return flatMap(releases, release =>
       release.projects.map(project => {
         return {
           ...release,
@@ -165,7 +167,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location} = this.props;
     const {loading, releases, reloading} = this.state;
 
-    if ((loading && !reloading) || (loading && !releases.length)) {
+    if ((loading && !reloading) || (loading && !releases?.length)) {
       return <LoadingIndicator />;
     }
 
@@ -218,7 +220,7 @@ class ReleasesList extends AsyncView<Props, State> {
               </SortAndFilterWrapper>
             </StyledPageHeader>
 
-            <IntroBanner />
+            {/* <IntroBanner /> */}
 
             {this.renderInnerBody()}
 

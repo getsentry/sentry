@@ -17,7 +17,11 @@ logger = logging.getLogger("sentry.plugins.heroku")
 
 class HerokuReleaseHook(ReleaseHook):
     def handle(self, request):
-        email = request.POST["user"]
+        email = None
+        if "user" in request.POST:
+            email = request.POST["user"]
+        elif "actor" in request.POST:
+            email = request.POST["actor"].get("email")
         try:
             user = User.objects.get(
                 email__iexact=email, sentry_orgmember_set__organization__project=self.project

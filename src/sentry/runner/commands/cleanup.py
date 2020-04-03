@@ -25,7 +25,7 @@ def get_project(value):
         if "/" not in value:
             return None
         org, proj = value.split("/", 1)
-        return Project.objects.get_from_cache(organization__slug=org, slug=proj).id
+        return Project.objects.get(organization__slug=org, slug=proj).id
     except Project.DoesNotExist:
         return None
 

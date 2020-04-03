@@ -13,7 +13,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import set_current_project
 
 logger = logging.getLogger("sentry")
 
@@ -119,6 +119,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
     """
     Fires post processing hooks for a group.
     """
+    set_current_project(event.project_id)
+
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
@@ -150,9 +152,6 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # which may contain a stale Project.
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
-
-        with configure_scope() as scope:
-            scope.set_tag("project", event.project_id)
 
         # Re-bind Project and Org since we're pickling the whole Event object
         # which may contain stale parent models.
@@ -253,8 +252,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    with configure_scope() as scope:
-        scope.set_tag("project", event.project_id)
+    set_current_project(event.project_id)
 
     from sentry.plugins.base import plugins
 

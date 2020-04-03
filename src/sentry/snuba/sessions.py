@@ -4,8 +4,11 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.utils.snuba import raw_query, parse_snuba_datetime
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.snuba.dataset import Dataset
+
+
+DATASET_BUCKET = 3600
 
 
 def _convert_duration(val):
@@ -118,7 +121,7 @@ def get_project_releases_by_stability(
 
 def _make_stats(start, rollup, buckets, default=0):
     rv = []
-    start = int(to_timestamp(start) // rollup) * rollup
+    start = int(to_timestamp(start) // rollup + 1) * rollup
     for x in range(buckets):
         rv.append([start, default])
         start += rollup
@@ -357,6 +360,11 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
 def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
     assert stat in ("users", "sessions")
 
+    # since snuba end queries are exclusive of the time and we're bucketing to
+    # a full hour, we need to round to the next hour since snuba is exclusive
+    # on the end.
+    end = to_datetime((to_timestamp(end) // DATASET_BUCKET + 1) * DATASET_BUCKET)
+
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]
     if environments is not None:
@@ -365,18 +373,19 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     buckets = int((end - start).total_seconds() / rollup)
     stats = _make_stats(start, rollup, buckets, default=None)
 
+    totals = {stat: 0, stat + "_crashed": 0, stat + "_abnormal": 0, stat + "_errored": 0}
+
     for rv in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=[
             "bucketed_started",
-            "release",
             stat,
             stat + "_crashed",
             stat + "_abnormal",
             stat + "_errored",
             "duration_quantiles",
         ],
-        groupby=["bucketed_started", "release", "project_id"],
+        groupby=["bucketed_started"],
         start=start,
         end=end,
         rollup=rollup,
@@ -394,6 +403,12 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
 
+        # Session stats we can sum up directly without another query
+        # as the data becomes available.
+        if stat == "sessions":
+            for k in totals:
+                totals[k] += rv[k]
+
     for idx, bucket in enumerate(stats):
         if bucket[1] is None:
             stats[idx][1] = {
@@ -405,4 +420,23 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
                 "duration_p90": None,
             }
 
-    return stats
+    # For users we need a secondary query over the entire time range
+    if stat == "users":
+        rows = raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["users", "users_crashed", "users_abnormal", "users_errored"],
+            start=start,
+            end=end,
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"]
+        if rows:
+            rv = rows[0]
+            totals = {
+                "users": rv["users"],
+                "users_crashed": rv["users_crashed"],
+                "users_abnormal": rv["users_abnormal"],
+                "users_errored": rv["users_errored"] - rv["users_crashed"],
+            }
+
+    return stats, totals

@@ -19,7 +19,6 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getSortIntegrationsByWeightActive,
   getCategorySelectActive,
   isSentryApp,
   isPlugin,
@@ -29,13 +28,11 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
-import {logExperiment} from 'app/utils/analytics';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {POPULARITY_WEIGHT} from './constants';
@@ -72,17 +69,6 @@ export class IntegrationListDirectory extends AsyncComponent<
   shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
-
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'IntegrationDirectorySortWeightExperiment',
-    });
-  }
 
   getDefaultState() {
     return {
@@ -230,16 +216,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive(this.props.organization)) {
-      return integrations
-        .sort(this.sortByName)
-        .sort(this.sortByPopularity)
-        .sort(this.sortByInstalled);
-    }
-    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
+    return integrations
+      .sort(this.sortByName)
+      .sort(this.sortByPopularity)
+      .sort(this.sortByInstalled);
   }
 
-  async componentDidUpdate(_, prevState: State) {
+  async componentDidUpdate(_: Props, prevState: State) {
     if (this.state.list.length !== prevState.list.length) {
       await this.createSearch();
     }

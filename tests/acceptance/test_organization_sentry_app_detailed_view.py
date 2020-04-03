@@ -13,7 +13,10 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         super(OrganizationSentryAppDetailedView, self).setUp()
         self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
-            organization=self.organization, published=True, verify_install=False
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
         )
         self.login_as(self.user)
 
