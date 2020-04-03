@@ -165,7 +165,6 @@ class QueryList extends React.Component<Props> {
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
-          starred
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}

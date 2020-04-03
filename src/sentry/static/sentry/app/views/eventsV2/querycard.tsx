@@ -14,7 +14,6 @@ type Props = {
   title?: string;
   subtitle?: string;
   queryDetail?: string;
-  starred?: boolean;
   to: object;
   createdBy?: User | undefined;
   onEventClick?: () => void;
@@ -35,7 +34,6 @@ class QueryCard extends React.PureComponent<Props> {
     const {
       title,
       subtitle,
-      starred,
       queryDetail,
       renderContextMenu,
       renderGraph,
@@ -51,7 +49,7 @@ class QueryCard extends React.PureComponent<Props> {
               <QueryDetail>{queryDetail}</QueryDetail>
             </QueryCardContent>
             <AvatarWrapper>
-              {starred ? (
+              {createdBy ? (
                 <ActivityAvatar type="user" user={createdBy} size={34} />
               ) : (
                 <ActivityAvatar type="system" size={34} />
