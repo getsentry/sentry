@@ -123,7 +123,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             ]
         }
 
-    def test_get_no_key_transacitons(self):
+    def test_get_no_key_transactions(self):
         event_data = load_data("transaction")
         start_timestamp = iso_format(before_now(minutes=1))
         end_timestamp = iso_format(before_now(minutes=1))
@@ -157,7 +157,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                 },
             )
 
-        assert response.status_code == 404
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
 
     def test_is_key_transaciton(self):
         event_data = load_data("transaction")
@@ -592,4 +593,5 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                 },
             )
 
-        assert response.status_code == 404
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
