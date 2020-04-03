@@ -63,6 +63,11 @@ def devserver(
     reload, watchers, workers, experimental_spa, styleguide, prefix, environment, skip_daemons, bind
 ):
     "Starts a lightweight web server for development."
+    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
+    if skip_daemons.difference(_DEFAULT_DAEMONS.keys()):
+        unrecognized_daemons = skip_daemons.difference(_DEFAULT_DAEMONS.keys())
+        raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_daemons)))
+
     if bind is None:
         # default configuration, the dev server address depends on weather we have a reverse proxy
         # in front that splits the requests between Relay and the dev server or we pass everything
@@ -246,12 +251,6 @@ def devserver(
 
     if styleguide:
         daemons += [_get_daemon("storybook")]
-
-    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
-    valid_daemon_names = set(name for (name, cmd) in daemons).union(_DEFAULT_DAEMONS.keys())
-    unrecognized_skips = skip_daemons.difference(valid_daemon_names)
-    if unrecognized_skips:
-        raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_skips)))
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
