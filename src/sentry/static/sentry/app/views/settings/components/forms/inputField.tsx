@@ -5,7 +5,13 @@ import omit from 'lodash/omit';
 import FormField from 'app/views/settings/components/forms/formField';
 import Input from 'app/views/settings/components/forms/controls/input';
 
-export default class InputField extends React.Component {
+type Props = {
+  field?: (props) => React.ReactNode;
+  value?: any;
+} & Omit<FormField['props'], 'children'> &
+  Omit<React.ComponentPropsWithoutRef<'input'>, 'value' | 'placeholder' | 'disabled'>;
+
+export default class InputField extends React.Component<Props> {
   static propTypes = {
     ...FormField.propTypes,
     field: PropTypes.func,
@@ -27,7 +33,7 @@ export default class InputField extends React.Component {
 
     return (
       <FormField className={className} {...this.props}>
-        {formFieldProps => field(omit(formFieldProps, 'children'))}
+        {formFieldProps => field && field(omit(formFieldProps, 'children'))}
       </FormField>
     );
   }

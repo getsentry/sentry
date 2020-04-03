@@ -65,7 +65,6 @@ class PagerDutyIntegration(IntegrationInstallation):
                 "type": "table",
                 "label": "PagerDuty services with the Sentry integration enabled",
                 "help": "If services need to be updated, deleted, or added manually please do so here. Alert rules will need to be individually updated for any additions or deletions of services.",
-                "addButtonText": "",
                 "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
                 "columnKeys": ["service", "integration_key"],
             }

@@ -15,26 +15,34 @@ import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErr
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
-import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
+import FieldWrapper, {
+  Props as FieldWrapperProps,
+} from 'app/views/settings/components/forms/field/fieldWrapper';
+
+type ChildrenFunction = (props) => React.ReactNode;
 
 type Props = {
   alignRight?: boolean;
   required?: boolean;
-  visible?: boolean | Function;
-  disabled?: boolean | Function;
+  visible?: boolean | ((props) => boolean);
+  disabled?: boolean | ((props) => boolean);
   disabledReason?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
   help?: React.ReactNode | React.ReactElement | Function;
   id?: string;
-  children?: React.ReactNode | ((props) => React.ReactNode) | any; //TODO(TS)
+  children?: React.ReactNode | ChildrenFunction;
   controlClassName?: string;
   style?: object;
   error?: string;
   p?: number; //TODO(TS): Do we need this?
   validate?: Function; //TODO(TS): Do we need this?
-} & Omit<FieldControl['props'], 'disabled' | 'className' | 'help' | 'errorState'> &
-  Omit<Parameters<typeof FieldWrapper>[0], 'hasControlState'> &
+  className?: string; //TODO(TS): Do we need this?
+} & Omit<
+  FieldControl['props'],
+  'disabled' | 'inline' | 'className' | 'help' | 'errorState'
+> &
+  FieldWrapperProps &
   Omit<ControlState['props'], 'error'>;
 
 class Field extends React.Component<Props> {
@@ -160,7 +168,7 @@ class Field extends React.Component<Props> {
     } = otherProps;
     const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
-    let Control;
+    let Control: React.ReactNode;
 
     if (!isVisible) {
       return null;
@@ -182,7 +190,8 @@ class Field extends React.Component<Props> {
 
     // See comments in prop types
     if (typeof children === 'function') {
-      Control = children({
+      //need to cast b/c TS claims childen is not otherwise callable
+      Control = (children as ChildrenFunction)({
         ...otherProps,
         ...controlProps,
       });

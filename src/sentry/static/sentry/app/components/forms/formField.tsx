@@ -66,14 +66,14 @@ export default class FormField<
     meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
   };
 
+  static contextTypes = {
+    form: PropTypes.object,
+  };
+
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
-  };
-
-  static contextTypes = {
-    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {

@@ -15,6 +15,7 @@ import PanelAlert from 'app/components/panels/panelAlert';
 import ReturnButton from 'app/views/settings/components/forms/returnButton';
 import space from 'app/styles/space';
 import Alert from 'app/components/alert';
+import FormModel from 'app/views/settings/components/forms/model';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -35,6 +36,7 @@ const getValueFromEvent = (valueOrEvent?: any, e?: any) => {
 // Disables a lot of functionality but allows you to use fields
 // without wrapping them in a Form
 class MockModel {
+  //TODO(TS)
   props: any;
   initialData: object;
   constructor(props) {
@@ -66,6 +68,10 @@ class MockModel {
  */
 const propsToObserver = ['inline', 'highlighted', 'visible', 'disabled'] as const;
 
+//functions that get evaluated in observedProps
+type ObserverReducerFn<T> = (props: Props & {model: FormModel}) => T;
+type ObserverOrValue<T> = T | ObserverReducerFn<T>;
+
 type Props = {
   name: string;
   style?: Object;
@@ -73,13 +79,18 @@ type Props = {
   saveMessage?: React.ReactNode | Function;
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
   children: (renderProps) => React.ReactNode;
-  visible?: (props) => boolean;
   onKeyDown?: (value, event) => void;
   onBlur?: (value, event) => void;
   hideErrorMessage?: boolean;
   selectionInfoFunction?: (props) => null | React.ReactNode;
-} & FieldControl['props'] &
-  Field['props'];
+  inline?: ObserverOrValue<boolean>;
+  placeholder?: ObserverOrValue<string>;
+  visible?: boolean | ((props: Props) => boolean);
+  formatMessageValue?: boolean | Function; //used in prettyFormString
+  defaultValue?: any; //TODO(TS): Do we need this?
+  onChange?: any; //TODO(TS): Do we need this?
+} & Omit<FieldControl['props'], typeof propsToObserver[number]> &
+  Omit<Field['props'], 'inline'>;
 
 class FormField extends React.Component<Props> {
   static propTypes = {
@@ -347,7 +358,9 @@ class FormField extends React.Component<Props> {
               const error = this.getError();
               const value = model.getValue(name);
               return (
-                ((typeof props.visible === 'function' ? props.visible(props) : true) &&
+                ((typeof props.visible === 'function'
+                  ? props.visible(this.props)
+                  : true) &&
                   selectionInfoFunction({...props, error, value})) ||
                 null
               );
@@ -395,7 +408,16 @@ class FormField extends React.Component<Props> {
 
     const observedProps = propsToObserver
       .filter(p => typeof this.props[p] === 'function')
-      .map(p => [p, () => (this.props as any)[p]({...this.props, model})]);
+      .map(p => [
+        p,
+        () => {
+          const innerProps: object = this.props;
+          return (innerProps as {[key: string]: ObserverReducerFn<any>})[p]({
+            ...this.props,
+            model,
+          });
+        },
+      ]);
 
     // This field has no properties that require observation to compute their
     // value, this field is static and will not be re-rendered.
