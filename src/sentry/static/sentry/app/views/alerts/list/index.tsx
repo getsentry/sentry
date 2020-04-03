@@ -67,10 +67,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       // Check if they have rules or not, to know which empty state message to display
       const {params} = this.props;
 
-      this.setState({
-        loading: true,
-      });
-
       try {
         const alert_rules = await this.api.requestPromise(
           `/organizations/${params && params.orgId}/alert-rules/`,
@@ -80,12 +76,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         );
         this.setState({
           hasAlertRule: alert_rules.length > 0 ? true : false,
-          loading: false,
         });
       } catch (err) {
         this.setState({
           hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
-          loading: false,
         });
       }
     }
@@ -107,18 +101,22 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     const hasAlertRule = this.state.hasAlertRule ? this.state.hasAlertRule : false;
+
     return (
       <EmptyStateWarning>
         <p>
-          {tct('No [status] metric alerts. ', {
-            status: status === 'open' || status === 'all' ? 'active' : 'resolved',
-          })}
-
-          {!hasAlertRule
-            ? tct('Start by [link:creating your first rule].', {
-                link: <ExternalLink onClick={this.handleAddAlertRule} />,
-              })
-            : ''}
+          <React.Fragment>
+            {tct('No [status] metric alerts. ', {
+              status: status === 'open' || status === 'all' ? 'active' : 'resolved',
+            })}
+          </React.Fragment>
+          <React.Fragment>
+            {!hasAlertRule
+              ? tct('Start by [link:creating your first rule].', {
+                  link: <ExternalLink onClick={this.handleAddAlertRule} />,
+                })
+              : ''}
+          </React.Fragment>
         </p>
       </EmptyStateWarning>
     );
@@ -154,7 +152,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </PanelHeader>
 
           <PanelBody>
-            {loading && <LoadingIndicator />}
+            {(loading || this.state.hasAlertRule === undefined) && <LoadingIndicator />}
             {!loading && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
