@@ -142,42 +142,48 @@ exports[`ExceptionStacktraceContent default behaviour 1`] = `
           title="No app only stacktrace has been found!"
         >
           <Component
-            className="css-13mk16x-EmptyMessage e1h3yfdx4"
+            className="css-13mk16x-EmptyMessage e1h3yfdx0"
             icon="icon-warning-sm"
             title="No app only stacktrace has been found!"
           >
             <div
-              className="css-13mk16x-EmptyMessage e1h3yfdx4"
+              className="css-13mk16x-EmptyMessage e1h3yfdx0"
               data-test-id="empty-message"
             >
-              <StyledInlineSvg
-                size="36px"
-                src="icon-warning-sm"
-              >
-                <ForwardRef
-                  className="css-1o8w9c2-InlineSvg-StyledInlineSvg e1h3yfdx2"
-                  size="36px"
-                  src="icon-warning-sm"
-                >
-                  <svg
-                    className="css-1o8w9c2-InlineSvg-StyledInlineSvg e1h3yfdx2"
-                    height="36px"
-                    viewBox={Object {}}
-                    width="36px"
-                  >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
-                    />
-                  </svg>
-                </ForwardRef>
-              </StyledInlineSvg>
-              <Title>
+              <IconWrapper>
                 <div
-                  className="css-1p115wf-Title e1h3yfdx1"
+                  className="css-9jue1w-IconWrapper e1h3yfdx1"
+                >
+                  <InlineSvg
+                    size="32px"
+                    src="icon-warning-sm"
+                  >
+                    <ForwardRef
+                      className="css-tbsmsq-InlineSvg enyz4ql0"
+                      size="32px"
+                      src="icon-warning-sm"
+                    >
+                      <svg
+                        className="css-tbsmsq-InlineSvg enyz4ql0"
+                        height="32px"
+                        viewBox={Object {}}
+                        width="32px"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </ForwardRef>
+                  </InlineSvg>
+                </div>
+              </IconWrapper>
+              <Title>
+                <h1
+                  className="css-wtohiw-Title e1h3yfdx2"
                 >
                   No app only stacktrace has been found!
-                </div>
+                </h1>
               </Title>
             </div>
           </Component>
