@@ -26,8 +26,7 @@ type Props = {
   flexibleControlStateSize?: boolean;
   stacked?: boolean;
   inline?: boolean;
-  onBlur?: any;
-
+  onBlur?: (value, event) => void;
   access?: Scope[];
 };
 
@@ -123,7 +122,7 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'select':
       case 'array':
         // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
-        // if (props.has_autocomplete) {˝
+        // if (props.has_autocomplete) {
         // return <SelectAsyncField {...props} />;
         // }
 

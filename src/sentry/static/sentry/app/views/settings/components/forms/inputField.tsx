@@ -9,7 +9,10 @@ type Props = {
   field?: (props) => React.ReactNode;
   value?: any;
 } & Omit<FormField['props'], 'children'> &
-  Omit<React.ComponentPropsWithoutRef<'input'>, 'value' | 'placeholder' | 'disabled'>;
+  Omit<
+    React.ComponentPropsWithoutRef<'input'>,
+    'value' | 'placeholder' | 'disabled' | 'onBlur'
+  >;
 
 export default class InputField extends React.Component<Props> {
   static propTypes = {

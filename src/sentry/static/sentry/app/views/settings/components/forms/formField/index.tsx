@@ -290,6 +290,7 @@ class FormField extends React.Component<Props> {
     const model = this.getModel();
     const saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
+    //TODO(TS): This is difficult to type because of the reducer
     const makeField = (extraProps?: any) => (
       <React.Fragment>
         <Field
