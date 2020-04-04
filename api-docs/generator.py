@@ -28,18 +28,14 @@ devservices_settings = {
 
 apidoc_containers_overrides = {
     "postgres": {
-        "ports": {"5432/tcp": ("127.0.0.1", 5400)},
+        "ports": {"5432/tcp": 5400},
         "environment": {"POSTGRES_DB": "sentry_api_docs"},
         "volumes": None,
     },
-    "redis": {
-        "ports": {"6379/tcp": ("127.0.0.1", 12355)},
-        "command": ["redis-server", "--appendonly", "no"],
-        "volumes": None,
-    },
+    "redis": {"ports": {"6379/tcp": 12355}, "volumes": None},
     "clickhouse": {"ports": None, "volumes": None},
     "snuba": {
-        "ports": {"1218/tcp": ("127.0.0.1", 1219)},
+        "ports": {"1218/tcp": 1219},
         "pull": None,
         "command": ["devserver", "--no-workers"],
         "environment": {
@@ -53,6 +49,11 @@ apidoc_containers_overrides = {
 
 
 def deep_merge(defaults, overrides):
+    """
+    Deep merges two dictionaries.
+
+    If the value is None in `overrides`, that key-value pair will not show up in the final result.
+    """
     merged = {}
     for key in defaults:
         if isinstance(defaults[key], dict):
@@ -74,9 +75,6 @@ def deep_merge(defaults, overrides):
 
 
 containers = deep_merge(devservices_settings, apidoc_containers_overrides)
-from pprint import pprint
-
-pprint(containers)
 
 
 # Massage our list into some shared settings instead of repeating
