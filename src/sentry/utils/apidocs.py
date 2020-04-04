@@ -19,7 +19,7 @@ from docutils.core import publish_doctree
 from pytz import utc
 from random import randint
 from six import StringIO
-from six.moves import reduce
+from sentry.utils.compat import map
 
 # Do not import from sentry here!  Bad things will happen
 
@@ -252,7 +252,7 @@ def extract_endpoint_info(pattern, internal_endpoint, parents):
         if not parents:
             api_path = API_PREFIX + path.lstrip("/")
         else:
-            parents_prefix = reduce(lambda x, y: "%s%s" % (x, y.lstrip("/")), parents)
+            parents_prefix = "".join(map(lambda x: x.lstrip("/"), parents))
             api_path = API_PREFIX + parents_prefix.lstrip("/") + path.lstrip("/")
 
         yield dict(
@@ -278,8 +278,6 @@ def resolve_nested_routes(pattern, current_parents=None):
     Returns a list of tuples. The first element in the tuple is a RegexURLPattern. The second element is
     a string list of all the parents that url pattern has.
     """
-    from sentry.utils.compat import map
-
     if current_parents:
         parents = copy(current_parents)
     else:
