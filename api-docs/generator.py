@@ -20,40 +20,63 @@ client = get_docker_client()
 namespace = "apidocs"
 network = get_or_create(client, "network", namespace)
 
-
 # Define our set of containers we want to run
-containers = {
+APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba"]
+devservices_settings = {
+    container_name: SENTRY_DEVSERVICES[container_name] for container_name in APIDOC_CONTAINERS
+}
+
+apidoc_containers_overrides = {
     "postgres": {
-        "image": SENTRY_DEVSERVICES["postgres"]["image"],
         "ports": {"5432/tcp": ("127.0.0.1", 5400)},
-        "environment": {"POSTGRES_DB": "sentry_api_docs", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+        "environment": {"POSTGRES_DB": "sentry_api_docs"},
+        "volumes": None,
     },
     "redis": {
-        "image": SENTRY_DEVSERVICES["redis"]["image"],
         "ports": {"6379/tcp": ("127.0.0.1", 12355)},
         "command": ["redis-server", "--appendonly", "no"],
+        "volumes": None,
     },
-    "clickhouse": {
-        "image": "yandex/clickhouse-server:19.11",
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-    },
+    "clickhouse": {"ports": None, "volumes": None},
     "snuba": {
-        "image": "getsentry/snuba:latest",
         "ports": {"1218/tcp": ("127.0.0.1", 1219)},
+        "pull": None,
         "command": ["devserver", "--no-workers"],
         "environment": {
-            "PYTHONUNBUFFERED": "1",
-            "SNUBA_SETTINGS": "docker",
-            "DEBUG": "1",
             "CLICKHOUSE_HOST": namespace + "_clickhouse",
-            "CLICKHOUSE_PORT": "9000",
-            "CLICKHOUSE_HTTP_PORT": "8123",
+            "DEFAULT_BROKERS": None,
             "REDIS_HOST": namespace + "_redis",
-            "REDIS_PORT": "6379",
-            "REDIS_DB": "1",
         },
+        "volumes": None,
     },
 }
+
+
+def deep_merge(defaults, overrides):
+    merged = {}
+    for key in defaults:
+        if isinstance(defaults[key], dict):
+            if key not in overrides:
+                merged[key] = defaults[key]
+            elif overrides[key] is None:
+                continue
+            elif isinstance(overrides[key], dict):
+                merged[key] = deep_merge(defaults[key], overrides[key])
+            else:
+                raise Exception("Types must match")
+        elif key in overrides and overrides[key] is None:
+            continue
+        elif key in overrides:
+            merged[key] = overrides[key]
+        else:
+            merged[key] = defaults[key]
+    return merged
+
+
+containers = deep_merge(devservices_settings, apidoc_containers_overrides)
+from pprint import pprint
+
+pprint(containers)
 
 
 # Massage our list into some shared settings instead of repeating
