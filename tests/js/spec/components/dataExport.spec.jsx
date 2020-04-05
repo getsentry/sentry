@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import Button from 'app/components/button';
 import WrappedDataExport, {DataExport} from 'app/components/dataExport';
 
 describe('DataExport', function() {
@@ -22,7 +23,7 @@ describe('DataExport', function() {
     ]);
 
   it('should not render anything for an unauthorized organization', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockUnauthorizedOrg)
     );
@@ -30,12 +31,37 @@ describe('DataExport', function() {
   });
 
   it('should render the button for an authorized organization', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
     expect(wrapper.text()).toBe('Export All to CSV');
+  });
+
+  it('should render custom children if provided', function() {
+    const testString = 'This is an example string';
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    expect(wrapper.text()).toBe(testString);
+  });
+
+  it('should respect the disabled prop and not be clickable', function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    const postDataExport = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {id: 721},
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} disabled />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
+    wrapper.find('button').simulate('click');
+    expect(postDataExport).not.toHaveBeenCalled();
   });
 
   it('should send a request and disable itself when clicked', async function() {
@@ -45,7 +71,7 @@ describe('DataExport', function() {
       method: 'POST',
       body: {id: 721},
     });
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
@@ -64,8 +90,8 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toBe('Queued up!');
-    expect(wrapper.find('button').is('[disabled]')).toBe(true);
+    expect(wrapper.text()).toBe("We're working on it...");
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: true,
       dataExportId: 721,

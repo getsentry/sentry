@@ -110,15 +110,14 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       eventName: 'Integrations: Plugin Add to Project Clicked',
     });
     modal.openModal(
-      ({closeModal, Header, Body}) => (
+      modalProps => (
         <ContextPickerModal
-          Header={Header}
-          Body={Body}
+          {...modalProps}
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
           needOrg={false}
           onFinish={path => {
-            closeModal();
+            modalProps.closeModal();
             router.push(path);
           }}
         />
@@ -138,7 +137,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (
       <AddButton
-        data-test-id="add-button"
+        data-test-id="install-button"
         disabled={disabledFromFeatures || !userHasAccess}
         onClick={this.handleAddToProject}
         size="small"

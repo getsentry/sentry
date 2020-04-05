@@ -39,33 +39,33 @@ describe('GuideAnchor', function() {
     await tick();
     wrapper.update();
 
-    // has old content and design without experiment
     expect(wrapper.find('Hovercard').exists()).toBe(true);
-    expect(wrapper.find('StyledTitle').text()).toBe('Issue Details');
-    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.greenDark);
+    expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
+    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple);
 
     // Clicking on next should deactivate the current card and activate the next one.
-    wrapper
-      .find('Button')
-      .first()
-      .simulate('click');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+
     await tick();
     wrapper.update();
     wrapper2.update();
     expect(wrapper.state('active')).toBeFalsy();
     expect(wrapper2.state('active')).toBeTruthy();
+
     expect(wrapper2.find('Hovercard').exists()).toBe(true);
-    expect(wrapper2.find('StyledTitle').text()).toBe('Stacktrace');
+    expect(wrapper2.find('GuideTitle').text()).toBe('Narrow Down Suspects');
 
     // Clicking on the button in the last step should finish the guide.
     const finishMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/assistant/',
     });
+
     wrapper2
       .find('Button')
       .last()
       .simulate('click');
+
     expect(finishMock).toHaveBeenCalledWith(
       '/assistant/',
       expect.objectContaining({
@@ -87,10 +87,9 @@ describe('GuideAnchor', function() {
       method: 'PUT',
       url: '/assistant/',
     });
-    wrapper
-      .find('[data-test-id="close-button"]')
-      .first()
-      .simulate('click');
+
+    wrapper.find('StyledButton[aria-label="Dismiss"]').simulate('click');
+
     expect(dismissMock).toHaveBeenCalledWith(
       '/assistant/',
       expect.objectContaining({
@@ -101,6 +100,7 @@ describe('GuideAnchor', function() {
         },
       })
     );
+
     await tick();
     expect(wrapper.state('active')).toBeFalsy();
   });
@@ -116,24 +116,6 @@ describe('GuideAnchor', function() {
     wrapper.update();
     expect(component.state).toMatchObject({active: false});
     expect(wrapper.find('Hovercard').exists()).toBe(false);
-  });
-
-  it('has new content and design with experiment', async function() {
-    ConfigStore.config = {
-      user: {
-        isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
-        experiments: {AssistantGuideExperiment: 1},
-      },
-    };
-
-    GuideActions.fetchSucceeded(serverGuide);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Hovercard').exists()).toBe(true);
-    expect(wrapper.find('GuideTitle').text()).toBe("Let's Get This Over With");
-    expect(wrapper.find('Hovercard').prop('tipColor')).toBe(theme.purple);
   });
 
   it('renders children when disabled', async function() {

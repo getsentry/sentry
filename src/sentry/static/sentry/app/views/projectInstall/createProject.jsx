@@ -22,15 +22,16 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {IconAdd} from 'app/icons/iconAdd';
+import withExperiment from 'app/utils/withExperiment';
 
 class CreateProject extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
-    hasIssueAlertOptionsEnabled: PropTypes.bool,
+    experimentAssignment: PropTypes.string,
   };
 
   static contextTypes = {
@@ -55,7 +56,7 @@ class CreateProject extends React.Component {
       inFlight: false,
     };
 
-    if (this.props.hasIssueAlertOptionsEnabled) {
+    if (this.issueAlertOptionsEnabled) {
       this.state = {
         ...this.state,
         ...{
@@ -66,50 +67,31 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    const {organization} = this.props;
-    const alertDefaultsExperimentVariant =
-      organization.experiments?.AlertDefaultsExperiment;
-    const isInAlertDefaultsExperiment = [
-      '2OptionsV1',
-      '3OptionsV2',
-      'controlV1',
-    ].includes(alertDefaultsExperimentVariant);
+    const {organization, experimentAssignment} = this.props;
 
-    if (isInAlertDefaultsExperiment) {
-      logExperiment({
-        organization,
-        key: 'AlertDefaultsExperiment',
-        unitName: 'org_id',
-        unitId: parseInt(organization.id, 10),
-        param: 'variant',
-      });
-    }
-
-    const analyticsEventOptions = {
+    trackAnalyticsEvent({
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
-      organization_id: parseInt(this.props.organization.id, 10),
-    };
-    if (isInAlertDefaultsExperiment) {
-      analyticsEventOptions.alert_defaults_experiment_variant = alertDefaultsExperimentVariant;
-    }
-    trackAnalyticsEvent(analyticsEventOptions);
+      organization_id: organization.id,
+      alert_defaults_experiment_variant: experimentAssignment,
+    });
   }
 
-  renderProjectForm = (
-    projectName,
-    team,
-    teams,
-    platform,
-    hasIssueAlertOptionsEnabled,
-    organization,
-    canSubmitForm
-  ) => {
-    const createProjectFormCaptured = (
+  get issueAlertOptionsEnabled() {
+    return ['2OptionsV1', '3OptionsV2'].includes(this.props.experimentAssignment);
+  }
+
+  renderProjectForm() {
+    const {organization} = this.props;
+    const {projectName, platform, team} = this.state;
+
+    const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
+
+    const createProjectForm = (
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
           <FormLabel>
-            {hasIssueAlertOptionsEnabled
+            {this.issueAlertOptionsEnabled
               ? t('Project name')
               : t('Give your project a name')}
           </FormLabel>
@@ -128,7 +110,7 @@ class CreateProject extends React.Component {
         </div>
         <div>
           <FormLabel>
-            {hasIssueAlertOptionsEnabled ? t('Team') : t('Assign a Team')}
+            {this.issueAlertOptionsEnabled ? t('Team') : t('Assign a Team')}
           </FormLabel>
           <TeamSelectInput>
             <SelectControl
@@ -163,29 +145,34 @@ class CreateProject extends React.Component {
           <Button
             data-test-id="create-project"
             priority="primary"
-            disabled={!canSubmitForm}
+            disabled={!this.canSubmitForm}
           >
             {t('Create Project')}
           </Button>
         </div>
       </CreateProjectForm>
     );
-    return hasIssueAlertOptionsEnabled ? (
-      <React.Fragment>
-        <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
-        {createProjectFormCaptured}
-      </React.Fragment>
-    ) : (
-      <StickyWrapper>{createProjectFormCaptured}</StickyWrapper>
-    );
-  };
 
-  canSubmitForm(inFlight, team, projectName, dataFragment, hasIssueAlertOptionsEnabled) {
+    if (this.issueAlertOptionsEnabled) {
+      return (
+        <React.Fragment>
+          <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
+          {createProjectForm}
+        </React.Fragment>
+      );
+    }
+
+    return <StickyWrapper>{createProjectForm}</StickyWrapper>;
+  }
+
+  get canSubmitForm() {
+    const {projectName, team, inFlight, dataFragment} = this.state;
+
     return (
       !inFlight &&
       team &&
       projectName !== '' &&
-      (!hasIssueAlertOptionsEnabled ||
+      (!this.issueAlertOptionsEnabled ||
         !dataFragment?.shouldCreateCustomRule ||
         dataFragment?.conditions?.every?.(condition => condition.value))
     );
@@ -193,7 +180,7 @@ class CreateProject extends React.Component {
 
   createProject = async e => {
     e.preventDefault();
-    const {organization, api, hasIssueAlertOptionsEnabled} = this.props;
+    const {organization, api} = this.props;
     const {projectName, platform, team, dataFragment} = this.state;
     const {slug} = organization;
     const {
@@ -204,7 +191,7 @@ class CreateProject extends React.Component {
       actionMatch,
       frequency,
       defaultRules,
-    } = hasIssueAlertOptionsEnabled ? dataFragment : {};
+    } = this.issueAlertOptionsEnabled ? dataFragment : {};
 
     this.setState({inFlight: true});
 
@@ -244,11 +231,9 @@ class CreateProject extends React.Component {
         ruleId = ruleData.id;
       }
       this.trackIssueAlertOptionSelectedEvent(
-        organization,
         projectData,
         defaultRules,
         shouldCreateCustomRule,
-        platform,
         ruleId
       );
 
@@ -277,17 +262,18 @@ class CreateProject extends React.Component {
   };
 
   trackIssueAlertOptionSelectedEvent(
-    organization,
     projectData,
     isDefaultRules,
     shouldCreateCustomRule,
     ruleId
   ) {
+    const {organization} = this.props;
+
     let data = {
       eventKey: 'new_project.alert_rule_selected',
       eventName: 'New Project Alert Rule Selected',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(projectData.id, 10),
+      organization_id: organization.id,
+      project_id: projectData.id,
       rule_type: isDefaultRules
         ? 'Default'
         : shouldCreateCustomRule
@@ -312,16 +298,8 @@ class CreateProject extends React.Component {
     }));
 
   render() {
-    const {organization, hasIssueAlertOptionsEnabled} = this.props;
-    const {projectName, team, platform, error, inFlight, dataFragment} = this.state;
-    const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
-    const canSubmitForm = this.canSubmitForm(
-      inFlight,
-      team,
-      projectName,
-      dataFragment,
-      hasIssueAlertOptionsEnabled
-    );
+    const {platform, error} = this.state;
+
     return (
       <React.Fragment>
         {error && <Alert type="error">{error}</Alert>}
@@ -335,33 +313,29 @@ class CreateProject extends React.Component {
                for your API server and frontend client.`
             )}
           </HelpText>
-          {hasIssueAlertOptionsEnabled && (
+          {this.issueAlertOptionsEnabled && (
             <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
           )}
           <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
-          {hasIssueAlertOptionsEnabled && (
+          {this.issueAlertOptionsEnabled && (
             <IssueAlertOptions
               onChange={updatedData => {
                 this.setState({dataFragment: updatedData});
               }}
             />
           )}
-          {this.renderProjectForm(
-            projectName,
-            team,
-            teams,
-            platform,
-            hasIssueAlertOptionsEnabled,
-            organization,
-            canSubmitForm
-          )}
+          {this.renderProjectForm()}
         </div>
       </React.Fragment>
     );
   }
 }
 
-export default withApi(withTeams(withOrganization(CreateProject)));
+const CreateProjectWithExperiment = withExperiment(CreateProject, {
+  experiment: 'AlertDefaultsExperiment',
+});
+
+export default withApi(withTeams(withOrganization(CreateProjectWithExperiment)));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`

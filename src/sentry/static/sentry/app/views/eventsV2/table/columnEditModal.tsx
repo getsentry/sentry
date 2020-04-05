@@ -8,8 +8,8 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
+import {Column} from 'app/utils/discover/fields';
 
-import {Column} from '../eventView';
 import ColumnEditCollection from './columnEditCollection';
 
 type Props = {

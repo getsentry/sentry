@@ -3,10 +3,21 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-export type YAxis = 'sessions' | 'users' | 'crashFree' | 'sessionDuration';
+export enum YAxis {
+  SESSIONS = 'sessions',
+  USERS = 'users',
+  CRASH_FREE = 'crashFree',
+  SESSION_DURATION = 'sessionDuration',
+}
 
 type Props = {
   summary: React.ReactNode;
@@ -17,32 +28,32 @@ type Props = {
 const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
   const yAxisOptions = [
     {
-      value: 'sessions',
+      value: YAxis.SESSIONS,
       label: t('Session Count'),
     },
     {
-      value: 'sessionDuration',
+      value: YAxis.SESSION_DURATION,
       label: t('Session Duration'),
     },
     {
-      value: 'users',
+      value: YAxis.USERS,
       label: t('User Count'),
     },
     {
-      value: 'crashFree',
+      value: YAxis.CRASH_FREE,
       label: t('Crash Free Rate'),
     },
   ];
 
   const getSummaryHeading = () => {
     switch (yAxis) {
-      case 'users':
+      case YAxis.USERS:
         return t('Total Active Users');
-      case 'crashFree':
+      case YAxis.CRASH_FREE:
         return t('Average Rate');
-      case 'sessionDuration':
+      case YAxis.SESSION_DURATION:
         return t('Average Duration');
-      case 'sessions':
+      case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
     }
@@ -52,10 +63,10 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     <ChartControls>
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
-        <Value key="total-value">{summary}</Value>
+        <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
 
-      {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
+      {/* TODO(releasesV2): this will be down the road replaced with discover's OptionSelector */}
       <InlineContainer>
         <SectionHeading>{t('Y-Axis')}</SectionHeading>
         <DropdownControl
@@ -82,33 +93,6 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
     </ChartControls>
   );
 };
-
-const InlineContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
-const ChartControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.borderLight};
-`;
-
-const SectionHeading = styled('h4')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
-`;
-
-const Value = styled('span')`
-  color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin-right: ${space(1)};
-`;
 
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};

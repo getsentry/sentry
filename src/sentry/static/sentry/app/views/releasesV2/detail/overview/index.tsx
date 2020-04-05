@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import Feature from 'app/components/acl/feature';
 
 import ReleaseChartContainer from './chart';
 import Issues from './issues';
@@ -20,6 +21,7 @@ import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import ReleaseStatsRequest from './chart/releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
+import DiscoverChartContainer from './chart/discoverChartContainer';
 
 import {ReleaseContext} from '..';
 
@@ -56,11 +58,11 @@ class ReleaseOverview extends AsyncView<Props> {
   getYAxis(): YAxis {
     const {yAxis} = this.props.location.query;
 
-    return typeof yAxis === 'string' ? (yAxis as YAxis) : 'sessions';
+    return typeof yAxis === 'string' ? (yAxis as YAxis) : YAxis.SESSIONS;
   }
 
   render() {
-    const {organization, params, selection, location, api, router} = this.props;
+    const {organization, selection, location, api, router} = this.props;
     const yAxis = this.getYAxis();
 
     return (
@@ -78,11 +80,12 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
+              disable={!hasHealthData}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
                   <Main>
-                    {hasHealthData && (
+                    {hasHealthData ? (
                       <ReleaseChartContainer
                         onYAxisChange={this.handleYAxisChange}
                         selection={selection}
@@ -90,11 +93,24 @@ class ReleaseOverview extends AsyncView<Props> {
                         router={router}
                         {...releaseStatsProps}
                       />
+                    ) : (
+                      <Feature features={['discover-basic']}>
+                        <DiscoverChartContainer
+                          organization={organization}
+                          selection={selection}
+                          location={location}
+                          api={api}
+                          router={router}
+                          version={version}
+                        />
+                      </Feature>
                     )}
+
                     <Issues
                       orgId={organization.slug}
-                      projectId={project.id}
-                      version={params.release}
+                      selection={selection}
+                      version={version}
+                      location={location}
                     />
                   </Main>
                   <Sidebar>
@@ -109,11 +125,8 @@ class ReleaseOverview extends AsyncView<Props> {
                     {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                        startDate={release.dateReleased ?? release.dateCreated}
                       />
                     )}
-                    {/* TODO(releasesV2): hidden for now */}
-                    {/* <SessionDuration /> */}
                   </Sidebar>
                 </ContentBox>
               )}

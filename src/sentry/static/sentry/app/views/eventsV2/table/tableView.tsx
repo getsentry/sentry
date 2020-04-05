@@ -8,24 +8,23 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
-import {assert} from 'app/types/utils';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-
-import {
-  downloadAsCsv,
-  getFieldRenderer,
-  getExpandedResults,
-  pushEventViewToLocation,
+import EventView, {
   MetaType,
-} from '../utils';
-import EventView, {Column, pickRelevantLocationQueryStrings} from '../eventView';
+  pickRelevantLocationQueryStrings,
+} from 'app/utils/discover/eventView';
+import {Column} from 'app/utils/discover/fields';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+
+import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
-import {generateEventSlug, eventDetailsRouteWithEventView} from '../eventDetails/utils';
 import ColumnEditModal from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
+import CellAction from './cellAction';
 
 export type TableViewProps = {
   location: Location;
@@ -167,30 +166,35 @@ class TableView extends React.Component<TableViewProps> {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
+    const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
+    const aggregation =
+      column.column.kind === 'function' ? column.column.function[0] : undefined;
 
+    // Aggregation columns offer drilldown behavior
+    if (aggregation) {
+      return (
+        <ExpandAggregateRow
+          eventView={eventView}
+          column={column}
+          dataRow={dataRow}
+          location={location}
+          tableMeta={tableData.meta}
+        >
+          {fieldRenderer(dataRow, {organization, location})}
+        </ExpandAggregateRow>
+      );
+    }
+
+    // Scalar fields offer cell actions to build queries.
     return (
-      <ExpandAggregateRow
+      <CellAction
+        organization={organization}
         eventView={eventView}
         column={column}
         dataRow={dataRow}
-        location={location}
-        tableMeta={tableData.meta}
       >
-        {({willExpand}) => {
-          // NOTE: TypeScript cannot detect that tableData.meta is truthy here
-          //       since there was a condition guard to handle it whenever it is
-          //       falsey. So we assert it here.
-          assert(tableData.meta);
-
-          if (!willExpand) {
-            const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
-            return fieldRenderer(dataRow, {organization, location});
-          }
-
-          const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
-          return fieldRenderer(dataRow, {organization, location});
-        }}
-      </ExpandAggregateRow>
+        {fieldRenderer(dataRow, {organization, location})}
+      </CellAction>
     );
   };
 
@@ -266,14 +270,14 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
-const ExpandAggregateRow = (props: {
-  children: ({willExpand: boolean}) => React.ReactNode;
+function ExpandAggregateRow(props: {
+  children: React.ReactNode;
   eventView: EventView;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   location: Location;
   tableMeta: MetaType;
-}) => {
+}) {
   const {children, column, dataRow, eventView, location} = props;
   const aggregation =
     column.column.kind === 'function' ? column.column.function[0] : undefined;
@@ -287,7 +291,7 @@ const ExpandAggregateRow = (props: {
       query: nextView.generateQueryStringObject(),
     };
 
-    return <Link to={target}>{children({willExpand: true})}</Link>;
+    return <Link to={target}>{children}</Link>;
   }
 
   // count_unique(column) drilldown
@@ -303,11 +307,11 @@ const ExpandAggregateRow = (props: {
       query: nextView.generateQueryStringObject(),
     };
 
-    return <Link to={target}>{children({willExpand: true})}</Link>;
+    return <Link to={target}>{children}</Link>;
   }
 
-  return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
-};
+  return <React.Fragment>{children}</React.Fragment>;
+}
 
 const HeaderIcon = styled('span')`
   & > svg {

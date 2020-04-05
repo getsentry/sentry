@@ -102,11 +102,10 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <EventOrGroupTitle data={group} />
+              <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
 
             <EventMessage
-              hasGuideAnchor
               message={message}
               level={group.level}
               annotations={

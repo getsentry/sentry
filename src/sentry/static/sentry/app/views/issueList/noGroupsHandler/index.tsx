@@ -39,7 +39,26 @@ class NoGroupsHandler extends React.Component<Props, State> {
 
   componentDidMount() {
     this.fetchSentFirstEvent();
+    this._isMounted = true;
   }
+
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  /**
+   * This is a bit hacky, but this is causing flakiness in frontend tests
+   * `issueList/overview` is being unmounted during tests before the requests
+   * in `this.fetchSentFirstEvent` are completed and causing this React warning:
+   *
+   * Warning: Can't perform a React state update on an unmounted component.
+   * This is a no-op, but it indicates a memory leak in your application.
+   * To fix, cancel all subscriptions and asynchronous tasks in the
+   * componentWillUnmount method.
+   *
+   * This is something to revisit if we refactor API client
+   */
+  private _isMounted: boolean = false;
 
   async fetchSentFirstEvent() {
     this.setState({
@@ -72,6 +91,12 @@ class NoGroupsHandler extends React.Component<Props, State> {
         query: projectsQuery,
       }),
     ]);
+
+    // See comment where this property is initialized
+    // FIXME
+    if (!this._isMounted) {
+      return;
+    }
 
     this.setState({
       fetchingSentFirstEvent: false,

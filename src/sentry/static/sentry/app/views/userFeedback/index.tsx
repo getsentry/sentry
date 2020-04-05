@@ -16,8 +16,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
+import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -30,13 +29,10 @@ type State = AsyncView['state'] & {
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  finishProfile: () => void;
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   getEndpoints(): [string, string, any][] {
     const {
       organization,
@@ -157,7 +153,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(profiler()(OrganizationUserFeedback));
+export default withOrganization(withProfiler(OrganizationUserFeedback));
 
 const Header = styled('div')`
   display: flex;

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import flatten from 'lodash/flatten';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
@@ -21,6 +22,7 @@ const defaultProps = {
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
+//TODO(TS): properly type this since InputField['props'] is type any
 type Props = {
   name?: string;
   columnLabels: object;
@@ -55,6 +57,7 @@ export default class TableField extends React.Component<Props> {
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
+  //TODO(TS): should type field props
   renderField = props => {
     const {
       onChange,
@@ -72,14 +75,16 @@ export default class TableField extends React.Component<Props> {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? props.value : [];
 
-    const saveChanges = (nextValue: object) => {
+    const saveChanges = (nextValue: object[]) => {
       onChange(nextValue, []);
 
-      const validValues = !Object.values(nextValue)
-        .map(o => Object.values(o).find(v => v === null))
-        .includes(null);
+      //nextValue is an array of ObservableObjectAdministration objects
+      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
+        ([key, val]) => key !== 'id' && !val //don't allow empty values except if it's the ID field
+      );
 
       if (allowEmpty || validValues) {
+        //TOOD: add debouncing or use a form save button
         onBlur();
       }
     };

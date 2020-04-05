@@ -13,7 +13,9 @@ body {
   min-height: 100vh;
 
   &.body-sidebar {
-    padding-left: @sidebar-expanded-width;
+    @media (min-width: 992px) {
+      padding-left: @sidebar-expanded-width;
+    }
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;

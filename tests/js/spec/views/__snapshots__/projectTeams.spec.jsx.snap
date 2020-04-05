@@ -24,6 +24,7 @@ exports[`ProjectTeams renders 1`] = `
             <ForwardRef(render)
               disabled={false}
               onClick={[Function]}
+              to=""
             >
               Create Team
             </ForwardRef(render)>
@@ -46,6 +47,7 @@ exports[`ProjectTeams renders 1`] = `
             "team:write",
             "team:admin",
           ],
+          "experiments": Object {},
           "features": Array [],
           "id": "3",
           "name": "Organization Name",

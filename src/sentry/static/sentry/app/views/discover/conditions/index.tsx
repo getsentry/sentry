@@ -41,7 +41,15 @@ export default class Conditions extends React.Component<ConditionsProps> {
           <SidebarLabel>{t('Conditions')}</SidebarLabel>
           {!disabled && (
             <AddText>
-              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+              (
+              <Link
+                to=""
+                data-test-id="conditions-add-text-link"
+                onClick={() => this.addRow()}
+              >
+                {t('Add')}
+              </Link>
+              )
             </AddText>
           )}
         </div>

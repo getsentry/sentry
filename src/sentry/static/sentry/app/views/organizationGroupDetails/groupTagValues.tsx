@@ -8,12 +8,13 @@ import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
+import Button from 'app/components/button';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import DataExport from 'app/components/dataExport';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
@@ -107,18 +108,20 @@ class GroupTagValues extends AsyncComponent<
     });
 
     return (
-      <TableWrapper>
-        <h3>
+      <React.Fragment>
+        <Header>
           {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <a
+          <BrowserExportButton
+            size="small"
+            priority="default"
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="btn btn-default btn-sm m-left m-right"
           >
             {t('Export Page to CSV')}
-          </a>
+          </BrowserExportButton>
+          <a />
           <DataExport
             payload={{
-              queryType: 'Issues-by-Tag',
+              queryType: ExportQueryType.IssuesByTag,
               queryInfo: {
                 project_id: group.project.id,
                 group_id: group.id,
@@ -126,7 +129,7 @@ class GroupTagValues extends AsyncComponent<
               },
             }}
           />
-        </h3>
+        </Header>
         <table className="table table-striped">
           <thead>
             <tr>
@@ -143,18 +146,17 @@ class GroupTagValues extends AsyncComponent<
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
           </small>
         </p>
-      </TableWrapper>
+      </React.Fragment>
     );
   }
 }
+const Header = styled('h3')`
+  display: flex;
+  align-items: flex-end;
+`;
 
-const TableWrapper = styled('div')`
-  .m-left {
-    margin-left: ${space(1.5)};
-  }
-  .m-right {
-    margin-right: ${space(1.5)};
-  }
+const BrowserExportButton = styled(Button)`
+  margin: 0 ${space(1.5)};
 `;
 
 const TableHeader = styled('th')<{width: number}>`

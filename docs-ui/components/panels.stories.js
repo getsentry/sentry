@@ -3,7 +3,13 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import {
+  Panel,
+  PanelHeader,
+  PanelBody,
+  PanelItem,
+  PanelTable,
+} from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
 storiesOf('UI|Panels', module)
@@ -22,6 +28,49 @@ storiesOf('UI|Panels', module)
           <PanelItem>Panel Item</PanelItem>
         </PanelBody>
       </Panel>
+    ))
+  )
+  .add(
+    'Panel Table',
+    withInfo({
+      text: 'A Panel for "tabular" data',
+    })(() => (
+      <React.Fragment>
+        <PanelTable
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item with really long content</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+
+        <PanelTable
+          isLoading
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+
+        <PanelTable
+          isEmpty
+          // eslint-disable-next-line react/jsx-key
+          headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+        >
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+          <div>Panel Item</div>
+        </PanelTable>
+      </React.Fragment>
     ))
   )
   .add(

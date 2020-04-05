@@ -42,6 +42,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["conditions"] == []
         assert response.data[0]["limit"] == 10
         assert response.data[0]["version"] == 1
+        assert "createdBy" in response.data[0]
+        assert response.data[0]["createdBy"]["username"] == self.user.username
 
     def test_get_version_filter(self):
         url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])

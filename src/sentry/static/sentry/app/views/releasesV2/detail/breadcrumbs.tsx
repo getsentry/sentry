@@ -19,7 +19,7 @@ const Breadcrumbs = ({crumbs}: Props) => (
   <BreadcrumbList>
     {crumbs.map((crumb, index) => (
       <React.Fragment key={crumb.label}>
-        <BreadcrumbItem to={crumb.to}>{crumb.label}</BreadcrumbItem>
+        <BreadcrumbItem to={crumb.to || ''}>{crumb.label}</BreadcrumbItem>
         {index < crumbs.length - 1 && <StyledIcon size="xs" direction="right" />}
       </React.Fragment>
     ))}

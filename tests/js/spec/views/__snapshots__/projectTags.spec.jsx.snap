@@ -79,6 +79,7 @@ exports[`ProjectTags renders 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -136,6 +137,7 @@ exports[`ProjectTags renders 1`] = `
                     "team:write",
                     "team:admin",
                   ],
+                  "experiments": Object {},
                   "features": Array [],
                   "id": "3",
                   "name": "Organization Name",
@@ -169,7 +171,7 @@ exports[`ProjectTags renders 1`] = `
               Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to 
             </span>
-            <ForwardRef
+            <ForwardRef(ExternalLink)
               href="https://docs.sentry.io/hosted/learn/context/"
               key="2"
             >
@@ -184,7 +186,7 @@ exports[`ProjectTags renders 1`] = `
                   add custom tags
                 </span>
               </a>
-            </ForwardRef>
+            </ForwardRef(ExternalLink)>
             <span
               key="3"
             >
@@ -244,6 +246,7 @@ exports[`ProjectTags renders 1`] = `
                             "team:write",
                             "team:admin",
                           ],
+                          "experiments": Object {},
                           "features": Array [],
                           "id": "3",
                           "name": "Organization Name",
@@ -301,6 +304,7 @@ exports[`ProjectTags renders 1`] = `
                               "team:write",
                               "team:admin",
                             ],
+                            "experiments": Object {},
                             "features": Array [],
                             "id": "3",
                             "name": "Organization Name",
@@ -363,6 +367,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -557,6 +562,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -751,6 +757,7 @@ exports[`ProjectTags renders 1`] = `
                                       <a
                                         className=""
                                         disabled={false}
+                                        href="#"
                                         onClick={[Function]}
                                         title="Remove tag?"
                                       >
@@ -941,7 +948,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <span
                                             aria-describedby="tooltip-123456"
-                                            className="css-sce1yi-Container eowlwvy0"
+                                            className="css-1y4rfpo-Container eowlwvy0"
                                             onBlur={[Function]}
                                             onFocus={[Function]}
                                             onMouseEnter={[Function]}
@@ -966,6 +973,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >
@@ -1160,7 +1168,7 @@ exports[`ProjectTags renders 1`] = `
                                         >
                                           <span
                                             aria-describedby="tooltip-123456"
-                                            className="css-sce1yi-Container eowlwvy0"
+                                            className="css-1y4rfpo-Container eowlwvy0"
                                             onBlur={[Function]}
                                             onFocus={[Function]}
                                             onMouseEnter={[Function]}
@@ -1185,6 +1193,7 @@ exports[`ProjectTags renders 1`] = `
                                                 <a
                                                   className="disabled"
                                                   disabled={true}
+                                                  href="#"
                                                   onClick={[Function]}
                                                   title="Remove tag?"
                                                 >

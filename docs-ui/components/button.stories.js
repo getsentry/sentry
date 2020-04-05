@@ -59,6 +59,12 @@ storiesOf('UI|Buttons', module)
           </Item>
 
           <Item>
+            <Button priority="link" onClick={action('click link')}>
+              Link Button
+            </Button>
+          </Item>
+
+          <Item>
             <Button to="" disabled onClick={action('click disabled')}>
               Disabled Button
             </Button>
@@ -216,24 +222,20 @@ storiesOf('UI|Buttons', module)
         </Section>
 
         <Section>
-          <h3>Merged Buttons</h3>
-          <ButtonBar merged>
-            <Button priority="primary" className="active">
-              Left Button
-            </Button>
-            <Button>Right Button</Button>
+          <h3>Merged Buttons with "active" button</h3>
+          <ButtonBar active="left" merged>
+            <Button barId="left">Left Button</Button>
+            <Button barId="right">Right Button</Button>
           </ButtonBar>
         </Section>
 
         <Section>
-          <h3>Multiple Merged Buttons</h3>
-          <ButtonBar merged>
-            <Button>First Button</Button>
-            <Button priority="primary" className="active">
-              Second Button
-            </Button>
-            <Button>Third Button</Button>
-            <Button>Fourth Button</Button>
+          <h3>Multiple Merged Buttons with "active" button</h3>
+          <ButtonBar active="2" merged>
+            <Button barId="1">First Button</Button>
+            <Button barId="2">Second Button</Button>
+            <Button barId="3">Third Button</Button>
+            <Button barId="4">Fourth Button</Button>
           </ButtonBar>
         </Section>
       </div>

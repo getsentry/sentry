@@ -2,6 +2,8 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import {forceCheck} from 'react-lazyload';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,12 +17,11 @@ import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import IntroBanner from 'app/views/releasesV2/list/introBanner';
+// import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Projects from 'app/utils/projects';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
@@ -37,6 +38,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
     return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
   }
@@ -58,6 +61,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
+        'healthStat',
       ]),
       summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
@@ -66,6 +70,23 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    super.componentDidUpdate(prevProps, prevState);
+
+    if (prevState.releases !== this.state.releases) {
+      /**
+       * Manually trigger checking for elements in viewport.
+       * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+       * https://github.com/twobin/react-lazyload#forcecheck
+       *
+       * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+       * This is how we re-check them without scrolling once releases change as this view
+       * uses shouldReload=true and there is no reloading happening.
+       */
+      forceCheck();
+    }
   }
 
   getQuery() {
@@ -99,30 +120,13 @@ class ReleasesList extends AsyncView<Props, State> {
   };
 
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release =>
+    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
+    return flatMap(releases, release =>
       release.projects.map(project => {
-        const {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-        } = release;
-        const {slug, id, healthData} = project;
         return {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-          healthData: healthData!,
-          projectSlug: slug,
-          projectId: id,
-          // TODO(releasesv2): make api send also project platform
+          ...release,
+          healthData: project.healthData,
+          project,
         };
       })
     );
@@ -156,14 +160,14 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    return t('There are no releases.');
+    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
   }
 
   renderInnerBody() {
-    const {organization, location} = this.props;
-    const {loading, releases} = this.state;
+    const {location} = this.props;
+    const {loading, releases, reloading} = this.state;
 
-    if (loading) {
+    if ((loading && !reloading) || (loading && !releases?.length)) {
       return <LoadingIndicator />;
     }
 
@@ -173,20 +177,15 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const projectReleases = this.transformToProjectRelease(releases);
 
-    return (
-      <Projects orgId={organization.slug} slugs={projectReleases.map(r => r.projectSlug)}>
-        {({projects}) =>
-          projectReleases.map((release: ProjectRelease) => (
-            <ReleaseCard
-              key={`${release.version}-${release.projectSlug}`}
-              release={release}
-              project={projects.find(p => p.slug === release.projectSlug)}
-              location={location}
-            />
-          ))
-        }
-      </Projects>
-    );
+    return projectReleases.map((release: ProjectRelease) => (
+      <ReleaseCard
+        key={`${release.version}-${release.project.slug}`}
+        release={release}
+        project={release.project}
+        location={location}
+        reloading={reloading}
+      />
+    ));
   }
 
   renderBody() {
@@ -216,12 +215,12 @@ class ReleasesList extends AsyncView<Props, State> {
                 <SearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
-                  defaultQuery={this.getQuery()}
+                  query={this.getQuery()}
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>
 
-            <IntroBanner />
+            {/* <IntroBanner /> */}
 
             {this.renderInnerBody()}
 

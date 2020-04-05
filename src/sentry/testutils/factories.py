@@ -66,6 +66,8 @@ from sentry.models import (
     EventAttachment,
     UserReport,
     PlatformExternalIssue,
+    ExternalIssue,
+    GroupLink,
     ReleaseFile,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
@@ -301,18 +303,23 @@ class Factories(object):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None):
+    def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
         if version is None:
             version = hexlify(os.urandom(20))
 
         if date_added is None:
             date_added = timezone.now()
 
+        if additional_projects is None:
+            additional_projects = []
+
         release = Release.objects.create(
             version=version, organization_id=project.organization_id, date_added=date_added
         )
 
         release.add_project(project)
+        for additional_project in additional_projects:
+            release.add_project(additional_project)
 
         Activity.objects.create(
             type=Activity.RELEASE,
@@ -736,6 +743,22 @@ class Factories(object):
         return PlatformExternalIssue.objects.create(
             group_id=group.id, service_type=service_type, display_name=display_name, web_url=web_url
         )
+
+    @staticmethod
+    def create_integration_external_issue(group=None, integration=None, key=None):
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id, integration_id=integration.id, key=key
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        return external_issue
 
     @staticmethod
     def create_incident(

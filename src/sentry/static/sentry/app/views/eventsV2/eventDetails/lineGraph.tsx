@@ -22,10 +22,10 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 
-import {generateEventDetailsRoute, generateEventSlug} from './utils';
 import {PIN_ICON} from '../data';
-import EventView from '../eventView';
 
 /**
  * Generate the data to display a vertical line for the current
@@ -157,10 +157,9 @@ const handleClick = async function(
   const event = response.data[0];
   const eventSlug = generateEventSlug(event);
 
-  browserHistory.push({
-    pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
-    query: eventView.generateQueryStringObject(),
-  });
+  browserHistory.push(
+    eventDetailsRouteWithEventView({eventSlug, orgSlug: organization.slug, eventView})
+  );
 };
 
 type LineGraphProps = {

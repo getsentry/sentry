@@ -1,7 +1,5 @@
 import 'echarts/lib/component/tooltip';
 
-import get from 'lodash/get';
-
 import {getFormattedDate} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
@@ -23,6 +21,17 @@ function defaultValueFormatter(value) {
   return value;
 }
 
+function getSeriesValue(series, offset) {
+  if (Array.isArray(series.data)) {
+    return series.data[offset];
+  }
+  if (Array.isArray(series.data.value)) {
+    return series.data.value[offset];
+  }
+
+  return undefined;
+}
+
 function getFormatter({
   filter,
   isGroupedByDate,
@@ -35,8 +44,9 @@ function getFormatter({
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
-    // However, real series will have `data` as a tuple of (key, value)
-    const value = seriesParam.data && seriesParam.data.length && seriesParam.data[1];
+    // However, real series will have `data` as a tuple of (label, value) or be
+    // an object with value/label keys.
+    const value = getSeriesValue(seriesParam, 0);
     if (typeof filter === 'function') {
       return filter(value);
     }
@@ -81,10 +91,12 @@ function getFormatter({
 
     const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
 
-    // If axis, timestamp comes from axis, otherwise for a single item it is defined in its data
+    // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
+    // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
+    // there is item specific formatting being used.
     const timestamp = isAxisItem
       ? seriesParams[0].axisValue
-      : get(seriesParams, '[0].data[0]');
+      : getSeriesValue(seriesParams[0], 0);
 
     const label =
       seriesParams.length &&
@@ -96,7 +108,7 @@ function getFormatter({
         .filter(getFilter)
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
-          const value = valueFormatter(s.data[1]);
+          const value = valueFormatter(getSeriesValue(s, 1));
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
@@ -141,16 +153,30 @@ export default function Tooltip({
       const tipWidth = dom.clientWidth;
       const tipHeight = dom.clientHeight;
 
-      // Determine new left edge.
+      // Get the left offset of the tip container (the chart)
+      // so that we can estimate overflows
+      const chartLeft = dom.parentNode.getBoundingClientRect().left;
+
+      // Determine the new left edge.
       let leftPos = pos[0] - tipWidth / 2;
       let arrowPosition = '50%';
-      const rightEdge = pos[0] + tipWidth;
 
-      // If the tooltip would go off viewport shift the tooltip over with a gap.
+      // And the right edge taking into account the chart left offset
+      const rightEdge = chartLeft + pos[0] + tipWidth / 2;
+
+      // If the tooltip would leave viewport on the right, pin it.
+      // and adjust the arrow position.
       if (rightEdge >= window.innerWidth - 30) {
         leftPos -= rightEdge - window.innerWidth + 30;
         arrowPosition = `${pos[0] - leftPos}px`;
       }
+
+      // If the tooltip would leave viewport on the left, pin it.
+      if (leftPos + chartLeft - 20 <= 0) {
+        leftPos = chartLeft * -1 + 20;
+        arrowPosition = `${pos[0] - leftPos}px`;
+      }
+
       // Reposition the arrow.
       const arrow = dom.querySelector('.tooltip-arrow');
       if (arrow) {

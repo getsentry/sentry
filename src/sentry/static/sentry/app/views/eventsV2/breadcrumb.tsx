@@ -7,8 +7,8 @@ import {Event, Organization} from 'app/types';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from './eventView';
 import {getDiscoverLandingUrl} from './utils';
 
 type DefaultProps = {
@@ -42,7 +42,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
       : null;
 
     crumbs.push(
-      <BreadcrumbItem to={discoverTarget} key="eventview-home">
+      <BreadcrumbItem to={discoverTarget || ''} key="eventview-home">
         {t('Discover')}
       </BreadcrumbItem>
     );
@@ -69,7 +69,11 @@ class DiscoverBreadcrumb extends React.Component<Props> {
         </span>
       );
 
-      crumbs.push(<BreadcrumbItem key="event-name">{t('Event Detail')}</BreadcrumbItem>);
+      crumbs.push(
+        <BreadcrumbItem to="" key="event-name">
+          {t('Event Detail')}
+        </BreadcrumbItem>
+      );
     }
 
     return crumbs;

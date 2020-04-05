@@ -31,6 +31,7 @@ exports[`RuleBuilder renders 1`] = `
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "3",
       "name": "Organization Name",
@@ -538,6 +539,7 @@ exports[`RuleBuilder renders 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -839,9 +841,7 @@ exports[`RuleBuilder renders 1`] = `
                                       "type": "team",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)
-                                      justifyContent="space-between"
-                                    >
+                                    "label": <ForwardRef(render)>
                                       <ForwardRef(render)>
                                         <Tooltip
                                           containerDisplayMode="inline-block"
@@ -1164,6 +1164,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "3",
       "name": "Organization Name",
@@ -1897,6 +1898,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -2540,9 +2542,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                       "type": "team",
                                     },
                                     "disabled": true,
-                                    "label": <ForwardRef(render)
-                                      justifyContent="space-between"
-                                    >
+                                    "label": <ForwardRef(render)>
                                       <ForwardRef(render)>
                                         <Tooltip
                                           containerDisplayMode="inline-block"
@@ -2841,7 +2841,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                                       >
                                                         <span
                                                           aria-describedby="tooltip-123456"
-                                                          className="css-sce1yi-Container eowlwvy0"
+                                                          className="css-1y4rfpo-Container eowlwvy0"
                                                           onBlur={[Function]}
                                                           onFocus={[Function]}
                                                           onMouseEnter={[Function]}

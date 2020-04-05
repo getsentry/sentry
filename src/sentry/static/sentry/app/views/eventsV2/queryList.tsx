@@ -16,8 +16,8 @@ import Pagination from 'app/components/pagination';
 import {IconEllipsis} from 'app/icons/iconEllipsis';
 import withApi from 'app/utils/withApi';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import EventView from 'app/utils/discover/eventView';
 
-import EventView from './eventView';
 import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
@@ -121,6 +121,7 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
+          createdBy={eventView.createdBy}
           renderGraph={() => (
             <MiniGraph
               location={location}
@@ -164,10 +165,10 @@ class QueryList extends React.Component<Props> {
         <QueryCard
           key={`${index}-${eventView.id}`}
           to={to}
-          starred
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
+          createdBy={eventView.createdBy}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',

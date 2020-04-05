@@ -3,7 +3,7 @@ import React from 'react';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
-import {Scope, StringMap} from 'app/types';
+import {Scope} from 'app/types';
 
 import {FieldObject, JsonFormObject} from './type';
 
@@ -20,7 +20,7 @@ type Props = {
 
   // TODO(ts): See if this is still in use
   access?: Scope[];
-  features?: StringMap<any>;
+  features?: Record<string, any>;
 
   additionalFieldProps: {[key: string]: any};
 
@@ -59,7 +59,7 @@ export default class FormPanel extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Panel key={title} id={sanitizeQuerySelector(title)}>
+      <Panel key={title} id={sanitizeQuerySelector(title ?? '')}>
         {title && <PanelHeader>{title}</PanelHeader>}
         <PanelBody>
           {typeof renderHeader === 'function' && renderHeader({title, fields})}
@@ -69,8 +69,7 @@ export default class FormPanel extends React.Component<Props> {
               return field();
             }
 
-            // eslint-disable-next-line no-unused-vars
-            const {defaultValue, ...fieldWithoutDefaultValue} = field;
+            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
             // Allow the form panel disabled prop to override the fields
             // disabled prop, with fallback to the fields disabled state.

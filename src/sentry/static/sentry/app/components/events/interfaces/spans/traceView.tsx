@@ -1,5 +1,4 @@
 import React from 'react';
-import get from 'lodash/get';
 import set from 'lodash/set';
 import pick from 'lodash/pick';
 import isNumber from 'lodash/isNumber';
@@ -7,7 +6,7 @@ import isNumber from 'lodash/isNumber';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import EventView from 'app/views/eventsV2/eventView';
+import EventView from 'app/utils/discover/eventView';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
@@ -123,14 +122,14 @@ class TraceView extends React.PureComponent<Props, State> {
 
         let tagKeys: string[] = [];
         let tagValues: string[] = [];
-        const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
+        const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
         if (tags) {
           tagKeys = Object.keys(tags);
           tagValues = Object.values(tags);
         }
 
-        const data: {[data_name: string]: any} | undefined = get(span, 'data', {});
+        const data: {[data_name: string]: any} | undefined = span?.data ?? {};
 
         let dataKeys: string[] = [];
         let dataValues: string[] = [];
@@ -213,6 +212,7 @@ class TraceView extends React.PureComponent<Props, State> {
           >
             {this.renderHeader(dragProps, parsedTrace)}
             <SpanTree
+              event={event}
               eventView={eventView}
               trace={parsedTrace}
               dragProps={dragProps}
@@ -229,7 +229,7 @@ class TraceView extends React.PureComponent<Props, State> {
 function getTraceContext(
   event: Readonly<SentryTransactionEvent>
 ): TraceContextType | undefined {
-  const traceContext: TraceContextType | undefined = get(event, 'contexts.trace');
+  const traceContext: TraceContextType | undefined = event?.contexts?.trace;
 
   return traceContext;
 }
@@ -239,7 +239,7 @@ function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
     (entry: {type: string}) => entry.type === 'spans'
   );
 
-  const spans: Array<RawSpanType> = get(spanEntry, 'data', []);
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -280,11 +280,7 @@ function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
       return acc;
     }
 
-    const spanChildren: Array<RawSpanType> = get(
-      acc.childSpans,
-      span.parent_span_id!,
-      []
-    );
+    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id!] ?? [];
 
     spanChildren.push(span);
 
