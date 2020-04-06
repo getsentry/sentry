@@ -351,6 +351,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 <Form onSubmit={this.handleEventIdSubmit}>
                   <Input
                     name="eventId"
+                    disabled={disabled}
                     value={eventIdInputValue || ''}
                     placeholder={t('Paste event ID for better assistance')}
                     onChange={this.handleEventIdChange}
