@@ -217,10 +217,8 @@ export class IntegrationListDirectory extends AsyncComponent<
     return weightB - weightA;
   };
 
-  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
-    const out = this.getInstallValue(b) - this.getInstallValue(a);
-    return out;
-  };
+  sortByInstalled = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
+    this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
