@@ -20,6 +20,7 @@ import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
@@ -114,7 +115,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     if (chartData === null) {
       return;
     }
-    const {location} = this.props;
+    const {location, organization} = this.props;
     const valueIndex = value.dataIndex;
 
     // If the active bar is clicked again we need to remove the constraints.
@@ -127,6 +128,12 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       });
       return;
     }
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.latency_chart.zoom',
+      eventName: 'Performance Views: Transaction Summary Latency Chart Zoom',
+      organization_id: parseInt(organization.id, 10),
+    });
 
     const target = {
       pathname: location.pathname,
