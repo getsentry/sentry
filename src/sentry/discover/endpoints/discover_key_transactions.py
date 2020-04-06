@@ -113,8 +113,6 @@ class KeyTransactionStatsEndpoint(KeyTransactionBase):
             return self.response(status=404)
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
-        if not queryset.exists():
-            return Response({"data": []}, status=200)
 
         def get_event_stats(query_columns, query, params, rollup, reference_event=None):
             return key_transaction_timeseries_query(
