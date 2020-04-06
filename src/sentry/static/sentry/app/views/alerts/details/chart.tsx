@@ -57,10 +57,11 @@ function getAverageBetweenPoints(data: Data, index: number) {
 }
 
 function getDataValue(data: [number, {count: number}[]]) {
-  if (data === undefined || data[1].count === undefined) {
+  if (data === undefined || data[1] === undefined) {
     return 0;
+  } else {
+    return data[1].reduce((acc, {count} = {count: 0}) => acc + count, 0);
   }
-  return data[1].count;
 }
 
 type Props = {
