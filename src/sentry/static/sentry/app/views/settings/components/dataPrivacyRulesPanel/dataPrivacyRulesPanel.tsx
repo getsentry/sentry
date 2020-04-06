@@ -74,7 +74,6 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
     selectorSuggestions: [],
-    eventIdInputValue: undefined,
     eventIdStatus: EventIdStatus.NONE,
   };
 

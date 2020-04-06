@@ -13,9 +13,7 @@ import SentryTypes from 'app/sentryTypes';
 
 import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
 
-type Props = {};
-
-class ProjectDataPrivacyContent extends AsyncView<Props> {
+class ProjectDataPrivacyContent extends AsyncView<{}> {
   static contextTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
