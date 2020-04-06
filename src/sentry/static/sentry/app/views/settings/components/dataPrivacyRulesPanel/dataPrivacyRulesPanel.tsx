@@ -1,3 +1,4 @@
+import {Box} from 'reflexbox';
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -9,16 +10,18 @@ import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons/iconAdd';
 import ButtonBar from 'app/components/buttonBar';
+import Input from 'app/views/settings/components/forms/controls/input';
+import ControlState from 'app/views/settings/components/forms/field/controlState';
+import Tooltip from 'app/components/tooltip';
 import {Client} from 'app/api';
 import {
   addErrorMessage,
-  addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
-import {Suggestion} from './dataPrivacyRulesPanelSelectorFieldTypes';
+import {Suggestion, defaultSuggestions} from './dataPrivacyRulesPanelSelectorFieldTypes';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
 
 const DEFAULT_RULE_FROM_VALUE = '';
@@ -46,12 +49,21 @@ type Props = {
   additionalContext?: React.ReactNode;
 };
 
+enum EventIdStatus {
+  NONE,
+  LOADING,
+  INVALID,
+  NOT_FOUND,
+  LOADED,
+}
+
 type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
   selectorSuggestions: Array<Suggestion>;
-  selectedEventId?: string;
+  eventIdInputValue?: string;
+  eventIdStatus: EventIdStatus,
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
@@ -65,7 +77,8 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
     selectorSuggestions: [],
-    selectedEventId: undefined,
+    eventIdInputValue: undefined,
+    eventIdStatus: EventIdStatus.NONE,
   };
 
   componentDidMount() {
@@ -76,9 +89,6 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   componentDidUpdate(_prevProps: Props, prevState: State) {
     if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
       this.loadRules();
-    }
-    if (prevState.selectedEventId !== this.state.selectedEventId) {
-      this.loadSelectorSuggestions();
     }
   }
 
@@ -137,32 +147,50 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
   loadSelectorSuggestions = async () => {
     const {organization, project} = this.context;
+    const {eventIdInputValue} = this.state;
 
-    const queryParams = [
-      ["project", project?.id],
-      ["eventId", this.state.selectedEventId]
-    ]
-      .filter(([_k, v]) => !!v).map(([k, v]) => `${k}=${v}`)
-      .join("&");
-
-    let selectorSuggestions: Array<Suggestion> = [];
-
-    const rawSuggestions = await this.api.requestPromise(
-      `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/?${queryParams}`,
-      {method: 'GET'}
-    );
-
-    for(const suggestion of rawSuggestions.suggestions || []) {
-      selectorSuggestions.push(suggestion);
+    if (!eventIdInputValue) {
+      this.setState({selectorSuggestions: defaultSuggestions, eventIdStatus: EventIdStatus.NONE});
+      return;
     }
 
-    this.setState({selectorSuggestions});
+    this.setState({eventIdStatus: EventIdStatus.LOADING});
+
+    const rawSuggestions = await this.api.requestPromise(
+      `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
+      {method: 'GET', query: {project: project?.id, eventId: eventIdInputValue}}
+    );
+
+    const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
+
+    if(selectorSuggestions && selectorSuggestions.length > 0) {
+      this.setState({
+        selectorSuggestions,
+        eventIdStatus: EventIdStatus.LOADED
+      });
+    } else {
+      this.setState({selectorSuggestions: defaultSuggestions, eventIdStatus: EventIdStatus.NOT_FOUND});
+    }
   };
 
-  handleEventIdChange = (newValue: string) => {
+  handleEventIdChange = (event) => {
+    const newValue = event.target.value;
     const eventId = newValue.replace(/-/g, '').trim();
-    if (!eventId || eventId.length == 32) {
-      this.setState({selectedEventId: eventId || undefined});
+    this.setState({
+      eventIdStatus: EventIdStatus.NONE,
+      selectorSuggestions: defaultSuggestions,
+      eventIdInputValue: eventId || undefined
+    });
+  };
+
+  handleEventIdSubmit = (event) => {
+    event.preventDefault();
+
+    const {eventIdInputValue} = this.state;
+    if (eventIdInputValue && eventIdInputValue.length != 32) {
+      this.setState({eventIdStatus: EventIdStatus.INVALID});
+    } else {
+      this.loadSelectorSuggestions();
     }
   };
 
@@ -267,7 +295,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     if (isFormValid) {
       this.handleSubmit();
     } else {
-      addErrorMessage(t("Invalid rule's form"));
+      addErrorMessage(t("Invalid rules form"));
     }
   };
 
@@ -276,20 +304,51 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleCancelForm = () => {
-    addLoadingMessage(t('Canceling...'));
     this.setState(prevState => ({
       rules: prevState.savedRules,
     }));
   };
 
+  getEventTooltipTitle() {
+    const {eventIdStatus} = this.state;
+
+    switch (eventIdStatus) {
+      case EventIdStatus.LOADING: return "";
+      case EventIdStatus.INVALID: return t("That's not a valid event ID");
+      case EventIdStatus.NOT_FOUND: return t("Event ID not found in projects you have access to");
+      case EventIdStatus.LOADED: return t("Auto-completing based on this event ID");
+      default: return "";
+    }
+  }
+
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, savedRules} = this.state;
+    const {rules, savedRules, eventIdInputValue, selectorSuggestions, eventIdStatus} = this.state;
     const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
-          <StyledPanelHeader>{t('Data Privacy Rules')}</StyledPanelHeader>
+          <PanelHeader hasButtons>
+            <Box minWidth="auto" flex="1">{t('Data Privacy Rules')}</Box>
+            <Box>
+              <Tooltip title={this.getEventTooltipTitle()}>
+                <Form onSubmit={this.handleEventIdSubmit}>
+                  <Input
+                    name="eventId"
+                    value={eventIdInputValue || ''}
+                    placeholder={t('Paste event ID for better assistance')}
+                    onChange={this.handleEventIdChange}
+                    onBlur={this.handleEventIdSubmit}
+                  />
+                  <FormStatus>
+                    {eventIdStatus == EventIdStatus.LOADING && <ControlState isSaving />}
+                    {eventIdStatus == EventIdStatus.INVALID && <ControlState error />}
+                    {eventIdStatus == EventIdStatus.NOT_FOUND && <ControlState error />}
+                  </FormStatus>
+                </Form>
+              </Tooltip>
+            </Box>
+          </PanelHeader>
           <PanelAlert type="info">
             {additionalContext}{' '}
             {tct('For more details, see [linkToDocs].', {
@@ -306,9 +365,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 key={rule.id}
                 onDelete={this.handleDeleteRule}
                 onChange={this.handleChange}
-                selectorSuggestions={this.state.selectorSuggestions}
-                selectedEventId={this.state.selectedEventId}
-                handleEventIdChange={this.handleEventIdChange}
+                selectorSuggestions={selectorSuggestions}
                 rule={rule}
                 disabled={disabled}
               />
@@ -352,11 +409,6 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
 export default DataPrivacyRulesPanel;
 
-const StyledPanelHeader = styled(PanelHeader)`
-  display: grid;
-  grid-gap: ${space(1)};
-`;
-
 const PanelAction = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   display: grid;
@@ -376,4 +428,17 @@ const StyledLink = styled(Button)`
   &:focus {
     color: ${p => p.theme.blueDark};
   }
+`;
+
+const Form = styled('form')`
+  position: relative;
+  width: 300px;
+`;
+
+const FormStatus = styled('div')`
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  bottom: 5px;
+  background: ${p => p.theme.white};
 `;

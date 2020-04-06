@@ -28,8 +28,6 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   selectorSuggestions: Array<Suggestion>;
-  selectedEventId?: string;
-  handleEventIdChange?: (string) => void;
   error?: string;
   onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
@@ -48,12 +46,12 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.loadFieldValues(this.props.value, true);
+    this.loadFieldValues(this.props.value);
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.selectorSuggestions != this.props.selectorSuggestions) {
-      this.loadFieldValues(this.props.value, false);
+      this.loadFieldValues(this.props.value);
     }
   }
 
@@ -101,12 +99,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       s => s.value.toLowerCase().indexOf(value.toLowerCase()) > -1
     );
 
-    return {
-      filteredSuggestions,
-      showSuggestions: !(
-        filteredSuggestions.length === 1 && filteredSuggestions[0].value === value
-      ),
-    };
+    return filteredSuggestions;
   };
 
   getNewSuggestions = (fieldValues: Array<Suggestion | Array<Suggestion>>) => {
@@ -154,7 +147,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
   };
 
-  loadFieldValues = (newValue: string, initialLoading = false) => {
+  loadFieldValues = (newValue: string) => {
     const splittedValue = newValue.split(' ');
     const fieldValues: Array<Suggestion | Array<Suggestion>> = [];
 
@@ -186,15 +179,12 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       fieldValues.push({type: 'string', value});
     }
 
-    const {showSuggestions = true, filteredSuggestions} = this.getNewSuggestions(
-      fieldValues
-    );
+    const filteredSuggestions = this.getNewSuggestions(fieldValues);
 
     this.setState({
       fieldValues,
       activeSuggestion: 0,
       suggestions: filteredSuggestions,
-      showSuggestions: initialLoading ? false : showSuggestions,
     });
   };
 
@@ -345,11 +335,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       <Wrapper ref={this.selectorField}>
         <StyledTextField
           name="from"
-          placeholder={
-            this.props.selectedEventId
-              ? t('completing attributes from event %s', [this.props.selectedEventId])
-              : t('an attribute, variable, or header name')
-          }
+          placeholder={t('an attribute, variable, or header name')}
           onChange={this.handleChange}
           autoComplete="off"
           value={value}
@@ -360,31 +346,23 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && (
-          <SuggestionsDropdown ref={this.suggestionList}>
-            <SuggestionsWrapper>
-              {suggestions.slice(0, 50).map((suggestion, index) => (
-                <SuggestionItem
-                  key={suggestion.value}
-                  onClick={this.handleClickSuggestionItem(suggestion)}
-                  active={index === activeSuggestion}
-                  tabIndex={-1}
-                >
-                  <TextOverflow>{suggestion.value}</TextOverflow>
-                  {suggestion?.description && (
-                    <SuggestionDescription>
-                      (<TextOverflow>{suggestion.description}</TextOverflow>)
-                    </SuggestionDescription>
-                  )}
-                </SuggestionItem>
-              ))}
-            </SuggestionsWrapper>
-            <EventIdTextField
-              name="eventId"
-              defaultValue={this.props.selectedEventId}
-              placeholder={t('Paste event ID for better suggestions')}
-              onChange={this.props.handleEventIdChange}
-            />
-          </SuggestionsDropdown>
+          <SuggestionsWrapper ref={this.suggestionList}>
+            {suggestions.slice(0, 50).map((suggestion, index) => (
+              <SuggestionItem
+                key={suggestion.value}
+                onClick={this.handleClickSuggestionItem(suggestion)}
+                active={index === activeSuggestion}
+                tabIndex={-1}
+              >
+                <TextOverflow>{suggestion.value}</TextOverflow>
+                {suggestion?.description && (
+                  <SuggestionDescription>
+                    (<TextOverflow>{suggestion.description}</TextOverflow>)
+                  </SuggestionDescription>
+                )}
+              </SuggestionItem>
+            ))}
+          </SuggestionsWrapper>
         )}
       </Wrapper>
     );
@@ -412,9 +390,9 @@ const StyledTextField = styled(TextField)<{error?: string}>`
     `}
 `;
 
-const SuggestionsDropdown = styled('ul')`
+const SuggestionsWrapper = styled('ul')`
   position: absolute;
-  width: 200%;
+  width: 100%;
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
@@ -425,11 +403,7 @@ const SuggestionsDropdown = styled('ul')`
   top: 35px;
   right: 0;
   z-index: 1001;
-`;
-
-const SuggestionsWrapper = styled('div')`
   overflow: hidden;
-  width: 100%;
   max-height: 200px;
   overflow-y: auto;
 `;
@@ -452,10 +426,4 @@ const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
   color: ${p => p.theme.gray2};
-`;
-
-const EventIdTextField = styled(StyledTextField)`
-  border-top: 1px solid ${p => p.theme.borderLight};
-  padding: ${space(1)} ${space(2)};
-  height: auto;
 `;
