@@ -13,16 +13,17 @@ type Props = {
   selected: string;
   onChange: (value: string) => void;
   title: string;
+  menuWidth?: string;
 };
 
-function OptionSelector({options, onChange, selected, title}: Props) {
+function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}: Props) {
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
     <InlineContainer>
       <SectionHeading>{title}</SectionHeading>
       <DropdownControl
-        menuWidth="auto"
+        menuWidth={menuWidth}
         alignRight
         button={({getActorProps}) => (
           <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
