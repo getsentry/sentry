@@ -226,8 +226,4 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
-# Sampling option to move over from reporting using the internal transport to
-# using a separate DSN
-# 0 => use tried and true internal transport
-# 1 => use relay_dsn in settings.SENTRY_SDK_CONFIG
-register("store.use-relay-dsn-sample-rate", default=0.0)
+register("store.use-relay-dsn-sample-rate", default=0.0)  # unused
