@@ -690,21 +690,26 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         queryset (QuerySet) Filtered QuerySet of KeyTransactions
     """
     snuba_filter = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
-    snuba_filter.conditions.extend(key_transaction_conditions(queryset))
 
-    result = raw_query(
-        aggregations=snuba_filter.aggregations,
-        conditions=snuba_filter.conditions,
-        filter_keys=snuba_filter.filter_keys,
-        start=snuba_filter.start,
-        end=snuba_filter.end,
-        rollup=rollup,
-        orderby="time",
-        groupby=["time"],
-        dataset=Dataset.Discover,
-        limit=10000,
-        referrer=referrer,
-    )
+    if queryset.exists():
+        snuba_filter.conditions.extend(key_transaction_conditions(queryset))
+
+        result = raw_query(
+            aggregations=snuba_filter.aggregations,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            rollup=rollup,
+            orderby="time",
+            groupby=["time"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=referrer,
+        )
+    else:
+        result = {"data": []}
+
     result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
