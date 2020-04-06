@@ -27,7 +27,7 @@ repos:
       types: [python]
       exclude: (migrations/)
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v1.3.0
+    rev: v2.5.0
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs
