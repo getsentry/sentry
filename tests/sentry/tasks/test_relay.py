@@ -121,3 +121,22 @@ def test_invalidate(
         schedule_update_config_cache(generate=False, **kwargs)
 
     assert not redis_cache.get(default_project.id)
+
+
+@pytest.mark.django_db
+def test_project_reload_cache(default_project, task_runner, redis_cache):
+    with task_runner():
+        default_project.update_option(
+            "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
+        )
+
+    assert redis_cache.get(default_project.id)["config"]["piiConfig"] == {
+        "applications": {"$string": ["@creditcard:mask"]}
+    }
+
+    with task_runner():
+        default_project.organization.update_option(
+            "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
+        )
+
+    assert redis_cache.get(default_project.id) is None
