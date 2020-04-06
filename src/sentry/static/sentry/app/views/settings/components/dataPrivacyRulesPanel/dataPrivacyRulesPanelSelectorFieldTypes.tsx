@@ -25,8 +25,8 @@ const defaultSuggestions: Suggestions = [
   {type: "value", value: "$message", description: t("the log message")},
   {
     type: "value",
-    value: "extra.'My Value'",
-    description: t('the key "My Value" in "Additional Data"'),
+    value: "extra.MyValue",
+    description: t('the key "MyValue" in "Additional Data"'),
   },
   {
     type: "value",
