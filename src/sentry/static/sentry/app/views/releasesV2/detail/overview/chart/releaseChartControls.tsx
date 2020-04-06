@@ -1,16 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import OptionSelector from 'app/components/charts/optionSelector';
+import styled from 'app/styled';
+import space from 'app/styles/space';
 
 export enum YAxis {
   SESSIONS = 'sessions',
@@ -60,49 +59,31 @@ const ReleaseChartControls = ({summary, yAxis, onYAxisChange}: Props) => {
   };
 
   return (
-    <ChartControls>
+    <StyledChartControls>
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
 
-      {/* TODO(releasesV2): this will be down the road replaced with discover's YAxisSelector */}
-      <InlineContainer>
-        <SectionHeading>{t('Y-Axis')}</SectionHeading>
-        <DropdownControl
-          alignRight
-          menuWidth="150px"
-          button={({getActorProps}) => (
-            <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
-              {yAxisOptions.find(option => option.value === yAxis)?.label}
-            </StyledDropdownButton>
-          )}
-        >
-          {yAxisOptions.map(option => (
-            <DropdownItem
-              key={option.value}
-              onSelect={onYAxisChange}
-              eventKey={option.value}
-              isActive={option.value === yAxis}
-            >
-              {option.label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
-      </InlineContainer>
-    </ChartControls>
+      <OptionSelector
+        title={t('Y-Axis')}
+        selected={yAxis}
+        options={yAxisOptions}
+        onChange={onYAxisChange as (value: string) => void}
+        menuWidth="150px"
+      />
+    </StyledChartControls>
   );
 };
 
-const StyledDropdownButton = styled(DropdownButton)`
-  padding: ${space(1)} ${space(2)};
-  font-weight: normal;
-  color: ${p => p.theme.gray3};
-
-  &:hover,
-  &:focus,
-  &:active {
-    color: ${p => p.theme.gray4};
+const StyledChartControls = styled(ChartControls)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-gap: ${space(1)};
+    padding-bottom: ${space(1.5)};
+    button {
+      font-size: ${p => p.theme.fontSizeSmall};
+    }
   }
 `;
 

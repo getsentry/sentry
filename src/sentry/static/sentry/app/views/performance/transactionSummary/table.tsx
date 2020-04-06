@@ -17,11 +17,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {
-  generateEventSlug,
-  eventDetailsRouteWithEventView,
-} from 'app/views/eventsV2/eventDetails/utils';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
   TableGrid,
@@ -162,14 +159,9 @@ class SummaryContentTable extends React.Component<Props> {
     const {eventView, location, organization, totalValues} = this.props;
 
     let title = t('Slowest Requests');
-    let chartQuery = eventView.query;
-    if (location.query.startDuration || location.query.endDuration) {
-      // Remove duration conditions from the chart query as we want it
-      // to always reflect the full dataset.
-      const parsed = tokenizeSearch(chartQuery);
+    const parsed = tokenizeSearch(eventView.query);
+    if (parsed['transaction.duration']) {
       title = t('Requests %s and %s in duration', ...parsed['transaction.duration']);
-      delete parsed['transaction.duration'];
-      chartQuery = stringifyQueryObject(parsed);
     }
 
     return (
@@ -177,7 +169,7 @@ class SummaryContentTable extends React.Component<Props> {
         <LatencyChart
           organization={organization}
           location={location}
-          query={chartQuery}
+          query={eventView.query}
           project={eventView.project}
           environment={eventView.environment}
           start={eventView.start}

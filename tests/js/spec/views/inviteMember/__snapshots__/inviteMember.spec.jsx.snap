@@ -43,6 +43,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "1",
       "name": "Organization Name",
@@ -154,7 +155,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
-                spellCheck="false"
                 type="text"
                 value=""
               />
@@ -425,6 +425,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
               "team:write",
               "team:admin",
             ],
+            "experiments": Object {},
             "features": Array [],
             "id": "1",
             "name": "Organization Name",
@@ -480,6 +481,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "1",
               "name": "Organization Name",
@@ -731,17 +733,17 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     >
                       <EmptyMessage>
                         <Component
-                          className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                          className="css-1scmenn-EmptyMessage e1h3yfdx0"
                         >
                           <div
-                            className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                            className="css-1scmenn-EmptyMessage e1h3yfdx0"
                             data-test-id="empty-message"
                           >
                             <Description
                               noMargin={true}
                             >
                               <div
-                                className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                                className="css-iex7sn-TextBlock-Description e1h3yfdx3"
                               >
                                 No Teams assigned
                               </div>

@@ -854,12 +854,14 @@ def get_filter(query=None, params=None):
                         )
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
-                kwargs["conditions"].append(
-                    [
-                        convert_search_filter_to_snuba_query(term, key=field)
-                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-                    ]
-                )
+                user_conditions = [
+                    convert_search_filter_to_snuba_query(term, key=field)
+                    for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                ]
+                if term.operator == "!=" and term.value.value != "":
+                    kwargs["conditions"].extend(user_conditions)
+                else:
+                    kwargs["conditions"].append(user_conditions)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -1097,19 +1099,26 @@ FUNCTIONS = {
     "error_rate": {
         "name": "error_rate",
         "args": [],
-        "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
+        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
         "result_type": "number",
     },
+    # The user facing signature for this function is histogram(<column>, <num_buckets>)
+    # Internally, snuba.discover.query() expands the user request into this value by
+    # calculating the bucket size and start_offset.
     "histogram": {
         "name": "histogram",
         "args": [
             DurationColumnNoLookup("column"),
             NumberRange("num_buckets", 1, 500),
-            NumberRange("bucket", 0, None),
+            NumberRange("bucket_size", 0, None),
+            NumberRange("start_offset", 0, None),
         ],
         "column": [
             "multiply",
-            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            [
+                ["floor", [["divide", [u"{column}", ArgValue("bucket_size")]]]],
+                ArgValue("bucket_size"),
+            ],
             None,
         ],
         "result_type": "number",

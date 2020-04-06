@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import map from 'lodash/map';
 
 import {t} from 'app/locale';
@@ -12,10 +11,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import {
-  generateEventSlug,
-  generateEventDetailsRoute,
-} from 'app/views/eventsV2/eventDetails/utils';
+import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {assert} from 'app/types/utils';
@@ -111,7 +107,7 @@ class SpanDetail extends React.Component<Props, State> {
     if (this.state.transactionResults.length === 1) {
       const {eventView} = this.props;
 
-      const parentTransactionLink = generateEventDetailsRoute({
+      const parentTransactionLink = eventDetailsRoute({
         eventSlug: generateSlug(this.state.transactionResults[0]),
         orgSlug: this.props.orgId,
       });
@@ -231,7 +227,7 @@ class SpanDetail extends React.Component<Props, State> {
               {span.trace_id}
             </Row>
             <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-            <Row title="Description">{get(span, 'description', '')}</Row>
+            <Row title="Description">{span?.description ?? ''}</Row>
             <Row title="Start Date">
               {getDynamicText({
                 fixed: 'Mar 16, 2020 9:10:12 AM UTC',
@@ -260,7 +256,7 @@ class SpanDetail extends React.Component<Props, State> {
               {String(!!span.same_process_as_parent)}
             </Row>
             <Tags span={span} />
-            {map(get(span, 'data', {}), (value, key) => (
+            {map(span?.data ?? {}, (value, key) => (
               <Row title={key} key={key}>
                 {JSON.stringify(value, null, 4) || ''}
               </Row>
@@ -317,7 +313,7 @@ const Row = ({
 };
 
 const Tags = ({span}: {span: RawSpanType}) => {
-  const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
+  const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
     return null;

@@ -21,7 +21,7 @@ from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import set_current_project
 from sentry.models import ProjectOption, Activity, Project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -117,9 +117,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     original_data = data
     data = CanonicalKeyDict(data)
     project_id = data["project"]
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    set_current_project(project_id)
 
     if project is None:
         project = Project.objects.get_from_cache(id=project_id)
@@ -209,9 +207,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
-    event_id = data["event_id"]
+    set_current_project(project_id)
 
-    project = Project.objects.get_from_cache(id=project_id)
+    event_id = data["event_id"]
 
     symbolication_function = get_symbolication_function(data)
 
@@ -220,26 +218,25 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     try:
-        symbolicated_data = safe_execute(
-            symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
-        )
+        with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+            symbolicated_data = safe_execute(
+                symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
+            )
         if symbolicated_data:
             data = symbolicated_data
             has_changed = True
 
     except RetrySymbolication as e:
-        error_logger.warn("retry symbolication")
-
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
-                "process.slow", extra={"project_id": project_id, "event_id": event_id}
+                "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
             )
 
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
             error_logger.exception(
-                "process.failed.infinite_retry",
+                "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
             )
         else:
@@ -266,15 +263,16 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         default_cache.set(cache_key, data, 3600)
 
-    submit_process(
-        project,
-        from_reprocessing,
-        cache_key,
-        event_id,
-        start_time,
-        data,
-        has_changed,
+    process_task = process_event_from_reprocessing if from_reprocessing else process_event
+    _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_task,
+        data=data,
+        data_has_changed=has_changed,
         new_process_behavior=True,
+        from_symbolicate=True,
     )
 
 
@@ -373,6 +371,7 @@ def _do_process_event(
     data=None,
     data_has_changed=None,
     new_process_behavior=None,
+    from_symbolicate=False,
 ):
     from sentry.plugins.base import plugins
 
@@ -389,12 +388,11 @@ def _do_process_event(
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
+    set_current_project(project_id)
+
     event_id = data["event_id"]
 
     project = Project.objects.get_from_cache(id=project_id)
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
 
     has_changed = bool(data_has_changed)
     new_process_behavior = bool(new_process_behavior)
@@ -410,17 +408,24 @@ def _do_process_event(
         if not new_process_behavior:
             # Event enhancers.  These run before anything else.
             for plugin in plugins.all(version=2):
-                enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-                for enhancer in enhancers or ():
-                    enhanced = safe_execute(
-                        enhancer, data, _passthrough_errors=(RetrySymbolication,)
-                    )
-                    if enhanced:
-                        data = enhanced
-                        has_changed = True
+                with metrics.timer(
+                    "tasks.store.process_event.enhancers",
+                    tags={"plugin": plugin.slug, "from_symbolicate": from_symbolicate},
+                ):
+                    enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+                    for enhancer in enhancers or ():
+                        enhanced = safe_execute(
+                            enhancer, data, _passthrough_errors=(RetrySymbolication,)
+                        )
+                        if enhanced:
+                            data = enhanced
+                            has_changed = True
 
         # Stacktrace based event processors.
-        new_data = process_stacktraces(data)
+        with metrics.timer(
+            "tasks.store.process_event.stacktraces", tags={"from_symbolicate": from_symbolicate}
+        ):
+            new_data = process_stacktraces(data)
         if new_data is not None:
             has_changed = True
             data = new_data
@@ -476,7 +481,9 @@ def _do_process_event(
         and options.get("processing.can-use-scrubbers")
         and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
     ):
-        with metrics.timer("tasks.store.datascrubbers.scrub"):
+        with metrics.timer(
+            "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
+        ):
             project_config = get_project_config(project)
 
             new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
@@ -489,14 +496,18 @@ def _do_process_event(
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
-        for processor in processors or ():
-            result = safe_execute(processor, data)
-            if result:
-                data = result
-                has_changed = True
+        with metrics.timer(
+            "tasks.store.process_event.preprocessors",
+            tags={"plugin": plugin.slug, "from_symbolicate": from_symbolicate},
+        ):
+            processors = safe_execute(
+                plugin.get_event_preprocessors, data=data, _with_transaction=False
+            )
+            for processor in processors or ():
+                result = safe_execute(processor, data)
+                if result:
+                    data = result
+                    has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
@@ -593,9 +604,12 @@ def process_event_from_reprocessing(
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
+    set_current_project(project_id)
+
     if event_id is None:
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
+
     from sentry.models import RawEvent, ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -622,6 +636,8 @@ def create_failed_event(
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
+    set_current_project(project_id)
+
     # We can only create failed events for events that can potentially
     # create failed events.
     if not reprocessing.event_supports_reprocessing(data):
@@ -703,6 +719,8 @@ def _do_save_event(
     Saves an event to the database.
     """
 
+    set_current_project(project_id)
+
     from sentry.event_manager import EventManager, HashDiscarded
 
     event_type = "none"
@@ -724,6 +742,7 @@ def _do_save_event(
         # the task.
         if project_id is None:
             project_id = data.pop("project")
+            set_current_project(project_id)
 
         # We only need to delete raw events for events that support
         # reprocessing.  If the data cannot be found we want to assume
@@ -747,9 +766,6 @@ def _do_save_event(
                 "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
             )
             return
-
-        with configure_scope() as scope:
-            scope.set_tag("project", project_id)
 
         event = None
         try:

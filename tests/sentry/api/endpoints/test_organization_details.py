@@ -201,7 +201,6 @@ class OrganizationUpdateTest(APITestCase):
             "safeFields": [u"email"],
             "storeCrashReports": 10,
             "scrubIPAddresses": True,
-            "relayPiiConfig": '{"applications": {"$string": []}}',
             "scrapeJavaScript": False,
             "defaultRole": "owner",
             "require2FA": True,
@@ -232,7 +231,6 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:require_scrub_ip_address")
         assert options.get("sentry:sensitive_fields") == ["password"]
         assert options.get("sentry:safe_fields") == ["email"]
-        assert options.get("sentry:relay_pii_config") == '{"applications": {"$string": []}}'
         assert options.get("sentry:store_crash_reports") == 10
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
@@ -378,6 +376,28 @@ class OrganizationUpdateTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.VISIBLE
+
+    def test_relay_pii_config(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+        with self.feature("organizations:datascrubbers-v2"):
+            value = '{"applications": {"freeform": []}}'
+            resp = self.client.put(url, data={"relayPiiConfig": value})
+            assert resp.status_code == 200, resp.content
+            assert org.get_option("sentry:relay_pii_config") == value
+            assert resp.data["relayPiiConfig"] == value
+
+    def test_relay_pii_config_forbidden(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+
+        value = '{"applications": {"freeform": []}}'
+        resp = self.client.put(url, data={"relayPiiConfig": value})
+        assert resp.status_code == 400
+        assert b"feature" in resp.content
+        assert org.get_option("sentry:relay_pii_config") is None
 
 
 class OrganizationDeleteTest(APITestCase):

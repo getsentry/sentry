@@ -6,7 +6,11 @@ import FormField from 'app/components/forms/formField';
 type InputFieldProps = FormField['props'] & {
   placeholder: string;
   inputStyle?: object;
-  onBlur?: (event?: React.FocusEvent<HTMLInputElement>) => void;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
 };
 
 export default class InputField<
@@ -18,16 +22,13 @@ export default class InputField<
     placeholder: PropTypes.string,
   };
 
-  getAttributes() {
-    return {};
-  }
-
   getField() {
     return (
       <input
         id={this.getId()}
         type={this.getType()}
         className="form-control"
+        autoComplete={this.props.autoComplete}
         placeholder={this.props.placeholder}
         onChange={this.onChange}
         disabled={this.props.disabled}
@@ -36,7 +37,9 @@ export default class InputField<
         value={this.state.value as string | number} //can't pass in boolean here
         style={this.props.inputStyle}
         onBlur={this.props.onBlur}
-        {...this.getAttributes()}
+        onFocus={this.props.onFocus}
+        onKeyPress={this.props.onKeyPress}
+        onKeyDown={this.props.onKeyDown}
       />
     );
   }

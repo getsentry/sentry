@@ -226,7 +226,7 @@ describe('EventsV2 > Results', function() {
       />,
       initialData.routerContext
     );
-    const selector = wrapper.find('YAxisSelector');
+    const selector = wrapper.find('OptionSelector');
     expect(selector).toHaveLength(1);
 
     // Open the selector

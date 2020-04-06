@@ -94,6 +94,7 @@ exports[`GroupActions render() renders correctly 1`] = `
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "4660",
       "name": "Organization Name",

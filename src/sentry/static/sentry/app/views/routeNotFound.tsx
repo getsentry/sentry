@@ -1,12 +1,17 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import * as Sentry from '@sentry/browser';
+import {Location} from 'history';
 
 import Footer from 'app/components/footer';
 import Sidebar from 'app/components/sidebar';
 import NotFound from 'app/components/errors/notFound';
 
-class RouteNotFound extends React.Component {
+type Props = {
+  location: Location;
+};
+
+class RouteNotFound extends React.Component<Props> {
   componentDidMount() {
     Sentry.withScope(scope => {
       scope.setFingerprint(['RouteNotFound']);
@@ -21,7 +26,7 @@ class RouteNotFound extends React.Component {
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <Sidebar />
+          <Sidebar location={this.props.location} />
           <div className="container">
             <div className="content">
               <section className="body">

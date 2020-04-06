@@ -13,7 +13,7 @@ from sentry.utils.sdk import capture_exception
 
 from .base import ExportError, ExportQueryType, SNUBA_MAX_RESULTS
 from .models import ExportedData
-from .utils import snuba_error_handler
+from .utils import convert_to_utf8, snuba_error_handler
 from .processors.issues_by_tag import IssuesByTagProcessor
 
 
@@ -106,9 +106,12 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
         while True:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            gtv_list = processor.get_serialized_data(offset=offset)
-            if len(gtv_list) == 0:
+            gtv_list_unicode = processor.get_serialized_data(offset=offset)
+            if len(gtv_list_unicode) == 0:
                 break
+            # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
+            # See associated comment in './utils.py'
+            gtv_list = convert_to_utf8(gtv_list_unicode)
             if limit and limit < next_offset:
                 # Since the next offset will pass the limit, write the remainder and quit
                 writer.writerows(gtv_list[: limit % SNUBA_MAX_RESULTS])

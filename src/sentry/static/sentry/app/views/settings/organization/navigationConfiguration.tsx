@@ -27,7 +27,7 @@ const organizationNavigation: NavigationSection[] = [
           'View and manage the security and privacy settings of an organization'
         ),
         id: 'security-and-privacy',
-        show: ({features}) => features!.has('datascrubbers-v2'),
+        show: ({features}) => !!features?.has('datascrubbers-v2'),
         badge: () => 'new',
       },
       {
@@ -95,4 +95,5 @@ const organizationNavigation: NavigationSection[] = [
     ],
   },
 ];
+
 export default organizationNavigation;

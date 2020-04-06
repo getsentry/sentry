@@ -127,7 +127,7 @@ class ResultsChartContainer extends React.Component<ResultsChartContainerProps> 
           total={total}
           yAxisValue={yAxisValue}
           yAxisOptions={eventView.getYAxisOptions()}
-          onChange={onAxisChange}
+          onAxisChange={onAxisChange}
         />
       </StyledPanel>
     );
