@@ -20,9 +20,6 @@ const StatusWrapper = styled('div')`
 
 const IntegrationStatus = styled((props: StatusProps) => {
   const {status, ...p} = props;
-  if (!status) {
-    return null;
-  }
   return (
     <StatusWrapper>
       <CircleIndicator size={6} color={theme[COLORS[status]]} />
