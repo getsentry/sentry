@@ -52,10 +52,13 @@ ensure-venv:
 ensure-pinned-pip: ensure-venv
 	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
-setup-git: ensure-venv
+setup-git-config:
+	@git config --local branch.autosetuprebase always
+	@git config --local core.ignorecase false
+	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
+
+setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
-	git config branch.autosetuprebase always
-	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
 	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
