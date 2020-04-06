@@ -108,10 +108,22 @@ type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
     value?: Pick<RangeSlider['props'], 'value'>;
   };
 
-type TableType = {
+export type TableType = {
   type: 'table';
-  columnLabels: object;
-  columnKeys: string[];
+  /**
+   * An object with of column labels (headers) for the table.
+   */
+  columnLabels?: object;
+  /**
+   * A list of column keys for the table, in the order that you want
+   * the columns to appear - order doesn't matter in columnLabels
+   */
+  columnKeys?: string[];
+  /**
+   * The confirmation message before a a row is deleted
+   */
+  confirmDeleteMessage?: string;
+  //TODO(TS): Should we have addButtonText and allowEmpty here as well?
 };
 
 export type Field = (
