@@ -255,11 +255,11 @@ if not secret_key:
     )
 
 if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
-    print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    print ("!!                    CAUTION                       !!")
-    print ("!! Your SENTRY_SECRET_KEY is potentially insecure.  !!")
-    print ("!!    We recommend at least 32 characters long.     !!")
-    print ("!!     Regenerate with `generate-secret-key`.       !!")
-    print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    print("!!                    CAUTION                       !!")
+    print("!! Your SENTRY_SECRET_KEY is potentially insecure.  !!")
+    print("!!    We recommend at least 32 characters long.     !!")
+    print("!!     Regenerate with `generate-secret-key`.       !!")
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 SENTRY_OPTIONS["system.secret-key"] = secret_key
