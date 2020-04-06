@@ -68,14 +68,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       const {params} = this.props;
 
       try {
-        const alert_rules = await this.api.requestPromise(
+        const alertRules = await this.api.requestPromise(
           `/organizations/${params && params.orgId}/alert-rules/`,
           {
             method: 'GET',
           }
         );
         this.setState({
-          hasAlertRule: alert_rules.length > 0 ? true : false,
+          hasAlertRule: alertRules.length > 0 ? true : false,
         });
       } catch (err) {
         this.setState({
@@ -127,12 +127,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {loading, incidentList, incidentListPageLinks} = this.state;
+    const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {orgId} = this.props.params;
 
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
     );
+    const checkingForAlertRules =
+      incidentList.length === 0 && hasAlertRule === undefined ? true : false;
 
     return (
       <React.Fragment>
@@ -152,7 +154,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </PanelHeader>
 
           <PanelBody>
-            {(loading || this.state.hasAlertRule === undefined) && <LoadingIndicator />}
+            {(loading || checkingForAlertRules) && <LoadingIndicator />}
             {!loading && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
