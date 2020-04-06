@@ -137,6 +137,41 @@ class FetchCommitsTest(TestCase):
         assert "secrets" not in msg.body
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    def test_fetch_error_plugin_error_for_sentry_app(self, mock_compare_commits):
+        org = self.create_organization(owner=self.user, name="baz")
+        sentry_app = self.create_sentry_app(
+            organization=org, published=True, verify_install=False, name="Super Awesome App"
+        )
+
+        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id, repository_id=repo.id, release=release, commit=commit
+        )
+
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+
+        release2 = Release.objects.create(organization_id=org.id, version="12345678")
+
+        mock_compare_commits.side_effect = Exception("secrets")
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=sentry_app.proxy_user_id,
+                refs=refs,
+                previous_release_id=release.id,
+            )
+
+        msg = mail.outbox[-1]
+        assert msg.subject == "Unable to Fetch Commits"
+        assert msg.to == [self.user.email]
+        assert "secrets" not in msg.body
+
+    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
     def test_fetch_error_random_exception(self, mock_compare_commits):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")

@@ -8,6 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 import ComingSoon from './comingSoon';
 
@@ -84,10 +85,6 @@ type AllFeatures = {
   organization: string[];
   project: string[];
 };
-
-function childrenIsRenderProp(children: Props['children']): children is ChildrenRenderFn {
-  return typeof children === 'function';
-}
 
 /**
  * Component to handle feature flags.
@@ -189,7 +186,7 @@ class Feature extends React.Component<Props> {
       return customDisabledRender({children, ...renderProps});
     }
 
-    if (childrenIsRenderProp(children)) {
+    if (isRenderFunc<ChildrenRenderFn>(children)) {
       return children({renderDisabled, ...renderProps});
     }
 

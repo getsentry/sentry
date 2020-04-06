@@ -28,8 +28,10 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        queryset = DiscoverSavedQuery.objects.filter(organization=organization).prefetch_related(
-            "projects"
+        queryset = (
+            DiscoverSavedQuery.objects.filter(organization=organization)
+            .select_related("created_by")
+            .prefetch_related("projects")
         )
         query = request.query_params.get("query")
         if query:

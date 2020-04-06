@@ -100,6 +100,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question0',
       },
       {
         type: 'textarea',
@@ -108,6 +109,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question1',
       },
       {
         type: 'textarea',
@@ -116,6 +118,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         autosize: true,
         rows: 1,
         inline: false,
+        name: 'question2',
       },
     ];
 
@@ -129,13 +132,11 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
         rows: 1,
         inline: false,
         meta: permissionQuestionPlainText,
+        name: 'question3',
       });
     }
 
-    //dynamically generate the name based off the index
-    return baseFields.map((field, index) =>
-      Object.assign({name: `question${index}`}, field)
-    );
+    return baseFields;
   }
 
   handleSubmitSuccess = () => {
