@@ -6,7 +6,7 @@ import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
 import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs/breadcrumbs';
 import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
