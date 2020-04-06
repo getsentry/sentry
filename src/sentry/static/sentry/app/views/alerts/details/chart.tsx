@@ -81,7 +81,7 @@ export default class Chart extends React.PureComponent<Props> {
       val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
     ]);
 
-    let detectedCoordinate: any = undefined;
+    let detectedCoordinate: number[];
     if (detectedTs) {
       const nearbyDetectedTimestampIndex = getNearbyIndex(data, detectedTs);
       const detectedYValue =
@@ -91,11 +91,11 @@ export default class Chart extends React.PureComponent<Props> {
       chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
     }
 
-    let closedCoordinate: any = undefined;
     const showClosedMarker =
       data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
         ? true
         : false;
+    let closedCoordinate: number[];
     if (closedTs && showClosedMarker) {
       const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
       const closedYValue =
