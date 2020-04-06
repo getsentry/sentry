@@ -68,54 +68,6 @@ def up(project, exclude):
 
     client = get_docker_client()
 
-    # This is brittle, but is the best way now to limit what
-    # services are run if they're not needed.
-    if not exclude:
-        exclude = set()
-
-    if "bigtable" not in settings.SENTRY_NODESTORE:
-        exclude |= {"bigtable"}
-
-    if "memcached" not in settings.CACHES.get("default", {}).get("BACKEND"):
-        exclude |= {"memcached"}
-
-    if "kafka" in settings.SENTRY_EVENTSTREAM:
-        pass
-    elif "snuba" in settings.SENTRY_EVENTSTREAM:
-        if not settings.SENTRY_USE_RELAY:
-            click.secho(
-                "! Skipping kafka and zookeeper since your eventstream backend does not require it",
-                err=True,
-                fg="cyan",
-            )
-            exclude |= {"kafka", "zookeeper"}
-    else:
-        if settings.SENTRY_USE_RELAY:
-            click.secho(
-                "! Skipping snuba, and clickhouse since your eventstream backend does not require it",
-                err=True,
-                fg="cyan",
-            )
-            exclude |= {"snuba", "clickhouse"}
-        else:
-            click.secho(
-                "! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it",
-                err=True,
-                fg="cyan",
-            )
-            exclude |= {"kafka", "zookeeper", "snuba", "clickhouse"}
-
-    if not settings.SENTRY_USE_RELAY:
-        click.secho(
-            "! Skipping relay, and reverse_proxy since you are not using Relay.",
-            err=True,
-            fg="cyan",
-        )
-        exclude |= {"relay", "reverse_proxy"}
-
-    if not sentry_options.get("symbolicator.enabled"):
-        exclude |= {"symbolicator"}
-
     get_or_create(client, "network", project)
 
     containers = {}
@@ -123,6 +75,12 @@ def up(project, exclude):
         if name in exclude:
             continue
         options = options.copy()
+
+        test_fn = options.pop("only_if", None)
+        if test_fn and not test_fn(settings, sentry_options):
+            click.secho("! Skipping {} due to only_if condition".format(name), err=True, fg="cyan")
+            continue
+
         options["network"] = project
         options["detach"] = True
         options["name"] = project + "_" + name
