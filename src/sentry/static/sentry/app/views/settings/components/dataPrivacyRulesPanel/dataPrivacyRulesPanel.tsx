@@ -14,10 +14,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import Tooltip from 'app/components/tooltip';
 import {Client} from 'app/api';
-import {
-  addErrorMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
@@ -63,7 +60,7 @@ type State = {
   relayPiiConfig?: string;
   selectorSuggestions: Array<Suggestion>;
   eventIdInputValue?: string;
-  eventIdStatus: EventIdStatus,
+  eventIdStatus: EventIdStatus;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
@@ -150,7 +147,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     const {eventIdInputValue} = this.state;
 
     if (!eventIdInputValue) {
-      this.setState({selectorSuggestions: defaultSuggestions, eventIdStatus: EventIdStatus.NONE});
+      this.setState({
+        selectorSuggestions: defaultSuggestions,
+        eventIdStatus: EventIdStatus.NONE,
+      });
       return;
     }
 
@@ -163,27 +163,30 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
     const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
 
-    if(selectorSuggestions && selectorSuggestions.length > 0) {
+    if (selectorSuggestions && selectorSuggestions.length > 0) {
       this.setState({
         selectorSuggestions,
-        eventIdStatus: EventIdStatus.LOADED
+        eventIdStatus: EventIdStatus.LOADED,
       });
     } else {
-      this.setState({selectorSuggestions: defaultSuggestions, eventIdStatus: EventIdStatus.NOT_FOUND});
+      this.setState({
+        selectorSuggestions: defaultSuggestions,
+        eventIdStatus: EventIdStatus.NOT_FOUND,
+      });
     }
   };
 
-  handleEventIdChange = (event) => {
+  handleEventIdChange = event => {
     const newValue = event.target.value;
     const eventId = newValue.replace(/-/g, '').trim();
     this.setState({
       eventIdStatus: EventIdStatus.NONE,
       selectorSuggestions: defaultSuggestions,
-      eventIdInputValue: eventId || undefined
+      eventIdInputValue: eventId || undefined,
     });
   };
 
-  handleEventIdSubmit = (event) => {
+  handleEventIdSubmit = event => {
     event.preventDefault();
 
     const {eventIdInputValue} = this.state;
@@ -295,7 +298,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     if (isFormValid) {
       this.handleSubmit();
     } else {
-      addErrorMessage(t("Invalid rules form"));
+      addErrorMessage(t('Invalid rules form'));
     }
   };
 
@@ -313,23 +316,36 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     const {eventIdStatus} = this.state;
 
     switch (eventIdStatus) {
-      case EventIdStatus.LOADING: return "";
-      case EventIdStatus.INVALID: return t("That's not a valid event ID");
-      case EventIdStatus.NOT_FOUND: return t("Event ID not found in projects you have access to");
-      case EventIdStatus.LOADED: return t("Auto-completing based on this event ID");
-      default: return "";
+      case EventIdStatus.LOADING:
+        return '';
+      case EventIdStatus.INVALID:
+        return t("That's not a valid event ID");
+      case EventIdStatus.NOT_FOUND:
+        return t('Event ID not found in projects you have access to');
+      case EventIdStatus.LOADED:
+        return t('Auto-completing based on this event ID');
+      default:
+        return '';
     }
   }
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, savedRules, eventIdInputValue, selectorSuggestions, eventIdStatus} = this.state;
+    const {
+      rules,
+      savedRules,
+      eventIdInputValue,
+      selectorSuggestions,
+      eventIdStatus,
+    } = this.state;
     const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
           <PanelHeader hasButtons>
-            <Box minWidth="auto" flex="1">{t('Data Privacy Rules')}</Box>
+            <Box minWidth="auto" flex="1">
+              {t('Data Privacy Rules')}
+            </Box>
             <Box>
               <Tooltip title={this.getEventTooltipTitle()}>
                 <Form onSubmit={this.handleEventIdSubmit}>
