@@ -1925,7 +1925,7 @@ function routes() {
         </Route>
       </Route>
 
-      <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
+      <Route path="/:orgId/">
         <Route path=":projectId/settings/">
           <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
           <Redirect from="alerts/" to="/settings/:orgId/projects/:projectId/alerts/" />
