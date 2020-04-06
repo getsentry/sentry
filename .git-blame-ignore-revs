@@ -7,6 +7,8 @@
 # chore: blacken take 2 (#14360)
 95767d455b8004ec4b4c5026d84b64b6348e6d37
 
+# ref: remove unnecessary trailing commas in unpacks
+10e7add4a1244e36d8652a5a12017954c2715dbb
 
 # feat(lint): Update prettier (#16505)
 # Required to properly support nullish coalescence operator and optional chaining.
@@ -24,7 +26,6 @@ d467e8894478662e0ceee9b5137be4ee6620b60d
 # chore: Run prettier on .eslintrc #10433
 # https://github.com/getsentry/sentry/pull/10433
 a2df8eab9b802966c8af6d0d61e6f97b5fbd3882
-
 
 # build(prettier): Upgrade prettier to 1.7.4 #6459
 # https://github.com/getsentry/sentry/pull/6459
