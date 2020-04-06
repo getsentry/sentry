@@ -7,7 +7,7 @@ Our linter engine needs to run in 3 different scenarios:
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
 """
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 
 import os
@@ -100,7 +100,7 @@ def js_lint(file_list=None, parseable=False, format=False):
     eslint_wrapper_path = get_sentry_bin('eslint-travis-wrapper')
 
     if not os.path.exists(eslint_path):
-        print('!! Skipping JavaScript linting because eslint is not installed.')  # noqa: B314
+        sys.stdout.write("!! Skipping JavaScript linting because eslint is not installed.\n")
         return False
 
     js_file_list = get_js_files(file_list, snapshots=True)
@@ -131,7 +131,9 @@ def js_stylelint(file_list=None, parseable=False, format=False):
     stylelint_path = get_node_modules_bin('stylelint')
 
     if not os.path.exists(stylelint_path):
-        print('!! Skipping JavaScript styled-components linting because "stylelint" is not installed.')  # noqa: B314
+        sys.stdout.write(
+            '!! Skipping JavaScript styled-components linting because "stylelint" is not installed.\n'
+        )
         return False
 
     js_file_list = get_js_files(file_list, snapshots=False)
@@ -158,13 +160,17 @@ def yarn_check(file_list):
     if file_list is None or os.environ.get('SKIP_YARN_CHECK'):
         return False
 
-    if 'package.json' in file_list and 'yarn.lock' not in file_list:
-        print(    # noqa: B314
-            '\033[33m' + """Warning: package.json modified without accompanying yarn.lock modifications.
+    if "package.json" in file_list and "yarn.lock" not in file_list:
+        sys.stdout.write(
+            "\033[33m"
+            + """Warning: package.json modified without accompanying yarn.lock modifications.
 
 If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
 
-To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""" + '\033[0m')
+To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`"""
+            + "\033[0m"
+            + "\n"
+        )
         return True
 
     return False
@@ -172,7 +178,9 @@ To skip this check, run `SKIP_YARN_CHECK=1 git commit [options]`""" + '\033[0m')
 
 def is_prettier_valid(project_root, prettier_path):
     if not os.path.exists(prettier_path):
-        print('[sentry.lint] Skipping JavaScript formatting because prettier is not installed.', file=sys.stderr)  # noqa: B314
+        sys.stderr.write(
+            "[sentry.lint] Skipping JavaScript formatting because prettier is not installed.\n",
+        )
         return False
 
     # Get Prettier version from package.json
@@ -183,17 +191,17 @@ def is_prettier_valid(project_root, prettier_path):
             package_version = json.load(package_json)[
                 'devDependencies']['prettier']
         except KeyError:
-            print('!! Prettier missing from package.json', file=sys.stderr)  # noqa: B314
+            sys.stderr.write("!! Prettier missing from package.json\n")
             return False
 
     prettier_version = subprocess.check_output(
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
-        print(  # noqa: B314
-            u'[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
-                prettier_version,
-                package_version),
-            file=sys.stderr)
+        sys.stderr.write(
+            u"[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.\n".format(
+                prettier_version, package_version
+            ),
+        )
         return False
 
     return True
@@ -209,7 +217,9 @@ def js_lint_format(file_list=None):
     prettier_path = get_prettier_path()
 
     if not os.path.exists(eslint_path):
-        print('!! Skipping JavaScript linting and formatting because eslint is not installed.')  # noqa: B314
+        sys.stdout.write(
+            "!! Skipping JavaScript linting and formatting because eslint is not installed.\n"
+        )
         return False
 
     if not is_prettier_valid(project_root, prettier_path):
@@ -218,14 +228,16 @@ def js_lint_format(file_list=None):
     js_file_list = get_js_files(file_list)
 
     # manually exclude some bad files
-    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
-    cmd = [eslint_path, '--fix', ]
+    js_file_list = [x for x in js_file_list if "/javascript/example-project/" not in x]
+    cmd = [
+        eslint_path,
+        "--fix",
+    ]
 
-    has_package_json_errors = False if 'package.json' not in file_list else run_formatter(
-        [
-            prettier_path,
-            '--write',
-        ], ['package.json']
+    has_package_json_errors = (
+        False
+        if "package.json" not in file_list
+        else run_formatter([prettier_path, "--write"], ["package.json"])
     )
 
     has_errors = run_formatter(cmd, js_file_list)
@@ -240,7 +252,9 @@ def js_test(file_list=None):
     jest_path = get_node_modules_bin('jest')
 
     if not os.path.exists(jest_path):
-        print('[sentry.test] Skipping JavaScript testing because jest is not installed.')  # noqa: B314
+        sys.stdout.write(
+            "[sentry.test] Skipping JavaScript testing because jest is not installed.\n"
+        )
         return False
 
     js_file_list = get_js_files(file_list)
@@ -265,12 +279,7 @@ def less_format(file_list=None):
         return False
 
     less_file_list = get_less_files(file_list)
-    return run_formatter(
-        [
-            prettier_path,
-            '--write',
-        ], less_file_list
-    )
+    return run_formatter([prettier_path, "--write"], less_file_list)
 
 
 def run_formatter(cmd, file_list, prompt_on_changes=True):
@@ -287,16 +296,15 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     # this is not quite correct, but it at least represents what would be staged
     output = subprocess.check_output(['git', 'diff', '--color'] + file_list)
     if output:
-        print('[sentry.lint] applied changes from autoformatting')  # noqa: B314
-        print(output)  # noqa: B314
+        sys.stdout.write("[sentry.lint] applied changes from autoformatting\n")
+        sys.stdout.write(output)
         if prompt_on_changes:
-            with open('/dev/tty') as fp:
-                print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
-                if fp.readline().strip() not in ('Y', 'y', ''):
-                    print(  # noqa: B314
-                        '[sentry.lint] Unstaged changes have not been staged.', file=sys.stderr)
-                    if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
-                        print('[sentry.lint] Aborted!', file=sys.stderr)  # noqa: B314
+            with open("/dev/tty") as fp:
+                sys.stdout.write("\033[1m" + "Stage this patch and continue? [Y/n] " + "\033[0m\n")
+                if fp.readline().strip() not in ("Y", "y", ""):
+                    sys.stderr.write("[sentry.lint] Unstaged changes have not been staged.\n",)
+                    if not os.environ.get("SENTRY_SKIP_FORCE_PATCH"):
+                        sys.stderr.write("[sentry.lint] Aborted!\n")
                         sys.exit(1)
                 else:
                     status = subprocess.Popen(
