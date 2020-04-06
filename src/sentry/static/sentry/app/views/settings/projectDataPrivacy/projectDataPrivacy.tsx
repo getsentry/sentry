@@ -8,9 +8,7 @@ import {Organization} from 'app/types';
 
 import ProjectDataPrivacyContent from './projectDataPrivacyContent';
 
-const ProjectDataPrivacy = ({
-  organization,
-}: {organization: Organization}) => (
+const ProjectDataPrivacy = ({organization}: {organization: Organization}) => (
   <Feature
     features={['datascrubbers-v2']}
     organization={organization}
