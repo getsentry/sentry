@@ -164,9 +164,16 @@ export default function Tooltip({
       // And the right edge taking into account the chart left offset
       const rightEdge = chartLeft + pos[0] + tipWidth / 2;
 
-      // If the tooltip would go off viewport shift the tooltip over with a gap.
-      if (rightEdge >= window.innerWidth - 20) {
-        leftPos -= rightEdge - window.innerWidth + 20;
+      // If the tooltip would leave viewport on the right, pin it.
+      // and adjust the arrow position.
+      if (rightEdge >= window.innerWidth - 30) {
+        leftPos -= rightEdge - window.innerWidth + 30;
+        arrowPosition = `${pos[0] - leftPos}px`;
+      }
+
+      // If the tooltip would leave viewport on the left, pin it.
+      if (leftPos + chartLeft - 20 <= 0) {
+        leftPos = chartLeft * -1 + 20;
         arrowPosition = `${pos[0] - leftPos}px`;
       }
 
