@@ -113,7 +113,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
 
     if (Array.isArray(penultimateFieldValue)) {
       if (lastFieldValue?.type === 'binary') {
-        // returns filteres values
+        // returns filtered values
         return this.getFilteredSuggestions(lastFieldValue?.value, 'value');
       }
       // returns all binaries without any filter
@@ -121,7 +121,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
     }
 
     if (lastFieldValue?.type === 'value' && penultimateFieldValue?.type === 'unary') {
-      // returns filteres values
+      // returns filtered values
       return this.getFilteredSuggestions(lastFieldValue?.value, 'value');
     }
 
@@ -140,7 +140,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       (penultimateFieldValue?.type === 'value' && !lastFieldValue?.value) ||
       lastFieldValue?.type === 'binary'
     ) {
-      // returns filteres binaries
+      // returns filtered binaries
       return this.getFilteredSuggestions(lastFieldValue?.value, 'binary');
     }
 
