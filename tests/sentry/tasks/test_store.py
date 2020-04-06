@@ -193,6 +193,7 @@ def test_symbolicate_event_call_process_inline(
         data=symbolicated_data,
         data_has_changed=True,
         new_process_behavior=True,
+        from_symbolicate=True,
     )
 
 
