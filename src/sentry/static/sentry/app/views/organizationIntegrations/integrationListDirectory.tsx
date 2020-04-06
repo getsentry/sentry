@@ -34,6 +34,7 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
+import {logExperiment} from 'app/utils/analytics';
 
 import {POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
@@ -77,6 +78,13 @@ export class IntegrationListDirectory extends AsyncComponent<
       displayedList: [],
       selectedCategory: '',
     };
+  }
+
+  componentDidMount() {
+    logExperiment({
+      organization: this.props.organization,
+      key: 'IntegrationDirectoryCategoryExperiment',
+    });
   }
 
   onLoadAllEndpointsSuccess() {
@@ -275,7 +283,17 @@ export class IntegrationListDirectory extends AsyncComponent<
         return getCategoriesForIntegration(integration).includes(category);
       });
 
-      return this.setState({displayedList: result});
+      return this.setState({displayedList: result}, () =>
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.directory_category_selected',
+            eventName: 'Integrations: Directory Category Selected',
+            view: 'integrations_directory',
+            category,
+          },
+          this.props.organization
+        )
+      );
     });
   };
   // Rendering
@@ -364,6 +382,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -373,7 +392,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive() ? (
+                {getCategorySelectActive(this.props.organization) ? (
                   <SelectControl
                     name="select-categories"
                     onChange={this.onCategorySelect}
