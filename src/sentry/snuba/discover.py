@@ -68,39 +68,40 @@ def is_real_column(col):
     return True
 
 
-def find_reference_event(reference_event, real=True):
-    try:
-        project_slug, event_id = reference_event.slug.split(":")
-    except ValueError:
-        raise InvalidSearchQuery("Invalid reference event")
+def find_reference_event(reference_event):
+    columns = [field for field in reference_event.fields if is_real_column(field)]
+    return bulk_find_reference_event([reference_event], columns, "discover.find_reference_event")[0]
 
+
+def bulk_find_reference_event(reference_events, columns, referrer):
     # We don't need to run a query if there are no columns
-    columns = (
-        [field for field in reference_event.fields if is_real_column(field)]
-        if real
-        else reference_event.fields
-    )
     if not columns:
         return None
 
-    try:
-        project = Project.objects.get(
-            slug=project_slug,
-            organization=reference_event.organization,
-            status=ProjectStatus.VISIBLE,
-        )
-    except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event")
+    project_ids = set()
+    snuba_filter = eventstore.Filter(event_ids=[])
+    for reference_event in reference_events:
+        try:
+            project_slug, event_id = reference_event.slug.split(":")
+            project = Project.objects.get(
+                slug=project_slug,
+                organization=reference_event.organization,
+                status=ProjectStatus.VISIBLE,
+            )
+        except (ValueError, Project.DoesNotExist):
+            raise InvalidSearchQuery("Invalid reference event")
 
-    start = None
-    end = None
-    if reference_event.start:
-        start = reference_event.start - timedelta(seconds=5)
-    if reference_event.end:
-        end = reference_event.end + timedelta(seconds=5)
-    snuba_filter = eventstore.Filter(
-        start=start, end=end, project_ids=[project.id], event_ids=[event_id]
-    )
+        project_ids.add(project.id)
+        snuba_filter.event_ids.append(event_id)
+
+        start = reference_event.start - timedelta(seconds=5) if reference_event.start else None
+        if start and (snuba_filter.start is None or snuba_filter.start > start):
+            snuba_filter.start = start
+        end = reference_event.end + timedelta(seconds=5) if reference_event.end else None
+        if end and (snuba_filter.end is None or snuba_filter.end > end):
+            snuba_filter.end = end
+
+    snuba_filter.project_ids = list(project_ids)
     snuba_filter.update_with(resolve_field_list(columns, snuba_filter, auto_fields=False))
     snuba_filter, _ = resolve_discover_aliases(snuba_filter)
 
@@ -112,13 +113,13 @@ def find_reference_event(reference_event, real=True):
         end=snuba_filter.end,
         groupby=snuba_filter.groupby,
         dataset=Dataset.Discover,
-        limit=1,
-        referrer="discover.find_reference_event" if real else "discover.find_full_reference_event",
+        limit=len(reference_events),
+        referrer=referrer,
     )
-    if "error" in event or len(event["data"]) != 1:
+    if "error" in event or len(event["data"]) != len(reference_events):
         raise InvalidSearchQuery("Invalid reference event")
 
-    return event["data"][0]
+    return event["data"]
 
 
 def create_reference_event_conditions(reference_event):
@@ -755,7 +756,23 @@ def timeseries_query(
     if top_events:
         group_conditions = []
         event_fields = top_events[0].fields
-        top_events = {event.slug: find_reference_event(event, real=False) for event in top_events}
+        selected_columns += event_fields
+        columns = event_fields[:]
+
+        # Need to add id/project to match reference results to event slugs
+        if "id" not in event_fields:
+            columns.append("id")
+        if "project" not in event_fields:
+            columns.append("project")
+
+        top_events = {
+            "{}:{}".format(row["project"], row["event_id"]): {
+                key: value for key, value in six.iteritems(row)
+            }
+            for row in bulk_find_reference_event(top_events, columns, "discover.find_top_5_events")
+        }
+
+        group_conditions = []
         for field in event_fields:
             # project is handled by filter_keys already
             if field == "project":
@@ -787,7 +804,7 @@ def timeseries_query(
                         [
                             row
                             for row in result["data"]
-                            if all(row[field] == event[field] for field in event.keys())
+                            if all(row[field] == event[field] for field in snuba_filter.groupby)
                         ],
                         snuba_filter.start,
                         snuba_filter.end,

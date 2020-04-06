@@ -659,15 +659,21 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 3
 
         event1_data = data[self.event1_slug]
-        assert event1_data["values"] == {"message": "poof", "email": self.user.email}
+        values = event1_data["values"]
+        assert values["message"] == "poof"
+        assert values["email"] == self.user.email
         assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
         event2_data = data[self.event2_slug]
-        assert event2_data["values"] == {"message": "voof", "email": self.user2.email}
+        values = event2_data["values"]
+        assert values["message"] == "voof"
+        assert values["email"] == self.user2.email
         assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
 
         event3_data = data[self.event3_slug]
-        assert event3_data["values"] == {"message": "very bad", "email": "foo@example.com"}
+        values = event3_data["values"]
+        assert values["message"] == "very bad"
+        assert values["email"] == "foo@example.com"
         assert [attrs for time, attrs in event3_data["data"]] == [[{"count": 3}], [{"count": 3}]]
 
     def test_top_events_with_projects(self):
@@ -723,11 +729,15 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 2
 
         event1_data = data[self.event1_slug]
-        assert event1_data["values"] == {"message": "poof", "group_id": self.event1.group_id}
+        values = event1_data["values"]
+        assert values["message"] == "poof"
+        assert values["group_id"] == self.event1.group_id
         assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
 
         event2_data = data[self.event2_slug]
-        assert event2_data["values"] == {"message": "voof", "group_id": self.event2.group_id}
+        values = event2_data["values"]
+        assert values["message"] == "voof"
+        assert values["group_id"] == self.event2.group_id
         assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
 
     def test_top_events_with_functions(self):
@@ -753,11 +763,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         transaction_data = data[self.transaction_slug]
-        assert transaction_data["values"] == {
-            "transaction": self.transaction.transaction,
-            "avg_transaction_duration": duration * 1000.0,
-            "p99": duration * 1000.0,
-        }
+        values = transaction_data["values"]
+        assert values["transaction"] == self.transaction.transaction
+        assert values["avg_transaction_duration"] == duration * 1000.0
+        assert values["p99"] == duration * 1000.0
         assert [attrs for time, attrs in transaction_data["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
@@ -790,23 +799,21 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 2
 
         transaction_data = data[self.transaction_slug]
-        assert transaction_data["values"] == {
-            "transaction": self.transaction.transaction,
-            "avg_transaction_duration": 120000.0,
-            "p99": 120000.0,
-        }
+        values = transaction_data["values"]
+        assert values["transaction"] == self.transaction.transaction
+        assert values["avg_transaction_duration"] == 120000.0
+        assert values["p99"] == 120000.0
         assert [attrs for time, attrs in transaction_data["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
 
-        transaction_data = data[transaction2_slug]
-        assert transaction_data["values"] == {
-            "transaction": transaction2.transaction,
-            "avg_transaction_duration": 240000.0,
-            "p99": 240000.0,
-        }
-        assert [attrs for time, attrs in transaction_data["data"]] == [
+        transaction2_data = data[transaction2_slug]
+        values = transaction2_data["values"]
+        assert values["transaction"] == transaction2.transaction
+        assert values["avg_transaction_duration"] == 240000.0
+        assert values["p99"] == 240000.0
+        assert [attrs for time, attrs in transaction2_data["data"]] == [
             [{"count": 1}],
             [{"count": 0}],
         ]
