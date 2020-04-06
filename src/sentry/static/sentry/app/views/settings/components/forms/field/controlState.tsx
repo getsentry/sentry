@@ -8,7 +8,7 @@ import Spinner from 'app/views/settings/components/forms/spinner';
 type Props = {
   isSaving?: boolean;
   isSaved?: boolean;
-  error?: boolean;
+  error?: string | boolean;
 };
 
 /**

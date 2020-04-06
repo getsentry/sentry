@@ -55,7 +55,7 @@ type Props = {
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
    * be triggered quite frequently
    */
-  onBlur?: Function;
+  onBlur?: (value, event?) => void;
   onChange?: Function;
 };
 

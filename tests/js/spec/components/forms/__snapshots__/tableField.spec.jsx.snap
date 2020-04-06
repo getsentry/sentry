@@ -84,7 +84,6 @@ exports[`TableField renders renders with form context 1`] = `
             "column2": "Column 2",
           }
         }
-        formatMessageValue={false}
         name="fieldName"
       >
         <InputField
@@ -531,7 +530,6 @@ exports[`TableField renders renders without form context 1`] = `
       "column2": "Column 2",
     }
   }
-  formatMessageValue={false}
   name="fieldName"
 >
   <InputField

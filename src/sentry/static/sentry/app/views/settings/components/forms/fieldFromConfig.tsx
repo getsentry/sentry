@@ -26,7 +26,7 @@ type Props = {
   flexibleControlStateSize?: boolean;
   stacked?: boolean;
   inline?: boolean;
-
+  onBlur?: (value, event) => void;
   access?: Scope[];
 };
 

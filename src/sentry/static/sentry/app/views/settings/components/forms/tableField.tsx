@@ -14,19 +14,13 @@ import {IconAdd} from 'app/icons/iconAdd';
 const defaultProps = {
   addButtonText: t('Add Item'),
   allowEmpty: false,
-  // Since we're saving an object, there isn't a great way to render the
-  // change within the toast. Just turn off displaying the from/to portion of
-  // the message.
-  formatMessageValue: false,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
-//TODO(TS): properly type this since InputField['props'] is type any
 type Props = {
-  name?: string;
-  columnLabels: object;
-  columnKeys: string[];
+  columnLabels?: object;
+  columnKeys?: string[];
 } & DefaultProps &
   InputField['props'];
 
@@ -53,7 +47,10 @@ export default class TableField extends React.Component<Props> {
     allowEmpty: PropTypes.bool,
   };
 
-  static defaultProps = defaultProps;
+  static defaultProps = {
+    addButtonText: t('Add Item'),
+    allowEmpty: false,
+  };
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
@@ -73,7 +70,7 @@ export default class TableField extends React.Component<Props> {
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {id: ''});
 
     const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? props.value : [];
+    const value = valueIsEmpty ? (props.value as any[]) : [];
 
     const saveChanges = (nextValue: object[]) => {
       onChange(nextValue, []);
@@ -168,9 +165,14 @@ export default class TableField extends React.Component<Props> {
   };
 
   render() {
+    //We need formatMessageValue=false since we're saving an object
+    // and there isn't a great way to render the
+    // change within the toast. Just turn off displaying the from/to portion of
+    // the message
     return (
       <InputField
         {...this.props}
+        formatMessageValue={false}
         inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
         field={this.renderField}
       />

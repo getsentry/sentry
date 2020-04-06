@@ -26,12 +26,12 @@ export type FieldValue = any;
 
 type ConfirmKeyType = 'true' | 'false';
 
-// TODO(ts): A lot of these attribuets are missing correct types. We'll likely
+// TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
 type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
-  name?: string;
+  name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   required?: boolean;
   placeholder?: string | (() => string);
@@ -108,6 +108,12 @@ type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
     value?: Pick<RangeSlider['props'], 'value'>;
   };
 
+type TableType = {
+  type: 'table';
+  columnLabels: object;
+  columnKeys: string[];
+};
+
 export type Field = (
   | CustomType
   | SelectControlType
@@ -115,6 +121,7 @@ export type Field = (
   | TextareaType
   | RangeType
   | {type: typeof FieldType[number]}
+  | TableType
 ) &
   BaseField;
 

@@ -15,9 +15,36 @@ import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErr
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
-import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
+import FieldWrapper, {
+  Props as FieldWrapperProps,
+} from 'app/views/settings/components/forms/field/fieldWrapper';
 
-class Field extends React.Component {
+type ChildrenFunction = (props) => React.ReactNode;
+
+type Props = {
+  alignRight?: boolean;
+  required?: boolean;
+  visible?: boolean | ((props) => boolean);
+  disabled?: boolean | ((props) => boolean);
+  disabledReason?: string;
+  flexibleControlStateSize?: boolean;
+  label?: React.ReactNode;
+  help?: React.ReactNode | React.ReactElement | Function;
+  id?: string;
+  children?: React.ReactNode | ChildrenFunction;
+  controlClassName?: string;
+  style?: object;
+  error?: string;
+  validate?: Function; //TODO(TS): Do we need this?
+  className?: string; //Needed for styled components
+} & Omit<
+  FieldControl['props'],
+  'disabled' | 'inline' | 'className' | 'help' | 'errorState'
+> &
+  FieldWrapperProps &
+  Omit<ControlState['props'], 'error'>;
+
+class Field extends React.Component<Props> {
   static propTypes = {
     /**
      * Aligns Control to the right
@@ -140,7 +167,7 @@ class Field extends React.Component {
     } = otherProps;
     const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
-    let Control;
+    let Control: React.ReactNode;
 
     if (!isVisible) {
       return null;
@@ -162,7 +189,8 @@ class Field extends React.Component {
 
     // See comments in prop types
     if (typeof children === 'function') {
-      Control = children({
+      //need to cast b/c TS claims childen is not otherwise callable
+      Control = (children as ChildrenFunction)({
         ...otherProps,
         ...controlProps,
       });
