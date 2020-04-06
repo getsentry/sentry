@@ -10,7 +10,7 @@ import MarkPoint from 'app/components/charts/components/markPoint';
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
 
-type Data = [number, {count: number}[]][];
+type Data = [number, {count: number}[]];
 
 /**
  * So we'll have to see how this looks with real data, but echarts requires
@@ -25,7 +25,7 @@ type Data = [number, {count: number}[]][];
  * @param data Data array
  * @param needle the target timestamp
  */
-function getNearbyIndex(data: Data, needle: number) {
+function getNearbyIndex(data: Data[], needle: number) {
   // `data` is sorted, return the first index whose value (timestamp) is > `needle`
   const index = data.findIndex(([ts]) => ts > needle);
 
@@ -44,7 +44,7 @@ function getNearbyIndex(data: Data, needle: number) {
  * @param data Data array
  * @param index The (lower) index of the two points used to calculate the average
  */
-function getAverageBetweenPoints(data: Data, index: number) {
+function getAverageBetweenPoints(data: Data[], index: number) {
   if (index >= data.length - 1) {
     return getDataValue(data[data.length - 1]);
   } else if (index < 0) {
@@ -56,7 +56,7 @@ function getAverageBetweenPoints(data: Data, index: number) {
   }
 }
 
-function getDataValue(data: [number, {count: number}[]]) {
+function getDataValue(data: Data) {
   if (data === undefined || data[1] === undefined) {
     return 0;
   } else {
@@ -65,7 +65,7 @@ function getDataValue(data: [number, {count: number}[]]) {
 }
 
 type Props = {
-  data: Data;
+  data: Data[];
   aggregation: AlertRuleAggregations;
   detected: string;
   closed?: string;
