@@ -12,6 +12,7 @@ import {
   AppOrProviderOrPlugin,
   SentryApp,
   PluginWithProjectList,
+  DocumentIntegration,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -238,6 +239,9 @@ export const getCategoriesForIntegration = (
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);
   }
+  if (isDocumentIntegration(integration)) {
+    return getCategories(integration.features);
+  }
   return getCategories(integration.metadata.features);
 };
 
@@ -251,4 +255,10 @@ export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
+}
+
+export function isDocumentIntegration(
+  integration: AppOrProviderOrPlugin
+): integration is DocumentIntegration {
+  return integration.hasOwnProperty('docUrl');
 }

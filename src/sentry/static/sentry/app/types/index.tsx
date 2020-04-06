@@ -423,7 +423,8 @@ export type PluginWithProjectList = PluginNoProject & {
 export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
-  | PluginWithProjectList;
+  | PluginWithProjectList
+  | DocumentIntegration;
 
 export type DocumentIntegration = {
   slug: string;
