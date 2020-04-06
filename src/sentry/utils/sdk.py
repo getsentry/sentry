@@ -147,7 +147,7 @@ def configure_sdk():
             #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
 
-        if relay_transport:
+        if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
             # Record this before calling `is_current_event_safe` to make
             # numbers comparable to InternalTransport
             metrics.incr("internal.captured.events.relay")

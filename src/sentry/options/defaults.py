@@ -226,4 +226,9 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
 
-register("store.use-relay-dsn-sample-rate", default=0.0)  # unused
+# Killswitch for sending internal errors to the internal project or
+# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
+# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
+#
+# Note: A value that is neither 0 nor 1 is regarded as 0
+register("store.use-relay-dsn-sample-rate", default=1)
