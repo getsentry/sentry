@@ -70,7 +70,7 @@ class QueryCard extends React.PureComponent<Props> {
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.offWhite2};
   border-radius: 50%;
-  height: 100%;
+  height: min-content;
 `;
 
 const QueryCardContent = styled('div')`
