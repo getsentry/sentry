@@ -93,7 +93,9 @@ export default class Chart extends React.PureComponent<Props> {
 
     let closedCoordinate: any = undefined;
     const showClosedMarker =
-      data && closedTs && data[data.length - 1][0] >= closedTs ? true : false;
+      data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
+        ? true
+        : false;
     if (closedTs && showClosedMarker) {
       const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
       const closedYValue =
