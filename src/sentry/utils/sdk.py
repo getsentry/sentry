@@ -148,10 +148,8 @@ def configure_sdk():
             upstream_transport.capture_event(event)
 
         if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-            # Record this before calling `is_current_event_safe` to make
-            # numbers comparable to InternalTransport
-            metrics.incr("internal.captured.events.relay")
             if is_current_event_safe():
+                metrics.incr("internal.captured.events.relay")
                 relay_transport.capture_event(event)
             else:
                 metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
