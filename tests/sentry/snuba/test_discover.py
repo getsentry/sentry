@@ -1430,6 +1430,28 @@ class QueryTransformTest(TestCase):
             assert result["histogram_transaction_duration_10"] == exp
             assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_min_equal_max(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 869}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1_869"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1_869": 869, "count": 1}],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        assert results["data"][0]["histogram_transaction_duration_10"] == 869
+        assert results["data"][0]["count"] == 1
+
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
