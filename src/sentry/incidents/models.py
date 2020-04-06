@@ -274,6 +274,7 @@ class AlertRuleStatus(Enum):
     TRIGGERED = 1
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
+    ARCHIVED = 4
 
 
 class AlertRuleThresholdType(Enum):
@@ -296,6 +297,7 @@ class AlertRuleManager(BaseManager):
                 status__in=(
                     AlertRuleStatus.PENDING_DELETION.value,
                     AlertRuleStatus.DELETION_IN_PROGRESS.value,
+                    AlertRuleStatus.ARCHIVED.value,
                 )
             )
         )
