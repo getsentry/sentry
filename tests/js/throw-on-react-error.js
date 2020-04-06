@@ -6,9 +6,13 @@ const originalConsoleError = console.error;
 // List of `console.error` messages to ignore
 // (i.e. don't fail tests when we get these messages)
 const IGNORED_ERRORS = [
-  (message, ...args) => message?.includes('Warning: ') && args[0] === 'CreatableSelect',
+  (message, ...args) =>
+    typeof message === 'string' &&
+    message.includes('Warning: ') &&
+    args[0] === 'CreatableSelect',
   message =>
-    message?.includes(
+    typeof message === 'string' &&
+    message.includes(
       'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering.'
     ),
 ];
