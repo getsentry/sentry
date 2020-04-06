@@ -8,8 +8,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-
-import {generateEventDetailsRoute} from './utils';
+import {eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 
 type LinksType = {
   oldest: null;
@@ -41,10 +40,11 @@ function buildTargets(
     if (!eventSlug) {
       links[key] = null;
     } else {
-      links[key] = {
-        pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
-        query: eventView.generateQueryStringObject(),
-      };
+      links[key] = eventDetailsRouteWithEventView({
+        eventSlug,
+        eventView,
+        orgSlug: organization.slug,
+      });
     }
   });
 

@@ -6,6 +6,25 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.runner.decorators import configuration, log_options
 
+_DEFAULT_DAEMONS = {
+    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
+    "cron": ["sentry", "run", "cron", "--autoreload"],
+    "post-process-forwarder": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--loglevel=debug",
+        "--commit-batch-size=1",
+    ],
+    "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "server": ["sentry", "run", "web"],
+    "storybook": ["./bin/yarn", "storybook"],
+}
+
+
+def _get_daemon(name):
+    return (name, _DEFAULT_DAEMONS[name])
+
 
 @click.command()
 @click.option("--reload/--no-reload", default=True, help="Autoreloading of python files.")
@@ -23,6 +42,14 @@ from sentry.runner.decorators import configuration, log_options
 )
 @click.option("--environment", default="development", help="The environment name.")
 @click.option(
+    "--skip-daemons",
+    default=None,
+    required=False,
+    help="List (comma-delimited) of daemons not to start (values: {})".format(
+        ", ".join(sorted(_DEFAULT_DAEMONS.keys()))
+    ),
+)
+@click.option(
     "--experimental-spa/--no-experimental-spa",
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
@@ -32,8 +59,15 @@ from sentry.runner.decorators import configuration, log_options
 )
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
+def devserver(
+    reload, watchers, workers, experimental_spa, styleguide, prefix, environment, skip_daemons, bind
+):
     "Starts a lightweight web server for development."
+    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
+    if skip_daemons.difference(_DEFAULT_DAEMONS.keys()):
+        unrecognized_daemons = skip_daemons.difference(_DEFAULT_DAEMONS.keys())
+        raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_daemons)))
+
     if bind is None:
         # default configuration, the dev server address depends on weather we have a reverse proxy
         # in front that splits the requests between Relay and the dev server or we pass everything
@@ -161,29 +195,15 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
-        daemons += [
-            ("worker", ["sentry", "run", "worker", "-c", "1", "--autoreload"]),
-            ("cron", ["sentry", "run", "cron", "--autoreload"]),
-        ]
+        daemons += [_get_daemon("worker"), _get_daemon("cron")]
 
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [
-                (
-                    "post-process-forwarder",
-                    [
-                        "sentry",
-                        "run",
-                        "post-process-forwarder",
-                        "--loglevel=debug",
-                        "--commit-batch-size=1",
-                    ],
-                )
-            ]
+            daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [("ingest", ["sentry", "run", "ingest-consumer", "--all-consumer-types"])]
+        daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
@@ -227,16 +247,17 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
     server.prepare_environment()
-    daemons += [("server", ["sentry", "run", "web"])]
+    daemons += [_get_daemon("server")]
 
     if styleguide:
-        daemons += [("storybook", ["./bin/yarn", "storybook"])]
+        daemons += [_get_daemon("storybook")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
-        manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
+        if name not in skip_daemons:
+            manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)

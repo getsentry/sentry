@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
+import Feature from 'app/components/acl/feature';
 
 import ReleaseChartContainer from './chart';
 import Issues from './issues';
@@ -79,6 +80,7 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
+              disable={!hasHealthData}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
@@ -92,19 +94,21 @@ class ReleaseOverview extends AsyncView<Props> {
                         {...releaseStatsProps}
                       />
                     ) : (
-                      // TODO(releasesV2): feature flag?
-                      <DiscoverChartContainer
-                        organization={organization}
-                        selection={selection}
-                        location={location}
-                        api={api}
-                        router={router}
-                        version={version}
-                      />
+                      <Feature features={['discover-basic']}>
+                        <DiscoverChartContainer
+                          organization={organization}
+                          selection={selection}
+                          location={location}
+                          api={api}
+                          router={router}
+                          version={version}
+                        />
+                      </Feature>
                     )}
+
                     <Issues
                       orgId={organization.slug}
-                      projectId={project.id}
+                      selection={selection}
                       version={version}
                       location={location}
                     />
@@ -139,7 +143,7 @@ const ContentBox = styled('div')`
   flex: 1;
   background-color: white;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
     grid-column-gap: ${space(3)};
     grid-template-columns: minmax(470px, 1fr) minmax(220px, 280px);

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 const width = '36px';
-const FieldControlState = styled('div')<{flexibleControlStateSize: boolean}>`
+const FieldControlState = styled('div')<{flexibleControlStateSize?: boolean}>`
   display: flex;
   position: relative;
   ${p => !p.flexibleControlStateSize && `width: ${width}`};
