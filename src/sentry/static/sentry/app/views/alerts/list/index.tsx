@@ -129,7 +129,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderBody() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {orgId} = this.props.params;
-
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
     );
@@ -137,6 +136,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       incidentList && incidentList.length === 0 && hasAlertRule === undefined
         ? true
         : false;
+    const showLoadingIndicator = loading || checkingForAlertRules;
 
     return (
       <React.Fragment>
@@ -156,8 +156,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </PanelHeader>
 
           <PanelBody>
-            {(loading || checkingForAlertRules) && <LoadingIndicator />}
-            {!loading && (
+            {showLoadingIndicator && <LoadingIndicator />}
+            {!showLoadingIndicator && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
                 <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
