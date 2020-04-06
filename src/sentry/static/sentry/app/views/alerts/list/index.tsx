@@ -134,7 +134,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       flatten(incidentList?.map(({projects}) => projects))
     );
     const checkingForAlertRules =
-      incidentList.length === 0 && hasAlertRule === undefined ? true : false;
+      incidentList && incidentList.length === 0 && hasAlertRule === undefined
+        ? true
+        : false;
 
     return (
       <React.Fragment>
