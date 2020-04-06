@@ -15,7 +15,7 @@ export default function getGuidesContent(): GuidesContent {
           target: 'issue_title',
           description: t(
             `No one likes a product tour. But stick with us, and you'll find it a
-                whole lot easier to use Sentry's Issue details page.`
+              whole lot easier to use Sentry's Issue details page.`
           ),
         },
         {
@@ -38,7 +38,7 @@ export default function getGuidesContent(): GuidesContent {
           title: t('Identify Your Issues'),
           target: 'issue_number',
           description: tct(
-            `You've got a lot of Issues. That's fine. Use the Issue number in your commit mesage,
+            `You've got a lot of Issues. That's fine. Use the Issue number in your commit message,
                 and we'll automatically resolve the Issue when your code is deployed. [link:Learn more]`,
             {link: <ExternalLink href="https://docs.sentry.io/learn/releases/" />}
           ),
