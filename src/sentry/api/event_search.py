@@ -1373,6 +1373,8 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             fields.append("project.id")
 
     for field in fields:
+        if isinstance(field, six.string_types) and field.strip() == "":
+            continue
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
             columns.extend(column_additions)

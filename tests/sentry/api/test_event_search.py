@@ -1257,6 +1257,11 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
 
+    def test_blank_field_ignored(self):
+        fields = ["", "title", "   "]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == ["title", "id", "project.id"]
+
     def test_automatic_fields_no_aggregates(self):
         fields = ["event.type", "message"]
         result = resolve_field_list(fields, eventstore.Filter())
