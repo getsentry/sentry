@@ -211,8 +211,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
-    project = Project.objects.get_from_cache(id=project_id)
-
     symbolication_function = get_symbolication_function(data)
 
     has_changed = False
@@ -229,8 +227,6 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             has_changed = True
 
     except RetrySymbolication as e:
-        error_logger.warn("retry symbolication")
-
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
                 "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
@@ -267,15 +263,16 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     if has_changed:
         default_cache.set(cache_key, data, 3600)
 
-    submit_process(
-        project,
-        from_reprocessing,
-        cache_key,
-        event_id,
-        start_time,
-        data,
-        has_changed,
+    process_task = process_event_from_reprocessing if from_reprocessing else process_event
+    _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_task,
+        data=data,
+        data_has_changed=has_changed,
         new_process_behavior=True,
+        from_symbolicate=True,
     )
 
 
@@ -374,6 +371,7 @@ def _do_process_event(
     data=None,
     data_has_changed=None,
     new_process_behavior=None,
+    from_symbolicate=False,
 ):
     from sentry.plugins.base import plugins
 
@@ -411,7 +409,8 @@ def _do_process_event(
             # Event enhancers.  These run before anything else.
             for plugin in plugins.all(version=2):
                 with metrics.timer(
-                    "tasks.store.process_event.enhancers", tags={"plugin": plugin.slug}
+                    "tasks.store.process_event.enhancers",
+                    tags={"plugin": plugin.slug, "from_symbolicate": from_symbolicate},
                 ):
                     enhancers = safe_execute(plugin.get_event_enhancers, data=data)
                     for enhancer in enhancers or ():
@@ -423,7 +422,9 @@ def _do_process_event(
                             has_changed = True
 
         # Stacktrace based event processors.
-        with metrics.timer("tasks.store.process_event.stacktraces"):
+        with metrics.timer(
+            "tasks.store.process_event.stacktraces", tags={"from_symbolicate": from_symbolicate}
+        ):
             new_data = process_stacktraces(data)
         if new_data is not None:
             has_changed = True
@@ -480,7 +481,9 @@ def _do_process_event(
         and options.get("processing.can-use-scrubbers")
         and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
     ):
-        with metrics.timer("tasks.store.datascrubbers.scrub"):
+        with metrics.timer(
+            "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
+        ):
             project_config = get_project_config(project)
 
             new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
@@ -493,7 +496,10 @@ def _do_process_event(
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        with metrics.timer("tasks.store.process_event.preprocessors", tags={"plugin": plugin.slug}):
+        with metrics.timer(
+            "tasks.store.process_event.preprocessors",
+            tags={"plugin": plugin.slug, "from_symbolicate": from_symbolicate},
+        ):
             processors = safe_execute(
                 plugin.get_event_preprocessors, data=data, _with_transaction=False
             )
