@@ -4,10 +4,10 @@ import React from 'react';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
-import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -73,7 +73,7 @@ class DataExport extends React.Component<Props, State> {
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <StyledBetaButton
+          <NewButton
             size="small"
             priority="default"
             title="You can get on with your life. We'll email you when your data's ready."
@@ -81,9 +81,9 @@ class DataExport extends React.Component<Props, State> {
             disabled
           >
             {t("We're working on it...")}
-          </StyledBetaButton>
+          </NewButton>
         ) : (
-          <StyledBetaButton
+          <NewButton
             onClick={this.startDataExport}
             disabled={disabled || false}
             size="small"
@@ -92,30 +92,27 @@ class DataExport extends React.Component<Props, State> {
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}
-          </StyledBetaButton>
+          </NewButton>
         )}
       </Feature>
     );
   }
 }
 
-const BetaButton = ({children, ...buttonProps}) => (
+const NewButton = ({children, ...buttonProps}) => (
   <Button {...buttonProps}>
     {children}
-    <span id="beta-tag">
-      <BetaTag title="" />
-    </span>
+    <NewTag>{t('NEW')}</NewTag>
   </Button>
 );
 
-const StyledBetaButton = styled(BetaButton)`
-  position: relative;
-  #beta-tag {
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin: -10px -20px 0 0;
-  }
+const NewTag = styled('span')`
+  font-size: 9px;
+  padding: 3px ${space(1)};
+  margin: -3px -3px -3px ${space(0.75)};
+  background: ${p => p.theme.green};
+  color: ${p => p.theme.white};
+  border-radius: 20px;
 `;
 
 export {DataExport};
