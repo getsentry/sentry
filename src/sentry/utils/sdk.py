@@ -123,9 +123,9 @@ def configure_sdk():
 
     if relay_dsn:
         relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
-    elif internal_project_key and internal_project_key.dsn_public:
+    elif internal_project_key and internal_project_key.dsn_private:
         relay_transport = make_transport(
-            get_options(dsn=internal_project_key.dsn_public, **sdk_options)
+            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
         )
     else:
         relay_transport = None

@@ -1,102 +1,110 @@
 from __future__ import absolute_import, print_function
 
-from sentry_sdk import Hub
+import pytest
+
+from sentry_sdk import Hub, last_event_id
 
 from django.conf import settings
 from sentry.utils.sdk import configure_sdk, bind_organization_context
 from sentry.utils.compat import mock
 from sentry.app import raven
 
-from sentry.eventstore.models import Event
-from sentry.testutils import TestCase, assert_mock_called_once_with_partial
-from sentry import nodestore
+from sentry import eventstore
+from sentry.testutils import assert_mock_called_once_with_partial
+from sentry.testutils.relay import adjust_settings_for_relay_tests
 
 
-class SentryInternalClientTest(TestCase):
-    def test_simple(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
+@pytest.fixture
+def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
+    adjust_settings_for_relay_tests(settings)
+    settings.SENTRY_ENDPOINT = relay_server["url"]
 
-        with self.tasks():
-            event_id = raven.captureMessage("internal client test")
+    configure_sdk()
 
-        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+    wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
-        assert event["project"] == settings.SENTRY_PROJECT
-        assert event["event_id"] == event_id
-        assert event["logentry"]["formatted"] == "internal client test"
+    def inner(*args, **kwargs):
+        event_id = raven.captureMessage(*args, **kwargs)
+        Hub.current.client.flush()
 
-    def test_recursion_breaker(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
-
-        # If this test terminates at all then we avoided recursion.
-        with self.tasks():
-            with mock.patch(
-                "sentry.event_manager.EventManager.save", side_effect=ValueError("oh no!")
-            ) as save:
-                event_id = raven.captureMessage("internal client test")
-
-        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
-        assert event is None
-
-        assert_mock_called_once_with_partial(
-            save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(event_id)
+        return wait_for_ingest_consumer(
+            lambda: eventstore.get_event_by_id(settings.SENTRY_PROJECT, event_id)
         )
 
-    def test_encoding(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
+    return inner
 
-        class NotJSONSerializable:
-            pass
 
-        with self.tasks():
-            event_id = raven.captureMessage(
-                "check the req", extra={"request": NotJSONSerializable()}
-            )
+@pytest.mark.django_db
+def test_simple(post_event_with_sdk):
+    event = post_event_with_sdk("internal client test")
 
-        event = nodestore.get(Event.generate_node_id(settings.SENTRY_PROJECT, event_id))
+    assert event
+    assert event.data["project"] == settings.SENTRY_PROJECT
+    assert event.data["event_id"] == last_event_id()
+    assert event.data["logentry"]["formatted"] == "internal client test"
 
-        assert event["project"] == settings.SENTRY_PROJECT
-        assert event["logentry"]["formatted"] == "check the req"
-        assert "NotJSONSerializable" in event["extra"]["request"]
 
-    def test_bind_organization_context(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
+@pytest.mark.django_db
+def test_recursion_breaker(post_event_with_sdk):
+    # If this test terminates at all then we avoided recursion.
+    with mock.patch(
+        "sentry.event_manager.EventManager.save", side_effect=ValueError("oh no!")
+    ) as save:
+        with pytest.raises(ValueError):
+            post_event_with_sdk("internal client test")
 
-        org = self.create_organization()
-        bind_organization_context(org)
+    assert_mock_called_once_with_partial(
+        save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(last_event_id())
+    )
 
-        assert Hub.current.scope._tags["organization"] == org.id
-        assert Hub.current.scope._tags["organization.slug"] == org.slug
-        assert Hub.current.scope._contexts["organization"] == {"id": org.id, "slug": org.slug}
 
-    def test_bind_organization_context_with_callback(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
+@pytest.mark.django_db
+def test_encoding(post_event_with_sdk):
+    class NotJSONSerializable:
+        pass
 
-        org = self.create_organization()
+    event = post_event_with_sdk("check the req", extra={"request": NotJSONSerializable()})
 
-        def add_context(scope, organization, **kwargs):
-            scope.set_tag("organization.test", "1")
+    assert event.data["project"] == settings.SENTRY_PROJECT
+    assert event.data["logentry"]["formatted"] == "check the req"
+    assert "NotJSONSerializable" in event.data["extra"]["request"]
 
-        with self.settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
-            bind_organization_context(org)
 
-        assert Hub.current.scope._tags["organization.test"] == "1"
+@pytest.mark.django_db
+def test_bind_organization_context(default_organization):
+    configure_sdk()
 
-    def test_bind_organization_context_with_callback_error(self):
-        configure_sdk()
-        Hub.current.bind_client(Hub.main.client)
+    bind_organization_context(default_organization)
 
-        org = self.create_organization()
+    assert Hub.current.scope._tags["organization"] == default_organization.id
+    assert Hub.current.scope._tags["organization.slug"] == default_organization.slug
+    assert Hub.current.scope._contexts["organization"] == {
+        "id": default_organization.id,
+        "slug": default_organization.slug,
+    }
 
-        def add_context(scope, organization, **kwargs):
-            1 / 0
 
-        with self.settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
-            bind_organization_context(org)
+@pytest.mark.django_db
+def test_bind_organization_context_with_callback(settings, default_organization):
+    configure_sdk()
 
-        assert Hub.current.scope._tags["organization"] == org.id
+    def add_context(scope, organization, **kwargs):
+        scope.set_tag("organization.test", "1")
+
+    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
+    bind_organization_context(default_organization)
+
+    assert Hub.current.scope._tags["organization.test"] == "1"
+
+
+@pytest.mark.django_db
+def test_bind_organization_context_with_callback_error(settings, default_organization):
+    configure_sdk()
+
+    def add_context(scope, organization, **kwargs):
+        1 / 0
+
+    settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
+    bind_organization_context(default_organization)
+
+    assert Hub.current.scope._tags["organization"] == default_organization.id
