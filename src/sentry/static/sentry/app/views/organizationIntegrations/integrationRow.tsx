@@ -12,19 +12,20 @@ import IntegrationStatus from './integrationStatus';
 
 type Props = {
   organization: Organization;
-  type: 'plugin' | 'firstParty' | 'sentryApp';
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration';
   slug: string;
   displayName: string;
-  status: IntegrationInstallationStatus;
+  status?: IntegrationInstallationStatus;
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
-  categories?: string[];
+  categories: string[];
 };
 
 const urlMap = {
   plugin: 'plugins',
   firstParty: 'integrations',
   sentryApp: 'sentry-apps',
+  documentIntegration: 'document-integrations',
 };
 
 const IntegrationRow = (props: Props) => {
@@ -48,11 +49,20 @@ const IntegrationRow = (props: Props) => {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
+    //TODO: Use proper translations
     return configurations > 0 ? (
       <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
         configurations > 1 ? 's' : ''
       }`}</StyledLink>
     ) : null;
+  };
+
+  const renderStatus = () => {
+    //status should be undefined for document integrations
+    if (status) {
+      return <IntegrationStatus status={status} />;
+    }
+    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
   };
 
   return (
@@ -62,7 +72,7 @@ const IntegrationRow = (props: Props) => {
         <Container>
           <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
           <IntegrationDetails>
-            <IntegrationStatus status={status} />
+            {renderStatus()}
             {renderDetails()}
           </IntegrationDetails>
         </Container>
@@ -117,6 +127,10 @@ const StyledLink = styled(Link)`
   }
 `;
 
+const LearnMore = styled(Link)`
+  color: ${p => p.theme.gray2};
+`;
+
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
@@ -136,9 +150,15 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
 `;
 
 const CategoryTag = styled(
-  ({priority, category, ...p}: {category: string; priority: boolean; theme?: any}) => (
-    <div {...p}>{category}</div>
-  )
+  ({
+    priority: _priority,
+    category,
+    ...p
+  }: {
+    category: string;
+    priority: boolean;
+    theme?: any;
+  }) => <div {...p}>{category}</div>
 )`
   display: flex;
   flex-direction: row;

@@ -43,17 +43,22 @@ describe('IntegrationListDirectory', function() {
       );
     });
 
-    it('shows installed integrations at the top', async function() {
+    it('shows installed integrations at the top in order of weight', async function() {
       expect(wrapper.find('SearchInput').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(6);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(11);
 
       [
         'bitbucket',
-        'my-headband-washer-289499',
         'pagerduty',
-        'amazon-sqs',
+        'my-headband-washer-289499',
         'clickup',
+        'asayer',
+        'datadog',
+        'fullstory',
+        'msteams',
+        'rocketchat',
+        'amazon-sqs',
         'la-croix-monitor',
       ].map((name, index) =>
         expect(

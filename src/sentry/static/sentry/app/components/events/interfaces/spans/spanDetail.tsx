@@ -11,10 +11,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import {
-  generateEventSlug,
-  generateEventDetailsRoute,
-} from 'app/views/eventsV2/eventDetails/utils';
+import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {assert} from 'app/types/utils';
@@ -110,7 +107,7 @@ class SpanDetail extends React.Component<Props, State> {
     if (this.state.transactionResults.length === 1) {
       const {eventView} = this.props;
 
-      const parentTransactionLink = generateEventDetailsRoute({
+      const parentTransactionLink = eventDetailsRoute({
         eventSlug: generateSlug(this.state.transactionResults[0]),
         orgSlug: this.props.orgId,
       });
