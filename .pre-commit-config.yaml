@@ -21,7 +21,7 @@ repos:
       files: \.py$
       log_file: '.artifacts/flake8.pycodestyle.log'
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 19.10b0
     hooks:
     - id: black
       types: [python]
