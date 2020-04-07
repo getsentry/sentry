@@ -103,29 +103,27 @@ class KeyTransactionButton extends React.Component<Props, State> {
     const projects = eventView.project as number[];
 
     if (!this.state.isKeyTransaction) {
-      saveKeyTransaction(api, organization.slug, projects, transactionName)
-        .then(() => {
-          this.setState({
-            isKeyTransaction: true,
-          });
-        })
-        .catch(() => {
-          this.setState({
-            isKeyTransaction: false,
-          });
+      this.setState({
+        isKeyTransaction: true,
+      });
+
+      saveKeyTransaction(api, organization.slug, projects, transactionName).catch(() => {
+        this.setState({
+          isKeyTransaction: false,
         });
+      });
     } else {
-      deleteKeyTransaction(api, organization.slug, projects, transactionName)
-        .then(() => {
-          this.setState({
-            isKeyTransaction: false,
-          });
-        })
-        .catch(() => {
+      this.setState({
+        isKeyTransaction: false,
+      });
+
+      deleteKeyTransaction(api, organization.slug, projects, transactionName).catch(
+        () => {
           this.setState({
             isKeyTransaction: true,
           });
-        });
+        }
+      );
     }
   };
 
