@@ -116,7 +116,9 @@ export default class TableField extends React.Component<Props> {
           <Alert type="error">
             <span
               dangerouslySetInnerHTML={{
-                __html: singleLineRenderer(confirmDeleteMessage || ''),
+                __html: singleLineRenderer(
+                  confirmDeleteMessage || 'Are you sure you want to delete this item?'
+                ),
               }}
             />
           </Alert>
