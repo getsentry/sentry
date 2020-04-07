@@ -19,6 +19,7 @@ const DataprivacyRulesPanelHeader = (props: Props) => (
 export default DataprivacyRulesPanelHeader;
 
 const StyledPanelHeader = styled(PanelHeader)`
+  padding-right: ${space(2)};
   display: grid;
   grid-gap: ${space(1)};
   grid-template-rows: 1fr 1fr;

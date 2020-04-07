@@ -2,12 +2,12 @@ import React from 'react';
 import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 
-import SentryTypes from 'app/sentryTypes';
 import {t, tct} from 'app/locale';
 import {Panel, PanelAlert, PanelBody} from 'app/components/panels';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
+import SentryTypes from 'app/sentryTypes';
 
 import {EventIdFieldStatus} from './dataPrivacyRulesEventIdField';
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
@@ -145,22 +145,32 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
     this.setState({eventIdStatus: EventIdFieldStatus.LOADING});
 
-    const rawSuggestions = await this.api.requestPromise(
-      `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
-      {method: 'GET', query: {project: project?.id, eventId: eventIdInputValue}}
-    );
+    try {
+      const query: {projectId?: string; eventId: string} = {eventId: eventIdInputValue};
+      if (project?.id) {
+        query.projectId = project.id;
+      }
+      const rawSuggestions = await this.api.requestPromise(
+        `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
+        {method: 'GET', query}
+      );
+      const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
 
-    const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
+      if (selectorSuggestions && selectorSuggestions.length > 0) {
+        this.setState({
+          selectorSuggestions,
+          eventIdStatus: EventIdFieldStatus.LOADED,
+        });
+        return;
+      }
 
-    if (selectorSuggestions && selectorSuggestions.length > 0) {
-      this.setState({
-        selectorSuggestions,
-        eventIdStatus: EventIdFieldStatus.LOADED,
-      });
-    } else {
       this.setState({
         selectorSuggestions: defaultSuggestions,
         eventIdStatus: EventIdFieldStatus.NOT_FOUND,
+      });
+    } catch {
+      this.setState({
+        eventIdStatus: EventIdFieldStatus.ERROR,
       });
     }
   };
