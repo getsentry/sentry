@@ -1056,6 +1056,23 @@ function routes() {
         />
 
         <Route
+          path="/organizations/:orgId/dashboards/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
+          }
+          component={errorHandler(LazyLoad)}
+        >
+          <IndexRoute
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+
+        <Route
           path="/organizations/:orgId/user-feedback/"
           componentPromise={() =>
             import(/* webpackChunkName: "UserFeedback" */ 'app/views/userFeedback')
@@ -1406,22 +1423,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-          <Route
-            path="/organizations/:orgId/dashboards/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "OverviewDashboard" */ 'app/views/dashboards/overviewDashboard'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>

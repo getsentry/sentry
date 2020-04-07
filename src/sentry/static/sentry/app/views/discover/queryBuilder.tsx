@@ -56,7 +56,8 @@ export interface QueryBuilder {
  */
 export default function createQueryBuilder(
   initial = {},
-  organization: Organization
+  organization: Organization,
+  specificProjects?: Project[]
 ): QueryBuilder {
   const api = new Client();
   let query = applyDefaults(initial);
@@ -65,7 +66,10 @@ export default function createQueryBuilder(
     query.range = DEFAULT_STATS_PERIOD;
   }
 
-  const defaultProjects = organization.projects.filter(projects => projects.isMember);
+  // TODO(lightweight-org): This needs to be refactored so that queries
+  // do not depend on organization.projects
+  const projectsToUse = specificProjects ?? organization.projects;
+  const defaultProjects = projectsToUse.filter(projects => projects.isMember);
 
   const defaultProjectIds = getProjectIds(defaultProjects);
 
@@ -73,7 +77,7 @@ export default function createQueryBuilder(
     ConfigStore.get('user').isSuperuser || organization.access.includes('org:admin');
 
   const projectsToFetchTags = getProjectIds(
-    hasGlobalProjectAccess ? organization.projects : defaultProjects
+    hasGlobalProjectAccess ? projectsToUse : defaultProjects
   );
 
   const columns = COLUMNS.map(col => ({...col, isTag: false}));
