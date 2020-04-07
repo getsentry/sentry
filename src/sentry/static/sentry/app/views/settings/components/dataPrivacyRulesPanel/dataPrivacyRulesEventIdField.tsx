@@ -77,6 +77,9 @@ const TooltipContent = styled('div')`
 const StyledTextField = styled(TextField)`
   flex: 1;
   font-weight: 400;
+  input {
+    height: 34px;
+  }
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     :first-child {
       margin-bottom: 0;
