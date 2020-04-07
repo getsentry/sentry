@@ -26,6 +26,7 @@ from sentry.models import (
 from sentry.ownership import grammar
 from sentry.ownership.grammar import dump_schema, Matcher, Owner
 from sentry.plugins.base import Notification
+from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.email import MessageBuilder
@@ -501,3 +502,24 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         msg = mail.outbox[0]
 
         assert msg.subject.startswith("[Example prefix]")
+
+
+class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
+    def test_normal(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        futures = [RuleFuture(rule, {})]
+        with mock.patch.object(self.adapter, "notify") as notify:
+            self.adapter.rule_notify(event, futures)
+            notify.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest(self, digests):
+        digests.enabled.return_value = True
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        futures = [RuleFuture(rule, {})]
+        self.adapter.rule_notify(event, futures)
+        digests.add.call_count == 1

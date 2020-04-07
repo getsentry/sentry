@@ -28,6 +28,9 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     mail_adapter = MailAdapter()
 
+    def rule_notify(self, event, futures):
+        return self.mail_adapter.rule_notify(event, futures)
+
     def _send_mail(self, *args, **kwargs):
         return self.mail_adapter._send_mail(*args, **kwargs)
 
