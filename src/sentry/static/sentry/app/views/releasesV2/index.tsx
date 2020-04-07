@@ -1,14 +1,19 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {PageContent} from 'app/styles/organization';
 import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = {
+import {switchReleasesVersion} from './utils';
+
+type RouteParams = {
+  orgId: string;
+};
+
+type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
@@ -17,12 +22,18 @@ class ReleasesContainer extends React.Component<Props> {
     organization: SentryTypes.Organization.isRequired,
   };
 
+  componentDidMount() {
+    const {organization} = this.props;
+
+    if (!organization.features.includes('releases-v2')) {
+      switchReleasesVersion('1', this.props.organization.id);
+      location.reload();
+    }
+  }
+
   renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
+    // we will redirect to v1
+    return <Blank />;
   }
 
   render() {
@@ -39,5 +50,9 @@ class ReleasesContainer extends React.Component<Props> {
     );
   }
 }
+
+const Blank = styled('div')`
+  height: 100vh;
+`;
 
 export default withOrganization(ReleasesContainer);

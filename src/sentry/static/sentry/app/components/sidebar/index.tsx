@@ -39,6 +39,7 @@ import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import {logExperiment} from 'app/utils/analytics';
 import {Organization} from 'app/types';
+import {usesNewReleases} from 'app/views/releasesV2/utils';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -311,6 +312,20 @@ class Sidebar extends React.Component<Props, State> {
     return sidebarState;
   }
 
+  /**
+   * Determine which version of releases to show
+   */
+  hasNewReleases() {
+    const {organization} = this.props;
+
+    // Bail as we can't do any more checks.
+    if (!organization || !organization.features) {
+      return false;
+    }
+
+    return organization.features.includes('releases-v2') && usesNewReleases();
+  }
+
   render() {
     const {organization, collapsed} = this.props;
     const {currentPanel, showPanel, horizontal} = this.state;
@@ -443,40 +458,20 @@ class Sidebar extends React.Component<Props, State> {
                       id="alerts"
                     />
                   </Feature>
-                  <Feature
-                    features={['releases-v2']}
-                    organization={organization}
-                    renderDisabled={() => (
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            `/organizations/${organization.slug}/releases/`,
-                            evt
-                          )
-                        }
-                        icon={<IconReleases size="md" />}
-                        label={t('Releases')}
-                        to={`/organizations/${organization.slug}/releases/`}
-                        id="releases"
-                      />
-                    )}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/releases-v2/`,
-                          evt
-                        )
-                      }
-                      icon={<IconReleases size="md" />}
-                      label={t('Releases')}
-                      to={`/organizations/${organization.slug}/releases-v2/`}
-                      id="releasesv2"
-                      isBeta
-                    />
-                  </Feature>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(
+                        `/organizations/${organization.slug}/releases/`,
+                        evt
+                      )
+                    }
+                    icon={<IconReleases size="md" />}
+                    label={t('Releases')}
+                    to={`/organizations/${organization.slug}/releases/`}
+                    id="releases"
+                    isBeta={this.hasNewReleases()}
+                  />
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>

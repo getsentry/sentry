@@ -19,8 +19,8 @@ import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
-import Link from 'app/components/links/link';
 import Feature from 'app/components/acl/feature';
+import {switchReleasesVersion} from 'app/views/releasesV2/utils';
 
 import {getQuery} from './utils';
 import ReleaseLanding from './releaseLanding';
@@ -91,6 +91,10 @@ class OrganizationReleases extends AsyncView {
     );
     return activeProjects.some(project => !!project.latestRelease);
   }
+
+  handleGoToNewReleases = () => {
+    switchReleasesVersion('2', this.props.organization.id);
+  };
 
   renderStreamBody() {
     const {organization} = this.props;
@@ -180,7 +184,10 @@ class OrganizationReleases extends AsyncView {
             </Panel>
             <Pagination pageLinks={this.state.releaseListPageLinks} />
             <Feature features={['releases-v2']} organization={organization}>
-              <SwitchLink to={`/organizations/${organization.slug}/releases-v2/`}>
+              <SwitchLink
+                href={`/organizations/${organization.slug}/releases/`}
+                onClick={this.handleGoToNewReleases}
+              >
                 {t('Go to New Releases')}
               </SwitchLink>
             </Feature>
@@ -191,7 +198,7 @@ class OrganizationReleases extends AsyncView {
   }
 }
 
-const SwitchLink = styled(Link)`
+const SwitchLink = styled('a')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-left: ${space(1)};
 `;

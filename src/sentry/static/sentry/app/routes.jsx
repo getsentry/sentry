@@ -20,6 +20,7 @@ import SettingsProjectProvider from 'app/views/settings/components/settingsProje
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import errorHandler from 'app/utils/errorHandler';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
+import {usesNewReleases} from 'app/views/releasesV2/utils';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -1571,26 +1572,26 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          <Route
-            path="/organizations/:orgId/releases-v2/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
+          {/*
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          */}
+          {usesNewReleases() ? (
             <Route
-              path=":release/"
+              path="/organizations/:orgId/releases/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
+                  /* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2'
                 )
               }
               component={errorHandler(LazyLoad)}
@@ -1598,40 +1599,136 @@ function routes() {
               <IndexRoute
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                    /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
                   )
                 }
                 component={errorHandler(LazyLoad)}
               />
               <Route
-                path="commits/"
+                path=":release/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                    /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
                   )
                 }
                 component={errorHandler(LazyLoad)}
-              />
-              <Route
-                path="artifacts/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-              <Route
-                path="files-changed/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
+              >
+                <IndexRoute
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="commits/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="artifacts/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="files-changed/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+              </Route>
             </Route>
-          </Route>
+          ) : (
+            <React.Fragment>
+              <Route
+                path="/organizations/:orgId/releases/"
+                componentPromise={() =>
+                  import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="/organizations/:orgId/releases/:version/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleaseDetail" */ 'app/views/releases/detail'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              >
+                <IndexRoute
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleaseOverview" */ 'app/views/releases/detail/releaseOverview'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="new-events/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleaseNewEvents" */ 'app/views/releases/detail/releaseNewEvents'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="all-events/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleaseAllEvents" */ 'app/views/releases/detail/releaseAllEvents'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="artifacts/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleaseArtifacts" */ 'app/views/releases/detail/releaseArtifacts'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+                <Route
+                  path="commits/"
+                  componentPromise={() =>
+                    import(
+                      /* webpackChunkName: "ReleaseCommits" */ 'app/views/releases/detail/releaseCommits'
+                    )
+                  }
+                  component={errorHandler(LazyLoad)}
+                />
+              </Route>
+            </React.Fragment>
+          )}
+          {/*
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          //
+          */}
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             componentPromise={() =>
@@ -1663,65 +1760,6 @@ function routes() {
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
-          <Route
-            path="/organizations/:orgId/releases/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
-            }
-            component={errorHandler(LazyLoad)}
-          />
-          <Route
-            path="/organizations/:orgId/releases/:version/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ReleaseDetail" */ 'app/views/releases/detail')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseOverview" */ 'app/views/releases/detail/releaseOverview'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="new-events/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseNewEvents" */ 'app/views/releases/detail/releaseNewEvents'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="all-events/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseAllEvents" */ 'app/views/releases/detail/releaseAllEvents'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="artifacts/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseArtifacts" */ 'app/views/releases/detail/releaseArtifacts'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="commits/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseCommits" */ 'app/views/releases/detail/releaseCommits'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
           <Route
             path="/organizations/:orgId/teams/new/"
             componentPromise={() =>

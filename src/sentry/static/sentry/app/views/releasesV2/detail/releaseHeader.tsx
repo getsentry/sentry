@@ -34,9 +34,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
   const {healthData} = project;
 
-  const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
