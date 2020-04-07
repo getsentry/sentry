@@ -20,6 +20,13 @@ export default DataprivacyRulesPanelHeader;
 
 const StyledPanelHeader = styled(PanelHeader)`
   display: grid;
-  grid-template-columns: 1fr 300px;
   grid-gap: ${space(1)};
+  grid-template-rows: 1fr 1fr;
+  justify-content: stretch;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 300px;
+    justify-content: space-between;
+  }
 `;

@@ -48,7 +48,7 @@ const DataPrivacyRulesEventIdField = ({
   return (
     <Tooltip title={getEventTooltipTitle()}>
       <div>
-        <TextField
+        <StyledTextField
           name="eventId"
           disabled={disabled}
           value={value}
@@ -74,4 +74,13 @@ const Status = styled('div')`
   top: ${space(0.5)};
   bottom: ${space(0.5)};
   background: ${p => p.theme.white};
+`;
+
+const StyledTextField = styled(TextField)`
+  font-weight: 400;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    :first-child {
+      margin-bottom: 0;
+    }
+  }
 `;
