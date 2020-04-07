@@ -22,11 +22,12 @@ import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
 
-type FilterViewType = 'ALL_TRANSACTIONS' | 'KEY_TRANSACTIONS';
-const FILTER_VIEWS: Readonly<FilterViewType[]> = [
-  'ALL_TRANSACTIONS',
-  'KEY_TRANSACTIONS',
-] as const;
+enum FilterViews {
+  ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
+  KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
+}
+
+const VIEWS = [FilterViews.ALL_TRANSACTIONS, FilterViews.KEY_TRANSACTIONS];
 
 type Props = {
   organization: Organization;
@@ -37,7 +38,7 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string | undefined;
-  currentView: FilterViewType;
+  currentView: FilterViews;
 };
 
 class PerformanceLanding extends React.Component<Props, State> {
@@ -48,7 +49,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   state: State = {
     eventView: generatePerformanceEventView(this.props.location),
     error: undefined,
-    currentView: 'ALL_TRANSACTIONS',
+    currentView: FilterViews.ALL_TRANSACTIONS,
   };
 
   renderError = () => {
@@ -111,11 +112,11 @@ class PerformanceLanding extends React.Component<Props, State> {
     return false;
   };
 
-  getViewLabel(currentView: FilterViewType): string {
+  getViewLabel(currentView: FilterViews): string {
     switch (currentView) {
-      case 'ALL_TRANSACTIONS':
+      case FilterViews.ALL_TRANSACTIONS:
         return t('All Transactions');
-      case 'KEY_TRANSACTIONS':
+      case FilterViews.KEY_TRANSACTIONS:
         return t('My Key Transactions');
       default:
         throw Error(`Unknown view: ${currentView}`);
@@ -123,7 +124,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderDropdown() {
-    const selectView = (viewKey: FilterViewType) => {
+    const selectView = (viewKey: FilterViews) => {
       return () => {
         this.setState({
           currentView: viewKey,
@@ -133,7 +134,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     return (
       <ButtonBar merged active={this.state.currentView}>
-        {FILTER_VIEWS.map(viewKey => {
+        {VIEWS.map(viewKey => {
           return (
             <Button
               key={viewKey}
