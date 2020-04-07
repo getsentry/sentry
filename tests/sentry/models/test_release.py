@@ -230,7 +230,7 @@ class SetCommitsTestCase(TestCase):
                 {
                     "id": "a" * 40,
                     "repository": repo.name,
-                    "author_email": "foo@example.com",
+                    "author_email": "Foo@example.com",  # throw in an upper case letter
                     "author_name": "foo bar baz",
                     "message": "i fixed a bug",
                 },
