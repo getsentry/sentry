@@ -135,6 +135,11 @@ class AlertRuleCreateEndpointTest(APITestCase):
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 403
 
+    def test_two_active_with_same_name(self):
+        # It should not be possible to create two rules in an org with the same name
+        # The serializer should enforce this.
+        assert 1 == 2
+
 
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase):
     def setup_project_and_rules(self):

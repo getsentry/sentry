@@ -4,7 +4,7 @@ from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, Incident, IncidentStatus
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
@@ -154,6 +154,19 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
+    def test_update_with_attached_incident(self):
+        # The rule should be archived and a new one should be created.
+        # The attached incident should also be resolved.
+        assert 1 == 2
+
+    def test_update_without_attached_incident(self):
+        # The rule should simply be updated.
+        assert 1 == 2
+
+    def test_update_to_rule_with_same_name(self):
+        # This should not be allowed.
+        assert 1 == 2
+
 
 # TODO: Convert this test to archive test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
@@ -170,21 +183,22 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-        assert not AlertRule.objects_with_archived.filter(name=self.alert_rule.name)
+        assert not AlertRule.objects_with_archived.filter(name=self.alert_rule.id).exists()
         assert not AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
 
     def test_archive_and_create_new_with_same_name(self):
         # We attach the rule to an incident so it is archived instead of deleted.
+        # We also confirm that the incident is automatically resolved.
         # Then we try to make a new rule with the same name as the archived one.
-        # The unique_together constraint would normally stop this, but
-        # we've createad a partial index via migration 0061 that gets around this.
+        # The new rule should be allowed.
+        # We then delete that rule, to make sure it's deleted for real (not archived)
 
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
 
-        self.create_incident(alert_rule=self.alert_rule)
+        incident = self.create_incident(alert_rule=self.alert_rule)
 
         with self.feature("organizations:incidents"):
             self.get_valid_response(
@@ -192,9 +206,9 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-        assert AlertRule.objects_with_archived.filter(name=self.alert_rule.name)
         assert AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
-
+        assert AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
+        assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
         new_alert_rule = create_alert_rule(
             self.alert_rule.organization,
             [self.project],
@@ -206,12 +220,12 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         assert new_alert_rule.name == self.alert_rule.name
-        # # and quick test that deleting the new rule actually deletes it, for posterity
-        # with self.feature("organizations:incidents"):
-        #     self.get_valid_response(
-        #         self.organization.slug, self.project.slug, self.new_alert_rule.id, status_code=204
-        #     )
+        # and quick test that deleting the new rule actually deletes it, for posterity
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, self.project.slug, new_alert_rule.id, status_code=204
+            )
 
-        # assert not AlertRule.objects.filter(id=self.new_alert_rule.id).exists()
-        # assert not AlertRule.objects_with_archived.filter(name=self.new_alert_rule.name)
-        # assert not AlertRule.objects_with_archived.filter(id=self.new_alert_rule.id).exists()
+        assert not AlertRule.objects.filter(id=new_alert_rule.id).exists()
+        assert not AlertRule.objects_with_archived.filter(id=new_alert_rule.id).exists()
+        assert not AlertRule.objects_with_archived.filter(id=new_alert_rule.id).exists()

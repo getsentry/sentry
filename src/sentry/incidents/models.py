@@ -400,7 +400,7 @@ class AlertRule(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertrule"
-        unique_together = (("organization", "name"),)
+        # unique_together = (("organization", "name"),)
 
 
 class TriggerStatus(Enum):
