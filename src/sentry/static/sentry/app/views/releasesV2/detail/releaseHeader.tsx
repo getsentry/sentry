@@ -50,7 +50,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
           crumbs={[
             {
               label: t('Releases'),
-              to: `/organizations/${orgId}/releases-v2/`,
+              to: `/organizations/${orgId}/releases/`,
             },
             {label: formatVersion(version)},
           ]}

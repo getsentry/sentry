@@ -22,7 +22,7 @@ type Props = {
 
 const ReleaseActions = ({orgId, version}: Props) => {
   const handleDelete = async () => {
-    const redirectPath = `/organizations/${orgId}/releases-v2/`;
+    const redirectPath = `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
 
     try {

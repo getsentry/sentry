@@ -14,7 +14,7 @@ type Props = {
 };
 
 const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
-  const path = `/organizations/${orgSlug}/releases-v2/${encodeURIComponent(
+  const path = `/organizations/${orgSlug}/releases/${encodeURIComponent(
     version
   )}/?project=`;
 
@@ -40,7 +40,7 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
     {
       onClose() {
         // if a user closes the modal (either via button, Esc, clicking outside)
-        router.push(`/organizations/${orgSlug}/releases-v2/`);
+        router.push(`/organizations/${orgSlug}/releases/`);
       },
     }
   );
