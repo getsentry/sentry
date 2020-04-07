@@ -442,7 +442,7 @@ class Release(Model):
                         author = None
                     elif author_email not in authors:
                         author_data = {"name": data.get("author_name")}
-                        author, created = CommitAuthor.get_or_create(
+                        author, created = CommitAuthor.objects.get_or_create(
                             organization_id=self.organization_id,
                             email=author_email,
                             defaults=author_data,

@@ -1,8 +1,17 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
+from sentry.db.models.manager import BaseManager
 
 from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+
+
+class CommitAuthorManager(BaseManager):
+    def get_or_create(self, organization_id, email, defaults, **kwargs):
+        # always use the lower case email
+        return super(CommitAuthorManager, self).get_or_create(
+            organization_id=organization_id, email=email.lower(), defaults=defaults, **kwargs
+        )
 
 
 class CommitAuthor(Model):
@@ -12,6 +21,8 @@ class CommitAuthor(Model):
     name = models.CharField(max_length=128, null=True)
     email = models.EmailField(max_length=75)
     external_id = models.CharField(max_length=164, null=True)
+
+    objects = CommitAuthorManager()
 
     class Meta:
         app_label = "sentry"
