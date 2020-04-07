@@ -23,7 +23,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
     def setUp(self):
         super(IssuesByTagProcessorTest, self).setUp()
         self.user = self.create_user()
-        self.org = self.create_organization()
+        self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.event = self.store_event(
             data={
