@@ -1,17 +1,12 @@
 from __future__ import absolute_import
 
-import itertools
 import logging
-import six
 
 import sentry
 
-from django.utils import dateformat
 from django.utils.encoding import force_text
 
-from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.mail.adapter import MailAdapter
-from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -62,59 +57,8 @@ class MailPlugin(NotificationPlugin):
     def notify(self, notification, **kwargs):
         return self.mail_adapter.notify(notification, **kwargs)
 
-    def get_digest_subject(self, group, counts, date):
-        return u"{short_id} - {count} new {noun} since {date}".format(
-            short_id=group.qualified_short_id,
-            count=len(counts),
-            noun="alert" if len(counts) == 1 else "alerts",
-            date=dateformat.format(date, "N j, Y, P e"),
-        )
-
     def notify_digest(self, project, digest):
-        user_ids = self.get_send_to(project)
-        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
-            start, end, counts = get_digest_metadata(digest)
-
-            # If there is only one group in this digest (regardless of how many
-            # rules it appears in), we should just render this using the single
-            # notification template. If there is more than one record for a group,
-            # just choose the most recent one.
-            if len(counts) == 1:
-                group = six.next(iter(counts))
-                record = max(
-                    itertools.chain.from_iterable(
-                        groups.get(group, []) for groups in six.itervalues(digest)
-                    ),
-                    key=lambda record: record.timestamp,
-                )
-                notification = Notification(record.value.event, rules=record.value.rules)
-                return self.notify(notification)
-
-            context = {
-                "start": start,
-                "end": end,
-                "project": project,
-                "digest": digest,
-                "counts": counts,
-            }
-
-            headers = {"X-Sentry-Project": project.slug}
-
-            group = six.next(iter(counts))
-            subject = self.get_digest_subject(group, counts, start)
-
-            self.mail_adapter.add_unsubscribe_link(context, user_id, project, "alert_digest")
-            self._send_mail(
-                subject=subject,
-                template="sentry/emails/digests/body.txt",
-                html_template="sentry/emails/digests/body.html",
-                project=project,
-                reference=project,
-                headers=headers,
-                type="notify.digest",
-                context=context,
-                send_to=[user_id],
-            )
+        return self.mail_adapter.notify_digest(project, digest)
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
