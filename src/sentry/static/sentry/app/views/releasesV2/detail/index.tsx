@@ -16,8 +16,9 @@ import {formatVersion} from 'app/utils/formatters';
 import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconInfo} from 'app/icons';
+import {IconInfo, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
+import Alert from 'app/components/alert';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -79,7 +80,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
   handleError(e, args) {
     const {router, location} = this.props;
-    const possiblyWrongProject = e.status === 404 || e.status === 403;
+    const possiblyWrongProject = e.status === 403;
 
     if (possiblyWrongProject) {
       // refreshing this page without project ID will bring up a project selector
@@ -139,6 +140,24 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
         )}/`,
       ],
     ];
+  }
+
+  renderError(...args) {
+    const has404Errors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 404
+    );
+    if (has404Errors) {
+      // This catches a 404 coming from the release endpoint and displays a custom error message.
+      return (
+        <PageContent>
+          <Alert type="error" icon={<IconWarning />}>
+            {t('This release could not be found.')}
+          </Alert>
+        </PageContent>
+      );
+    }
+
+    return super.renderError(...args);
   }
 
   isProjectMissingInUrl() {
