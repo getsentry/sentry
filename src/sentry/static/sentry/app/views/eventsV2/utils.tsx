@@ -310,8 +310,9 @@ function generateAdditionalConditions(
     // Or is a simple key in the event. More complex deeply nested fields are
     // more challenging to get at as their location in the structure does not
     // match their name.
-    if (dataRow[dataKey]) {
-      const nextValue = String(dataRow[dataKey]).trim();
+    if (dataRow.hasOwnProperty(dataKey)) {
+      const value = dataRow[dataKey];
+      const nextValue = value === null || value === undefined ? '' : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':

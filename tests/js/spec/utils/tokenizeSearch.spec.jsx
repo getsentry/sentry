@@ -91,6 +91,16 @@ describe('utils/tokenizeSearch', function() {
         object: {query: ['bad things'], name: ['Ernest "Papa" Hemingway']},
         string: 'bad things name:"Ernest \\"Papa\\" Hemingway"',
       },
+      {
+        name: 'should include blank strings',
+        object: {query: ['bad things'], name: ['']},
+        string: 'bad things name:""',
+      },
+      {
+        name: 'should include nulls',
+        object: {query: ['bad things'], name: [null]},
+        string: 'bad things name:""',
+      },
     ];
 
     for (const {name, string, object} of cases) {
