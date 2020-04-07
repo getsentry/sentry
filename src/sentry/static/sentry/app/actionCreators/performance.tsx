@@ -20,12 +20,12 @@ export function saveKeyTransaction(
   );
 
   promise.catch(response => {
+    const non_field_errors = response?.responseJSON?.non_field_errors;
+
     if (
-      response &&
-      response.responseJSON &&
-      response.responseJSON.non_field_errors &&
-      response.responseJSON.non_field_errors.length &&
-      response.responseJSON.non_field_errors[0]
+      Array.isArray(non_field_errors) &&
+      non_field_errors.length &&
+      non_field_errors[0]
     ) {
       addErrorMessage(response.responseJSON.non_field_errors[0]);
     } else {
@@ -54,12 +54,12 @@ export function deleteKeyTransaction(
   );
 
   promise.catch(response => {
+    const non_field_errors = response?.responseJSON?.non_field_errors;
+
     if (
-      response &&
-      response.responseJSON &&
-      response.responseJSON.non_field_errors &&
-      response.responseJSON.non_field_errors.length &&
-      response.responseJSON.non_field_errors[0]
+      Array.isArray(non_field_errors) &&
+      non_field_errors.length &&
+      non_field_errors[0]
     ) {
       addErrorMessage(response.responseJSON.non_field_errors[0]);
     } else {
