@@ -36,7 +36,7 @@ describe('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Export All to CSV');
+    expect(wrapper.text()).toContain('Export All to CSV');
   });
 
   it('should render custom children if provided', function() {
@@ -45,7 +45,7 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
       mockRouterContext(mockAuthorizedOrg)
     );
-    expect(wrapper.text()).toBe(testString);
+    expect(wrapper.text()).toContain(testString);
   });
 
   it('should respect the disabled prop and not be clickable', function() {
@@ -90,7 +90,7 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toBe("We're working on it...");
+    expect(wrapper.text()).toContain("We're working on it...");
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: true,
