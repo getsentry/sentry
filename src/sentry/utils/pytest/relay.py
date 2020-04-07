@@ -1,13 +1,17 @@
 # Fixutres used to interact with a test Relay server
 
 from __future__ import absolute_import
-import pytest
-from os import path
-import six
-from six.moves.urllib.parse import urlparse
-import sys
+
 import datetime
 import shutil
+import sys
+import time
+import pytest
+from os import path
+
+import six
+from six.moves.urllib.parse import urlparse
+import requests
 
 from sentry.runner.commands.devservices import get_docker_client
 
@@ -102,11 +106,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     }
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {
-        "url": "http://127.0.0.1:{}".format(relay_port),
-        "is_started": False,
-        "options": options,
-    }
+    server_info = {"url": "http://127.0.0.1:{}".format(relay_port), "options": options}
 
     yield server_info
 
@@ -122,7 +122,17 @@ def relay_server(relay_server_setup):
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
     docker_client.containers.run(**options)
-    relay_server_setup["is_started"] = True
+
+    url = relay_server_setup["url"]
+
+    for i in range(5):
+        try:
+            requests.get(url)
+            break
+        except Exception:
+            time.sleep(0.1 * 2 ** i)
+    else:
+        raise ValueError("relay did not start in time")
 
     return {"url": relay_server_setup["url"]}
 
@@ -133,18 +143,3 @@ def get_relay_store_url(relay_server):
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
     return relay_store_url
-
-
-@pytest.fixture(scope="function")
-def persistent_relay_server(relay_server_setup):
-    options = relay_server_setup["options"]
-
-    if not relay_server_setup["is_started"]:
-        # first time we use it in a test, everything should be
-        # already setup, sentry should be running and configured,
-        # just run relay
-        docker_client = get_docker_client()
-        docker_client.containers.run(**options)
-        relay_server_setup["is_started"] = True
-
-    return {"url": relay_server_setup["url"]}

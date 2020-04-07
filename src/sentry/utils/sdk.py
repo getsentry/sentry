@@ -1,21 +1,15 @@
 from __future__ import absolute_import, print_function
 
-import random
 import inspect
-import json
 import logging
 import six
-import zlib
 
 from django.conf import settings
-from django.utils.functional import cached_property
 
 import sentry_sdk
 
 from sentry_sdk.client import get_options
-from sentry_sdk.transport import Transport, make_transport
-from sentry_sdk.consts import VERSION as SDK_VERSION
-from sentry_sdk.utils import Auth, capture_internal_exceptions
+from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -118,12 +112,8 @@ def configure_sdk():
 
     sdk_options = dict(settings.SENTRY_SDK_CONFIG)
 
-    # if this flag is set then the internal transport is disabled.  This is useful
-    # for local testing in case the real python SDK behavior should be enforced.
-    #
-    # Make sure to pop all options that would be invalid for the SDK here
-    disable_internal_transport = sdk_options.pop("disable_internal_transport", False)
     relay_dsn = sdk_options.pop("relay_dsn", None)
+    internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
 
     if upstream_dsn:
@@ -131,13 +121,12 @@ def configure_sdk():
     else:
         upstream_transport = None
 
-    if not disable_internal_transport:
-        internal_transport = InternalTransport()
-    else:
-        internal_transport = None
-
     if relay_dsn:
         relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+    elif internal_project_key and internal_project_key.dsn_private:
+        relay_transport = make_transport(
+            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
+        )
     else:
         relay_transport = None
 
@@ -158,22 +147,13 @@ def configure_sdk():
             #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
 
-        if relay_transport:
-            rate = options.get("store.use-relay-dsn-sample-rate")
-            if rate and random.random() < rate:
-                # Record this before calling `is_current_event_safe` to make
-                # numbers comparable to InternalTransport
+        if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if is_current_event_safe():
                 metrics.incr("internal.captured.events.relay")
-                if is_current_event_safe():
-                    relay_transport.capture_event(event)
-                else:
-                    metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
-                    sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
-                return
-
-        if internal_transport:
-            metrics.incr("internal.captured.events.internal")
-            internal_transport.capture_event(event)
+                relay_transport.capture_event(event)
+            else:
+                metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
 
     sentry_sdk.init(
         transport=capture_event,
@@ -186,89 +166,6 @@ def configure_sdk():
         traceparent_v2=True,
         **sdk_options
     )
-
-
-def _create_noop_hub():
-    def transport(event):
-        with capture_internal_exceptions():
-            metrics.incr("internal.uncaptured.events.noop-hub", skip_internal=False)
-            sdk_logger.warn("internal-error.noop-hub")
-
-    return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
-
-
-NOOP_HUB = _create_noop_hub()
-del _create_noop_hub
-
-
-class InternalTransport(Transport):
-    def __init__(self):
-        pass
-
-    @cached_property
-    def project_key(self):
-        return get_project_key()
-
-    @cached_property
-    def request_factory(self):
-        from django.test import RequestFactory
-
-        return RequestFactory()
-
-    def capture_event(self, event):
-        # Disable the SDK while processing our own events. This fixes some
-        # recursion issues when the view crashes without including any
-        # UNSAFE_FILES
-        #
-        # NOTE: UNSAFE_FILES still exists because the hub does not follow the
-        # execution flow into the celery job triggered by StoreView. In other
-        # words, UNSAFE_FILES is used in case the celery job for crashes and
-        # that error is captured by the SDK.
-        with sentry_sdk.Hub(NOOP_HUB):
-            return self._capture_event(event)
-
-    def _capture_event(self, event):
-        with capture_internal_exceptions():
-            key = self.project_key
-            if key is None:
-                return
-
-            if not is_current_event_safe():
-                metrics.incr("internal.uncaptured.events", skip_internal=False)
-                sdk_logger.warn("internal-error.unsafe-stacktrace")
-                return
-
-            auth = Auth(
-                scheme="https",
-                host="localhost",
-                project_id=key.project_id,
-                public_key=key.public_key,
-                secret_key=key.secret_key,
-                client="sentry-python/%s" % SDK_VERSION,
-            )
-
-            headers = {"HTTP_X_SENTRY_AUTH": auth.to_header(), "HTTP_CONTENT_ENCODING": "deflate"}
-
-            request = self.request_factory.post(
-                "/api/{}/store/".format(key.project_id),
-                data=zlib.compress(json.dumps(event).encode("utf8")),
-                content_type="application/octet-stream",
-                **headers
-            )
-
-            from sentry.web.api import StoreView
-
-            resp = StoreView.as_view()(request, project_id=six.text_type(key.project_id))
-
-            if resp.status_code != 200:
-                sdk_logger.warn(
-                    "internal-error.invalid-response",
-                    extra={
-                        "project_id": settings.SENTRY_PROJECT,
-                        "project_key": settings.SENTRY_PROJECT_KEY,
-                        "status_code": resp.status_code,
-                    },
-                )
 
 
 class RavenShim(object):
