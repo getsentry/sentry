@@ -99,6 +99,14 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       s => s.value.toLowerCase().indexOf(value.toLowerCase()) > -1
     );
 
+    const showSuggestions =
+      !(filteredSuggestions.length === 1 && filteredSuggestions[0].value === value) &&
+      this.state.fieldValues.length !== 0;
+
+    this.setState({
+      showSuggestions,
+    });
+
     return filteredSuggestions;
   };
 
@@ -133,6 +141,11 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
     if (lastFieldValue?.type === 'string' && penultimateFieldValue?.type === 'value') {
       // returns all binaries without any filter
       return this.getFilteredSuggestions('', 'binary');
+    }
+
+    if (lastFieldValue?.type === 'string' && penultimateFieldValue?.type === 'string') {
+      // returns all values without any filter
+      return this.getFilteredSuggestions('', 'string');
     }
 
     if (
