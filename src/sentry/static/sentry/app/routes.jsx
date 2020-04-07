@@ -1177,6 +1177,59 @@ function routes() {
         </Route>
 
         <Route
+          path="/organizations/:orgId/releases/:version/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ReleaseDetail" */ 'app/views/releases/detail')
+          }
+          component={errorHandler(LazyLoad)}
+        >
+          <IndexRoute
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleaseOverview" */ 'app/views/releases/detail/releaseOverview'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="new-events/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleaseNewEvents" */ 'app/views/releases/detail/releaseNewEvents'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="all-events/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleaseAllEvents" */ 'app/views/releases/detail/releaseAllEvents'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="artifacts/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleaseArtifacts" */ 'app/views/releases/detail/releaseArtifacts'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="commits/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleaseCommits" */ 'app/views/releases/detail/releaseCommits'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+
+        <Route
           path="/organizations/:orgId/alerts/"
           componentPromise={() =>
             import(/* webpackChunkName: "AlertsContainer" */ 'app/views/alerts')
@@ -1673,58 +1726,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-          <Route
-            path="/organizations/:orgId/releases/:version/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ReleaseDetail" */ 'app/views/releases/detail')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseOverview" */ 'app/views/releases/detail/releaseOverview'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="new-events/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseNewEvents" */ 'app/views/releases/detail/releaseNewEvents'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="all-events/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseAllEvents" */ 'app/views/releases/detail/releaseAllEvents'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="artifacts/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseArtifacts" */ 'app/views/releases/detail/releaseArtifacts'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="commits/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleaseCommits" */ 'app/views/releases/detail/releaseCommits'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
           <Route
             path="/organizations/:orgId/teams/new/"
             componentPromise={() =>
