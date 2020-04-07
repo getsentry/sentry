@@ -33,22 +33,22 @@ type Props = {
 
   /**
    * As a general rule of thumb we don't want the last item to be link as it most likely
-   * points to the same page we are currently on. This is by default true, so that
+   * points to the same page we are currently on. This is by default false, so that
    * people don't have to check if crumb is last in the array and then manually
    * assign `to: null/undefined` when passing props to this component.
    */
-  unlinkLastItem?: boolean;
+  linkLastItem?: boolean;
 };
 
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-const Breadcrumbs = ({crumbs, unlinkLastItem = true}: Props) => {
+const Breadcrumbs = ({crumbs, linkLastItem = false}: Props) => {
   if (crumbs.length === 0) {
     return null;
   }
 
-  if (unlinkLastItem) {
+  if (!linkLastItem) {
     crumbs[crumbs.length - 1].to = null;
   }
 
@@ -76,13 +76,13 @@ const Breadcrumbs = ({crumbs, unlinkLastItem = true}: Props) => {
   );
 };
 
-const sharedStyles = (theme: Theme) => `
-  color: ${theme.gray2};
+const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
+  color: ${p.theme.gray2};
   ${overflowEllipsis};
   width: auto;
 
   &:last-child {
-    color: ${theme.gray4};
+    color: ${p.theme.gray4};
   }
 `;
 
@@ -93,7 +93,7 @@ const BreadcrumbList = styled('div')`
 `;
 
 const BreadcrumbLink = styled(Link)`
-  ${p => sharedStyles(p.theme)}
+  ${getBreadcrumbListItemStyles}
 
   &:hover,
   &:active {
@@ -102,7 +102,7 @@ const BreadcrumbLink = styled(Link)`
 `;
 
 const BreadcrumbItem = styled('span')`
-  ${p => sharedStyles(p.theme)}
+  ${getBreadcrumbListItemStyles}
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
