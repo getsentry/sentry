@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import PageHeading from 'app/components/pageHeading';
 import withApi from 'app/utils/withApi';
@@ -67,7 +67,7 @@ class EventsContainer extends React.Component {
           resetParamsOnChange={['cursor']}
         />
         <PageContent>
-          <NoProjectMessage organization={organization}>
+          <LightWeightNoProjectMessage organization={organization}>
             <Body>
               <PageHeader>
                 <HeaderTitle>
@@ -83,7 +83,7 @@ class EventsContainer extends React.Component {
               </PageHeader>
               {children}
             </Body>
-          </NoProjectMessage>
+          </LightWeightNoProjectMessage>
         </PageContent>
       </Feature>
     );
