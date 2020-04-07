@@ -1,14 +1,18 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.utils.encoding import force_text
+from django.utils.safestring import mark_safe
 
 from sentry import options
-from sentry.models import ProjectOption, ProjectOwnership, User
+from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, User
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.email import MessageBuilder
+from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +146,106 @@ class MailAdapter(object):
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
+
+    def add_unsubscribe_link(self, context, user_id, project, referrer):
+        context["unsubscribe_link"] = generate_signed_link(
+            user_id,
+            "sentry-account-email-unsubscribe-project",
+            referrer,
+            kwargs={"project_id": project.id},
+        )
+
+    def notify(self, notification, **kwargs):
+        event = notification.event
+
+        environment = event.get_tag("environment")
+
+        group = event.group
+        project = group.project
+        org = group.organization
+
+        subject = event.get_email_subject()
+
+        query_params = {"referrer": "alert_email"}
+        if environment:
+            query_params["environment"] = environment
+        link = group.get_absolute_url(params=query_params)
+
+        template = "sentry/emails/error.txt"
+        html_template = "sentry/emails/error.html"
+
+        rules = []
+        for rule in notification.rules:
+            rule_link = "/settings/%s/projects/%s/alerts/rules/%s/" % (
+                org.slug,
+                project.slug,
+                rule.id,
+            )
+
+            rules.append((rule.label, rule_link))
+
+        enhanced_privacy = org.flags.enhanced_privacy
+
+        # lets identify possibly suspect commits and owners
+        commits = {}
+        try:
+            committers = get_serialized_event_file_committers(project, event)
+        except (Commit.DoesNotExist, Release.DoesNotExist):
+            pass
+        except Exception as exc:
+            logging.exception(six.text_type(exc))
+        else:
+            for committer in committers:
+                for commit in committer["commits"]:
+                    if commit["id"] not in commits:
+                        commit_data = commit.copy()
+                        commit_data["shortId"] = commit_data["id"][:7]
+                        commit_data["author"] = committer["author"]
+                        commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
+                        commits[commit["id"]] = commit_data
+
+        context = {
+            "project_label": project.get_full_name(),
+            "group": group,
+            "event": event,
+            "link": link,
+            "rules": rules,
+            "enhanced_privacy": enhanced_privacy,
+            "commits": sorted(commits.values(), key=lambda x: x["score"], reverse=True),
+            "environment": environment,
+        }
+
+        # if the organization has enabled enhanced privacy controls we dont send
+        # data which may show PII or source code
+        if not enhanced_privacy:
+            interface_list = []
+            for interface in six.itervalues(event.interfaces):
+                body = interface.to_email_html(event)
+                if not body:
+                    continue
+                text_body = interface.to_string(event)
+                interface_list.append((interface.get_title(), mark_safe(body), text_body))
+
+            context.update({"tags": event.tags, "interfaces": interface_list})
+
+        headers = {
+            "X-Sentry-Logger": group.logger,
+            "X-Sentry-Logger-Level": group.get_level_display(),
+            "X-Sentry-Project": project.slug,
+            "X-Sentry-Reply-To": group_id_to_email(group.id),
+        }
+
+        for user_id in self.get_send_to(project=project, event=event):
+            self.add_unsubscribe_link(context, user_id, project, "alert_email")
+
+            self._send_mail(
+                subject=subject,
+                template=template,
+                html_template=html_template,
+                project=project,
+                reference=group,
+                headers=headers,
+                type="notify.error",
+                context=context,
+                send_to=[user_id],
+            )
