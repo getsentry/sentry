@@ -7,7 +7,7 @@ import OrganizationDetails, {
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
-let tree;
+let wrapper;
 
 describe('OrganizationDetails', function() {
   beforeEach(async function() {
@@ -28,7 +28,7 @@ describe('OrganizationDetails', function() {
 
   afterEach(function() {
     // necessary to unsubscribe successfully from org store
-    tree.unmount();
+    wrapper.unmount();
   });
 
   describe('render()', function() {
@@ -44,18 +44,18 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        tree = mountWithTheme(
+        wrapper = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
         await tick();
         await tick();
-        tree.update();
-        expect(tree.text()).toContain('Deletion Scheduled');
-        expect(tree.text()).toContain(
+        wrapper.update();
+        expect(wrapper.text()).toContain('Deletion Scheduled');
+        expect(wrapper.text()).toContain(
           'Would you like to cancel this process and restore the organization back to the original state?'
         );
-        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
+        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(1);
       });
       it('should render a restoration prompt without action for members', async function() {
         MockApiClient.addMockResponse({
@@ -69,20 +69,20 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        tree = mountWithTheme(
+        wrapper = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
         await tick();
         await tick();
-        tree.update();
-        expect(tree.text()).toContain(
+        wrapper.update();
+        expect(wrapper.text()).toContain(
           [
             'The org-slug organization is currently scheduled for deletion.',
             'If this is a mistake, contact an organization owner and ask them to restore this organization.',
           ].join('')
         );
-        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
+        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
       });
     });
 
@@ -101,17 +101,17 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', async function() {
-        tree = mountWithTheme(
+        wrapper = mountWithTheme(
           <OrganizationDetails params={{orgId: 'org-slug'}} location={{}} routes={[]} />,
           TestStubs.routerContext()
         );
         await tick();
         await tick();
-        tree.update();
-        expect(tree.text()).toContain(
+        wrapper.update();
+        expect(wrapper.text()).toContain(
           'The org-slug organization is currently in the process of being deleted from Sentry'
         );
-        expect(tree.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
+        expect(wrapper.find('button[aria-label="Restore Organization"]')).toHaveLength(0);
       });
     });
   });
@@ -131,7 +131,7 @@ describe('OrganizationDetails', function() {
       url: '/organizations/org-slug/projects/',
       body: [TestStubs.Project()],
     });
-    tree = mountWithTheme(
+    wrapper = mountWithTheme(
       <LightWeightOrganizationDetails
         params={{orgId: 'org-slug'}}
         location={{}}
@@ -145,9 +145,9 @@ describe('OrganizationDetails', function() {
     await tick();
     await tick();
     await tick();
-    tree.update();
+    wrapper.update();
     expect(getTeamsMock).toHaveBeenCalled();
     expect(getProjectsMock).toHaveBeenCalled();
-    expect(tree.find('LightWeightInstallPromptBanner')).toHaveLength(1);
+    expect(wrapper.find('OrganizationContext').prop('detailed')).toBe(false);
   });
 });
