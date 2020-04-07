@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 import {IconChevron} from 'app/icons';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Theme} from 'app/utils/theme';
 
 export type Crumb = {
   /**
@@ -75,29 +76,33 @@ const Breadcrumbs = ({crumbs, unlinkLastItem = true}: Props) => {
   );
 };
 
+const sharedStyles = (theme: Theme) => `
+  color: ${theme.gray2};
+  ${overflowEllipsis};
+  width: auto;
+
+  &:last-child {
+    color: ${theme.gray4};
+  }
+`;
+
+const BreadcrumbList = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} 0;
+`;
+
 const BreadcrumbLink = styled(Link)`
+  ${p => sharedStyles(p.theme)}
+
   &:hover,
   &:active {
     color: ${p => p.theme.gray3};
   }
 `;
 
-const BreadcrumbItem = styled('span')``;
-
-const BreadcrumbList = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} 0;
-
-  ${BreadcrumbLink}, ${BreadcrumbItem} {
-    color: ${p => p.theme.gray2};
-    ${overflowEllipsis};
-    width: auto;
-
-    &:last-child {
-      color: ${p => p.theme.gray4};
-    }
-  }
+const BreadcrumbItem = styled('span')`
+  ${p => sharedStyles(p.theme)}
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
