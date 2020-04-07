@@ -42,7 +42,7 @@ class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
-    return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
