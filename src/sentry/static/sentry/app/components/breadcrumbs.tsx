@@ -18,7 +18,7 @@ export type Crumb = {
   to?: React.ComponentProps<typeof Link>['to'] | null;
 
   /**
-   * Component will try to come up with uniqe key, but you can provide your own
+   * Component will try to come up with unique key, but you can provide your own
    * (used when mapping over crumbs)
    */
   key?: string;
