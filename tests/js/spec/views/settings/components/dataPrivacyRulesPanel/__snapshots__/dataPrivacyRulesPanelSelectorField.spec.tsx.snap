@@ -3,6 +3,7 @@
 exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
 <DataPrivacyRulesPanelSelectorField
   onChange={[MockFunction]}
+  selectorSuggestions={Array []}
   value="$string"
 >
   <Wrapper>
@@ -17,7 +18,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         onChange={[Function]}
         onFocus={[Function]}
         onKeyDown={[Function]}
-        placeholder="ex. strings, numbers, custom"
+        placeholder="an attribute, variable, or header name"
         required={false}
         value="$string"
       >
@@ -30,7 +31,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
           onChange={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          placeholder="ex. strings, numbers, custom"
+          placeholder="an attribute, variable, or header name"
           required={false}
           value="$string"
         >
@@ -49,7 +50,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
                 onChange={[Function]}
                 onFocus={[Function]}
                 onKeyDown={[Function]}
-                placeholder="ex. strings, numbers, custom"
+                placeholder="an attribute, variable, or header name"
                 required={false}
                 type="text"
                 value="$string"

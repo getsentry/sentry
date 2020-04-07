@@ -272,7 +272,10 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
   };
 
   handleKeyDown = debounce(
-    ({keyCode}: React.KeyboardEvent<HTMLInputElement>) => {
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      event.persist();
+
+      const {keyCode} = event;
       const {fieldValues, activeSuggestion, suggestions} = this.state;
 
       if (keyCode === 8) {

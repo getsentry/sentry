@@ -13,7 +13,12 @@ function renderComponent({
   ...props
 }: Partial<DataPrivacyRulesPanelSelectorField['props']>) {
   return mountWithTheme(
-    <DataPrivacyRulesPanelSelectorField onChange={onChange} value={value} {...props} />
+    <DataPrivacyRulesPanelSelectorField
+      selectorSuggestions={[]}
+      onChange={onChange}
+      value={value}
+      {...props}
+    />
   );
 }
 

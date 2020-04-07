@@ -1,25 +1,19 @@
-import {Box} from 'reflexbox';
 import React from 'react';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
-import Button from 'app/components/button';
-import {IconAdd} from 'app/icons/iconAdd';
-import ButtonBar from 'app/components/buttonBar';
-import Input from 'app/views/settings/components/forms/controls/input';
-import ControlState from 'app/views/settings/components/forms/field/controlState';
-import Tooltip from 'app/components/tooltip';
+import {Panel, PanelAlert, PanelBody} from 'app/components/panels';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
 
+import {EventIdFieldStatus} from './dataPrivacyRulesEventIdField';
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
 import {Suggestion, defaultSuggestions} from './dataPrivacyRulesPanelSelectorFieldTypes';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
+import DataprivacyRulesPanelHeader from './dataprivacyRulesPanelHeader';
+import DataPrivacyRulesPanelFooter from './dataPrivacyRulesPanelFooter';
 
 const DEFAULT_RULE_FROM_VALUE = '';
 
@@ -46,21 +40,13 @@ type Props = {
   additionalContext?: React.ReactNode;
 };
 
-enum EventIdStatus {
-  NONE,
-  LOADING,
-  INVALID,
-  NOT_FOUND,
-  LOADED,
-}
-
 type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
   selectorSuggestions: Array<Suggestion>;
-  eventIdInputValue?: string;
-  eventIdStatus: EventIdStatus;
+  eventIdInputValue: string;
+  eventIdStatus: EventIdFieldStatus;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
@@ -74,7 +60,8 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
     selectorSuggestions: [],
-    eventIdStatus: EventIdStatus.NONE,
+    eventIdStatus: EventIdFieldStatus.NONE,
+    eventIdInputValue: '',
   };
 
   componentDidMount() {
@@ -148,12 +135,12 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     if (!eventIdInputValue) {
       this.setState({
         selectorSuggestions: defaultSuggestions,
-        eventIdStatus: EventIdStatus.NONE,
+        eventIdStatus: EventIdFieldStatus.NONE,
       });
       return;
     }
 
-    this.setState({eventIdStatus: EventIdStatus.LOADING});
+    this.setState({eventIdStatus: EventIdFieldStatus.LOADING});
 
     const rawSuggestions = await this.api.requestPromise(
       `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
@@ -165,32 +152,31 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     if (selectorSuggestions && selectorSuggestions.length > 0) {
       this.setState({
         selectorSuggestions,
-        eventIdStatus: EventIdStatus.LOADED,
+        eventIdStatus: EventIdFieldStatus.LOADED,
       });
     } else {
       this.setState({
         selectorSuggestions: defaultSuggestions,
-        eventIdStatus: EventIdStatus.NOT_FOUND,
+        eventIdStatus: EventIdFieldStatus.NOT_FOUND,
       });
     }
   };
 
-  handleEventIdChange = event => {
-    const newValue = event.target.value;
-    const eventId = newValue.replace(/-/g, '').trim();
+  handleEventIdChange = (value: string) => {
+    const eventId = value.replace(/-/g, '').trim();
     this.setState({
-      eventIdStatus: EventIdStatus.NONE,
+      eventIdStatus: EventIdFieldStatus.NONE,
       selectorSuggestions: defaultSuggestions,
-      eventIdInputValue: eventId || undefined,
+      eventIdInputValue: eventId,
     });
   };
 
-  handleEventIdSubmit = event => {
+  handleEventIdBlur = (event: React.FocusEvent<HTMLInputElement>) => {
     event.preventDefault();
 
     const {eventIdInputValue} = this.state;
     if (eventIdInputValue && eventIdInputValue.length !== 32) {
-      this.setState({eventIdStatus: EventIdStatus.INVALID});
+      this.setState({eventIdStatus: EventIdFieldStatus.INVALID});
     } else {
       this.loadSelectorSuggestions();
     }
@@ -311,23 +297,6 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     }));
   };
 
-  getEventTooltipTitle() {
-    const {eventIdStatus} = this.state;
-
-    switch (eventIdStatus) {
-      case EventIdStatus.LOADING:
-        return '';
-      case EventIdStatus.INVALID:
-        return t("That's not a valid event ID");
-      case EventIdStatus.NOT_FOUND:
-        return t('Event ID not found in projects you have access to');
-      case EventIdStatus.LOADED:
-        return t('Auto-completing based on this event ID');
-      default:
-        return '';
-    }
-  }
-
   render() {
     const {additionalContext, disabled} = this.props;
     const {
@@ -337,34 +306,16 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       selectorSuggestions,
       eventIdStatus,
     } = this.state;
-    const hideButtonBar = savedRules.length === 0 && rules.length === 0;
     return (
       <React.Fragment>
         <Panel>
-          <PanelHeader hasButtons>
-            <Box minWidth="auto" flex="1">
-              {t('Data Privacy Rules')}
-            </Box>
-            <Box>
-              <Tooltip title={this.getEventTooltipTitle()}>
-                <Form onSubmit={this.handleEventIdSubmit}>
-                  <Input
-                    name="eventId"
-                    disabled={disabled}
-                    value={eventIdInputValue || ''}
-                    placeholder={t('Paste event ID for better assistance')}
-                    onChange={this.handleEventIdChange}
-                    onBlur={this.handleEventIdSubmit}
-                  />
-                  <FormStatus>
-                    {eventIdStatus === EventIdStatus.LOADING && <ControlState isSaving />}
-                    {eventIdStatus === EventIdStatus.INVALID && <ControlState error />}
-                    {eventIdStatus === EventIdStatus.NOT_FOUND && <ControlState error />}
-                  </FormStatus>
-                </Form>
-              </Tooltip>
-            </Box>
-          </PanelHeader>
+          <DataprivacyRulesPanelHeader
+            onChange={this.handleEventIdChange}
+            onBlur={this.handleEventIdBlur}
+            value={eventIdInputValue}
+            status={eventIdStatus}
+            disabled={disabled}
+          />
           <PanelAlert type="info">
             {additionalContext}{' '}
             {tct('For more details, see [linkToDocs].', {
@@ -386,37 +337,14 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 disabled={disabled}
               />
             ))}
-            <PanelAction>
-              <StyledLink
-                disabled={disabled}
-                icon={<IconAdd circle />}
-                onClick={this.handleAddRule}
-                size="zero"
-                borderless
-              >
-                {t('Add Rule')}
-              </StyledLink>
-              {!hideButtonBar && (
-                <StyledButtonBar gap={1.5}>
-                  <Button
-                    size="small"
-                    onClick={this.handleCancelForm}
-                    disabled={disabled}
-                  >
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="small"
-                    priority="primary"
-                    onClick={this.handleSaveForm}
-                    disabled={disabled}
-                  >
-                    {t('Save Rules')}
-                  </Button>
-                </StyledButtonBar>
-              )}
-            </PanelAction>
           </PanelBody>
+          <DataPrivacyRulesPanelFooter
+            hideButtonBar={savedRules.length === 0 && rules.length === 0}
+            onAddRule={this.handleAddRule}
+            onCancel={this.handleCancelForm}
+            onSave={this.handleSaveForm}
+            disabled={disabled}
+          />
         </Panel>
       </React.Fragment>
     );
@@ -424,37 +352,3 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 }
 
 export default DataPrivacyRulesPanel;
-
-const PanelAction = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: flex-end;
-`;
-
-const StyledLink = styled(Button)`
-  color: ${p => p.theme.blue};
-
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.blueDark};
-  }
-`;
-
-const Form = styled('form')`
-  position: relative;
-  width: 300px;
-`;
-
-const FormStatus = styled('div')`
-  position: absolute;
-  right: 5px;
-  top: 5px;
-  bottom: 5px;
-  background: ${p => p.theme.white};
-`;
