@@ -13,6 +13,7 @@ type Props = {
   onCancel: () => void;
   hideButtonBar: boolean;
   disabled?: boolean;
+  disableSaveButton?: boolean;
 };
 
 const DataPrivacyRulesPanelFooter = ({
@@ -21,6 +22,7 @@ const DataPrivacyRulesPanelFooter = ({
   onCancel,
   onSave,
   hideButtonBar,
+  disableSaveButton,
 }: Props) => (
   <PanelAction>
     <StyledLink
@@ -37,7 +39,12 @@ const DataPrivacyRulesPanelFooter = ({
         <Button size="small" onClick={onCancel} disabled={disabled}>
           {t('Cancel')}
         </Button>
-        <Button size="small" priority="primary" onClick={onSave} disabled={disabled}>
+        <Button
+          size="small"
+          priority="primary"
+          onClick={onSave}
+          disabled={disabled || disableSaveButton}
+        >
           {t('Save Rules')}
         </Button>
       </StyledButtonBar>

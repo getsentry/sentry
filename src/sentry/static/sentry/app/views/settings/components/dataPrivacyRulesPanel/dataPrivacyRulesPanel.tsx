@@ -1,5 +1,6 @@
 import React from 'react';
 import omit from 'lodash/omit';
+import isEqual from 'lodash/isEqual';
 
 import SentryTypes from 'app/sentryTypes';
 import {t, tct} from 'app/locale';
@@ -47,6 +48,7 @@ type State = {
   selectorSuggestions: Array<Suggestion>;
   eventIdInputValue: string;
   eventIdStatus: EventIdFieldStatus;
+  isFormValid: boolean;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
@@ -62,6 +64,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     selectorSuggestions: [],
     eventIdStatus: EventIdFieldStatus.NONE,
     eventIdInputValue: '',
+    isFormValid: true,
   };
 
   componentDidMount() {
@@ -193,6 +196,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           from: DEFAULT_RULE_FROM_VALUE,
         },
       ],
+      isFormValid: false,
     }));
   };
 
@@ -203,14 +207,19 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleChange = (updatedRule: Rule) => {
-    this.setState(prevState => ({
-      rules: prevState.rules.map(rule => {
-        if (rule.id === updatedRule.id) {
-          return updatedRule;
-        }
-        return rule;
+    this.setState(
+      prevState => ({
+        rules: prevState.rules.map(rule => {
+          if (rule.id === updatedRule.id) {
+            return updatedRule;
+          }
+          return rule;
+        }),
       }),
-    }));
+      () => {
+        this.handleValidation();
+      }
+    );
   };
 
   handleSubmit = async () => {
@@ -280,15 +289,20 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
     const isFormValid = !isAnyRuleFieldEmpty;
 
-    if (isFormValid) {
-      this.handleSubmit();
-    } else {
-      addErrorMessage(t('Invalid rules form'));
-    }
+    this.setState({
+      isFormValid,
+    });
   };
 
   handleSaveForm = () => {
-    this.handleValidation();
+    const {isFormValid} = this.state;
+
+    if (isFormValid) {
+      this.handleSubmit();
+      return;
+    }
+
+    addErrorMessage(t('Invalid rules form'));
   };
 
   handleCancelForm = () => {
@@ -305,7 +319,9 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       eventIdInputValue,
       selectorSuggestions,
       eventIdStatus,
+      isFormValid,
     } = this.state;
+
     return (
       <React.Fragment>
         <Panel>
@@ -339,11 +355,15 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
             ))}
           </PanelBody>
           <DataPrivacyRulesPanelFooter
-            hideButtonBar={savedRules.length === 0 && rules.length === 0}
+            hideButtonBar={
+              (savedRules.length === 0 && rules.length === 0) ||
+              isEqual(rules, savedRules)
+            }
             onAddRule={this.handleAddRule}
             onCancel={this.handleCancelForm}
             onSave={this.handleSaveForm}
             disabled={disabled}
+            disableSaveButton={!isFormValid}
           />
         </Panel>
       </React.Fragment>
