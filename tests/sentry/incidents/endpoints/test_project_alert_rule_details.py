@@ -156,19 +156,62 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
 
 # TODO: Convert this test to archive test
-# class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
-#     method = "delete"
+class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+    method = "delete"
 
-#     def test_simple(self):
-#         self.create_member(
-#             user=self.user, organization=self.organization, role="owner", teams=[self.team]
-#         )
-#         self.login_as(self.user)
-#         with self.feature("organizations:incidents"):
-#             self.get_valid_response(
-#                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
-#             )
+    def test_simple(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+            )
 
-#         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-#         assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
-#         assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects_with_archived.filter(name=self.alert_rule.name)
+        assert not AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
+
+    def test_archive_and_create_new_with_same_name(self):
+        # We attach the rule to an incident so it is archived instead of deleted.
+        # Then we try to make a new rule with the same name as the archived one.
+        # The unique_together constraint would normally stop this, but
+        # we've createad a partial index via migration 0061 that gets around this.
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        self.create_incident(alert_rule=self.alert_rule)
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+            )
+
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert AlertRule.objects_with_archived.filter(name=self.alert_rule.name)
+        assert AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
+
+        new_alert_rule = create_alert_rule(
+            self.alert_rule.organization,
+            [self.project],
+            self.alert_rule.name,
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
+
+        assert new_alert_rule.name == self.alert_rule.name
+        # # and quick test that deleting the new rule actually deletes it, for posterity
+        # with self.feature("organizations:incidents"):
+        #     self.get_valid_response(
+        #         self.organization.slug, self.project.slug, self.new_alert_rule.id, status_code=204
+        #     )
+
+        # assert not AlertRule.objects.filter(id=self.new_alert_rule.id).exists()
+        # assert not AlertRule.objects_with_archived.filter(name=self.new_alert_rule.name)
+        # assert not AlertRule.objects_with_archived.filter(id=self.new_alert_rule.id).exists()

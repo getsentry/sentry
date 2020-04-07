@@ -738,16 +738,13 @@ def delete_alert_rule(alert_rule):
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule)
+        bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.ARCHIVED.value)
             for incident in incidents:
-                # incident.status = IncidentStatus.CLOSED.value
                 incident.update(status=IncidentStatus.CLOSED.value)
-                incident.save()
         else:
             alert_rule.delete()
-
-        bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
 
 
 def validate_alert_rule_query(query):

@@ -23,9 +23,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0059_add_new_sentry_app_features'),
+        ('sentry', '0060_add_file_eventattachment_index'),
     ]
 
     operations = [
@@ -33,17 +32,17 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE UNIQUE INDEX sentry_savedsearch_organization_id_313a24e907cdef99
+                    CREATE UNIQUE INDEX sentry_incident_status_31da2439072d5f6s
                     ON sentry_incident USING btree (organization_id, identifier, status)
-                    WHERE (status IS 0);
+                    WHERE status=0;
                     """
                 )
             ],
-            # state_operations=[
-            #     migrations.AlterIndexTogether(
-            #         name='incident',
-            #         index_together=set([('organization', 'identifier', 'status'), ('organization', 'identifier')]),
-            #     ),
-            # ],
+            state_operations=[
+                migrations.AlterIndexTogether(
+                    name='incident',
+                    index_together=set([('organization', 'identifier', 'status'), ('organization', 'identifier')]),
+                ),
+            ],
         )
     ]
