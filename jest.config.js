@@ -2,7 +2,7 @@
 module.exports = {
   verbose: false,
   collectCoverageFrom: [
-    'tests/js/spec/**/*.{js,jsx}',
+    'tests/js/spec/**/*.{js,jsx,tsx}',
     'src/sentry/static/sentry/app/**/*.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'lcov', 'cobertura'],
@@ -24,7 +24,7 @@ module.exports = {
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
-  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).js?(x)'],
+  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

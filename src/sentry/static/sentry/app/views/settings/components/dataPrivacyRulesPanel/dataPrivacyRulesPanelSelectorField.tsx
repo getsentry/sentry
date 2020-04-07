@@ -247,7 +247,10 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <SuggestionsWrapper ref={this.suggestionList}>
+          <SuggestionsWrapper
+            ref={this.suggestionList}
+            data-test-id="panelSelectorField-suggestions"
+          >
             {suggestions.map((suggestion, index) => (
               <SuggestionItem
                 key={suggestion.value}

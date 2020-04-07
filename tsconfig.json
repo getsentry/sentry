@@ -33,11 +33,12 @@
     "outDir": "src/sentry/static/sentry/dist",
     "paths": {
       "app/*": ["src/sentry/static/sentry/app/*"],
+      "sentry-test/*": ["tests/js/sentry-test/*"],
       "@emotion/styled": ["src/sentry/static/sentry/app/styled.tsx"],
       "@original-emotion/*": ["node_modules/@emotion/*"]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "exclude": ["node_modules"]
 }
