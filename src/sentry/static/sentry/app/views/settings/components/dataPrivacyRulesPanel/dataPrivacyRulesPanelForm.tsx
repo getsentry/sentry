@@ -44,6 +44,12 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
     errors: {},
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.rule.from !== this.props.rule.from) {
+      this.handleValidation('from')();
+    }
+  }
+
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
     const rule: Rule = {
       ...omit(this.props.rule, 'customRegularExpression'),

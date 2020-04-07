@@ -348,7 +348,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
           onFocus={this.handleFocus}
           disabled={disabled}
         />
-        {showSuggestions && (
+        {showSuggestions && suggestions.length > 0 && (
           <SuggestionsWrapper ref={this.suggestionList}>
             {suggestions.slice(0, 50).map((suggestion, index) => (
               <SuggestionItem
