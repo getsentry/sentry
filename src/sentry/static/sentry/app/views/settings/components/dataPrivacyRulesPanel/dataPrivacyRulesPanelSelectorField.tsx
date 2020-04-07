@@ -50,7 +50,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selectorSuggestions != this.props.selectorSuggestions) {
+    if (prevProps.selectorSuggestions !== this.props.selectorSuggestions) {
       this.loadFieldValues(this.props.value);
     }
   }
