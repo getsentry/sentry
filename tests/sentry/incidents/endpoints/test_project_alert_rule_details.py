@@ -155,19 +155,20 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
 
-class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
-    method = "delete"
+# TODO: Convert this test to archive test
+# class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+#     method = "delete"
 
-    def test_simple(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            self.get_valid_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
-            )
+#     def test_simple(self):
+#         self.create_member(
+#             user=self.user, organization=self.organization, role="owner", teams=[self.team]
+#         )
+#         self.login_as(self.user)
+#         with self.feature("organizations:incidents"):
+#             self.get_valid_response(
+#                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+#             )
 
-        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-        assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
-        assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()
+#         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+#         assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
+#         assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()

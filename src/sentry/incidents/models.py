@@ -180,7 +180,7 @@ class Incident(Model):
         app_label = "sentry"
         db_table = "sentry_incident"
         unique_together = (("organization", "identifier"),)
-        index_together = (("alert_rule", "type", "status"),)
+        index_together = (("alert_rule", "type"),)
 
     @property
     def current_end_date(self):
@@ -271,9 +271,6 @@ class IncidentSubscription(Model):
 
 class AlertRuleStatus(Enum):
     PENDING = 0
-    TRIGGERED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
     ARCHIVED = 4
 
 
@@ -293,13 +290,7 @@ class AlertRuleManager(BaseManager):
         return (
             super(AlertRuleManager, self)
             .get_queryset()
-            .exclude(
-                status__in=(
-                    AlertRuleStatus.PENDING_DELETION.value,
-                    AlertRuleStatus.DELETION_IN_PROGRESS.value,
-                    AlertRuleStatus.ARCHIVED.value,
-                )
-            )
+            .exclude(status__in=(AlertRuleStatus.ARCHIVED.value,))
         )
 
     def fetch_for_organization(self, organization):
@@ -380,8 +371,6 @@ class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
-    objects_with_deleted = BaseManager()
-
     organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
     query_subscriptions = models.ManyToManyField(
         "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
