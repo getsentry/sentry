@@ -189,7 +189,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     event.preventDefault();
 
     const {eventIdInputValue} = this.state;
-    if (eventIdInputValue && eventIdInputValue.length != 32) {
+    if (eventIdInputValue && eventIdInputValue.length !== 32) {
       this.setState({eventIdStatus: EventIdStatus.INVALID});
     } else {
       this.loadSelectorSuggestions();
@@ -357,9 +357,9 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                     onBlur={this.handleEventIdSubmit}
                   />
                   <FormStatus>
-                    {eventIdStatus == EventIdStatus.LOADING && <ControlState isSaving />}
-                    {eventIdStatus == EventIdStatus.INVALID && <ControlState error />}
-                    {eventIdStatus == EventIdStatus.NOT_FOUND && <ControlState error />}
+                    {eventIdStatus === EventIdStatus.LOADING && <ControlState isSaving />}
+                    {eventIdStatus === EventIdStatus.INVALID && <ControlState error />}
+                    {eventIdStatus === EventIdStatus.NOT_FOUND && <ControlState error />}
                   </FormStatus>
                 </Form>
               </Tooltip>
