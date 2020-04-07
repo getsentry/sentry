@@ -82,6 +82,7 @@ class EventsTable extends React.Component {
     // Initial loading state
     loading: PropTypes.bool,
 
+    // projectsStore loading state of projects
     loadingProjects: PropTypes.bool,
 
     // When initial data has been loaded, but params have changed
@@ -131,8 +132,8 @@ class EventsTable extends React.Component {
   }
 
   get projectsMap() {
-    const {organization, projects} = this.props;
-    const projectList = projects || organization.projects || [];
+    const {organization, loadingProjects, projects} = this.props;
+    const projectList = (!loadingProjects && projects) || organization.projects || [];
 
     return new Map(projectList.map(project => [project.id, project]));
   }

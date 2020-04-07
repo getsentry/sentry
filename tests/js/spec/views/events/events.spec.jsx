@@ -129,7 +129,9 @@ describe('EventsErrors', function() {
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMetaMock).not.toHaveBeenCalled();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(wrapper.find('IdBadge')).toHaveLength(1);
+
+    // projects and user badges
+    expect(wrapper.find('IdBadge')).toHaveLength(2);
   });
 
   it('renders TotalEventCount with internal flag', async function() {
