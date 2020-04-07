@@ -23,17 +23,13 @@ describe('Breadcrumbs', () => {
     />
   );
 
-  it('renders', () => {
-    expect(wrapper).toMatchSnapshot();
-  });
-
   it('returns null when 0 crumbs', () => {
     const empty = shallow(<Breadcrumbs crumbs={[]} />);
 
     expect(empty.html()).toBeNull();
   });
 
-  it('generate correct links', () => {
+  it('generates correct links', () => {
     const allElements = wrapper.find('BreadcrumbList').children();
     const links = wrapper.find('BreadcrumbLink');
 
