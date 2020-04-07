@@ -143,9 +143,8 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
   }
 
   renderError(...args) {
-    const has404Errors = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
-    );
+    const has404Errors = Object.values(this.state.errors).find(e => e?.status === 404);
+
     if (has404Errors) {
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
