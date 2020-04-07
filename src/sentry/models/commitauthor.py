@@ -31,13 +31,6 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    @classmethod
-    def get_or_create(cls, organization_id, email, defaults):
-        # always use the lower case email
-        return cls.objects.get_or_create(
-            organization_id=organization_id, email=email.lower(), defaults=defaults
-        )
-
     def find_users(self):
         from sentry.models import User
 
