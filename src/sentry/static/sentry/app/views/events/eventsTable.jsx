@@ -3,15 +3,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
 import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import withProjects from 'app/utils/withProjects';
 
 class EventsTableBody extends React.PureComponent {
   static propTypes = {
@@ -27,25 +29,37 @@ class EventsTableBody extends React.PureComponent {
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
       const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
-      const eventLink = `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`;
+      const eventLink = project
+        ? `/organizations/${organization.slug}/projects/${project?.slug}/events/${event.eventID}/`
+        : '';
 
       return (
-        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx === 0}>
+        <TableRow key={`${project?.slug}-${event.eventID}`} first={eventIdx === 0}>
           <TableData>
             <EventTitle>
-              <Link to={eventLink}>{trimmedMessage}</Link>
+              {project ? (
+                <Link disabled={!project} to={eventLink}>
+                  {trimmedMessage}
+                </Link>
+              ) : (
+                trimmedMessage
+              )}
             </EventTitle>
           </TableData>
 
           <TableData>{event['event.type']}</TableData>
 
           <TableData>
-            <IdBadge
-              project={project}
-              avatarSize={16}
-              displayName={<span>{project.slug}</span>}
-              avatarProps={{consistentWidth: true}}
-            />
+            {project ? (
+              <IdBadge
+                project={project}
+                avatarSize={16}
+                displayName={<span>{project?.slug}</span>}
+                avatarProps={{consistentWidth: true}}
+              />
+            ) : (
+              <Placeholder height="16px" width="50px" />
+            )}
           </TableData>
 
           <TableData>
@@ -68,6 +82,8 @@ class EventsTable extends React.Component {
     // Initial loading state
     loading: PropTypes.bool,
 
+    loadingProjects: PropTypes.bool,
+
     // When initial data has been loaded, but params have changed
     reloading: PropTypes.bool,
 
@@ -89,7 +105,8 @@ class EventsTable extends React.Component {
     if (
       this.props.reloading !== nextProps.reloading ||
       this.props.zoomChanged !== nextProps.zoomChanged ||
-      this.props.loading !== nextProps.loading
+      this.props.loading !== nextProps.loading ||
+      this.props.loadingProjects !== nextProps.loadingProjects
     ) {
       return true;
     }
@@ -115,7 +132,7 @@ class EventsTable extends React.Component {
 
   get projectsMap() {
     const {organization, projects} = this.props;
-    const projectList = projects || organization.projects;
+    const projectList = projects || organization.projects || [];
 
     return new Map(projectList.map(project => [project.id, project]));
   }
@@ -157,7 +174,7 @@ class EventsTable extends React.Component {
   }
 }
 
-export default withRouter(EventsTable);
+export default withProjects(withRouter(EventsTable));
 export {EventsTable};
 
 const StyledPanelBody = styled(PanelBody)`
