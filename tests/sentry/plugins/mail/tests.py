@@ -16,6 +16,7 @@ from sentry.utils.compat.mock import Mock
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.mail.adapter import MailAdapter
 from sentry.models import (
     Activity,
     GroupSubscription,
@@ -201,7 +202,7 @@ class MailPluginTest(TestCase):
 
     def test_get_digest_subject(self):
         assert (
-            self.plugin.get_digest_subject(
+            self.plugin.mail_adapter.get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 {mock.sentinel.group: 3},
                 datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
@@ -209,7 +210,7 @@ class MailPluginTest(TestCase):
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
-    @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
         event = self.store_event(
@@ -235,7 +236,7 @@ class MailPluginTest(TestCase):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
