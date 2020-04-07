@@ -25,6 +25,12 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [1, 0, -1],
   },
+  {
+    key: 'IntegrationDirectoryCategoryExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'variant',
+    assignments: ['0', '1'],
+  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(
