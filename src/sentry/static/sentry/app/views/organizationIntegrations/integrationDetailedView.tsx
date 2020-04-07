@@ -159,7 +159,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const priority = 'primary' as const;
 
     const buttonProps = {
-      style: {marginLeft: space(1)},
+      style: {marginBottom: space(1)},
       size,
       priority,
       'data-test-id': 'install-button',
