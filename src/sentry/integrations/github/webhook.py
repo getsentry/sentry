@@ -245,7 +245,7 @@ class PushEventWebhook(Webhook):
             if len(author_email) > 75:
                 author = None
             elif author_email not in authors:
-                authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                authors[author_email] = author = CommitAuthor.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
                     defaults={"name": commit["author"]["name"][:128]},
