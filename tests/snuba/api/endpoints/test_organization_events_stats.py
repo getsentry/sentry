@@ -588,52 +588,80 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
-        for i in range(3):
-            self.event1 = self.store_event(
-                data={
-                    "event_id": "a{}".format(i) * 16,
+        self.event_data = [
+            {
+                "data": {
                     "message": "poof",
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
                     "user": {"email": self.user.email},
-                    "fingerprint": ["group3"],
+                    "fingerprint": ["group1"],
                 },
-                project_id=self.project.id,
-            )
-            self.event2 = self.store_event(
-                data={
-                    "event_id": "b{}".format(i) * 16,
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
                     "message": "voof",
                     "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                 },
-                project_id=self.project2.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "c{}".format(i) * 16,
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
                     "message": "very bad",
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "fingerprint": ["group1"],
+                    "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                 },
-                project_id=self.project.id,
-            )
-            self.event3 = self.store_event(
-                data={
-                    "event_id": "d{}".format(i) * 16,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group1"],
-                    "user": {"email": "foo@example.com"},
+                "project": self.project,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "oh no",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group4"],
+                    "user": {"email": "bar@example.com"},
                 },
-                project_id=self.project.id,
-            )
-            self.transaction = self.store_event(transaction_data, project_id=self.project.id)
-        self.event1_slug = "{}:{}".format(self.project.slug, self.event1.event_id)
-        self.event2_slug = "{}:{}".format(self.project2.slug, self.event2.event_id)
-        self.event3_slug = "{}:{}".format(self.project.slug, self.event3.event_id)
-        self.transaction_slug = "{}:{}".format(self.project.slug, self.transaction.event_id)
+                "project": self.project,
+                "count": 3,
+            },
+            {"data": transaction_data, "project": self.project, "count": 3},
+            # Not in the top 5
+            {
+                "data": {
+                    "message": "sorta bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group5"],
+                    "user": {"email": "bar@example.com"},
+                },
+                "project": self.project,
+                "count": 2,
+            },
+            {
+                "data": {
+                    "message": "not so bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group5"],
+                    "user": {"email": "bar@example.com"},
+                },
+                "project": self.project,
+                "count": 1,
+            },
+        ]
+
+        self.events = []
+        for index, event_data in enumerate(self.event_data):
+            data = event_data["data"].copy()
+            for i in range(event_data["count"]):
+                data["event_id"] = "{}{}".format(index, i) * 16
+                event = self.store_event(data, project_id=event_data["project"].id)
+            self.events.append(event)
+        self.transaction = self.events[4]
+
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -649,32 +677,26 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "user.email"],
-                    "topEvents": [self.event1_slug, self.event2_slug, self.event3_slug],
+                    "topEvents": [
+                        "{}:{}".format(event.project.slug, event.event_id)
+                        for event in self.events[:5]
+                    ],
                 },
                 format="json",
             )
 
         data = response.data
         assert response.status_code == 200, response.content
-        assert len(data) == 3
+        assert len(data) == 5
 
-        event1_data = data[self.event1_slug]
-        values = event1_data["values"]
-        assert values["message"] == "poof"
-        assert values["email"] == self.user.email
-        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
-
-        event2_data = data[self.event2_slug]
-        values = event2_data["values"]
-        assert values["message"] == "voof"
-        assert values["email"] == self.user2.email
-        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
-
-        event3_data = data[self.event3_slug]
-        values = event3_data["values"]
-        assert values["message"] == "very bad"
-        assert values["email"] == "foo@example.com"
-        assert [attrs for time, attrs in event3_data["data"]] == [[{"count": 3}], [{"count": 3}]]
+        for index, event in enumerate(self.events[:5]):
+            event_data = data["{}:{}".format(event.project.slug, event.event_id)]
+            values = event_data["values"]
+            assert values["message"] == event.message or event.transaction
+            assert values["email"] == self.event_data[index]["data"]["user"].get("email")
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in event_data["data"]
+            ]
 
     def test_top_events_with_projects(self):
         with self.feature("organizations:discover-basic"):
@@ -686,7 +708,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "project"],
-                    "topEvents": [self.event1_slug, self.event2_slug],
+                    "topEvents": [
+                        "{}:{}".format(event.project.slug, event.event_id)
+                        for event in self.events[:5]
+                    ],
                 },
                 format="json",
             )
@@ -694,19 +719,16 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
 
         assert response.status_code == 200, response.content
-        assert len(data) == 2
+        assert len(data) == 5
 
-        event1_data = data[self.event1_slug]
-        values = event1_data["values"]
-        assert values["message"] == "poof"
-        assert values["project"] == self.project.slug
-        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
-
-        event2_data = data[self.event2_slug]
-        values = event2_data["values"]
-        assert values["message"] == "voof"
-        assert values["project"] == self.project2.slug
-        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
+        for index, event in enumerate(self.events[:5]):
+            event_data = data["{}:{}".format(event.project.slug, event.event_id)]
+            values = event_data["values"]
+            assert values["message"] == event.message or event.transaction
+            assert values["project"] == event.project.slug
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in event_data["data"]
+            ]
 
     def test_top_events_with_issue(self):
         with self.feature("organizations:discover-basic"):
@@ -718,7 +740,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "issue.id"],
-                    "topEvents": [self.event1_slug, self.event2_slug],
+                    "topEvents": [
+                        "{}:{}".format(event.project.slug, event.event_id)
+                        for event in self.events[:5]
+                    ],
                 },
                 format="json",
             )
@@ -726,19 +751,16 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
 
         assert response.status_code == 200, response.content
-        assert len(data) == 2
+        assert len(data) == 5
 
-        event1_data = data[self.event1_slug]
-        values = event1_data["values"]
-        assert values["message"] == "poof"
-        assert values["group_id"] == self.event1.group_id
-        assert [attrs for time, attrs in event1_data["data"]] == [[{"count": 3}], [{"count": 0}]]
-
-        event2_data = data[self.event2_slug]
-        values = event2_data["values"]
-        assert values["message"] == "voof"
-        assert values["group_id"] == self.event2.group_id
-        assert [attrs for time, attrs in event2_data["data"]] == [[{"count": 0}], [{"count": 3}]]
+        for index, event in enumerate(self.events[:5]):
+            event_data = data["{}:{}".format(event.project.slug, event.event_id)]
+            values = event_data["values"]
+            assert values["message"] == event.message or event.transaction
+            assert values["group_id"] == event.group_id
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in event_data["data"]
+            ]
 
     def test_top_events_with_functions(self):
         with self.feature("organizations:discover-basic"):
@@ -750,7 +772,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": [self.transaction_slug],
+                    "topEvents": [
+                        "{}:{}".format(self.transaction.project.slug, self.transaction.event_id)
+                    ],
                 },
                 format="json",
             )
@@ -762,7 +786,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 1
 
-        transaction_data = data[self.transaction_slug]
+        transaction_data = data[
+            "{}:{}".format(self.transaction.project.slug, self.transaction.event_id)
+        ]
         values = transaction_data["values"]
         assert values["transaction"] == self.transaction.transaction
         assert values["avg_transaction_duration"] == duration * 1000.0
@@ -788,7 +814,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": [self.transaction_slug, transaction2_slug],
+                    "topEvents": [
+                        "{}:{}".format(self.transaction.project.slug, self.transaction.event_id),
+                        transaction2_slug,
+                    ],
                 },
                 format="json",
             )
@@ -798,7 +827,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 2
 
-        transaction_data = data[self.transaction_slug]
+        transaction_data = data[
+            "{}:{}".format(self.transaction.project.slug, self.transaction.event_id)
+        ]
         values = transaction_data["values"]
         assert values["transaction"] == self.transaction.transaction
         assert values["avg_transaction_duration"] == 120000.0
@@ -817,3 +848,46 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 0}],
         ]
+
+    def test_top_events_with_query(self):
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["transaction"] = "/foo_bar/"
+        transaction2 = self.store_event(transaction_data, project_id=self.project.id)
+        transaction2_slug = "{}:{}".format(self.project.slug, transaction2.event_id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "query": "transaction:/foo_bar/",
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "topEvents": [transaction2_slug],
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        transaction2_data = data[transaction2_slug]
+        values = transaction2_data["values"]
+        assert values["transaction"] == transaction2.transaction
+        assert values["avg_transaction_duration"] == 240000.0
+        assert values["p99"] == 240000.0
+        assert [attrs for time, attrs in transaction2_data["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_rpm(self):
+        pass
+
+    def test_top_events_with_multiple_yaxis(self):
+        pass
