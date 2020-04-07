@@ -161,19 +161,28 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         <ForwardRef(IconChevron)
                           direction="right"
                         >
-                          <svg
+                          <StyledSvg
+                            direction="90"
                             fill="currentColor"
                             height="16px"
-                            transform="rotate(90)"
                             viewBox="0 0 16 16"
                             width="16px"
                           >
-                            <g>
-                              <path
-                                d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z"
-                              />
-                            </g>
-                          </svg>
+                            <svg
+                              className="css-cside3-StyledSvg e1embbem0"
+                              direction="90"
+                              fill="currentColor"
+                              height="16px"
+                              viewBox="0 0 16 16"
+                              width="16px"
+                            >
+                              <g>
+                                <path
+                                  d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z"
+                                />
+                              </g>
+                            </svg>
+                          </StyledSvg>
                         </ForwardRef(IconChevron)>
                       </span>
                     </IconLink>
