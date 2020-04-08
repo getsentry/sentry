@@ -80,6 +80,9 @@ describe('TableField', function() {
           .last()
           .simulate('click');
 
+        // click through confirmation
+        wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
+
         expect(wrapper.find('RowContainer[data-test-id="field-row"]')).toHaveLength(1);
       });
     });

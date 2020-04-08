@@ -74,6 +74,7 @@ class PagerDutyIntegration(IntegrationInstallation):
                 "addButtonText": "",
                 "columnLabels": {"service": "Service", "integration_key": "Integration Key"},
                 "columnKeys": ["service", "integration_key"],
+                "confirmDeleteMessage": "Any alert rules associated with this service will stop working. The rules will still exist but will show a `removed` service.",
             }
         ]
 
