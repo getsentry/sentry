@@ -175,6 +175,6 @@ class PluginConfigMixin(ProviderMixin):
         users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
         By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
         """
-        if f == IntegrationFeatures.DATA_FORWARDING:
+        if f == IntegrationFeatures.DATA_FORWARDING.value:
             return u"integrations-{}".format(f)
         return f
