@@ -116,7 +116,7 @@ class Symbolicator(object):
 
     def _process(self, create_task):
         task_id = default_cache.get(self.task_id_cache_key)
-        json = None
+        json_response = None
 
         with self.sess:
             try:
@@ -124,15 +124,15 @@ class Symbolicator(object):
                     # Processing has already started and we need to poll
                     # symbolicator for an update. This in turn may put us back into
                     # the queue.
-                    json = self.sess.query_task(task_id)
+                    json_response = self.sess.query_task(task_id)
 
-                if json is None:
+                if json_response is None:
                     # This is a new task, so we compute all request parameters
                     # (potentially expensive if we need to pull minidumps), and then
                     # upload all information to symbolicator. It will likely not
                     # have a response ready immediately, so we start polling after
                     # some timeout.
-                    json = create_task()
+                    json_response = create_task()
             except ServiceUnavailable:
                 # 503 can indicate that symbolicator is restarting. Wait for a
                 # reboot, then try again. This overrides the default behavior of
@@ -143,20 +143,25 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={"response": json.get("status") or "null", "project_id": self.sess.project_id},
+                tags={"response": json_response.get("status") or "null"},
             )
 
             # Symbolication is still in progress. Bail out and try again
             # after some timeout. Symbolicator keeps the response for the
             # first one to poll it.
-            if json["status"] == "pending":
-                default_cache.set(self.task_id_cache_key, json["request_id"], REQUEST_CACHE_TIMEOUT)
-                raise RetrySymbolication(retry_after=json["retry_after"])
+            if json_response["status"] == "pending":
+                default_cache.set(
+                    self.task_id_cache_key, json_response["request_id"], REQUEST_CACHE_TIMEOUT
+                )
+                raise RetrySymbolication(retry_after=json_response["retry_after"])
             else:
                 # Once we arrive here, we are done processing. Clean up the
                 # task id from the cache.
                 default_cache.delete(self.task_id_cache_key)
-                return json
+                metrics.timing(
+                    "events.symbolicator.response.completed.size", len(json.dumps(json_response))
+                )
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump))
