@@ -4,17 +4,14 @@ import logging
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.snuba import discover
-from sentry.models import Project
+from sentry.models import Group, Project
 
 from ..base import ExportError
 
 logger = logging.getLogger(__name__)
 
 
-ALIAS_FIELDS = [
-    ("user", ["user.name", "user.email", "user.username", "user.ip"]),
-    ("issue", ["issue.id"]),
-]
+ALIAS_FIELDS = {"user": ["user.name", "user.email", "user.username", "user.ip"]}
 
 
 class DiscoverProcessor(object):
@@ -63,23 +60,40 @@ class DiscoverProcessor(object):
 
         return data_fn
 
-    def alias_fields(self, raw_data):
+    def handle_fields(self, result_list):
         """
         For each of the aliases in ALIAS_FIELDS,
         replace the 'base' field with the 'alternate' list.
         """
         # Go through every raw dict response
-        for item in raw_data:
+        for result in result_list:
             # Go through each set of aliases
-            for base, alternates in ALIAS_FIELDS:
+            for field, aliases in ALIAS_FIELDS.items():
                 # If this alias isn't in the requested columns, skip it
-                if not self.header_fields.count(base) > 0:
+                if field not in self.header_fields:
                     continue
-                # Check if the alternate field is present
-                # if so: replace the base
+                # Check if the alias is present
+                # if so: replace the field
                 # if not: fallback to the next alternate
-                for alt in alternates:
-                    if item.get(alt):
-                        item[base] = item[alt]
+                for alias in aliases:
+                    if result.get(alias):
+                        result[field] = result[alias]
                         break
-        return raw_data
+
+        # Find issue short_id if present
+        # (originally in `/api/bases/organization_events.py`)
+        if "issue" in self.header_fields:
+            issue_ids = set(result["issue.id"] for result in result_list)
+            issues = {
+                i.id: i.qualified_short_id
+                for i in Group.objects.filter(
+                    id__in=issue_ids,
+                    project__in=self.params["project_id"],
+                    project__organization_id=self.params["organization_id"],
+                )
+            }
+            for result in result_list:
+                if "issue.id" in result:
+                    result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        return result_list

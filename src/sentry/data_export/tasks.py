@@ -130,10 +130,8 @@ def process_discover(data_export, file, limit, environment_id):
         metrics.incr("dataexport.error", instance=six.text_type(error))
         logger.error("dataexport.error: {}".format(six.text_type(error)))
         raise error
-    with snuba_error_handler(logger=logger):
-        vals = processor.data_fn(offset=0, limit=1)["data"]
 
-    writer = create_writer(file, vals[0].keys())
+    writer = create_writer(file, processor.header_fields)
     iteration = 0
     with snuba_error_handler(logger=logger):
         while True:
@@ -145,7 +143,7 @@ def process_discover(data_export, file, limit, environment_id):
             # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
             # See associated comment in './utils.py'
             raw_data = convert_to_utf8(raw_data_unicode)
-            raw_data = processor.alias_fields(raw_data)
+            raw_data = processor.handle_fields(raw_data)
             if limit and limit < next_offset:
                 writer.writerows(raw_data[: limit % SNUBA_MAX_RESULTS])
                 break
