@@ -98,7 +98,6 @@ class OrganizationApiKeyDetails extends AsyncView {
           </SplitInput>
 
           <MultipleCheckboxField
-            className="api-key-details"
             name="scope_list"
             label={t('Scopes')}
             required
