@@ -184,13 +184,30 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     });
   };
 
-  handleEventIdBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.preventDefault();
-
+  isEventIdValueValid = (): boolean => {
     const {eventIdInputValue} = this.state;
     if (eventIdInputValue && eventIdInputValue.length !== 32) {
       this.setState({eventIdStatus: EventIdFieldStatus.INVALID});
-    } else {
+      return false;
+    }
+
+    return true;
+  };
+
+  handleEventIdBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.preventDefault();
+
+    if (this.isEventIdValueValid()) {
+      this.loadSelectorSuggestions();
+    }
+  };
+
+  handleEventIdKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    event.persist();
+
+    const {keyCode} = event;
+
+    if (keyCode === 13 && this.isEventIdValueValid()) {
       this.loadSelectorSuggestions();
     }
   };
@@ -284,30 +301,33 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       .then(() => {
         addSuccessMessage(t('Successfully saved data privacy rules'));
       })
-      .catch(err => {
-        const msg = err.responseJSON?.relayPiiConfig[0];
-        if (msg && msg.startsWith('invalid selector: ')) {
-          let selector;
-          for (const line of msg.split('\n')) {
-            if (line.startsWith('1 | ')) {
-              selector = line.slice(3);
-              break;
-            }
-          }
+      .catch(error => {
+        const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
-          addErrorMessage(t('Invalid selector: %s', selector));
+        if (!errorMessage) {
+          addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
           return;
         }
 
-        if (msg && msg.startsWith('regex parse error:')) {
-          let subMsg;
-          for (const line of msg.split('\n')) {
-            if (line.startsWith('error:')) {
-              subMsg = line.slice(6).replace(/at line \d+ column \d+/, '');
+        if (errorMessage.startsWith('invalid selector: ')) {
+          for (const line of errorMessage.split('\n')) {
+            if (line.startsWith('1 | ')) {
+              const selector = line.slice(3);
+              addErrorMessage(t('Invalid selector: %s', selector));
               break;
             }
           }
-          addErrorMessage(t('Invalid regex: %s', subMsg));
+          return;
+        }
+
+        if (errorMessage.startsWith('regex parse error:')) {
+          for (const line of errorMessage.split('\n')) {
+            if (line.startsWith('error:')) {
+              const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
+              addErrorMessage(t('Invalid regex: %s', regex));
+              break;
+            }
+          }
           return;
         }
 
@@ -362,6 +382,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       <React.Fragment>
         <Panel>
           <DataprivacyRulesPanelHeader
+            onKeyDown={this.handleEventIdKeyDown}
             onChange={this.handleEventIdChange}
             onBlur={this.handleEventIdBlur}
             value={eventIdInputValue}

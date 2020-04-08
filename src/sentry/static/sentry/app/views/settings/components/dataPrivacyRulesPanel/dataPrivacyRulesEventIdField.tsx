@@ -20,6 +20,7 @@ type Props = {
   status: EventIdFieldStatus;
   onChange: (eventId: string) => void;
   onBlur: (event: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
   value: string;
 };
@@ -29,12 +30,11 @@ const DataPrivacyRulesEventIdField = ({
   onChange,
   value,
   onBlur,
+  onKeyDown,
   disabled,
 }: Props) => {
   const getEventTooltipTitle = (): string => {
     switch (status) {
-      case EventIdFieldStatus.LOADING:
-        return '';
       case EventIdFieldStatus.INVALID:
         return t("That's not a valid event ID");
       case EventIdFieldStatus.ERROR:
@@ -57,6 +57,7 @@ const DataPrivacyRulesEventIdField = ({
           value={value}
           placeholder={t('Paste event ID for better assistance')}
           onChange={onChange}
+          onKeyDown={onKeyDown}
           onBlur={onBlur}
         />
         {status === EventIdFieldStatus.LOADING && <ControlState isSaving />}
