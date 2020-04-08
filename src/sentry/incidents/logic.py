@@ -158,7 +158,7 @@ def update_incident_status(incident, status, user=None, comment=None):
         incident.update(**kwargs)
 
         if status == IncidentStatus.CLOSED:
-            create_incident_snapshot(incident)
+            create_incident_snapshot(incident, windowed_stats=True)
 
         analytics.record(
             "incident.status_change",
