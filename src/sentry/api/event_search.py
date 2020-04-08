@@ -1083,7 +1083,7 @@ FUNCTIONS = {
         "name": "apdex",
         "args": [NumberRange("satisfaction", 0, None)],
         "transform": u"apdex(duration, {satisfaction:g})",
-        "result_type": "number",
+        "result_type": "percentage",
     },
     "impact": {
         "name": "impact",
@@ -1100,7 +1100,7 @@ FUNCTIONS = {
         "name": "error_rate",
         "args": [],
         "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
-        "result_type": "number",
+        "result_type": "percentage",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
     # Internally, snuba.discover.query() expands the user request into this value by

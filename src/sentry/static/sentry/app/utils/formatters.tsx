@@ -144,3 +144,47 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
 
   return `0${abbreviation ? t('ms') : ` ${t('milliseconds')}`}`;
 }
+
+export function formatFloat(number: number, places: number) {
+  const multi = Math.pow(10, places);
+  return parseInt((number * multi).toString(), 10) / multi;
+}
+
+/**
+ * Format a value between 0 and 1 as a percentage
+ */
+export function formatPercentage(value: number, places: number = 2) {
+  if (value === 0) {
+    return '0%';
+  }
+  return (value * 100).toFixed(places) + '%';
+}
+
+const numberFormats = [
+  [1000000000, 'b'],
+  [1000000, 'm'],
+  [1000, 'k'],
+] as const;
+
+export function formatAbbreviatedNumber(number: number | string) {
+  number = Number(number);
+
+  let lookup: typeof numberFormats[number];
+
+  // eslint-disable-next-line no-cond-assign
+  for (let i = 0; (lookup = numberFormats[i]); i++) {
+    const [suffixNum, suffix] = lookup;
+    const shortValue = Math.floor(number / suffixNum);
+    const fitsBound = number % suffixNum;
+
+    if (shortValue <= 0) {
+      continue;
+    }
+
+    return shortValue / 10 > 1 || !fitsBound
+      ? `${shortValue}${suffix}`
+      : `${formatFloat(number / suffixNum, 1)}${suffix}`;
+  }
+
+  return number.toLocaleString();
+}

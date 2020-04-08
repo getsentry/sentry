@@ -9,7 +9,7 @@ import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
 import ConfigStore from 'app/stores/configStore';
 import theme from 'app/utils/theme';
-import floatFormat from 'app/utils/floatFormat';
+import {formatFloat} from 'app/utils/formatters';
 
 class StackedBarChart extends React.Component {
   static propTypes = {
@@ -293,7 +293,7 @@ class StackedBarChart extends React.Component {
     let prevPct = 0;
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
-        totalY && floatFormat((y / totalY) * totalPct * maxPercentage, 2),
+        totalY && formatFloat((y / totalY) * totalPct * maxPercentage, 2),
         this.getMinHeight(i, point.y.length)
       );
 
@@ -342,7 +342,7 @@ class StackedBarChart extends React.Component {
     const totalPoints = Math.max(...series.map(s => s.data.length));
     // we expand the graph just a hair beyond 100% prevent a subtle white line on the edge
     const nudge = 0.1;
-    const pointWidth = floatFormat((100.0 + this.props.gap + nudge) / totalPoints, 2);
+    const pointWidth = formatFloat((100.0 + this.props.gap + nudge) / totalPoints, 2);
 
     const maxval = this.maxPointValue();
     const markers = this.props.markers.slice();
