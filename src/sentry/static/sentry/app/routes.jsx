@@ -20,7 +20,7 @@ import SettingsProjectProvider from 'app/views/settings/components/settingsProje
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 import errorHandler from 'app/utils/errorHandler';
 import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import {usesNewReleases} from 'app/views/releasesV2/utils';
+import {wantsNewReleases} from 'app/views/releasesV2/utils';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -1572,21 +1572,7 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          {/*
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          */}
-          {usesNewReleases() ? (
+          {wantsNewReleases() ? (
             <React.Fragment>
               <Route
                 path="/organizations/:orgId/releases/"
@@ -1729,20 +1715,6 @@ function routes() {
               />
             </React.Fragment>
           )}
-          {/*
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          //
-          */}
           <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             componentPromise={() =>

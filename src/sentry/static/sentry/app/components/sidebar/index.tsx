@@ -39,7 +39,7 @@ import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import {logExperiment} from 'app/utils/analytics';
 import {Organization} from 'app/types';
-import {usesNewReleases} from 'app/views/releasesV2/utils';
+import {wantsNewReleases} from 'app/views/releasesV2/utils';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -323,7 +323,7 @@ class Sidebar extends React.Component<Props, State> {
       return false;
     }
 
-    return organization.features.includes('releases-v2') && usesNewReleases();
+    return organization.features.includes('releases-v2') && wantsNewReleases();
   }
 
   render() {

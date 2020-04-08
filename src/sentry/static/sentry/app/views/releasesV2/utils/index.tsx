@@ -4,7 +4,7 @@ import localStorage from 'app/utils/localStorage';
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-const RELEASES_VERSION_KEY = 'release:version';
+const RELEASES_VERSION_KEY = 'releases-EA:version';
 
 export const switchReleasesVersion = (version: '1' | '2', orgId: string) => {
   localStorage.setItem(RELEASES_VERSION_KEY, version);
@@ -18,7 +18,7 @@ export const switchReleasesVersion = (version: '1' | '2', orgId: string) => {
   });
 };
 
-export const usesNewReleases = (): boolean => {
+export const wantsNewReleases = (): boolean => {
   const version = localStorage.getItem(RELEASES_VERSION_KEY);
   if (!version) {
     // by default, turn v2 on - if user is not allowed to do that, feature flag will catch that and set it back to 1
