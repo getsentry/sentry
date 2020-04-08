@@ -173,7 +173,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 }
 
 const AddButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 export default withOrganization(PluginDetailedView);
