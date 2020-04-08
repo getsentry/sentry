@@ -10,6 +10,7 @@ from rest_framework import serializers
 
 from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
+from sentry.integrations import IntegrationFeatures
 
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
@@ -174,4 +175,6 @@ class PluginConfigMixin(ProviderMixin):
         users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
         By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
         """
+        if f == IntegrationFeatures.DATA_FORWARDING:
+            return u"integrations-{}".format(f)
         return f
