@@ -5,7 +5,6 @@ from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.discover.models import KeyTransaction
 from sentry.discover.endpoints.serializers import KeyTransactionSerializer
 from sentry.snuba.discover import key_transaction_query, key_transaction_timeseries_query
@@ -100,7 +99,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                 transaction=transaction, organization=organization, project=project
             )
         except KeyTransaction.DoesNotExist:
-            raise ResourceDoesNotExist
+            return Response(status=204)
 
         model.delete()
 

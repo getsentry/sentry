@@ -411,6 +411,18 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             == 0
         )
 
+    def test_delete_nonexistent_transaction(self):
+        event_data = load_data("transaction")
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+
+        assert response.status_code == 204
+
     def test_delete_with_multiple_projects(self):
         other_user = self.create_user()
         other_org = self.create_organization(owner=other_user)
