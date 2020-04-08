@@ -1142,3 +1142,13 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
+
+export type Activity = {
+  data: any;
+  dateCreated: string;
+  type: string;
+  id: string;
+  issue?: Group;
+  project: Project;
+  user?: User;
+};
