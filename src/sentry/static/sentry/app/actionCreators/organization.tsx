@@ -63,6 +63,7 @@ export async function fetchOrganizationDetails(
           }),
           uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
         ]);
+        /* await new Promise(resolve => setTimeout(resolve, 10000)); */
         ProjectActions.loadProjects(projects);
         TeamActions.loadTeams(teams);
       } catch (err) {

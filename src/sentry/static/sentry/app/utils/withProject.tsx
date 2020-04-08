@@ -23,6 +23,7 @@ const withProject = <P extends InjectedProjectProps>(
     };
 
     render() {
+      console.log('withProject', getDisplayName(WrappedComponent), this.context.project);
       return (
         <WrappedComponent
           project={this.context.project as Project}

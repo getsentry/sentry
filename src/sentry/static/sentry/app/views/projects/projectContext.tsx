@@ -8,21 +8,36 @@ import createReactClass from 'create-react-class';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MemberListStore from 'app/stores/memberListStore';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
+import Projects from 'app/utils/projects';
 import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
-import withProjects from 'app/utils/withProjects';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
   UNKNOWN: 'UNKNOWN',
 };
+
+  type Props = {
+    api: Client;
+
+    /**
+     * If true, this will not change `state.loading` during `fetchData` phase
+     */
+    skipReload: boolean;
+    organization: Organization;
+    /* projects: Project[]; */
+    projectId: string,
+    orgId: string,
+    project: Project;
+  }
 
 /**
  * Higher-order component that sets `project` as a child context
@@ -31,50 +46,27 @@ const ERROR_TYPES = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = createReactClass({
-  displayName: 'ProjectContext',
-
-  propTypes: {
-    api: PropTypes.object,
-
-    /**
-     * If true, this will not change `state.loading` during `fetchData` phase
-     */
-    skipReload: PropTypes.bool,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-    projectId: PropTypes.string,
-    orgId: PropTypes.string,
-  },
-
-  childContextTypes: {
+class ProjectContext extends React.Component<Props> {
+  static childContextTypes= {
     project: SentryTypes.Project,
-  },
+  }
 
-  mixins: [
-    Reflux.connect(MemberListStore, 'memberList'),
-    Reflux.listenTo(ProjectsStore, 'onProjectChange'),
-  ],
-
-  getInitialState() {
-    return {
-      loading: true,
+  state = {
+      loading: false,
       error: false,
       errorType: null,
       memberList: [],
-      project: null,
     };
-  },
 
   getChildContext() {
     return {
-      project: this.state.project,
+      project: this.props.project,
     };
-  },
+  }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
-  },
+  }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.projectId === this.props.projectId) {
@@ -84,11 +76,11 @@ const ProjectContext = createReactClass({
     if (!nextProps.skipReload) {
       this.remountComponent();
     }
-  },
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.projectId !== this.props.projectId) {
-      this.fetchData();
+      /* this.fetchData(); */
     }
 
     // Project list has changed. Likely indicating that a new project has been
@@ -98,9 +90,9 @@ const ProjectContext = createReactClass({
     // For now, only compare lengths. It is possible that project slugs within
     // the list could change, but it doesn't seem to be broken anywhere else at
     // the moment that would require deeper checks.
-    if (prevProps.projects.length !== this.props.projects.length) {
-      this.fetchData();
-    }
+    /* if (prevProps.projects.length !== this.props.projects.length) { */
+    /* this.fetchData(); */
+    /* } */
 
     // Call forceUpdate() on <DocumentTitle/> if either project or organization
     // state has changed. This is because <DocumentTitle/>'s shouldComponentUpdate()
@@ -112,7 +104,7 @@ const ProjectContext = createReactClass({
 
     // intentionally shallow comparing references
     if (
-      prevState.project !== this.state.project ||
+      /* prevState.project !== this.state.project || */
       prevState.organization !== this.state.organization
     ) {
       if (!this.docTitle) {
@@ -123,43 +115,27 @@ const ProjectContext = createReactClass({
         docTitle.forceUpdate();
       }
     }
-  },
+  }
 
   remountComponent() {
     this.setState(this.getInitialState());
-  },
+  }
 
   getTitle() {
-    if (this.state.project) {
-      return this.state.project.slug;
+    if (this.props.project) {
+      return this.props.project.slug;
     }
     return 'Sentry';
-  },
+  }
 
-  onProjectChange(projectIds) {
-    if (!this.state.project) {
-      return;
-    }
-    if (!projectIds.has(this.state.project.id)) {
-      return;
-    }
-
-    this.setState({
-      project: {...ProjectsStore.getById(this.state.project.id)},
-    });
-  },
-
-  identifyProject() {
-    const {projects, projectId} = this.props;
-    const projectSlug = projectId;
-    return projects.find(({slug}) => slug === projectSlug) || null;
-  },
 
   async fetchData() {
     const {orgId, projectId, skipReload} = this.props;
     // we fetch core access/information from the global organization data
-    const activeProject = this.identifyProject();
+    const activeProject = this.props.project;
     const hasAccess = activeProject && activeProject.hasAccess;
+
+    console.log('fetchData', activeProject, hasAccess, activeProject?.isMember);
 
     this.setState(state => ({
       // if `skipReload` is true, then don't change loading state
@@ -200,6 +176,7 @@ const ProjectContext = createReactClass({
 
     // User is not a memberof the active project
     if (activeProject && !activeProject.isMember) {
+      console.log('hi');
       this.setState({
         loading: false,
         error: true,
@@ -213,6 +190,7 @@ const ProjectContext = createReactClass({
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
+      console.log('no active project?');
       await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
     } catch (error) {
       this.setState({
@@ -246,8 +224,9 @@ const ProjectContext = createReactClass({
           // out into a reusable missing access error component
           return (
             <MissingProjectMembership
+              project={this.props.project}
               organization={this.props.organization}
-              projectId={this.state.project.slug}
+              projectId={this.props.project.slug}
             />
           );
         default:
@@ -267,6 +246,28 @@ const ProjectContext = createReactClass({
   },
 });
 
+function ProjectContextContainer({orgId, projectId, ...props}) {
+  return (
+    <Projects key={`${orgId}-${projectId}`} orgId={orgId} slugs={[projectId]}>
+      {({projects, initiallyLoaded, fetching}) => {
+        return (
+          <React.Fragment>
+            {!initiallyLoaded || fetching ? (
+              <LoadingIndicator />
+            ) : (
+              <ProjectContext
+                {...props}
+                orgId={orgId}
+                projectId={projectId}
+                project={projects[0]}
+              />
+            )}
+          </React.Fragment>
+        );
+      }}
+    </Projects>
+  );
+}
 export {ProjectContext};
 
-export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));
+export default withApi(withOrganization(ProjectContextContainer));
