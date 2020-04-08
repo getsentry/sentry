@@ -68,12 +68,16 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
 
-        if not queryset.exists():
-            raise ResourceDoesNotExist
-
-        results = key_transaction_query(
-            fields, request.GET.get("query"), params, orderby, "discover.key_transactions", queryset
-        )
+        results = {}
+        if queryset.exists():
+            results = key_transaction_query(
+                fields,
+                request.GET.get("query"),
+                params,
+                orderby,
+                "discover.key_transactions",
+                queryset,
+            )
 
         return Response(
             self.handle_results_with_meta(request, organization, params["project_id"], results),
@@ -109,8 +113,6 @@ class KeyTransactionStatsEndpoint(KeyTransactionBase):
             return self.response(status=404)
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
-        if not queryset.exists():
-            raise ResourceDoesNotExist
 
         def get_event_stats(query_columns, query, params, rollup, reference_event=None):
             return key_transaction_timeseries_query(

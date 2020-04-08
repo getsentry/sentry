@@ -132,10 +132,20 @@ describe('IncidentsList', function() {
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
+    const rules_mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      body: [],
+    });
 
     wrapper = await createWrapper();
+
+    expect(rules_mock).toHaveBeenCalledTimes(1);
+
+    await tick();
+    wrapper.update();
+
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any Metric Alerts yet");
+    expect(wrapper.text()).toContain('No active metric alerts.');
   });
 
   it('toggles all/open', async function() {
