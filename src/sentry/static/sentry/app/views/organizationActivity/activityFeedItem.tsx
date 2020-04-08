@@ -362,7 +362,7 @@ export default styled(ActivityItem)`
   padding: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   line-height: 1.4;
-  font-size: 15px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const ActivityAuthor = styled('span')`
