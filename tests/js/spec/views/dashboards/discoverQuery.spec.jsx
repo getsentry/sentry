@@ -4,6 +4,7 @@ import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import DiscoverQuery from 'app/views/dashboards/discoverQuery';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('DiscoverQuery', function() {
   const {organization, router, routerContext} = initializeOrg({
@@ -23,7 +24,10 @@ describe('DiscoverQuery', function() {
   let discoverMock;
   const renderMock = jest.fn(() => null);
 
-  beforeEach(function() {
+  beforeEach(async function() {
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    await tick();
+
     renderMock.mockClear();
     router.push.mockRestore();
     MockApiClient.clearMockResponses();

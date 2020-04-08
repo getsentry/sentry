@@ -5,6 +5,7 @@ import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import DashboardsContainer from 'app/views/dashboards';
 import OverviewDashboard from 'app/views/dashboards/overviewDashboard';
+import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -13,7 +14,7 @@ describe('OverviewDashboard', function() {
   let discoverMock;
   let releasesMock;
 
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
       features: ['discover', 'global-views'],
@@ -39,6 +40,7 @@ describe('OverviewDashboard', function() {
   };
 
   beforeEach(function() {
+    ProjectsStore.loadInitialData(projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -107,7 +109,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -127,7 +129,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -147,7 +149,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '14d',
 
           fields: [],
@@ -205,7 +207,7 @@ describe('OverviewDashboard', function() {
       expect.objectContaining({
         data: expect.objectContaining({
           environments: [],
-          projects: [2, 3],
+          projects: expect.arrayContaining([2, 3]),
           range: '7d',
 
           fields: [],
