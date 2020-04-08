@@ -1,3 +1,4 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -8,7 +9,12 @@ import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
-class SettingsLayout extends React.Component {
+type Props = {
+  renderNavigation?: () => React.ReactNode;
+  children: React.ReactNode;
+} & RouteComponentProps<{}, {}>;
+
+class SettingsLayout extends React.Component<Props> {
   static propTypes = {
     renderNavigation: PropTypes.func,
     route: PropTypes.object,
@@ -19,7 +25,8 @@ class SettingsLayout extends React.Component {
   render() {
     const {params, routes, route, router, renderNavigation, children} = this.props;
     // We want child's view's props
-    const childProps = (children && children.props) || this.props;
+    const childProps =
+      (children && React.isValidElement(children) && children.props) || this.props;
     const childRoutes = childProps.routes || routes || [];
     const childRoute = childProps.route || route || {};
     return (
