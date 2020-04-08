@@ -163,8 +163,10 @@ class AbstractIntegrationDetailedView<
     return (
       <Panel>
         <EmptyMessage
-          title={"You haven't set anything up yet"}
-          description="But that doesn’t have to be the case for long! Add an installation to get started."
+          title={t("You haven't set anything up yet")}
+          description={t(
+            'But that doesn’t have to be the case for long! Add an installation to get started.'
+          )}
           action={this.renderAddInstallButton(true)}
         />
       </Panel>
