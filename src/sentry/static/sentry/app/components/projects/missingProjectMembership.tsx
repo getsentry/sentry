@@ -2,16 +2,27 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
+import {Organization, Project} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import HeroIcon from 'app/components/heroIcon';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Projects from 'app/utils/projects';
 import Well from 'app/components/well';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class MissingProjectMembership extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  projectId: string;
+  project: Project;
+};
+
+class MissingProjectMembership extends React.Component<Props> {
   static propTypes = {
     api: PropTypes.object,
     organization: PropTypes.object.isRequired,
@@ -22,12 +33,10 @@ class MissingProjectMembership extends React.Component {
     super(props);
 
     const {organization, projectId} = this.props;
-    const project = organization.projects.find(p => p.slug === projectId);
 
     this.state = {
       loading: false,
       error: false,
-      project,
     };
   }
 
@@ -93,8 +102,8 @@ class MissingProjectMembership extends React.Component {
   }
 
   renderJoinTeams(features) {
-    const {teams} = this.state.project;
-    if (!teams.length) {
+    const {teams} = this.props.project;
+    if (!teams?.length) {
       return (
         <EmptyMessage>
           {t(
@@ -135,6 +144,26 @@ const StyledWell = styled(Well)`
 const StyledHeroIcon = styled(HeroIcon)`
   margin-bottom: ${space(2)};
 `;
+
+/* function MissingProjectMembershipContainer({organization, projectId}) { */
+/* return ( */
+/* <Projects orgId={organization.slug} slugs={[projectId]}> */
+/* {({projects, initiallyLoaded, fetching}) => ( */
+/* <React.Fragment> */
+/* {initiallyLoaded || fetching ? ( */
+/* <LoadingIndicator /> */
+/* ) : ( */
+/* <MissingProjectMembership */
+/* project={projects[0]} */
+/* organization={organization} */
+/* projectId={projectId} */
+/* /> */
+/* )} */
+/* </React.Fragment> */
+/* )} */
+/* </Projects> */
+/* ); */
+/* } */
 
 export {MissingProjectMembership};
 
