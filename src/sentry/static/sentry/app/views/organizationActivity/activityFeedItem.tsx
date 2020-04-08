@@ -3,7 +3,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Activity, Organization} from 'app/types';
-import {IconSentry} from 'app/icons';
 import {t, tn, tct} from 'app/locale';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
@@ -13,11 +12,11 @@ import MemberListStore from 'app/stores/memberListStore';
 import PullRequestLink from 'app/components/pullRequestLink';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
-import UserAvatar from 'app/components/avatar/userAvatar';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import marked from 'app/utils/marked';
 import space from 'app/styles/space';
+import ActivityAvatar from 'app/components/activity/item/avatar';
 
 const defaultProps = {
   defaultClipped: false,
@@ -301,12 +300,9 @@ class ActivityItem extends React.Component<Props, State> {
   render() {
     const {className, item} = this.props;
 
-    const avatar = item.user ? (
-      <UserAvatar user={item.user} size={36} />
-    ) : (
-      <IconSentry size="36px" />
+    const avatar = (
+      <ActivityAvatar type={!item.user ? 'system' : 'user'} user={item.user} size={36} />
     );
-
     const author = {
       name: item.user ? item.user.name : 'Sentry',
       avatar,
