@@ -25,9 +25,6 @@ class DataExportQuerySerializer(serializers.Serializer):
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
-    def get(self, request, organization):
-        return Response(status=404)
-
     def post(self, request, organization):
         """
         Create a new asynchronous file export task, and
