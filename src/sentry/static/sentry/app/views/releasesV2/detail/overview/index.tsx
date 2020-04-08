@@ -22,6 +22,7 @@ import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import ReleaseStatsRequest from './chart/releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
 import DiscoverChartContainer from './chart/discoverChartContainer';
+import SwitchReleasesButton from '../../utils/switchReleasesButton';
 
 import {ReleaseContext} from '..';
 
@@ -127,6 +128,8 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
                   </Sidebar>
+
+                  <SwitchReleasesButton version="1" orgId={organization.id} />
                 </ContentBox>
               )}
             </ReleaseStatsRequest>
@@ -138,10 +141,6 @@ class ReleaseOverview extends AsyncView<Props> {
 }
 
 const ContentBox = styled('div')`
-  padding: ${space(4)};
-  flex: 1;
-  background-color: white;
-
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-column-gap: ${space(3)};

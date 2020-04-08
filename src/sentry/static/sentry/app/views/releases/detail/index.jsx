@@ -15,6 +15,8 @@ import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import Feature from 'app/components/acl/feature';
+import SwitchReleasesButton from 'app/views/releasesV2/utils/switchReleasesButton';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -80,6 +82,7 @@ class OrganizationReleaseDetails extends AsyncView {
     const {
       location,
       params: {orgId},
+      organization,
     } = this.props;
     const {release} = this.state;
 
@@ -99,6 +102,9 @@ class OrganizationReleaseDetails extends AsyncView {
           release,
           query,
         })}
+        <Feature features={['releases-v2']} organization={organization}>
+          <SwitchReleasesButton version="2" orgId={organization.id} />
+        </Feature>
       </PageContent>
     );
   }

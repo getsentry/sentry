@@ -26,7 +26,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
-import {switchReleasesVersion} from '../utils';
+import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
   orgId: string;
@@ -120,10 +120,6 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
-  handleGoToOldReleases = () => {
-    switchReleasesVersion('1', this.props.organization.id);
-  };
-
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
     // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
     return flatMap(releases, release =>
@@ -135,6 +131,12 @@ class ReleasesList extends AsyncView<Props, State> {
         };
       })
     );
+  }
+
+  shouldShowLoadingIndicator() {
+    const {loading, releases, reloading} = this.state;
+
+    return (loading && !reloading) || (loading && !releases?.length);
   }
 
   renderLoading() {
@@ -170,9 +172,9 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {location} = this.props;
-    const {loading, releases, reloading} = this.state;
+    const {releases, reloading} = this.state;
 
-    if ((loading && !reloading) || (loading && !releases?.length)) {
+    if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
@@ -230,12 +232,9 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
-            <SwitchLink
-              href={`/organizations/${organization.slug}/releases/`}
-              onClick={this.handleGoToOldReleases}
-            >
-              {t('Go to Legacy Releases')}
-            </SwitchLink>
+            {!this.shouldShowLoadingIndicator() && (
+              <SwitchReleasesButton version="1" orgId={organization.id} />
+            )}
           </PageContent>
         </NoProjectMessage>
       </React.Fragment>
@@ -261,11 +260,6 @@ const SortAndFilterWrapper = styled('div')`
     grid-template-columns: none;
     grid-template-rows: 1fr 1fr 1fr;
   }
-`;
-
-const SwitchLink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(1)};
 `;
 
 export default withOrganization(ReleasesList);
