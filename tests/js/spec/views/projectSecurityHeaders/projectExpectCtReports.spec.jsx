@@ -22,7 +22,6 @@ describe('ProjectExpectCtReports', function() {
       <ProjectExpectCtReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),
