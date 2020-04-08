@@ -53,6 +53,9 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                 data = serializer.validated_data
                 base_filter["transaction"] = data["transaction"]
 
+                if KeyTransaction.objects.filter(**base_filter).count() > 0:
+                    return Response(status=204)
+
                 KeyTransaction.objects.create(**base_filter)
                 return Response(status=201)
             return Response(serializer.errors, status=400)

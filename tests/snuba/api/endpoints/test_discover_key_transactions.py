@@ -51,7 +51,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             response = self.client.post(
                 url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
             )
-            assert response.status_code == 400
+            assert response.status_code == 204
 
         key_transactions = KeyTransaction.objects.filter(owner=self.user)
         assert len(key_transactions) == 1
