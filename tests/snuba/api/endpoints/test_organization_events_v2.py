@@ -1694,7 +1694,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["p75"] == "duration"
             assert meta["p95"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
-            assert meta["apdex_300"] == "number"
+            assert meta["apdex_300"] == "percentage"
+            assert meta["error_rate"] == "percentage"
             assert meta["impact"] == "number"
 
             data = response.data["data"]

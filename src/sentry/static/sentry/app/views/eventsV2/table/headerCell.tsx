@@ -19,7 +19,7 @@ function HeaderCell(props: Props) {
   const {children, column, tableData} = props;
 
   // establish alignment based on the type
-  const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
+  const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
   let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
 
   if (column.type === 'never') {
@@ -29,7 +29,7 @@ function HeaderCell(props: Props) {
         ? tableData.meta[getAggregateAlias(column.name)]
         : undefined;
 
-    if (maybeType === 'integer' || maybeType === 'number') {
+    if (maybeType !== undefined && alignedTypes.includes(maybeType)) {
       align = 'right';
     }
   }
