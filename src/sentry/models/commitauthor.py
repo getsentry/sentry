@@ -8,7 +8,9 @@ from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 
 class CommitAuthorManager(BaseManager):
     def get_or_create(self, organization_id, email, defaults, **kwargs):
-        # always use the lower case email
+        # Force email address to lowercase because GitHub does this. Note though that this isn't technically
+        # to spec; only the domain part of the email address is actually case-insensitive.
+        # See: https://stackoverflow.com/questions/9807909/are-email-addresses-case-sensitive
         return super(CommitAuthorManager, self).get_or_create(
             organization_id=organization_id, email=email.lower(), defaults=defaults, **kwargs
         )
