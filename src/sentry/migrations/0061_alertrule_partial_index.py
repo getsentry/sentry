@@ -51,4 +51,9 @@ class Migration(migrations.Migration):
                 )
             ],
         ),
+        migrations.AlterField(
+            model_name='alertrule',
+            name='organization',
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
+        ),
     ]
