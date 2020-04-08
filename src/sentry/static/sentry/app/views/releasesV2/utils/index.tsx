@@ -1,9 +1,9 @@
 import round from 'lodash/round';
 
-import {ProgressColorFunction} from 'app/components/progressRing';
+import ProgressRing from 'app/components/progressRing';
 
-const HEALTH_RED_THRESHOLD = 98;
-const HEALTH_ORANGE_THRESHOLD = 99.5;
+const CRASH_FREE_DANGER_THRESHOLD = 98;
+const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
 export const getCrashFreePercent = (
   percent: number,
@@ -32,15 +32,13 @@ export const convertAdoptionToProgress = (
   numberOfProgressUnits = 5
 ): number => Math.ceil((percent * numberOfProgressUnits) / 100);
 
-export const getCrashFreePercentColor = ({
-  percent,
-  theme,
-}: ProgressColorFunction): string => {
-  if (percent < HEALTH_RED_THRESHOLD) {
+type ProgressRingColorFn = React.ComponentProps<typeof ProgressRing>['progressColor'];
+export const getCrashFreePercentColor: ProgressRingColorFn = ({percent, theme}) => {
+  if (percent < CRASH_FREE_DANGER_THRESHOLD) {
     return theme.red;
   }
 
-  if (percent < HEALTH_ORANGE_THRESHOLD) {
+  if (percent < CRASH_FREE_WARNING_THRESHOLD) {
     return theme.yellowOrange;
   }
 
