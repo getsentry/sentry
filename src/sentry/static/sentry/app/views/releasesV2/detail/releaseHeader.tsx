@@ -17,9 +17,9 @@ import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion} from 'app/utils/formatters';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import ReleaseStat from './releaseStat';
-import Breadcrumbs from './breadcrumbs';
 import ReleaseActions from './releaseActions';
 
 type Props = {
@@ -51,8 +51,8 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         <Breadcrumbs
           crumbs={[
             {
-              label: t('Releases'),
               to: `/organizations/${orgId}/releases-v2/`,
+              label: t('Releases'),
             },
             {label: formatVersion(version)},
           ]}
