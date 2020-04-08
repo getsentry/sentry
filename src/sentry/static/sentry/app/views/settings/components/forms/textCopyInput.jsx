@@ -7,7 +7,7 @@ import {inputStyles} from 'app/styles/input';
 import {selectText} from 'app/utils/selectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCopy} from 'app/icons/iconCopy';
 
 const Wrapper = styled('div')`
   display: flex;
@@ -126,7 +126,7 @@ class TextCopyInput extends React.Component {
         </OverflowContainer>
         <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
           <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
-            <InlineSvg src="icon-clipboard" size="1.25em" />
+            <IconCopy />
           </StyledCopyButton>
         </Clipboard>
       </Wrapper>
