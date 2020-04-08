@@ -4,6 +4,7 @@ import React from 'react';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import IssueList from 'app/components/issueList';
 import {t} from 'app/locale';
+import {IconRefresh} from 'app/icons';
 
 export default class NewIssues extends React.Component {
   static propTypes = {
@@ -38,7 +39,7 @@ export default class NewIssues extends React.Component {
             style={{marginLeft: 5}}
             onClick={this.refresh}
           >
-            <span className="icon icon-refresh" />
+            <IconRefresh size="xs" />
           </a>
         </div>
         <h4>New this week</h4>
