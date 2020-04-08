@@ -33,13 +33,13 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL("""
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
-                    DROP INDEX IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
                     CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_status_active
                     ON sentry_alertrule USING btree (organization_id, name, status)
                     WHERE status = 0;
                     """,
                     reverse_sql="""
-                    DROP INDEX IF EXISTS sentry_alertrule_status_active;
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;
                     CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_organization_id_name_12c48b37_uniq
                     ON sentry_alertrule USING btree (organization_id, name);
                     """,
@@ -48,7 +48,12 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.AlterUniqueTogether(
                     name="alertrule", unique_together=set([("organization", "name", "status")])
-                )
+                ),
+                 migrations.AlterField(
+                    model_name='alertrule',
+                    name='organization',
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
+                ),
             ],
         ),
     ]
