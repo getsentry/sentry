@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -52,12 +51,12 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
 
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
     const rule: Rule = {
-      ...omit(this.props.rule, 'customRegularExpression'),
+      ...this.props.rule,
       [stateProperty]: value,
     };
 
-    if (stateProperty === 'type' && value === RULE_TYPE.PATTERN) {
-      rule.customRegularExpression = this.props.rule.customRegularExpression || '';
+    if (rule.type !== RULE_TYPE.PATTERN) {
+      delete rule.customRegularExpression;
     }
 
     this.props.onChange({

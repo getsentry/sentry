@@ -282,10 +282,32 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         });
       })
       .then(() => {
-        addSuccessMessage(t('Successfully saved data scrubbing rules'));
+        addSuccessMessage(t('Successfully saved data privacy rules'));
       })
-      .catch(() => {
-        addErrorMessage(t('An error occurred while saving data scrubbing rules'));
+      .catch(err => {
+        const msg = err.responseJSON?.relayPiiConfig[0];
+        if (msg && msg.startsWith("invalid selector: ")) {
+          let selector;
+          for (const line of msg.split('\n')) {
+            if (line.startsWith("1 | ")) {
+              selector = line.slice(3);
+              break;
+            }
+          }
+
+          addErrorMessage(t('Invalid selector: %s', selector));
+        } else if (msg && msg.startsWith("regex parse error:")) {
+          let subMsg;
+          for (const line of msg.split('\n')) {
+            if (line.startsWith("error:")) {
+              subMsg = line.slice(6).replace(/at line \d+ column \d+/, '');
+              break;
+            }
+          }
+          addErrorMessage(t('Invalid regex: %s', subMsg));
+        } else {
+          addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
+        }
       });
   };
 
