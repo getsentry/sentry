@@ -1383,6 +1383,16 @@ function routes() {
           />
         </Route>
 
+        <Route
+          path="/organizations/:orgId/activity/"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "OrganizationActivity" */ 'app/views/organizationActivity'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+
         {/* Admin/manage routes */}
         <Route
           path="/manage/"
@@ -1522,15 +1532,7 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-          <Route
-            path="/organizations/:orgId/activity/"
-            componentPromise={() =>
-              import(
-                /* webpackChunkName: "OrganizationActivity" */ 'app/views/organizationActivity'
-              )
-            }
-            component={errorHandler(LazyLoad)}
-          />
+
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
@@ -1541,6 +1543,7 @@ function routes() {
             <Redirect path="saved/" to="/organizations/:orgId/discover/" />
             <Route path="saved/:savedQueryId/" />
           </Route>
+
           {/*
           TODO(mark) Long term this /queries route should go away and /discover should be the
           canoncial route for discover2. Also the duplication in route wrapping
