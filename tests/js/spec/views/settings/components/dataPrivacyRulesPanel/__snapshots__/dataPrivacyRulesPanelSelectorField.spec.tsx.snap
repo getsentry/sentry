@@ -3,6 +3,65 @@
 exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
 <DataPrivacyRulesPanelSelectorField
   onChange={[MockFunction]}
+  selectorSuggestions={
+    Array [
+      Object {
+        "description": "everywhere",
+        "type": "value",
+        "value": "**",
+      },
+      Object {
+        "description": "attributes named \\"password\\"",
+        "type": "value",
+        "value": "password",
+      },
+      Object {
+        "description": "the exception value",
+        "type": "value",
+        "value": "$error.value",
+      },
+      Object {
+        "description": "the log message",
+        "type": "value",
+        "value": "$message",
+      },
+      Object {
+        "description": "the key \\"MyValue\\" in \\"Additional Data\\"",
+        "type": "value",
+        "value": "extra.MyValue",
+      },
+      Object {
+        "description": "everything in \\"Additional Data\\"",
+        "type": "value",
+        "value": "extra.**",
+      },
+      Object {
+        "description": "the X-Custom-Token HTTP header",
+        "type": "value",
+        "value": "$http.headers.x-custom-token",
+      },
+      Object {
+        "description": "the user IP address",
+        "type": "value",
+        "value": "$user.ip_address",
+      },
+      Object {
+        "description": "the local variable \\"foo\\"",
+        "type": "value",
+        "value": "$frame.vars.foo",
+      },
+      Object {
+        "description": "The timezone in the device context",
+        "type": "value",
+        "value": "contexts.device.timezone",
+      },
+      Object {
+        "description": "the tag \\"server_name\\"",
+        "type": "value",
+        "value": "tags.server_name",
+      },
+    ]
+  }
   value="$string"
 >
   <Wrapper>
@@ -17,7 +76,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         onChange={[Function]}
         onFocus={[Function]}
         onKeyDown={[Function]}
-        placeholder="ex. strings, numbers, custom"
+        placeholder="an attribute, variable, or header name"
         required={false}
         value="$string"
       >
@@ -30,7 +89,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
           onChange={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          placeholder="ex. strings, numbers, custom"
+          placeholder="an attribute, variable, or header name"
           required={false}
           value="$string"
         >
@@ -49,7 +108,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
                 onChange={[Function]}
                 onFocus={[Function]}
                 onKeyDown={[Function]}
-                placeholder="ex. strings, numbers, custom"
+                placeholder="an attribute, variable, or header name"
                 required={false}
                 type="text"
                 value="$string"
