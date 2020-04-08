@@ -143,7 +143,11 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       return this.getFilteredSuggestions('', 'binary');
     }
 
-    if (lastFieldValue?.type === 'string' && penultimateFieldValue?.type === 'string') {
+    if (
+      lastFieldValue?.type === 'string' &&
+      penultimateFieldValue?.type === 'string' &&
+      !penultimateFieldValue?.value
+    ) {
       // returns all values without any filter
       return this.getFilteredSuggestions('', 'string');
     }
@@ -362,7 +366,10 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <SuggestionsWrapper ref={this.suggestionList}>
+          <SuggestionsWrapper
+            ref={this.suggestionList}
+            data-test-id="panelSelectorField-suggestions"
+          >
             {suggestions.slice(0, 50).map((suggestion, index) => (
               <SuggestionItem
                 key={suggestion.value}
