@@ -193,7 +193,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         </Button>
       );
     }
-    //should never happen but we can't return undefined without some refactoring
+    // should never happen but we can't return undefined without some refactoring
     return <span />;
   }
 
