@@ -7,6 +7,7 @@ import {IconSentry} from 'app/icons';
 import {t, tn, tct} from 'app/locale';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
+import ExternalLink from 'app/components/links/externalLink';
 import IssueLink from 'app/components/issueLink';
 import MemberListStore from 'app/stores/memberListStore';
 import PullRequestLink from 'app/components/pullRequestLink';
@@ -317,7 +318,11 @@ class ActivityItem extends React.Component<Props, State> {
         ? {dangerouslySetInnerHTML: {__html: marked(item.data.text)}}
         : {}),
       ...(item.type === 'create_issue'
-        ? {children: <a href={item.data.location}>{item.data.title}</a>}
+        ? {
+            children: (
+              <ExternalLink href={item.data.location}>{item.data.title}</ExternalLink>
+            ),
+          }
         : {}),
     };
 
