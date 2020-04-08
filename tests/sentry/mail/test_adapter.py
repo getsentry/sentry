@@ -14,6 +14,7 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail.adapter import MailAdapter
 from sentry.models import (
+    GroupStatus,
     OrganizationMember,
     OrganizationMemberTeam,
     ProjectOption,
@@ -523,3 +524,18 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures)
         digests.add.call_count == 1
+
+
+class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
+    def test_should_notify(self):
+        assert self.adapter.should_notify(self.group)
+
+    def test_should_not_notify_resolved(self):
+        self.group.update(status=GroupStatus.RESOLVED)
+        assert not self.adapter.should_notify(self.group)
+
+    def test_should_not_notify_no_users(self):
+        UserOption.objects.set_value(
+            user=self.user, key="mail:alert", value=0, project=self.project
+        )
+        assert not self.adapter.should_notify(self.group)
