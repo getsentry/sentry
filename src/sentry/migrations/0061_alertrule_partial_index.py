@@ -48,12 +48,7 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.AlterUniqueTogether(
                     name="alertrule", unique_together=set([("organization", "name", "status")])
-                ),
-                 migrations.AlterField(
-                    model_name='alertrule',
-                    name='organization',
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
-                ),
+                )
             ],
         ),
     ]
