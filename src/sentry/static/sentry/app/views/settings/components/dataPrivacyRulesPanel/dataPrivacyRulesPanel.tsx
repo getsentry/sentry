@@ -286,20 +286,20 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       })
       .catch(err => {
         const msg = err.responseJSON?.relayPiiConfig[0];
-        if (msg && msg.startsWith("invalid selector: ")) {
+        if (msg && msg.startsWith('invalid selector: ')) {
           let selector;
           for (const line of msg.split('\n')) {
-            if (line.startsWith("1 | ")) {
+            if (line.startsWith('1 | ')) {
               selector = line.slice(3);
               break;
             }
           }
 
           addErrorMessage(t('Invalid selector: %s', selector));
-        } else if (msg && msg.startsWith("regex parse error:")) {
+        } else if (msg && msg.startsWith('regex parse error:')) {
           let subMsg;
           for (const line of msg.split('\n')) {
-            if (line.startsWith("error:")) {
+            if (line.startsWith('error:')) {
               subMsg = line.slice(6).replace(/at line \d+ column \d+/, '');
               break;
             }
