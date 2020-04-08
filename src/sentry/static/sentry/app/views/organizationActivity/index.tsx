@@ -1,70 +1,82 @@
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
+import {Activity, Organization} from 'app/types';
 import {PageContent} from 'app/styles/organization';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ErrorBoundary from 'app/components/errorBoundary';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
+import Pagination from 'app/components/pagination';
+import routeTitle from 'app/utils/routeTitle';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
-import ActivityFeed from './activityFeed';
+import ActivityFeedItem from './activityFeedItem';
 
-class OrganizationActivityContainer extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = {
+  organization: Organization;
+} & RouteComponentProps<{orgId: string}, {}> &
+  AsyncView['props'];
 
-  render() {
-    const {organization, params, location} = this.props;
+type State = {
+  activity: Activity[];
+} & AsyncView['state'];
+
+class OrganizationActivity extends AsyncView<Props, State> {
+  getTitle() {
+    const {orgId} = this.props.params;
+    return routeTitle(t('Activity'), orgId);
+  }
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['activity', `/organizations/${this.props.params.orgId}/activity/`]];
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderEmpty() {
+    return (
+      <EmptyMessage icon="icon-circle-exclamation">
+        {t('Nothing to show here, move along.')}
+      </EmptyMessage>
+    );
+  }
+
+  renderBody() {
+    const {loading, activity, activityPageLinks} = this.state;
 
     return (
       <PageContent>
-        <div className="organization-home">
-          <OrganizationActivity
-            organization={organization}
-            params={params}
-            location={location}
-          />
-        </div>
+        <PageHeading withMargins>{t('Activity')}</PageHeading>
+        <Panel>
+          {loading && <LoadingIndicator />}
+          {!loading && !activity.length && this.renderEmpty()}
+          {!loading && activity.length && (
+            <div data-test-id="activity-feed-list">
+              {activity.map(item => (
+                <ErrorBoundary
+                  mini
+                  css={{marginBottom: space(1), borderRadius: 0}}
+                  key={item.id}
+                >
+                  <ActivityFeedItem organization={this.props.organization} item={item} />
+                </ErrorBoundary>
+              ))}
+            </div>
+          )}
+        </Panel>
+        {activityPageLinks && (
+          <Pagination pageLinks={activityPageLinks} {...this.props} />
+        )}
       </PageContent>
     );
   }
 }
 
-class OrganizationActivity extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    params: PropTypes.object,
-    location: PropTypes.object,
-  };
-
-  getEndpoint() {
-    return `/organizations/${this.props.params.orgId}/activity/`;
-  }
-
-  getTitle() {
-    return `Activity - ${this.props.params.orgId}`;
-  }
-
-  render() {
-    return (
-      <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
-          <PageHeading withMargins>{t('Activity')}</PageHeading>
-          <ActivityFeed
-            organization={this.props.organization}
-            endpoint={this.getEndpoint()}
-            query={{
-              per_page: 100,
-            }}
-            pagination
-            location={this.props.location}
-          />
-        </React.Fragment>
-      </DocumentTitle>
-    );
-  }
-}
-
-export default withOrganization(OrganizationActivityContainer);
+export default withOrganization(OrganizationActivity);

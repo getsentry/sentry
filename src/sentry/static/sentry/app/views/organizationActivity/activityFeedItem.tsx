@@ -1,43 +1,45 @@
 import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Activity, Organization} from 'app/types';
+import {IconSentry} from 'app/icons';
 import {t, tn, tct} from 'app/locale';
-import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
 import IssueLink from 'app/components/issueLink';
 import MemberListStore from 'app/stores/memberListStore';
 import PullRequestLink from 'app/components/pullRequestLink';
-import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import marked from 'app/utils/marked';
 import space from 'app/styles/space';
 
-class ActivityItem extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    clipHeight: PropTypes.number,
-    defaultClipped: PropTypes.bool,
-    item: PropTypes.object.isRequired,
-  };
+const defaultProps = {
+  defaultClipped: false,
+  clipHeight: 68,
+};
+type DefaultProps = typeof defaultProps;
 
-  static defaultProps = {
-    defaultClipped: false,
-    clipHeight: 68,
-  };
+type Props = {
+  className?: string;
+  organization: Organization;
+  item: Activity;
+} & DefaultProps;
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      clipped: this.props.defaultClipped,
-    };
-    this.activityBubbleRef = React.createRef();
-  }
+type State = {
+  clipped: Props['defaultClipped'];
+};
+
+class ActivityItem extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
+  state = {
+    clipped: this.props.defaultClipped,
+  };
 
   componentDidMount() {
     if (this.activityBubbleRef.current) {
@@ -52,6 +54,8 @@ class ActivityItem extends React.Component {
     }
   }
 
+  activityBubbleRef = React.createRef<HTMLDivElement>();
+
   formatProjectActivity = (author, item) => {
     const data = item.data;
     const orgId = this.props.organization.slug;
@@ -60,13 +64,7 @@ class ActivityItem extends React.Component {
     const basePath = `/organizations/${orgId}/issues/`;
 
     const issueLink = issue ? (
-      <IssueLink
-        organization={this.props.organization}
-        orgId={orgId}
-        projectId={project.slug}
-        issue={issue}
-        to={`${basePath}${issue.id}/`}
-      >
+      <IssueLink orgId={orgId} issue={issue} to={`${basePath}${issue.id}/`} card>
         {issue.shortId}
       </IssueLink>
     ) : null;
@@ -83,9 +81,8 @@ class ActivityItem extends React.Component {
           author,
           issue: (
             <IssueLink
-              organization={this.props.organization}
+              card
               orgId={orgId}
-              projectId={project.slug}
               issue={issue}
               to={`${basePath}${issue.id}/activity/#event_${item.id}`}
             >
@@ -301,19 +298,12 @@ class ActivityItem extends React.Component {
   };
 
   render() {
-    const item = this.props.item;
-
-    let bubbleClassName = 'activity-item-bubble';
-    if (this.state.clipped) {
-      bubbleClassName += ' clipped';
-    }
+    const {className, item} = this.props;
 
     const avatar = item.user ? (
-      <UserAvatar user={item.user} size={36} className="activity-avatar" />
+      <UserAvatar user={item.user} size={36} />
     ) : (
-      <div className="activity-avatar avatar sentry">
-        <span className="icon-sentry-logo" />
-      </div>
+      <IconSentry size="36px" />
     );
 
     const author = {
@@ -321,82 +311,102 @@ class ActivityItem extends React.Component {
       avatar,
     };
 
-    const projectLink = <strong>{item.project.slug}</strong>;
+    const hasBubble = ['note', 'create_issue'].includes(item.type);
+    const bubbleProps = {
+      ...(item.type === 'note'
+        ? {dangerouslySetInnerHTML: {__html: marked(item.data.text)}}
+        : {}),
+      ...(item.type === 'create_issue'
+        ? {children: <a href={item.data.location}>{item.data.title}</a>}
+        : {}),
+    };
 
-    if (item.type === 'note') {
-      const noteBody = marked(item.data.text);
-      return (
-        <div data-test-id="activity-item" className="activity-item activity-item-compact">
-          <div className="activity-item-content">
-            {this.formatProjectActivity(
-              <span>
-                {author.avatar}
-                <ActivityAuthor>{author.name}</ActivityAuthor>
-              </span>,
-              item
-            )}
-            <div
-              className={bubbleClassName}
+    return (
+      <div data-test-id="activity-item" className={className}>
+        {author.avatar}
+        <div>
+          {this.formatProjectActivity(
+            <span>
+              <ActivityAuthor>{author.name}</ActivityAuthor>
+            </span>,
+            item
+          )}
+          {hasBubble && (
+            <Bubble
               ref={this.activityBubbleRef}
-              dangerouslySetInnerHTML={{__html: noteBody}}
+              clipped={this.state.clipped}
+              {...bubbleProps}
             />
-            <div className="activity-meta">
-              {projectLink}
-              <span className="bullet" />
-              <StyledTimeSince date={item.dateCreated} />
-            </div>
-          </div>
+          )}
+          <Meta>
+            <Project>{item.project.slug}</Project>
+            <StyledTimeSince date={item.dateCreated} />
+          </Meta>
         </div>
-      );
-    } else if (item.type === 'create_issue') {
-      return (
-        <div data-test-id="activity-item" className="activity-item activity-item-compact">
-          <div className="activity-item-content">
-            {this.formatProjectActivity(
-              <span>
-                {author.avatar}
-                <ActivityAuthor>{author.name}</ActivityAuthor>
-              </span>,
-              item
-            )}
-            <div className="activity-item-bubble">
-              <a href={item.data.location}>{item.data.title}</a>
-            </div>
-            <div className="activity-meta">
-              {projectLink}
-              <span className="bullet" />
-              <StyledTimeSince date={item.dateCreated} />
-            </div>
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div data-test-id="activity-item" className="activity-item activity-item-compact">
-          <div className="activity-item-content">
-            {this.formatProjectActivity(
-              <span>
-                {author.avatar}
-                <ActivityAuthor>{author.name}</ActivityAuthor>
-              </span>,
-              item
-            )}
-            <div className="activity-meta">
-              {projectLink}
-              <span className="bullet" />
-              <StyledTimeSince date={item.dateCreated} />
-            </div>
-          </div>
-        </div>
-      );
-    }
+      </div>
+    );
   }
 }
 
-export default ActivityItem;
+export default styled(ActivityItem)`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: max-content auto;
+  position: relative;
+  margin: 0;
+  padding: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  line-height: 1.4;
+  font-size: 15px;
+`;
 
 const ActivityAuthor = styled('span')`
   font-weight: 600;
+`;
+
+const Meta = styled('div')`
+  color: ${p => p.theme.gray4};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+`;
+const Project = styled('span')`
+  font-weight: bold;
+`;
+
+const Bubble = styled('div')<{clipped: boolean}>`
+  background: ${p => p.theme.whiteDark};
+  margin: ${space(0.5)} 0;
+  padding: ${space(1)} ${space(2)};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-radius: 3px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+
+  a {
+    max-width: 100%;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+  }
+
+  ${p =>
+    p.clipped &&
+    `
+    max-height: 68px;
+
+    &:after {
+      position: absolute;
+      content: '';
+      display: block;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      height: 36px;
+      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
+      border-bottom: 6px solid #fff;
+      border-radius: 0 0 3px 3px;
+      pointer-events: none;
+    }
+  `}
 `;
 
 const StyledTimeSince = styled(TimeSince)`
