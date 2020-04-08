@@ -5,6 +5,7 @@ import TextField from 'app/components/forms/textField';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 export enum EventIdFieldStatus {
   NONE = 'none',
@@ -70,8 +71,14 @@ const DataPrivacyRulesEventIdField = ({
 export default DataPrivacyRulesEventIdField;
 
 const TooltipContent = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
+  padding-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 300px 1fr;
+    padding-bottom: 0px;
+  }
 `;
 
 const StyledTextField = styled(TextField)`
@@ -80,9 +87,7 @@ const StyledTextField = styled(TextField)`
   input {
     height: 34px;
   }
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    :first-child {
-      margin-bottom: 0;
-    }
+  :first-child {
+    margin-bottom: 0;
   }
 `;

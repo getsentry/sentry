@@ -296,7 +296,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           }
 
           addErrorMessage(t('Invalid selector: %s', selector));
-        } else if (msg && msg.startsWith('regex parse error:')) {
+          return;
+        }
+
+        if (msg && msg.startsWith('regex parse error:')) {
           let subMsg;
           for (const line of msg.split('\n')) {
             if (line.startsWith('error:')) {
@@ -305,9 +308,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
             }
           }
           addErrorMessage(t('Invalid regex: %s', subMsg));
-        } else {
-          addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
+          return;
         }
+
+        addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
       });
   };
 
