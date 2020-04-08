@@ -327,7 +327,7 @@ class ActivityItem extends React.Component<Props, State> {
     };
 
     return (
-      <div data-test-id="activity-item" className={className}>
+      <div className={className}>
         {author.avatar}
         <div>
           {this.formatProjectActivity(
