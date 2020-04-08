@@ -25,6 +25,9 @@ class DataExportQuerySerializer(serializers.Serializer):
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 
+    def get(self, request, organization):
+        return Response(status=404)
+
     def post(self, request, organization):
         """
         Create a new asynchronous file export task, and
@@ -47,11 +50,15 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        # Ensure discover features are enabled if necessary
-        if data["query_type"] == ExportQueryType.DISCOVER_STR and not features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ):
-            return Response({"detail": "You do not have access to discover features"}, status=403)
+
+        # Discover Pre-processing
+        if data["query_type"] == ExportQueryType.DISCOVER_STR:
+            if not features.has("organizations:discover-basic", organization, actor=request.user):
+                return Response(status=403)
+            if "project" not in data["query_info"]:
+                projects = self.get_projects(request, organization)
+                data["query_info"]["project"] = [project.id for project in projects]
+
         try:
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
