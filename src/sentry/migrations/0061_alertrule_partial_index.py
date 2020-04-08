@@ -34,13 +34,13 @@ class Migration(migrations.Migration):
                 migrations.RunSQL("""
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
                     DROP INDEX IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
-                    CREATE UNIQUE INDEX sentry_alertrule_status_active
+                    CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_status_active
                     ON sentry_alertrule USING btree (organization_id, name, status)
                     WHERE status = 0;
                     """,
                     reverse_sql="""
                     DROP INDEX IF EXISTS sentry_alertrule_status_active;
-                    CREATE UNIQUE INDEX sentry_alertrule_organization_id_name_12c48b37_uniq
+                    CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_organization_id_name_12c48b37_uniq
                     ON sentry_alertrule USING btree (organization_id, name);
                     """,
                 )
