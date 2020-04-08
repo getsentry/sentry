@@ -610,7 +610,25 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
 
     with transaction.atomic():
-        alert_rule.update(**updated_fields)
+        # We check if this alert rule has any attached incidents. If it does, we "delete" the rule (it actually gets archived and the incidents resolved, as well as deletes the snuba subscriptions), and create a new rule with the same data.
+        incidents = Incident.objects.filter(alert_rule=alert_rule)
+        if incidents:
+            delete_alert_rule(alert_rule)
+            alert_rule = create_alert_rule(
+                organization=alert_rule.organization,
+                projects=alert_rule.projects,
+                name=alert_rule.name,
+                query=alert_rule.query,
+                aggregation=alert_rule.aggregation,
+                time_window=alert_rule.time_window,
+                threshold_period=alert_rule.threshold_period,
+                environment=alert_rule.environment,
+                include_all_projects=alert_rule.include_all_projects,
+                excluded_projects=alert_rule.excluded_projects,
+            )
+        else:
+            alert_rule.update(**updated_fields)
+
         existing_subs = []
         if (
             query is not None
