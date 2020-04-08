@@ -1199,6 +1199,21 @@ function routes() {
           />
         </Route>
 
+        <Route
+          path="/organizations/:orgId/events/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
+          }
+          component={errorHandler(LazyLoad)}
+        >
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "Events" */ 'app/views/events/events')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
+
         {/* Settings routes */}
         <Route path="/settings/" name="Settings" component={SettingsWrapper}>
           <IndexRoute
@@ -1557,21 +1572,6 @@ function routes() {
                 import(
                   /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transactionSummary'
                 )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-
-          <Route
-            path="/organizations/:orgId/events/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
               }
               component={errorHandler(LazyLoad)}
             />
