@@ -393,6 +393,12 @@ const Bubble = styled('div')<{clipped: boolean}>`
     text-overflow: ellipsis;
   }
 
+  p {
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
   ${p =>
     p.clipped &&
     `

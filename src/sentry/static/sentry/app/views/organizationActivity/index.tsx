@@ -57,7 +57,7 @@ class OrganizationActivity extends AsyncView<Props, State> {
         <Panel>
           {loading && <LoadingIndicator />}
           {!loading && !activity.length && this.renderEmpty()}
-          {!loading && activity.length && (
+          {!loading && !!activity.length && (
             <div data-test-id="activity-feed-list">
               {activity.map(item => (
                 <ErrorBoundary
