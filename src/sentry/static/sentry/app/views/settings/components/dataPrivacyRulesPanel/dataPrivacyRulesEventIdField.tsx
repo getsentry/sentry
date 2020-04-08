@@ -25,6 +25,21 @@ type Props = {
   value: string;
 };
 
+const getEventTooltipTitle = (status: EventIdFieldStatus): string => {
+  switch (status) {
+    case EventIdFieldStatus.INVALID:
+      return t("That's not a valid event ID");
+    case EventIdFieldStatus.ERROR:
+      return t('Something went wrong while fetching the suggestions');
+    case EventIdFieldStatus.NOT_FOUND:
+      return t('Event ID not found in projects you have access to');
+    case EventIdFieldStatus.LOADED:
+      return t('Auto-completing based on this event ID');
+    default:
+      return '';
+  }
+};
+
 const DataPrivacyRulesEventIdField = ({
   status,
   onChange,
@@ -32,42 +47,25 @@ const DataPrivacyRulesEventIdField = ({
   onBlur,
   onKeyDown,
   disabled,
-}: Props) => {
-  const getEventTooltipTitle = (): string => {
-    switch (status) {
-      case EventIdFieldStatus.INVALID:
-        return t("That's not a valid event ID");
-      case EventIdFieldStatus.ERROR:
-        return t('Something went wrong while fetching the suggestions');
-      case EventIdFieldStatus.NOT_FOUND:
-        return t('Event ID not found in projects you have access to');
-      case EventIdFieldStatus.LOADED:
-        return t('Auto-completing based on this event ID');
-      default:
-        return '';
-    }
-  };
-
-  return (
-    <Tooltip title={getEventTooltipTitle()}>
-      <TooltipContent>
-        <StyledTextField
-          name="eventId"
-          disabled={disabled}
-          value={value}
-          placeholder={t('Paste event ID for better assistance')}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          onBlur={onBlur}
-        />
-        {status === EventIdFieldStatus.LOADING && <ControlState isSaving />}
-        {status === EventIdFieldStatus.INVALID && <ControlState error />}
-        {status === EventIdFieldStatus.ERROR && <ControlState error />}
-        {status === EventIdFieldStatus.NOT_FOUND && <ControlState error />}
-      </TooltipContent>
-    </Tooltip>
-  );
-};
+}: Props) => (
+  <Tooltip title={getEventTooltipTitle(status)}>
+    <TooltipContent>
+      <StyledTextField
+        name="eventId"
+        disabled={disabled}
+        value={value}
+        placeholder={t('Paste event ID for better assistance')}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        onBlur={onBlur}
+      />
+      {status === EventIdFieldStatus.LOADING && <ControlState isSaving />}
+      {status === EventIdFieldStatus.INVALID && <ControlState error />}
+      {status === EventIdFieldStatus.ERROR && <ControlState error />}
+      {status === EventIdFieldStatus.NOT_FOUND && <ControlState error />}
+    </TooltipContent>
+  </Tooltip>
+);
 
 export default DataPrivacyRulesEventIdField;
 
