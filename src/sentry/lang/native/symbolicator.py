@@ -143,10 +143,7 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={
-                    "response": json_response.get("status") or "null",
-                    "project_id": self.sess.project_id,
-                },
+                tags={"response": json_response.get("status") or "null"},
             )
 
             # Symbolication is still in progress. Bail out and try again
