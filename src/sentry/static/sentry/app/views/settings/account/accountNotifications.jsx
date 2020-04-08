@@ -7,6 +7,7 @@ import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconMail} from 'app/icons/iconMail';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
@@ -64,7 +65,7 @@ export default class AccountNotifications extends AsyncView {
               return null;
             }}
           />
-          <AlertLink to="/settings/account/emails" icon="icon-mail">
+          <AlertLink to="/settings/account/emails" icon={<IconMail />}>
             {t('Looking to add or remove an email address? Use the emails panel.')}
           </AlertLink>
         </Form>

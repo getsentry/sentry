@@ -28,9 +28,7 @@ exports[`AlertLink renders with icon 1`] = `
   withoutMarginBottom={false}
 >
   <IconWrapper>
-    <InlineSvg
-      src="icon-mail"
-    />
+    <ForwardRef(IconMail) />
   </IconWrapper>
   <AlertLinkText>
     This is an external link button

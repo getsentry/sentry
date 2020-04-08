@@ -8,6 +8,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconMail} from 'app/icons/iconMail';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -110,7 +111,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
         <div data-test-id="member-role">
           {pending ? (
             <InvitedRole>
-              <InlineSvg src="icon-mail" size="1.2em" />
+              <IconMail size="md" />
               {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
             </InvitedRole>
           ) : (
