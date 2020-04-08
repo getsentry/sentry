@@ -4,13 +4,11 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 
 import ProjectDataPrivacyContent from './projectDataPrivacyContent';
 
-const ProjectDataPrivacy = ({
-  params,
-  organization,
-}: ProjectDataPrivacyContent['props']) => (
+const ProjectDataPrivacy = ({organization}: {organization: Organization}) => (
   <Feature
     features={['datascrubbers-v2']}
     organization={organization}
@@ -22,7 +20,7 @@ const ProjectDataPrivacy = ({
       />
     )}
   >
-    <ProjectDataPrivacyContent params={params} organization={organization} />
+    <ProjectDataPrivacyContent />
   </Feature>
 );
 

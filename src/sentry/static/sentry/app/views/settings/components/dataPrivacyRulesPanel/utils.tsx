@@ -28,11 +28,11 @@ function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
     case RULE_TYPE.ANYTHING:
       return t('Anything');
     case RULE_TYPE.IMEI:
-      return t('IMEI Numbers');
+      return t('IMEI numbers');
     case RULE_TYPE.MAC:
       return t('MAC addresses');
     case RULE_TYPE.EMAIL:
-      return t('Email Addresses');
+      return t('Email addresses');
     case RULE_TYPE.PEMKEY:
       return t('PEM keys');
     case RULE_TYPE.URLAUTH:
@@ -44,13 +44,13 @@ function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
     case RULE_TYPE.UUID:
       return t('UUIDs');
     case RULE_TYPE.CREDITCARD:
-      return t('Credit Card Number');
+      return t('Credit card numbers');
     case RULE_TYPE.PASSWORD:
       return t('Password fields');
     case RULE_TYPE.IP:
-      return t('IP Addresses');
+      return t('IP addresses');
     case RULE_TYPE.PATTERN:
-      return t('Custom Regular Expression');
+      return t('Regex matches');
     default:
       return '';
   }

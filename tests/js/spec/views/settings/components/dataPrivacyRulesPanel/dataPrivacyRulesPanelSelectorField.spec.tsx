@@ -4,6 +4,7 @@ import DataPrivacyRulesPanelSelectorField from 'app/views/settings/components/da
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
+  defaultSuggestions,
 } from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelSelectorFieldTypes';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -13,7 +14,12 @@ function renderComponent({
   ...props
 }: Partial<DataPrivacyRulesPanelSelectorField['props']>) {
   return mountWithTheme(
-    <DataPrivacyRulesPanelSelectorField onChange={onChange} value={value} {...props} />
+    <DataPrivacyRulesPanelSelectorField
+      selectorSuggestions={defaultSuggestions}
+      onChange={onChange}
+      value={value}
+      {...props}
+    />
   );
 }
 
@@ -24,7 +30,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('display initialSelectors if input empty and focused', () => {
+  it('display defaultSuggestions if input is empty and focused', () => {
     const wrapper = renderComponent({value: ''});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
@@ -32,8 +38,20 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
       .hostNodes()
       .children();
 
-    // [...valueSuggestions, ...unaryOperatorSuggestions].length === 16
-    expect(suggestions).toHaveLength(16);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
+    expect(suggestions).toHaveLength(12);
+  });
+
+  it('display defaultSuggestions if input is empty, focused and has length 3', () => {
+    const wrapper = renderComponent({value: '   '});
+    wrapper.find('input').simulate('focus');
+    const suggestions = wrapper
+      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .hostNodes()
+      .children();
+
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
+    expect(suggestions).toHaveLength(12);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type string', () => {
@@ -52,7 +70,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     expect(suggestions.at(1).text()).toEqual(binaryOperatorSuggestions[1].value);
   });
 
-  it('display initialSelectors if penultimateFieldValue has type binary', () => {
+  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', () => {
     const wrapper = renderComponent({value: 'foo && '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
@@ -60,10 +78,10 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
       .hostNodes()
       .children();
 
-    // initialSelectors.length === 16
-    expect(suggestions).toHaveLength(16);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
+    expect(suggestions).toHaveLength(12);
     // !
-    expect(suggestions.at(15).text()).toEqual(unaryOperatorSuggestions[0].value);
+    expect(suggestions.at(11).text()).toEqual(unaryOperatorSuggestions[0].value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', () => {
@@ -98,7 +116,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     expect(suggestions.at(1).text()).toEqual(binaryOperatorSuggestions[1].value);
   });
 
-  it('display valueSuggestions if penultimateFieldValue has type unary', () => {
+  it('display defaultSuggestions if penultimateFieldValue has type unary', () => {
     const wrapper = renderComponent({value: 'foo && !'});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
@@ -106,10 +124,13 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
       .hostNodes()
       .children();
 
-    // valueSuggestions.length === 15
-    expect(suggestions).toHaveLength(15);
-    // $string
-    expect(suggestions.at(0).text()).toEqual('$string(Any string value)');
+    // defaultSuggestions.length === 11
+    expect(suggestions).toHaveLength(11);
+
+    // everywhere
+    expect(suggestions.at(0).text()).toEqual(
+      `${defaultSuggestions[0].value}(${defaultSuggestions[0].description})`
+    );
   });
 
   it('click on a suggestion should be possible', () => {
@@ -125,7 +146,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
       .children();
 
     suggestions.at(1).simulate('click');
-    expect(wrapper.state().fieldValues[2].value).toBe('$number');
+    expect(wrapper.state().fieldValues[2].value).toBe(defaultSuggestions[1].value);
   });
 
   it('suggestions keyDown and keyUp should work', () => {

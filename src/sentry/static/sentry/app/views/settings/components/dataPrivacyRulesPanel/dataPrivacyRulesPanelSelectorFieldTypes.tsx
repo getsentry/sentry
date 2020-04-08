@@ -18,90 +18,42 @@ const unaryOperatorSuggestions: Suggestions = [
   },
 ];
 
-const valueSuggestions: Suggestions = [
+const defaultSuggestions: Suggestions = [
+  {type: 'value', value: '**', description: t('everywhere')},
+  {type: 'value', value: 'password', description: t('attributes named "password"')},
+  {type: 'value', value: '$error.value', description: t('the exception value')},
+  {type: 'value', value: '$message', description: t('the log message')},
   {
     type: 'value',
-    value: '$string',
-    description: t('Any string value'),
+    value: 'extra.MyValue',
+    description: t('the key "MyValue" in "Additional Data"'),
   },
   {
     type: 'value',
-    value: '$number',
-    description: t('Any integer or float value'),
+    value: 'extra.**',
+    description: t('everything in "Additional Data"'),
   },
   {
     type: 'value',
-    value: '$datetime',
-    description: t('Timestamps and dates'),
+    value: '$http.headers.x-custom-token',
+    description: t('the X-Custom-Token HTTP header'),
+  },
+  {type: 'value', value: '$user.ip_address', description: t('the user IP address')},
+  {
+    type: 'value',
+    value: '$frame.vars.foo',
+    description: t('the local variable "foo"'),
   },
   {
     type: 'value',
-    value: '$array',
-    description: t('Any JSON array value'),
+    value: 'contexts.device.timezone',
+    description: t('The timezone in the device context'),
   },
   {
     type: 'value',
-    value: '$object',
-    description: t('Any JSON object'),
+    value: 'tags.server_name',
+    description: t('the tag "server_name"'),
   },
-  {
-    type: 'value',
-    value: '$error',
-    description: t('An exception instance'),
-  },
-  {
-    type: 'value',
-    value: '$stacktrace',
-    description: t('A stacktrace instance'),
-  },
-  {
-    type: 'value',
-    value: '$frame',
-    description: t('A stacktrace frame'),
-  },
-  {
-    type: 'value',
-    value: '$http',
-    description: t('HTTP request context'),
-  },
-  {
-    type: 'value',
-    value: '$user',
-    description: t('User context'),
-  },
-  {
-    type: 'value',
-    value: '$message',
-    description: t('The event message'),
-  },
-  {
-    type: 'value',
-    value: '$thread',
-    description: t('A thread instance'),
-  },
-  {
-    type: 'value',
-    value: '$breadcrumb',
-    description: t('A breadcrumb'),
-  },
-  {
-    type: 'value',
-    value: '$span',
-    description: t('A trace span'),
-  },
-  {
-    type: 'value',
-    value: '$sdk',
-    description: t('SDK name and version information'),
-  },
-];
-
-const initialSelectors: Suggestions = [...valueSuggestions, ...unaryOperatorSuggestions];
-
-const allSelectors: Suggestions = [
-  ...valueSuggestions,
-  ...unaryOperatorSuggestions,
-  ...binaryOperatorSuggestions,
 ];
 
 export type SuggestionType = 'value' | 'unary' | 'binary' | 'string';
@@ -114,10 +66,4 @@ export type Suggestion = {
   description?: string;
 };
 
-export {
-  initialSelectors,
-  allSelectors,
-  valueSuggestions,
-  unaryOperatorSuggestions,
-  binaryOperatorSuggestions,
-};
+export {unaryOperatorSuggestions, binaryOperatorSuggestions, defaultSuggestions};

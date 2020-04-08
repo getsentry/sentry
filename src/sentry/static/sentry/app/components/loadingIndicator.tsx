@@ -61,7 +61,7 @@ function LoadingIndicator(props: Props) {
     <div className={cx} style={style}>
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
-          {finished ? <div className="checkmark draw" /> : null}
+          {finished ? <div className="checkmark draw" style={style} /> : null}
         </div>
       )}
 

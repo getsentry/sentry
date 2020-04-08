@@ -1,25 +1,22 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import isEqual from 'lodash/isEqual';
 
-import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-import {Panel, PanelHeader, PanelAlert, PanelBody} from 'app/components/panels';
-import Button from 'app/components/button';
-import {IconAdd} from 'app/icons/iconAdd';
-import ButtonBar from 'app/components/buttonBar';
+import {Panel, PanelAlert, PanelBody} from 'app/components/panels';
 import {Client} from 'app/api';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
+import SentryTypes from 'app/sentryTypes';
 
+import {EventIdFieldStatus} from './dataPrivacyRulesEventIdField';
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
+import {Suggestion, defaultSuggestions} from './dataPrivacyRulesPanelSelectorFieldTypes';
 import {RULE_TYPE, METHOD_TYPE} from './utils';
+import DataprivacyRulesPanelHeader from './dataprivacyRulesPanelHeader';
+import DataPrivacyRulesPanelFooter from './dataPrivacyRulesPanelFooter';
 
-const DEFAULT_RULE_FROM_VALUE = '$string';
+const DEFAULT_RULE_FROM_VALUE = '';
 
 type Rule = React.ComponentProps<typeof DataPrivacyRulesPanelForm>['rule'];
 
@@ -48,17 +45,31 @@ type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
+  selectorSuggestions: Array<Suggestion>;
+  eventIdInputValue: string;
+  eventIdStatus: EventIdFieldStatus;
+  isFormValid: boolean;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
+  };
+
   state: State = {
     rules: [],
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
+    selectorSuggestions: [],
+    eventIdStatus: EventIdFieldStatus.NONE,
+    eventIdInputValue: '',
+    isFormValid: true,
   };
 
   componentDidMount() {
     this.loadRules();
+    this.loadSelectorSuggestions();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -120,6 +131,87 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     }
   }
 
+  loadSelectorSuggestions = async () => {
+    const {organization, project} = this.context;
+    const {eventIdInputValue} = this.state;
+
+    if (!eventIdInputValue) {
+      this.setState({
+        selectorSuggestions: defaultSuggestions,
+        eventIdStatus: EventIdFieldStatus.NONE,
+      });
+      return;
+    }
+
+    this.setState({eventIdStatus: EventIdFieldStatus.LOADING});
+
+    try {
+      const query: {projectId?: string; eventId: string} = {eventId: eventIdInputValue};
+      if (project?.id) {
+        query.projectId = project.id;
+      }
+      const rawSuggestions = await this.api.requestPromise(
+        `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
+        {method: 'GET', query}
+      );
+      const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
+
+      if (selectorSuggestions && selectorSuggestions.length > 0) {
+        this.setState({
+          selectorSuggestions,
+          eventIdStatus: EventIdFieldStatus.LOADED,
+        });
+        return;
+      }
+
+      this.setState({
+        selectorSuggestions: defaultSuggestions,
+        eventIdStatus: EventIdFieldStatus.NOT_FOUND,
+      });
+    } catch {
+      this.setState({
+        eventIdStatus: EventIdFieldStatus.ERROR,
+      });
+    }
+  };
+
+  handleEventIdChange = (value: string) => {
+    const eventId = value.replace(/-/g, '').trim();
+    this.setState({
+      eventIdStatus: EventIdFieldStatus.NONE,
+      selectorSuggestions: defaultSuggestions,
+      eventIdInputValue: eventId,
+    });
+  };
+
+  isEventIdValueValid = (): boolean => {
+    const {eventIdInputValue} = this.state;
+    if (eventIdInputValue && eventIdInputValue.length !== 32) {
+      this.setState({eventIdStatus: EventIdFieldStatus.INVALID});
+      return false;
+    }
+
+    return true;
+  };
+
+  handleEventIdBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    event.preventDefault();
+
+    if (this.isEventIdValueValid()) {
+      this.loadSelectorSuggestions();
+    }
+  };
+
+  handleEventIdKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    event.persist();
+
+    const {keyCode} = event;
+
+    if (keyCode === 13 && this.isEventIdValueValid()) {
+      this.loadSelectorSuggestions();
+    }
+  };
+
   handleAddRule = () => {
     this.setState(prevState => ({
       rules: [
@@ -131,6 +223,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           from: DEFAULT_RULE_FROM_VALUE,
         },
       ],
+      isFormValid: false,
     }));
   };
 
@@ -141,14 +234,19 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   };
 
   handleChange = (updatedRule: Rule) => {
-    this.setState(prevState => ({
-      rules: prevState.rules.map(rule => {
-        if (rule.id === updatedRule.id) {
-          return updatedRule;
-        }
-        return rule;
+    this.setState(
+      prevState => ({
+        rules: prevState.rules.map(rule => {
+          if (rule.id === updatedRule.id) {
+            return updatedRule;
+          }
+          return rule;
+        }),
       }),
-    }));
+      () => {
+        this.handleValidation();
+      }
+    );
   };
 
   handleSubmit = async () => {
@@ -201,10 +299,39 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         });
       })
       .then(() => {
-        addSuccessMessage(t('Successfully saved data scrubbing rules'));
+        addSuccessMessage(t('Successfully saved data privacy rules'));
       })
-      .catch(() => {
-        addErrorMessage(t('An error occurred while saving data scrubbing rules'));
+      .catch(error => {
+        const errorMessage = error.responseJSON?.relayPiiConfig[0];
+
+        if (!errorMessage) {
+          addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
+          return;
+        }
+
+        if (errorMessage.startsWith('invalid selector: ')) {
+          for (const line of errorMessage.split('\n')) {
+            if (line.startsWith('1 | ')) {
+              const selector = line.slice(3);
+              addErrorMessage(t('Invalid selector: %s', selector));
+              break;
+            }
+          }
+          return;
+        }
+
+        if (errorMessage.startsWith('regex parse error:')) {
+          for (const line of errorMessage.split('\n')) {
+            if (line.startsWith('error:')) {
+              const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
+              addErrorMessage(t('Invalid regex: %s', regex));
+              break;
+            }
+          }
+          return;
+        }
+
+        addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
       });
   };
 
@@ -218,19 +345,23 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
     const isFormValid = !isAnyRuleFieldEmpty;
 
-    if (isFormValid) {
-      this.handleSubmit();
-    } else {
-      addErrorMessage(t("Invalid rule's form"));
-    }
+    this.setState({
+      isFormValid,
+    });
   };
 
   handleSaveForm = () => {
-    this.handleValidation();
+    const {isFormValid} = this.state;
+
+    if (isFormValid) {
+      this.handleSubmit();
+      return;
+    }
+
+    addErrorMessage(t('Invalid rules form'));
   };
 
   handleCancelForm = () => {
-    addLoadingMessage(t('Canceling...'));
     this.setState(prevState => ({
       rules: prevState.savedRules,
     }));
@@ -238,12 +369,26 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, savedRules} = this.state;
-    const hideButtonBar = savedRules.length === 0 && rules.length === 0;
+    const {
+      rules,
+      savedRules,
+      eventIdInputValue,
+      selectorSuggestions,
+      eventIdStatus,
+      isFormValid,
+    } = this.state;
+
     return (
       <React.Fragment>
         <Panel>
-          <StyledPanelHeader>{t('Data Privacy Rules')}</StyledPanelHeader>
+          <DataprivacyRulesPanelHeader
+            onKeyDown={this.handleEventIdKeyDown}
+            onChange={this.handleEventIdChange}
+            onBlur={this.handleEventIdBlur}
+            value={eventIdInputValue}
+            status={eventIdStatus}
+            disabled={disabled}
+          />
           <PanelAlert type="info">
             {additionalContext}{' '}
             {tct('For more details, see [linkToDocs].', {
@@ -260,41 +405,23 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
                 key={rule.id}
                 onDelete={this.handleDeleteRule}
                 onChange={this.handleChange}
+                selectorSuggestions={selectorSuggestions}
                 rule={rule}
                 disabled={disabled}
               />
             ))}
-            <PanelAction>
-              <StyledLink
-                disabled={disabled}
-                icon={<IconAdd circle />}
-                onClick={this.handleAddRule}
-                size="zero"
-                borderless
-              >
-                {t('Add Rule')}
-              </StyledLink>
-              {!hideButtonBar && (
-                <StyledButtonBar gap={1.5}>
-                  <Button
-                    size="small"
-                    onClick={this.handleCancelForm}
-                    disabled={disabled}
-                  >
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="small"
-                    priority="primary"
-                    onClick={this.handleSaveForm}
-                    disabled={disabled}
-                  >
-                    {t('Save Rules')}
-                  </Button>
-                </StyledButtonBar>
-              )}
-            </PanelAction>
           </PanelBody>
+          <DataPrivacyRulesPanelFooter
+            hideButtonBar={
+              (savedRules.length === 0 && rules.length === 0) ||
+              isEqual(rules, savedRules)
+            }
+            onAddRule={this.handleAddRule}
+            onCancel={this.handleCancelForm}
+            onSave={this.handleSaveForm}
+            disabled={disabled}
+            disableSaveButton={!isFormValid}
+          />
         </Panel>
       </React.Fragment>
     );
@@ -302,29 +429,3 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 }
 
 export default DataPrivacyRulesPanel;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  display: grid;
-  grid-gap: ${space(1)};
-`;
-
-const PanelAction = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: flex-end;
-`;
-
-const StyledLink = styled(Button)`
-  color: ${p => p.theme.blue};
-
-  &:hover,
-  &:active,
-  &:focus {
-    color: ${p => p.theme.blueDark};
-  }
-`;
