@@ -11,9 +11,6 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
-ALIAS_FIELDS = {"user": ["user.name", "user.email", "user.username", "user.ip"]}
-
-
 class DiscoverProcessor(object):
     """
     Processor for exports of discover data based on a provided query
@@ -61,25 +58,6 @@ class DiscoverProcessor(object):
         return data_fn
 
     def handle_fields(self, result_list):
-        """
-        For each of the aliases in ALIAS_FIELDS,
-        replace the 'base' field with the 'alternate' list.
-        """
-        # Go through every raw dict response
-        for result in result_list:
-            # Go through each set of aliases
-            for field, aliases in ALIAS_FIELDS.items():
-                # If this alias isn't in the requested columns, skip it
-                if field not in self.header_fields:
-                    continue
-                # Check if the alias is present
-                # if so: replace the field
-                # if not: fallback to the next alternate
-                for alias in aliases:
-                    if result.get(alias):
-                        result[field] = result[alias]
-                        break
-
         # Find issue short_id if present
         # (originally in `/api/bases/organization_events.py`)
         if "issue" in self.header_fields:
