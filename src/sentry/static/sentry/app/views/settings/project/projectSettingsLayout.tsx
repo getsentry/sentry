@@ -1,32 +1,35 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
+import {Organization} from 'app/types';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectSettingsNavigation from 'app/views/settings/project/projectSettingsNavigation';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
-import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
 
-class ProjectSettingsLayout extends React.Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = {
+  organization: Organization;
+  children: React.ReactNode;
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
-  render() {
-    const {orgId, projectId} = this.props.params;
+function ProjectSettingsLayout({params, organization, children, ...props}: Props) {
+  const {orgId, projectId} = params;
 
-    return (
-      <ProjectContext skipReload orgId={orgId} projectId={projectId}>
-        <SettingsLayout
-          {...this.props}
-          renderNavigation={() => <ProjectSettingsNavigation {...this.props} />}
-        >
-          {this.props.children &&
-            React.cloneElement(this.props.children, {
-              organization: this.context.organization,
-            })}
-        </SettingsLayout>
-      </ProjectContext>
-    );
-  }
+  return (
+    <ProjectContext skipReload orgId={orgId} projectId={projectId}>
+      <SettingsLayout
+        params={params}
+        {...props}
+        renderNavigation={() => <ProjectSettingsNavigation organization={organization} />}
+      >
+        {children && React.isValidElement(children)
+          ? React.cloneElement(children, {
+              organization,
+            })
+          : children}
+      </SettingsLayout>
+    </ProjectContext>
+  );
 }
 
-export default ProjectSettingsLayout;
+export default withOrganization(ProjectSettingsLayout);
