@@ -58,11 +58,16 @@ const DataPrivacyRulesEventIdField = ({
         onChange={onChange}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
+        showStatus={
+          status !== EventIdFieldStatus.LOADED && status !== EventIdFieldStatus.NONE
+        }
       />
-      {status === EventIdFieldStatus.LOADING && <ControlState isSaving />}
-      {status === EventIdFieldStatus.INVALID && <ControlState error />}
-      {status === EventIdFieldStatus.ERROR && <ControlState error />}
-      {status === EventIdFieldStatus.NOT_FOUND && <ControlState error />}
+      <Status>
+        {status === EventIdFieldStatus.LOADING && <ControlState isSaving />}
+        {status === EventIdFieldStatus.INVALID && <ControlState error />}
+        {status === EventIdFieldStatus.ERROR && <ControlState error />}
+        {status === EventIdFieldStatus.NOT_FOUND && <ControlState error />}
+      </Status>
     </TooltipContent>
   </Tooltip>
 );
@@ -70,23 +75,29 @@ const DataPrivacyRulesEventIdField = ({
 export default DataPrivacyRulesEventIdField;
 
 const TooltipContent = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
+  position: relative;
+  display: flex;
   align-items: center;
   padding-bottom: ${space(1)};
+
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 300px 1fr;
     padding-bottom: 0px;
   }
 `;
 
-const StyledTextField = styled(TextField)`
+const StyledTextField = styled(TextField)<{showStatus: boolean}>`
   flex: 1;
   font-weight: 400;
   input {
     height: 34px;
+    padding-right: ${p => (p.showStatus ? space(4) : space(1.5))};
   }
   :first-child {
     margin-bottom: 0;
   }
+`;
+
+const Status = styled('div')`
+  position: absolute;
+  right: 0;
 `;

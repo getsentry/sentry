@@ -27,7 +27,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-rows: 1fr;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 300px;
     justify-content: space-between;
   }
 `;
