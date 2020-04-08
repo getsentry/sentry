@@ -232,6 +232,16 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+        assert parse_search_query("first_seen:>2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 6, 7, tzinfo=timezone.utc)
+                ),
+            )
+        ]
+
         assert parse_search_query("random:>2015-05-18") == [
             SearchFilter(
                 key=SearchKey(name="random"), operator="=", value=SearchValue(">2015-05-18")
@@ -279,7 +289,24 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07") == [
+        assert parse_search_query("first_seen:2018-01-01T05:06:07Z") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
+        ]
+
+        assert parse_search_query("first_seen:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
                 key=SearchKey(name="first_seen"),
                 operator=">=",
@@ -1243,6 +1270,10 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_negative_arguments(self):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
+
+    def test_function_with_date_arguments(self):
+        result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "=", 1585769692000]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
