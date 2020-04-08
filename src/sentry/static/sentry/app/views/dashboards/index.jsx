@@ -4,7 +4,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
@@ -22,13 +22,13 @@ class Dashboards extends React.Component {
         <GlobalSelectionHeader organization={organization} />
 
         <PageContent>
-          <NoProjectMessage organization={organization}>
+          <LightWeightNoProjectMessage organization={organization}>
             <PageHeader>
               <PageHeading withMargins>{t('Dashboards')}</PageHeading>
             </PageHeader>
 
             {children}
-          </NoProjectMessage>
+          </LightWeightNoProjectMessage>
         </PageContent>
       </Feature>
     );
