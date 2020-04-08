@@ -111,7 +111,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         <SettingsPageHeader title="Members" />
 
         <StyledPanel>
-          <IconMail size="xl" />
+          <IconMail size="lg" />
           <TextContainer>
             <Heading>{t('Invite new members')}</Heading>
             <SubText>
@@ -175,7 +175,6 @@ const StyledPanel = styled(Panel)`
   display: grid;
   grid-template-columns: max-content auto max-content;
   grid-gap: ${space(3)};
-  align-items: center;
   align-content: center;
 `;
 

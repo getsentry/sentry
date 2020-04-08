@@ -308,7 +308,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <IconMail size="xl" />
+          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <Tooltip
