@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import {DocumentIntegration} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconOpen} from 'app/icons/iconOpen';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import {documentIntegrations} from './constants';
@@ -25,8 +26,11 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   get integration(): DocumentIntegration {
     const {integrationSlug} = this.props.params;
-
-    return documentIntegrations[integrationSlug] || {};
+    const documentIntegration = documentIntegrations[integrationSlug];
+    if (!documentIntegration) {
+      throw new Error(`No document integration of slug ${integrationSlug} exists`);
+    }
+    return documentIntegration;
   }
 
   get description() {
@@ -68,6 +72,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           priority="primary"
           style={{marginLeft: space(1)}}
           data-test-id="learn-more"
+          icon={<StyledIconOpen size="xs" />}
         >
           {t('Learn More')}
         </LearnMoreButton>
@@ -83,6 +88,13 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
 const LearnMoreButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const StyledIconOpen = styled(IconOpen)`
+  transition: 0.1s linear color;
+  margin: 0 ${space(0.5)};
+  position: relative;
+  top: 1px;
 `;
 
 export default withOrganization(SentryAppDetailedView);

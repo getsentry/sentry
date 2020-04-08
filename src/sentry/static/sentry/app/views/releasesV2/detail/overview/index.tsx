@@ -81,6 +81,7 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
+              disable={!hasHealthData}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
@@ -141,7 +142,7 @@ class ReleaseOverview extends AsyncView<Props> {
 }
 
 const ContentBox = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
     grid-column-gap: ${space(3)};
     grid-template-columns: minmax(470px, 1fr) minmax(220px, 280px);

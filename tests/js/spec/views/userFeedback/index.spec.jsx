@@ -44,7 +44,9 @@ describe('OrganizationUserFeedback', function() {
       params: {
         orgId: organization.slug,
       },
+      finishProfile: jest.fn(),
     };
+
     const wrapper = mountWithTheme(
       <OrganizationUserFeedback {...params} />,
       routerContext

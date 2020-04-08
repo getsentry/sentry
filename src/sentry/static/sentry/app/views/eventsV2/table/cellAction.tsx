@@ -12,12 +12,13 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {OrganizationSummary} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {TableColumn, TableDataRow} from './types';
 
 enum Actions {
-  ADD,
-  EXCLUDE,
+  ADD = 'add',
+  EXCLUDE = 'exclude',
 }
 
 type Props = {
@@ -116,6 +117,11 @@ export default class CellAction extends React.Component<Props, State> {
       default:
         throw new Error(`Unknown action type. ${action}`);
     }
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.cellaction',
+      eventName: 'Discoverv2: Cell Action Clicked',
+      action,
+    });
     const nextView = eventView.clone();
     nextView.query = stringifyQueryObject(query);
 
