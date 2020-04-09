@@ -938,6 +938,7 @@ export type NewQuery = {
   environment?: Readonly<string[]>;
   tags?: Readonly<string[]>;
   yAxis?: string;
+  display?: string;
   createdBy?: User;
 };
 

@@ -256,6 +256,7 @@ class EventView {
   statsPeriod: string | undefined;
   environment: Readonly<string[]>;
   yAxis: string | undefined;
+  display: string | undefined;
   createdBy: User | undefined;
 
   constructor(props: {
@@ -270,6 +271,7 @@ class EventView {
     statsPeriod: string | undefined;
     environment: Readonly<string[]>;
     yAxis: string | undefined;
+    display: string | undefined;
     createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -283,7 +285,6 @@ class EventView {
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-
     sorts = sort ? [sort] : [];
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
@@ -299,6 +300,7 @@ class EventView {
     this.statsPeriod = props.statsPeriod;
     this.environment = environment;
     this.yAxis = props.yAxis;
+    this.display = props.display;
     this.createdBy = props.createdBy;
   }
 
@@ -317,6 +319,7 @@ class EventView {
       statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
+      display: decodeScalar(location.query.display),
       createdBy: undefined,
     });
   }
@@ -357,8 +360,6 @@ class EventView {
 
       return {field, width};
     });
-    const yAxis = saved.yAxis;
-
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
@@ -382,7 +383,8 @@ class EventView {
         },
         'environment'
       ),
-      yAxis,
+      yAxis: saved.yAxis,
+      display: saved.display,
       createdBy: saved.createdBy,
     });
   }
@@ -398,6 +400,7 @@ class EventView {
       'project',
       'environment',
       'yAxis',
+      'display',
     ];
 
     for (const key of keys) {
@@ -447,6 +450,7 @@ class EventView {
       range: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      display: this.display,
     };
 
     if (!newQuery.query) {
@@ -484,6 +488,7 @@ class EventView {
       tag: undefined,
       query: undefined,
       yAxis: undefined,
+      display: undefined,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -504,6 +509,7 @@ class EventView {
       project: this.project,
       query: this.query,
       yAxis: this.yAxis,
+      display: this.display,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -560,6 +566,7 @@ class EventView {
       statsPeriod: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      display: this.display,
       createdBy: this.createdBy,
     });
   }
@@ -794,21 +801,6 @@ class EventView {
         }
       }
     }
-
-    return newEventView;
-  }
-
-  withMovedColumn({fromIndex, toIndex}: {fromIndex: number; toIndex: number}): EventView {
-    if (fromIndex === toIndex) {
-      return this;
-    }
-
-    const newEventView = this.clone();
-
-    const fields = [...newEventView.fields];
-    fields.splice(toIndex, 0, fields.splice(fromIndex, 1)[0]);
-
-    newEventView.fields = fields;
 
     return newEventView;
   }

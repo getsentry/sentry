@@ -269,6 +269,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
                     "yAxis": "count(id)",
+                    "display": "releases",
                     "version": 2,
                 },
             )
@@ -279,6 +280,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
         assert data["yAxis"] == "count(id)"
+        assert data["display"] == "releases"
         assert data["version"] == 2
 
     def test_post_all_projects(self):

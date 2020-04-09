@@ -24,6 +24,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "orderby",
             "limit",
             "yAxis",
+            "display",
         ]
 
         data = {
