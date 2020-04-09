@@ -2,26 +2,27 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Member, Organization, Team, MemberRole} from 'app/types';
+import {Client} from 'app/api';
+import {Member, Organization, MemberRole} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import HookOrDefault from 'app/components/hookOrDefault';
+import RoleSelectControl from 'app/components/roleSelectControl';
+import SelectControl from 'app/components/forms/selectControl';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
-import SelectControl from 'app/components/forms/selectControl';
-import RoleSelectControl from 'app/components/roleSelectControl';
 
 type Props = {
+  api: Client;
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   organization: Organization;
   onApprove: (inviteRequest: Member) => void;
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
-  allTeams: Team[];
   allRoles: MemberRole[];
 };
 
@@ -34,17 +35,25 @@ const InviteModalHook = HookOrDefault({
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
 const InviteRequestRow = ({
+  api,
   inviteRequest,
   inviteRequestBusy,
   organization,
   onApprove,
   onDeny,
   onUpdate,
-  allTeams,
   allRoles,
 }: Props) => {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
+
+  const loadTeams = async (inputValue: string) => {
+    const resp = await api.requestPromise(`/organizations/${organization.slug}/teams/`, {
+      query: {query: inputValue, per_page: 25},
+    });
+
+    return {options: resp?.map(({slug}) => ({value: slug, label: `#${slug}`}))};
+  };
 
   // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
@@ -88,10 +97,8 @@ const InviteRequestRow = ({
         placeholder={t('Add to teams...')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
         value={inviteRequest.teams}
-        options={allTeams.map(({slug}) => ({
-          value: slug,
-          label: `#${slug}`,
-        }))}
+        loadOptions={loadTeams}
+        async
         multiple
         clearable
       />
@@ -161,7 +168,6 @@ InviteRequestRow.propTypes = {
   onDeny: PropTypes.func,
   inviteRequestBusy: PropTypes.object,
   allRoles: PropTypes.arrayOf(PropTypes.object),
-  allTeams: PropTypes.arrayOf(PropTypes.object),
 };
 
 const JoinRequestIndicator = styled(Tag)`

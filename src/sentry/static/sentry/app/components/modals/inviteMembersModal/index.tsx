@@ -14,9 +14,8 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconAdd, IconMail} from 'app/icons';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
-import {Organization, Team} from 'app/types';
+import {Organization} from 'app/types';
 import withLatestContext from 'app/utils/withLatestContext';
-import withTeams from 'app/utils/withTeams';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
@@ -25,7 +24,6 @@ import InviteRowControl from './inviteRowControl';
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     organization: Organization;
-    teams: Team[];
     source?: string;
     initialData?: Partial<InviteRow>[];
   };
@@ -299,7 +297,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {Footer, closeModal, organization, teams: allTeams} = this.props;
+    const {Footer, closeModal, organization} = this.props;
     const {pendingInvites, sendingInvites, complete, inviteStatus, member} = this.state;
 
     const disableInputs = sendingInvites || complete;
@@ -349,8 +347,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             teams={[...teams]}
             roleOptions={member ? member.roles : MEMBER_ROLES}
             roleDisabledUnallowed={this.willInvite}
-            teamOptions={allTeams}
             inviteStatus={inviteStatus}
+            organizationSlug={this.props.organization.slug}
             onRemove={() => this.removeInviteRow(i)}
             onChangeEmails={opts =>
               this.setEmails(
@@ -359,12 +357,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
               )
             }
             onChangeRole={({value}) => this.setRole(value, i)}
-            onChangeTeams={opts =>
-              this.setTeams(
-                opts.map(v => v.value),
-                i
-              )
-            }
+            onChangeTeams={opts => this.setTeams(opts ? opts.map(v => v.value) : [], i)}
             disableRemove={disableInputs || pendingInvites.length === 1}
           />
         ))}
@@ -513,4 +506,4 @@ export const modalCss = css`
   }
 `;
 
-export default withLatestContext(withTeams(InviteMembersModal));
+export default withLatestContext(InviteMembersModal);
