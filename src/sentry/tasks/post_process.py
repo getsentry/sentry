@@ -2,8 +2,10 @@ from __future__ import absolute_import, print_function
 
 import logging
 import time
+import sentry_sdk
 
 from django.conf import settings
+from sentry_sdk.tracing import Span
 
 from sentry import features
 from sentry.utils.cache import cache
@@ -177,7 +179,10 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                safe_execute(callback, event, futures)
+                with sentry_sdk.start_span(
+                    Span(op="post_process_group", transaction="rule_processor_apply", sampled=True)
+                ):
+                    safe_execute(callback, event, futures)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
