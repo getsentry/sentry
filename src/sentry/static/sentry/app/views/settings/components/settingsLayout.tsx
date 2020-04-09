@@ -14,46 +14,44 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-class SettingsLayout extends React.Component<Props> {
-  static propTypes = {
-    renderNavigation: PropTypes.func,
-    route: PropTypes.object,
-    router: PropTypes.object,
-    routes: PropTypes.array,
-  };
+function SettingsLayout(props: Props) {
+  const {params, routes, route, router, renderNavigation, children} = props;
 
-  render() {
-    const {params, routes, route, router, renderNavigation, children} = this.props;
-    // We want child's view's props
-    const childProps =
-      (children && React.isValidElement(children) && children.props) || this.props;
-    const childRoutes = childProps.routes || routes || [];
-    const childRoute = childProps.route || route || {};
-    return (
-      <React.Fragment>
-        <SettingsColumn>
-          <SettingsHeader>
-            <HeaderContent>
-              <StyledSettingsBreadcrumb
-                params={params}
-                routes={childRoutes}
-                route={childRoute}
-              />
-              <SettingsSearch routes={routes} router={router} params={params} />
-            </HeaderContent>
-          </SettingsHeader>
+  // We want child's view's props
+  const childProps = children && React.isValidElement(children) ? children.props : props;
+  const childRoutes = childProps.routes || routes || [];
+  const childRoute = childProps.route || route || {};
+  return (
+    <React.Fragment>
+      <SettingsColumn>
+        <SettingsHeader>
+          <HeaderContent>
+            <StyledSettingsBreadcrumb
+              params={params}
+              routes={childRoutes}
+              route={childRoute}
+            />
+            <SettingsSearch routes={routes} router={router} params={params} />
+          </HeaderContent>
+        </SettingsHeader>
 
-          <MaxWidthContainer>
-            {typeof renderNavigation === 'function' && (
-              <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
-            )}
-            <Content>{children}</Content>
-          </MaxWidthContainer>
-        </SettingsColumn>
-      </React.Fragment>
-    );
-  }
+        <MaxWidthContainer>
+          {typeof renderNavigation === 'function' && (
+            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
+          )}
+          <Content>{children}</Content>
+        </MaxWidthContainer>
+      </SettingsColumn>
+    </React.Fragment>
+  );
 }
+
+SettingsLayout.propTypes = {
+  renderNavigation: PropTypes.func,
+  route: PropTypes.object,
+  router: PropTypes.object,
+  routes: PropTypes.array,
+};
 
 const MaxWidthContainer = styled('div')`
   display: flex;
