@@ -14,12 +14,7 @@ class ProjectSettingsLayout extends React.Component {
     const {orgId, projectId} = this.props.params;
 
     return (
-      <ProjectContext
-        {...this.props.params}
-        skipReload
-        orgId={orgId}
-        projectId={projectId}
-      >
+      <ProjectContext skipReload orgId={orgId} projectId={projectId}>
         <SettingsLayout
           {...this.props}
           renderNavigation={() => <ProjectSettingsNavigation {...this.props} />}

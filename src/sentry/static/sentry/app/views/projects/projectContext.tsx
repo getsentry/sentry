@@ -25,19 +25,19 @@ const ERROR_TYPES = {
   UNKNOWN: 'UNKNOWN',
 };
 
-  type Props = {
-    api: Client;
+type Props = {
+  api: Client;
 
-    /**
-     * If true, this will not change `state.loading` during `fetchData` phase
-     */
-    skipReload: boolean;
-    organization: Organization;
-    /* projects: Project[]; */
-    projectId: string,
-    orgId: string,
-    project: Project;
-  }
+  /**
+   * If true, this will not change `state.loading` during `fetchData` phase
+   */
+  skipReload: boolean;
+  organization: Organization;
+  /* projects: Project[]; */
+  projectId: string;
+  orgId: string;
+  project: Project;
+};
 
 /**
  * Higher-order component that sets `project` as a child context
@@ -47,16 +47,16 @@ const ERROR_TYPES = {
  * and context is populated.
  */
 class ProjectContext extends React.Component<Props> {
-  static childContextTypes= {
+  static childContextTypes = {
     project: SentryTypes.Project,
-  }
+  };
 
   state = {
-      loading: false,
-      error: false,
-      errorType: null,
-      memberList: [],
-    };
+    loading: false,
+    error: false,
+    errorType: null,
+    memberList: [],
+  };
 
   getChildContext() {
     return {
@@ -128,7 +128,6 @@ class ProjectContext extends React.Component<Props> {
     return 'Sentry';
   }
 
-
   async fetchData() {
     const {orgId, projectId, skipReload} = this.props;
     // we fetch core access/information from the global organization data
@@ -199,7 +198,7 @@ class ProjectContext extends React.Component<Props> {
         errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
-  },
+  }
 
   renderBody() {
     if (this.state.loading) {
@@ -235,7 +234,7 @@ class ProjectContext extends React.Component<Props> {
     }
 
     return this.props.children;
-  },
+  }
 
   render() {
     return (
@@ -243,8 +242,8 @@ class ProjectContext extends React.Component<Props> {
         {this.renderBody()}
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
 function ProjectContextContainer({orgId, projectId, ...props}) {
   return (
