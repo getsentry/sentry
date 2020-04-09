@@ -74,4 +74,4 @@ class KeyTransaction(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_discoverkeytransaction"
-        unique_together = (("project", "transaction"),)
+        unique_together = (("project", "owner", "transaction"),)
