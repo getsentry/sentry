@@ -10,7 +10,6 @@ from rest_framework import serializers
 
 from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
-from sentry.integrations import IntegrationFeatures
 
 from .providers import ProviderMixin
 from .validators import DEFAULT_VALIDATORS
@@ -97,7 +96,6 @@ class PluginConfigMixin(ProviderMixin):
     def get_metadata(self):
         """
         Return extra metadata which is used to represent this plugin.
-
         This is available via the API, and commonly used for runtime
         configuration that changes per-install, but not per-project.
         """
@@ -170,12 +168,9 @@ class PluginConfigMixin(ProviderMixin):
     @staticmethod
     def feature_flag_name(f):
         """
-        In order to ensure that plugins in the integration directory have the same feature restrictions
-        as they do in the legacy integrations page, we need to prefix data forwarding plugin with "integrations-"
-        but not any other type of plugin. Data forwarding plugins were the only ones that should be restricted
-        which is why they get the prefix. On the other hand, while issue-basic first-party integrations are
-        restricted (ex: Jira), issue-basic plugins like Asana and Trello are not restricted. By not prefixing
-        those other types of plugins, they won't have the same restrictions as the first-party integrations with
-        the same feature set.
+        For the time being, we want the features for plugins to be treated separately than integrations
+        (integration features prefix with integrations-). This is because in Saas Sentry,
+        users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
+        By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
         """
         return f
