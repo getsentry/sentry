@@ -108,7 +108,7 @@ class OrganizationApiKeysList extends React.Component {
 
                     <Box px={2} width={100}>
                       <LinkWithConfirmation
-                        className="btn btn-default btn-sm btn-remove"
+                        className="btn btn-default btn-sm"
                         onConfirm={e => onRemove(id, e)}
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}

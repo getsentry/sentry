@@ -426,7 +426,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         className="css-2imhbe"
                       >
                         <LinkWithConfirmation
-                          className="btn btn-default btn-sm btn-remove"
+                          className="btn btn-default btn-sm"
                           message="Are you sure you want to remove this API key?"
                           onConfirm={[Function]}
                           title="Remove API Key?"
@@ -441,7 +441,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             stopPropagation={false}
                           >
                             <a
-                              className="btn btn-default btn-sm btn-remove"
+                              className="btn btn-default btn-sm"
                               href="#"
                               onClick={[Function]}
                               title="Remove API Key?"
