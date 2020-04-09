@@ -1383,7 +1383,7 @@ SENTRY_DEVSERVICES = {
             "yes",
             "--save",
             "60",
-            "100",
+            "20",
             "--auto-aof-rewrite-percentage",
             "100",
             "--auto-aof-rewrite-min-size",
