@@ -7,11 +7,17 @@ type Props = {
 };
 
 const ReleaseStat = ({label, children}: Props) => (
-  <div>
+  <Wrapper>
     <Label>{label}</Label>
     <Value>{children}</Value>
-  </div>
+  </Wrapper>
 );
+
+const Wrapper = styled('div')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin: 10px 30px 10px 0;
+  }
+`;
 
 const Label = styled('div')`
   font-weight: 600;
