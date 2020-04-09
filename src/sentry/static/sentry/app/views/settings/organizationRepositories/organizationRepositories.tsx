@@ -9,6 +9,7 @@ import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconCommit} from 'app/icons/iconCommit';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -69,7 +70,7 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
       ) : (
         <Panel>
           <EmptyMessage
-            icon="icon-commit"
+            icon={<IconCommit />}
             title={t('Sentry is better with commit data')}
             description={t(
               'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'

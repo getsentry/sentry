@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import Button from 'app/components/button';
-import HeroIcon from 'app/components/heroIcon';
 import Well from 'app/components/well';
+import {IconCommit} from 'app/icons/iconCommit';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
@@ -16,7 +16,7 @@ class ReleaseEmptyState extends React.Component {
   render() {
     return (
       <StyledWell centered>
-        <HeroIcon src="icon-commit" />
+        <IconCommit size="xl" />
         <h5>{t('Releases are better with commit data!')}</h5>
         <p>
           {t(`Connect a repository to see commit info, files changed, and authors
