@@ -65,8 +65,16 @@ const defaultRule: UnsavedIssueAlertRule = {
   environment: ALL_ENVIRONMENTS_KEY,
 };
 
+const POLLING_MAX_TIME_LIMIT = 3 * 60000;
+
 // TODO(ts): I can't get this to work if I'm specific -- should be: 'condition' | 'action';
 type ConditionOrAction = string;
+
+type RuleTaskResponse = {
+  status: string;
+  rule?: IssueAlertRule;
+  error?: string;
+} | null;
 
 type Props = {
   project: Project;
@@ -83,6 +91,7 @@ type State = AsyncView['state'] & {
     actions: IssueAlertRuleActionTemplate[];
     conditions: IssueAlertRuleConditionTemplate[];
   } | null;
+  uuid: null | string;
 };
 
 function isSavedAlertRule(
@@ -99,6 +108,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       detailedError: null,
       rule: {...defaultRule},
       environments: [],
+      uuid: null,
     };
   }
 
@@ -122,7 +132,80 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return endpoints as [string, string][];
   }
 
-  handleSubmit = async () => {
+  pollHandler = async (quitTime: number) => {
+    if (Date.now() > quitTime) {
+      addErrorMessage(t('Looking for that channel took too long :('));
+      this.setState({loading: false});
+      return;
+    }
+
+    const {organization, project} = this.props;
+    const {uuid} = this.state;
+    const origRule = {...this.state.rule};
+    let response: RuleTaskResponse = null;
+
+    try {
+      response = await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+      );
+    } catch {
+      addErrorMessage(t('An error occurred'));
+      this.setState({loading: false});
+    }
+
+    if (response) {
+      const {status, rule, error} = response;
+
+      if (status === 'pending') {
+        setTimeout(() => {
+          this.pollHandler(quitTime);
+        }, 1000);
+        return;
+      }
+
+      if (status === 'failed') {
+        this.setState({
+          detailedError: {actions: [error ? error : 'An error occurred']},
+          loading: false,
+        });
+        addErrorMessage(t('An error occurred'));
+      }
+      if (rule && status === 'success') {
+        const ruleId = isSavedAlertRule(origRule) ? `${origRule.id}/` : '';
+        const isNew = !ruleId;
+        this.handleRuleSuccess(isNew, rule);
+      }
+    }
+  };
+
+  fetchStatus() {
+    // pollHander calls itself until it gets either a sucesss
+    // or failed status but we don't want to poll forever so we pass
+    // in a hard stop time of 3 minutes before we bail.
+    const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
+    setTimeout(() => {
+      this.pollHandler(quitTime);
+    }, 1000);
+  }
+
+  handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
+    const {organization} = this.props;
+    this.setState({detailedError: null, loading: false, rule});
+
+    // The onboarding task will be completed on the server side when the alert
+    // is created
+    updateOnboardingTask(null, organization, {
+      task: OnboardingTaskKey.ALERT_RULE,
+      status: 'complete',
+    });
+
+    // When editing, there is an extra route to move back from
+    const stepBack = isNew ? -1 : -2;
+    browserHistory.replace(recreateRoute('', {...this.props, stepBack}));
+    addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+  };
+
+  handleSubmit = () => {
     const {rule} = this.state;
     const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
     const isNew = !ruleId;
@@ -136,32 +219,29 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     addLoadingMessage();
 
-    try {
-      const resp = await this.api.requestPromise(endpoint, {
-        method: isNew ? 'POST' : 'PUT',
-        data: rule,
-      });
-      this.setState({detailedError: null, rule: resp});
-
-      // The onboarding task will be completed on the server side when the alert
-      // is created
-      updateOnboardingTask(null, organization, {
-        task: OnboardingTaskKey.ALERT_RULE,
-        status: 'complete',
-      });
-
-      addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
-
-      // When editing, there is an extra route to move back from
-      const stepBack = isNew ? -1 : -2;
-      browserHistory.replace(recreateRoute('', {...this.props, stepBack}));
-    } catch (err) {
-      this.setState({
-        detailedError: err.responseJSON || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      addErrorMessage(t('An error occurred'));
-    }
+    this.api.request(endpoint, {
+      method: isNew ? 'POST' : 'PUT',
+      data: rule,
+      success: (resp, _, jqXHR) => {
+        // We need to be able to see the response code because
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verfity the channel id for Slack.
+        if (jqXHR && jqXHR.status === 202) {
+          this.setState({detailedError: null, loading: true, uuid: resp.uuid});
+          this.fetchStatus();
+          addLoadingMessage(t('Looking through all your channels...'));
+        } else {
+          this.handleRuleSuccess(isNew, resp);
+        }
+      },
+      error: err => {
+        this.setState({
+          detailedError: err.responseJSON || {__all__: 'Unknown error'},
+          loading: false,
+        });
+        addErrorMessage(t('An error occurred'));
+      },
+    });
   };
 
   handleDeleteRule = async () => {
