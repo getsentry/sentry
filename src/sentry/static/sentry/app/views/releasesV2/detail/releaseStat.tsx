@@ -17,7 +17,6 @@ const ReleaseStat = ({label, children}: Props) => (
 
 const Wrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    margin: 10px 30px 10px 0;
     margin: ${space(2)} ${space(4)} ${space(2)} 0;
   }
 `;

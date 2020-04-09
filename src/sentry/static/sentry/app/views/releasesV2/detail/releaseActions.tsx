@@ -60,7 +60,7 @@ const Wrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
-    margin: 10px 0;
+    margin: ${space(1)} 0 ${space(2)} 0;
   }
 `;
 
