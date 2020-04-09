@@ -27,7 +27,7 @@ enum FilterViews {
   KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
 }
 
-const VIEWS = [FilterViews.ALL_TRANSACTIONS, FilterViews.KEY_TRANSACTIONS];
+const VIEWS = Object.values(FilterViews);
 
 type Props = {
   organization: Organization;

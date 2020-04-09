@@ -1,12 +1,10 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import EventView from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
@@ -135,12 +133,16 @@ class KeyTransactionButton extends React.Component<Props, State> {
     }
 
     return (
-      <Button onClick={this.toggleKeyTransaction}>
-        <StyledIconStar
-          size="xs"
-          color={isKeyTransaction ? theme.yellow : undefined}
-          solid={!!isKeyTransaction}
-        />
+      <Button
+        icon={
+          <IconStar
+            size="xs"
+            color={isKeyTransaction ? theme.yellow : undefined}
+            solid={!!isKeyTransaction}
+          />
+        }
+        onClick={this.toggleKeyTransaction}
+      >
         {t('Key Transaction')}
       </Button>
     );
@@ -148,7 +150,3 @@ class KeyTransactionButton extends React.Component<Props, State> {
 }
 
 export default withApi(KeyTransactionButton);
-
-const StyledIconStar = styled(IconStar)`
-  margin-right: ${space(1)};
-`;
