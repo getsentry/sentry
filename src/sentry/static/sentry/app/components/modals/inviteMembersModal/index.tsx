@@ -10,7 +10,7 @@ import {uniqueId} from 'app/utils/guid';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconMail} from 'app/icons';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
@@ -308,7 +308,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <InlineSvg src="icon-mail" size="36px" />
+          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <Tooltip

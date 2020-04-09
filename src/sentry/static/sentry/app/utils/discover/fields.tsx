@@ -13,12 +13,13 @@ export type Field = {
 };
 
 export type ColumnType =
-  | 'string'
+  | 'boolean'
+  | 'date'
+  | 'duration'
   | 'integer'
   | 'number'
-  | 'duration'
-  | 'date'
-  | 'boolean';
+  | 'percentage'
+  | 'string';
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
@@ -157,7 +158,7 @@ export const AGGREGATIONS = {
   },
   error_rate: {
     parameters: [],
-    outputType: 'number',
+    outputType: 'percentage',
     isSortable: true,
   },
   apdex: {
@@ -169,7 +170,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
+    outputType: 'percentage',
     isSortable: true,
   },
   impact: {

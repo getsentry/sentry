@@ -60,6 +60,7 @@ type EventsRequestPartialProps = {
   currentSeriesName?: string;
   previousSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
+  keyTransactions?: boolean;
 };
 
 type TimeAggregationProps =
@@ -180,6 +181,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
     field: PropTypes.arrayOf(PropTypes.string),
     referenceEvent: PropTypes.string,
+
+    /**
+     * Determines if the "key transactions" version of the event-stats endpoint should be used
+     */
+    keyTransactions: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {

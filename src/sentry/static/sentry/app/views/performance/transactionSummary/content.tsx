@@ -12,6 +12,7 @@ import EventsV2 from 'app/utils/discover/eventsv2';
 import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
+import KeyTransactionButton from './keyTransactionButton';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -24,6 +25,18 @@ type Props = {
 };
 
 class SummaryContent extends React.Component<Props> {
+  renderKeyTransactionButton() {
+    const {eventView, organization, transactionName} = this.props;
+
+    return (
+      <KeyTransactionButton
+        transactionName={transactionName}
+        eventView={eventView}
+        organization={organization}
+      />
+    );
+  }
+
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
 
@@ -38,6 +51,9 @@ class SummaryContent extends React.Component<Props> {
               transactionName={transactionName}
             />
           </div>
+          <KeyTransactionContainer>
+            {this.renderKeyTransactionButton()}
+          </KeyTransactionContainer>
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
@@ -90,6 +106,11 @@ const StyledTitleHeader = styled('span')`
 
 const Side = styled('div')`
   grid-column: 2/3;
+`;
+
+const KeyTransactionContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export default SummaryContent;
