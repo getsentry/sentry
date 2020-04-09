@@ -178,6 +178,4 @@ class PluginConfigMixin(ProviderMixin):
         those other types of plugins, they won't have the same restrictions as the first-party integrations with
         the same feature set.
         """
-        if f == IntegrationFeatures.DATA_FORWARDING.value:
-            return u"integrations-{}".format(f)
         return f
