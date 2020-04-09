@@ -8,7 +8,6 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconDelete} from 'app/icons/iconDelete';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -113,7 +112,7 @@ class OrganizationApiKeysList extends React.Component {
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}
                       >
-                        <IconDelete />
+                        <span className="icon-trash" />
                       </LinkWithConfirmation>
                     </Box>
                   </PanelItem>

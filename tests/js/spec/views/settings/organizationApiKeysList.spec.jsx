@@ -39,7 +39,7 @@ describe('OrganizationApiKeysList', function() {
 
     wrapper.update();
     // Click remove button
-    wrapper.find('LinkWithConfirmation').simulate('click');
+    wrapper.find('.icon-trash').simulate('click');
     wrapper.update();
 
     // expect a modal
