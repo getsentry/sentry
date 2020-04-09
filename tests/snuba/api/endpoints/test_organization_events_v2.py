@@ -332,10 +332,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
-                assert response.data["data"][0]["user.email"] == data["user"]["email"]
-                assert response.data["data"][0]["user.id"] == data["user"]["id"]
-                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
-                assert response.data["data"][0]["user.username"] == data["user"]["username"]
+                assert response.data["data"][0]["project"] == project.slug
+                assert response.data["data"][0]["user"] == data["user"]["email"]
 
     def test_has_user(self):
         self.login_as(user=self.user)
@@ -359,7 +357,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["user"] == data["user"]["ip_address"]
-                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
 
     def test_negative_user_search(self):
         self.login_as(user=self.user)
@@ -402,7 +399,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
             assert response.data["data"][0]["user"] == user_data["email"]
-            assert response.data["data"][0]["user.email"] == user_data["email"]
+            assert "user.email" not in response.data["data"][0]
 
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
