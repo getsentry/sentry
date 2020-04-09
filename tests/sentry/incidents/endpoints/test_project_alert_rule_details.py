@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-import pytest
-
 from exam import fixture
 
-from django.conf import settings
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
@@ -157,21 +154,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
-    def test_update_with_attached_incident(self):
-        # The rule should be archived and a new one should be created.
-        # The attached incident should also be resolved.
-        assert 1 == 2
 
-    def test_update_without_attached_incident(self):
-        # The rule should simply be updated.
-        assert 1 == 2
-
-    def test_update_to_rule_with_same_name(self):
-        # This should not be allowed.
-        assert 1 == 2
-
-
-@pytest.mark.skipif(not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration (0061)")
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
 
@@ -212,44 +195,3 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # We also confirm that the incident is automatically resolved.
         assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
-
-        # Then we try to make a new rule with the same name as the archived one.
-        new_alert_rule = create_alert_rule(
-            alert_rule.organization,
-            [self.project],
-            alert_rule.name,
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
-        )
-
-        # The new rule should be allowed.
-        # new_alert_rule.save()
-        assert new_alert_rule.name == alert_rule.name
-
-        # We then delete that rule, to make sure it's deleted for real (not archived) - since it has no incident attached
-        with self.feature("organizations:incidents"):
-            self.get_valid_response(
-                self.organization.slug, self.project.slug, new_alert_rule.id, status_code=204
-            )
-
-        assert not AlertRule.objects.filter(id=new_alert_rule.id).exists()
-        assert not AlertRule.objects_with_archived.filter(id=new_alert_rule.id).exists()
-
-        # And a test to confirm that two rules can have be archived with the same name.
-        another_archived_rule = create_alert_rule(
-            alert_rule.organization,
-            [self.project],
-            alert_rule.name,
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
-        )
-        another_archived_rule.update(status=AlertRuleStatus.ARCHIVED.value)
-
-        assert another_archived_rule.status == AlertRuleStatus.ARCHIVED.value
-        assert alert_rule.status == AlertRuleStatus.ARCHIVED.value
-        assert alert_rule.name == another_archived_rule.name
-        assert alert_rule.organization == another_archived_rule.organization

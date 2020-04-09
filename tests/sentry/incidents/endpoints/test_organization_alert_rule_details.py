@@ -11,7 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
 from sentry.testutils import APITestCase
 
 
@@ -377,18 +377,39 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule["triggers"][0]["thresholdType"] = 0  # Back to normal, valid.
 
 
-# TODO: Convert this test to archive test
-# class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
-#     method = "delete"
+class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+    method = "delete"
 
-#     def test_simple(self):
-#         self.create_member(
-#             user=self.user, organization=self.organization, role="owner", teams=[self.team]
-#         )
-#         self.login_as(self.user)
-#         with self.feature("organizations:incidents"):
-#             self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
+    def test_simple(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
-#         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-#         assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
-#         assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
+        assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()
+
+    def test_archive_and_create_new_with_same_name(self):
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # We attach the rule to an incident so the rule is archived instead of deleted.
+        incident = self.create_incident(alert_rule=self.alert_rule)
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
+
+        alert_rule = AlertRule.objects_with_archived.get(id=self.alert_rule.id)
+
+        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert AlertRule.objects_with_archived.filter(id=alert_rule.id).exists()
+        assert alert_rule.status == AlertRuleStatus.ARCHIVED.value
+
+        # We also confirm that the incident is automatically resolved.
+        assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
