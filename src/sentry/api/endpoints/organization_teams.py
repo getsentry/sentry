@@ -87,7 +87,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
         :param string detailed:      Specify "0" to return team details that do not include projects
-        :param string is_not_member: Specify "1" to return team details for teams that user is not a member of
+        :param string is_not_member: Specify "1" to *only* return team details of teams that user is not a member of
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
