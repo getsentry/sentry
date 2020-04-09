@@ -16,7 +16,7 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
         if not self.has_feature(request, organization):
-            return self.response(status=404)
+            return Response(status=404)
 
         project = self.get_project(request, organization)
 
@@ -62,7 +62,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
         if not self.has_feature(request, organization):
-            return self.response(status=404)
+            return Response(status=404)
 
         params = self.get_filter_params(request, organization)
         fields = request.GET.getlist("field")[:]
@@ -89,7 +89,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     def delete(self, request, organization):
         """ Remove a Key transaction for a user """
         if not self.has_feature(request, organization):
-            return self.response(status=404)
+            return Response(status=404)
 
         project = self.get_project(request, organization)
         transaction = request.data["transaction"]
@@ -112,7 +112,7 @@ class KeyTransactionStatsEndpoint(KeyTransactionBase):
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
         if not self.has_feature(request, organization):
-            return self.response(status=404)
+            return Response(status=404)
 
         queryset = KeyTransaction.objects.filter(organization=organization, owner=request.user)
 
