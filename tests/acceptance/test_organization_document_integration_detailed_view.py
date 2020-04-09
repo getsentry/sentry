@@ -14,8 +14,6 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
 
     def load_page(self, slug, configuration_tab=False):
         url = u"/settings/{}/document-integrations/{}/".format(self.organization.slug, slug)
-        if configuration_tab:
-            url += "?tab=configurations"
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
 
