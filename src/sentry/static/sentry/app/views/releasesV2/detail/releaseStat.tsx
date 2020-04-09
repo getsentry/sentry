@@ -1,17 +1,25 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
+
 type Props = {
   label: string;
   children: React.ReactNode;
 };
 
 const ReleaseStat = ({label, children}: Props) => (
-  <div>
+  <Wrapper>
     <Label>{label}</Label>
     <Value>{children}</Value>
-  </div>
+  </Wrapper>
 );
+
+const Wrapper = styled('div')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin: ${space(2)} ${space(4)} ${space(2)} 0;
+  }
+`;
 
 const Label = styled('div')`
   font-weight: 600;
