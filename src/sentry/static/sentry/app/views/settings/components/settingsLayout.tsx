@@ -63,7 +63,7 @@ const MaxWidthContainer = styled('div')`
 const SidebarWrapper = styled('div')`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
-  background: #fff;
+  background: ${p => p.theme.white};
   border-right: 1px solid ${p => p.theme.borderLight};
   padding: ${space(4)};
 `;
