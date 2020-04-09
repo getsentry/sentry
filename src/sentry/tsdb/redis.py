@@ -340,7 +340,10 @@ class RedisTSDB(BaseTSDB):
                         for environment_id, promises in results.items():
                             total = sum([int(p.value) for p in promises if p.value])
                             if total:
-                                destination_hash_key, destination_hash_field = self.make_counter_key(
+                                (
+                                    destination_hash_key,
+                                    destination_hash_field,
+                                ) = self.make_counter_key(
                                     model, rollup, timestamp, destination, environment_id
                                 )
                                 client.hincrby(destination_hash_key, destination_hash_field, total)
