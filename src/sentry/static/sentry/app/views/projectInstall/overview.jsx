@@ -53,7 +53,7 @@ class ProjectInstallOverview extends AsyncComponent {
 
     const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
 
-    const dsn = keyList ? keyList[0].dsn : {};
+    const dsn = !!keyList?.length ? keyList[0].dsn : {};
 
     return (
       <div>
