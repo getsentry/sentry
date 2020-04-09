@@ -39,8 +39,8 @@ class IntroBanner extends React.Component<{}, State> {
         backgroundImg={backgroundLighthouse}
         onCloseClick={this.handleBannerCloseClick}
       >
-        <BannerButton>View Features</BannerButton>
-        <BannerButton priority="primary">Update SDK</BannerButton>
+        <BannerButton>{t('View Features')}</BannerButton>
+        <BannerButton priority="primary">{t('Update SDK')}</BannerButton>
       </StyledBanner>
     );
   }
