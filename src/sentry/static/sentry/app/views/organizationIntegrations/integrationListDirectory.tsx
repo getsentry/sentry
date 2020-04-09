@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import flatten from 'lodash/flatten';
 import uniq from 'lodash/uniq';
+import startCase from 'lodash/startCase';
 
 import {
   Organization,
@@ -25,7 +26,6 @@ import {
   isPlugin,
   isDocumentIntegration,
   getCategoriesForIntegration,
-  capitalizeString,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -430,10 +430,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                     value={selectedCategory}
                     choices={[
                       ['', t('All Categories')],
-                      ...categoryList.map(category => [
-                        category,
-                        capitalizeString(category),
-                      ]),
+                      ...categoryList.map(category => [category, startCase(category)]),
                     ]}
                   />
                 ) : (

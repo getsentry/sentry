@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
@@ -7,7 +8,6 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
-import {capitalizeString} from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -81,7 +81,7 @@ const IntegrationRow = (props: Props) => {
           {categories?.map(category => (
             <CategoryTag
               key={category}
-              category={capitalizeString(category)}
+              category={startCase(category)}
               priority={category === publishStatus}
             />
           ))}
