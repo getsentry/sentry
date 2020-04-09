@@ -152,16 +152,25 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    # Lint python and javascript together
     - python: 2.7
-      name: 'Linter'
-      env: TEST_SUITE=lint
+      name: 'Linter (Javascript)'
+      env: TEST_SUITE=lint-js
       install:
-        - python setup.py install_egg_info
-        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --frozen-lockfile
+
+    - python: 2.7
+      name: 'pre-commit hooks (includes Python 2.7 linting)'
+      install:
+        # first off, this will probably fail to install black.
+        # i'll need to do the pyenv hack i did in symbolicator to get this working.
+        - make setup-git
+      script:
+        # second, black is going to rewrite the files in-place.
+        # i need to either define a second hook that only runs --check --diff and conditionally run that,
+        # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
+        - pre-commit run --all-files
 
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
