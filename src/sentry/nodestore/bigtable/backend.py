@@ -107,6 +107,8 @@ class BigtableNodeStorage(NodeStorage):
         return data
 
     def get_multi(self, id_list):
+        id_list = list(set(id_list))
+
         if len(id_list) == 1:
             return {id_list[0]: self.get(id_list[0])}
 
