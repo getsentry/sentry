@@ -39,19 +39,19 @@ class IntroBanner extends React.Component<{}, State> {
         backgroundImg={backgroundLighthouse}
         onCloseClick={this.handleBannerCloseClick}
       >
-        <StarterButton>View Features</StarterButton>
-        <StarterButton priority="primary">Update SDK</StarterButton>
+        <BannerButton>View Features</BannerButton>
+        <BannerButton priority="primary">Update SDK</BannerButton>
       </StyledBanner>
     );
   }
 }
 
-const StarterButton = styled(Button)`
-  margin: ${space(1)};
+const StyledBanner = styled(Banner)`
+  color: ${p => p.theme.gray5};
 `;
 
-const StyledBanner = styled(Banner)`
-  color: ${p => p.theme.redDark};
+const BannerButton = styled(Button)`
+  margin: ${space(1)};
 `;
 
 export default IntroBanner;
