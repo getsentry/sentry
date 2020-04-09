@@ -7,6 +7,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
+import {capitalizeString} from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -80,7 +81,7 @@ const IntegrationRow = (props: Props) => {
           {categories?.map(category => (
             <CategoryTag
               key={category}
-              category={category}
+              category={capitalizeString(category)}
               priority={category === publishStatus}
             />
           ))}

@@ -25,6 +25,7 @@ import {
   isPlugin,
   isDocumentIntegration,
   getCategoriesForIntegration,
+  capitalizeString,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -411,7 +412,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {displayedList, selectedCategory, list} = this.state;
 
     const title = t('Integrations');
-    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
       <React.Fragment>
@@ -428,8 +429,11 @@ export class IntegrationListDirectory extends AsyncComponent<
                     onChange={this.onCategorySelect}
                     value={selectedCategory}
                     choices={[
-                      ['', t('All categories')],
-                      ...categoryList.map(category => [category, category]),
+                      ['', t('All Categories')],
+                      ...categoryList.map(category => [
+                        category,
+                        capitalizeString(category),
+                      ]),
                     ]}
                   />
                 ) : (

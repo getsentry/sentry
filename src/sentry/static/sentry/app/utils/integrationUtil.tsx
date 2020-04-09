@@ -276,3 +276,10 @@ export function isDocumentIntegration(
 ): integration is DocumentIntegration {
   return integration.hasOwnProperty('docUrl');
 }
+
+export const capitalizeString = (string: string) => {
+  return string
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
