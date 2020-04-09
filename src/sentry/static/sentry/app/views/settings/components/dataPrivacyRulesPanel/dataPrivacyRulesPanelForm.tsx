@@ -128,17 +128,19 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             openOnFocus
             required
           />
-          <From disabled={disabled}>{t('from')}</From>
-          <DataPrivacyRulesPanelSelectorField
-            onChange={(value: string) => {
-              this.handleChange('from', value);
-            }}
-            value={from}
-            onBlur={this.handleValidation('from')}
-            selectorSuggestions={selectorSuggestions}
-            error={errors.from}
-            disabled={disabled}
-          />
+          <From>
+            <FromLabel disabled={disabled}>{t('from')}</FromLabel>
+            <DataPrivacyRulesPanelSelectorField
+              onChange={(value: string) => {
+                this.handleChange('from', value);
+              }}
+              value={from}
+              onBlur={this.handleValidation('from')}
+              selectorSuggestions={selectorSuggestions}
+              error={errors.from}
+              disabled={disabled}
+            />
+          </From>
           {type === RULE_TYPE.PATTERN && (
             <CustomRegularExpression
               name="customRegularExpression"
@@ -194,18 +196,31 @@ const WrapperFields = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: minmax(157px, 1fr) minmax(300px, 1fr) max-content minmax(
-        300px,
-        1fr
-      );
+    grid-template-columns: 200px 200px 1fr;
   }
 `;
 
-const From = styled('div')<{disabled?: boolean}>`
+const FromLabel = styled('div')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
   height: 34px;
   align-items: center;
   display: flex;
+  width: 100%;
+  justify-content: center;
+`;
+
+const From = styled('div')`
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-column-end: -1;
+  grid-column-start: 1;
+  grid-gap: ${space(2)};
+  width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column-end: auto;
+    grid-column-start: auto;
+  }
 `;
 
 const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`

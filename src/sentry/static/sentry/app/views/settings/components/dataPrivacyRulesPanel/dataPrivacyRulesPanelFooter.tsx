@@ -25,15 +25,24 @@ const DataPrivacyRulesPanelFooter = ({
   disableSaveButton,
 }: Props) => (
   <PanelAction>
-    <StyledLink
+    <ButtonAddRuleLink
       disabled={disabled}
       icon={<IconAdd circle />}
       onClick={onAddRule}
-      size="zero"
-      borderless
+      size="small"
+      priority="link"
     >
       {t('Add Rule')}
-    </StyledLink>
+    </ButtonAddRuleLink>
+    <ButtonAddRule
+      disabled={disabled}
+      icon={<IconAdd circle />}
+      onClick={onAddRule}
+      size="small"
+      priority="default"
+    >
+      {t('Add Rule')}
+    </ButtonAddRule>
     {!hideButtonBar && (
       <Actions>
         <ButtonBar gap={1.5}>
@@ -49,7 +58,7 @@ const DataPrivacyRulesPanelFooter = ({
             {t('Save Rules')}
           </Button>
         </ButtonBar>
-        <Info>{t('* The new rules will only apply to upcoming events')}</Info>
+        <Info>{t('The new rules will only apply to upcoming events')}</Info>
       </Actions>
     )}
   </PanelAction>
@@ -59,6 +68,7 @@ export default DataPrivacyRulesPanelFooter;
 
 const PanelAction = styled('div')`
   padding: ${space(1.5)} ${space(2)};
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-row-gap: ${space(2)};
@@ -68,12 +78,26 @@ const PanelAction = styled('div')`
   }
 `;
 
-const StyledLink = styled(Button)`
+const ButtonAddRule = styled(Button)`
   color: ${p => p.theme.blue};
   &:hover,
   &:active,
   &:focus {
     color: ${p => p.theme.blueDark};
+  }
+  grid-column-start: 1;
+  grid-column-end: -1;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
+  }
+`;
+
+const ButtonAddRuleLink = styled(Button)`
+  display: none;
+  font-size: ${p => p.theme.fontSizeMedium};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
   }
 `;
 
@@ -84,7 +108,7 @@ const Actions = styled('div')`
   flex-direction: column;
   grid-column-start: 1;
   grid-column-end: -1;
-
+  padding-bottom: ${space(3)};
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     align-items: flex-end;
     grid-column-start: auto;
@@ -93,5 +117,6 @@ const Actions = styled('div')`
 `;
 
 const Info = styled('div')`
-  margin-top: ${space(1)};
+  position: absolute;
+  bottom: ${space(1)};
 `;
