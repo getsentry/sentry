@@ -24,6 +24,7 @@ import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
+import {IconDelete} from 'app/icons/iconDelete';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
@@ -99,7 +100,7 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <span className="icon-trash" />
+          <IconDelete />
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
