@@ -55,6 +55,28 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert key_transaction.transaction == data["transaction"]
         assert key_transaction.organization == self.org
 
+    def test_multiple_user_save(self):
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+
+        self.login_as(user=user, superuser=False)
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(transaction=data["transaction"])
+        assert len(key_transactions) == 2
+
     def test_duplicate_key_transaction(self):
         data = load_data("transaction")
         with self.feature("organizations:performance-view"):
