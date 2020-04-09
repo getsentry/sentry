@@ -226,8 +226,7 @@ describe('EventsV2 > Results', function() {
       />,
       initialData.routerContext
     );
-    const selector = wrapper.find('OptionSelector');
-    expect(selector).toHaveLength(1);
+    const selector = wrapper.find('OptionSelector').last();
 
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
