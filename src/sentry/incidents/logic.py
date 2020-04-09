@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 from datetime import timedelta
+from uuid import uuid4
 
 import six
 from django.db import transaction
@@ -733,18 +734,21 @@ def delete_alert_rule(alert_rule):
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    if alert_rule.status in (AlertRuleStatus.ARCHIVED.value,):
+    if alert_rule.status in (
+        AlertRuleStatus.PENDING_DELETION.value,
+        AlertRuleStatus.DELETION_IN_PROGRESS.value,
+    ):
         raise AlreadyDeletedError()
 
     with transaction.atomic():
-        incidents = Incident.objects.filter(alert_rule=alert_rule)
+        alert_rule.update(
+            # Randomize the name here so that we don't get unique constraint issues
+            # while waiting for the deletion to process
+            name=uuid4().hex,
+            status=AlertRuleStatus.PENDING_DELETION.value,
+        )
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
-        if incidents:
-            alert_rule.update(status=AlertRuleStatus.ARCHIVED.value)
-            for incident in incidents:
-                incident.update(status=IncidentStatus.CLOSED.value)
-        else:
-            alert_rule.delete()
+    tasks.delete_alert_rule.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
 
 def validate_alert_rule_query(query):

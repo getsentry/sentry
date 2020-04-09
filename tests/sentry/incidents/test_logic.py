@@ -32,6 +32,7 @@ from sentry.incidents.logic import (
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
+    delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
@@ -51,6 +52,7 @@ from sentry.incidents.logic import (
     update_incident_status,
 )
 from sentry.incidents.models import (
+    AlertRule,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -684,21 +686,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
             )
 
-    def test_existing_name_allowed_when_archived(self):
-        name = "allowed"
-        alert_rule_1 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
-        )
-        alert_rule_1.update(status=AlertRuleStatus.ARCHIVED.value)
-
-        alert_rule_2 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
-        )
-
-        assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.ARCHIVED.value
-        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
-
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -866,37 +853,36 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         ] == [new_project]
 
 
-# TODO: Convert this test to archive test
-# class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
-#     @fixture
-#     def alert_rule(self):
-#         return create_alert_rule(
-#             self.organization,
-#             [self.project],
-#             "hello",
-#             "level:error",
-#             QueryAggregations.TOTAL,
-#             10,
-#             1,
-#         )
+class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return create_alert_rule(
+            self.organization,
+            [self.project],
+            "hello",
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
 
-#     def test(self):
-#         alert_rule_id = self.alert_rule.id
-#         with self.tasks():
-#             delete_alert_rule(self.alert_rule)
+    def test(self):
+        alert_rule_id = self.alert_rule.id
+        with self.tasks():
+            delete_alert_rule(self.alert_rule)
 
-#         assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
 
-#     def test_with_incident(self):
-#         incident = self.create_incident()
-#         incident.update(alert_rule=self.alert_rule)
-#         alert_rule_id = self.alert_rule.id
-#         with self.tasks():
-#             delete_alert_rule(self.alert_rule)
+    def test_with_incident(self):
+        incident = self.create_incident()
+        incident.update(alert_rule=self.alert_rule)
+        alert_rule_id = self.alert_rule.id
+        with self.tasks():
+            delete_alert_rule(self.alert_rule)
 
-#         assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
-#         incident = Incident.objects.get(id=incident.id)
-#         assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
+        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        incident = Incident.objects.get(id=incident.id)
+        assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):
