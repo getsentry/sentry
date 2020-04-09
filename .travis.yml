@@ -165,7 +165,7 @@ matrix:
       install:
         # first off, this will probably fail to install black.
         # i'll need to do the pyenv hack i did in symbolicator to get this working.
-        - make setup-git
+        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
         # second, black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
