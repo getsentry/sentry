@@ -22,6 +22,22 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         self.project = self.create_project(name="bar", organization=self.org)
 
+    def test_save_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 1
+
     def test_save_key_transaction(self):
         data = load_data("transaction")
         with self.feature("organizations:performance-view"):
@@ -410,6 +426,31 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             ).count()
             == 0
         )
+
+    def test_delete_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+        assert response.status_code == 204
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 0
 
     def test_delete_nonexistent_transaction(self):
         event_data = load_data("transaction")

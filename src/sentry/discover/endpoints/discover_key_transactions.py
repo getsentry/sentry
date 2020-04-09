@@ -10,8 +10,17 @@ from sentry.discover.endpoints.serializers import KeyTransactionSerializer
 from sentry.snuba.discover import key_transaction_query, key_transaction_timeseries_query
 
 
+class KeyTransactionPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read"],
+        "POST": ["org:read"],
+        "PUT": ["org:read"],
+        "DELETE": ["org:read"],
+    }
+
+
 class IsKeyTransactionEndpoint(KeyTransactionBase):
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
@@ -35,7 +44,7 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
 
 
 class KeyTransactionEndpoint(KeyTransactionBase):
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (KeyTransactionPermission,)
 
     def post(self, request, organization):
         """ Create a Key Transaction """
@@ -107,7 +116,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
 
 class KeyTransactionStatsEndpoint(KeyTransactionBase):
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
