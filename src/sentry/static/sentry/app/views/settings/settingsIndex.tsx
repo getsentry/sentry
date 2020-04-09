@@ -1,3 +1,4 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -44,7 +45,7 @@ const flexCenter = css`
 
 type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<{}, {}>;
 
 class SettingsIndex extends React.Component<Props> {
   static propTypes = {
