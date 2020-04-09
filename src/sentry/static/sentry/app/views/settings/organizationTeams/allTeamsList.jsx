@@ -18,10 +18,14 @@ class AllTeamsList extends React.Component {
     teamList: PropTypes.arrayOf(SentryTypes.Team),
     openMembership: PropTypes.bool,
     useCreateModal: PropTypes.bool,
+    onRequestAccess: PropTypes.func,
+    onJoinTeam: PropTypes.func,
+    onLeaveTeam: PropTypes.func,
+    onCreateTeam: PropTypes.func,
   };
 
   handleCreateTeam = e => {
-    const {useCreateModal, organization} = this.props;
+    const {useCreateModal, organization, onCreateTeam} = this.props;
 
     if (!useCreateModal) {
       return;
@@ -31,12 +35,22 @@ class AllTeamsList extends React.Component {
 
     openCreateTeamModal({
       organization,
-      onClose: () => {},
+      onClose: onCreateTeam,
     });
   };
 
   render() {
-    const {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
+    const {
+      access,
+      organization,
+      urlPrefix,
+      openMembership,
+      useCreateModal,
+      onRequestAccess,
+      onJoinTeam,
+      onLeaveTeam,
+    } = this.props;
+
     const teamNodes = this.props.teamList.map(team => (
       <AllTeamsRow
         urlPrefix={urlPrefix}
@@ -45,6 +59,9 @@ class AllTeamsList extends React.Component {
         organization={organization}
         openMembership={openMembership}
         key={team.slug}
+        onRequestAccess={onRequestAccess}
+        onLeaveTeam={onLeaveTeam}
+        onJoinTeam={onJoinTeam}
       />
     ));
 

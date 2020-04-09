@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {t, tct, tn} from 'app/locale';
 import Button from 'app/components/button';
@@ -19,6 +20,10 @@ class AllTeamsRow extends React.Component {
     organization: PropTypes.object.isRequired,
     team: PropTypes.object.isRequired,
     openMembership: PropTypes.bool.isRequired,
+
+    onRequestAccess: PropTypes.func,
+    onJoinTeam: PropTypes.func,
+    onLeaveTeam: PropTypes.func,
   };
 
   state = {
@@ -26,30 +31,26 @@ class AllTeamsRow extends React.Component {
     error: false,
   };
 
-  handleRequestAccess = async () => {
-    const {team} = this.props;
+  handleRequestAccess = () => {
+    const {team, onRequestAccess} = this.props;
 
-    try {
-      this.joinTeam({
-        successMessage: tct('You have requested access to [team]', {
-          team: `#${team.slug}`,
-        }),
+    const promise = this.joinTeam({
+      successMessage: tct('You have requested access to [team]', {
+        team: `#${team.slug}`,
+      }),
 
-        errorMessage: tct('Unable to request access to [team]', {
-          team: `#${team.slug}`,
-        }),
-      });
+      errorMessage: tct('Unable to request access to [team]', {
+        team: `#${team.slug}`,
+      }),
+    });
 
-      // TODO: Ideally we would update team so that `isPending` is true
-    } catch (_err) {
-      // No need to do anything
-    }
+    callIfFunction(onRequestAccess, team, promise);
   };
 
   handleJoinTeam = () => {
-    const {team} = this.props;
+    const {team, onJoinTeam} = this.props;
 
-    this.joinTeam({
+    const promise = this.joinTeam({
       successMessage: tct('You have joined [team]', {
         team: `#${team.slug}`,
       }),
@@ -57,6 +58,8 @@ class AllTeamsRow extends React.Component {
         team: `#${team.slug}`,
       }),
     });
+
+    callIfFunction(onJoinTeam, team, promise);
   };
 
   joinTeam = ({successMessage, errorMessage}) => {
@@ -74,13 +77,13 @@ class AllTeamsRow extends React.Component {
           teamId: team.slug,
         },
         {
-          success: () => {
+          success: resp => {
             this.setState({
               loading: false,
               error: false,
             });
             addSuccessMessage(successMessage);
-            resolve();
+            resolve(resp);
           },
           error: () => {
             this.setState({
@@ -88,7 +91,7 @@ class AllTeamsRow extends React.Component {
               error: true,
             });
             addErrorMessage(errorMessage);
-            reject(new Error('Unable to join team'));
+            reject(new Error(errorMessage));
           },
         }
       )
@@ -96,43 +99,48 @@ class AllTeamsRow extends React.Component {
   };
 
   handleLeaveTeam = () => {
-    const {api, organization, team} = this.props;
+    const {api, organization, team, onLeaveTeam} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    leaveTeam(
-      api,
-      {
-        orgId: organization.slug,
-        teamId: team.slug,
-      },
-      {
-        success: () => {
-          this.setState({
-            loading: false,
-            error: false,
-          });
-          addSuccessMessage(
-            tct('You have left [team]', {
-              team: `#${team.slug}`,
-            })
-          );
+    const promise = new Promise((resolve, reject) =>
+      leaveTeam(
+        api,
+        {
+          orgId: organization.slug,
+          teamId: team.slug,
         },
-        error: () => {
-          this.setState({
-            loading: false,
-            error: true,
-          });
-          addErrorMessage(
-            tct('Unable to leave [team]', {
+        {
+          success: resp => {
+            this.setState({
+              loading: false,
+              error: false,
+            });
+            addSuccessMessage(
+              tct('You have left [team]', {
+                team: `#${team.slug}`,
+              })
+            );
+            resolve(resp);
+          },
+          error: () => {
+            this.setState({
+              loading: false,
+              error: true,
+            });
+            const message = tct('Unable to leave [team]', {
               team: `#${team.slug}`,
-            })
-          );
-        },
-      }
+            });
+            addErrorMessage(message);
+            reject(new Error(message));
+          },
+        }
+      )
     );
+
+    callIfFunction(onLeaveTeam, team, promise);
   };
 
   render() {
@@ -199,7 +207,7 @@ const TeamLink = styled(Link)`
 `;
 
 export {AllTeamsRow};
-export default withApi(AllTeamsRow);
+export default withApi(AllTeamsRow, {persistInFlight: true});
 
 const TeamPanelItem = styled(PanelItem)`
   padding: 0;
