@@ -34,15 +34,32 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL("""
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
+                    """,
+                    reverse_sql="""DO $$
+                    BEGIN
+                        BEGIN
+                            ALTER TABLE sentry_alertrule ADD CONSTRAINT sentry_alertrule_organization_id_name_12c48b37_uniq UNIQUE (organization_id, name);
+                        EXCEPTION
+                            WHEN duplicate_table THEN
+                        END;
+                    END $$;
+                    """
+                ),
+                 migrations.RunSQL("""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
-                    CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_status_active
+                    """,
+                    reverse_sql="""
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq
+                    ON sentry_alertrule USING btree (organization_id, name);
+                    """,
+                ),
+                migrations.RunSQL("""
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_status_active
                     ON sentry_alertrule USING btree (organization_id, name, status)
                     WHERE status = 0;
                     """,
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;
-                    CREATE UNIQUE INDEX CONCURRENTLY sentry_alertrule_organization_id_name_12c48b37_uniq
-                    ON sentry_alertrule USING btree (organization_id, name);
                     """,
                 )
             ],
