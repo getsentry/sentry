@@ -107,6 +107,11 @@ def _create_in_snuba(subscription):
     environments = list(subscription.environments.all())
     if environments:
         conditions.append(["environment", "IN", [env.name for env in environments]])
+    if subscription.dataset == QueryDatasets.EVENTS.value:
+        # TODO: If we want to support security events here we'll need a way to
+        # differentiate within the dataset. For now we can just assume all subscriptions
+        # created within this dataset are just for errors.
+        conditions.append(["type", "=", "error"])
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (subscription.dataset,),
