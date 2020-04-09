@@ -35,19 +35,22 @@ const DataPrivacyRulesPanelFooter = ({
       {t('Add Rule')}
     </StyledLink>
     {!hideButtonBar && (
-      <StyledButtonBar gap={1.5}>
-        <Button size="small" onClick={onCancel} disabled={disabled}>
-          {t('Cancel')}
-        </Button>
-        <Button
-          size="small"
-          priority="primary"
-          onClick={onSave}
-          disabled={disabled || disableSaveButton}
-        >
-          {t('Save Rules')}
-        </Button>
-      </StyledButtonBar>
+      <Actions>
+        <ButtonBar gap={1.5}>
+          <Button size="small" onClick={onCancel} disabled={disabled}>
+            {t('Cancel')}
+          </Button>
+          <Button
+            size="small"
+            priority="primary"
+            onClick={onSave}
+            disabled={disabled || disableSaveButton}
+          >
+            {t('Save Rules')}
+          </Button>
+        </ButtonBar>
+        <Info>{t('* The new rules will only apply to upcoming events')}</Info>
+      </Actions>
     )}
   </PanelAction>
 );
@@ -58,11 +61,11 @@ const PanelAction = styled('div')`
   padding: ${space(1.5)} ${space(2)};
   display: grid;
   grid-template-columns: auto 1fr;
-  align-items: center;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  justify-content: flex-end;
+  grid-row-gap: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    align-items: center;
+    grid-row-gap: 0;
+  }
 `;
 
 const StyledLink = styled(Button)`
@@ -72,4 +75,23 @@ const StyledLink = styled(Button)`
   &:focus {
     color: ${p => p.theme.blueDark};
   }
+`;
+
+const Actions = styled('div')`
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: flex;
+  flex-direction: column;
+  grid-column-start: 1;
+  grid-column-end: -1;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    align-items: flex-end;
+    grid-column-start: auto;
+    grid-column-end: auto;
+  }
+`;
+
+const Info = styled('div')`
+  margin-top: ${space(1)};
 `;
