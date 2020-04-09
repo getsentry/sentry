@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import {Member, Organization, MemberRole} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -13,10 +12,10 @@ import RoleSelectControl from 'app/components/roleSelectControl';
 import SelectControl from 'app/components/forms/selectControl';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
+import loadTeamsForSelectOptions from 'app/utils/loadTeamsForSelectOptions';
 import space from 'app/styles/space';
 
 type Props = {
-  api: Client;
   inviteRequest: Member;
   inviteRequestBusy: {[key: string]: boolean};
   organization: Organization;
@@ -35,7 +34,6 @@ const InviteModalHook = HookOrDefault({
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
 const InviteRequestRow = ({
-  api,
   inviteRequest,
   inviteRequestBusy,
   organization,
@@ -46,14 +44,7 @@ const InviteRequestRow = ({
 }: Props) => {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
-
-  const loadTeams = async (inputValue: string) => {
-    const resp = await api.requestPromise(`/organizations/${organization.slug}/teams/`, {
-      query: {query: inputValue, per_page: 25},
-    });
-
-    return {options: resp?.map(({slug}) => ({value: slug, label: `#${slug}`}))};
-  };
+  const orgSlug = organization.slug;
 
   // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
@@ -97,7 +88,7 @@ const InviteRequestRow = ({
         placeholder={t('Add to teams...')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
         value={inviteRequest.teams}
-        loadOptions={loadTeams}
+        loadOptions={loadTeamsForSelectOptions(orgSlug)}
         async
         multiple
         clearable

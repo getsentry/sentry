@@ -68,6 +68,10 @@ describe('OrganizationRequestsView', function() {
     trackAnalyticsEvent.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],

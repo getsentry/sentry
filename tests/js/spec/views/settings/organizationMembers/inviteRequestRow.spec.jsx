@@ -27,7 +27,7 @@ const roles = [
 ];
 
 describe('InviteRequestRow', function() {
-  const orgId = 'org-slug';
+  const organization = TestStubs.Organization();
   const inviteRequestBusy = new Map();
 
   const inviteRequest = TestStubs.Member({
@@ -42,11 +42,17 @@ describe('InviteRequestRow', function() {
     inviteStatus: 'requested_to_join',
     role: 'member',
   });
+  beforeAll(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [TestStubs.Team({slug: 'one'}), TestStubs.Team({slug: 'two'})],
+    });
+  });
 
   it('renders request to be invited', function() {
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         allTeams={[]}
@@ -66,7 +72,7 @@ describe('InviteRequestRow', function() {
   it('renders request to join', function() {
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={joinRequest}
         inviteRequestBusy={inviteRequestBusy}
         allTeams={[]}
@@ -84,7 +90,7 @@ describe('InviteRequestRow', function() {
 
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
@@ -106,7 +112,7 @@ describe('InviteRequestRow', function() {
     const mockDeny = jest.fn();
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={inviteRequest}
         inviteRequestBusy={inviteRequestBusy}
         onApprove={mockApprove}
@@ -121,7 +127,7 @@ describe('InviteRequestRow', function() {
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('can change role and teams', function() {
+  it('can change role and teams', async function() {
     const adminInviteRequest = TestStubs.Member({
       user: null,
       inviterName: TestStubs.User().name,
@@ -133,14 +139,16 @@ describe('InviteRequestRow', function() {
 
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={adminInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
       />
     );
+
+    await tick();
+    wrapper.update();
 
     selectByValue(wrapper, 'member', {name: 'role', control: true});
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
@@ -149,7 +157,7 @@ describe('InviteRequestRow', function() {
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
   });
 
-  it('cannot be approved when invitee role is not allowed', function() {
+  it('cannot be approved when invitee role is not allowed', async function() {
     const ownerInviteRequest = TestStubs.Member({
       user: null,
       inviterName: TestStubs.User().name,
@@ -161,14 +169,16 @@ describe('InviteRequestRow', function() {
 
     const wrapper = mountWithTheme(
       <InviteRequestRow
-        orgId={orgId}
+        organization={organization}
         inviteRequest={ownerInviteRequest}
         inviteRequestBusy={inviteRequestBusy}
-        allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
       />
     );
+
+    await tick();
+    wrapper.update();
 
     expect(wrapper.find('button[aria-label="Approve"]').props()['aria-disabled']).toBe(
       true

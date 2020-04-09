@@ -175,7 +175,6 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
             <PanelBody>
               {inviteRequests.map(inviteRequest => (
                 <InviteRequestRow
-                  api={this.api}
                   key={inviteRequest.id}
                   organization={organization}
                   inviteRequest={inviteRequest}
