@@ -54,7 +54,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
     }
     return p.theme.gray4;
   }};
-
+  color: ${p => p.theme.white};
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
@@ -88,7 +88,6 @@ const BannerContent = styled('div')`
 `;
 
 const BannerTitle = styled('h1')`
-  color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
@@ -100,7 +99,6 @@ const BannerTitle = styled('h1')`
 
 const BannerSubtitle = styled('div')`
   font-size: ${theme.fontSizeMedium};
-  color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     font-size: ${theme.fontSizeExtraLarge};

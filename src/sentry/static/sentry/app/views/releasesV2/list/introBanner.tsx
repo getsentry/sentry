@@ -31,7 +31,7 @@ class IntroBanner extends React.Component<{}, State> {
     }
 
     return (
-      <Banner
+      <StyledBanner
         title={t('Spot Release Changes')}
         subtitle={t(
           'See differences between releases, from crash analytics to adoption rates.'
@@ -41,13 +41,17 @@ class IntroBanner extends React.Component<{}, State> {
       >
         <StarterButton>View Features</StarterButton>
         <StarterButton priority="primary">Update SDK</StarterButton>
-      </Banner>
+      </StyledBanner>
     );
   }
 }
 
 const StarterButton = styled(Button)`
   margin: ${space(1)};
+`;
+
+const StyledBanner = styled(Banner)`
+  color: ${p => p.theme.redDark};
 `;
 
 export default IntroBanner;
