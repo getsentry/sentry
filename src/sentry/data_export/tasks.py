@@ -128,7 +128,8 @@ def process_discover(data_export, file, limit, environment_id):
         )
     except ExportError as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
-        logger.error("dataexport.error: {}".format(six.text_type(error)))
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
         raise error
 
     writer = create_writer(file, processor.header_fields)
