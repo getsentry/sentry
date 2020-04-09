@@ -9,7 +9,7 @@ import theme from 'app/utils/theme';
 import '@testing-library/jest-dom/extend-expect';
 
 function renderComponent(active: '1' | '2' | '3' | '4') {
-  const utils = renderWithTheme(
+  return renderWithTheme(
     <ButtonBar active={active} merged>
       <Button barId="1">First Button</Button>
       <Button barId="2" data-testid="buttonBar-secondButton">
@@ -19,7 +19,6 @@ function renderComponent(active: '1' | '2' | '3' | '4') {
       <Button barId="4">Fourth Button</Button>
     </ButtonBar>
   );
-  return {...utils};
 }
 
 describe('ButtonBar', () => {

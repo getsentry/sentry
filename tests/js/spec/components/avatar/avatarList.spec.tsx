@@ -22,8 +22,7 @@ const avatarUsers: Array<AvatarUser> = [
 ];
 
 function renderComponent(avatarUsersSixUsers: AvatarList['props']['users']) {
-  const utils = render(<AvatarList users={avatarUsersSixUsers} />);
-  return {...utils};
+  return render(<AvatarList users={avatarUsersSixUsers} />);
 }
 
 describe('AvatarList', () => {

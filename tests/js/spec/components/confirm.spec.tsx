@@ -4,12 +4,11 @@ import Confirm from 'app/components/confirm';
 import {renderWithTheme, fireEvent} from 'sentry-test/reactTestingLibrary';
 
 function renderComponent(onConfirm = jest.fn()) {
-  const utils = renderWithTheme(
+  return renderWithTheme(
     <Confirm message="Are you sure?" onConfirm={onConfirm}>
       <button data-testid="confirm-button-children">Confirm?</button>
     </Confirm>
   );
-  return {...utils};
 }
 
 describe('Confirm', () => {

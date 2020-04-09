@@ -9,12 +9,11 @@ function renderComponent({
   children = loadingContainerChildren,
   ...props
 }: Partial<React.ComponentProps<typeof LoadingContainer>>) {
-  const utils = render(
+  return render(
     <LoadingContainer {...props}>
       <div>{children}</div>
     </LoadingContainer>
   );
-  return {...utils};
 }
 
 // TODO(Priscila): check the loading state tests
