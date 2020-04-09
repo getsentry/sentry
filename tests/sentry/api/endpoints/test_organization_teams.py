@@ -31,6 +31,28 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.data[1]["id"] == six.text_type(team1.id)
         assert response.data[1]["isMember"]
 
+    def test_teams_without_membership(self):
+        user = self.create_user()
+        org = self.create_organization(owner=self.user)
+        team1 = self.create_team(organization=org, name="foo")
+        team2 = self.create_team(organization=org, name="bar")
+        team3 = self.create_team(organization=org, name="baz")
+
+        self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
+
+        path = u"/api/0/organizations/{}/teams/?is_not_member=1".format(org.slug)
+
+        self.login_as(user=user)
+
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["id"] == six.text_type(team2.id)
+        assert not response.data[0]["isMember"]
+        assert response.data[1]["id"] == six.text_type(team3.id)
+        assert not response.data[1]["isMember"]
+
     def test_simple_results_no_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=self.user)
