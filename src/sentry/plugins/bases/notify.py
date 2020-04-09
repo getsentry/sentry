@@ -9,14 +9,10 @@ from django import forms
 from requests.exceptions import SSLError, HTTPError
 
 from sentry import digests, ratelimits
-from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.exceptions import PluginError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.models import ProjectOption
-from sentry.tasks.digests import deliver_digest
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -95,30 +91,8 @@ class NotificationPlugin(Plugin):
 
         project = event.group.project
         extra["project_id"] = project.id
-        if hasattr(self, "notify_digest") and digests.enabled(project):
-
-            def get_digest_option(key):
-                return ProjectOption.objects.get_value(
-                    project, get_digest_option_key(self.get_conf_key(), key)
-                )
-
-            digest_key = unsplit_key(self, event.group.project)
-            extra["digest_key"] = digest_key
-            immediate_delivery = digests.add(
-                digest_key,
-                event_to_record(event, rules),
-                increment_delay=get_digest_option("increment_delay"),
-                maximum_delay=get_digest_option("maximum_delay"),
-            )
-            if immediate_delivery:
-                deliver_digest.delay(digest_key)
-            else:
-                log_event = "digested"
-
-        else:
-            notification = Notification(event=event, rules=rules)
-            self.notify(notification)
-
+        notification = Notification(event=event, rules=rules)
+        self.notify(notification)
         self.logger.info("notification.%s" % log_event, extra=extra)
 
     def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
