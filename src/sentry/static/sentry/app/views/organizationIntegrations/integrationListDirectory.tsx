@@ -36,7 +36,8 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
-import {logExperiment} from 'app/utils/analytics';
+import withExperiment from 'app/utils/withExperiment';
+import {ExperimentAssignment} from 'app/types/experiments';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
@@ -44,6 +45,7 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
+  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -80,13 +82,6 @@ export class IntegrationListDirectory extends AsyncComponent<
       displayedList: [],
       selectedCategory: '',
     };
-  }
-
-  componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'IntegrationDirectoryCategoryExperiment',
-    });
   }
 
   onLoadAllEndpointsSuccess() {
@@ -493,4 +488,8 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(IntegrationListDirectory);
+export default withOrganization(
+  withExperiment(IntegrationListDirectory, {
+    experiment: 'IntegrationDirectoryCategoryExperiment',
+  })
+);
