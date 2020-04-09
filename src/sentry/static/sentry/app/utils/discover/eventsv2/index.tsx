@@ -20,6 +20,7 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   extraQuery?: {[key: string]: any};
+  keyTransactions?: boolean;
 
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -29,6 +30,10 @@ type State = {
 } & ChildrenProps;
 
 class EventsV2 extends React.Component<Props, State> {
+  static defaultProps = {
+    keyTransactions: false,
+  };
+
   state: State = {
     isLoading: true,
     tableFetchID: undefined,
@@ -43,12 +48,18 @@ class EventsV2 extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    // Reload data if we aren't already loading, or if we've moved
-    // from an invalid view state to a valid one.
-    if (
-      (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
-      (prevProps.eventView.isValid() === false && this.props.eventView.isValid())
-    ) {
+    // Reload data if we aren't already loading,
+    const refetchCondition = !this.state.isLoading && this.shouldRefetchData(prevProps);
+
+    // or if we've moved from an invalid view state to a valid one,
+    const eventViewValidation =
+      prevProps.eventView.isValid() === false && this.props.eventView.isValid();
+
+    // or if toggling between key transactions and all transactions
+    const togglingTransactionsView =
+      prevProps.keyTransactions !== this.props.keyTransactions;
+
+    if (refetchCondition || eventViewValidation || togglingTransactionsView) {
       this.fetchData();
     }
   }
@@ -61,13 +72,15 @@ class EventsV2 extends React.Component<Props, State> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, extraQuery} = this.props;
+    const {eventView, organization, location, extraQuery, keyTransactions} = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const route = keyTransactions ? 'key-transactions' : 'eventsv2';
+
+    const url = `/organizations/${organization.slug}/${route}/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
 
