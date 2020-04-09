@@ -232,7 +232,7 @@ class EventStorage(Service):
         ]
 
         # Remove duplicates from the list of nodes to be fetched
-        node_ids = list(set([n.id for _, n in object_node_list]))
+        node_ids = list({n.id for _, n in object_node_list})
         if not node_ids:
             return
 
