@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -16,6 +15,7 @@ import {
   getMethodTypeSelectorFieldLabel,
 } from './utils';
 import DataPrivacyRulesPanelSelectorField from './dataPrivacyRulesPanelSelectorField';
+import {Suggestion} from './dataPrivacyRulesPanelSelectorFieldTypes';
 
 type Rule = {
   id: number;
@@ -28,6 +28,7 @@ type Rule = {
 type Props = {
   onDelete: (ruleId: Rule['id']) => void;
   onChange: (rule: Rule) => void;
+  selectorSuggestions: Array<Suggestion>;
   rule: Rule;
   disabled?: boolean;
 };
@@ -42,14 +43,20 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
     errors: {},
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.rule.from !== this.props.rule.from) {
+      this.handleValidation('from')();
+    }
+  }
+
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
     const rule: Rule = {
-      ...omit(this.props.rule, 'customRegularExpression'),
+      ...this.props.rule,
       [stateProperty]: value,
     };
 
-    if (stateProperty === 'type' && value === RULE_TYPE.PATTERN) {
-      rule.customRegularExpression = this.props.rule.customRegularExpression || '';
+    if (rule.type !== RULE_TYPE.PATTERN) {
+      delete rule.customRegularExpression;
     }
 
     this.props.onChange({
@@ -86,7 +93,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {onDelete, rule, disabled} = this.props;
+    const {onDelete, rule, disabled, selectorSuggestions} = this.props;
     const {from, customRegularExpression, type, method} = rule;
     const {errors} = this.state;
 
@@ -128,6 +135,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             }}
             value={from}
             onBlur={this.handleValidation('from')}
+            selectorSuggestions={selectorSuggestions}
             error={errors.from}
             disabled={disabled}
           />

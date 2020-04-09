@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
@@ -20,12 +21,12 @@ export const IconSliders = React.forwardRef(function IconSliders(
       : providedDirection;
 
   return (
-    <svg
+    <StyledSvg
       viewBox="0 0 16 16"
       fill={color}
       height={size}
       width={size}
-      transform={`rotate(${direction})`}
+      direction={direction}
       {...props}
       ref={ref}
     >
@@ -35,6 +36,10 @@ export const IconSliders = React.forwardRef(function IconSliders(
       <path d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z" />
       <path d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z" />
       <path d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z" />
-    </svg>
+    </StyledSvg>
   );
 });
+
+const StyledSvg = styled('svg')<{direction: string}>`
+  transform: rotate(${p => p.direction}deg);
+`;

@@ -46,7 +46,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p75", "number") == "duration"
     assert get_json_meta_type("p95", "number") == "duration"
     assert get_json_meta_type("p99", "number") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
+    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "percentage"
+    assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
@@ -1256,6 +1257,11 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
+
+    def test_blank_field_ignored(self):
+        fields = ["", "title", "   "]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == ["title", "id", "project.id"]
 
     def test_automatic_fields_no_aggregates(self):
         fields = ["event.type", "message"]

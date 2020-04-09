@@ -11,6 +11,7 @@ import {
   Integration,
   SentryApp,
   IntegrationProvider,
+  DocumentIntegration,
   SentryAppInstallation,
   PluginWithProjectList,
   AppOrProviderOrPlugin,
@@ -19,10 +20,10 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getSortIntegrationsByWeightActive,
   getCategorySelectActive,
   isSentryApp,
   isPlugin,
+  isDocumentIntegration,
   getCategoriesForIntegration,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
@@ -38,13 +39,13 @@ import SelectControl from 'app/components/forms/selectControl';
 import withExperiment from 'app/utils/withExperiment';
 import {ExperimentAssignment} from 'app/types/experiments';
 
-import {POPULARITY_WEIGHT} from './constants';
+import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
-  experimentAssignment: ExperimentAssignment['IntegrationDirectorySortWeightExperiment'];
+  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -108,7 +109,8 @@ export class IntegrationListDirectory extends AsyncComponent<
       .concat(published)
       .concat(orgOwned)
       .concat(this.providers)
-      .concat(plugins);
+      .concat(plugins)
+      .concat(Object.values(documentIntegrations));
 
     const list = this.sortIntegrations(combined);
 
@@ -191,24 +193,26 @@ export class IntegrationListDirectory extends AsyncComponent<
       return integration.projectList.length > 0 ? 2 : 0;
     }
 
-    if (!isSentryApp(integration)) {
-      return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    if (isSentryApp(integration)) {
+      const install = this.getAppInstall(integration);
+      if (install) {
+        return install.status === 'pending' ? 1 : 2;
+      }
+      return 0;
     }
 
-    const install = this.getAppInstall(integration);
-
-    if (install) {
-      return install.status === 'pending' ? 1 : 2;
+    if (isDocumentIntegration(integration)) {
+      return 0;
     }
 
-    return 0;
+    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
     POPULARITY_WEIGHT[integration.slug] ?? 1;
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
-    a.name.localeCompare(b.name);
+    a.slug.localeCompare(b.slug);
 
   sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     const weightA = this.getPopularityWeight(a);
@@ -220,13 +224,20 @@ export class IntegrationListDirectory extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive(this.props.experimentAssignment)) {
-      return integrations
-        .sort(this.sortByName)
-        .sort(this.sortByPopularity)
-        .sort(this.sortByInstalled);
-    }
-    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
+    return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+      //sort by whether installed first
+      const diffWeight = this.sortByInstalled(a, b);
+      if (diffWeight !== 0) {
+        return diffWeight;
+      }
+      //then sort by popularity
+      const diffPop = this.sortByPopularity(a, b);
+      if (diffPop !== 0) {
+        return diffPop;
+      }
+      //then sort by name
+      return this.sortByName(a, b);
+    });
   }
 
   async componentDidUpdate(_: Props, prevState: State) {
@@ -282,7 +293,17 @@ export class IntegrationListDirectory extends AsyncComponent<
         return getCategoriesForIntegration(integration).includes(category);
       });
 
-      return this.setState({displayedList: result});
+      return this.setState({displayedList: result}, () =>
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.directory_category_selected',
+            eventName: 'Integrations: Directory Category Selected',
+            view: 'integrations_directory',
+            category,
+          },
+          this.props.organization
+        )
+      );
     });
   };
   // Rendering
@@ -356,11 +377,31 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   };
 
+  renderDocumentIntegration = (integration: DocumentIntegration) => {
+    const {organization} = this.props;
+    return (
+      <IntegrationRow
+        key={`doc-int-${integration.slug}`}
+        organization={organization}
+        type="documentIntegration"
+        slug={integration.slug}
+        displayName={integration.name}
+        publishStatus="published"
+        configurations={0}
+        categories={getCategoriesForIntegration(integration)}
+      />
+    );
+  };
+
   renderIntegration = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration)) {
       return this.renderSentryApp(integration);
-    } else if (isPlugin(integration)) {
+    }
+    if (isPlugin(integration)) {
       return this.renderPlugin(integration);
+    }
+    if (isDocumentIntegration(integration)) {
+      return this.renderDocumentIntegration(integration);
     }
     return this.renderProvider(integration);
   };
@@ -371,6 +412,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -380,7 +422,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive() ? (
+                {getCategorySelectActive(this.props.organization) ? (
                   <SelectControl
                     name="select-categories"
                     onChange={this.onCategorySelect}
@@ -448,6 +490,6 @@ const EmptyResultsBody = styled('div')`
 
 export default withOrganization(
   withExperiment(IntegrationListDirectory, {
-    experiment: 'IntegrationDirectorySortWeightExperiment',
+    experiment: 'IntegrationDirectoryCategoryExperiment',
   })
 );

@@ -529,6 +529,7 @@ class Sidebar extends React.Component<Props, State> {
                       label={t('Releases v2')}
                       to={`/organizations/${organization.slug}/releases-v2/`}
                       id="releasesv2"
+                      isBeta
                     />
                   </Feature>
                 </SidebarSection>

@@ -247,9 +247,4 @@ class KeyTransactionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "At most {} Key Transactions can be added".format(MAX_KEY_TRANSACTIONS)
             )
-
-        base_filter["transaction"] = data["transaction"]
-
-        if KeyTransaction.objects.filter(**base_filter).count() > 0:
-            raise serializers.ValidationError("This Key Transaction was already added")
         return data
