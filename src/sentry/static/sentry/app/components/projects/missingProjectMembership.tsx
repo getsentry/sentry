@@ -3,11 +3,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
+import {PageContent} from 'app/styles/organization';
+import {Panel, PanelBody} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import HeroIcon from 'app/components/heroIcon';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Projects from 'app/utils/projects';
@@ -18,7 +22,6 @@ import withApi from 'app/utils/withApi';
 type Props = {
   api: Client;
   organization: Organization;
-  projectId: string;
   project: Project;
 };
 
@@ -26,21 +29,14 @@ class MissingProjectMembership extends React.Component<Props> {
   static propTypes = {
     api: PropTypes.object,
     organization: PropTypes.object.isRequired,
-    projectId: PropTypes.string.isRequired,
   };
 
-  constructor(props) {
-    super(props);
+  state = {
+    loading: false,
+    error: false,
+  };
 
-    const {organization, projectId} = this.props;
-
-    this.state = {
-      loading: false,
-      error: false,
-    };
-  }
-
-  joinTeam(team) {
+  joinTeam(team: Team) {
     this.setState({
       loading: true,
     });
@@ -74,50 +70,62 @@ class MissingProjectMembership extends React.Component<Props> {
       return null;
     }
     if (this.state.loading) {
-      return <a className="btn btn-default btn-loading btn-disabled">...</a>;
+      return (
+        <Button busy disabled>
+          ...
+        </Button>
+      );
     } else if (team.isPending) {
-      return <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>;
+      return <Button disabled>{t('Request Pending')}</Button>;
     } else if (features.has('open-membership')) {
       return (
-        <a className="btn btn-default" onClick={this.joinTeam.bind(this, team)}>
+        <Button type="button" onClick={this.joinTeam.bind(this, team)}>
           {t('Join Team')}
-        </a>
+        </Button>
       );
     }
     return (
-      <a className="btn btn-default" onClick={this.joinTeam.bind(this, team)}>
+      <Button type="button" onClick={this.joinTeam.bind(this, team)}>
         {t('Request Access')}
-      </a>
+      </Button>
     );
   }
 
   renderExplanation(features) {
+    const {teams} = this.props.project;
+
     if (features.has('open-membership')) {
-      return t('To view this data you must one of the following teams.');
-    } else {
-      return t(
-        'To view this data you must first request access to one of the following teams:'
-      );
+      return t('To view this data you must join one of the following teams.');
     }
+
+    if (!teams.length) {
+      return t('To view this data you must ask an admin to add a team to this project.');
+    }
+
+    return t(
+      'To view this data you must first request access to one of the following teams:'
+    );
   }
 
   renderJoinTeams(features) {
     const {teams} = this.props.project;
-    if (!teams?.length) {
-      return (
-        <EmptyMessage>
-          {t(
-            'No teams have access to this project yet. Ask an admin to add your team to this project.'
-          )}
-        </EmptyMessage>
-      );
+
+    if (!teams.length) {
+      return null;
     }
 
-    return teams.map(team => (
-      <p key={team.slug}>
-        #{team.slug}: {this.renderJoinTeam(team, features)}
-      </p>
-    ));
+    return (
+      <JoinTeams>
+        <TeamTable>
+          {teams.map(team => (
+            <React.Fragment key={team.slug}>
+              <span>#{team.slug}</span>
+              <span>{this.renderJoinTeam(team, features)}</span>
+            </React.Fragment>
+          ))}
+        </TeamTable>
+      </JoinTeams>
+    );
   }
 
   render() {
@@ -125,46 +133,34 @@ class MissingProjectMembership extends React.Component<Props> {
     const features = new Set(organization.features);
 
     return (
-      <div className="container">
-        <StyledWell centered>
-          <StyledHeroIcon src="icon-circle-exclamation" />
-          <p>{t("You're not a member of this project.")}</p>
-          <p>{this.renderExplanation(features)}</p>
-          {this.renderJoinTeams(features)}
-        </StyledWell>
-      </div>
+      <PageContent>
+        <Panel>
+          <PanelBody>
+            <EmptyStateWarning>
+              <p>{t("You're not a member of this project.")}</p>
+              <p>{this.renderExplanation(features)}</p>
+              {this.renderJoinTeams(features)}
+            </EmptyStateWarning>
+          </PanelBody>
+        </Panel>
+      </PageContent>
     );
   }
 }
 
-const StyledWell = styled(Well)`
-  margin-top: ${space(2)};
-`;
-
-const StyledHeroIcon = styled(HeroIcon)`
-  margin-bottom: ${space(2)};
-`;
-
-/* function MissingProjectMembershipContainer({organization, projectId}) { */
-/* return ( */
-/* <Projects orgId={organization.slug} slugs={[projectId]}> */
-/* {({projects, initiallyLoaded, fetching}) => ( */
-/* <React.Fragment> */
-/* {initiallyLoaded || fetching ? ( */
-/* <LoadingIndicator /> */
-/* ) : ( */
-/* <MissingProjectMembership */
-/* project={projects[0]} */
-/* organization={organization} */
-/* projectId={projectId} */
-/* /> */
-/* )} */
-/* </React.Fragment> */
-/* )} */
-/* </Projects> */
-/* ); */
-/* } */
-
 export {MissingProjectMembership};
 
 export default withApi(MissingProjectMembership);
+
+const JoinTeams = styled('div')`
+  display: flex;
+  justify-content: center;
+`;
+
+const TeamTable = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: ${space(2)};
+  align-items: center;
+  text-align: left;
+`;

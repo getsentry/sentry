@@ -1,29 +1,24 @@
-import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 
+import {Client} from 'app/api';
+import {Organization} from 'app/types';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MemberListStore from 'app/stores/memberListStore';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import Projects from 'app/utils/projects';
-import ProjectsStore from 'app/stores/projectsStore';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
   UNKNOWN: 'UNKNOWN',
-};
+} as const;
 
 type Props = {
   api: Client;
@@ -33,10 +28,15 @@ type Props = {
    */
   skipReload: boolean;
   organization: Organization;
-  /* projects: Project[]; */
   projectId: string;
   orgId: string;
   project: Project;
+};
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  errorType: null | typeof ERROR_TYPES[keyof typeof ERROR_TYPES];
 };
 
 /**
@@ -46,7 +46,7 @@ type Props = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-class ProjectContext extends React.Component<Props> {
+class ProjectContext extends React.Component<Props, State> {
   static childContextTypes = {
     project: SentryTypes.Project,
   };
@@ -55,7 +55,6 @@ class ProjectContext extends React.Component<Props> {
     loading: false,
     error: false,
     errorType: null,
-    memberList: [],
   };
 
   getChildContext() {
@@ -68,64 +67,12 @@ class ProjectContext extends React.Component<Props> {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.projectId === this.props.projectId) {
-      return;
-    }
-
-    if (!nextProps.skipReload) {
-      this.remountComponent();
-    }
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevProps.projectId !== this.props.projectId) {
-      /* this.fetchData(); */
-    }
-
-    // Project list has changed. Likely indicating that a new project has been
-    // added. Re-fetch project details in case that the new project is the active
-    // project.
-    //
-    // For now, only compare lengths. It is possible that project slugs within
-    // the list could change, but it doesn't seem to be broken anywhere else at
-    // the moment that would require deeper checks.
-    /* if (prevProps.projects.length !== this.props.projects.length) { */
-    /* this.fetchData(); */
-    /* } */
-
-    // Call forceUpdate() on <DocumentTitle/> if either project or organization
-    // state has changed. This is because <DocumentTitle/>'s shouldComponentUpdate()
-    // returns false unless props differ; meaning context changes for project/org
-    // do NOT trigger renders for <DocumentTitle/> OR any subchildren. The end result
-    // being that child elements that listen for context changes on project/org will
-    // NOT update (without this hack).
-    // See: https://github.com/gaearon/react-document-title/issues/35
-
-    // intentionally shallow comparing references
-    if (
-      /* prevState.project !== this.state.project || */
-      prevState.organization !== this.state.organization
-    ) {
-      if (!this.docTitle) {
-        return;
-      }
-      const docTitle = this.docTitleRef.docTitle;
-      if (docTitle) {
-        docTitle.forceUpdate();
-      }
-    }
-  }
-
   remountComponent() {
-    this.setState(this.getInitialState());
+    this.fetchData();
   }
 
   getTitle() {
-    if (this.props.project) {
-      return this.props.project.slug;
-    }
-    return 'Sentry';
+    return this.props.project.slug;
   }
 
   async fetchData() {
@@ -134,13 +81,9 @@ class ProjectContext extends React.Component<Props> {
     const activeProject = this.props.project;
     const hasAccess = activeProject && activeProject.hasAccess;
 
-    console.log('fetchData', activeProject, hasAccess, activeProject?.isMember);
-
     this.setState(state => ({
       // if `skipReload` is true, then don't change loading state
       loading: skipReload ? state.loading : true,
-      // we bind project initially, but it'll rebind
-      project: activeProject,
     }));
 
     if (activeProject && hasAccess) {
@@ -175,7 +118,6 @@ class ProjectContext extends React.Component<Props> {
 
     // User is not a memberof the active project
     if (activeProject && !activeProject.isMember) {
-      console.log('hi');
       this.setState({
         loading: false,
         error: true,
@@ -185,11 +127,11 @@ class ProjectContext extends React.Component<Props> {
       return;
     }
 
+    // TODO: DO we need this?
     // There is no active project. This likely indicates either the project
     // *does not exist* or the project has not yet been added to the store.
     // Either way, make a request to check for existence of the project.
     try {
-      console.log('no active project?');
       await this.props.api.requestPromise(`/projects/${orgId}/${projectId}/`);
     } catch (error) {
       this.setState({
@@ -237,15 +179,11 @@ class ProjectContext extends React.Component<Props> {
   }
 
   render() {
-    return (
-      <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
-        {this.renderBody()}
-      </DocumentTitle>
-    );
+    return <DocumentTitle title={this.getTitle()}>{this.renderBody()}</DocumentTitle>;
   }
 }
 
-function ProjectContextContainer({orgId, projectId, ...props}) {
+function ProjectContextContainer({orgId, projectId, ...props}: Props) {
   return (
     <Projects key={`${orgId}-${projectId}`} orgId={orgId} slugs={[projectId]}>
       {({projects, initiallyLoaded, fetching}) => {
