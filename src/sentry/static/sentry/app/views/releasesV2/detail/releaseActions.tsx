@@ -57,6 +57,11 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: min-content;
   grid-gap: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+    margin: ${space(1)} 0 ${space(2)} 0;
+  }
 `;
 
 export default ReleaseActions;

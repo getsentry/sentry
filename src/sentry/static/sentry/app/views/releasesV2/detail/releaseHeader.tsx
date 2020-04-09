@@ -141,15 +141,16 @@ const Layout = styled('div')`
     grid-column-gap: ${space(3)};
     grid-template-columns: 1fr 1fr;
     margin-bottom: 0;
+    align-items: flex-start;
   }
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  grid-gap: ${space(2)};
-  padding: ${space(1.5)} 0;
+  display: flex;
+  flex-wrap: wrap;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    padding: ${space(1.5)} 0;
     grid-auto-flow: column;
     grid-gap: ${space(4)};
   }
