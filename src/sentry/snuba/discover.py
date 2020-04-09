@@ -395,7 +395,7 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter):
+def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
@@ -407,7 +407,15 @@ def transform_results(result, translated_columns, snuba_filter):
         col["name"] = translated_columns.get(col["name"], col["name"])
 
     def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
+        transformed = {translated_columns.get(key, key): value for key, value in row.items()}
+        if selected_columns and "user" in selected_columns:
+            transformed["user"] = (
+                transformed.get("user.email")
+                or transformed.get("user.username")
+                or transformed.get("user.ip")
+                or transformed.get("user.id")
+            )
+        return transformed
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
@@ -602,7 +610,7 @@ def query(
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns, snuba_filter)
+    return transform_results(result, translated_columns, snuba_filter, selected_columns)
 
 
 def key_transaction_conditions(queryset):
