@@ -127,7 +127,7 @@ def process_discover(data_export, file, limit, environment_id):
             discover_query=data_export.query_info, organization_id=data_export.organization_id
         )
     except ExportError as error:
-        metrics.incr("dataexport.error", instance=six.text_type(error))
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.info("dataexport.error: {}".format(six.text_type(error)))
         capture_exception(error)
         raise error

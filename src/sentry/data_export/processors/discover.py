@@ -50,7 +50,7 @@ class DiscoverProcessor(object):
                 params=params,
                 offset=offset,
                 limit=limit,
-                referrer="api.organization-events-v2",
+                referrer="data_export.tasks.discover",
                 auto_fields=True,
                 use_aggregate_conditions=True,
             )
