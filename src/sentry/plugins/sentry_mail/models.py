@@ -42,11 +42,7 @@ class MailPlugin(NotificationPlugin):
         return True
 
     def should_notify(self, group, event):
-        send_to = self.get_sendable_users(group.project)
-        if not send_to:
-            return False
-
-        return super(MailPlugin, self).should_notify(group, event)
+        return self.mail_adapter.should_notify(group)
 
     def get_send_to(self, project, event=None):
         """

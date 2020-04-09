@@ -47,12 +47,7 @@ class MailPluginTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch(
-        "sentry.models.ProjectOption.objects.get_value", Mock(side_effect=lambda p, k, d, **kw: d)
-    )
-    @mock.patch(
-        "sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users", Mock(return_value=[])
-    )
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
     def test_should_notify_no_sendable_users(self):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
