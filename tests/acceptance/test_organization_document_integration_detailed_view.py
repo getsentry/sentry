@@ -12,7 +12,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         super(OrganizationDocumentIntegrationDetailView, self).setUp()
         self.login_as(self.user)
 
-    def load_page(self, slug, configuration_tab=False):
+    def load_page(self, slug):
         url = u"/settings/{}/document-integrations/{}/".format(self.organization.slug, slug)
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
