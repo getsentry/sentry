@@ -33,8 +33,15 @@ export const clearAnalyticsSession = () => {
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
-export const getCategorySelectActive = () =>
-  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
+export const getCategorySelectActive = (organization?: Organization) => {
+  const variant = organization?.experiments?.IntegrationDirectoryCategoryExperiment;
+  const localStore = localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT);
+
+  if (localStore !== undefined) {
+    return localStore === '1';
+  }
+  return variant === '1';
+};
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -93,10 +100,17 @@ type IntegrationSearchEvent = {
   num_results: number;
 };
 
+type IntegrationCategorySelectEvent = {
+  eventKey: 'integrations.directory_category_selected';
+  eventName: 'Integrations: Directory Category Selected';
+  category: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
+  | IntegrationCategorySelectEvent
 ) & {
   view?:
     | 'external_install'

@@ -76,9 +76,15 @@ export function stringifyQueryObject(results: QueryResults) {
   const {query, ...tags} = results;
 
   const stringTags = flatMap(Object.entries(tags), ([k, values]) =>
-    values.map(
-      tag => `${k}:${/[\s\(\)\\"]/g.test(tag) ? `"${escapeDoubleQuotes(tag)}"` : tag}`
-    )
+    values.map(tag => {
+      if (tag === '' || tag === null) {
+        return `${k}:""`;
+      }
+      if (/[\s\(\)\\"]/g.test(tag)) {
+        return `${k}:"${escapeDoubleQuotes(tag)}"`;
+      }
+      return `${k}:${tag}`;
+    })
   );
 
   return `${query.join(' ')} ${stringTags.join(' ')}`.trim();

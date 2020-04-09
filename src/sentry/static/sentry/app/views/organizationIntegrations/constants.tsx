@@ -118,7 +118,7 @@ export const documentIntegrations: {
   },
   msteams: {
     slug: 'msteams',
-    name: 'Microst Teams',
+    name: 'Microsoft Teams',
     author: 'Microsoft',
     docUrl:
       'https://appsource.microsoft.com/en-us/product/office/WA104381566?src=office&tab=Overview',

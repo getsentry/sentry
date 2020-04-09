@@ -27,7 +27,6 @@ describe('ProjectUserFeedback', function() {
       <ProjectUserFeedback
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         params={{orgId: org.slug, projectId: project.slug}}
       />,
       TestStubs.routerContext()

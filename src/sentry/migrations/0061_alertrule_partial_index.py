@@ -3,7 +3,8 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-
+import django.db.models.deletion
+import sentry.db.models.fields.foreignkey
 
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
@@ -21,7 +22,7 @@ class Migration(migrations.Migration):
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
 
     dependencies = [
@@ -33,15 +34,32 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL("""
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
-                    DROP INDEX IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
-                    CREATE UNIQUE INDEX sentry_alertrule_status_active
+                    """,
+                    reverse_sql="""DO $$
+                    BEGIN
+                        BEGIN
+                            ALTER TABLE sentry_alertrule ADD CONSTRAINT sentry_alertrule_organization_id_name_12c48b37_uniq UNIQUE (organization_id, name);
+                        EXCEPTION
+                            WHEN duplicate_table THEN
+                        END;
+                    END $$;
+                    """
+                ),
+                 migrations.RunSQL("""
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
+                    """,
+                    reverse_sql="""
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq
+                    ON sentry_alertrule USING btree (organization_id, name);
+                    """,
+                ),
+                migrations.RunSQL("""
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_status_active
                     ON sentry_alertrule USING btree (organization_id, name, status)
                     WHERE status = 0;
                     """,
                     reverse_sql="""
-                    DROP INDEX IF EXISTS sentry_alertrule_status_active;
-                    CREATE UNIQUE INDEX sentry_alertrule_organization_id_name_12c48b37_uniq
-                    ON sentry_alertrule USING btree (organization_id, name);
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;
                     """,
                 )
             ],
@@ -50,5 +68,10 @@ class Migration(migrations.Migration):
                     name="alertrule", unique_together=set([("organization", "name", "status")])
                 )
             ],
+        ),
+        migrations.AlterField(
+            model_name='alertrule',
+            name='organization',
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
         ),
     ]

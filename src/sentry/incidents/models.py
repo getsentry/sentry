@@ -372,7 +372,8 @@ class AlertRule(Model):
 
     objects = AlertRuleManager()
     objects_with_archived = BaseManager()
-    organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
+
+    organization = FlexibleForeignKey("sentry.Organization", null=True)
     query_subscriptions = models.ManyToManyField(
         "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
     )

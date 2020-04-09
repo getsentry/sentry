@@ -36,6 +36,8 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
+import withExperiment from 'app/utils/withExperiment';
+import {ExperimentAssignment} from 'app/types/experiments';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
@@ -43,6 +45,7 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
+  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -290,7 +293,17 @@ export class IntegrationListDirectory extends AsyncComponent<
         return getCategoriesForIntegration(integration).includes(category);
       });
 
-      return this.setState({displayedList: result});
+      return this.setState({displayedList: result}, () =>
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.directory_category_selected',
+            eventName: 'Integrations: Directory Category Selected',
+            view: 'integrations_directory',
+            category,
+          },
+          this.props.organization
+        )
+      );
     });
   };
   // Rendering
@@ -399,6 +412,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -408,7 +422,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive() ? (
+                {getCategorySelectActive(this.props.organization) ? (
                   <SelectControl
                     name="select-categories"
                     onChange={this.onCategorySelect}
@@ -474,4 +488,8 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(IntegrationListDirectory);
+export default withOrganization(
+  withExperiment(IntegrationListDirectory, {
+    experiment: 'IntegrationDirectoryCategoryExperiment',
+  })
+);
