@@ -44,9 +44,7 @@ const ReleaseActions = ({orgId, version}: Props) => {
           'Deleting this release is permanent and will affect other projects associated with it. Are you sure you wish to continue?'
         )}
       >
-        <Button>
-          <IconDelete size="xs" />
-        </Button>
+        <Button icon={<IconDelete />} />
       </Confirm>
     </Wrapper>
   );
