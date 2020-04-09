@@ -241,14 +241,14 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
-  /* TODO(releasesV2): this could use some responsive love, but not yet sure if we are keeping it */
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     grid-template-columns: none;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    margin-bottom: ${space(4)};
   }
 `;
 
