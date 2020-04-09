@@ -11,6 +11,7 @@ type Props = {
   subtitle?: string;
   isDismissable?: boolean;
   onCloseClick?: () => void;
+  className?: string;
 } & BannerWrapperProps;
 
 class Banner extends React.Component<Props> {
@@ -26,10 +27,11 @@ class Banner extends React.Component<Props> {
       onCloseClick,
       children,
       backgroundImg,
+      className,
     } = this.props;
 
     return (
-      <BannerWrapper backgroundImg={backgroundImg}>
+      <BannerWrapper backgroundImg={backgroundImg} className={className}>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
