@@ -16,7 +16,7 @@ import Pagination from 'app/components/pagination';
 import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 // import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -201,8 +201,8 @@ class ReleasesList extends AsyncView<Props, State> {
           )}
         />
 
-        <NoProjectMessage organization={organization}>
-          <PageContent>
+        <PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
                 {t('Releases v2')} <BetaTag />
@@ -225,8 +225,8 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
-          </PageContent>
-        </NoProjectMessage>
+          </LightWeightNoProjectMessage>
+        </PageContent>
       </React.Fragment>
     );
   }
