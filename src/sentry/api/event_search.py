@@ -417,14 +417,10 @@ class SearchVisitor(NodeVisitor):
         search_value = search_value[0]
         operator = operator[0] if not isinstance(operator, Node) else "="
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
-        if isinstance(search_value, RegexNode):
-            date_string = search_value.match.group()
-        else:
-            date_string = search_value[0]
 
         if is_date_aggregate:
             try:
-                search_value = parse_datetime_string(date_string)
+                search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(six.text_type(exc))
             return AggregateFilter(search_key, operator, SearchValue(search_value))
@@ -436,8 +432,6 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         search_value = search_value[0]
         if search_key.name in self.date_keys:
-            if isinstance(search_value, RegexNode):
-                search_value = search_value.match.group()
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
@@ -486,8 +480,7 @@ class SearchVisitor(NodeVisitor):
         # on either side of that datetime
         (search_key, _, date_value) = children
         date_value = date_value[0]
-        if isinstance(date_value, RegexNode):
-            date_value = date_value.match.group()
+
         if search_key.name not in self.date_keys:
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
@@ -509,6 +502,9 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_date_format(self, node, children):
+        return node.text
+
+    def visit_alt_date_format(self, node, children):
         return node.text
 
     def is_negated(self, node):
