@@ -164,8 +164,10 @@ matrix:
       name: 'pre-commit hooks (includes Python 2.7 linting)'
       install:
         - pyenv install 3.6.3
-        - pyenv global 3.6.3 system
-        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
+        # black requires python3.6+ to be installed
+        - PYENV_VERSION=3.6.3 SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
+        # XXX: this must be synced with requirements-dev.txt
+        - pip install 'sentry-flake8==0.3.0'
       script:
         # second, black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
