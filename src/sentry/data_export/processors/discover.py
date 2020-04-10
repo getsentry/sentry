@@ -34,10 +34,7 @@ class DiscoverProcessor(object):
     def get_projects(organization_id, query):
         project_ids = query.get("project")
         try:
-            if isinstance(project_ids, list):
-                return Project.objects.filter(id__in=project_ids)
-            else:
-                return [Project.objects.get_from_cache(id=project_ids)]
+            return Project.objects.filter(id__in=project_ids)
         except Project.DoesNotExist:
             raise ExportError("Requested project does not exist")
 

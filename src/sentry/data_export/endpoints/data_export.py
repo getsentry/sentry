@@ -52,7 +52,11 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
             if not features.has("organizations:discover-basic", organization, actor=request.user):
                 return Response(status=403)
-            if "project" not in data["query_info"]:
+            if "project" in data["query_info"]:
+                project_query = data["query_info"]["project"]
+                if not isinstance(project_query, list):
+                    data["query_info"]["project"] = [project_query]
+            else:
                 projects = self.get_projects(request, organization)
                 data["query_info"]["project"] = [project.id for project in projects]
 
