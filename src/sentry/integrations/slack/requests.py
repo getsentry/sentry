@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import hmac
+import six
+from hashlib import sha256
+
 from sentry import options
 from sentry.models import Integration
 from sentry.utils import json
@@ -92,7 +96,21 @@ class SlackRequest(object):
             raise SlackRequestError(status=400)
 
     def _authorize(self):
-        if self.data.get("token") != options.get("slack.verification-token"):
+        signing_secret = options.get("slack.signing-secret")
+        # use the signing_secret if it's available
+        if signing_secret:
+            # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
+            signature = self.request.META["HTTP_X_SLACK_SIGNATURE"]
+            timestamp = self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"]
+
+            req = six.binary_type("v0:%s:%s" % (timestamp, self.request.body))
+            request_hash = (
+                "v0=" + hmac.new(six.binary_type(signing_secret), req, sha256).hexdigest()
+            )
+            if not hmac.compare_digest(six.binary_type(request_hash), six.binary_type(signature)):
+                self._error("slack.action.invalid-token-signing-secret")
+                raise SlackRequestError(status=401)
+        elif self.data.get("token") != options.get("slack.verification-token"):
             self._error("slack.action.invalid-token")
             raise SlackRequestError(status=401)
 
