@@ -25,6 +25,8 @@ import {
   SingleIntegrationEvent,
   getCategories,
 } from 'app/utils/integrationUtil';
+import {Panel} from 'app/components/panels';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -159,14 +161,15 @@ class AbstractIntegrationDetailedView<
 
   renderEmptyConfigurations() {
     return (
-      <EmptyConfigurationContainer>
-        <EmptyConfigurationTitle>You haven't set anything up yet</EmptyConfigurationTitle>
-        <EmptyConfigurationBody>
-          But that doesn’t have to be the case for long! Add an installation to get
-          started.
-        </EmptyConfigurationBody>
-        <div>{this.renderAddInstallButton(true)}</div>
-      </EmptyConfigurationContainer>
+      <Panel>
+        <EmptyMessage
+          title={t("You haven't set anything up yet")}
+          description={t(
+            'But that doesn’t have to be the case for long! Add an installation to get started.'
+          )}
+          action={this.renderAddInstallButton(true)}
+        />
+      </Panel>
     );
   }
 
@@ -461,7 +464,7 @@ const DisableWrapper = styled('div')`
   align-self: center;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
 `;
 
 const CreatedContainer = styled('div')`
@@ -470,32 +473,6 @@ const CreatedContainer = styled('div')`
   color: ${p => p.theme.gray2};
   font-weight: 600;
   font-size: 12px;
-`;
-
-const EmptyConfigurationContainer = styled('div')`
-  height: 200px;
-  background: #ffffff;
-  border: 1px solid #c6becf;
-  box-sizing: border-box;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const EmptyConfigurationTitle = styled('div')`
-  font-size: 22px;
-  line-height: 31px;
-  padding-bottom: ${space(2)};
-`;
-
-const EmptyConfigurationBody = styled('div')`
-  font-size: 16px;
-  line-height: 28px;
-  color: ${p => p.theme.gray2};
-  padding-bottom: ${space(2)};
 `;
 
 export default AbstractIntegrationDetailedView;

@@ -1,3 +1,4 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -8,45 +9,49 @@ import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
 
-class SettingsLayout extends React.Component {
-  static propTypes = {
-    renderNavigation: PropTypes.func,
-    route: PropTypes.object,
-    router: PropTypes.object,
-    routes: PropTypes.array,
-  };
+type Props = {
+  renderNavigation?: () => React.ReactNode;
+  children: React.ReactNode;
+} & RouteComponentProps<{}, {}>;
 
-  render() {
-    const {params, routes, route, router, renderNavigation, children} = this.props;
-    // We want child's view's props
-    const childProps = (children && children.props) || this.props;
-    const childRoutes = childProps.routes || routes || [];
-    const childRoute = childProps.route || route || {};
-    return (
-      <React.Fragment>
-        <SettingsColumn>
-          <SettingsHeader>
-            <HeaderContent>
-              <StyledSettingsBreadcrumb
-                params={params}
-                routes={childRoutes}
-                route={childRoute}
-              />
-              <SettingsSearch routes={routes} router={router} params={params} />
-            </HeaderContent>
-          </SettingsHeader>
+function SettingsLayout(props: Props) {
+  const {params, routes, route, router, renderNavigation, children} = props;
 
-          <MaxWidthContainer>
-            {typeof renderNavigation === 'function' && (
-              <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
-            )}
-            <Content>{children}</Content>
-          </MaxWidthContainer>
-        </SettingsColumn>
-      </React.Fragment>
-    );
-  }
+  // We want child's view's props
+  const childProps = children && React.isValidElement(children) ? children.props : props;
+  const childRoutes = childProps.routes || routes || [];
+  const childRoute = childProps.route || route || {};
+  return (
+    <React.Fragment>
+      <SettingsColumn>
+        <SettingsHeader>
+          <HeaderContent>
+            <StyledSettingsBreadcrumb
+              params={params}
+              routes={childRoutes}
+              route={childRoute}
+            />
+            <SettingsSearch routes={routes} router={router} params={params} />
+          </HeaderContent>
+        </SettingsHeader>
+
+        <MaxWidthContainer>
+          {typeof renderNavigation === 'function' && (
+            <SidebarWrapper>{renderNavigation()}</SidebarWrapper>
+          )}
+          <Content>{children}</Content>
+        </MaxWidthContainer>
+      </SettingsColumn>
+    </React.Fragment>
+  );
 }
+
+SettingsLayout.propTypes = {
+  renderNavigation: PropTypes.func,
+  route: PropTypes.object,
+  router: PropTypes.object,
+  routes: PropTypes.array,
+};
 
 const MaxWidthContainer = styled('div')`
   display: flex;
@@ -58,7 +63,7 @@ const MaxWidthContainer = styled('div')`
 const SidebarWrapper = styled('div')`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
-  background: #fff;
+  background: ${p => p.theme.white};
   border-right: 1px solid ${p => p.theme.borderLight};
   padding: ${space(4)};
 `;
