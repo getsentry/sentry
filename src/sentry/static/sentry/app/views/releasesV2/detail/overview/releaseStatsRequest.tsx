@@ -15,10 +15,11 @@ import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {getExactDuration} from 'app/utils/formatters';
+import {fetchTotalCount} from 'app/actionCreators/events';
 
-import {YAxis} from './releaseChartControls';
-import {getInterval} from './utils';
-import {displayCrashFreePercent, getCrashFreePercent} from '../../../utils';
+import {YAxis} from './chart/releaseChartControls';
+import {getInterval, getReleaseEventView} from './chart/utils';
+import {displayCrashFreePercent, getCrashFreePercent} from '../../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
@@ -98,6 +99,8 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     try {
       if (yAxis === YAxis.CRASH_FREE) {
         data = await this.fetchRateData();
+      } else if (yAxis === YAxis.EVENTS) {
+        data = await this.fetchEventData();
       } else {
         // session duration uses same endpoint as sessions
         data = await this.fetchCountData(
@@ -164,6 +167,40 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     );
 
     return {...transformedData, crashFreeTimeBreakdown: userResponse.usersBreakdown};
+  };
+
+  fetchEventData = async () => {
+    const {api, orgId, location, selection, version} = this.props;
+    const {crashFreeTimeBreakdown} = this.state.data || {};
+    let userResponse, eventsCountResponse;
+
+    // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
+    if (crashFreeTimeBreakdown) {
+      eventsCountResponse = await fetchTotalCount(
+        api,
+        orgId,
+        getReleaseEventView(selection, version).getEventsAPIPayload(location)
+      );
+    } else {
+      [userResponse, eventsCountResponse] = await Promise.all([
+        api.requestPromise(this.statsPath, {
+          query: {
+            ...this.baseQueryParams,
+            type: YAxis.USERS,
+          },
+        }),
+        fetchTotalCount(
+          api,
+          orgId,
+          getReleaseEventView(selection, version).getEventsAPIPayload(location)
+        ),
+      ]);
+    }
+
+    const breakdown = userResponse?.usersBreakdown ?? crashFreeTimeBreakdown;
+    const chartSummary = eventsCountResponse.toLocaleString();
+
+    return {chartData: [], crashFreeTimeBreakdown: breakdown, chartSummary};
   };
 
   get statsPath() {

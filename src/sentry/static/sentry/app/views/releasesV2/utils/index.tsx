@@ -18,6 +18,10 @@ export const displayCrashFreePercent = (
   decimalThreshold = 95,
   decimalPlaces = 3
 ): string => {
+  if (isNaN(percent)) {
+    return '\u2015';
+  }
+
   if (percent < 1 && percent > 0) {
     return `<1%`;
   }

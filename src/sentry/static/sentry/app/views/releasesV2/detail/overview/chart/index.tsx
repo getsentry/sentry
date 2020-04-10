@@ -1,89 +1,92 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
+import {Location} from 'history';
 
-import ChartZoom from 'app/components/charts/chartZoom';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
-import {GlobalSelection} from 'app/types';
-import TransitionChart from 'app/components/charts/transitionChart';
+import {GlobalSelection, Organization} from 'app/types';
 import {Panel} from 'app/components/panels';
-import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
-import space from 'app/styles/space';
+import {Client} from 'app/api';
+import {EventsChart} from 'app/views/events/eventsChart';
+import {t} from 'app/locale';
 
-import ReleaseChart from './releaseChart';
 import ReleaseChartControls, {YAxis} from './releaseChartControls';
-import {ReleaseStatsRequestRenderProps} from './releaseStatsRequest';
+import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
+import HealthChartContainer from './healthChartContainer';
+import {getReleaseEventView} from './utils';
 
 type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   selection: GlobalSelection;
   yAxis: YAxis;
   onYAxisChange: (yAxis: YAxis) => void;
   router: ReactRouter.InjectedRouter;
+  organization: Organization;
+  hasHealthData: boolean;
+  location: Location;
+  api: Client;
+  version: string;
+  hasDiscover: boolean;
 };
 
 const ReleaseChartContainer = ({
-  selection,
   loading,
   errored,
   reloading,
   chartData,
   chartSummary,
+  selection,
   yAxis,
   onYAxisChange,
   router,
+  organization,
+  hasHealthData,
+  location,
+  api,
+  version,
+  hasDiscover,
 }: Props) => {
-  const {datetime, projects} = selection;
-  const {utc, period, start, end} = datetime;
+  const {projects, environments, datetime} = selection;
+  const {start, end, period, utc} = datetime;
+  const eventView = getReleaseEventView(selection, version);
 
   return (
     <Panel>
-      <ChartWrapper>
-        <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-          {zoomRenderProps => (
-            <ReleaseSeries utc={utc} projects={projects}>
-              {({releaseSeries}) => {
-                if (errored) {
-                  return (
-                    <ErrorPanel>
-                      <IconWarning color={theme.gray2} size="lg" />
-                    </ErrorPanel>
-                  );
-                }
+      {hasDiscover && yAxis === YAxis.EVENTS ? (
+        <EventsChart
+          router={router}
+          organization={organization}
+          showLegend
+          yAxis={eventView.getYAxis()}
+          query={eventView.getEventsAPIPayload(location).query}
+          api={api}
+          projects={projects}
+          environments={environments}
+          start={start}
+          end={end}
+          period={period}
+          utc={utc}
+          disablePrevious
+          currentSeriesName={t('Events')}
+        />
+      ) : (
+        <HealthChartContainer
+          loading={loading}
+          errored={errored}
+          reloading={reloading}
+          chartData={chartData}
+          selection={selection}
+          yAxis={yAxis}
+          router={router}
+        />
+      )}
 
-                return (
-                  <TransitionChart loading={loading} reloading={reloading}>
-                    <React.Fragment>
-                      <TransparentLoadingMask visible={reloading} />
-                      <ReleaseChart
-                        utc={utc}
-                        releaseSeries={releaseSeries}
-                        timeseriesData={chartData}
-                        zoomRenderProps={zoomRenderProps}
-                        reloading={reloading}
-                        yAxis={yAxis}
-                      />
-                    </React.Fragment>
-                  </TransitionChart>
-                );
-              }}
-            </ReleaseSeries>
-          )}
-        </ChartZoom>
-      </ChartWrapper>
       <ReleaseChartControls
         summary={chartSummary}
         yAxis={yAxis}
         onYAxisChange={onYAxisChange}
+        hasDiscover={hasDiscover}
+        hasHealthData={hasHealthData}
       />
     </Panel>
   );
 };
-
-const ChartWrapper = styled('div')`
-  padding: ${space(1)} ${space(2)};
-`;
 
 export default ReleaseChartContainer;
