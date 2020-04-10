@@ -100,6 +100,7 @@ class SlackRequest(object):
         # use the signing_secret if it's available
         if signing_secret:
             # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
+            # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
             signature = self.request.META["HTTP_X_SLACK_SIGNATURE"]
             timestamp = self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"]
 
