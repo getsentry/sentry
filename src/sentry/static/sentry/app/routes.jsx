@@ -1453,6 +1453,11 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
 
+        <Route
+          path="/organizations/:orgId/projects/:projectId/events/:eventId/"
+          component={errorHandler(ProjectEventRedirect)}
+        />
+
         {/* Admin/manage routes */}
         <Route
           path="/manage/"
@@ -1721,10 +1726,6 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
           </Route>
-          <Route
-            path="/organizations/:orgId/projects/:projectId/events/:eventId/"
-            component={errorHandler(ProjectEventRedirect)}
-          />
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
