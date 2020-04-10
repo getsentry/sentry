@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import logging
 
 from sentry.api.utils import get_date_range_from_params
@@ -25,7 +26,7 @@ class DiscoverProcessor(object):
             "start": self.start,
             "end": self.end,
         }
-        self.header_fields = discover_query["field"]
+        self.header_fields = list(map(self.normalize_field, discover_query["field"]))
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"], query=discover_query["query"], params=self.params
         )
@@ -37,6 +38,14 @@ class DiscoverProcessor(object):
             return Project.objects.filter(id__in=project_ids)
         except Project.DoesNotExist:
             raise ExportError("Requested project does not exist")
+
+    @staticmethod
+    def normalize_field(raw_field):
+        m = re.search(r"\((\w*)\)$", raw_field)
+        if m is None:
+            return raw_field
+        suffix = m.group(1) if m.group(1) == "" else "_" + m.group(1)
+        return re.sub(r"\((\w*)\)$", suffix, raw_field)
 
     @staticmethod
     def get_data_fn(fields, query, params):
