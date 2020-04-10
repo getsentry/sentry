@@ -156,6 +156,9 @@ matrix:
       env: TEST_SUITE=lint-js
       install:
         - find "$NODE_DIR" -type d -empty -delete
+        # Under a "generic" language environment, this will make travis pyenv error because there
+        # is no pyenv python installed.
+        - rm .python-version
         - nvm install
         - ./bin/yarn install --frozen-lockfile
 
