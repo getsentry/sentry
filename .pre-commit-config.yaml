@@ -1,7 +1,7 @@
 exclude: >
     (?x)(
         LICENSE$|
-        bin/yarn$|
+        ^bin/yarn$|
         \.snap$|
         \.map$|
         \.map\.js$|

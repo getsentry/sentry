@@ -170,6 +170,8 @@ matrix:
         - pip install 'sentry-flake8==0.3.0'
         - pip install safety
       script:
+        # TODO: separate into multiple calls so we don't redundantly run flake8, or see if we can
+        # tee to that file in flake8 configuration.
         # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
         # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.

@@ -196,13 +196,11 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-lint: lint-python lint-js
-
 # configuration for flake8 can be found in setup.cfg
-lint-python:
-	@echo "--> Linting python"
-	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
-	@echo ""
+#lint-python:
+#	@echo "--> Linting python"
+#	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
+#	@echo ""
 
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
@@ -222,7 +220,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
