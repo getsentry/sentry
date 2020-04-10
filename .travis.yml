@@ -178,7 +178,7 @@ matrix:
         - pre-commit run --all-files
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
         # see the note in bin/scan on why this needs to be done for now.
-        - SENTRY_LIGHT_BUILD=1 pip install -e .
+        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
         - bin/scan
 
     - <<: *postgres_default
