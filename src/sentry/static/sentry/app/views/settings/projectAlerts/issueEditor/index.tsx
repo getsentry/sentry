@@ -458,6 +458,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
           <Panel>
             <PanelHeader>{t('Give your rule a name')}</PanelHeader>
+
+            {this.hasError('name') && (
+              <PanelAlert type="error">{t('Must enter a rule name')}</PanelAlert>
+            )}
+
             <PanelBody>
               <TextField
                 label={t('Rule name')}
