@@ -554,20 +554,21 @@ def create_alert_rule(
 
     return alert_rule
 
+
 def snapshot_alert_rule(alert_rule):
     # Creates an archived alert_rule using the same properties as the passed rule
-    print("snapshot alert rule:")
-    print("alert_rule before:",alert_rule)
+    print ("snapshot alert rule:")
+    print ("alert_rule before:", alert_rule)
     alert_rule.id = None
     alert_rule.status = AlertRuleStatus.ARCHIVED.value
     alert_rule.save()
-    print("alert_rule now:",alert_rule)
-    print("all rules now:",AlertRule.objects_with_archived.all())
+    print ("alert_rule now:", alert_rule)
+    print ("all rules now:", AlertRule.objects_with_archived.all())
 
     # TODO: Copy triggers and copy actions.
 
-
     return alert_rule
+
 
 def update_alert_rule(
     alert_rule,
@@ -631,7 +632,7 @@ def update_alert_rule(
             # TODO: think about whether this should be in snapshot_alert_rule or not
             incidents = Incident.objects.filter(alert_rule=alert_rule)
             incidents.update(alert_rule=rule_snapshot)
-            
+
         alert_rule.update(**updated_fields)
 
         existing_subs = []
