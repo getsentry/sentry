@@ -98,7 +98,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
     const {errors} = this.state;
 
     return (
-      <Wrapper hasError={Object.keys(errors).length > 0}>
+      <Wrapper>
         <WrapperFields>
           <StyledSelectControl
             placeholder={t('Select method')}
@@ -107,7 +107,6 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getMethodTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={34}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
             isDisabled={disabled}
@@ -121,7 +120,6 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getRuleTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={34}
             value={type}
             onChange={({value}) => this.handleChange('type', value)}
             isDisabled={disabled}
@@ -172,8 +170,8 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
 
 export default DataPrivacyRulesForm;
 
-const Wrapper = styled('div')<{hasError?: boolean}>`
-  padding: ${p => `${space(p.hasError ? 2 : 1.5)} ${space(2)}`};
+const Wrapper = styled('div')`
+  padding: ${space(3)} ${space(2)};
   display: grid;
   grid-gap: ${space(2)};
   grid-template-columns: 1fr;
@@ -188,6 +186,7 @@ const Wrapper = styled('div')<{hasError?: boolean}>`
 const WrapperFields = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
+  grid-row-gap: ${space(3)};
   align-items: flex-start;
   justify-items: start;
 
@@ -202,7 +201,7 @@ const WrapperFields = styled('div')`
 
 const FromLabel = styled('div')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
-  height: 34px;
+  height: 100%;
   align-items: center;
   display: flex;
   width: 100%;
@@ -216,6 +215,7 @@ const From = styled('div')`
   grid-column-start: 1;
   grid-gap: ${space(2)};
   width: 100%;
+  height: 34px;
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-column-end: auto;
@@ -223,6 +223,7 @@ const From = styled('div')`
   }
 `;
 
+// TODO(Priscila): make possible to set min-height in the SelectControl
 const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   width: 100%;
   line-height: 18px;
@@ -232,9 +233,10 @@ const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
       cursor: not-allowed;
       pointer-events: auto;
     `}
-
+  height: 34px;
   > *:first-child {
-    min-height: 34px;
+    height: 34px;
+    min-height: 34px !important;
   }
 `;
 
@@ -242,17 +244,13 @@ const CustomRegularExpression = styled(TextField)<{error?: string}>`
   grid-column-start: 1;
   grid-column-end: -1;
   width: 100%;
-  height: 34px;
-  font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+  height: 34px;
   input {
     height: 34px;
+    font-family: ${p => p.theme.text.familyMono};
   }
-  ${p =>
-    !p.error &&
-    `
-      margin-bottom: 0;
-    `}
+  margin-bottom: 0;
 `;
 
 const StyledIconTrash = styled(Button)<{fullHeight?: boolean}>`
