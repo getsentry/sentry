@@ -176,6 +176,9 @@ matrix:
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
         # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
         - pre-commit run --all-files
+        # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
+        # see the note in bin/scan on why this needs to be done for now.
+        # - pip install -e .
         - bin/scan
 
     - <<: *postgres_default
