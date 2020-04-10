@@ -163,8 +163,8 @@ matrix:
     - python: 2.7
       name: 'pre-commit hooks (includes Python 2.7 linting)'
       install:
-        # first off, this will probably fail to install black.
-        # i'll need to do the pyenv hack i did in symbolicator to get this working.
+        - pyenv install 3.6.3
+        - pyenv global 3.6.3 system
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
         # second, black is going to rewrite the files in-place.
