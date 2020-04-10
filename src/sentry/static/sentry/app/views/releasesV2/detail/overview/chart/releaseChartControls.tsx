@@ -63,7 +63,7 @@ const ReleaseChartControls = ({
   if (hasDiscover) {
     yAxisOptions.push({
       value: YAxis.EVENTS,
-      label: t('Release Events'),
+      label: t('Event Count'),
     });
   }
 
