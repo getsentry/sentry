@@ -7,6 +7,7 @@ import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 
 import {deleteRelease} from './utils';
 
@@ -41,7 +42,7 @@ export default class ReleaseDetailsActions extends React.Component {
             'Deleting this release is permanent. Are you sure you wish to continue?'
           )}
         >
-          <Button size="small" icon="icon-trash">
+          <Button size="small" icon={<IconDelete />}>
             {t('Delete')}
           </Button>
         </Confirm>
