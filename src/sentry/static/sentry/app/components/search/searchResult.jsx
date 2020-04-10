@@ -157,12 +157,10 @@ class SearchResult extends React.Component {
 export default withRouter(SearchResult);
 
 // This is for tests
-const SearchTitle = styled('span')`
-  /* stylelint-disable-next-line no-empty-block */
-`;
+const SearchTitle = styled('span')``;
 
 const SearchDetail = styled('div')`
-  font-size: 0.8em;
+  font-siz: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
   opacity: 0.8;
@@ -188,7 +186,7 @@ const ResultTypeIcon = styled(InlineSvg)`
   font-size: 1.2em;
   flex-shrink: 0;
 
-  ${SettingsSearch} & {
+  ${/* sc-selector*/ SettingsSearch} & {
     color: inherit;
   }
 `;

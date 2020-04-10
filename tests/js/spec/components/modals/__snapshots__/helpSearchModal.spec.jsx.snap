@@ -127,7 +127,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                       </div>
                       <SearchDetail>
                         <div
-                          className="css-d185x3-SearchDetail e1deq8q71"
+                          className="css-1onyqcz-SearchDetail e1deq8q71"
                         >
                           <span
                             key="0"
@@ -280,7 +280,7 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                       </div>
                       <SearchDetail>
                         <div
-                          className="css-d185x3-SearchDetail e1deq8q71"
+                          className="css-1onyqcz-SearchDetail e1deq8q71"
                         >
                           <span
                             key="0"
