@@ -376,22 +376,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
         serialized_alert_rule["triggers"][0]["thresholdType"] = 0  # Back to normal, valid.
 
-    @pytest.mark.chris
-    def test_update_with_attached_incident(self):
-        # The rule should be archived and a new one should be created.
-        # The attached incident should also be resolved.
-        assert 1 == 2
-
-    @pytest.mark.chris
-    def test_update_without_attached_incident(self):
-        # The rule should simply be updated.
-        assert 1 == 2
-
-    @pytest.mark.chris
-    def test_update_to_rule_with_same_name(self):
-        # This should not be allowed.
-        assert 1 == 2
-
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
