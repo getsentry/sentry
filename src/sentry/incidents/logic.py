@@ -558,13 +558,14 @@ def create_alert_rule(
 def snapshot_alert_rule(alert_rule):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
-    triggers = AlertRuleTrigger.objects.filter(alert_rule = alert_rule)
+    triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
 
-    alert_rule.id = None    
+    incidents = Incident.objects.filter(alert_rule=alert_rule)
+
+    alert_rule.id = None
     alert_rule.status = AlertRuleStatus.ARCHIVED.value
     alert_rule.save()
-    
-    incidents = Incident.objects.filter(alert_rule=alert_rule)
+
     incidents.update(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
 
     for trigger in triggers:
@@ -576,6 +577,7 @@ def snapshot_alert_rule(alert_rule):
             action.id = None
             action.trigger = trigger
             action.save()
+
 
 def update_alert_rule(
     alert_rule,
