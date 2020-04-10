@@ -11,6 +11,7 @@ type Props = {
   subtitle?: string;
   isDismissable?: boolean;
   onCloseClick?: () => void;
+  className?: string;
 } & BannerWrapperProps;
 
 class Banner extends React.Component<Props> {
@@ -26,10 +27,11 @@ class Banner extends React.Component<Props> {
       onCloseClick,
       children,
       backgroundImg,
+      className,
     } = this.props;
 
     return (
-      <BannerWrapper backgroundImg={backgroundImg}>
+      <BannerWrapper backgroundImg={backgroundImg} className={className}>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -54,7 +56,6 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
     }
     return p.theme.gray4;
   }};
-
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
@@ -63,6 +64,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   margin-bottom: ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;
@@ -88,7 +90,6 @@ const BannerContent = styled('div')`
 `;
 
 const BannerTitle = styled('h1')`
-  color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
@@ -100,7 +101,6 @@ const BannerTitle = styled('h1')`
 
 const BannerSubtitle = styled('div')`
   font-size: ${theme.fontSizeMedium};
-  color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     font-size: ${theme.fontSizeExtraLarge};
