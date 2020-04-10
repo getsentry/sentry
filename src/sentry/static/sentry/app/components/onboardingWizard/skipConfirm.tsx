@@ -65,7 +65,7 @@ type ConfirmProps = React.HTMLAttributes<HTMLDivElement> & {
   visible: boolean;
 };
 
-const Confirmation = styled(({onDismiss, onSkip, ...props}: ConfirmProps) => (
+const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmProps) => (
   <div onClick={onDismiss} {...props}>
     <p>{t("Not sure what to do? We're here for you!")}</p>
     <ButtonBar gap={1}>

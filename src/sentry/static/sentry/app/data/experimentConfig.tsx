@@ -20,12 +20,6 @@ export const experimentList = [
     assignments: ['controlV1', '2Optionsv1', '3OptionsV2'],
   },
   {
-    key: 'OnboardingSidebarV2Experiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [1, 0, -1],
-  },
-  {
     key: 'IntegrationDirectoryCategoryExperiment',
     type: ExperimentType.Organization,
     parameter: 'variant',
