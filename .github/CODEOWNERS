@@ -26,7 +26,20 @@
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 
 # Security
-/src/sentry/net/  @getsentry/security
+/src/sentry/net/    @getsentry/security
 
 # Build & Releases
-/docker @getsentry/releases
+/docker             @getsentry/releases
+setup.py            @getsentry/releases
+setup.cfg           @getsentry/releases
+requirements*.txt   @joshuarli
+.travis.yml         @joshuarli
+
+# Dev
+/config/                    @joshuarli
+/scripts/                   @joshuarli
+Makefile                    @joshuarli
+.envrc                      @joshuarli
+.pre-commit-config.yaml     @joshuarli
+.git-blame-ignore-revs      @joshuarli
+pyproject.toml              @joshuarli
