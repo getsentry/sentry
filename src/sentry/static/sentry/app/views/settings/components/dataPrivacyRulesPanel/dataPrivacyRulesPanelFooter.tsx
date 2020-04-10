@@ -11,9 +11,9 @@ type Props = {
   onAddRule: () => void;
   onSave: () => void;
   onCancel: () => void;
-  hideButtonBar: boolean;
   disabled?: boolean;
   disableSaveButton?: boolean;
+  disableCancelbutton?: boolean;
 };
 
 const DataPrivacyRulesPanelFooter = ({
@@ -21,8 +21,8 @@ const DataPrivacyRulesPanelFooter = ({
   onAddRule,
   onCancel,
   onSave,
-  hideButtonBar,
   disableSaveButton,
+  disableCancelbutton,
 }: Props) => (
   <PanelAction>
     <ButtonAddRuleLink
@@ -43,24 +43,26 @@ const DataPrivacyRulesPanelFooter = ({
     >
       {t('Add Rule')}
     </ButtonAddRule>
-    {!hideButtonBar && (
-      <Actions>
-        <ButtonBar gap={1.5}>
-          <Button size="small" onClick={onCancel} disabled={disabled}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            size="small"
-            priority="primary"
-            onClick={onSave}
-            disabled={disabled || disableSaveButton}
-          >
-            {t('Save Rules')}
-          </Button>
-        </ButtonBar>
-        <Info>{t('The new rules will only apply to upcoming events')}</Info>
-      </Actions>
-    )}
+    <Actions>
+      <ButtonBar gap={1.5}>
+        <Button
+          size="small"
+          onClick={onCancel}
+          disabled={disabled || disableCancelbutton}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          size="small"
+          priority="primary"
+          onClick={onSave}
+          disabled={disabled || disableSaveButton}
+        >
+          {t('Save Rules')}
+        </Button>
+      </ButtonBar>
+      <Info>{t('The new rules will only apply to upcoming events')}</Info>
+    </Actions>
   </PanelAction>
 );
 

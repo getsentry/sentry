@@ -174,7 +174,7 @@ class Tooltip extends React.Component<Props, State> {
   render() {
     const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
     const {isOpen} = this.state;
-    if (disabled || title === '') {
+    if (disabled) {
       return children;
     }
 
@@ -198,6 +198,7 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
+              hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
               onMouseEnter={() => isHoverable && this.handleOpen()}
@@ -234,7 +235,7 @@ const Container = styled('span')<{
   max-width: 100%;
 `;
 
-const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
+const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
   color: #fff;
   background: #000;
   opacity: 0.9;
@@ -252,6 +253,7 @@ const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
+  ${p => p.hide && `display: none`};
 `;
 
 const TooltipArrow = styled('span')`
