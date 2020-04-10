@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
 import abc
+import json
 from uuid import uuid4
 
+import responses
 from exam import patcher
+from mock import Mock, patch
 from six import add_metaclass
 
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
@@ -85,6 +88,19 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
+
+    @responses.activate
+    def test_adds_type(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING)
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = json.dumps({"subscription_id": "123"})
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(pool.urlopen.call_args[1]["body"])
+            assert ["type", "=", "error"] in request_body["conditions"]
 
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
