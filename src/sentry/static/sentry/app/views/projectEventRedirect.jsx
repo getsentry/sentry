@@ -1,8 +1,9 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
-import DetailedError from 'app/components/errors/detailedError';
+import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
+import DetailedError from 'app/components/errors/detailedError';
 
 /**
  * This component performs a client-side redirect to Event Details given only
@@ -70,7 +71,7 @@ class ProjectEventRedirect extends React.Component {
         />
       );
     }
-    return null;
+    return <PageContent />;
   }
 }
 
