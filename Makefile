@@ -196,12 +196,6 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-# configuration for flake8 can be found in setup.cfg
-#lint-python:
-#	@echo "--> Linting python"
-#	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
-#	@echo ""
-
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta review --workspace-root `pwd` -e pysnap
