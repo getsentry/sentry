@@ -557,18 +557,25 @@ def create_alert_rule(
 
 def snapshot_alert_rule(alert_rule):
     # Creates an archived alert_rule using the same properties as the passed rule
-    print ("snapshot alert rule:")
-    print ("alert_rule before:", alert_rule)
-    alert_rule.id = None
+    # It will also resolve any incidents attached to this rule.
+    triggers = AlertRuleTrigger.objects.filter(alert_rule = alert_rule)
+
+    alert_rule.id = None    
     alert_rule.status = AlertRuleStatus.ARCHIVED.value
     alert_rule.save()
-    print ("alert_rule now:", alert_rule)
-    print ("all rules now:", AlertRule.objects_with_archived.all())
+    
+    incidents = Incident.objects.filter(alert_rule=alert_rule)
+    incidents.update(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
 
-    # TODO: Copy triggers and copy actions.
-
-    return alert_rule
-
+    for trigger in triggers:
+        actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+        trigger.id = None
+        trigger.alert_rule = alert_rule
+        trigger.save()
+        for action in actions:
+            action.id = None
+            action.trigger = trigger
+            action.save()
 
 def update_alert_rule(
     alert_rule,
@@ -626,12 +633,12 @@ def update_alert_rule(
 
     with transaction.atomic():
         # We check if this alert rule has any attached incidents. If it does, we "delete" the rule (it actually gets archived and the incidents resolved, as well as deletes the snuba subscriptions), and create a new rule with the same data.
-        incidents = Incident.objects.filter(alert_rule=alert_rule)
+        incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
-            rule_snapshot = snapshot_alert_rule(alert_rule)
-            # TODO: think about whether this should be in snapshot_alert_rule or not
-            incidents = Incident.objects.filter(alert_rule=alert_rule)
-            incidents.update(alert_rule=rule_snapshot)
+            # TODO: This feels hacky, but the snapshot was changing our reference. I'm sure there is a better way to do this.
+            alert_rule_id = alert_rule.id
+            snapshot_alert_rule(alert_rule)
+            alert_rule = AlertRule.objects.get(id=alert_rule_id)
 
         alert_rule.update(**updated_fields)
 

@@ -164,7 +164,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_update_without_attached_incident(self):
         # The rule should simply be updated.
         assert 1 == 2
-        
+
     @pytest.mark.chris
     def test_update_to_rule_with_same_name(self):
         # This should not be allowed.

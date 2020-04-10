@@ -392,6 +392,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # This should not be allowed.
         assert 1 == 2
 
+
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
 

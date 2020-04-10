@@ -855,48 +855,52 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @pytest.mark.chris
     def test_with_attached_incident(self):
-        # The rule should be archived and a new one should be created.
-        # The attached incident should also be resolved.
-        name = "uh oh"
+        # A snapshot of the rule should be created, and the incidents should also be resolved.
         query = "level:warning"
         aggregation = QueryAggregations.UNIQUE_USERS
         time_window = 50
         threshold_period = 2
 
-
         incident = self.create_incident()
         incident.update(alert_rule=self.alert_rule)
+        incident_2 = self.create_incident()
+        incident_2.update(alert_rule=self.alert_rule)
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
         original_subscriptions = self.alert_rule.query_subscriptions.all()
 
+        # Give the rule some actions and triggers so we can verify they've been snapshotted correctly.
+        trigger = create_alert_rule_trigger(
+            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
+        )
+        action = create_alert_rule_trigger_action(
+            trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER, target_identifier=six.text_type(self.user.id)
+        )        
+        trigger_count = AlertRuleTrigger.objects.all().count()
+        action_count = AlertRuleTriggerAction.objects.all().count()
+
         updated_rule = update_alert_rule(
             self.alert_rule,
             projects=updated_projects,
-            name=name,
             query=query,
             aggregation=aggregation,
             time_window=time_window,
             threshold_period=threshold_period,
         )
 
-        #THIS SHOULD FAIL:
-        assert self.alert_rule.id == updated_rule.id
+        incident.refresh_from_db()
+        incident_2.refresh_from_db()
+        # They should not be pointing to the same rule anymore.
+        assert incident.alert_rule.id != updated_rule.id
+        assert incident_2.alert_rule.id != updated_rule.id
+        assert incident.alert_rule.name == updated_rule.name
+        assert incident_2.alert_rule.name == updated_rule.name
+        assert incident.status == IncidentStatus.CLOSED.value
+        assert incident_2.status == IncidentStatus.CLOSED.value
 
-        assert self.alert_rule.name == updated_rule.name
-
-        # updated_subscriptions = self.alert_rule.query_subscriptions.all()
-        # assert set([sub.project for sub in updated_subscriptions]) == set(updated_rule.updated_projects)
-        # for subscription in updated_subscriptions:
-        #     assert subscription.query == query
-        #     assert subscription.aggregation == aggregation.value
-        #     assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
-
-        assert self.alert_rule.query == updated_rule.query
-        assert self.alert_rule.aggregation == updated_rule.aggregation
-        assert self.alert_rule.time_window == updated_rule.time_window
-        assert self.alert_rule.threshold_period == updated_rule.threshold_period
-
+        # Action and trigger counts should double.
+        assert AlertRuleTrigger.objects.all().count() == trigger_count*2
+        assert AlertRuleTriggerAction.objects.all().count() == action_count*2
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
