@@ -554,6 +554,20 @@ def create_alert_rule(
 
     return alert_rule
 
+def snapshot_alert_rule(alert_rule):
+    # Creates an archived alert_rule using the same properties as the passed rule
+    print("snapshot alert rule:")
+    print("alert_rule before:",alert_rule)
+    alert_rule.id = None
+    alert_rule.status = AlertRuleStatus.ARCHIVED.value
+    alert_rule.save()
+    print("alert_rule now:",alert_rule)
+    print("all rules now:",AlertRule.objects_with_archived.all())
+
+    # TODO: Copy triggers and copy actions.
+
+
+    return alert_rule
 
 def update_alert_rule(
     alert_rule,
@@ -613,21 +627,12 @@ def update_alert_rule(
         # We check if this alert rule has any attached incidents. If it does, we "delete" the rule (it actually gets archived and the incidents resolved, as well as deletes the snuba subscriptions), and create a new rule with the same data.
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents:
-            delete_alert_rule(alert_rule)
-            alert_rule = create_alert_rule(
-                organization=alert_rule.organization,
-                projects=alert_rule.projects,
-                name=alert_rule.name,
-                query=alert_rule.query,
-                aggregation=alert_rule.aggregation,
-                time_window=alert_rule.time_window,
-                threshold_period=alert_rule.threshold_period,
-                environment=alert_rule.environment,
-                include_all_projects=alert_rule.include_all_projects,
-                excluded_projects=alert_rule.excluded_projects,
-            )
-        else:
-            alert_rule.update(**updated_fields)
+            rule_snapshot = snapshot_alert_rule(alert_rule)
+            # TODO: think about whether this should be in snapshot_alert_rule or not
+            incidents = Incident.objects.filter(alert_rule=alert_rule)
+            incidents.update(alert_rule=rule_snapshot)
+            
+        alert_rule.update(**updated_fields)
 
         existing_subs = []
         if (

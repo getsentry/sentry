@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-
+import pytest
 import json
 from uuid import uuid4
 import responses
@@ -709,7 +709,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
 
-        update_alert_rule(
+        updated_rule = update_alert_rule(
             self.alert_rule,
             projects=updated_projects,
             name=name,
@@ -718,6 +718,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=time_window,
             threshold_period=threshold_period,
         )
+        assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
         updated_subscriptions = self.alert_rule.query_subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
@@ -851,6 +852,51 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert [
             sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
         ] == [new_project]
+
+    @pytest.mark.chris
+    def test_with_attached_incident(self):
+        # The rule should be archived and a new one should be created.
+        # The attached incident should also be resolved.
+        name = "uh oh"
+        query = "level:warning"
+        aggregation = QueryAggregations.UNIQUE_USERS
+        time_window = 50
+        threshold_period = 2
+
+
+        incident = self.create_incident()
+        incident.update(alert_rule=self.alert_rule)
+
+        updated_projects = [self.project, self.create_project(fire_project_created=True)]
+        original_subscriptions = self.alert_rule.query_subscriptions.all()
+
+        updated_rule = update_alert_rule(
+            self.alert_rule,
+            projects=updated_projects,
+            name=name,
+            query=query,
+            aggregation=aggregation,
+            time_window=time_window,
+            threshold_period=threshold_period,
+        )
+
+        #THIS SHOULD FAIL:
+        assert self.alert_rule.id == updated_rule.id
+
+        assert self.alert_rule.name == updated_rule.name
+
+        # updated_subscriptions = self.alert_rule.query_subscriptions.all()
+        # assert set([sub.project for sub in updated_subscriptions]) == set(updated_rule.updated_projects)
+        # for subscription in updated_subscriptions:
+        #     assert subscription.query == query
+        #     assert subscription.aggregation == aggregation.value
+        #     assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
+
+        assert self.alert_rule.query == updated_rule.query
+        assert self.alert_rule.aggregation == updated_rule.aggregation
+        assert self.alert_rule.time_window == updated_rule.time_window
+        assert self.alert_rule.threshold_period == updated_rule.threshold_period
+
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):

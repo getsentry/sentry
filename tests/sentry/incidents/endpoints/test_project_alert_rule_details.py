@@ -154,15 +154,18 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
+    @pytest.mark.chris
     def test_update_with_attached_incident(self):
         # The rule should be archived and a new one should be created.
         # The attached incident should also be resolved.
         assert 1 == 2
 
+    @pytest.mark.chris
     def test_update_without_attached_incident(self):
         # The rule should simply be updated.
         assert 1 == 2
-
+        
+    @pytest.mark.chris
     def test_update_to_rule_with_same_name(self):
         # This should not be allowed.
         assert 1 == 2
