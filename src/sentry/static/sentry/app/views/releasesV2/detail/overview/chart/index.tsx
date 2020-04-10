@@ -49,7 +49,7 @@ const ReleaseChartContainer = ({
 
   return (
     <Panel>
-      {hasDiscover && yAxis === 'events' ? (
+      {hasDiscover && yAxis === YAxis.EVENTS ? (
         <EventsChart
           router={router}
           organization={organization}

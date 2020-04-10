@@ -182,7 +182,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         getReleaseEventView(selection, version).getEventsAPIPayload(location)
       );
     } else {
-      const response = await Promise.all([
+      [userResponse, eventsCountResponse] = await Promise.all([
         api.requestPromise(this.statsPath, {
           query: {
             ...this.baseQueryParams,
@@ -195,8 +195,6 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           getReleaseEventView(selection, version).getEventsAPIPayload(location)
         ),
       ]);
-      userResponse = response[0];
-      eventsCountResponse = response[1];
     }
 
     const breakdown = userResponse?.usersBreakdown ?? crashFreeTimeBreakdown;
