@@ -71,10 +71,10 @@ const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 type ConditionOrAction = string;
 
 type RuleTaskResponse = {
-  status: string;
+  status: 'pending' | 'failed' | 'succes';
   rule?: IssueAlertRule;
   error?: string;
-} | null;
+};
 
 type Props = {
   project: Project;
@@ -142,18 +142,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const {uuid} = this.state;
     const origRule = {...this.state.rule};
-    let response: RuleTaskResponse = null;
 
     try {
-      response = await this.api.requestPromise(
+      const response: RuleTaskResponse = await this.api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
       );
-    } catch {
-      addErrorMessage(t('An error occurred'));
-      this.setState({loading: false});
-    }
 
-    if (response) {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
@@ -170,11 +164,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         });
         addErrorMessage(t('An error occurred'));
       }
-      if (rule && status === 'success') {
+      if (rule) {
         const ruleId = isSavedAlertRule(origRule) ? `${origRule.id}/` : '';
         const isNew = !ruleId;
         this.handleRuleSuccess(isNew, rule);
       }
+    } catch {
+      addErrorMessage(t('An error occurred'));
+      this.setState({loading: false});
     }
   };
 
@@ -205,7 +202,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
   };
 
-  handleSubmit = () => {
+  handleSubmit = async () => {
     const {rule} = this.state;
     const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
     const isNew = !ruleId;
@@ -219,29 +216,29 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     addLoadingMessage();
 
-    this.api.request(endpoint, {
-      method: isNew ? 'POST' : 'PUT',
-      data: rule,
-      success: (resp, _, jqXHR) => {
-        // We need to be able to see the response code because
-        // if we get a 202 back it means that we have an async task
-        // running to lookup and verfity the channel id for Slack.
-        if (jqXHR && jqXHR.status === 202) {
-          this.setState({detailedError: null, loading: true, uuid: resp.uuid});
-          this.fetchStatus();
-          addLoadingMessage(t('Looking through all your channels...'));
-        } else {
-          this.handleRuleSuccess(isNew, resp);
-        }
-      },
-      error: err => {
-        this.setState({
-          detailedError: err.responseJSON || {__all__: 'Unknown error'},
-          loading: false,
-        });
-        addErrorMessage(t('An error occurred'));
-      },
-    });
+    try {
+      const [resp, , xhr] = await this.api.requestPromise(endpoint, {
+        includeAllArgs: true,
+        method: isNew ? 'POST' : 'PUT',
+        data: rule,
+      });
+
+      // if we get a 202 back it means that we have an async task
+      // running to lookup and verfity the channel id for Slack.
+      if (xhr && xhr.status === 202) {
+        this.setState({detailedError: null, loading: true, uuid: resp.uuid});
+        this.fetchStatus();
+        addLoadingMessage(t('Looking through all your channels...'));
+      } else {
+        this.handleRuleSuccess(isNew, resp);
+      }
+    } catch (err) {
+      this.setState({
+        detailedError: err.responseJSON || {__all__: 'Unknown error'},
+        loading: false,
+      });
+      addErrorMessage(t('An error occurred'));
+    }
   };
 
   handleDeleteRule = async () => {
