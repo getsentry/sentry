@@ -71,8 +71,9 @@ from sentry.incidents.models import (
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import zip
+from sentry.utils.samples import load_data
 
 
 class CreateIncidentTest(TestCase):
@@ -218,6 +219,7 @@ class BaseIncidentsTest(SnubaTestCase):
             "event_id": event_id,
             "fingerprint": [fingerprint],
             "timestamp": iso_format(timestamp),
+            "type": "error",
         }
         if user:
             data["user"] = user
@@ -253,7 +255,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 
     def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
         # Duration of 300s, but no alert rule
-        time_window = 1
+        time_window = incident.alert_rule.time_window if incident.alert_rule else 1
         assert result.rollup == time_window * 60
         expected_start = start if start else incident.date_started - timedelta(minutes=1)
         expected_end = end if end else incident.current_end_date
@@ -309,6 +311,25 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     def test_groups(self):
         self.run_test(self.group_incident, [1, 1])
         self.run_test(self.group_incident, [1, 1], windowed_stats=True)
+
+    def test_with_transactions(self):
+        incident = self.project_incident
+        alert_rule = self.create_alert_rule(
+            self.organization, [self.project], query="", time_window=1
+        )
+        incident.update(alert_rule=alert_rule)
+
+        event_data = load_data("transaction")
+        event_data.update(
+            {
+                "start_timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": iso_format(before_now(minutes=2)),
+            }
+        )
+        event_data["transaction"] = "/foo_transaction/"
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        self.run_test(incident, [2, 1])
 
 
 @freeze_time()
