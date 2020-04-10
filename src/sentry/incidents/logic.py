@@ -634,7 +634,6 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
 
     with transaction.atomic():
-        # We check if this alert rule has any attached incidents. If it does, we "delete" the rule (it actually gets archived and the incidents resolved, as well as deletes the snuba subscriptions), and create a new rule with the same data.
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             # TODO: This feels hacky, but the snapshot was changing our reference. I'm sure there is a better way to do this.
