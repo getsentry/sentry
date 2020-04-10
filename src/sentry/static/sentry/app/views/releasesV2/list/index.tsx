@@ -17,7 +17,7 @@ import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import IntroBanner from 'app/views/releasesV2/list/introBanner';
+// import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
@@ -220,7 +220,7 @@ class ReleasesList extends AsyncView<Props, State> {
               </SortAndFilterWrapper>
             </StyledPageHeader>
 
-            <IntroBanner />
+            {/* <IntroBanner /> */}
 
             {this.renderInnerBody()}
 
