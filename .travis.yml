@@ -151,7 +151,7 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    - python: 2.7
+    - language: generic
       name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
       install:
