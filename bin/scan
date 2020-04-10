@@ -1,5 +1,7 @@
 #!/bin/bash
 
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 ignored=(
     # TODO medium priority: confluent-kafka (we should upgrade this anyways)
     # XXX: These issues are in safety's db, but not in synk :\
@@ -32,4 +34,4 @@ for i in ${ignored[@]}; do
   args="$args --ignore=${i}"
 done
 
-exec safety check ${args}
+exec safety check -r "${HERE}/../requirements-base.txt" ${args}

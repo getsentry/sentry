@@ -81,7 +81,6 @@ script:
   # certain commands require sentry init to be run, but this is only true for
   # running things within Travis
   - make travis-test-$TEST_SUITE
-  - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
 
@@ -161,16 +160,18 @@ matrix:
         - ./bin/yarn install --frozen-lockfile
 
     - python: 3.7
-      name: 'pre-commit hooks (includes python formatting and linting)'
+      name: 'pre-commit hooks (includes python formatting + linting) and dependency scanning'
       install:
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
+        - pip install safety
       script:
         # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
         # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
         - pre-commit run --all-files
+        - bin/scan
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'

@@ -247,22 +247,3 @@ travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
 travis-test-relay-integration: test-relay-integration
-
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator
-.PHONY: travis-scan-js travis-scan-cli travis-scan-lint travis-scan-relay-integration
-scan-python:
-	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety
-	bin/scan
-	@echo ""
-
-travis-scan-postgres: travis-noop
-travis-scan-acceptance: travis-noop
-travis-scan-snuba: travis-noop
-travis-scan-symbolicator: travis-noop
-travis-scan-js: travis-noop
-travis-scan-js-build: travis-noop
-travis-scan-cli: travis-noop
-travis-scan-lint: scan-python
-travis-scan-plugins: travis-noop
-travis-scan-relay-integration: travis-noop
