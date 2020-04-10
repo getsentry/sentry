@@ -9,6 +9,7 @@ branches:
 cache:
   yarn: true
   directories:
+    - '${PYENV_ROOT}/versions'
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
     - '$NODE_DIR'
     - node_modules
