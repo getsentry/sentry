@@ -6320,10 +6320,10 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.35.0:
-  version "1.35.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.35.0.tgz#6db464e3fac02c37bc0316e370dd9886b17a2a20"
-  integrity sha512-MpgWr151oF2lF7okPx8PK5qf3T7ijiL8H3LORH2qlxQMLsNTx6JhrfRdVfcwGrGrFkQWGf6BfLVaK+YWTYxWgA==
+eslint-config-sentry-app@1.36.0:
+  version "1.36.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.36.0.tgz#9dbbf892b94e22991909aca321cc8bd258face78"
+  integrity sha512-Zi988kDZ7UNsoeHAgIWM2MHQTY3uv830JeyXFNFp69v5OPqO1kqBMuim+MNtj189hYg/8EwUX3/HnSsSP7FtcA==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^2.23.0"
     "@typescript-eslint/parser" "^2.23.0"
