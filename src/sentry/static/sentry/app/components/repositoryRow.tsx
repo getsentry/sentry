@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -114,7 +115,12 @@ class RepositoryRow extends React.Component<Props> {
                 'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
               )}
             >
-              <Button size="xsmall" icon="icon-trash" disabled={!hasAccess} />
+              <Button
+                size="xsmall"
+                icon={<IconDelete size="xs" />}
+                label={t('delete')}
+                disabled={!hasAccess}
+              />
             </Confirm>
           </StyledPanelItem>
         )}

@@ -17,6 +17,7 @@ import {t, tct} from 'app/locale';
 import MailActionFields from 'app/views/settings/projectAlerts/issueEditor/mailActionFields';
 import ExternalLink from 'app/components/links/externalLink';
 import {Organization, Project} from 'app/types';
+import {IconDelete} from 'app/icons/iconDelete';
 
 type FormField = {
   // Type of form fields
@@ -258,7 +259,7 @@ class RuleNode extends React.Component<Props> {
             onClick={this.handleDelete}
             type="button"
             size="small"
-            icon="icon-trash"
+            icon={<IconDelete />}
           />
         </RuleRow>
         {this.conditionallyRenderHelpfulBanner()}

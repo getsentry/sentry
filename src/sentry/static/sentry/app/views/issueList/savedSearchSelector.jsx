@@ -9,6 +9,7 @@ import Confirm from 'app/components/confirm';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons/iconDelete';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -78,7 +79,8 @@ export default class SavedSearchSelector extends React.Component {
                 <DeleteButton
                   borderless
                   title={t('Delete this saved search')}
-                  icon="icon-trash"
+                  icon={<IconDelete />}
+                  label={t('delete')}
                   size="zero"
                 />
               </Confirm>

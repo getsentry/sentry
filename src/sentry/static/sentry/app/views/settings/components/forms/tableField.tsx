@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import InputField from 'app/views/settings/components/forms/inputField';
 import space from 'app/styles/space';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconDelete} from 'app/icons';
 import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';
 import {singleLineRenderer} from 'app/utils/marked';
@@ -154,7 +154,12 @@ export default class TableField extends React.Component<Props> {
                     message={renderConfirmMessage()}
                   >
                     <RemoveButton>
-                      <Button icon="icon-trash" size="small" disabled={disabled} />
+                      <Button
+                        icon={<IconDelete />}
+                        size="small"
+                        disabled={disabled}
+                        label={t('delete')}
+                      />
                     </RemoveButton>
                   </Confirm>
                 )}

@@ -11,6 +11,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
@@ -191,7 +192,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                   >
                     <Button
                       priority="danger"
-                      icon="icon-trash"
+                      icon={<IconDelete size="xs" />}
                       size="xsmall"
                       disabled={!hasAccess}
                     />

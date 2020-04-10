@@ -65,7 +65,7 @@ describe('AccountSecurity', function() {
     ).toBe('Info');
 
     // Remove button
-    expect(wrapper.find('Button[icon="icon-trash"]')).toHaveLength(1);
+    expect(wrapper.find('button[aria-label="delete"]')).toHaveLength(1);
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
@@ -110,7 +110,7 @@ describe('AccountSecurity', function() {
     });
 
     // This will open confirm modal
-    wrapper.find('Button[icon="icon-trash"]').simulate('click');
+    wrapper.find('button[aria-label="delete"]').simulate('click');
 
     // Confirm
     wrapper
@@ -183,7 +183,7 @@ describe('AccountSecurity', function() {
 
     // This will open confirm modal
     wrapper
-      .find('Button[icon="icon-trash"]')
+      .find('button[aria-label="delete"]')
       .first()
       .simulate('click');
 
@@ -229,7 +229,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('Tooltip').prop('title')).toContain('test 1 and test 2');
 
     // This will open confirm modal
-    wrapper.find('Button[icon="icon-trash"]').simulate('click');
+    wrapper.find('button[aria-label="delete"]').simulate('click');
     // Confirm
     expect(wrapper.find('Modal Button')).toHaveLength(0);
     expect(deleteMock).not.toHaveBeenCalled();

@@ -7,6 +7,7 @@ import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons/iconDelete';
 import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
@@ -27,7 +28,7 @@ type DeleteButtonProps = {
 const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => (
   <Button
     type="button"
-    icon="icon-trash"
+    icon={<IconDelete size="xs" />}
     size="xsmall"
     aria-label={t('Delete Trigger')}
     onClick={(e: React.MouseEvent<Element>) => onDelete(triggerIndex, e)}

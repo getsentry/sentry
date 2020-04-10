@@ -8,6 +8,7 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons/iconDelete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
@@ -37,9 +38,7 @@ class AuthorizationRow extends React.Component {
           )}
           <Scopes>{authorization.scopes.join(', ')}</Scopes>
         </ApplicationDetails>
-        <Button size="small" onClick={this.handleRevoke}>
-          <span className="icon icon-trash" />
-        </Button>
+        <Button size="small" onClick={this.handleRevoke} icon={<IconDelete />} />
       </PanelItemCenter>
     );
   }

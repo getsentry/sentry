@@ -9,7 +9,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconDelete} from 'app/icons';
 import space from 'app/styles/space';
 
 const selectControlShape = PropTypes.shape(SelectControl.propTypes);
@@ -198,7 +198,7 @@ export default class ChoiceMapper extends React.Component {
                 {i === mappedKeys.length - 1 && (
                   <Actions>
                     <Button
-                      icon="icon-trash"
+                      icon={<IconDelete />}
                       size="small"
                       disabled={disabled}
                       onClick={() => removeRow(itemKey)}

@@ -5,6 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 
@@ -56,7 +57,7 @@ class EventAttachmentActions extends React.Component<Props> {
         >
           <Button
             size="xsmall"
-            icon="icon-trash"
+            icon={<IconDelete size="xs" />}
             disabled={!url}
             priority="danger"
             title={!url ? t('Insufficient permissions to delete attachments') : undefined}

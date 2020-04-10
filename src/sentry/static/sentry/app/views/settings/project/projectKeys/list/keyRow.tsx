@@ -10,6 +10,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
@@ -68,7 +69,7 @@ class KeyRow extends React.Component<Props> {
           'Are you sure you want to remove this key? This action is irreversible.'
         )}
       >
-        <Button size="small" disabled={!controlActive} icon="icon-trash" />
+        <Button size="small" disabled={!controlActive} icon={<IconDelete />} />
       </Confirm>,
     ];
 

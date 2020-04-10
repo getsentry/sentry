@@ -14,7 +14,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconDelete} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -261,7 +261,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           <Button
             onClick={this.onRemoveToken.bind(this, token)}
             size="small"
-            icon="icon-trash"
+            icon={<IconDelete />}
             data-test-id="token-delete"
             type="button"
           >
