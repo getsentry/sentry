@@ -1344,67 +1344,6 @@ function routes() {
           />
         </Route>
 
-        {/* Settings routes */}
-        <Route path="/settings/" name="Settings" component={SettingsWrapper}>
-          <IndexRoute
-            getComponent={(_loc, cb) =>
-              import(
-                /* webpackChunkName: "SettingsIndex" */ 'app/views/settings/settingsIndex'
-              ).then(lazyLoad(cb))
-            }
-          />
-
-          <Route
-            path="account/"
-            name="Account"
-            getComponent={(_loc, cb) =>
-              import(
-                /* webpackChunkName: "AccountSettingsLayout" */ 'app/views/settings/account/accountSettingsLayout'
-              ).then(lazyLoad(cb))
-            }
-          >
-            {accountSettingsRoutes}
-          </Route>
-
-          <Route name="Organization" path=":orgId/">
-            <Route
-              getComponent={(_loc, cb) =>
-                import(
-                  /* webpackChunkName: "OrganizationSettingsLayout" */ 'app/views/settings/organization/organizationSettingsLayout'
-                ).then(lazyLoad(cb))
-              }
-            >
-              {hook('routes:organization')}
-              {orgSettingsRoutes}
-            </Route>
-
-            <Route
-              name="Project"
-              path="projects/:projectId/"
-              getComponent={(_loc, cb) =>
-                import(
-                  /* webpackChunkName: "ProjectSettingsLayout" */ 'app/views/settings/project/projectSettingsLayout'
-                ).then(lazyLoad(cb))
-              }
-            >
-              <Route component={errorHandler(SettingsProjectProvider)}>
-                {projectSettingsRoutes}
-              </Route>
-            </Route>
-
-            <Redirect from=":projectId/" to="projects/:projectId/" />
-            <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
-            <Redirect
-              from=":projectId/alerts/rules/"
-              to="projects/:projectId/alerts/rules/"
-            />
-            <Redirect
-              from=":projectId/alerts/rules/:ruleId/"
-              to="projects/:projectId/alerts/rules/:ruleId/"
-            />
-          </Route>
-        </Route>
-
         <Route
           path="/organizations/:orgId/monitors/"
           componentPromise={() =>
@@ -1740,6 +1679,68 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
+
+          {/* Settings routes */}
+          <Route path="/settings/" name="Settings" component={SettingsWrapper}>
+            <IndexRoute
+              getComponent={(_loc, cb) =>
+                import(
+                  /* webpackChunkName: "SettingsIndex" */ 'app/views/settings/settingsIndex'
+                ).then(lazyLoad(cb))
+              }
+            />
+
+            <Route
+              path="account/"
+              name="Account"
+              getComponent={(_loc, cb) =>
+                import(
+                  /* webpackChunkName: "AccountSettingsLayout" */ 'app/views/settings/account/accountSettingsLayout'
+                ).then(lazyLoad(cb))
+              }
+            >
+              {accountSettingsRoutes}
+            </Route>
+
+            <Route name="Organization" path=":orgId/">
+              <Route
+                getComponent={(_loc, cb) =>
+                  import(
+                    /* webpackChunkName: "OrganizationSettingsLayout" */ 'app/views/settings/organization/organizationSettingsLayout'
+                  ).then(lazyLoad(cb))
+                }
+              >
+                {hook('routes:organization')}
+                {orgSettingsRoutes}
+              </Route>
+
+              <Route
+                name="Project"
+                path="projects/:projectId/"
+                getComponent={(_loc, cb) =>
+                  import(
+                    /* webpackChunkName: "ProjectSettingsLayout" */ 'app/views/settings/project/projectSettingsLayout'
+                  ).then(lazyLoad(cb))
+                }
+              >
+                <Route component={errorHandler(SettingsProjectProvider)}>
+                  {projectSettingsRoutes}
+                </Route>
+              </Route>
+
+              <Redirect from=":projectId/" to="projects/:projectId/" />
+              <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
+              <Redirect
+                from=":projectId/alerts/rules/"
+                to="projects/:projectId/alerts/rules/"
+              />
+              <Redirect
+                from=":projectId/alerts/rules/:ruleId/"
+                to="projects/:projectId/alerts/rules/:ruleId/"
+              />
+            </Route>
+          </Route>
+
           <Route path="/organizations/:orgId/">
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
