@@ -169,6 +169,8 @@ matrix:
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
         - pip install safety
+        - pip install pipdeptree
+        - pipdeptree -r -p numpy ; true
       script:
         # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
@@ -177,6 +179,7 @@ matrix:
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
         # see the note in bin/scan on why this needs to be done for now.
         - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
+        - pipdeptree -r -p numpy
         - bin/scan
 
     - <<: *postgres_default
