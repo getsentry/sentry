@@ -37,4 +37,5 @@ done
 # HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # exec safety check -r "${HERE}/../requirements-base.txt" ${args}
 
+pip freeze
 exec safety check ${args}
