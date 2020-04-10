@@ -9,7 +9,6 @@ branches:
 cache:
   yarn: true
   directories:
-    - '${PYENV_ROOT}/versions'
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
     - '$NODE_DIR'
     - node_modules
@@ -161,27 +160,17 @@ matrix:
         - nvm install
         - ./bin/yarn install --frozen-lockfile
 
-    - python: 2.7
-      name: 'pre-commit hooks (includes Python 2.7 linting)'
+    - python: 3.7
+      name: 'pre-commit hooks (includes python formatting and linting)'
       install:
-        - pyenv install 3.6.3
-        # black requires python3.6+ to be installed
-        - PYENV_VERSION=3.6.3 SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
+        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
       script:
-        # second, black is going to rewrite the files in-place.
+        # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
         # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
         - pre-commit run --all-files
-
-    # Proactive linting on 3.7 during the porting process
-    - python: 3.7
-      name: 'Linter (Python 3.7)'
-      # XXX: this must be synced with requirements-dev.txt
-      install: pip install 'sentry-flake8==0.3.0'
-      # configuration for flake8 can be found in setup.cfg
-      script: flake8
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
