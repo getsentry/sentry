@@ -40,6 +40,8 @@ from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
 )
+from sentry.snuba.tasks import apply_dataset_conditions
+from sentry.utils.db import attach_foreignkey
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
 
@@ -301,6 +303,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
     ).values_list("incident_id", "project_id"):
         incident_projects[incident_id].append(project_id)
 
+    attach_foreignkey(incidents, Incident.alert_rule)
+
     query_args_list = []
     for incident in incidents:
         params = {}
@@ -317,10 +321,15 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
             params["project_id"] = project_ids
 
         snuba_filter = get_filter(incident.query, params)
+        conditions = resolve_discover_aliases(snuba_filter)[0].conditions
+        if incident.alert_rule:
+            conditions = apply_dataset_conditions(
+                QueryDatasets(incident.alert_rule.dataset), conditions
+            )
         snuba_args = {
             "start": snuba_filter.start,
             "end": snuba_filter.end,
-            "conditions": resolve_discover_aliases(snuba_filter)[0].conditions,
+            "conditions": conditions,
             "filter_keys": snuba_filter.filter_keys,
             "having": [],
         }
