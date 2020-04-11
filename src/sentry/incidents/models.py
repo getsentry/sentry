@@ -271,7 +271,7 @@ class IncidentSubscription(Model):
 
 class AlertRuleStatus(Enum):
     PENDING = 0
-    ARCHIVED = 4
+    SNAPSHOT = 4
 
 
 class AlertRuleThresholdType(Enum):
@@ -281,7 +281,7 @@ class AlertRuleThresholdType(Enum):
 
 class AlertRuleManager(BaseManager):
     """
-    A manager that excludes all rows that are pending deletion.
+    A manager that excludes all rows that are snapshots.
     """
 
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
@@ -290,7 +290,7 @@ class AlertRuleManager(BaseManager):
         return (
             super(AlertRuleManager, self)
             .get_queryset()
-            .exclude(status__in=(AlertRuleStatus.ARCHIVED.value,))
+            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
     def fetch_for_organization(self, organization):
@@ -371,7 +371,7 @@ class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
-    objects_with_archived = BaseManager()
+    objects_with_snapshots = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     query_subscriptions = models.ManyToManyField(

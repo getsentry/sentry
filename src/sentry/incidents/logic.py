@@ -733,14 +733,14 @@ def delete_alert_rule(alert_rule):
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    if alert_rule.status in (AlertRuleStatus.ARCHIVED.value,):
+    if alert_rule.status==AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
-            alert_rule.update(status=AlertRuleStatus.ARCHIVED.value)
+            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             for incident in incidents:
                 incident.update(status=IncidentStatus.CLOSED.value)
         else:

@@ -389,8 +389,8 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-        assert not AlertRule.objects_with_archived.filter(name=self.alert_rule.name)
-        assert AlertRule.objects_with_archived.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
     def test_archive_and_create_new_with_same_name(self):
 
@@ -405,11 +405,11 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         with self.feature("organizations:incidents"):
             self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
-        alert_rule = AlertRule.objects_with_archived.get(id=self.alert_rule.id)
+        alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
 
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert AlertRule.objects_with_archived.filter(id=alert_rule.id).exists()
-        assert alert_rule.status == AlertRuleStatus.ARCHIVED.value
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
+        assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
 
         # We also confirm that the incident is automatically resolved.
         assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
