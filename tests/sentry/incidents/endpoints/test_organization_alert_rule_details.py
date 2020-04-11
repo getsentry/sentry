@@ -11,7 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.testutils import APITestCase
 
 
@@ -86,6 +86,7 @@ class AlertRuleDetailsBase(object):
         self.method = "get"
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
+            assert len(resp.data) >=1
             serialized_alert_rule = resp.data[0]
         self.endpoint = original_endpoint
         self.method = original_method
@@ -376,6 +377,20 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
         serialized_alert_rule["triggers"][0]["thresholdType"] = 0  # Back to normal, valid.
 
+    def test_update_snapshot(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # self.alert_rule.update(status=AlertRuleStatus.ARCHIVED.value)
+        # alert_rule.save();
+        # serialized_alert_rule = serialize(self.alert_rule, self.user, DetailedAlertRuleSerializer())
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, self.alert_rule.id, status_code=405, # **serialized_alert_rule
+            )
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
@@ -385,6 +400,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
+        
         with self.feature("organizations:incidents"):
             self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
 
