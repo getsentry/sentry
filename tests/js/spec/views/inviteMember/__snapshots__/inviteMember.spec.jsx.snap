@@ -645,7 +645,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                   <Component
                                                     aria-disabled={false}
                                                     aria-label="Add Team"
-                                                    className="eenpoef1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
+                                                    className="eenpoef1 css-14kowsm-StyledButton-StyledButton edwq9my0"
                                                     forwardRef={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -655,7 +655,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                     <button
                                                       aria-disabled={false}
                                                       aria-label="Add Team"
-                                                      className="eenpoef1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
+                                                      className="eenpoef1 css-14kowsm-StyledButton-StyledButton edwq9my0"
                                                       onClick={[Function]}
                                                       role="button"
                                                       size="xsmall"
@@ -666,7 +666,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                          className="css-1acbab4-ButtonLabel edwq9my1"
                                                         >
                                                           Add Team
                                                           <StyledChevronDown>
@@ -784,7 +784,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             <Component
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
+              className="invite-member-submit css-1f41kyg-StyledButton edwq9my0"
               forwardRef={null}
               onClick={[Function]}
               role="button"
@@ -792,7 +792,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
               <button
                 aria-disabled={false}
                 aria-label="Add Member"
-                className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
+                className="invite-member-submit css-1f41kyg-StyledButton edwq9my0"
                 onClick={[Function]}
                 role="button"
               >
@@ -801,7 +801,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                   priority="primary"
                 >
                   <span
-                    className="css-zmpclt-ButtonLabel edwq9my1"
+                    className="css-fkumu4-ButtonLabel edwq9my1"
                   >
                     Add Member
                   </span>

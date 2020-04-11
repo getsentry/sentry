@@ -284,7 +284,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         onClick={this.handleDeleteQuery}
         disabled={this.props.disabled}
       >
-        <IconDelete size="xs" color={theme.gray4} />
+        <IconDelete color={theme.gray4} />
       </Button>
     );
   }

@@ -404,7 +404,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -413,7 +413,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -424,7 +424,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -614,7 +614,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -623,7 +623,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -634,7 +634,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -824,7 +824,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -833,7 +833,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -844,7 +844,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -1055,7 +1055,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-hbnwrz-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1064,7 +1064,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-hbnwrz-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"
@@ -1075,7 +1075,7 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1acbab4-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}
@@ -1290,7 +1290,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-hbnwrz-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1299,7 +1299,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-hbnwrz-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"
@@ -1310,7 +1310,7 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1acbab4-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}

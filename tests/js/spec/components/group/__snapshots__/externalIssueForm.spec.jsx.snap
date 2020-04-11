@@ -153,7 +153,7 @@ exports[`ExternalIssueForm create renders 1`] = `
                       <Component
                         aria-disabled={false}
                         aria-label="Create Issue"
-                        className="css-1e05jtd-StyledButton edwq9my0"
+                        className="css-1f41kyg-StyledButton edwq9my0"
                         data-test-id="form-submit"
                         forwardRef={null}
                         onClick={[Function]}
@@ -163,7 +163,7 @@ exports[`ExternalIssueForm create renders 1`] = `
                         <button
                           aria-disabled={false}
                           aria-label="Create Issue"
-                          className="css-1e05jtd-StyledButton edwq9my0"
+                          className="css-1f41kyg-StyledButton edwq9my0"
                           data-test-id="form-submit"
                           onClick={[Function]}
                           role="button"
@@ -174,7 +174,7 @@ exports[`ExternalIssueForm create renders 1`] = `
                             priority="primary"
                           >
                             <span
-                              className="css-zmpclt-ButtonLabel edwq9my1"
+                              className="css-fkumu4-ButtonLabel edwq9my1"
                             >
                               Create Issue
                             </span>
@@ -2875,7 +2875,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                       <Component
                         aria-disabled={false}
                         aria-label="Link Issue"
-                        className="css-1e05jtd-StyledButton edwq9my0"
+                        className="css-1f41kyg-StyledButton edwq9my0"
                         data-test-id="form-submit"
                         forwardRef={null}
                         onClick={[Function]}
@@ -2885,7 +2885,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                         <button
                           aria-disabled={false}
                           aria-label="Link Issue"
-                          className="css-1e05jtd-StyledButton edwq9my0"
+                          className="css-1f41kyg-StyledButton edwq9my0"
                           data-test-id="form-submit"
                           onClick={[Function]}
                           role="button"
@@ -2896,7 +2896,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                             priority="primary"
                           >
                             <span
-                              className="css-zmpclt-ButtonLabel edwq9my1"
+                              className="css-fkumu4-ButtonLabel edwq9my1"
                             >
                               Link Issue
                             </span>

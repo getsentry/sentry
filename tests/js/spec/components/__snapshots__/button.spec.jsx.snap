@@ -3,14 +3,12 @@
 exports[`Button renders 1`] = `
 <forwardRef<Button>
   priority="primary"
-  size="large"
 >
   <Button
     align="center"
     disabled={false}
     forwardRef={null}
     priority="primary"
-    size="large"
   >
     <StyledButton
       aria-disabled={false}
@@ -20,32 +18,28 @@ exports[`Button renders 1`] = `
       onClick={[Function]}
       priority="primary"
       role="button"
-      size="large"
     >
       <Component
         aria-disabled={false}
         aria-label="Button"
-        className="css-1bbx5hm-StyledButton edwq9my0"
+        className="css-1f41kyg-StyledButton edwq9my0"
         forwardRef={null}
         onClick={[Function]}
         role="button"
-        size="large"
       >
         <button
           aria-disabled={false}
           aria-label="Button"
-          className="css-1bbx5hm-StyledButton edwq9my0"
+          className="css-1f41kyg-StyledButton edwq9my0"
           onClick={[Function]}
           role="button"
-          size="large"
         >
           <ButtonLabel
             align="center"
             priority="primary"
-            size="large"
           >
             <span
-              className="css-ym5hp1-ButtonLabel edwq9my1"
+              className="css-fkumu4-ButtonLabel edwq9my1"
             >
               Button
             </span>
@@ -79,7 +73,7 @@ exports[`Button renders disabled normal link 1`] = `
       <Component
         aria-disabled={false}
         aria-label="Normal Link"
-        className="css-1c2phb1-StyledButton edwq9my0"
+        className="css-ca6sk5-StyledButton edwq9my0"
         forwardRef={null}
         href="/some/relative/url"
         onClick={[Function]}
@@ -88,7 +82,7 @@ exports[`Button renders disabled normal link 1`] = `
         <a
           aria-disabled={false}
           aria-label="Normal Link"
-          className="css-1c2phb1-StyledButton edwq9my0"
+          className="css-ca6sk5-StyledButton edwq9my0"
           href="/some/relative/url"
           onClick={[Function]}
           role="button"
@@ -97,7 +91,7 @@ exports[`Button renders disabled normal link 1`] = `
             align="center"
           >
             <span
-              className="css-zmpclt-ButtonLabel edwq9my1"
+              className="css-fkumu4-ButtonLabel edwq9my1"
             >
               Normal Link
             </span>
@@ -131,7 +125,7 @@ exports[`Button renders normal link 1`] = `
       <Component
         aria-disabled={false}
         aria-label="Normal Link"
-        className="css-1c2phb1-StyledButton edwq9my0"
+        className="css-ca6sk5-StyledButton edwq9my0"
         forwardRef={null}
         href="/some/relative/url"
         onClick={[Function]}
@@ -140,7 +134,7 @@ exports[`Button renders normal link 1`] = `
         <a
           aria-disabled={false}
           aria-label="Normal Link"
-          className="css-1c2phb1-StyledButton edwq9my0"
+          className="css-ca6sk5-StyledButton edwq9my0"
           href="/some/relative/url"
           onClick={[Function]}
           role="button"
@@ -149,7 +143,7 @@ exports[`Button renders normal link 1`] = `
             align="center"
           >
             <span
-              className="css-zmpclt-ButtonLabel edwq9my1"
+              className="css-fkumu4-ButtonLabel edwq9my1"
             >
               Normal Link
             </span>
@@ -183,7 +177,7 @@ exports[`Button renders react-router link 1`] = `
       <Component
         aria-disabled={false}
         aria-label="Router Link"
-        className="css-1c2phb1-StyledButton edwq9my0"
+        className="css-ca6sk5-StyledButton edwq9my0"
         forwardRef={null}
         onClick={[Function]}
         role="button"
@@ -192,7 +186,7 @@ exports[`Button renders react-router link 1`] = `
         <Link
           aria-disabled={false}
           aria-label="Router Link"
-          className="css-1c2phb1-StyledButton edwq9my0"
+          className="css-ca6sk5-StyledButton edwq9my0"
           onClick={[Function]}
           onlyActiveOnIndex={false}
           role="button"
@@ -202,7 +196,7 @@ exports[`Button renders react-router link 1`] = `
           <a
             aria-disabled={false}
             aria-label="Router Link"
-            className="css-1c2phb1-StyledButton edwq9my0"
+            className="css-ca6sk5-StyledButton edwq9my0"
             onClick={[Function]}
             role="button"
             style={Object {}}
@@ -211,7 +205,7 @@ exports[`Button renders react-router link 1`] = `
               align="center"
             >
               <span
-                className="css-zmpclt-ButtonLabel edwq9my1"
+                className="css-fkumu4-ButtonLabel edwq9my1"
               >
                 Router Link
               </span>
