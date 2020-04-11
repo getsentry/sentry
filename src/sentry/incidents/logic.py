@@ -733,7 +733,7 @@ def delete_alert_rule(alert_rule):
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    if alert_rule.status==AlertRuleStatus.SNAPSHOT.value:
+    if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
     with transaction.atomic():
