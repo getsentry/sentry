@@ -392,14 +392,14 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exists()
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
-    def test_archive_and_create_new_with_same_name(self):
+    def test_snapshot_and_create_new_with_same_name(self):
 
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
 
-        # We attach the rule to an incident so the rule is archived instead of deleted.
+        # We attach the rule to an incident so the rule is snapshotted instead of deleted.
         incident = self.create_incident(alert_rule=self.alert_rule)
 
         with self.feature("organizations:incidents"):
