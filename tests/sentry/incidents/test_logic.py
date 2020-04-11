@@ -853,7 +853,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
         ] == [new_project]
 
-    @pytest.mark.chris
     def test_with_attached_incident(self):
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
         incident = self.create_incident()
@@ -865,7 +864,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         trigger = create_alert_rule_trigger(
             self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
         )
-        create_alert_rule_trigger_action(
+        action = create_alert_rule_trigger_action(
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
@@ -900,21 +899,40 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert rule_snapshot.aggregation == QueryAggregations.TOTAL.value
         assert rule_snapshot.threshold_period == 1
 
-        # Incidents should now be pointing to the rule snapshot.
-        assert incident.alert_rule.id == rule_snapshot.id
-        assert incident_2.alert_rule.id == rule_snapshot.id
-        assert incident.alert_rule.name == updated_rule.name
-        assert incident_2.alert_rule.name == updated_rule.name
-
-        # Incidents should be resolved
-        assert incident.status == IncidentStatus.CLOSED.value
-        assert incident_2.status == IncidentStatus.CLOSED.value
+        for incident in (incident, incident_2):
+            # Incidents should now be pointing to the rule snapshot.
+            assert incident.alert_rule.id == rule_snapshot.id
+            assert incident.alert_rule.name == updated_rule.name
+            # Incidents should be resolved
+            assert incident.status == IncidentStatus.CLOSED.value
 
         # Action and trigger counts should double (from 1 to 2)
         assert AlertRuleTrigger.objects.all().count() == trigger_count * 2
         assert AlertRuleTriggerAction.objects.all().count() == action_count * 2
 
         # TODO: Verify actions and triggers have the same properties?
+        assert AlertRuleTrigger.objects.filter(alert_rule=rule_snapshot).exists()
+        trigger_snapshot = AlertRuleTrigger.objects.get(alert_rule=rule_snapshot)
+        assert trigger_snapshot.id != trigger.id
+        assert trigger_snapshot.label == trigger.label
+        assert trigger_snapshot.threshold_type == trigger.threshold_type
+        assert trigger_snapshot.alert_threshold == trigger.alert_threshold
+        assert trigger_snapshot.resolve_threshold == trigger.resolve_threshold
+
+        all_actions = AlertRuleTriggerAction.objects.all()
+        print("All trigger actions:",all_actions)
+        for action in all_actions:
+            print("action:",action)
+            print("action trigger :",action.alert_rule_trigger.id)
+
+        print("snapshot id:",trigger_snapshot.id) 
+        assert AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger_snapshot).exists()
+        action_snapshot = AlertRuleTriggerAction.objects.get(alert_rule_trigger=trigger_snapshot)
+        assert action_snapshot.id != action.id
+        assert action_snapshot.type == action.type
+        assert action_snapshot.target_type == action.target_type
+        assert action_snapshot.target_identifier == action.target_identifier
+        assert action_snapshot.target_display == action.target_display
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
