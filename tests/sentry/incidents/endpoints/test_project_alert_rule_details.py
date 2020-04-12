@@ -4,7 +4,7 @@ from exam import fixture
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
@@ -169,5 +169,29 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
 
         assert not AlertRule.objects.filter(id=self.alert_rule.id).exists()
-        assert not AlertRule.objects_with_deleted.filter(name=self.alert_rule.name)
-        assert AlertRule.objects_with_deleted.filter(id=self.alert_rule.id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(name=self.alert_rule.id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
+
+    def test_snapshot_and_create_new_with_same_name(self):
+
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        # We attach the rule to an incident so the rule is snapshotted instead of deleted.
+        incident = self.create_incident(alert_rule=self.alert_rule)
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+            )
+
+        alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
+
+        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
+        assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
+
+        # We also confirm that the incident is automatically resolved.
+        assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value

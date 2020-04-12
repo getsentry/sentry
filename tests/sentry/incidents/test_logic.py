@@ -892,7 +892,8 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
     def test_with_incident(self):
         incident = self.create_incident()
@@ -901,9 +902,10 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
-        assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
+        assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):
