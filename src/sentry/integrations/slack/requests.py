@@ -96,6 +96,7 @@ class SlackRequest(object):
             raise SlackRequestError(status=400)
 
     def _authorize(self):
+        # TODO(steve): update check when we add the v2 slack app
         signing_secret = options.get("slack.signing-secret")
         # use the signing_secret if it's available
         if signing_secret:
