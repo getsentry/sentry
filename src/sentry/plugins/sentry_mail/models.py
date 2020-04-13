@@ -31,9 +31,6 @@ class MailPlugin(NotificationPlugin):
     def rule_notify(self, event, futures):
         return self.mail_adapter.rule_notify(event, futures)
 
-    def _send_mail(self, *args, **kwargs):
-        return self.mail_adapter._send_mail(*args, **kwargs)
-
     def get_project_url(self, project):
         return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
 
@@ -43,15 +40,6 @@ class MailPlugin(NotificationPlugin):
 
     def should_notify(self, group, event):
         return self.mail_adapter.should_notify(group)
-
-    def get_send_to(self, project, event=None):
-        """
-        Returns a list of user IDs for the users that should receive
-        notifications for the provided project.
-
-        This result may come from cached data.
-        """
-        return self.mail_adapter.get_send_to(project, event)
 
     def notify(self, notification, **kwargs):
         return self.mail_adapter.notify(notification, **kwargs)
