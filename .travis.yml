@@ -163,7 +163,7 @@ matrix:
         - ./bin/yarn install --frozen-lockfile
 
     - python: 3.7
-      name: 'Linter (Python) and dependency scanning'
+      name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
       install:
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
@@ -175,11 +175,9 @@ matrix:
         - pre-commit run --all-files
         # If pre-commit was good, then we scan dependencies.
         # Note that this isn't moved to an after_script since that would override what we already have.
-        # XXX: force six to what sentry needs from what is installed by travis 3.7's virtualenv to avoid version conflict
-        # This is fixed with make setup-git in https://github.com/getsentry/sentry/pull/18176
-        - pip install "six>=1.10.0,<1.11.0"
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
         # see the note in bin/scan on why this needs to be done for now.
+        # Note that this will mostly noop because we pull in a cached venv from Travis.
         - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
         - pip install safety
         # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
