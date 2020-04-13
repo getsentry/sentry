@@ -81,7 +81,6 @@ script:
   # certain commands require sentry init to be run, but this is only true for
   # running things within Travis
   - make travis-test-$TEST_SUITE
-  - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
 
@@ -165,11 +164,25 @@ matrix:
 
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
-      name: 'Linter (Python 3.7)'
-      # XXX: this must be synced with requirements-dev.txt
-      install: pip install 'sentry-flake8==0.3.0'
+      name: 'Linter (Python) and dependency scanning'
+      install:
+        # XXX: this must be synced with requirements-dev.txt
+        - pip install 'sentry-flake8==0.3.0'
       # configuration for flake8 can be found in setup.cfg
-      script: flake8
+      script:
+        - flake8
+        # If linting was good, then we scan dependencies.
+        # Note that this isn't moved to an after_script since that would override what we already have.
+        # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
+        # see the note in bin/scan on why this needs to be done for now.
+        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
+        - pip install safety
+        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
+        # and the safety scanner won't like that (safety id 36810)
+        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
+        # travis 2.7. So this is isolated to at least travis 3.7.
+        - pip uninstall -y numpy
+        - bin/scan
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
