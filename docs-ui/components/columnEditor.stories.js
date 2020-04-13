@@ -6,7 +6,7 @@ import {action} from '@storybook/addon-actions';
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import GlobalModal from 'app/components/globalModal';
-import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
+import ColumnEditModal, {modalCss} from 'app/views/eventsV2/table/columnEditModal';
 
 storiesOf('Discover|ColumnEditor', module).add(
   'all',
@@ -17,51 +17,59 @@ storiesOf('Discover|ColumnEditor', module).add(
       slug: 'test-org',
       features: ['transaction-events'],
     };
-    const tags = ['browser.name', 'custom-field'];
+    const tags = ['browser.name', 'custom-field', 'project'];
     const columns = [
       {
+        kind: 'field',
         field: 'event.type',
       },
       {
+        kind: 'field',
         field: 'browser.name',
       },
       {
-        field: 'id',
-        aggregation: 'count',
+        kind: 'function',
+        function: ['count', 'id'],
       },
       {
-        field: 'title',
-        aggregation: 'count_unique',
+        kind: 'function',
+        function: ['count_unique', 'title'],
       },
       {
-        field: '',
-        aggregation: 'p95',
+        kind: 'function',
+        function: ['p95'],
       },
       {
+        kind: 'field',
         field: 'issue.id',
-        aggregation: '',
       },
       {
-        field: 'issue.id',
-        aggregation: 'count_unique',
+        kind: 'function',
+        function: ['count_unique', 'issue.id'],
       },
       {
-        refinement: '0.81',
-        field: 'transaction.duration',
-        aggregation: 'percentile',
+        kind: 'function',
+        function: ['percentile', 'transaction.duration', '0.81'],
+      },
+      {
+        kind: 'field',
+        field: 'tags[project]',
       },
     ];
 
     const showModal = () => {
-      openModal(modalProps => (
-        <ColumnEditModal
-          {...modalProps}
-          organization={organization}
-          tagKeys={tags}
-          columns={columns}
-          onApply={action('onApply')}
-        />
-      ));
+      openModal(
+        modalProps => (
+          <ColumnEditModal
+            {...modalProps}
+            organization={organization}
+            tagKeys={tags}
+            columns={columns}
+            onApply={action('onApply')}
+          />
+        ),
+        {modalCss}
+      );
     };
 
     return (

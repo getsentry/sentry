@@ -134,11 +134,15 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     if (tagKeys !== null) {
       tagKeys.forEach(tag => {
+        const tagValue =
+          FIELDS.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+            ? `tags[${tag}]`
+            : tag;
         fieldOptions[`tag:${tag}`] = {
           label: tag,
           value: {
             kind: FieldValueKind.TAG,
-            meta: {name: tag, dataType: 'string'},
+            meta: {name: tagValue, dataType: 'string'},
           },
         };
       });

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, {CSSProperties} from 'react';
 import styled from '@emotion/styled';
-import {components} from 'react-select';
+// eslint import checks can't find types in the flow code.
+// eslint-disable-next-line import/named
+import {components, SingleValueProps, OptionProps} from 'react-select';
 import cloneDeep from 'lodash/cloneDeep';
 
 import Badge from 'app/components/badge';
@@ -38,6 +40,12 @@ type Props = {
   gridColumns: number;
   fieldOptions: FieldOptions;
   onChange: (index: number, column: Column) => void;
+};
+
+// Type for completing generics in react-select
+type OptionType = {
+  label: string;
+  value: FieldValue;
 };
 
 class ColumnEditRow extends React.Component<Props> {
@@ -126,10 +134,14 @@ class ColumnEditRow extends React.Component<Props> {
     }
 
     const fieldName = `field:${name}`;
-    const tagName = `tag:${name}`;
     if (fieldOptions[fieldName]) {
       return fieldOptions[fieldName].value;
     }
+    const tagName =
+      name.indexOf('tags[') === 0
+        ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
+        : `tag:${name}`;
+
     if (fieldOptions[tagName]) {
       return fieldOptions[tagName].value;
     }
@@ -320,19 +332,44 @@ class ColumnEditRow extends React.Component<Props> {
       selectProps.autoFocus = true;
     }
 
+    const styles = {
+      singleValue(provided: CSSProperties) {
+        const custom = {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: 'calc(100% - 10px)',
+        };
+        return {...provided, ...custom};
+      },
+      option(provided: CSSProperties) {
+        const custom = {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+        };
+        return {...provided, ...custom};
+      },
+    };
+
     return (
       <Container className={className} gridColumns={gridColumns}>
         <SelectControl
           {...selectProps}
+          styles={styles}
           components={{
-            Option: ({label, value, ...props}) => (
-              //TODO(TS): stop typing props as any
+            Option: ({label, data, ...props}: OptionProps<OptionType>) => (
               <components.Option label={label} {...(props as any)}>
-                <Label>
-                  {label}
-                  {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
-                </Label>
+                <span data-test-id="label">{label}</span>
+                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
               </components.Option>
+            ),
+            SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
+              <components.SingleValue data={data} {...(props as any)}>
+                <span data-test-id="label">{data.label}</span>
+                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+              </components.SingleValue>
             ),
           }}
         />
@@ -349,13 +386,6 @@ const Container = styled('div')<{gridColumns: number}>`
   align-items: center;
 
   flex-grow: 1;
-`;
-
-const Label = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
 `;
 
 type InputProps = React.HTMLProps<HTMLInputElement> & {
