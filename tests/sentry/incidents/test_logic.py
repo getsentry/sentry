@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+import pytest
 from uuid import uuid4
 import responses
 from datetime import timedelta
@@ -8,6 +9,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -706,6 +708,41 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
                 1,
             )
+
+    def test_existing_name_allowed_when_archived(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.ARCHIVED.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.ARCHIVED.value
+        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
+
+    # This test will fail unless real migrations are run. Refer to migration 0061.
+    @pytest.mark.skipif(
+        not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
+    )
+    def test_two_archived_with_same_name(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.ARCHIVED.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_2.update(status=AlertRuleStatus.ARCHIVED.value)
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.ARCHIVED.value
+        assert alert_rule_2.status == AlertRuleStatus.ARCHIVED.value
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
