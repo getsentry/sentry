@@ -173,6 +173,9 @@ matrix:
         - flake8
         # If linting was good, then we scan dependencies.
         # Note that this isn't moved to an after_script since that would override what we already have.
+        # XXX: force six to what sentry needs from what is installed by travis 3.7's virtualenv to avoid version conflict
+        # This is fixed with make setup-git in https://github.com/getsentry/sentry/pull/18176
+        - pip install "six>=1.10.0,<1.11.0"
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
         # see the note in bin/scan on why this needs to be done for now.
         - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
