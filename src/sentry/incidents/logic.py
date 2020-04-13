@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import timedelta
 from uuid import uuid4
 
@@ -558,26 +559,44 @@ def create_alert_rule(
 def snapshot_alert_rule(alert_rule):
     # Creates an archived alert_rule using the same properties as the passed rule
     # It will also resolve any incidents attached to this rule.
-    with transaction.atomic():
-        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+    # with transaction.atomic():
+    triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
 
-        incidents = Incident.objects.filter(alert_rule=alert_rule)
+    incidents = Incident.objects.filter(alert_rule=alert_rule)
+    alert_rule_snapshot = deepcopy(alert_rule)
+    
+    print("alert_rule_snapshot:",alert_rule_snapshot)
+    print("alert_rule_snapshot:",alert_rule_snapshot.status)
+    print("alert_rule_snapshot:",alert_rule_snapshot.id)
 
-        alert_rule.id = None
-        alert_rule.status = AlertRuleStatus.ARCHIVED.value
-        alert_rule.save()
+    alert_rule_snapshot.id = None
+    alert_rule_snapshot.status = AlertRuleStatus.ARCHIVED.value
+    alert_rule_snapshot.save()
 
-        incidents.update(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+    print("alert_rule_snapshot:",alert_rule_snapshot)
+    print("alert_rule_snapshot:",alert_rule_snapshot.status)
+    print("alert_rule_snapshot:",alert_rule_snapshot.id)
 
-        for trigger in triggers:
-            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-            trigger.id = None
-            trigger.alert_rule = alert_rule
-            snapshot_trigger = trigger.save()
-            for action in actions:
-                action.id = None
-                action.trigger = snapshot_trigger
-                action.save()
+    incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+
+    # for trigger in triggers:
+    #     print("trigger:",trigger)
+    #     actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+    #     trigger.id = None
+    #     trigger.alert_rule = alert_rule_snapshot
+    #     print("trigger:",trigger)
+    #     print("trigger:",trigger.alert_rule)
+    #     trigger_snapshot = trigger.save()
+    #     print("trigger snapshot:",trigger_snapshot)
+    #     print("trigger?:",trigger)
+    #     for action in actions:
+    #         action.id = None
+    #         action.alert_rule_trigger = trigger
+    #         print("saving action:",action)
+    #         print("saving action:",action.alert_rule_trigger)
+    #         print("saving action:",action.type)
+    #         print("saving action:",action.integration)
+    #         action.save()
 
 
 def update_alert_rule(
