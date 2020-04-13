@@ -114,7 +114,7 @@ const AnnotatedText = ({value, chunks, errors, remarks, ...props}) => (
 );
 
 AnnotatedText.propTypes = {
-  value: PropTypes.string,
+  value: PropTypes.any,
   chunks: PropTypes.array,
   errors: PropTypes.array,
   remarks: PropTypes.array,
