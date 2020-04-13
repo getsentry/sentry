@@ -104,7 +104,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
 
     _merge_image(raw_image, complete_image, sdk_info, errors.append)
 
-    e, = errors
+    (e,) = errors
 
     assert e.image_name == "foo"
     assert e.type == error

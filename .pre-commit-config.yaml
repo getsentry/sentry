@@ -1,6 +1,7 @@
 exclude: >
     (?x)(
         LICENSE$|
+        ^bin/yarn$|
         \.snap$|
         \.map$|
         \.map\.js$|
@@ -21,13 +22,13 @@ repos:
       files: \.py$
       log_file: '.artifacts/flake8.pycodestyle.log'
 -   repo: https://github.com/ambv/black
-    rev: 19.3b0
+    rev: 19.10b0
     hooks:
     - id: black
       types: [python]
-      exclude: (south_migrations/|migrations/)
+      exclude: (migrations/)
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v1.3.0
+    rev: v2.5.0
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs
