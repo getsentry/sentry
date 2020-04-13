@@ -61,9 +61,11 @@ class DetailedIncidentSerializerTest(TestCase):
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer)
         assert result["alertRule"] is None
+        assert result["discoverQuery"] == incident.query
 
     def test_alert_rule(self):
         incident = self.create_incident()
+        query = "test query"
         alert_rule = create_alert_rule(
             self.organization, [self.project], "hi", "test query", QueryAggregations.TOTAL, 10, 1
         )
@@ -72,3 +74,4 @@ class DetailedIncidentSerializerTest(TestCase):
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer)
         assert result["alertRule"] == serialize(alert_rule)
+        assert result["discoverQuery"] == "event.type:error {}".format(query)
