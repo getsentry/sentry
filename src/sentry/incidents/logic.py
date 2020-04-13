@@ -575,7 +575,9 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.save()
 
-        incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+        incidents.update(alert_rule=alert_rule_snapshot)
+        # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+        tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
@@ -780,8 +782,10 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
-            for incident in incidents:
-                incident.update(status=IncidentStatus.CLOSED.value)
+            # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+            tasks.auto_resolve_snapshot_incidents.apply_async(
+                kwargs={"alert_rule_id": alert_rule.id}
+            )
         else:
             alert_rule.delete()
 

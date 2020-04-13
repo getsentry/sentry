@@ -4,17 +4,20 @@ from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
+from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
     INCIDENT_STATUS,
 )
+from sentry.incidents.logic import update_incident_status
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
@@ -140,3 +143,40 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
         )
     )
     getattr(action, method)(incident, project)
+
+
+@instrumented_task(
+    name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
+    queue="incidents",
+    default_retry_delay=60 * 5,
+    max_retries=1,
+)
+@retry(exclude=(DeleteAborted,))
+def auto_resolve_snapshot_incidents(alert_rule_id, comment, **kwargs):
+    # This will find incidents with snapshotted alert rules and auto resolve them?
+    # It will also write to their activity log.
+    from sentry.incidents.models import AlertRule
+
+    try:
+        alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
+    except AlertRule.DoesNotExist:
+        return
+
+    if alert_rule.status not in (AlertRuleStatus.SNAPSHOT.value):
+        raise DeleteAborted
+
+    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED)
+
+    if incidents:
+        has_more = incidents.count() > 1
+        incident = incidents.first()
+        update_incident_status(
+            incident,
+            IncidentStatus.CLOSED,
+            comment="Alert has been automatically resolved due to a change in the associated alert rule.",
+        )
+
+    if has_more:
+        auto_resolve_snapshot_incidents.apply_async(
+            kwargs={"alert_rule_id": alert_rule_id}, countdown=15
+        )

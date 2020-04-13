@@ -136,6 +136,7 @@ class IncidentType(Enum):
 class IncidentStatus(Enum):
     OPEN = 1
     CLOSED = 2
+    # AUTO_RESOLVED = 3
     WARNING = 10
     CRITICAL = 20
 
@@ -143,6 +144,7 @@ class IncidentStatus(Enum):
 INCIDENT_STATUS = {
     IncidentStatus.OPEN: "Open",
     IncidentStatus.CLOSED: "Resolved",
+    # IncidentStatus.AUTO_RESOLVED: "Automatically Resolved",
     IncidentStatus.CRITICAL: "Critical",
     IncidentStatus.WARNING: "Warning",
 }
