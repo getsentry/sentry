@@ -943,9 +943,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         incident.refresh_from_db()
         incident_2.refresh_from_db()
-        rule_snapshot = AlertRule.objects_with_deleted.filter(name=self.alert_rule.name).exclude(
+        rule_snapshot = AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exclude(
             id=updated_rule.id
         )
+        assert rule_snapshot.status == AlertRuleStatus.SNAPSHOT
         assert rule_snapshot.count() == 1
         rule_snapshot = rule_snapshot.first()
 

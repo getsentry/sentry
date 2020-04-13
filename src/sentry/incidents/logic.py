@@ -572,7 +572,7 @@ def snapshot_alert_rule(alert_rule):
     incidents = Incident.objects.filter(alert_rule=alert_rule)
     alert_rule_snapshot = deepcopy(alert_rule)
     alert_rule_snapshot.id = None
-    alert_rule_snapshot.status = AlertRuleStatus.ARCHIVED.value
+    alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
     alert_rule_snapshot.save()
 
     incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
