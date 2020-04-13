@@ -158,38 +158,39 @@ class SlackEventRequestTest(TestCase):
         assert self.slack_request.type == "bar"
 
     def test_signing_secret(self):
-        self.request.data = {"challenge": "abc123", "type": "url_verification"}
+        with override_options({"slack.signing-secret": "secret"}):
+            self.request.data = {"challenge": "abc123", "type": "url_verification"}
 
-        # we get a url encoded body with Slack
-        self.request.body = urlencode(self.request.data)
+            # we get a url encoded body with Slack
+            self.request.body = urlencode(self.request.data)
 
-        self.set_signature(options.get("slack.signing-secret"), self.request.body)
-        self.slack_request.validate()
+            self.set_signature(options.get("slack.signing-secret"), self.request.body)
+            self.slack_request.validate()
 
     def test_signing_secret_bad(self):
-        # even though we provide the token, should still fail
-        self.request.data = {
-            "token": options.get("slack.verification-token"),
-            "challenge": "abc123",
-            "type": "url_verification",
-        }
-        self.request.body = urlencode(self.request.data)
-
-        self.set_signature("bad_key", self.request.body)
-        with self.assertRaises(SlackRequestError) as e:
-            self.slack_request.validate()
-            assert e.status == 401
-
-    def test_signing_secret_use_verification_token(self):
-        with override_options({"slack.signing-secret": ""}):
+        with override_options({"slack.signing-secret": "secret"}):
+            # even though we provide the token, should still fail
             self.request.data = {
                 "token": options.get("slack.verification-token"),
                 "challenge": "abc123",
                 "type": "url_verification",
             }
-            self.request.body = json.dumps(self.request.data)
+            self.request.body = urlencode(self.request.data)
 
-            self.slack_request.validate()
+            self.set_signature("bad_key", self.request.body)
+            with self.assertRaises(SlackRequestError) as e:
+                self.slack_request.validate()
+                assert e.status == 401
+
+    def test_signing_secret_use_verification_token(self):
+        self.request.data = {
+            "token": options.get("slack.verification-token"),
+            "challenge": "abc123",
+            "type": "url_verification",
+        }
+        self.request.body = json.dumps(self.request.data)
+
+        self.slack_request.validate()
 
 
 class SlackActionRequestTest(TestCase):
