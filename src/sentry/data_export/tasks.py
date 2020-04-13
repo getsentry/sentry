@@ -88,7 +88,7 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     payload = data_export.query_info
     try:
         processor = IssuesByTagProcessor(
-            project_id=payload["project"],
+            project_id=payload["project"][0],
             group_id=payload["group"],
             key=payload["key"],
             environment_id=environment_id,
