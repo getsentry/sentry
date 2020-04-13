@@ -1379,7 +1379,18 @@ SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
         "ports": {"6379/tcp": 6379},
-        "command": ["redis-server", "--appendonly", "yes"],
+        "command": [
+            "redis-server",
+            "--appendonly",
+            "yes",
+            "--save",
+            "60",
+            "20",
+            "--auto-aof-rewrite-percentage",
+            "100",
+            "--auto-aof-rewrite-min-size",
+            "64mb",
+        ],
         "volumes": {"redis": {"bind": "/data"}},
     },
     "postgres": {
