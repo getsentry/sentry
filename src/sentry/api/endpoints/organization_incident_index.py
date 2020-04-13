@@ -9,7 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.incidents.models import Incident, IncidentStatus
+from sentry.incidents.models import Incident, IncidentStatus, INCIDENT_CLOSED_STATUSES
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.snuba.models import QueryAggregations
@@ -69,13 +69,13 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_status = request.GET.get("status")
         if query_status is not None:
             if query_status == "open":
-                incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
+                incidents = incidents.exclude(status__in=INCIDENT_CLOSED_STATUSES)
             elif query_status == "warning":
                 incidents = incidents.filter(status=IncidentStatus.WARNING.value)
             elif query_status == "critical":
                 incidents = incidents.filter(status=IncidentStatus.CRITICAL.value)
             elif query_status == "closed":
-                incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
+                incidents = incidents.filter(status__in=INCIDENT_CLOSED_STATUSES)
 
         return self.paginate(
             request,

@@ -31,6 +31,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentSubscription,
     TimeSeriesSnapshot,
+    INCIDENT_CLOSED_STATUSES,
 )
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
@@ -147,7 +148,7 @@ def update_incident_status(incident, status, user=None, comment=None):
         prev_status = incident.status
 
         kwargs = {"status": status.value}
-        if status == IncidentStatus.CLOSED:
+        if status.value in INCIDENT_CLOSED_STATUSES:
             kwargs["date_closed"] = timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
@@ -159,7 +160,7 @@ def update_incident_status(incident, status, user=None, comment=None):
 
         incident.update(**kwargs)
 
-        if status == IncidentStatus.CLOSED:
+        if status.value in INCIDENT_CLOSED_STATUSES:
             create_incident_snapshot(incident, windowed_stats=True)
 
         analytics.record(
