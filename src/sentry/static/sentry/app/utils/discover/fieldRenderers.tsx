@@ -200,11 +200,11 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'user.id',
     renderFunc: data => {
       const userObj = {
-        id: data['user.id'],
-        name: data['user.name'],
-        email: data['user.email'],
-        username: data['user.username'],
-        ip_address: data['user.ip'],
+        id: data.user,
+        name: data.user,
+        email: data.user,
+        username: data.user,
+        ip_address: '',
       };
 
       const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;

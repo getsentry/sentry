@@ -902,7 +902,7 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
+    "user": {"fields": ["user.email", "user.username", "user.ip", "user.id"]},
 }
 
 

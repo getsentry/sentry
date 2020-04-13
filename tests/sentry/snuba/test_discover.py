@@ -145,17 +145,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user"] == "bruce@example.com", "alias prefers email"
-        assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 6
+        assert len(result["meta"]) == 3
         assert result["meta"] == [
             {"name": "project.id", "type": "UInt64"},
-            {"name": "user.id", "type": "Nullable(String)"},
-            {"name": "user.username", "type": "Nullable(String)"},
-            {"name": "user.email", "type": "Nullable(String)"},
-            {"name": "user.ip", "type": "Nullable(String)"},
             {"name": "release", "type": "Nullable(String)"},
+            {"name": "user", "type": "Nullable(String)"},
+        ]
+
+    def test_field_alias_with_component(self):
+        result = discover.query(
+            selected_columns=["project.id", "user", "user.email"],
+            query="",
+            params={"project_id": [self.project.id]},
+        )
+        data = result["data"]
+        assert len(data) == 1
+        assert data[0]["project.id"] == self.project.id
+        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
+        assert data[0]["user.email"] == "bruce@example.com"
+
+        assert len(result["meta"]) == 3
+        assert result["meta"] == [
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "user.email", "type": "Nullable(String)"},
+            {"name": "user", "type": "Nullable(String)"},
         ]
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
@@ -339,14 +354,28 @@ class QueryTransformTest(TestCase):
     @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_field_alias_macro(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "user_id"}, {"name": "email"}],
-            "data": [{"user_id": "1", "email": "a@example.org"}],
+            "meta": [
+                {"name": "user_id"},
+                {"name": "username"},
+                {"name": "email"},
+                {"name": "ip_address"},
+                {"name": "project_id"},
+            ],
+            "data": [
+                {
+                    "user_id": "1",
+                    "username": "",
+                    "email": "a@example.org",
+                    "ip_address": "",
+                    "project_id": self.project.id,
+                }
+            ],
         }
         discover.query(
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
-            selected_columns=["user_id", "username", "email", "ip_address", "project_id"],
+            selected_columns=["email", "username", "ip_address", "user_id", "project_id"],
             aggregations=[
                 [
                     "transform(project_id, array({}), array('{}'), '')".format(
@@ -361,7 +390,7 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             conditions=[],
-            groupby=["user_id", "username", "email", "ip_address", "project_id"],
+            groupby=["email", "username", "ip_address", "user_id", "project_id"],
             having=[],
             orderby=None,
             limit=50,
