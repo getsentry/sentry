@@ -714,14 +714,14 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule_1 = create_alert_rule(
             self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
         )
-        alert_rule_1.update(status=AlertRuleStatus.ARCHIVED.value)
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
             self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
         )
 
         assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.ARCHIVED.value
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
         assert alert_rule_2.status == AlertRuleStatus.PENDING.value
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
@@ -733,16 +733,16 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         alert_rule_1 = create_alert_rule(
             self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
         )
-        alert_rule_1.update(status=AlertRuleStatus.ARCHIVED.value)
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
             self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
         )
-        alert_rule_2.update(status=AlertRuleStatus.ARCHIVED.value)
+        alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         assert alert_rule_1.name == alert_rule_2.name
-        assert alert_rule_1.status == AlertRuleStatus.ARCHIVED.value
-        assert alert_rule_2.status == AlertRuleStatus.ARCHIVED.value
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
+        assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
