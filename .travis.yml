@@ -277,24 +277,24 @@ matrix:
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
     #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
     # Allowed to fail!
-    - python: 3.6
-      name: 'Python 3.6 backend (no migrations) [Postgres]'
-      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
-        - pip uninstall -y rb
-        - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
+    # - python: 3.6
+    #   name: 'Python 3.6 backend (no migrations) [Postgres]'
+    #   env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
+    #   services:
+    #     - memcached
+    #     - redis-server
+    #     - postgresql
+    #   before_install:
+    #     - *base_install
+    #     - *start_snuba
+    #     - docker ps -a
+    #   install:
+    #     - python setup.py install_egg_info
+    #     - pip install -U -e ".[dev]"
+    #     - pip uninstall -y rb
+    #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
+    #   before_script:
+    #     - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
@@ -308,9 +308,6 @@ matrix:
       script: ./bin/yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
-
-  allow_failures:
-    - name: 'Python 3.6 backend (no migrations) [Postgres]'
 
 notifications:
   webhooks:
