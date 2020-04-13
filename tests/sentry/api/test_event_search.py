@@ -1217,13 +1217,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_general_negative_user_field(self):
         conditions = get_filter("!user:123").conditions
         assert len(conditions) == 4
-        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[0]
+        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[0]
         assert [
             [["isNull", ["user.username"]], "=", 1],
             ["user.username", "!=", "123"],
         ] == conditions[1]
-        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[2]
-        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[3]
+        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
+        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
@@ -1310,10 +1310,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
@@ -1325,10 +1325,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
