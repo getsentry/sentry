@@ -5,7 +5,7 @@ import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {
   it('renders', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tooltip title="test">
         <span>My Button</span>
       </Tooltip>
@@ -50,7 +50,7 @@ describe('Tooltip', function() {
   });
 
   it('does not render an empty tooltip', function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <Tooltip title="">
         <span>My Button</span>
       </Tooltip>,
@@ -59,8 +59,8 @@ describe('Tooltip', function() {
     const trigger = wrapper.find('span');
     trigger.simulate('mouseEnter');
 
-    const tooltip = document.querySelector('#tooltip-portal .tooltip-content');
-    expect(tooltip).toBeFalsy();
+    const tooltipContent = wrapper.find('TooltipContent');
+    expect(tooltipContent.prop('hide')).toBe(true);
 
     trigger.simulate('mouseLeave');
   });

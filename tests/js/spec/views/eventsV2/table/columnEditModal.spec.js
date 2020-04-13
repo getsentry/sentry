@@ -102,18 +102,49 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
     it('renders unknown fields in field and field parameter controls', function() {
       const funcRow = wrapper.find('ColumnEditRow').first();
-      expect(funcRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'count_unique(\u2026)'
-      );
+      expect(
+        funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
+      ).toBe('count_unique(\u2026)');
       expect(funcRow.find('SelectControl[name="parameter"] SingleValue').text()).toBe(
         'user-defined'
       );
 
       const fieldRow = wrapper.find('ColumnEditRow').last();
-      expect(fieldRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'user-def'
-      );
+      expect(
+        fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('user-def');
+      expect(fieldRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
       expect(fieldRow.find('StyledInput[disabled]')).toHaveLength(1);
+    });
+  });
+
+  describe('rendering tags that overlap fields & functions', function() {
+    const wrapper = mountModal(
+      {
+        columns: [
+          {kind: 'field', field: 'tags[project]'},
+          {kind: 'field', field: 'tags[count]'},
+        ],
+        onApply: () => void 0,
+        tagKeys: ['project', 'count'],
+      },
+      initialData
+    );
+
+    it('selects tag expressions that overlap fields', function() {
+      const funcRow = wrapper.find('ColumnEditRow').first();
+      expect(
+        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('project');
+      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
+    });
+
+    it('selects tag expressions that overlap functions', function() {
+      const funcRow = wrapper.find('ColumnEditRow').last();
+      expect(
+        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('count');
+      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
     });
   });
 

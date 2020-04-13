@@ -412,15 +412,19 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
             ))}
           </PanelBody>
           <DataPrivacyRulesPanelFooter
-            hideButtonBar={
-              (savedRules.length === 0 && rules.length === 0) ||
-              isEqual(rules, savedRules)
-            }
             onAddRule={this.handleAddRule}
             onCancel={this.handleCancelForm}
             onSave={this.handleSaveForm}
             disabled={disabled}
-            disableSaveButton={!isFormValid}
+            disableCancelbutton={
+              (savedRules.length === 0 && rules.length === 0) ||
+              isEqual(rules, savedRules)
+            }
+            disableSaveButton={
+              !isFormValid ||
+              (savedRules.length === 0 && rules.length === 0) ||
+              isEqual(rules, savedRules)
+            }
           />
         </Panel>
       </React.Fragment>

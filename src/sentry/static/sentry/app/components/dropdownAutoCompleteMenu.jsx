@@ -496,6 +496,11 @@ const InputLoadingWrapper = styled('div')`
   align-items: center;
   flex-shrink: 0;
   width: 30px;
+
+  .loading.mini {
+    height: 16px;
+    margin: 0;
+  }
 `;
 
 const StyledInputWrapper = styled('div')`

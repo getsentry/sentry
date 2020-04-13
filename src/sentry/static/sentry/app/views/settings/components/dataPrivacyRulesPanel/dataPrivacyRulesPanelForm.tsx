@@ -98,7 +98,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
     const {errors} = this.state;
 
     return (
-      <Wrapper hasError={Object.keys(errors).length > 0}>
+      <Wrapper>
         <WrapperFields>
           <StyledSelectControl
             placeholder={t('Select method')}
@@ -107,7 +107,6 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getMethodTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={34}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
             isDisabled={disabled}
@@ -121,24 +120,25 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getRuleTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={34}
             value={type}
             onChange={({value}) => this.handleChange('type', value)}
             isDisabled={disabled}
             openOnFocus
             required
           />
-          <From disabled={disabled}>{t('from')}</From>
-          <DataPrivacyRulesPanelSelectorField
-            onChange={(value: string) => {
-              this.handleChange('from', value);
-            }}
-            value={from}
-            onBlur={this.handleValidation('from')}
-            selectorSuggestions={selectorSuggestions}
-            error={errors.from}
-            disabled={disabled}
-          />
+          <From>
+            <FromLabel disabled={disabled}>{t('from')}</FromLabel>
+            <DataPrivacyRulesPanelSelectorField
+              onChange={(value: string) => {
+                this.handleChange('from', value);
+              }}
+              value={from}
+              onBlur={this.handleValidation('from')}
+              selectorSuggestions={selectorSuggestions}
+              error={errors.from}
+              disabled={disabled}
+            />
+          </From>
           {type === RULE_TYPE.PATTERN && (
             <CustomRegularExpression
               name="customRegularExpression"
@@ -170,8 +170,8 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
 
 export default DataPrivacyRulesForm;
 
-const Wrapper = styled('div')<{hasError?: boolean}>`
-  padding: ${p => `${space(p.hasError ? 2 : 1.5)} ${space(2)}`};
+const Wrapper = styled('div')`
+  padding: ${space(3)} ${space(2)};
   display: grid;
   grid-gap: ${space(2)};
   grid-template-columns: 1fr;
@@ -186,6 +186,7 @@ const Wrapper = styled('div')<{hasError?: boolean}>`
 const WrapperFields = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
+  grid-row-gap: ${space(3)};
   align-items: flex-start;
   justify-items: start;
 
@@ -194,20 +195,35 @@ const WrapperFields = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: minmax(157px, 1fr) minmax(300px, 1fr) max-content minmax(
-        300px,
-        1fr
-      );
+    grid-template-columns: 200px 200px 1fr;
   }
 `;
 
-const From = styled('div')<{disabled?: boolean}>`
+const FromLabel = styled('div')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
-  height: 34px;
+  height: 100%;
   align-items: center;
   display: flex;
+  width: 100%;
+  justify-content: center;
 `;
 
+const From = styled('div')`
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-column-end: -1;
+  grid-column-start: 1;
+  grid-gap: ${space(2)};
+  width: 100%;
+  height: 34px;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column-end: auto;
+    grid-column-start: auto;
+  }
+`;
+
+// TODO(Priscila): make possible to set min-height in the SelectControl
 const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   width: 100%;
   line-height: 18px;
@@ -217,9 +233,10 @@ const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
       cursor: not-allowed;
       pointer-events: auto;
     `}
-
+  height: 34px;
   > *:first-child {
-    min-height: 34px;
+    height: 34px;
+    min-height: 34px !important;
   }
 `;
 
@@ -227,17 +244,13 @@ const CustomRegularExpression = styled(TextField)<{error?: string}>`
   grid-column-start: 1;
   grid-column-end: -1;
   width: 100%;
-  height: 34px;
-  font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+  height: 34px;
   input {
     height: 34px;
+    font-family: ${p => p.theme.text.familyMono};
   }
-  ${p =>
-    !p.error &&
-    `
-      margin-bottom: 0;
-    `}
+  margin-bottom: 0;
 `;
 
 const StyledIconTrash = styled(Button)<{fullHeight?: boolean}>`

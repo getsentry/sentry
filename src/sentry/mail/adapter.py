@@ -8,10 +8,13 @@ from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
-from sentry import options
+from sentry import digests, options
+from sentry.digests import get_option_key as get_digest_option_key
+from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, User
 from sentry.plugins.base.structs import Notification
+from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
@@ -29,8 +32,51 @@ class MailAdapter(object):
     and eventually deprecate `MailPlugin` entirely.
     """
 
+    # TODO: Remove this once we've fully moved over to the new action. Just for use with
+    # `unsplit_key`
+    slug = "mail"
+
     mail_option_key = "mail:subject_prefix"
     alert_option_key = "mail:alert"
+
+    def rule_notify(self, event, futures):
+        rules = []
+        extra = {"event_id": event.event_id, "group_id": event.group_id, "plugin": "mail"}
+        log_event = "dispatched"
+        for future in futures:
+            rules.append(future.rule)
+            extra["rule_id"] = future.rule.id
+            if not future.kwargs:
+                continue
+            raise NotImplementedError(
+                "The default behavior for notification de-duplication does not support args"
+            )
+
+        project = event.group.project
+        extra["project_id"] = project.id
+        if digests.enabled(project):
+
+            def get_digest_option(key):
+                return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
+
+            digest_key = unsplit_key(self, event.group.project)
+            extra["digest_key"] = digest_key
+            immediate_delivery = digests.add(
+                digest_key,
+                event_to_record(event, rules),
+                increment_delay=get_digest_option("increment_delay"),
+                maximum_delay=get_digest_option("maximum_delay"),
+            )
+            if immediate_delivery:
+                deliver_digest.delay(digest_key)
+            else:
+                log_event = "digested"
+
+        else:
+            notification = Notification(event=event, rules=rules)
+            self.notify(notification)
+
+        logger.info("mail.notification.%s" % log_event, extra=extra)
 
     def _build_subject_prefix(self, project):
         subject_prefix = ProjectOption.objects.get_value(project, self.mail_option_key, None)
@@ -86,6 +132,13 @@ class MailAdapter(object):
         notifications for the provided project.
         """
         return project.get_notification_recipients(self.alert_option_key)
+
+    def should_notify(self, group):
+        send_to = self.get_sendable_users(group.project)
+        if not send_to:
+            return False
+
+        return group.is_unresolved()
 
     def get_send_to(self, project, event=None):
         """

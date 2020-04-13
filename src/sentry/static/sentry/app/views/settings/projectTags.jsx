@@ -6,6 +6,7 @@ import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons/iconDelete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
@@ -105,7 +106,7 @@ export default class ProjectTags extends AsyncView {
                           >
                             <Button
                               size="xsmall"
-                              icon="icon-trash"
+                              icon={<IconDelete size="xs" />}
                               data-test-id="delete"
                               disabled={!enabled}
                             />

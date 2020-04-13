@@ -1040,6 +1040,69 @@ function routes() {
         />
       </Route>
 
+      {/* Settings routes */}
+      <Route component={errorHandler(OrganizationDetails)}>
+        <Route path="/settings/" name="Settings" component={SettingsWrapper}>
+          <IndexRoute
+            getComponent={(_loc, cb) =>
+              import(
+                /* webpackChunkName: "SettingsIndex" */ 'app/views/settings/settingsIndex'
+              ).then(lazyLoad(cb))
+            }
+          />
+
+          <Route
+            path="account/"
+            name="Account"
+            getComponent={(_loc, cb) =>
+              import(
+                /* webpackChunkName: "AccountSettingsLayout" */ 'app/views/settings/account/accountSettingsLayout'
+              ).then(lazyLoad(cb))
+            }
+          >
+            {accountSettingsRoutes}
+          </Route>
+
+          <Route name="Organization" path=":orgId/">
+            <Route
+              getComponent={(_loc, cb) =>
+                import(
+                  /* webpackChunkName: "OrganizationSettingsLayout" */ 'app/views/settings/organization/organizationSettingsLayout'
+                ).then(lazyLoad(cb))
+              }
+            >
+              {hook('routes:organization')}
+              {orgSettingsRoutes}
+            </Route>
+
+            <Route
+              name="Project"
+              path="projects/:projectId/"
+              getComponent={(_loc, cb) =>
+                import(
+                  /* webpackChunkName: "ProjectSettingsLayout" */ 'app/views/settings/project/projectSettingsLayout'
+                ).then(lazyLoad(cb))
+              }
+            >
+              <Route component={errorHandler(SettingsProjectProvider)}>
+                {projectSettingsRoutes}
+              </Route>
+            </Route>
+
+            <Redirect from=":projectId/" to="projects/:projectId/" />
+            <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
+            <Redirect
+              from=":projectId/alerts/rules/"
+              to="projects/:projectId/alerts/rules/"
+            />
+            <Redirect
+              from=":projectId/alerts/rules/:ruleId/"
+              to="projects/:projectId/alerts/rules/:ruleId/"
+            />
+          </Route>
+        </Route>
+      </Route>
+
       {/* A route tree for lightweight organizational detail views. We place
       this above the heavyweight organization detail views because there
       exist some redirects from deprecated routes which should not take
@@ -1247,6 +1310,66 @@ function routes() {
         </Route>
 
         <Route
+          path="/organizations/:orgId/releases-v2/"
+          componentPromise={() =>
+            import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
+          }
+          component={errorHandler(LazyLoad)}
+        >
+          <IndexRoute
+            componentPromise={() =>
+              import(/* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path=":release/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="commits/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="artifacts/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="files-changed/"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+        </Route>
+
+        <Route
           path="/organizations/:orgId/alerts/"
           componentPromise={() =>
             import(/* webpackChunkName: "AlertsContainer" */ 'app/views/alerts')
@@ -1282,67 +1405,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-        </Route>
-
-        {/* Settings routes */}
-        <Route path="/settings/" name="Settings" component={SettingsWrapper}>
-          <IndexRoute
-            getComponent={(_loc, cb) =>
-              import(
-                /* webpackChunkName: "SettingsIndex" */ 'app/views/settings/settingsIndex'
-              ).then(lazyLoad(cb))
-            }
-          />
-
-          <Route
-            path="account/"
-            name="Account"
-            getComponent={(_loc, cb) =>
-              import(
-                /* webpackChunkName: "AccountSettingsLayout" */ 'app/views/settings/account/accountSettingsLayout'
-              ).then(lazyLoad(cb))
-            }
-          >
-            {accountSettingsRoutes}
-          </Route>
-
-          <Route name="Organization" path=":orgId/">
-            <Route
-              getComponent={(_loc, cb) =>
-                import(
-                  /* webpackChunkName: "OrganizationSettingsLayout" */ 'app/views/settings/organization/organizationSettingsLayout'
-                ).then(lazyLoad(cb))
-              }
-            >
-              {hook('routes:organization')}
-              {orgSettingsRoutes}
-            </Route>
-
-            <Route
-              name="Project"
-              path="projects/:projectId/"
-              getComponent={(_loc, cb) =>
-                import(
-                  /* webpackChunkName: "ProjectSettingsLayout" */ 'app/views/settings/project/projectSettingsLayout'
-                ).then(lazyLoad(cb))
-              }
-            >
-              <Route component={errorHandler(SettingsProjectProvider)}>
-                {projectSettingsRoutes}
-              </Route>
-            </Route>
-
-            <Redirect from=":projectId/" to="projects/:projectId/" />
-            <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
-            <Redirect
-              from=":projectId/alerts/rules/"
-              to="projects/:projectId/alerts/rules/"
-            />
-            <Redirect
-              from=":projectId/alerts/rules/:ruleId/"
-              to="projects/:projectId/alerts/rules/:ruleId/"
-            />
-          </Route>
         </Route>
 
         <Route
@@ -1391,6 +1453,11 @@ function routes() {
             )
           }
           component={errorHandler(LazyLoad)}
+        />
+
+        <Route
+          path="/organizations/:orgId/projects/:projectId/events/:eventId/"
+          component={errorHandler(ProjectEventRedirect)}
         />
 
         {/* Admin/manage routes */}
@@ -1635,67 +1702,6 @@ function routes() {
           </Route>
 
           <Route
-            path="/organizations/:orgId/releases-v2/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path=":release/"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            >
-              <IndexRoute
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-              <Route
-                path="commits/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-              <Route
-                path="artifacts/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-              <Route
-                path="files-changed/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-            </Route>
-          </Route>
-          <Route
             path="/organizations/:orgId/projects/:projectId/getting-started/"
             componentPromise={() =>
               import(
@@ -1723,10 +1729,6 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/projects/:projectId/events/:eventId/"
-            component={errorHandler(ProjectEventRedirect)}
-          />
-          <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
               import(/* webpackChunkName: "Releases" */ 'app/views/releases/list')
@@ -1740,6 +1742,7 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
+
           <Route path="/organizations/:orgId/">
             {hook('routes:organization')}
             <Redirect path="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />

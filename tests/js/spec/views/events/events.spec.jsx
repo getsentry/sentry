@@ -450,6 +450,8 @@ describe('EventsContainer', function() {
       routerContext
     );
 
+    await tick();
+
     expect(eventsMock).toHaveBeenCalled();
     expect(browserHistory.replace).toHaveBeenCalledWith(
       `/organizations/org-slug/projects/project-slug/events/${eventId}/`

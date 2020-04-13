@@ -231,7 +231,8 @@ class EventStorage(Service):
             (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
         ]
 
-        node_ids = [n.id for _, n in object_node_list]
+        # Remove duplicates from the list of nodes to be fetched
+        node_ids = list({n.id for _, n in object_node_list})
         if not node_ids:
             return
 

@@ -2,9 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import Banner from 'app/components/banner';
+import Button from 'app/components/button';
 import localStorage from 'app/utils/localStorage';
+import space from 'app/styles/space';
+
+import backgroundLighthouse from '../../../../images/spot/background-lighthouse.svg';
 
 const BANNER_DISMISSED_KEY = 'releases-v2-banner-dismissed';
 
@@ -28,22 +31,27 @@ class IntroBanner extends React.Component<{}, State> {
     }
 
     return (
-      // TODO(releasesv2): change to proper thing once finished
-      <Banner title={t('Releases v2')} onCloseClick={this.handleBannerCloseClick}>
-        <TemporaryText>
-          This is an experimental UI page with dummy data not intended for public usage.
-          <br />
-          We’re using it for iterating towards the Releases v2 (mobile health)
-          deliverable.
-        </TemporaryText>
-      </Banner>
+      <StyledBanner
+        title={t('Spot Release Changes')}
+        subtitle={t(
+          'See differences between releases, from crash analytics to adoption rates.'
+        )}
+        backgroundImg={backgroundLighthouse}
+        onCloseClick={this.handleBannerCloseClick}
+      >
+        <BannerButton>{t('View Features')}</BannerButton>
+        <BannerButton priority="primary">{t('Update SDK')}</BannerButton>
+      </StyledBanner>
     );
   }
 }
 
-const TemporaryText = styled('h4')`
-  color: ${theme.white};
-  font-size: ${theme.fontSizeLarge};
+const StyledBanner = styled(Banner)`
+  color: ${p => p.theme.gray5};
+`;
+
+const BannerButton = styled(Button)`
+  margin: ${space(1)};
 `;
 
 export default IntroBanner;

@@ -16,7 +16,7 @@ import Pagination from 'app/components/pagination';
 import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 // import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -201,8 +201,8 @@ class ReleasesList extends AsyncView<Props, State> {
           )}
         />
 
-        <NoProjectMessage organization={organization}>
-          <PageContent>
+        <PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
                 {t('Releases v2')} <BetaTag />
@@ -225,8 +225,8 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
-          </PageContent>
-        </NoProjectMessage>
+          </LightWeightNoProjectMessage>
+        </PageContent>
       </React.Fragment>
     );
   }
@@ -241,14 +241,14 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
-  /* TODO(releasesV2): this could use some responsive love, but not yet sure if we are keeping it */
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     grid-template-columns: none;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    margin-bottom: ${space(4)};
   }
 `;
 

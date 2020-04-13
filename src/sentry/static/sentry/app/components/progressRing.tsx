@@ -11,6 +11,8 @@ type TextProps = {
   theme: Theme;
 };
 
+type ProgressColorFunction = (opts: {percent: number; theme: Theme}) => string;
+
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;
   maxValue?: number;
@@ -37,7 +39,7 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
    * The color of the ring bar. A function may be provided to compute the color
    * based on the percent value filled of the progress bar.
    */
-  progressColor?: string | ((opts: {percent: number}) => string);
+  progressColor?: string | ProgressColorFunction;
   /**
    * The color of the ring background
    */
@@ -107,7 +109,7 @@ const ProgressRing = ({
   );
 
   const ringColor =
-    typeof progressColor === 'function' ? progressColor({percent}) : progressColor;
+    typeof progressColor === 'function' ? progressColor({percent, theme}) : progressColor;
 
   return (
     <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>

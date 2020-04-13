@@ -21,7 +21,7 @@ import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/disco
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
-import ColumnEditModal from './columnEditModal';
+import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
 import CellAction from './cellAction';
@@ -203,15 +203,18 @@ class TableView extends React.Component<TableViewProps> {
     const {organization, eventView, tagKeys} = this.props;
     this.trackEditAnalytics(organization, true);
 
-    openModal(modalProps => (
-      <ColumnEditModal
-        {...modalProps}
-        organization={organization}
-        tagKeys={tagKeys}
-        columns={eventView.getColumns().map(col => col.column)}
-        onApply={this.handleUpdateColumns}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <ColumnEditModal
+          {...modalProps}
+          organization={organization}
+          tagKeys={tagKeys}
+          columns={eventView.getColumns().map(col => col.column)}
+          onApply={this.handleUpdateColumns}
+        />
+      ),
+      {modalCss}
+    );
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
