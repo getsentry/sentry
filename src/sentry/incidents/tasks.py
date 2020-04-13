@@ -153,8 +153,6 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
 )
 @retry(exclude=(DeleteAborted,))
 def auto_resolve_snapshot_incidents(alert_rule_id, comment, **kwargs):
-    # This will find incidents with snapshotted alert rules and auto resolve them?
-    # It will also write to their activity log.
     from sentry.incidents.models import AlertRule
 
     try:
@@ -175,7 +173,7 @@ def auto_resolve_snapshot_incidents(alert_rule_id, comment, **kwargs):
         update_incident_status(
             incident,
             IncidentStatus.CLOSED,
-            comment="Alert has been automatically resolved due to a change in the associated alert rule.",
+            comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
         )
 
     if has_more:
