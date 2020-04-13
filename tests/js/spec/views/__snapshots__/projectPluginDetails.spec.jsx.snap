@@ -485,7 +485,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         <Component
                                           aria-disabled={false}
                                           aria-label="Enable Plugin"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-1he25ws-StyledButton edwq9my0"
                                           forwardRef={null}
                                           onClick={[Function]}
                                           role="button"
@@ -499,7 +499,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Enable Plugin"
-                                            className="css-12ogwys-StyledButton edwq9my0"
+                                            className="css-1he25ws-StyledButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="small"
@@ -547,7 +547,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         <Component
                                           aria-disabled={false}
                                           aria-label="Reset Configuration"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-1he25ws-StyledButton edwq9my0"
                                           forwardRef={null}
                                           onClick={[Function]}
                                           role="button"
@@ -556,7 +556,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Reset Configuration"
-                                            className="css-12ogwys-StyledButton edwq9my0"
+                                            className="css-1he25ws-StyledButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="small"

@@ -126,12 +126,7 @@ class ProjectInstallPlatform extends React.Component {
           )}
 
           {this.isGettingStarted && (
-            <Button
-              priority="primary"
-              size="large"
-              to={issueStreamLink}
-              style={{marginTop: 20}}
-            >
+            <Button priority="primary" to={issueStreamLink} style={{marginTop: 20}}>
               {t('Got it! Take me to the Issue Stream.')}
             </Button>
           )}

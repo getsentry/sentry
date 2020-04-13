@@ -87,7 +87,6 @@ class ErrorRobot extends React.Component<Props, State> {
           <CreateSampleEventButton
             priority="link"
             borderless
-            size="large"
             project={project}
             source="issues_list"
             disabled={!project}
@@ -123,7 +122,6 @@ class ErrorRobot extends React.Component<Props, State> {
               <Button
                 data-test-id="install-instructions"
                 priority="primary"
-                size="large"
                 to={`/${org.slug}/${project.slug}/getting-started/${project.platform ||
                   ''}`}
               >

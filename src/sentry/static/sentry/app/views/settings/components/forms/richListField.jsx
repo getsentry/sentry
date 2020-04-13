@@ -125,7 +125,7 @@ class RichList extends React.PureComponent {
       <ItemButton
         onClick={onClick}
         disabled={disabled}
-        size="micro"
+        size="zero"
         icon={<IconDelete size="xs" />}
         borderless
       />
@@ -153,7 +153,7 @@ class RichList extends React.PureComponent {
             onClick={() => this.onEditItem(item, index)}
             disabled={disabled}
             icon="icon-settings"
-            size="micro"
+            size="zero"
             borderless
           />
         )}

@@ -142,7 +142,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         <Component
                           aria-disabled={false}
                           aria-label="New API Key"
-                          className="css-z8at1v-StyledButton edwq9my0"
+                          className="css-1mpdtii-StyledButton edwq9my0"
                           forwardRef={null}
                           onClick={[Function]}
                           role="button"
@@ -151,7 +151,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           <button
                             aria-disabled={false}
                             aria-label="New API Key"
-                            className="css-z8at1v-StyledButton edwq9my0"
+                            className="css-1mpdtii-StyledButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"

@@ -104,7 +104,7 @@ const InviteRowControl = ({
     <Button
       borderless
       icon="icon-close"
-      size="micro"
+      size="zero"
       onClick={onRemove}
       disabled={disableRemove}
     />

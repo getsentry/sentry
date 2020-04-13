@@ -72,22 +72,13 @@ storiesOf('UI|Buttons', module)
             </Button>
           </Item>
           <Item>
-            <Button size="micro">Micro</Button>
-          </Item>
-          <Item>
-            <Button size="xxsmall">XX Small</Button>
-          </Item>
-          <Item>
             <Button size="xsmall">X Small</Button>
           </Item>
           <Item>
             <Button size="small">Small</Button>
           </Item>
           <Item>
-            <Button>Normal</Button>
-          </Item>
-          <Item>
-            <Button size="large">Large</Button>
+            <Button>Default</Button>
           </Item>
         </Section>
         <Section>
@@ -97,32 +88,17 @@ storiesOf('UI|Buttons', module)
               <Button size="zero" borderless icon={<IconDelete size="xs" />} />
             </Item>
             <Item>
-              <Button size="micro" icon={<IconDelete size="xs" />}>
-                Micro
-              </Button>
-            </Item>
-            <Item>
-              <Button size="xxsmall" icon={<IconDelete size="xs" />}>
-                XX Small
-              </Button>
-            </Item>
-            <Item>
               <Button size="xsmall" icon={<IconDelete size="xs" />}>
                 X Small
               </Button>
             </Item>
             <Item>
-              <Button size="small" icon={<IconDelete />}>
+              <Button size="small" icon={<IconDelete size="xs" />}>
                 Small
               </Button>
             </Item>
             <Item>
-              <Button icon={<IconDelete />}>Normal</Button>
-            </Item>
-            <Item>
-              <Button size="large" icon={<IconDelete size="md" />}>
-                Large
-              </Button>
+              <Button icon={<IconDelete />}>Default</Button>
             </Item>
           </div>
         </Section>
@@ -155,11 +131,6 @@ storiesOf('UI|Buttons', module)
             <Item>
               <Button busy={boolean('Normal Busy', true)} priority="primary">
                 Normal
-              </Button>
-            </Item>
-            <Item>
-              <Button busy={boolean('Large Busy', true)} priority="primary" size="large">
-                Large
               </Button>
             </Item>
             <Item>

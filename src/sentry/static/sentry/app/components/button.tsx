@@ -19,7 +19,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
-  size?: 'zero' | 'micro' | 'small' | 'xsmall' | 'xxsmall' | 'large';
+  size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -47,7 +47,7 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 class Button extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'micro', 'small', 'xxsmall', 'xsmall', 'large']),
+    size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -173,11 +173,7 @@ class Button extends React.Component<ButtonProps, {}> {
                 <StyledInlineSvg
                   src={icon}
                   size={
-                    iconSize
-                      ? iconSize
-                      : (size && size.endsWith('small')) || size === 'micro'
-                      ? '12px'
-                      : '14px'
+                    iconSize ? iconSize : size && size.endsWith('small') ? '12px' : '14px'
                   }
                 />
               ) : (
@@ -217,13 +213,9 @@ type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
-    case 'micro':
     case 'xsmall':
-    case 'xxsmall':
     case 'small':
       return theme.fontSizeSmall;
-    case 'large':
-      return theme.fontSizeLarge;
     default:
       return theme.fontSizeMedium;
   }
@@ -307,11 +299,10 @@ const StyledButton = styled(
   }
 )<Props>`
   display: inline-block;
-  line-height: 1;
+  line-height: 1.2;
   border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
-
   ${getFontWeight};
   font-size: ${getFontSize};
   ${getColors};
@@ -335,27 +326,20 @@ const StyledButton = styled(
 const getLabelPadding = ({
   size,
   priority,
-  borderless,
 }: Pick<StyledButtonProps, 'size' | 'priority' | 'borderless'>) => {
   if (priority === 'link') {
     return '0';
   }
 
   switch (size) {
-    case 'micro':
     case 'zero':
       return '0';
-    case 'xxsmall':
-      return borderless ? '1px 2px' : '2px 4px';
     case 'xsmall':
-      return borderless ? '4px 6px' : '6px 10px';
+      return '4px 8px';
     case 'small':
-      return borderless ? '6px 8px' : '8px 12px';
-    case 'large':
-      return borderless ? '8px 10px' : '14px 20px';
-
+      return '8px 12px';
     default:
-      return borderless ? '6px 10px' : '12px 16px';
+      return '11px 16px';
   }
 };
 

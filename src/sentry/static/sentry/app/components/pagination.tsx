@@ -59,7 +59,6 @@ class Pagination extends React.Component<Props> {
         <ButtonBar merged>
           <Button
             aria-label={t('Previous')}
-            size="large"
             disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
@@ -69,7 +68,6 @@ class Pagination extends React.Component<Props> {
           </Button>
           <Button
             aria-label={t('Next')}
-            size="large"
             disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
