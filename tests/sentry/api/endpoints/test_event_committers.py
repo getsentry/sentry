@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.samples import load_data
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 
@@ -52,6 +53,31 @@ class EventCommittersTest(APITestCase):
         # assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'
         #                                                                    ] == 'admin@localhost'
         # TODO(maxbittker) test more edge cases here
+
+    def test_no_group(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        min_ago = iso_format(before_now(minutes=1))
+        event_data = load_data("transaction")
+        event_data["start_timestamp"] = min_ago
+        event_data["timestamp"] = min_ago
+
+        event = self.store_event(data=event_data, project_id=project.id)
+
+        url = reverse(
+            "sentry-api-0-event-file-committers",
+            kwargs={
+                "event_id": event.event_id,
+                "project_slug": event.project.slug,
+                "organization_slug": event.project.organization.slug,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
+        assert response.data["detail"] == "Issue not found"
 
     def test_no_release(self):
         self.login_as(user=self.user)
