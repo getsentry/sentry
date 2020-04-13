@@ -152,7 +152,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
     max_retries=1,
 )
 @retry(exclude=(DeleteAborted,))
-def auto_resolve_snapshot_incidents(alert_rule_id, comment, **kwargs):
+def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     from sentry.incidents.models import AlertRule
 
     try:
@@ -163,9 +163,7 @@ def auto_resolve_snapshot_incidents(alert_rule_id, comment, **kwargs):
     if alert_rule.status not in (AlertRuleStatus.SNAPSHOT.value):
         raise DeleteAborted
 
-    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
-        status=IncidentStatus.AUTO_CLOSED
-    )
+    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED)
 
     if incidents:
         has_more = incidents.count() > 1
