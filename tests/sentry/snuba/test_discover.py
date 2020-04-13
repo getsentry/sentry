@@ -375,7 +375,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
-            selected_columns=["user_id", "username", "email", "ip_address", "project_id"],
+            selected_columns=["email", "username", "ip_address", "user_id", "project_id"],
             aggregations=[
                 [
                     "transform(project_id, array({}), array('{}'), '')".format(
@@ -390,7 +390,7 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             conditions=[],
-            groupby=["user_id", "username", "email", "ip_address", "project_id"],
+            groupby=["email", "username", "ip_address", "user_id", "project_id"],
             having=[],
             orderby=None,
             limit=50,

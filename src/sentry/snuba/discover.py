@@ -402,8 +402,11 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
+    if selected_columns is None:
+        selected_columns = []
+
     # Determine user related fields to prune based on what wasn't selected.
-    user_fields = ["user.email", "user.username", "user.ip", "user.id"]
+    user_fields = FIELD_ALIASES["user"]["fields"]
     user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
 
     # If the user field was selected update the meta data
