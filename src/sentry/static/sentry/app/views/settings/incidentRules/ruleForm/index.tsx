@@ -103,7 +103,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   getEventType() {
     // XXX: This is hardcoded for now, this will need to change when we add
     // metric types that require different `event.type` (e.g. transactions)
-    return '!event.type:transaction';
+    return 'event.type:error';
   }
 
   goBack() {
