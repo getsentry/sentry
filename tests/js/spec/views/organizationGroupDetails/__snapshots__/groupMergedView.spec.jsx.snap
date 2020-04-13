@@ -407,7 +407,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 <Component
                                   aria-disabled={true}
                                   aria-label="Compare"
-                                  className="e1seayw30 css-8unam4-StyledButton-CompareButton edwq9my0"
+                                  className="e1seayw30 css-1j6kd2c-StyledButton-CompareButton edwq9my0"
                                   forwardRef={null}
                                   onClick={[Function]}
                                   role="button"
@@ -416,7 +416,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   <button
                                     aria-disabled={true}
                                     aria-label="Compare"
-                                    className="e1seayw30 css-8unam4-StyledButton-CompareButton edwq9my0"
+                                    className="e1seayw30 css-1j6kd2c-StyledButton-CompareButton edwq9my0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -468,7 +468,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                               <Component
                                 aria-disabled={false}
                                 aria-label="Collapse All"
-                                className="css-12ogwys-StyledButton edwq9my0"
+                                className="css-1he25ws-StyledButton edwq9my0"
                                 forwardRef={null}
                                 onClick={[Function]}
                                 role="button"
@@ -477,7 +477,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                 <button
                                   aria-disabled={false}
                                   aria-label="Collapse All"
-                                  className="css-12ogwys-StyledButton edwq9my0"
+                                  className="css-1he25ws-StyledButton edwq9my0"
                                   onClick={[Function]}
                                   role="button"
                                   size="small"

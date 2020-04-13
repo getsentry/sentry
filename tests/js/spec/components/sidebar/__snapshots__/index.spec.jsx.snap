@@ -1177,7 +1177,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 <Component
                   aria-disabled={false}
                   aria-label="Learn more"
-                  className="css-12ogwys-StyledButton edwq9my0"
+                  className="css-1he25ws-StyledButton edwq9my0"
                   external={true}
                   forwardRef={null}
                   href="https://status.sentry.io"
@@ -1188,7 +1188,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   <ForwardRef(ExternalLink)
                     aria-disabled={false}
                     aria-label="Learn more"
-                    className="css-12ogwys-StyledButton edwq9my0"
+                    className="css-1he25ws-StyledButton edwq9my0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
                     role="button"
@@ -1197,7 +1197,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     <a
                       aria-disabled={false}
                       aria-label="Learn more"
-                      className="css-12ogwys-StyledButton edwq9my0"
+                      className="css-1he25ws-StyledButton edwq9my0"
                       href="https://status.sentry.io"
                       onClick={[Function]}
                       rel="noreferrer noopener"
@@ -1367,7 +1367,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   <button
                     aria-disabled="false"
                     aria-label="Skip task"
-                    class="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                    class="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
                     role="button"
                   >
                     <span
@@ -1388,11 +1388,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       <a
                         aria-disabled="false"
                         aria-label="Community Forum"
-                        class="css-z8at1v-StyledButton edwq9my0"
+                        class="css-1mpdtii-StyledButton edwq9my0"
                         role="button"
                       >
                         <span
-                          class="css-cmi7y3-ButtonLabel edwq9my1"
+                          class="css-1acbab4-ButtonLabel edwq9my1"
                         >
                           Community Forum
                         </span>
@@ -1400,11 +1400,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       <button
                         aria-disabled="false"
                         aria-label="Just skip"
-                        class="css-12ogwys-StyledButton edwq9my0"
+                        class="css-1he25ws-StyledButton edwq9my0"
                         role="button"
                       >
                         <span
-                          class="css-cmi7y3-ButtonLabel edwq9my1"
+                          class="css-1acbab4-ButtonLabel edwq9my1"
                         >
                           Just skip
                         </span>
@@ -3203,7 +3203,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <Component
                                                     aria-disabled={false}
                                                     aria-label="Skip task"
-                                                    className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                                                    className="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
                                                     forwardRef={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -3211,7 +3211,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     <button
                                                       aria-disabled={false}
                                                       aria-label="Skip task"
-                                                      className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                                                      className="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
                                                       onClick={[Function]}
                                                       role="button"
                                                     >
@@ -3291,7 +3291,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                 <Component
                                                                   aria-disabled={false}
                                                                   aria-label="Community Forum"
-                                                                  className="css-z8at1v-StyledButton edwq9my0"
+                                                                  className="css-1mpdtii-StyledButton edwq9my0"
                                                                   external={true}
                                                                   forwardRef={null}
                                                                   onClick={[Function]}
@@ -3302,7 +3302,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                   <Link
                                                                     aria-disabled={false}
                                                                     aria-label="Community Forum"
-                                                                    className="css-z8at1v-StyledButton edwq9my0"
+                                                                    className="css-1mpdtii-StyledButton edwq9my0"
                                                                     onClick={[Function]}
                                                                     onlyActiveOnIndex={false}
                                                                     role="button"
@@ -3313,7 +3313,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                     <a
                                                                       aria-disabled={false}
                                                                       aria-label="Community Forum"
-                                                                      className="css-z8at1v-StyledButton edwq9my0"
+                                                                      className="css-1mpdtii-StyledButton edwq9my0"
                                                                       onClick={[Function]}
                                                                       role="button"
                                                                       size="xsmall"
@@ -3325,7 +3325,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                         size="xsmall"
                                                                       >
                                                                         <span
-                                                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                          className="css-1acbab4-ButtonLabel edwq9my1"
                                                                         >
                                                                           Community Forum
                                                                         </span>
@@ -3361,7 +3361,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                             <Component
                                                               aria-disabled={false}
                                                               aria-label="Just skip"
-                                                              className="css-12ogwys-StyledButton edwq9my0"
+                                                              className="css-1he25ws-StyledButton edwq9my0"
                                                               forwardRef={null}
                                                               onClick={[Function]}
                                                               role="button"
@@ -3370,7 +3370,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                               <button
                                                                 aria-disabled={false}
                                                                 aria-label="Just skip"
-                                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                                className="css-1he25ws-StyledButton edwq9my0"
                                                                 onClick={[Function]}
                                                                 role="button"
                                                                 size="xsmall"
@@ -3380,7 +3380,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                   size="xsmall"
                                                                 >
                                                                   <span
-                                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                    className="css-1acbab4-ButtonLabel edwq9my1"
                                                                   >
                                                                     Just skip
                                                                   </span>

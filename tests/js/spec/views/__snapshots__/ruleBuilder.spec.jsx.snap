@@ -1080,7 +1080,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <Component
                 aria-disabled={true}
-                className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc710 css-14jegea-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -1088,7 +1088,7 @@ exports[`RuleBuilder renders 1`] = `
               >
                 <button
                   aria-disabled={true}
-                  className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc710 css-14jegea-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -3093,7 +3093,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <Component
                 aria-disabled={false}
-                className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc710 css-6209gq-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -3101,7 +3101,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               >
                 <button
                   aria-disabled={false}
-                  className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc710 css-6209gq-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
