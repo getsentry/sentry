@@ -1,16 +1,10 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
-
 from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import urlencode
 
-from sentry import deletions
 from sentry.auth.access import from_user
-from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleStatus,
     AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
@@ -20,7 +14,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
@@ -98,44 +92,6 @@ def build_activity_context(activity, user):
         + urlencode({"referrer": "incident_activity_email"}),
         "comment": activity.comment,
     }
-
-
-@instrumented_task(
-    name="sentry.incidents.tasks.delete_alert_rule",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=1,
-)
-@retry(exclude=(DeleteAborted,))
-def delete_alert_rule(alert_rule_id, transaction_id=None, **kwargs):
-    from sentry.incidents.models import AlertRule
-
-    try:
-        instance = AlertRule.objects_with_deleted.get(id=alert_rule_id)
-    except AlertRule.DoesNotExist:
-        return
-
-    if instance.status not in (
-        AlertRuleStatus.DELETION_IN_PROGRESS.value,
-        AlertRuleStatus.PENDING_DELETION.value,
-    ):
-        raise DeleteAborted
-
-    task = deletions.get(
-        model=AlertRule, query={"id": alert_rule_id}, transaction_id=transaction_id or uuid4().hex
-    )
-    has_more = task.chunk()
-    if has_more:
-        delete_alert_rule.apply_async(
-            kwargs={"alert_rule_id": alert_rule_id, "transaction_id": transaction_id}, countdown=15
-        )
-
-
-class AlertRuleDeletionTask(deletions.ModelDeletionTask):
-    manager_name = "objects_with_deleted"
-
-
-deletions.default_manager.register(AlertRule, AlertRuleDeletionTask)
 
 
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)

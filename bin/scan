@@ -32,4 +32,9 @@ for i in ${ignored[@]}; do
   args="$args --ignore=${i}"
 done
 
+# TODO(joshuarli): massage how getsentry bin/scan calls out to this so that this can work
+# without actually installing sentry in CI
+# HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# exec safety check -r "${HERE}/../requirements-base.txt" ${args}
+
 exec safety check ${args}

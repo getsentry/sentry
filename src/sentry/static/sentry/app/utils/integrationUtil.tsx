@@ -36,8 +36,7 @@ export const getAnalyticsSessionId = () =>
 export const getCategorySelectActive = (organization?: Organization) => {
   const variant = organization?.experiments?.IntegrationDirectoryCategoryExperiment;
   const localStore = localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT);
-
-  if (localStore !== undefined) {
+  if (localStore !== null) {
     return localStore === '1';
   }
   return variant === '1';

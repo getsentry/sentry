@@ -28,6 +28,9 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     mail_adapter = MailAdapter()
 
+    def rule_notify(self, event, futures):
+        return self.mail_adapter.rule_notify(event, futures)
+
     def _send_mail(self, *args, **kwargs):
         return self.mail_adapter._send_mail(*args, **kwargs)
 
@@ -39,11 +42,7 @@ class MailPlugin(NotificationPlugin):
         return True
 
     def should_notify(self, group, event):
-        send_to = self.get_sendable_users(group.project)
-        if not send_to:
-            return False
-
-        return super(MailPlugin, self).should_notify(group, event)
+        return self.mail_adapter.should_notify(group)
 
     def get_send_to(self, project, event=None):
         """

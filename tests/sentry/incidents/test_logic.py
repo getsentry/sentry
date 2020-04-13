@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import json
+import pytest
 from uuid import uuid4
 import responses
 from datetime import timedelta
@@ -7,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -70,8 +72,9 @@ from sentry.incidents.models import (
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import zip
+from sentry.utils.samples import load_data
 
 
 class CreateIncidentTest(TestCase):
@@ -217,6 +220,7 @@ class BaseIncidentsTest(SnubaTestCase):
             "event_id": event_id,
             "fingerprint": [fingerprint],
             "timestamp": iso_format(timestamp),
+            "type": "error",
         }
         if user:
             data["user"] = user
@@ -252,7 +256,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 
     def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
         # Duration of 300s, but no alert rule
-        time_window = 1
+        time_window = incident.alert_rule.time_window if incident.alert_rule else 1
         assert result.rollup == time_window * 60
         expected_start = start if start else incident.date_started - timedelta(minutes=1)
         expected_end = end if end else incident.current_end_date
@@ -308,6 +312,25 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     def test_groups(self):
         self.run_test(self.group_incident, [1, 1])
         self.run_test(self.group_incident, [1, 1], windowed_stats=True)
+
+    def test_with_transactions(self):
+        incident = self.project_incident
+        alert_rule = self.create_alert_rule(
+            self.organization, [self.project], query="", time_window=1
+        )
+        incident.update(alert_rule=alert_rule)
+
+        event_data = load_data("transaction")
+        event_data.update(
+            {
+                "start_timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": iso_format(before_now(minutes=2)),
+            }
+        )
+        event_data["transaction"] = "/foo_transaction/"
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        self.run_test(incident, [2, 1])
 
 
 @freeze_time()
@@ -685,6 +708,41 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
             )
 
+    def test_existing_name_allowed_when_archived(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
+        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
+
+    # This test will fail unless real migrations are run. Refer to migration 0061.
+    @pytest.mark.skipif(
+        not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
+    )
+    def test_two_archived_with_same_name(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
+        assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -946,7 +1004,8 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
     def test_with_incident(self):
         incident = self.create_incident()
@@ -955,9 +1014,10 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
-        assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
+        assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):
