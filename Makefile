@@ -196,14 +196,6 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-lint: lint-python lint-js
-
-# configuration for flake8 can be found in setup.cfg
-lint-python:
-	@echo "--> Linting python"
-	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
-	@echo ""
-
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta review --workspace-root `pwd` -e pysnap
@@ -222,7 +214,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
@@ -233,8 +225,8 @@ lint-js:
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-test-lint
-travis-test-lint: lint-python lint-js
+.PHONY: travis-test-lint-js
+travis-test-lint-js: lint-js
 
 .PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration

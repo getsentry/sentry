@@ -152,13 +152,13 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    # Lint python and javascript together
-    - python: 2.7
-      name: 'Linter'
-      env: TEST_SUITE=lint
+    - language: generic
+      name: 'Linter (Javascript)'
+      env: TEST_SUITE=lint-js
       install:
-        - python setup.py install_egg_info
-        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
+        # XXX: Under a "generic" language environment, travis pyenv is still present.
+        # .python-version will make it error because there is no pyenv python installed.
+        - rm .python-version
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --frozen-lockfile
