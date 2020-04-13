@@ -105,7 +105,10 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         try:
             model = KeyTransaction.objects.get(
-                transaction=transaction, organization=organization, project=project
+                transaction=transaction,
+                organization=organization,
+                project=project,
+                owner=request.user,
             )
         except KeyTransaction.DoesNotExist:
             return Response(status=204)
