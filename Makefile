@@ -196,14 +196,6 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-lint: lint-python lint-js
-
-# configuration for flake8 can be found in setup.cfg
-lint-python:
-	@echo "--> Linting python"
-	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
-	@echo ""
-
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta review --workspace-root `pwd` -e pysnap
@@ -222,7 +214,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
@@ -233,8 +225,8 @@ lint-js:
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-test-lint
-travis-test-lint: lint-python lint-js
+.PHONY: travis-test-lint-js
+travis-test-lint-js: lint-js
 
 .PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration
@@ -247,22 +239,3 @@ travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
 travis-test-relay-integration: test-relay-integration
-
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator
-.PHONY: travis-scan-js travis-scan-cli travis-scan-lint travis-scan-relay-integration
-scan-python:
-	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety
-	bin/scan
-	@echo ""
-
-travis-scan-postgres: travis-noop
-travis-scan-acceptance: travis-noop
-travis-scan-snuba: travis-noop
-travis-scan-symbolicator: travis-noop
-travis-scan-js: travis-noop
-travis-scan-js-build: travis-noop
-travis-scan-cli: travis-noop
-travis-scan-lint: scan-python
-travis-scan-plugins: travis-noop
-travis-scan-relay-integration: travis-noop
