@@ -48,6 +48,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         data = serializer.validated_data
 
         # Validate the project field, if provided
+        # A PermissionDenied error will be raised in `_get_projects_by_id` if the request is invalid
         project_query = data["query_info"].get("project")
         if project_query:
             # Coerce the query into a set
