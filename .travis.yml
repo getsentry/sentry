@@ -165,10 +165,12 @@ matrix:
     - python: 3.7
       name: 'pre-commit hooks (includes python formatting + linting) and dependency scanning'
       install:
+        - pip freeze
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
         - pip install safety
+        - pip freeze
       script:
         # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,

@@ -37,7 +37,4 @@ done
 # HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # exec safety check -r "${HERE}/../requirements-base.txt" ${args}
 
-pip install pipdeptree
-pip freeze
-pipdeptree -r -p numpy
 exec safety check ${args}
