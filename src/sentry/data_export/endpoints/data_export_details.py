@@ -28,6 +28,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
 
         try:
             data_export = ExportedData.objects.get(id=kwargs["data_export_id"])
+            raise PermissionDenied
             # Check data export permissions
             if data_export.query_info.get("project"):
                 project_ids = map(int, data_export.query_info.get("project", []))

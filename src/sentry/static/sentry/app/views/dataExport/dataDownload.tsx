@@ -163,17 +163,19 @@ class DataDownload extends AsyncView<Props, State> {
     );
   }
   renderError(): React.ReactNode {
-    const {errors} = this.state;
+    const {
+      errors: {download: err},
+    } = this.state;
     return (
       <Layout>
         <main>
           <Header>
             <h3>
-              {errors.download.status} - {errors.download.statusText}
+              {err.status} - {err.statusText}
             </h3>
           </Header>
           <Body>
-            <p>{errors.download.responseJSON.detail}</p>
+            <p>{err.responseJSON.detail}</p>
           </Body>
         </main>
       </Layout>
