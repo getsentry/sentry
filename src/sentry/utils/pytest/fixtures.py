@@ -303,7 +303,7 @@ def insta_snapshot(request, log):
                 reference_file += ".new"
             with open(reference_file, "w") as f:
                 f.write(
-                    u"---\n%s\n---\n%s\n"
+                    "---\n%s\n---\n%s\n"
                     % (
                         yaml.safe_dump(
                             {

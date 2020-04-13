@@ -278,7 +278,7 @@ class OrganizationUpdateTest(APITestCase):
             response = self.client.put(url, data=data)
             assert response.status_code == 200
 
-        option, = OrganizationOption.objects.filter(organization=org, key="sentry:trusted-relays")
+        (option,) = OrganizationOption.objects.filter(organization=org, key="sentry:trusted-relays")
 
         assert option.value == data["trustedRelays"]
         log = AuditLogEntry.objects.get(organization=org)

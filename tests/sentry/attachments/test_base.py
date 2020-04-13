@@ -42,7 +42,7 @@ def test_basic_chunked():
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
     cache.set("c:foo", [att])
 
-    att2, = cache.get("c:foo")
+    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 123
     assert att2.data == att.data == b"Hello World! Bye."
@@ -58,7 +58,7 @@ def test_basic_unchunked():
     att = CachedAttachment(name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.")
     cache.set("c:foo", [att])
 
-    att2, = cache.get("c:foo")
+    (att2,) = cache.get("c:foo")
     assert att2.key == att.key == "c:foo"
     assert att2.id == att.id == 0
     assert att2.data == att.data == b"Hello World! Bye."

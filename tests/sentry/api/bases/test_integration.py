@@ -15,9 +15,7 @@ class IntegrationEndpointTest(APITestCase):
     def test_handle_exception(self):
         exc = APIException("There was a problem!")
         exc.status_code = 400  # set the status code to 400 not possible to set in init
-        exc.code = (
-            400
-        )  # rest framework APIError is not compatible with integration APIError exception type
+        exc.code = 400  # rest framework APIError is not compatible with integration APIError exception type
         resp = self.endpoint.handle_exception(HttpRequest(), exc)
         assert resp.status_code == 400
         assert resp.exception is True

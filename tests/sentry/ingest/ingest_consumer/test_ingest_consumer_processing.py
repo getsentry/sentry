@@ -51,7 +51,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
             projects={default_project.id: default_project},
         )
 
-    kwargs, = preprocess_event
+    (kwargs,) = preprocess_event
     assert kwargs == {
         "cache_key": u"e:{event_id}:{project_id}".format(event_id=event_id, project_id=project_id),
         "data": payload,
@@ -123,7 +123,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
     )
 
     if not missing_chunks:
-        attachment, = persisted_attachments
+        (attachment,) = persisted_attachments
         assert attachment.file.type == "custom.attachment"
         assert attachment.file.headers == {"Content-Type": "text/plain"}
         file = attachment.file.getfile()
@@ -196,7 +196,7 @@ def test_individual_attachments(
     if not event_attachments:
         assert not attachments
     else:
-        attachment, = attachments
+        (attachment,) = attachments
         assert attachment.file.type == "event.attachment"
         assert attachment.file.headers == {"Content-Type": "application/octet-stream"}
         assert attachment.group_id == group_id
@@ -220,7 +220,7 @@ def test_userreport(default_project, monkeypatch):
     mgr.normalize()
     mgr.save(default_project.id)
 
-    evtuser, = EventUser.objects.all()
+    (evtuser,) = EventUser.objects.all()
     assert not evtuser.name
 
     assert not UserReport.objects.all()
@@ -242,10 +242,10 @@ def test_userreport(default_project, monkeypatch):
         projects={default_project.id: default_project},
     )
 
-    report, = UserReport.objects.all()
+    (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
 
-    evtuser, = EventUser.objects.all()
+    (evtuser,) = EventUser.objects.all()
     assert evtuser.name == "Hans Gans"
 
 
@@ -281,10 +281,10 @@ def test_userreport_reverse_order(default_project, monkeypatch):
     mgr.normalize()
     mgr.save(default_project.id)
 
-    report, = UserReport.objects.all()
+    (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
 
-    evtuser, = EventUser.objects.all()
+    (evtuser,) = EventUser.objects.all()
     # Event got saved after user report, and the sync only works in the
     # opposite direction. That's fine, we just accept it.
     assert evtuser.name is None

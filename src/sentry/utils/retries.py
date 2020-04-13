@@ -55,7 +55,13 @@ class TimedRetryPolicy(RetryPolicy):
     """
 
     def __init__(
-        self, timeout, delay=None, exceptions=(Exception,), metric_instance=None, metric_tags=None, log_original_error=False
+        self,
+        timeout,
+        delay=None,
+        exceptions=(Exception,),
+        metric_instance=None,
+        metric_tags=None,
+        log_original_error=False,
     ):
         if delay is None:
             # 100ms +/- 50ms of randomized jitter

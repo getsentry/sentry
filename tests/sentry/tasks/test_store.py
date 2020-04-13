@@ -177,7 +177,7 @@ def test_symbolicate_event_call_process_inline(
         symbolicate_event(cache_key="e:1", start_time=1)
 
     # The event mutated, so make sure we save it back
-    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+    ((_, (key, event, duration), _),) = mock_default_cache.set.mock_calls
 
     assert key == "e:1"
     assert event == symbolicated_data
@@ -236,7 +236,7 @@ def test_process_event_mutate_and_save(
     process_event(cache_key="e:1", start_time=1)
 
     # The event mutated, so make sure we save it back
-    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+    ((_, (key, event, duration), _),) = mock_default_cache.set.mock_calls
 
     assert key == "e:1"
     assert "extra" not in event
@@ -291,7 +291,7 @@ def test_process_event_unprocessed(
 
     process_event(cache_key="e:1", start_time=1)
 
-    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+    ((_, (key, event, duration), _),) = mock_default_cache.set.mock_calls
     assert key == "e:1"
     assert event["unprocessed"] is True
     assert duration == 3600
@@ -386,7 +386,7 @@ def test_scrubbing_after_processing(
     with Feature({"organizations:datascrubbers-v2": True}):
         process_event(cache_key="e:1", start_time=1)
 
-    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+    ((_, (key, event, duration), _),) = mock_default_cache.set.mock_calls
     assert key == "e:1"
     assert event["extra"] == {u"aaa": u"[Filtered]", u"aaa2": u"event preprocessor"}
     assert duration == 3600

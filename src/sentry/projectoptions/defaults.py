@@ -44,7 +44,10 @@ register(key="sentry:default_loader_version", epoch_defaults={1: "4.x", 2: "5.x"
 # Default symbol sources.  The ios source does not exist by default and
 # will be skipped later.  The microsoft source exists by default and is
 # unlikely to be disabled.
-register(key="sentry:builtin_symbol_sources", epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]})
+register(
+    key="sentry:builtin_symbol_sources",
+    epoch_defaults={1: ["ios"], 2: ["ios", "microsoft"], 5: ["ios", "microsoft", "android"]},
+)
 
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})

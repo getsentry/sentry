@@ -62,7 +62,7 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
             )
         )
 
-    cluster_name, = cluster_names
+    (cluster_name,) = cluster_names
 
     bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
     if not isinstance(bootstrap_servers, (list, tuple)):

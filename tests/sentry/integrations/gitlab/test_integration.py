@@ -149,7 +149,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Step 2")
 
         # Go to back to instructions
-        resp = self.client.get(self.init_path + '?goback=1')
+        resp = self.client.get(self.init_path + "?goback=1")
         assert resp.status_code == 200
         self.assertContains(resp, "Step 1")
 
