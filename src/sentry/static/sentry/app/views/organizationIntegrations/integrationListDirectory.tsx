@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import flatten from 'lodash/flatten';
 import uniq from 'lodash/uniq';
+import startCase from 'lodash/startCase';
 
 import {
   Organization,
@@ -36,7 +37,8 @@ import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
-import {logExperiment} from 'app/utils/analytics';
+import withExperiment from 'app/utils/withExperiment';
+import {ExperimentAssignment} from 'app/types/experiments';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
@@ -44,6 +46,7 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
+  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -80,13 +83,6 @@ export class IntegrationListDirectory extends AsyncComponent<
       displayedList: [],
       selectedCategory: '',
     };
-  }
-
-  componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'IntegrationDirectoryCategoryExperiment',
-    });
   }
 
   onLoadAllEndpointsSuccess() {
@@ -416,7 +412,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {displayedList, selectedCategory, list} = this.state;
 
     const title = t('Integrations');
-    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
       <React.Fragment>
@@ -433,8 +429,8 @@ export class IntegrationListDirectory extends AsyncComponent<
                     onChange={this.onCategorySelect}
                     value={selectedCategory}
                     choices={[
-                      ['', t('All categories')],
-                      ...categoryList.map(category => [category, category]),
+                      ['', t('All Categories')],
+                      ...categoryList.map(category => [category, startCase(category)]),
                     ]}
                   />
                 ) : (
@@ -493,4 +489,8 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(IntegrationListDirectory);
+export default withOrganization(
+  withExperiment(IntegrationListDirectory, {
+    experiment: 'IntegrationDirectoryCategoryExperiment',
+  })
+);

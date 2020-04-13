@@ -358,6 +358,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
+                assert response.data["data"][0]["user"] == data["user"]["ip_address"]
                 assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
 
     def test_negative_user_search(self):
@@ -400,6 +401,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["user"] == user_data["email"]
             assert response.data["data"][0]["user.email"] == user_data["email"]
 
     def test_not_project_in_query(self):
@@ -603,7 +605,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["issue.id", "issue_title", "count(id)", "count_unique(user)"],
+                    "field": ["issue.id", "count(id)", "count_unique(user)"],
                     "orderby": "issue.id",
                 },
             )
@@ -1694,7 +1696,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["p75"] == "duration"
             assert meta["p95"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
-            assert meta["apdex_300"] == "number"
+            assert meta["apdex_300"] == "percentage"
+            assert meta["error_rate"] == "percentage"
             assert meta["impact"] == "number"
 
             data = response.data["data"]

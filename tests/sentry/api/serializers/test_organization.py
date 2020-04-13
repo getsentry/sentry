@@ -26,6 +26,7 @@ class OrganizationSerializerTest(TestCase):
                 "open-membership",
                 "integrations-issue-basic",
                 "integrations-issue-sync",
+                "data-forwarding",
                 "invite-members",
                 "sso-saml2",
                 "sso-basic",

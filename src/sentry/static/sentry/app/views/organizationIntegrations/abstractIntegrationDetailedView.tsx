@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import startCase from 'lodash/startCase';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -284,7 +285,7 @@ class AbstractIntegrationDetailedView<
           </Flex>
           <Flex>
             {tags.map(feature => (
-              <StyledTag key={feature}>{feature}</StyledTag>
+              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
             ))}
           </Flex>
         </NameContainer>
@@ -378,6 +379,7 @@ const CapitalizedLink = styled('a')`
 `;
 
 const StyledTag = styled(Tag)`
+  text-transform: none;
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
@@ -464,7 +466,7 @@ const DisableWrapper = styled('div')`
   align-self: center;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
 `;
 
 const CreatedContainer = styled('div')`

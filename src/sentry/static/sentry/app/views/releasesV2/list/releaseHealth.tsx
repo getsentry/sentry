@@ -14,7 +14,11 @@ import ScoreBar, {Bar} from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
 
 import HealthStatsChart from './healthStatsChart';
-import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
+import {
+  displayCrashFreePercent,
+  convertAdoptionToProgress,
+  getCrashFreePercentColor,
+} from '../utils';
 import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 import AdoptionTooltip from './adoptionTooltip';
@@ -105,7 +109,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeUsersColumn>
               {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <StyledProgressRing value={crashFreeUsers} />
+                  <StyledProgressRing
+                    progressColor={getCrashFreePercentColor}
+                    value={crashFreeUsers}
+                  />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeUsers)}
                   </ProgressRingCaption>
@@ -118,7 +125,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeSessionsColumn>
               {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <StyledProgressRing value={crashFreeSessions} />
+                  <StyledProgressRing
+                    progressColor={getCrashFreePercentColor}
+                    value={crashFreeSessions}
+                  />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeSessions)}
                   </ProgressRingCaption>

@@ -214,7 +214,7 @@ const ControlsWrapper = styled('div')`
 `;
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
   ${Panel} {
     /* smaller space between table and pagination */
     margin-bottom: -${space(1)};

@@ -19,7 +19,7 @@ type Props = {
   yAxis: YAxis;
 };
 
-class ReleaseChart extends React.Component<Props> {
+class HealthChart extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
@@ -78,7 +78,7 @@ class ReleaseChart extends React.Component<Props> {
 
     const legend = {
       right: 16,
-      top: 4,
+      top: 12,
       selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
@@ -116,4 +116,4 @@ class ReleaseChart extends React.Component<Props> {
   }
 }
 
-export default ReleaseChart;
+export default HealthChart;

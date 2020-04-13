@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
@@ -80,7 +81,7 @@ const IntegrationRow = (props: Props) => {
           {categories?.map(category => (
             <CategoryTag
               key={category}
-              category={category}
+              category={startCase(category)}
               priority={category === publishStatus}
             />
           ))}

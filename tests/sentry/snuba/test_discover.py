@@ -137,20 +137,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
-            selected_columns=["project.id", "user.email", "release"],
+            selected_columns=["project.id", "user", "release"],
             query="",
             params={"project_id": [self.project.id]},
         )
         data = result["data"]
         assert len(data) == 1
         assert data[0]["project.id"] == self.project.id
+        assert data[0]["user"] == "bruce@example.com", "alias prefers email"
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 3
-        assert result["meta"][0] == {"name": "project.id", "type": "UInt64"}
-        assert result["meta"][1] == {"name": "user.email", "type": "Nullable(String)"}
-        assert result["meta"][2] == {"name": "release", "type": "Nullable(String)"}
+        assert len(result["meta"]) == 6
+        assert result["meta"] == [
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "user.id", "type": "Nullable(String)"},
+            {"name": "user.username", "type": "Nullable(String)"},
+            {"name": "user.email", "type": "Nullable(String)"},
+            {"name": "user.ip", "type": "Nullable(String)"},
+            {"name": "release", "type": "Nullable(String)"},
+        ]
 
     def test_field_aliasing_in_aggregate_functions_and_groupby(self):
         result = discover.query(
