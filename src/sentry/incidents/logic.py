@@ -561,42 +561,23 @@ def snapshot_alert_rule(alert_rule):
     # It will also resolve any incidents attached to this rule.
     # with transaction.atomic():
     triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-
     incidents = Incident.objects.filter(alert_rule=alert_rule)
     alert_rule_snapshot = deepcopy(alert_rule)
-    
-    print("alert_rule_snapshot:",alert_rule_snapshot)
-    print("alert_rule_snapshot:",alert_rule_snapshot.status)
-    print("alert_rule_snapshot:",alert_rule_snapshot.id)
-
     alert_rule_snapshot.id = None
     alert_rule_snapshot.status = AlertRuleStatus.ARCHIVED.value
     alert_rule_snapshot.save()
 
-    print("alert_rule_snapshot:",alert_rule_snapshot)
-    print("alert_rule_snapshot:",alert_rule_snapshot.status)
-    print("alert_rule_snapshot:",alert_rule_snapshot.id)
-
     incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
 
-    # for trigger in triggers:
-    #     print("trigger:",trigger)
-    #     actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
-    #     trigger.id = None
-    #     trigger.alert_rule = alert_rule_snapshot
-    #     print("trigger:",trigger)
-    #     print("trigger:",trigger.alert_rule)
-    #     trigger_snapshot = trigger.save()
-    #     print("trigger snapshot:",trigger_snapshot)
-    #     print("trigger?:",trigger)
-    #     for action in actions:
-    #         action.id = None
-    #         action.alert_rule_trigger = trigger
-    #         print("saving action:",action)
-    #         print("saving action:",action.alert_rule_trigger)
-    #         print("saving action:",action.type)
-    #         print("saving action:",action.integration)
-    #         action.save()
+    for trigger in triggers:
+        actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+        trigger.id = None
+        trigger.alert_rule = alert_rule_snapshot
+        trigger.save()
+        for action in actions:
+            action.id = None
+            action.alert_rule_trigger = trigger
+            action.save()
 
 
 def update_alert_rule(
@@ -656,10 +637,7 @@ def update_alert_rule(
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
-            # TODO: This feels hacky, but the snapshot was changing our reference. I'm sure there is a better way to do this.
-            alert_rule_id = alert_rule.id
             snapshot_alert_rule(alert_rule)
-            alert_rule = AlertRule.objects.get(id=alert_rule_id)
 
         alert_rule.update(**updated_fields)
 

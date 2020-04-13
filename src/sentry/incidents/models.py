@@ -410,6 +410,8 @@ class AlertRule(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertrule"
+        base_manager_name = "objects_with_deleted"
+        default_manager_name = "objects_with_deleted"
         # This constraint does not match what is in migration 0061, since there is no
         # way to declare an index on an expression. Therefore, tests would break depending
         # on whether we run migrations - to work around this, we skip some tests if
