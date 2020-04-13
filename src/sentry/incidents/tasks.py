@@ -176,5 +176,5 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
 
     if has_more:
         auto_resolve_snapshot_incidents.apply_async(
-            kwargs={"alert_rule_id": alert_rule_id}, countdown=15
+            kwargs={"alert_rule_id": alert_rule_id}, countdown=1
         )
