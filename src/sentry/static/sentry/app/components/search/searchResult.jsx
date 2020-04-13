@@ -160,7 +160,7 @@ export default withRouter(SearchResult);
 const SearchTitle = styled('span')``;
 
 const SearchDetail = styled('div')`
-  font-siz: 0.8em;
+  font-size: 0.8em;
   line-height: 1.3;
   margin-top: 4px;
   opacity: 0.8;
