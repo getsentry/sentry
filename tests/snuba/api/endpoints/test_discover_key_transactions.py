@@ -140,12 +140,17 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     def test_max_key_transaction(self):
         data = load_data("transaction")
+        other_project = self.create_project(organization=self.org)
         for i in range(MAX_KEY_TRANSACTIONS):
+            if i % 2 == 0:
+                project = self.project
+            else:
+                project = other_project
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
                 transaction=data["transaction"] + six.text_type(i),
-                project=self.project,
+                project=project,
             )
         with self.feature("organizations:performance-view"):
             url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
