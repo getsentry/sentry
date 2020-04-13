@@ -53,13 +53,14 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         project = self.get_project(request, organization)
 
-        base_filter = {"organization": organization, "project": project, "owner": request.user}
+        base_filter = {"organization": organization, "owner": request.user}
 
         with transaction.atomic():
             serializer = KeyTransactionSerializer(data=request.data, context=base_filter)
             if serializer.is_valid():
                 data = serializer.validated_data
                 base_filter["transaction"] = data["transaction"]
+                base_filter["project"] = project
 
                 if KeyTransaction.objects.filter(**base_filter).count() > 0:
                     return Response(status=204)
