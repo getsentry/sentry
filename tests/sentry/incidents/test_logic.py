@@ -946,9 +946,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         rule_snapshot = AlertRule.objects_with_snapshots.filter(name=self.alert_rule.name).exclude(
             id=updated_rule.id
         )
-        assert rule_snapshot.status == AlertRuleStatus.SNAPSHOT
         assert rule_snapshot.count() == 1
         rule_snapshot = rule_snapshot.first()
+        assert rule_snapshot.status == AlertRuleStatus.SNAPSHOT.value
 
         # Rule snapshot should have properties of the rule before it was updated.
         assert rule_snapshot.id != updated_rule.id
