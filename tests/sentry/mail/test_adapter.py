@@ -229,10 +229,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
-    def test_notify_users_renders_interfaces_with_utf8(
-        self, _send_mail, _to_email_html, _get_title
-    ):
+    def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
         _to_email_html.return_value = u"רונית מגן"
         _get_title.return_value = "Stacktrace"
 
