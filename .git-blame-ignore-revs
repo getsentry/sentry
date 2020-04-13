@@ -7,6 +7,8 @@
 # chore: blacken take 2 (#14360)
 95767d455b8004ec4b4c5026d84b64b6348e6d37
 
+# ci: upgrade, apply, and require pre-commit (#18176)
+f952fedefe679d632077a2b334a913e9e68cfd91
 
 # feat(lint): Update prettier (#16505)
 # Required to properly support nullish coalescence operator and optional chaining.
@@ -24,7 +26,6 @@ d467e8894478662e0ceee9b5137be4ee6620b60d
 # chore: Run prettier on .eslintrc #10433
 # https://github.com/getsentry/sentry/pull/10433
 a2df8eab9b802966c8af6d0d61e6f97b5fbd3882
-
 
 # build(prettier): Upgrade prettier to 1.7.4 #6459
 # https://github.com/getsentry/sentry/pull/6459
