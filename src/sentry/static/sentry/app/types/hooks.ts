@@ -101,7 +101,7 @@ export type FeatureDisabledHooks = {
  */
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
-  'organization:header': GenericOrganizationComponentHook;
+  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
@@ -141,6 +141,11 @@ type RoutesHook = () => Route[];
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
+
+// TODO(ts): We should correct the organization header hook to conform to the
+// GenericOrganizationComponentHook, passing org as a prop object, not direct
+// as the only argument.
+type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
@@ -266,6 +271,10 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * the hook will have no effect.
    */
   id?: string;
+  /**
+   * The item label being wrapped
+   */
+  children: React.ReactNode;
 }>;
 
 /**
