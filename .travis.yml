@@ -165,12 +165,15 @@ matrix:
     - python: 3.7
       name: 'pre-commit hooks (includes python formatting + linting) and dependency scanning'
       install:
-        - pip freeze
+        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
+        # and the safety scanner won't like that (safety id 36810)
+        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
+        # travis 2.7. So this is isolated to at least travis 3.7.
+        - pip uninstall -y numpy
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
         # XXX: this must be synced with requirements-dev.txt
         - pip install 'sentry-flake8==0.3.0'
         - pip install safety
-        - pip freeze
       script:
         # black is going to rewrite the files in-place.
         # i need to either define a second hook that only runs --check --diff and conditionally run that,
