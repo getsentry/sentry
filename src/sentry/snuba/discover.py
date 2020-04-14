@@ -69,57 +69,45 @@ def is_real_column(col):
 
 
 def find_reference_event(reference_event):
-    columns = [field for field in reference_event.fields if is_real_column(field)]
-    return bulk_find_reference_event([reference_event], columns, "discover.find_reference_event")[0]
-
-
-def bulk_find_reference_event(reference_events, columns, referrer):
-    # We don't need to run a query if there are no columns
-    if not columns:
-        return None
-
-    project_ids = set()
-    snuba_filter = eventstore.Filter(event_ids=[])
-    for reference_event in reference_events:
-        try:
-            project_slug, event_id = reference_event.slug.split(":")
-            project = Project.objects.get(
-                slug=project_slug,
-                organization=reference_event.organization,
-                status=ProjectStatus.VISIBLE,
-            )
-        except (ValueError, Project.DoesNotExist):
-            raise InvalidSearchQuery("Invalid reference event")
-
-        project_ids.add(project.id)
-        snuba_filter.event_ids.append(event_id)
-
-        start = reference_event.start - timedelta(seconds=5) if reference_event.start else None
-        if start and (snuba_filter.start is None or snuba_filter.start > start):
-            snuba_filter.start = start
-        end = reference_event.end + timedelta(seconds=5) if reference_event.end else None
-        if end and (snuba_filter.end is None or snuba_filter.end > end):
-            snuba_filter.end = end
-
-    snuba_filter.project_ids = list(project_ids)
-    snuba_filter.update_with(resolve_field_list(columns, snuba_filter, auto_fields=False))
-    snuba_filter, _ = resolve_discover_aliases(snuba_filter)
-
-    event = raw_query(
-        selected_columns=snuba_filter.selected_columns,
-        filter_keys=snuba_filter.filter_keys,
-        aggregations=snuba_filter.aggregations,
-        start=snuba_filter.start,
-        end=snuba_filter.end,
-        groupby=snuba_filter.groupby,
-        dataset=Dataset.Discover,
-        limit=len(reference_events),
-        referrer=referrer,
-    )
-    if "error" in event or len(event["data"]) != len(reference_events):
+    try:
+        project_slug, event_id = reference_event.slug.split(":")
+    except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
 
-    return event["data"]
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
+    try:
+        project = Project.objects.get(
+            slug=project_slug,
+            organization=reference_event.organization,
+            status=ProjectStatus.VISIBLE,
+        )
+    except Project.DoesNotExist:
+        raise InvalidSearchQuery("Invalid reference event")
+
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
+
+    event = raw_query(
+        selected_columns=column_names,
+        filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        start=start,
+        end=end,
+        dataset=Dataset.Discover,
+        limit=1,
+        referrer="discover.find_reference_event",
+    )
+    if "error" in event or len(event["data"]) != 1:
+        raise InvalidSearchQuery("Invalid reference event")
+
+    return event["data"][0]
 
 
 def create_reference_event_conditions(reference_event):
