@@ -13,6 +13,7 @@ from sentry.digests.notifications import (
     sort_group_contents,
     sort_rule_groups,
     split_key,
+    unsplit_key,
 )
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import Rule
@@ -136,3 +137,18 @@ class SplitKeyTestCase(TestCase):
                 self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
             )
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier)
+
+
+class UnsplitKeyTestCase(TestCase):
+    def test_no_identifier(self):
+        assert unsplit_key(
+            self.project, ActionTargetType.ISSUE_OWNERS, None
+        ) == "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
+
+    def test_identifier(self):
+        identifier = "123"
+        assert unsplit_key(
+            self.project, ActionTargetType.ISSUE_OWNERS, identifier
+        ) == "mail:p:{}:{}:{}".format(
+            self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
+        )
