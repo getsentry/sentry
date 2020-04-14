@@ -113,7 +113,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 5) : emptyValue}
+        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
       </NumberContainer>
     ),
   },

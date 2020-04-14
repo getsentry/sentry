@@ -1083,7 +1083,7 @@ FUNCTIONS = {
         "name": "apdex",
         "args": [NumberRange("satisfaction", 0, None)],
         "transform": u"apdex(duration, {satisfaction:g})",
-        "result_type": "percentage",
+        "result_type": "number",
     },
     "impact": {
         "name": "impact",
