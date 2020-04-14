@@ -6,7 +6,6 @@ import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
-import space from 'app/styles/space';
 
 /*
  * A higher level dropdown component that helps with building complete dropdowns
@@ -109,29 +108,6 @@ const MenuContainer = styled(DropdownBubble.withComponent('ul'))`
 const DropdownItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray2};
-
-  & a,
-  & .menu-target {
-    color: ${p => p.theme.foreground};
-    display: block;
-    padding: ${space(0.5)} ${space(2)};
-  }
-  & a:hover,
-  & .menu-target:hover {
-    background: ${p => p.theme.offWhite};
-  }
-  & a:focus,
-  & .menu-target:focus {
-    outline: none;
-  }
-
-  &.active a,
-  &.active a:hover,
-  &.active .menu-target,
-  &.active .menu-target:hover {
-    color: ${p => p.theme.white};
-    background: ${p => p.theme.purple};
-  }
 `;
 
 export default DropdownControl;

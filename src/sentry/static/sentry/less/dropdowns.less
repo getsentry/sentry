@@ -1,9 +1,7 @@
 .dropdown-menu {
   z-index: 1001;
-  .dropdown-header,
   .dropdown-toggle,
-  > li a,
-  > li span.menu-target {
+  > li a {
     display: block;
     padding: 3px 10px;
   }
@@ -40,6 +38,7 @@
   }
 
   &:hover > span {
+    background: @white-darker;
     > a:after {
       border-left-color: #fff;
     }
