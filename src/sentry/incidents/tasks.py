@@ -14,7 +14,6 @@ from sentry.incidents.models import (
     IncidentStatus,
     INCIDENT_STATUS,
 )
-from sentry.incidents.logic import update_incident_status
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task, retry
@@ -154,13 +153,14 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
 @retry(exclude=(DeleteAborted,))
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     from sentry.incidents.models import AlertRule
+    from sentry.incidents.logic import update_incident_status
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
     except AlertRule.DoesNotExist:
         return
 
-    if alert_rule.status not in (AlertRuleStatus.SNAPSHOT.value):
+    if alert_rule.status != AlertRuleStatus.SNAPSHOT.value:
         raise DeleteAborted
 
     incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED)
