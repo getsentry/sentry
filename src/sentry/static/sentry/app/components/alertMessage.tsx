@@ -19,9 +19,10 @@ type AlertType = {
 type Props = {
   alert: AlertType;
   system: boolean;
+  hideCloseButton?: boolean;
 };
 
-const AlertMessage = ({alert, system}: Props) => {
+const AlertMessage = ({alert, system, hideCloseButton}: Props) => {
   const handleCloseAlert = () => {
     AlertActions.closeAlert(alert);
   };
@@ -30,18 +31,22 @@ const AlertMessage = ({alert, system}: Props) => {
   const icon =
     type === 'success' ? <IconCheckmark size="md" circle /> : <IconWarning size="md" />;
 
+  const closeButton = hideCloseButton ? null : (
+    <StyledCloseButton
+      icon={<IconClose size="md" circle />}
+      aria-label={t('Close')}
+      onClick={handleCloseAlert}
+      size="zero"
+      borderless
+    />
+  );
+
   return (
     <StyledAlert type={type} icon={icon} system={system}>
       <StyledMessage>
         {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
       </StyledMessage>
-      <StyledCloseButton
-        icon={<IconClose size="md" circle />}
-        aria-label={t('Close')}
-        onClick={handleCloseAlert}
-        size="zero"
-        borderless
-      />
+      {closeButton}
     </StyledAlert>
   );
 };
