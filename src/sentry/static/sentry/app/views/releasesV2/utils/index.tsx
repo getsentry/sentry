@@ -42,6 +42,9 @@ export const decideReleasesVersion = async hasNewReleases => {
     return hasNewReleases(organization.features.includes('releases-v2'));
   }
 
+  // in case there is no organization in the store yet, we fetch it
+  // this function is being called from the routes file where we do not have access to much stuff at that point
+  // we will be removing this logic once we go GA with releases v2 in a few weeks
   try {
     const currentOrgSlug = location.pathname.split('/')[2];
     const fetchedOrg = await api.requestPromise(`/organizations/${currentOrgSlug}/`, {
