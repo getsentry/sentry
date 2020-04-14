@@ -112,9 +112,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="query"
             label={t('Filter')}
             placeholder="error.type:TypeError"
-            help={t(
-              'You can apply standard Sentry filter syntax to filter by status, user, etc.'
-            )}
+            help={t('Note: A filter of event.type:error is automatically applied')}
           >
             {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
