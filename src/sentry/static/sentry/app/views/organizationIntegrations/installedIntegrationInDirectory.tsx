@@ -6,6 +6,7 @@ import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
@@ -171,7 +172,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                 <StyledButton
                   disabled={!hasAccess}
                   borderless
-                  icon="icon-trash"
+                  icon={<IconDelete />}
                   data-test-id="integration-remove-button"
                 >
                   Uninstall

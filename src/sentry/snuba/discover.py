@@ -395,19 +395,45 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter):
+def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    # Translate back columns that were converted to snuba format
+    if selected_columns is None:
+        selected_columns = []
+
+    # Determine user related fields to prune based on what wasn't selected.
+    user_fields = FIELD_ALIASES["user"]["fields"]
+    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
+
+    # If the user field was selected update the meta data
+    has_user = selected_columns and "user" in selected_columns
+    meta = []
     for col in result["meta"]:
+        # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
+        # Remove user fields as they will be replaced by the alias.
+        if has_user and col["name"] in user_fields_to_remove:
+            continue
+        meta.append(col)
+    if has_user:
+        meta.append({"name": "user", "type": "Nullable(String)"})
+    result["meta"] = meta
 
     def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
+        transformed = {translated_columns.get(key, key): value for key, value in row.items()}
+        if has_user:
+            for field in user_fields:
+                if field in transformed and transformed[field]:
+                    transformed["user"] = transformed[field]
+                    break
+            # Remove user component fields once the alias is resolved.
+            for field in user_fields_to_remove:
+                del transformed[field]
+        return transformed
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
@@ -602,7 +628,7 @@ def query(
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns, snuba_filter)
+    return transform_results(result, translated_columns, snuba_filter, selected_columns)
 
 
 def key_transaction_conditions(queryset):

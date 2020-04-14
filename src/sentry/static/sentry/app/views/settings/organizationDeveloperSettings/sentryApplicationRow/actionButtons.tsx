@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LightWeightOrganization, SentryApp} from 'app/types';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons/iconDelete';
 import ConfirmDelete from 'app/components/confirmDelete';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -62,7 +63,7 @@ const ActionButtons = ({
         disabled
         title={disableDeleteReason}
         size="small"
-        icon="icon-trash"
+        icon={<IconDelete />}
         label="Delete"
       />
     ) : (
@@ -73,7 +74,7 @@ const ActionButtons = ({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="small" icon="icon-trash" label="Delete" />
+          <StyledButton size="small" icon={<IconDelete />} label="Delete" />
         </ConfirmDelete>
       )
     )

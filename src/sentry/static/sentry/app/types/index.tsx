@@ -938,6 +938,7 @@ export type NewQuery = {
   environment?: Readonly<string[]>;
   tags?: Readonly<string[]>;
   yAxis?: string;
+  display?: string;
   createdBy?: User;
 };
 
@@ -1142,3 +1143,13 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
+
+export type Activity = {
+  data: any;
+  dateCreated: string;
+  type: string;
+  id: string;
+  issue?: Group;
+  project: Project;
+  user?: User;
+};

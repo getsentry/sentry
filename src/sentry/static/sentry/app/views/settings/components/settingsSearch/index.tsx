@@ -9,11 +9,13 @@ import Search from 'app/components/search';
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
 
-class SettingsSearch extends React.Component {
-  searchInput = React.createRef();
+type Props = React.ComponentProps<typeof Search>;
+
+class SettingsSearch extends React.Component<Props> {
+  searchInput = React.createRef<HTMLInputElement>();
 
   @keydown('/')
-  handleFocusSearch(e) {
+  handleFocusSearch(e: React.FormEvent<HTMLInputElement>) {
     if (!this.searchInput.current) {
       return;
     }

@@ -31,7 +31,7 @@ const YAXIS_OPTIONS = [
   {
     label: 'Throughput',
     value: 'rpm()',
-    tooltip: 'Throughput is the number of recorded requests per minute (rpm).',
+    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
   },
 ];
 
@@ -41,11 +41,12 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
+  keyTransactions: boolean;
 };
 
 class Container extends React.Component<Props> {
   render() {
-    const {api, organization, location, eventView, router} = this.props;
+    const {api, organization, location, eventView, router, keyTransactions} = this.props;
 
     // construct request parameters for fetching chart data
 
@@ -83,6 +84,7 @@ class Container extends React.Component<Props> {
             query={eventView.getEventsAPIPayload(location).query}
             includePrevious={false}
             yAxis={YAXIS_OPTIONS.map(option => option.value)}
+            keyTransactions={keyTransactions}
           >
             {({loading, reloading, errored, results}) => {
               if (errored) {
