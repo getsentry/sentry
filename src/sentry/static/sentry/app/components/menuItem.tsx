@@ -212,7 +212,9 @@ const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
 `;
 
-const MenuLink = styled(Link)<MenuListItemProps>`
+const MenuLink = styled(Link, {
+  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+})<MenuListItemProps>`
   display: block;
   padding: ${space(0.5)} ${space(2)};
 
