@@ -96,7 +96,6 @@ class PluginConfigMixin(ProviderMixin):
     def get_metadata(self):
         """
         Return extra metadata which is used to represent this plugin.
-
         This is available via the API, and commonly used for runtime
         configuration that changes per-install, but not per-project.
         """

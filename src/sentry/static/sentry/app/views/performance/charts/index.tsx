@@ -31,7 +31,7 @@ const YAXIS_OPTIONS = [
   {
     label: 'Throughput',
     value: 'rpm()',
-    tooltip: 'Throughput is the number of recorded requests per minute (rpm).',
+    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
   },
 ];
 

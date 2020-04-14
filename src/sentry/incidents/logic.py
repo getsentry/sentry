@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import timedelta
-from uuid import uuid4
 
 import six
 from django.db import transaction
@@ -40,6 +40,8 @@ from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     bulk_update_snuba_subscriptions,
 )
+from sentry.snuba.tasks import apply_dataset_conditions
+from sentry.utils.db import attach_foreignkey
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 from sentry.utils.compat import zip
 
@@ -301,6 +303,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
     ).values_list("incident_id", "project_id"):
         incident_projects[incident_id].append(project_id)
 
+    attach_foreignkey(incidents, Incident.alert_rule)
+
     query_args_list = []
     for incident in incidents:
         params = {}
@@ -317,10 +321,15 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
             params["project_id"] = project_ids
 
         snuba_filter = get_filter(incident.query, params)
+        conditions = resolve_discover_aliases(snuba_filter)[0].conditions
+        if incident.alert_rule:
+            conditions = apply_dataset_conditions(
+                QueryDatasets(incident.alert_rule.dataset), conditions
+            )
         snuba_args = {
             "start": snuba_filter.start,
             "end": snuba_filter.end,
-            "conditions": resolve_discover_aliases(snuba_filter)[0].conditions,
+            "conditions": conditions,
             "filter_keys": snuba_filter.filter_keys,
             "having": [],
         }
@@ -555,6 +564,30 @@ def create_alert_rule(
     return alert_rule
 
 
+def snapshot_alert_rule(alert_rule):
+    # Creates an archived alert_rule using the same properties as the passed rule
+    # It will also resolve any incidents attached to this rule.
+    with transaction.atomic():
+        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        incidents = Incident.objects.filter(alert_rule=alert_rule)
+        alert_rule_snapshot = deepcopy(alert_rule)
+        alert_rule_snapshot.id = None
+        alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule_snapshot.save()
+
+        incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+
+        for trigger in triggers:
+            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+            trigger.id = None
+            trigger.alert_rule = alert_rule_snapshot
+            trigger.save()
+            for action in actions:
+                action.id = None
+                action.alert_rule_trigger = trigger
+                action.save()
+
+
 def update_alert_rule(
     alert_rule,
     projects=None,
@@ -610,7 +643,12 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
 
     with transaction.atomic():
+        incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
+        if incidents:
+            snapshot_alert_rule(alert_rule)
+
         alert_rule.update(**updated_fields)
+
         existing_subs = []
         if (
             query is not None
@@ -734,21 +772,18 @@ def delete_alert_rule(alert_rule):
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
-    if alert_rule.status in (
-        AlertRuleStatus.PENDING_DELETION.value,
-        AlertRuleStatus.DELETION_IN_PROGRESS.value,
-    ):
+    if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
     with transaction.atomic():
-        alert_rule.update(
-            # Randomize the name here so that we don't get unique constraint issues
-            # while waiting for the deletion to process
-            name=uuid4().hex,
-            status=AlertRuleStatus.PENDING_DELETION.value,
-        )
+        incidents = Incident.objects.filter(alert_rule=alert_rule)
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
-    tasks.delete_alert_rule.apply_async(kwargs={"alert_rule_id": alert_rule.id})
+        if incidents:
+            alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
+            for incident in incidents:
+                incident.update(status=IncidentStatus.CLOSED.value)
+        else:
+            alert_rule.delete()
 
 
 def validate_alert_rule_query(query):

@@ -168,7 +168,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                               <Component
                                 aria-disabled={false}
                                 aria-label="Create Project"
-                                className="css-z8at1v-StyledButton edwq9my0"
+                                className="css-1mpdtii-StyledButton edwq9my0"
                                 forwardRef={null}
                                 onClick={[Function]}
                                 role="button"
@@ -178,7 +178,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                 <Link
                                   aria-disabled={false}
                                   aria-label="Create Project"
-                                  className="css-z8at1v-StyledButton edwq9my0"
+                                  className="css-1mpdtii-StyledButton edwq9my0"
                                   onClick={[Function]}
                                   onlyActiveOnIndex={false}
                                   role="button"
@@ -189,7 +189,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                   <a
                                     aria-disabled={false}
                                     aria-label="Create Project"
-                                    className="css-z8at1v-StyledButton edwq9my0"
+                                    className="css-1mpdtii-StyledButton edwq9my0"
                                     onClick={[Function]}
                                     role="button"
                                     size="small"

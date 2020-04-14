@@ -198,7 +198,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             )
 
         # Asserts that all are in the same group
-        group_id, = set(e.group.id for e in events.values())
+        (group_id,) = set(e.group.id for e in events.values())
 
         url = u"/api/0/issues/{}/events/".format(group_id)
         response = self.client.get(url + "?environment=production", format="json")

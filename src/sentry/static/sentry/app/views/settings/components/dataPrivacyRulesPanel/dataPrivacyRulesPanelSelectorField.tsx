@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
@@ -47,11 +45,13 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
 
   componentDidMount() {
     this.loadFieldValues(this.props.value);
+    this.hideSuggestions();
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.selectorSuggestions !== this.props.selectorSuggestions) {
       this.loadFieldValues(this.props.value);
+      this.hideSuggestions();
     }
   }
 
@@ -99,9 +99,9 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       s => s.value.toLowerCase().indexOf(value.toLowerCase()) > -1
     );
 
-    const showSuggestions =
-      !(filteredSuggestions.length === 1 && filteredSuggestions[0].value === value) &&
-      this.state.fieldValues.length !== 0;
+    const showSuggestions = !(
+      filteredSuggestions.length === 1 && filteredSuggestions[0].value === value
+    );
 
     this.setState({
       showSuggestions,
@@ -164,12 +164,29 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
   };
 
+  hideSuggestions = () => {
+    this.setState({
+      showSuggestions: false,
+    });
+  };
+
   loadFieldValues = (newValue: string) => {
-    const splittedValue = newValue.split(' ');
     const fieldValues: Array<Suggestion | Array<Suggestion>> = [];
+
+    const splittedValue = newValue.split(' ');
 
     for (const splittedValueIndex in splittedValue) {
       const value = splittedValue[splittedValueIndex];
+      const lastFieldValue = fieldValues[fieldValues.length - 1];
+
+      if (
+        lastFieldValue &&
+        !Array.isArray(lastFieldValue) &&
+        !lastFieldValue.value &&
+        !value
+      ) {
+        continue;
+      }
 
       if (value.includes('!') && !!value.split('!')[1]) {
         const valueAfterUnaryOperator = value.split('!')[1];
@@ -288,58 +305,37 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
     });
   };
 
-  handleKeyDown = debounce(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      event.persist();
+  handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    event.persist();
 
-      const {keyCode} = event;
-      const {fieldValues, activeSuggestion, suggestions} = this.state;
+    const {keyCode} = event;
+    const {activeSuggestion, suggestions} = this.state;
 
-      if (keyCode === 8) {
-        const lastFieldValue = fieldValues[fieldValues.length - 1];
-        if (Array.isArray(lastFieldValue) && lastFieldValue[1].value.length === 1) {
-          this.setState({
-            fieldValues: [...fieldValues, lastFieldValue[0]],
-          });
-        }
+    if (keyCode === 13) {
+      this.handleClickSuggestionItem(suggestions[activeSuggestion])();
+      return;
+    }
+
+    if (keyCode === 38) {
+      if (activeSuggestion === 0) {
         return;
       }
+      this.setState({activeSuggestion: activeSuggestion - 1}, () => {
+        this.scrollToSuggestion();
+      });
+      return;
+    }
 
-      if (keyCode === 13) {
-        this.handleClickSuggestionItem(suggestions[activeSuggestion])();
+    if (keyCode === 40) {
+      if (activeSuggestion === suggestions.length - 1) {
         return;
       }
-
-      if (keyCode === 38) {
-        if (activeSuggestion === 0) {
-          return;
-        }
-        this.setState({activeSuggestion: activeSuggestion - 1}, () => {
-          this.scrollToSuggestion();
-        });
-        return;
-      }
-
-      if (keyCode === 40) {
-        if (activeSuggestion === suggestions.length - 1) {
-          return;
-        }
-        this.setState({activeSuggestion: activeSuggestion + 1}, () => {
-          this.scrollToSuggestion();
-        });
-        return;
-      }
-
-      if (keyCode === 32) {
-        this.setState({
-          fieldValues: [...fieldValues, {value: ' ', type: 'string'}],
-        });
-        return;
-      }
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+      this.setState({activeSuggestion: activeSuggestion + 1}, () => {
+        this.scrollToSuggestion();
+      });
+      return;
+    }
+  };
 
   handleFocus = () => {
     this.setState({
@@ -401,16 +397,12 @@ const Wrapper = styled('div')`
 
 const StyledTextField = styled(TextField)<{error?: string}>`
   width: 100%;
-  height: 34px;
   font-size: ${p => p.theme.fontSizeSmall};
+  height: 34px;
   input {
     height: 34px;
   }
-  ${p =>
-    !p.error &&
-    `
-      margin-bottom: 0;
-    `}
+  margin-bottom: 0;
 `;
 
 const SuggestionsWrapper = styled('ul')`

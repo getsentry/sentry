@@ -361,7 +361,7 @@ class IncidentAlertRuleRelationTest(TestCase):
         all_alert_rules = list(AlertRule.objects.all())
         assert self.alert_rule in all_alert_rules
 
-        self.alert_rule.status = AlertRuleStatus.ARCHIVED.value
+        self.alert_rule.status = AlertRuleStatus.SNAPSHOT.value
         self.alert_rule.save()
 
         all_alert_rules = list(AlertRule.objects.all())

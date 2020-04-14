@@ -22,6 +22,22 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         self.project = self.create_project(name="bar", organization=self.org)
 
+    def test_save_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 1
+
     def test_save_key_transaction(self):
         data = load_data("transaction")
         with self.feature("organizations:performance-view"):
@@ -38,6 +54,28 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         key_transaction = key_transactions.first()
         assert key_transaction.transaction == data["transaction"]
         assert key_transaction.organization == self.org
+
+    def test_multiple_user_save(self):
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+
+        self.login_as(user=user, superuser=False)
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(transaction=data["transaction"])
+        assert len(key_transactions) == 2
 
     def test_duplicate_key_transaction(self):
         data = load_data("transaction")
@@ -102,12 +140,17 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     def test_max_key_transaction(self):
         data = load_data("transaction")
+        other_project = self.create_project(organization=self.org)
         for i in range(MAX_KEY_TRANSACTIONS):
+            if i % 2 == 0:
+                project = self.project
+            else:
+                project = other_project
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
                 transaction=data["transaction"] + six.text_type(i),
-                project=self.project,
+                project=project,
             )
         with self.feature("organizations:performance-view"):
             url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
@@ -411,6 +454,78 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             == 0
         )
 
+    def test_delete_transaction_with_another_user(self):
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+
+        assert response.status_code == 204
+        # Original user still has a key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 1
+        )
+        # Deleting user has deleted the key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 0
+        )
+
+    def test_delete_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+        assert response.status_code == 204
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 0
+
     def test_delete_nonexistent_transaction(self):
         event_data = load_data("transaction")
 
@@ -694,3 +809,16 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             [{"count": 0}],
             [{"count": 0}],
         ]
+
+    def test_key_transactions_without_feature(self):
+        url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+        functions = [self.client.get, self.client.post, self.client.delete]
+        for function in functions:
+            response = function(url)
+            assert response.status_code == 404
+        url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
+        response = self.client.get(url)
+        assert response.status_code == 404
+        url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+        response = self.client.get(url)
+        assert response.status_code == 404

@@ -76,7 +76,7 @@ describe('TableField', function() {
 
         // delete the last row
         wrapper
-          .find('Button[icon="icon-trash"]')
+          .find('button[aria-label="delete"]')
           .last()
           .simulate('click');
 

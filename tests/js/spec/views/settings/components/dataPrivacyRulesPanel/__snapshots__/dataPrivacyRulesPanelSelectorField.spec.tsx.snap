@@ -82,7 +82,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
       >
         <TextField
           autoComplete="off"
-          className="css-16uh7iz-StyledTextField e1e07je01"
+          className="css-lml2jl-StyledTextField e1e07je01"
           disabled={false}
           hideErrorMessage={false}
           name="from"
@@ -94,7 +94,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
           value="$string"
         >
           <div
-            className="css-16uh7iz-StyledTextField e1e07je01 control-group"
+            className="css-lml2jl-StyledTextField e1e07je01 control-group"
           >
             <div
               className="controls"

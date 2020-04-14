@@ -133,6 +133,13 @@ class MailAdapter(object):
         """
         return project.get_notification_recipients(self.alert_option_key)
 
+    def should_notify(self, group):
+        send_to = self.get_sendable_users(group.project)
+        if not send_to:
+            return False
+
+        return group.is_unresolved()
+
     def get_send_to(self, project, event=None):
         """
         Returns a list of user IDs for the users that should receive

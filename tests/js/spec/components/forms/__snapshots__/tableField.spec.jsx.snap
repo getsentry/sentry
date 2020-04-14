@@ -284,7 +284,7 @@ exports[`TableField renders renders with form context 1`] = `
                                             <Component
                                               aria-disabled={false}
                                               aria-label="Add Thing"
-                                              className="css-12ogwys-StyledButton edwq9my0"
+                                              className="css-1he25ws-StyledButton edwq9my0"
                                               forwardRef={null}
                                               onClick={[Function]}
                                               role="button"
@@ -293,7 +293,7 @@ exports[`TableField renders renders with form context 1`] = `
                                               <button
                                                 aria-disabled={false}
                                                 aria-label="Add Thing"
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -303,7 +303,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <span
-                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                    className="css-1acbab4-ButtonLabel edwq9my1"
                                                   >
                                                     <Icon
                                                       hasChildren={true}
@@ -474,7 +474,7 @@ exports[`TableField renders renders with form context 1`] = `
                     <Component
                       aria-disabled={false}
                       aria-label="Save Changes"
-                      className="css-1e05jtd-StyledButton edwq9my0"
+                      className="css-1f41kyg-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       forwardRef={null}
                       onClick={[Function]}
@@ -484,7 +484,7 @@ exports[`TableField renders renders with form context 1`] = `
                       <button
                         aria-disabled={false}
                         aria-label="Save Changes"
-                        className="css-1e05jtd-StyledButton edwq9my0"
+                        className="css-1f41kyg-StyledButton edwq9my0"
                         data-test-id="form-submit"
                         onClick={[Function]}
                         role="button"
@@ -495,7 +495,7 @@ exports[`TableField renders renders with form context 1`] = `
                           priority="primary"
                         >
                           <span
-                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            className="css-fkumu4-ButtonLabel edwq9my1"
                           >
                             Save Changes
                           </span>
@@ -705,7 +705,7 @@ exports[`TableField renders renders without form context 1`] = `
                                       <Component
                                         aria-disabled={false}
                                         aria-label="Add Item"
-                                        className="css-12ogwys-StyledButton edwq9my0"
+                                        className="css-1he25ws-StyledButton edwq9my0"
                                         forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
@@ -714,7 +714,7 @@ exports[`TableField renders renders without form context 1`] = `
                                         <button
                                           aria-disabled={false}
                                           aria-label="Add Item"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-1he25ws-StyledButton edwq9my0"
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -724,7 +724,7 @@ exports[`TableField renders renders without form context 1`] = `
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              className="css-1acbab4-ButtonLabel edwq9my1"
                                             >
                                               <Icon
                                                 hasChildren={true}

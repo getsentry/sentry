@@ -1019,7 +1019,7 @@ exports[`ProjectCard renders 1`] = `
                             <Component
                               aria-disabled={false}
                               aria-label="Track deploys"
-                              className="css-12ogwys-StyledButton edwq9my0"
+                              className="css-1he25ws-StyledButton edwq9my0"
                               external={true}
                               forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
@@ -1030,7 +1030,7 @@ exports[`ProjectCard renders 1`] = `
                               <ForwardRef(ExternalLink)
                                 aria-disabled={false}
                                 aria-label="Track deploys"
-                                className="css-12ogwys-StyledButton edwq9my0"
+                                className="css-1he25ws-StyledButton edwq9my0"
                                 href="https://docs.sentry.io/learn/releases/"
                                 onClick={[Function]}
                                 role="button"
@@ -1039,7 +1039,7 @@ exports[`ProjectCard renders 1`] = `
                                 <a
                                   aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-12ogwys-StyledButton edwq9my0"
+                                  className="css-1he25ws-StyledButton edwq9my0"
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
                                   rel="noreferrer noopener"
@@ -1052,7 +1052,7 @@ exports[`ProjectCard renders 1`] = `
                                     size="xsmall"
                                   >
                                     <span
-                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                     >
                                       Track deploys
                                     </span>

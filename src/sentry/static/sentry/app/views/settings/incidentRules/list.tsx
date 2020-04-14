@@ -11,7 +11,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconEdit} from 'app/icons/iconEdit';
+import {IconDelete, IconEdit} from 'app/icons';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
@@ -109,7 +109,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                         <Button
                           type="button"
                           size="small"
-                          icon="icon-trash"
+                          icon={<IconDelete />}
                           label={t('Remove Rule')}
                         />
                       </Confirm>

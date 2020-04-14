@@ -271,10 +271,7 @@ class IncidentSubscription(Model):
 
 class AlertRuleStatus(Enum):
     PENDING = 0
-    TRIGGERED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
-    ARCHIVED = 4
+    SNAPSHOT = 4
 
 
 class AlertRuleThresholdType(Enum):
@@ -284,7 +281,7 @@ class AlertRuleThresholdType(Enum):
 
 class AlertRuleManager(BaseManager):
     """
-    A manager that excludes all rows that are pending deletion.
+    A manager that excludes all rows that are snapshots.
     """
 
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
@@ -293,13 +290,7 @@ class AlertRuleManager(BaseManager):
         return (
             super(AlertRuleManager, self)
             .get_queryset()
-            .exclude(
-                status__in=(
-                    AlertRuleStatus.PENDING_DELETION.value,
-                    AlertRuleStatus.DELETION_IN_PROGRESS.value,
-                    AlertRuleStatus.ARCHIVED.value,
-                )
-            )
+            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
     def fetch_for_organization(self, organization):
@@ -380,7 +371,7 @@ class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
-    objects_with_deleted = BaseManager()
+    objects_with_snapshots = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     query_subscriptions = models.ManyToManyField(
@@ -410,6 +401,8 @@ class AlertRule(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertrule"
+        base_manager_name = "objects_with_snapshots"
+        default_manager_name = "objects_with_snapshots"
         # This constraint does not match what is in migration 0061, since there is no
         # way to declare an index on an expression. Therefore, tests would break depending
         # on whether we run migrations - to work around this, we skip some tests if

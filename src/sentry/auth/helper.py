@@ -150,7 +150,9 @@ def handle_existing_identity(
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr("sso.login-success", tags={"provider": provider.key}, skip_internal=False, sample_rate=1.0)
+    metrics.incr(
+        "sso.login-success", tags={"provider": provider.key}, skip_internal=False, sample_rate=1.0
+    )
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 

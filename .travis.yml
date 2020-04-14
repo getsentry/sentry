@@ -81,7 +81,6 @@ script:
   # certain commands require sentry init to be run, but this is only true for
   # running things within Travis
   - make travis-test-$TEST_SUITE
-  - make travis-scan-$TEST_SUITE
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
 
@@ -152,24 +151,41 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    # Lint python and javascript together
-    - python: 2.7
-      name: 'Linter'
-      env: TEST_SUITE=lint
+    - language: generic
+      name: 'Linter (Javascript)'
+      env: TEST_SUITE=lint-js
       install:
-        - python setup.py install_egg_info
-        - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
+        # Under a "generic" language environment, this will make travis pyenv error because there
+        # is no pyenv python installed.
+        - rm .python-version
         - nvm install
         - ./bin/yarn install --frozen-lockfile
 
-    # Proactive linting on 3.7 during the porting process
     - python: 3.7
-      name: 'Linter (Python 3.7)'
-      # XXX: this must be synced with requirements-dev.txt
-      install: pip install 'sentry-flake8==0.3.0'
-      # configuration for flake8 can be found in setup.cfg
-      script: flake8
+      name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
+      install:
+        # XXX: this must be synced with requirements-dev.txt
+        - pip install 'sentry-flake8==0.3.0'
+        - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
+      script:
+        # black is going to rewrite the files in-place.
+        # i need to either define a second hook that only runs --check --diff and conditionally run that,
+        # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
+        - pre-commit run --all-files
+        # If pre-commit was good, then we scan dependencies.
+        # Note that this isn't moved to an after_script since that would override what we already have.
+        # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
+        # see the note in bin/scan on why this needs to be done for now.
+        # Note that this will mostly noop because we pull in a cached venv from Travis.
+        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
+        - pip install safety
+        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
+        # and the safety scanner won't like that (safety id 36810)
+        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
+        # travis 2.7. So this is isolated to at least travis 3.7.
+        - pip uninstall -y numpy
+        - bin/scan
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
@@ -261,24 +277,24 @@ matrix:
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
     #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
     # Allowed to fail!
-    - python: 3.6
-      name: 'Python 3.6 backend (no migrations) [Postgres]'
-      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
-      services:
-        - memcached
-        - redis-server
-        - postgresql
-      before_install:
-        - *base_install
-        - *start_snuba
-        - docker ps -a
-      install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
-        - pip uninstall -y rb
-        - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
-      before_script:
-        - psql -c 'create database sentry;' -U postgres
+    # - python: 3.6
+    #   name: 'Python 3.6 backend (no migrations) [Postgres]'
+    #   env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
+    #   services:
+    #     - memcached
+    #     - redis-server
+    #     - postgresql
+    #   before_install:
+    #     - *base_install
+    #     - *start_snuba
+    #     - docker ps -a
+    #   install:
+    #     - python setup.py install_egg_info
+    #     - pip install -U -e ".[dev]"
+    #     - pip uninstall -y rb
+    #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
+    #   before_script:
+    #     - psql -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
@@ -292,9 +308,6 @@ matrix:
       script: ./bin/yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
-
-  allow_failures:
-    - name: 'Python 3.6 backend (no migrations) [Postgres]'
 
 notifications:
   webhooks:

@@ -20,6 +20,10 @@ class DataExportTest(APITestCase):
     def test_authorization(self):
         # Without the data-export feature, the endpoint should 404
         self.get_valid_response(self.organization.slug, status_code=404, **self.payload)
+        # Without project permissions, the endpoint should 403
+        modified_payload = {"query_type": self.payload["query_type"], "query_info": {"project": -5}}
+        with self.feature("organizations:data-export"):
+            self.get_valid_response(self.organization.slug, status_code=403, **modified_payload)
         # Without the discover-basic feature, the endpoint should 403
         discover_payload = {"query_type": "Discover", "query_info": self.payload["query_info"]}
         with self.feature("organizations:data-export"):

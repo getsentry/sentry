@@ -48,7 +48,7 @@ const DataPrivacyRulesEventIdField = ({
   onKeyDown,
   disabled,
 }: Props) => (
-  <Tooltip title={getEventTooltipTitle(status)}>
+  <Tooltip isHoverable title={getEventTooltipTitle(status)}>
     <TooltipContent>
       <StyledTextField
         name="eventId"
