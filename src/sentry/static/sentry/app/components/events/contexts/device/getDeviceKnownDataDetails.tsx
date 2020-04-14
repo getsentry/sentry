@@ -25,13 +25,13 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('Family'),
         value: data.family,
       };
-    case DeviceKnownDataType.RENDERED_MODEL:
+    case DeviceKnownDataType.MODEL:
       return {
         subject: t('Model'),
         value:
           typeof data.model === 'string' ? (
             <DeviceName
-              value={`${data.model} ${data.model_id ? `(${data.model_id})` : ''}`}
+              value={`${data.model} ${data?.model_id ? `(${data.model_id})` : ''}`}
             />
           ) : (
             undefined

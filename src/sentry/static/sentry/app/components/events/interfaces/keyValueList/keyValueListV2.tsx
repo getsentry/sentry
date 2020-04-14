@@ -43,7 +43,9 @@ const KeyValueList = ({
         {getData().map(
           ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
             const dataValue =
-              typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+              typeof value === 'object' && !React.isValidElement(value)
+                ? JSON.stringify(value, null, 2)
+                : value;
             return (
               <tr key={key}>
                 <TableSubject className="key" wide={longKeys}>

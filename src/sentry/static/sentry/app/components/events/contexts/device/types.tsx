@@ -2,6 +2,8 @@ export enum DeviceKnownDataType {
   NAME = 'name',
   FAMILY = 'family',
   RENDERED_MODEL = 'renderedModel',
+  MODEL = 'model',
+  MODEL_ID = 'model_id',
   CPU_DESCRIPTION = 'cpu_description',
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
