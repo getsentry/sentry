@@ -70,7 +70,7 @@ class MailAdapter(object):
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
 
-            digest_key = unsplit_key(self, event.group.project)
+            digest_key = unsplit_key(event.group.project, target_type, target_identifier)
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
