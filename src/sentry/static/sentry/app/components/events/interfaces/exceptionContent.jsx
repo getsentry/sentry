@@ -20,7 +20,11 @@ class ExceptionContent extends React.Component {
   };
 
   render() {
-    const {newestFirst, event, view: stackView, platform, values} = this.props;
+    const {newestFirst, event, view: stackView, values} = this.props;
+    if (newestFirst) {
+      values.reverse();
+    }
+
     const children = values.map((exc, excIdx) => (
       <div key={excIdx} className="exception">
         <h5 className="break-word" style={{marginBottom: 5}}>
@@ -42,19 +46,13 @@ class ExceptionContent extends React.Component {
           }
           stackView={stackView}
           stacktrace={exc.stacktrace}
-          expandFirstFrame={
-            platform === 'csharp' ? excIdx === values.length - 1 : excIdx === 0
-          }
+          expandFirstFrame={excIdx === 0}
           platform={this.props.platform}
           newestFirst={newestFirst}
           event={event}
         />
       </div>
     ));
-
-    if (newestFirst) {
-      children.reverse();
-    }
 
     // TODO(dcramer): implement exceptions omitted
     return <div>{children}</div>;
