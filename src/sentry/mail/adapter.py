@@ -13,7 +13,7 @@ from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, User
+from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, Team, User
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
@@ -166,7 +166,7 @@ class MailAdapter(object):
             else:
                 send_to = self.get_send_to_owners(event, project)
         elif target_type == ActionTargetType.MEMBER:
-            send_to = self.get_send_to_member(target_identifier)
+            send_to = self.get_send_to_member(project, target_identifier)
         elif target_type == ActionTargetType.TEAM:
             send_to = self.get_send_to_team(project, target_identifier)
         return set(send_to)
@@ -219,10 +219,37 @@ class MailAdapter(object):
         return disabled_users
 
     def get_send_to_team(self, project, target_identifier):
-        raise NotImplementedError()
+        if target_identifier is None:
+            return []
+        try:
+            team = Team.objects.get(id=int(target_identifier), projectteam__project=project)
+        except Team.DoesNotExist:
+            return set()
+        return set(
+            team.member_set.values_list("user_id", flat=True)
+        ) - self.disabled_users_from_project(project)
 
-    def get_send_to_member(self, target_identifier):
-        raise NotImplementedError()
+    def get_send_to_member(self, project, target_identifier):
+        """
+        No checking for disabled users is done. If a user explicitly specifies a member
+        as a target to send to, it should overwrite the user's personal mail settings.
+        :param target_identifier:
+        :return: Iterable[int] id of member that should be sent to.
+        """
+        if target_identifier is None:
+            return []
+        try:
+            user = (
+                User.objects.filter(
+                    id=int(target_identifier),
+                    sentry_orgmember_set__teams__projectteam__project=project,
+                )
+                .distinct()
+                .get()
+            )
+        except User.DoesNotExist:
+            return set([])
+        return set([user.id])
 
     def get_send_to_all_in_project(self, project):
         cache_key = "mail:send_to:{}".format(project.pk)
