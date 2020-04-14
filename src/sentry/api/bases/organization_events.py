@@ -134,6 +134,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return results
 
     def get_issues_mapping(self, issue_ids, project_ids, organization):
+        """ Map of group ids to short ids for each group
+
+            This is shared between handling top events timeseries and handling events data
+        """
         return {
             i.id: i.qualified_short_id
             for i in Group.objects.filter(
@@ -187,7 +191,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             for event_result in result:
                 if "issue.id" in event_result.data["values"]:
                     event_result.data["values"]["issue"] = issues.get(
-                        event_result.data["values"]["issue.id"]
+                        event_result.data["values"]["issue.id"], "unknown"
                     )
                 if len(columns) > 1:
                     results.append(

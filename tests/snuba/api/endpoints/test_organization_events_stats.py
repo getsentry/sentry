@@ -732,6 +732,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             ]
 
     def test_top_events_with_issue(self):
+        # delete a group to make sure if this happens the value becomes unknown
+        event_group = self.events[0].group
+        event_group.delete()
+
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -757,7 +761,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             message = event.message or event.transaction
             assert message in results
             values = results[message]["values"]
-            if event.group:
+            # Because we deleted the group for event 0
+            if index == 0:
+                assert values["issue"] == "unknown"
+            elif event.group:
                 assert values["issue"] == event.group.qualified_short_id
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results[message]["data"]
