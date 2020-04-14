@@ -114,6 +114,14 @@ class ColumnEditRow extends React.Component<Props> {
     this.triggerChange(newColumn);
   };
 
+  handleScalarParameterChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[1] = value;
+    }
+    this.triggerChange(newColumn);
+  };
+
   handleRefinementChange = (value: string) => {
     const newColumn = cloneDeep(this.props.column);
     if (newColumn.kind === 'function') {
@@ -241,7 +249,7 @@ class ColumnEditRow extends React.Component<Props> {
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const {gridColumns} = this.props;
-    const inputs = parameters.map((descriptor: ParameterDescription) => {
+    const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
           <SelectControl
@@ -256,10 +264,13 @@ class ColumnEditRow extends React.Component<Props> {
         );
       }
       if (descriptor.kind === 'value') {
+        const handler =
+          index === 0 ? this.handleScalarParameterChange : this.handleRefinementChange;
+
         const inputProps = {
           required: descriptor.required,
           value: descriptor.value,
-          onUpdate: this.handleRefinementChange,
+          onUpdate: handler,
         };
         switch (descriptor.dataType) {
           case 'number':
