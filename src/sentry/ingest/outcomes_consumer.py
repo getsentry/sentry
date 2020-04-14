@@ -20,7 +20,7 @@ from __future__ import absolute_import
 import time
 import atexit
 import logging
-import multiprocessing.dummy
+import multiprocessing.dummy  # noqa
 import multiprocessing as _multiprocessing
 
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
@@ -30,10 +30,8 @@ from django.conf import settings
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.db.models.manager import BaseManager
-from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
 from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.dates import to_datetime, parse_timestamp
 from sentry.utils.outcomes import Outcome
 from sentry.buffer.redis import batch_buffers_incr
@@ -43,6 +41,11 @@ logger = logging.getLogger(__name__)
 
 def _get_signal_cache_key(project_id, event_id):
     return "signal:{}:{}".format(project_id, event_id)
+
+
+def process_outcome(outcome, project, category, quantity, ip, reason_code):
+    # NOTE this is here just to enable testing until we implement outcome processing
+    pass
 
 
 def _process_signal(msg):
@@ -76,31 +79,15 @@ def _process_signal(msg):
     if category is not None:
         category = DataCategory(category)
 
-    if outcome == Outcome.ACCEPTED:
-        event_saved.send_robust(
-            project=project, category=category, quantity=quantity, sender=OutcomesConsumerWorker
-        )
-    elif outcome == Outcome.FILTERED and reason == FilterStatKeys.DISCARDED_HASH:
-        event_discarded.send_robust(
-            project=project, category=category, quantity=quantity, sender=OutcomesConsumerWorker
-        )
-    elif outcome == Outcome.FILTERED:
-        event_filtered.send_robust(
-            ip=remote_addr,
-            project=project,
-            category=category,
-            quantity=quantity,
-            sender=OutcomesConsumerWorker,
-        )
-    elif outcome == Outcome.RATE_LIMITED:
-        event_dropped.send_robust(
-            ip=remote_addr,
-            project=project,
-            reason_code=reason,
-            category=category,
-            quantity=quantity,
-            sender=OutcomesConsumerWorker,
-        )
+    # TODO RaduW handle the various event outcomes
+    process_outcome(
+        outcome=outcome,
+        project=project,
+        category=category,
+        quantity=quantity,
+        ip=remote_addr,
+        reason_code=reason,
+    )
 
     timestamp = msg.get("timestamp")
     if timestamp is not None:

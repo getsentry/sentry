@@ -5,7 +5,7 @@ import pytest
 import six
 
 from sentry.ingest.outcomes_consumer import get_outcomes_consumer
-from sentry.signals import event_filtered, event_discarded, event_dropped, event_saved
+from sentry.ingest import outcomes_consumer
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome
 from django.conf import settings
@@ -37,16 +37,13 @@ def _get_event_id(base_event_id):
 
 
 class OutcomeTester(object):
-    def __init__(self, kafka_producer, kafka_admin, task_runner):
+    def __init__(self, kafka_producer, kafka_admin, task_runner, monkeypatch):
         self.events_filtered = []
         self.events_discarded = []
         self.events_dropped = []
         self.events_saved = []
 
-        event_filtered.connect(self._event_filtered_receiver)
-        event_discarded.connect(self._event_discarded_receiver)
-        event_dropped.connect(self._event_dropped_receiver)
-        event_saved.connect(self._event_saved_receiver)
+        monkeypatch.setattr(outcomes_consumer, "process_outcome", self._process_outcome)
 
         self.task_runner = task_runner
         self.topic_name = settings.KAFKA_OUTCOMES
@@ -99,17 +96,17 @@ class OutcomeTester(object):
         # assert not predicate()
         assert i < MAX_POLL_ITERATIONS
 
-    def _event_filtered_receiver(self, **kwargs):
-        self.events_filtered.append(kwargs)
-
-    def _event_discarded_receiver(self, **kwargs):
-        self.events_discarded.append(kwargs)
-
-    def _event_dropped_receiver(self, **kwargs):
-        self.events_dropped.append(kwargs)
-
-    def _event_saved_receiver(self, **kwargs):
-        self.events_saved.append(kwargs)
+    def _process_outcome(self, **kwargs):
+        outcome = kwargs.get("outcome")
+        reason_code = kwargs.get("reason_code")
+        if outcome == Outcome.ACCEPTED:
+            self.events_saved.append(kwargs)
+        elif outcome == Outcome.FILTERED and reason_code == FilterStatKeys.DISCARDED_HASH:
+            self.events_discarded.append(kwargs)
+        elif outcome == Outcome.FILTERED:
+            self.events_filtered.append(kwargs)
+        elif outcome == Outcome.RATE_LIMITED:
+            self.events_dropped.append(kwargs)
 
     def _create_producer(self, kafka_producer, kafka_admin):
         # Clear the topic to ensure we run in a pristine environment
@@ -121,8 +118,8 @@ class OutcomeTester(object):
 
 
 @pytest.fixture
-def outcome_tester(requires_kafka, kafka_producer, kafka_admin, task_runner):
-    return OutcomeTester(kafka_producer, kafka_admin, task_runner)
+def outcome_tester(requires_kafka, kafka_producer, kafka_admin, task_runner, monkeypatch):
+    return OutcomeTester(kafka_producer, kafka_admin, task_runner, monkeypatch)
 
 
 @pytest.mark.django_db
