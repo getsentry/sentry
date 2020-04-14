@@ -163,7 +163,9 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     if alert_rule.status != AlertRuleStatus.SNAPSHOT.value:
         raise DeleteAborted
 
-    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED)
+    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
+        status=IncidentStatus.CLOSED.value
+    )
 
     if incidents:
         has_more = incidents.count() > 1
