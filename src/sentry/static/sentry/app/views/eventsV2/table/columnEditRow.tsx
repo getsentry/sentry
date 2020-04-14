@@ -98,8 +98,12 @@ class ColumnEditRow extends React.Component<Props> {
         }
       });
 
-      if (column.kind === 'function' && value.meta.parameters.length === 0) {
-        column.function = [column.function[0], '', undefined];
+      if (column.kind === 'function') {
+        if (value.meta.parameters.length === 0) {
+          column.function = [column.function[0], '', undefined];
+        } else if (value.meta.parameters.length === 1) {
+          column.function[2] = undefined;
+        }
       }
     }
 
@@ -170,8 +174,7 @@ class ColumnEditRow extends React.Component<Props> {
   }
 
   getFieldData() {
-    let field: FieldValue | null = null,
-      fieldParameter: FieldValue | null = null;
+    let field: FieldValue | null = null;
 
     const {column} = this.props;
     let {fieldOptions} = this.props;
@@ -180,28 +183,27 @@ class ColumnEditRow extends React.Component<Props> {
       const funcName = `function:${column.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
-        // TODO move this closer to where it is used.
-        fieldParameter = this.getFieldOrTagValue(column.function[1]);
       }
     }
+
     if (column.kind === 'field') {
       field = this.getFieldOrTagValue(column.field);
+      fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
-
-    // If our current field, or columnParameter is a virtual tag, add it to the option list.
-    fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
-    fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
 
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
       field &&
       field.kind === FieldValueKind.FUNCTION &&
-      field.meta.parameters.length > 0
+      field.meta.parameters.length > 0 &&
+      column.kind === 'function'
     ) {
       parameterDescriptions = field.meta.parameters.map(
-        (param): ParameterDescription => {
+        (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
+            const fieldParameter = this.getFieldOrTagValue(column.function[1]);
+            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
               value: fieldParameter,
@@ -214,10 +216,11 @@ class ColumnEditRow extends React.Component<Props> {
               ),
             };
           }
+
           return {
             kind: 'value',
             value:
-              (column.kind === 'function' && column.function[2]) ||
+              (column.kind === 'function' && column.function[index + 1]) ||
               param.defaultValue ||
               '',
             dataType: param.dataType,
@@ -226,7 +229,6 @@ class ColumnEditRow extends React.Component<Props> {
         }
       );
     }
-
     return {field, fieldOptions, parameterDescriptions};
   }
 
