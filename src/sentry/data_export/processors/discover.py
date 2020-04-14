@@ -34,11 +34,10 @@ class DiscoverProcessor(object):
 
     @staticmethod
     def get_projects(organization_id, query):
-        project_ids = query.get("project")
-        try:
-            return Project.objects.filter(id__in=project_ids)
-        except Project.DoesNotExist:
+        projects = list(Project.objects.filter(id__in=query.get("project")))
+        if len(projects) == 0:
             raise ExportError("Requested project does not exist")
+        return projects
 
     @staticmethod
     def get_data_fn(fields, query, params):
