@@ -30,7 +30,7 @@ type MenuItemProps = {
    */
   onSelect?: (eventKey: any) => void;
   /**
-   * Provided to the onSelect callback when this item is selected.
+   * Provided to the onSelect callback when this item is selected
    */
   eventKey?: any;
   /**
