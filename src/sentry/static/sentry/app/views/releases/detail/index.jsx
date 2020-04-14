@@ -56,14 +56,14 @@ class OrganizationReleaseDetails extends AsyncView {
 
   getTitle() {
     const {
-      params: {version},
+      params: {release},
       organization,
     } = this.props;
-    return `Release ${version} | ${organization.slug}`;
+    return `Release ${release} | ${organization.slug}`;
   }
 
   getEndpoints() {
-    const {orgId, version} = this.props.params;
+    const {orgId, release} = this.props.params;
     const {project} = this.props.location.query;
     const query = {};
     if (project !== undefined) {
@@ -72,7 +72,7 @@ class OrganizationReleaseDetails extends AsyncView {
     return [
       [
         'release',
-        `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
+        `/organizations/${orgId}/releases/${encodeURIComponent(release)}/`,
         {query},
       ],
     ];

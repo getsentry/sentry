@@ -41,7 +41,7 @@ describe('ReleaseDetails', function() {
       project: {
         slug: 'anvils',
       },
-      version: '9.1.1',
+      release: '9.1.1',
     };
     const location = {
       pathname: '/',

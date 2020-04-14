@@ -46,9 +46,8 @@ class ReleaseArtifacts extends React.Component {
   }
 
   getFilesEndpoint() {
-    // ?? to temporarily support releases V1 and V2
-    const {orgId, projectId, version, release} = this.props.params;
-    const encodedVersion = encodeURIComponent(version ?? release);
+    const {orgId, projectId, release} = this.props.params;
+    const encodedVersion = encodeURIComponent(release);
     const project = projectId ?? this.props.projectId;
 
     return project

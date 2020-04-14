@@ -13,7 +13,6 @@ type Props = {
 const SwitchReleasesButton = ({orgId, version}: Props) => {
   const switchReleases = () => {
     switchReleasesVersion(version, orgId);
-    location.reload();
   };
 
   return (

@@ -2,9 +2,11 @@ import round from 'lodash/round';
 
 import localStorage from 'app/utils/localStorage';
 import ConfigStore from 'app/stores/configStore';
+import OrganizationStore from 'app/stores/organizationStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Client} from 'app/api';
 
-const RELEASES_VERSION_KEY = 'releases-EA:version';
+const RELEASES_VERSION_KEY = 'releases:version';
 
 export const switchReleasesVersion = (version: '1' | '2', orgId: string) => {
   localStorage.setItem(RELEASES_VERSION_KEY, version);
@@ -16,19 +18,35 @@ export const switchReleasesVersion = (version: '1' | '2', orgId: string) => {
     organization_id: parseInt(orgId, 10),
     user_id: parseInt(user.id, 10),
   });
+  location.reload();
 };
 
-export const wantsNewReleases = (): boolean => {
+export const wantsLegacyReleases = () => {
   const version = localStorage.getItem(RELEASES_VERSION_KEY);
-  if (!version) {
-    // by default, turn v2 on - if user is not allowed to do that, feature flag will catch that and set it back to 1
-    localStorage.setItem(RELEASES_VERSION_KEY, '2');
-  }
-  if (version === '1') {
-    return false;
+
+  return version === '1';
+};
+
+export const decideReleasesVersion = async hasNewReleases => {
+  const api = new Client();
+  const {organization} = OrganizationStore.get();
+
+  if (wantsLegacyReleases()) {
+    return hasNewReleases(false);
   }
 
-  return true;
+  if (organization) {
+    return hasNewReleases(organization.features.includes('releases-v2'));
+  }
+
+  try {
+    const currentOrgSlug = location.pathname.split('/')[2];
+    const fetchedOrg = await api.requestPromise(`/organizations/${currentOrgSlug}/`);
+
+    return hasNewReleases(fetchedOrg.features.includes('releases-v2'));
+  } catch {
+    return hasNewReleases(false);
+  }
 };
 
 export const getCrashFreePercent = (
