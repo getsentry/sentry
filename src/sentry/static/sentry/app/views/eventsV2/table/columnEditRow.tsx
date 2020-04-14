@@ -98,8 +98,12 @@ class ColumnEditRow extends React.Component<Props> {
         }
       });
 
-      if (column.kind === 'function' && value.meta.parameters.length === 0) {
-        column.function = [column.function[0], '', undefined];
+      if (column.kind === 'function') {
+        if (value.meta.parameters.length === 0) {
+          column.function = [column.function[0], '', undefined];
+        } else if (value.meta.parameters.length === 1) {
+          column.function[2] = undefined;
+        }
       }
     }
 
@@ -110,6 +114,14 @@ class ColumnEditRow extends React.Component<Props> {
     const newColumn = cloneDeep(this.props.column);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value.meta.name;
+    }
+    this.triggerChange(newColumn);
+  };
+
+  handleScalarParameterChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.column);
+    if (newColumn.kind === 'function') {
+      newColumn.function[1] = value;
     }
     this.triggerChange(newColumn);
   };
@@ -162,8 +174,7 @@ class ColumnEditRow extends React.Component<Props> {
   }
 
   getFieldData() {
-    let field: FieldValue | null = null,
-      fieldParameter: FieldValue | null = null;
+    let field: FieldValue | null = null;
 
     const {column} = this.props;
     let {fieldOptions} = this.props;
@@ -172,28 +183,27 @@ class ColumnEditRow extends React.Component<Props> {
       const funcName = `function:${column.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
-        // TODO move this closer to where it is used.
-        fieldParameter = this.getFieldOrTagValue(column.function[1]);
       }
     }
+
     if (column.kind === 'field') {
       field = this.getFieldOrTagValue(column.field);
+      fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
-
-    // If our current field, or columnParameter is a virtual tag, add it to the option list.
-    fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
-    fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
 
     let parameterDescriptions: ParameterDescription[] = [];
     // Generate options and values for each parameter.
     if (
       field &&
       field.kind === FieldValueKind.FUNCTION &&
-      field.meta.parameters.length > 0
+      field.meta.parameters.length > 0 &&
+      column.kind === 'function'
     ) {
       parameterDescriptions = field.meta.parameters.map(
-        (param): ParameterDescription => {
+        (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
+            const fieldParameter = this.getFieldOrTagValue(column.function[1]);
+            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
               value: fieldParameter,
@@ -206,10 +216,11 @@ class ColumnEditRow extends React.Component<Props> {
               ),
             };
           }
+
           return {
             kind: 'value',
             value:
-              (column.kind === 'function' && column.function[2]) ||
+              (column.kind === 'function' && column.function[index + 1]) ||
               param.defaultValue ||
               '',
             dataType: param.dataType,
@@ -218,7 +229,6 @@ class ColumnEditRow extends React.Component<Props> {
         }
       );
     }
-
     return {field, fieldOptions, parameterDescriptions};
   }
 
@@ -241,7 +251,7 @@ class ColumnEditRow extends React.Component<Props> {
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const {gridColumns} = this.props;
-    const inputs = parameters.map((descriptor: ParameterDescription) => {
+    const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
           <SelectControl
@@ -256,10 +266,13 @@ class ColumnEditRow extends React.Component<Props> {
         );
       }
       if (descriptor.kind === 'value') {
+        const handler =
+          index === 0 ? this.handleScalarParameterChange : this.handleRefinementChange;
+
         const inputProps = {
           required: descriptor.required,
           value: descriptor.value,
-          onUpdate: this.handleRefinementChange,
+          onUpdate: handler,
         };
         switch (descriptor.dataType) {
           case 'number':
