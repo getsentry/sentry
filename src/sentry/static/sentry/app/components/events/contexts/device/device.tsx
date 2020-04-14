@@ -38,7 +38,6 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.SCREEN_RESOLUTION,
   DeviceKnownDataType.SCREEN_WIDTH_PIXELS,
   DeviceKnownDataType.MODEL,
-  DeviceKnownDataType.MODEL_ID,
 ];
 
 const Device = ({data}: Props) => (
