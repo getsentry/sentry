@@ -723,7 +723,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if in_app is not None:
                 new_frame["in_app"] = in_app
                 raw_frame["in_app"] = in_app
-            return [new_frame], [raw_frame] if changed_raw else None, all_errors
+
+            new_frames = [new_frame]
+            raw_frames = [raw_frame] if changed_raw else None
+            return new_frames, raw_frames, all_errors
 
     def expand_frame(self, frame, source=None):
         if frame.get("lineno") is not None:
