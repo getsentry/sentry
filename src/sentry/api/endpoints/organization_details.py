@@ -168,6 +168,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     @memoize
     def _has_legacy_rate_limits(self):
@@ -380,6 +381,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             org.name = data["name"]
         if "slug" in data:
             org.slug = data["slug"]
+        if "provider" in data:
+            provider_name = self.initial_data["provider"]
+            try:
+                provider = AuthProvider.objects.get(organization=org)
+                provider.provider = provider_name
+                provider.save()
+            except AuthProvider.DoesNotExist:
+                AuthProvider.objects.create(
+                    provider=provider_name, organization=org, organization_id=org.id
+                )
 
         org_tracked_field = {
             "name": org.name,
