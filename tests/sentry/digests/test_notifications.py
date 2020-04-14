@@ -12,7 +12,9 @@ from sentry.digests.notifications import (
     group_records,
     sort_group_contents,
     sort_rule_groups,
+    split_key,
 )
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import Rule
 from sentry.testutils import TestCase
 
@@ -112,3 +114,25 @@ class SortRecordsTestCase(TestCase):
                 (rules[0], OrderedDict(((groups[0], []),))),
             )
         )
+
+
+class SplitKeyTestCase(TestCase):
+    def test_old_style_key(self):
+        assert split_key("mail:p:{}".format(self.project.id)) == (
+            self.project,
+            ActionTargetType.ISSUE_OWNERS,
+            None,
+        )
+
+    def test_new_style_key_no_identifier(self):
+        assert split_key(
+            "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, None)
+
+    def test_new_style_key_identifier(self):
+        identifier = "123"
+        assert split_key(
+            "mail:p:{}:{}:{}".format(
+                self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
+            )
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier)
