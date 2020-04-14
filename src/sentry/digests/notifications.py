@@ -36,8 +36,10 @@ def split_key(key):
     return Project.objects.get(pk=project_id), target_type, target_identifier
 
 
-def unsplit_key(plugin, project):
-    return u"{plugin.slug}:p:{project.id}".format(plugin=plugin, project=project)
+def unsplit_key(project, target_type, target_identifier):
+    return u"mail:p:{}:{}:{}".format(
+        project.id, target_type.value, target_identifier if target_identifier is not None else ""
+    )
 
 
 def event_to_record(event, rules):
