@@ -31,11 +31,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             user=self.user,
             organization=self.org,
             query_type=0,
-            query_info={
-                "project_id": self.project.id,
-                "group_id": self.event.group_id,
-                "key": "foo",
-            },
+            query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
         )
         with self.tasks():
             assemble_download(de.id)
@@ -59,7 +55,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             user=self.user,
             organization=self.org,
             query_type=0,
-            query_info={"project_id": -1, "group_id": self.event.group_id, "key": "user"},
+            query_info={"project": [-1], "group": self.event.group_id, "key": "user"},
         )
         with self.tasks():
             assemble_download(de1.id)
@@ -69,7 +65,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             user=self.user,
             organization=self.org,
             query_type=0,
-            query_info={"project_id": self.project.id, "group_id": -1, "key": "user"},
+            query_info={"project": [self.project.id], "group": -1, "key": "user"},
         )
         with self.tasks():
             assemble_download(de2.id)

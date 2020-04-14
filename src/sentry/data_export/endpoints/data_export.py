@@ -4,13 +4,13 @@ import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
-
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
 from sentry.models import Environment
 from sentry.utils import metrics
+from sentry.utils.compat import map
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -34,24 +34,38 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if not features.has("organizations:data-export", organization):
             return Response(status=404)
 
-        limit = request.data.get("limit")
-        serializer = DataExportQuerySerializer(
-            data=request.data, context={"organization": organization, "user": request.user}
-        )
+        # Get environment_id and limit if available
         try:
             environment_id = self._get_environment_id_from_request(request, organization.id)
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
+        limit = request.data.get("limit")
 
+        # Validate the data export payload
+        serializer = DataExportQuerySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
         data = serializer.validated_data
+
+        # Validate the project field, if provided
+        # A PermissionDenied error will be raised in `_get_projects_by_id` if the request is invalid
+        project_query = data["query_info"].get("project")
+        if project_query:
+            # Coerce the query into a set
+            if isinstance(project_query, list):
+                projects = self._get_projects_by_id(
+                    set(map(int, project_query)), request, organization
+                )
+            else:
+                projects = self._get_projects_by_id({int(project_query)}, request, organization)
+            data["query_info"]["project"] = [project.id for project in projects]
+
         # Ensure discover features are enabled if necessary
         if data["query_type"] == ExportQueryType.DISCOVER_STR and not features.has(
             "organizations:discover-basic", organization, actor=request.user
         ):
             return Response({"detail": "You do not have access to discover features"}, status=403)
+
         try:
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)

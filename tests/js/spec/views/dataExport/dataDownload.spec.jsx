@@ -12,16 +12,33 @@ describe('DataDownload', function() {
     orgId: organization.slug,
     dataExportId: 721,
   };
-  const getDataExportDetails = body =>
+  const getDataExportDetails = (body, statusCode = 200) =>
     MockApiClient.addMockResponse({
       url: `/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/`,
       body,
+      statusCode,
     });
 
   it('should send a request to the data export endpoint', function() {
     const getValid = getDataExportDetails(DownloadStatus.Valid);
     mountWithTheme(<DataDownload params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalled();
+  });
+
+  it("should render the 'Error' view when appropriate", function() {
+    const errors = {
+      download: {
+        status: 403,
+        statusText: 'Forbidden',
+        responseJSON: {
+          detail: 'You are not allowed',
+        },
+      },
+    };
+    getDataExportDetails({errors}, 403);
+    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    expect(wrapper.state('errors')).toBeDefined();
+    expect(wrapper.state('errors').download.status).toBe(403);
   });
 
   it("should render the 'Early' view when appropriate", function() {
