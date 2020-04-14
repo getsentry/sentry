@@ -17,7 +17,6 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         project = DiscoverProcessor.get_projects(
             organization_id=self.org.id, query={"project": [self.project1.id]}
         )
-        assert isinstance(project, list)
         assert project[0] == self.project1
         projects = DiscoverProcessor.get_projects(
             organization_id=self.org.id, query={"project": [self.project1.id, self.project2.id]}
