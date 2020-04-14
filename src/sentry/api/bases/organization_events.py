@@ -119,13 +119,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         fields = request.GET.getlist("field")
         issues = {}
         if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row["issue.id"] for row in results)
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
-                )
-            }
+            issue_ids = set(row.get("issue.id") for row in results)
+            issues = self.get_issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
@@ -140,6 +135,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         del result[key]
 
         return results
+
+    def get_issues_mapping(self, issue_ids, project_ids, organization):
+        return {
+            i.id: i.qualified_short_id
+            for i in Group.objects.filter(
+                id__in=issue_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }
 
     def get_event_stats_data(self, request, organization, get_event_stats):
         try:
@@ -175,13 +178,33 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             raise ParseError(detail=six.text_type(err))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        topEvents = request.GET.getlist("topEvents")
-        if topEvents:
-            return {
-                slug: serializer.serialize(event_result)
-                for slug, event_result in six.iteritems(result)
-            }
-        if len(columns) > 1:
+        if "topEvents" in request.GET:
+            results = []
+            issues = {}
+            if "issue" in request.GET.getlist("field"):
+                issues = self.get_issues_mapping(
+                    set([event_result.data["values"]["issue.id"] for event_result in result]),
+                    params["project_id"],
+                    organization,
+                )
+            for event_result in result:
+                if "issue.id" in event_result.data["values"]:
+                    event_result.data["values"]["issue"] = issues.get(
+                        event_result.data["values"]["issue.id"]
+                    )
+                if len(columns) > 1:
+                    results.append(
+                        {
+                            column: serializer.serialize(
+                                event_result, get_function_alias(query_column)
+                            )
+                            for column, query_column in zip(columns, query_columns)
+                        }
+                    )
+                else:
+                    results.append(serializer.serialize(event_result))
+            return results
+        elif len(columns) > 1:
             # Return with requested yAxis as the key
             return {
                 column: serializer.serialize(result, get_function_alias(query_column))

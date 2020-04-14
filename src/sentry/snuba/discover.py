@@ -676,7 +676,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
             snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
     if not snuba_filter.aggregations:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
 
@@ -685,7 +685,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
     if len(snuba_filter.aggregations) == 1:
         snuba_filter.aggregations[0][2] = "count"
 
-    return snuba_filter
+    return snuba_filter, translated_columns
 
 
 def key_transaction_timeseries_query(selected_columns, query, params, rollup, referrer, queryset):
@@ -701,7 +701,7 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         referrer (str|None) A referrer string to help locate the origin of this query.
         queryset (QuerySet) Filtered QuerySet of KeyTransactions
     """
-    snuba_filter = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
+    snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
     snuba_filter.conditions.extend(key_transaction_conditions(queryset))
 
     result = raw_query(
@@ -747,39 +747,21 @@ def timeseries_query(
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
     if top_events:
-        selected_columns += top_events[0].fields
+        selected_columns += top_events["columns"]
 
-    snuba_filter = get_timeseries_snuba_filter(
+    snuba_filter, translated_columns = get_timeseries_snuba_filter(
         selected_columns, query, params, rollup, reference_event
     )
 
     if top_events:
         group_conditions = []
-        event_fields = top_events[0].fields
-        selected_columns += event_fields
-        columns = event_fields[:]
-
-        # Need to add id/project to match reference results to event slugs
-        if "id" not in event_fields:
-            columns.append("id")
-        if "project" not in event_fields:
-            columns.append("project")
-
-        top_events = {
-            "{}:{}".format(row["project"], row["event_id"]): {
-                key: value for key, value in six.iteritems(row)
-            }
-            for row in bulk_find_reference_event(top_events, columns, "discover.find_top_5_events")
-        }
-
-        group_conditions = []
-        for field in event_fields:
+        for field in top_events["columns"]:
             # project is handled by filter_keys already
             if field == "project":
                 continue
-            values = list({event.get(field) for event in top_events.values() if field in event})
-            if values:
-                group_conditions.append([field, "IN", values])
+            values = list({event.get(field) for event in top_events["data"] if field in event})
+            if values and all(values):
+                group_conditions.append([resolve_column(field), "IN", values])
         snuba_filter.conditions.extend(group_conditions)
 
     result = raw_query(
@@ -795,27 +777,36 @@ def timeseries_query(
         limit=10000,
         referrer=referrer,
     )
+
     if top_events:
-        results = {}
-        for slug, event in six.iteritems(top_events):
-            results[slug] = SnubaTSResult(
-                {
-                    "data": zerofill(
-                        [
-                            row
-                            for row in result["data"]
-                            if all(row[field] == event[field] for field in snuba_filter.groupby)
-                        ],
-                        snuba_filter.start,
-                        snuba_filter.end,
-                        rollup,
-                        "time",
-                    ),
-                    "values": event,
-                },
-                snuba_filter.start,
-                snuba_filter.end,
-                rollup,
+        results = []
+        top_groupby = [
+            field
+            for field in top_events["columns"]
+            if resolve_column(field) in snuba_filter.groupby
+        ]
+        result = transform_results(result, translated_columns, snuba_filter)
+        for index, event in enumerate(top_events["data"]):
+            results.append(
+                SnubaTSResult(
+                    {
+                        "data": zerofill(
+                            [
+                                row
+                                for row in result["data"]
+                                if all(row[field] == event[field] for field in top_groupby)
+                            ],
+                            snuba_filter.start,
+                            snuba_filter.end,
+                            rollup,
+                            "time",
+                        ),
+                        "values": event,
+                    },
+                    snuba_filter.start,
+                    snuba_filter.end,
+                    rollup,
+                )
             )
         return results
     else:
