@@ -11,6 +11,7 @@ import {OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import ColumnEditCollection from './columnEditCollection';
 
@@ -30,6 +31,16 @@ class ColumnEditModal extends React.Component<Props, State> {
   state = {
     columns: this.props.columns,
   };
+
+  componentDidMount() {
+    const {organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.column_editor.open',
+      eventName: 'Discoverv2: Open column editor',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
 
   handleChange = (columns: Column[]) => {
     this.setState({columns});
