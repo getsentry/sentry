@@ -44,7 +44,9 @@ export const decideReleasesVersion = async hasNewReleases => {
 
   try {
     const currentOrgSlug = location.pathname.split('/')[2];
-    const fetchedOrg = await api.requestPromise(`/organizations/${currentOrgSlug}/`);
+    const fetchedOrg = await api.requestPromise(`/organizations/${currentOrgSlug}/`, {
+      query: {detailed: 0},
+    });
 
     return hasNewReleases(fetchedOrg.features.includes('releases-v2'));
   } catch {
