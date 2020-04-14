@@ -217,6 +217,7 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
+export const TEAMS_PER_PAGE = 25;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 // eslint-disable-next-line no-undef

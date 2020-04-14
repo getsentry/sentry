@@ -17,13 +17,22 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
-import {ChartsContainer, ChartsGrid} from './styles';
+import {ChartsContainer, ChartsGrid} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
 const YAXIS_OPTIONS = [
-  {label: 'Apdex', value: 'apdex(300)'},
-  {label: 'Throughput', value: 'rpm()'},
+  {
+    label: 'Apdex',
+    value: 'apdex(300)',
+    tooltip:
+      'Apdex is a ratio of satisfactory response times to unsatisfactory response times.',
+  },
+  {
+    label: 'Throughput',
+    value: 'rpm()',
+    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
+  },
 ];
 
 type Props = {
@@ -32,11 +41,12 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
+  keyTransactions: boolean;
 };
 
 class Container extends React.Component<Props> {
   render() {
-    const {api, organization, location, eventView, router} = this.props;
+    const {api, organization, location, eventView, router, keyTransactions} = this.props;
 
     // construct request parameters for fetching chart data
 
@@ -74,6 +84,7 @@ class Container extends React.Component<Props> {
             query={eventView.getEventsAPIPayload(location).query}
             includePrevious={false}
             yAxis={YAXIS_OPTIONS.map(option => option.value)}
+            keyTransactions={keyTransactions}
           >
             {({loading, reloading, errored, results}) => {
               if (errored) {
@@ -103,6 +114,7 @@ class Container extends React.Component<Props> {
                             utc={utc === 'true'}
                             projects={globalSelection.project}
                             environments={globalSelection.environment}
+                            tooltipCopy={yAxis.tooltip}
                           />
                         ),
                         fixed: 'events chart',

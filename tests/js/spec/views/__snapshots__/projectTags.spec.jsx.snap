@@ -374,7 +374,11 @@ exports[`ProjectTags renders 1`] = `
                                         <forwardRef<Button>
                                           data-test-id="delete"
                                           disabled={false}
-                                          icon="icon-trash"
+                                          icon={
+                                            <ForwardRef(IconDelete)
+                                              size="xs"
+                                            />
+                                          }
                                           size="xsmall"
                                         >
                                           <Button
@@ -382,7 +386,11 @@ exports[`ProjectTags renders 1`] = `
                                             data-test-id="delete"
                                             disabled={false}
                                             forwardRef={null}
-                                            icon="icon-trash"
+                                            icon={
+                                              <ForwardRef(IconDelete)
+                                                size="xs"
+                                              />
+                                            }
                                             size="xsmall"
                                           >
                                             <StyledButton
@@ -396,7 +404,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -405,7 +413,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -416,7 +424,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -426,28 +434,35 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <StyledInlineSvg
-                                                            size="12px"
-                                                            src="icon-trash"
+                                                          <ForwardRef(IconDelete)
+                                                            size="xs"
                                                           >
-                                                            <ForwardRef
-                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                              size="12px"
-                                                              src="icon-trash"
+                                                            <svg
+                                                              fill="currentColor"
+                                                              height="12px"
+                                                              viewBox="0 0 16 16"
+                                                              width="12px"
                                                             >
-                                                              <svg
-                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                height="12px"
-                                                                viewBox={Object {}}
-                                                                width="12px"
-                                                              >
-                                                                <use
-                                                                  href="#test"
-                                                                  xlinkHref="#test"
-                                                                />
-                                                              </svg>
-                                                            </ForwardRef>
-                                                          </StyledInlineSvg>
+                                                              <path
+                                                                d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                              />
+                                                              <path
+                                                                d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                              />
+                                                              <path
+                                                                d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                              />
+                                                              <path
+                                                                d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                              />
+                                                              <path
+                                                                d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                              />
+                                                              <path
+                                                                d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                              />
+                                                            </svg>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -569,7 +584,11 @@ exports[`ProjectTags renders 1`] = `
                                         <forwardRef<Button>
                                           data-test-id="delete"
                                           disabled={false}
-                                          icon="icon-trash"
+                                          icon={
+                                            <ForwardRef(IconDelete)
+                                              size="xs"
+                                            />
+                                          }
                                           size="xsmall"
                                         >
                                           <Button
@@ -577,7 +596,11 @@ exports[`ProjectTags renders 1`] = `
                                             data-test-id="delete"
                                             disabled={false}
                                             forwardRef={null}
-                                            icon="icon-trash"
+                                            icon={
+                                              <ForwardRef(IconDelete)
+                                                size="xs"
+                                              />
+                                            }
                                             size="xsmall"
                                           >
                                             <StyledButton
@@ -591,7 +614,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -600,7 +623,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -611,7 +634,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -621,28 +644,35 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <StyledInlineSvg
-                                                            size="12px"
-                                                            src="icon-trash"
+                                                          <ForwardRef(IconDelete)
+                                                            size="xs"
                                                           >
-                                                            <ForwardRef
-                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                              size="12px"
-                                                              src="icon-trash"
+                                                            <svg
+                                                              fill="currentColor"
+                                                              height="12px"
+                                                              viewBox="0 0 16 16"
+                                                              width="12px"
                                                             >
-                                                              <svg
-                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                height="12px"
-                                                                viewBox={Object {}}
-                                                                width="12px"
-                                                              >
-                                                                <use
-                                                                  href="#test"
-                                                                  xlinkHref="#test"
-                                                                />
-                                                              </svg>
-                                                            </ForwardRef>
-                                                          </StyledInlineSvg>
+                                                              <path
+                                                                d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                              />
+                                                              <path
+                                                                d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                              />
+                                                              <path
+                                                                d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                              />
+                                                              <path
+                                                                d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                              />
+                                                              <path
+                                                                d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                              />
+                                                              <path
+                                                                d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                              />
+                                                            </svg>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -764,7 +794,11 @@ exports[`ProjectTags renders 1`] = `
                                         <forwardRef<Button>
                                           data-test-id="delete"
                                           disabled={false}
-                                          icon="icon-trash"
+                                          icon={
+                                            <ForwardRef(IconDelete)
+                                              size="xs"
+                                            />
+                                          }
                                           size="xsmall"
                                         >
                                           <Button
@@ -772,7 +806,11 @@ exports[`ProjectTags renders 1`] = `
                                             data-test-id="delete"
                                             disabled={false}
                                             forwardRef={null}
-                                            icon="icon-trash"
+                                            icon={
+                                              <ForwardRef(IconDelete)
+                                                size="xs"
+                                              />
+                                            }
                                             size="xsmall"
                                           >
                                             <StyledButton
@@ -786,7 +824,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-1he25ws-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -795,7 +833,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-1he25ws-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -806,7 +844,7 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1acbab4-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
@@ -816,28 +854,35 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-1j44i9a-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <StyledInlineSvg
-                                                            size="12px"
-                                                            src="icon-trash"
+                                                          <ForwardRef(IconDelete)
+                                                            size="xs"
                                                           >
-                                                            <ForwardRef
-                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                              size="12px"
-                                                              src="icon-trash"
+                                                            <svg
+                                                              fill="currentColor"
+                                                              height="12px"
+                                                              viewBox="0 0 16 16"
+                                                              width="12px"
                                                             >
-                                                              <svg
-                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                height="12px"
-                                                                viewBox={Object {}}
-                                                                width="12px"
-                                                              >
-                                                                <use
-                                                                  href="#test"
-                                                                  xlinkHref="#test"
-                                                                />
-                                                              </svg>
-                                                            </ForwardRef>
-                                                          </StyledInlineSvg>
+                                                              <path
+                                                                d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                              />
+                                                              <path
+                                                                d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                              />
+                                                              <path
+                                                                d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                              />
+                                                              <path
+                                                                d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                              />
+                                                              <path
+                                                                d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                              />
+                                                              <path
+                                                                d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                              />
+                                                            </svg>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -980,7 +1025,11 @@ exports[`ProjectTags renders 1`] = `
                                                   <forwardRef<Button>
                                                     data-test-id="delete"
                                                     disabled={true}
-                                                    icon="icon-trash"
+                                                    icon={
+                                                      <ForwardRef(IconDelete)
+                                                        size="xs"
+                                                      />
+                                                    }
                                                     size="xsmall"
                                                   >
                                                     <Button
@@ -988,7 +1037,11 @@ exports[`ProjectTags renders 1`] = `
                                                       data-test-id="delete"
                                                       disabled={true}
                                                       forwardRef={null}
-                                                      icon="icon-trash"
+                                                      icon={
+                                                        <ForwardRef(IconDelete)
+                                                          size="xs"
+                                                        />
+                                                      }
                                                       size="xsmall"
                                                     >
                                                       <StyledButton
@@ -1002,7 +1055,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-hbnwrz-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1011,7 +1064,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-hbnwrz-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"
@@ -1022,7 +1075,7 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1acbab4-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}
@@ -1032,28 +1085,35 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-1j44i9a-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <ForwardRef(IconDelete)
+                                                                      size="xs"
                                                                     >
-                                                                      <ForwardRef
-                                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                        size="12px"
-                                                                        src="icon-trash"
+                                                                      <svg
+                                                                        fill="currentColor"
+                                                                        height="12px"
+                                                                        viewBox="0 0 16 16"
+                                                                        width="12px"
                                                                       >
-                                                                        <svg
-                                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
-                                                                        >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </ForwardRef>
-                                                                    </StyledInlineSvg>
+                                                                        <path
+                                                                          d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                                        />
+                                                                      </svg>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>
@@ -1200,7 +1260,11 @@ exports[`ProjectTags renders 1`] = `
                                                   <forwardRef<Button>
                                                     data-test-id="delete"
                                                     disabled={true}
-                                                    icon="icon-trash"
+                                                    icon={
+                                                      <ForwardRef(IconDelete)
+                                                        size="xs"
+                                                      />
+                                                    }
                                                     size="xsmall"
                                                   >
                                                     <Button
@@ -1208,7 +1272,11 @@ exports[`ProjectTags renders 1`] = `
                                                       data-test-id="delete"
                                                       disabled={true}
                                                       forwardRef={null}
-                                                      icon="icon-trash"
+                                                      icon={
+                                                        <ForwardRef(IconDelete)
+                                                          size="xs"
+                                                        />
+                                                      }
                                                       size="xsmall"
                                                     >
                                                       <StyledButton
@@ -1222,7 +1290,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-hbnwrz-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1231,7 +1299,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-hbnwrz-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"
@@ -1242,7 +1310,7 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1acbab4-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}
@@ -1252,28 +1320,35 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-1j44i9a-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <StyledInlineSvg
-                                                                      size="12px"
-                                                                      src="icon-trash"
+                                                                    <ForwardRef(IconDelete)
+                                                                      size="xs"
                                                                     >
-                                                                      <ForwardRef
-                                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                        size="12px"
-                                                                        src="icon-trash"
+                                                                      <svg
+                                                                        fill="currentColor"
+                                                                        height="12px"
+                                                                        viewBox="0 0 16 16"
+                                                                        width="12px"
                                                                       >
-                                                                        <svg
-                                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                          height="12px"
-                                                                          viewBox={Object {}}
-                                                                          width="12px"
-                                                                        >
-                                                                          <use
-                                                                            href="#test"
-                                                                            xlinkHref="#test"
-                                                                          />
-                                                                        </svg>
-                                                                      </ForwardRef>
-                                                                    </StyledInlineSvg>
+                                                                        <path
+                                                                          d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                                        />
+                                                                        <path
+                                                                          d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                                        />
+                                                                      </svg>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>

@@ -944,4 +944,3 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in count_results[message]["data"]
             ]
-        assert False

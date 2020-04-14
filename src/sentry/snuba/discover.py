@@ -213,6 +213,8 @@ def find_histogram_buckets(field, params, conditions):
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
     bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
+    if bucket_size == 0.0:
+        bucket_size = 1.0
 
     # Determine the first bucket that will show up in our results so that we can
     # zerofill correctly.
@@ -405,19 +407,45 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter):
+def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    # Translate back columns that were converted to snuba format
+    if selected_columns is None:
+        selected_columns = []
+
+    # Determine user related fields to prune based on what wasn't selected.
+    user_fields = FIELD_ALIASES["user"]["fields"]
+    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
+
+    # If the user field was selected update the meta data
+    has_user = selected_columns and "user" in selected_columns
+    meta = []
     for col in result["meta"]:
+        # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
+        # Remove user fields as they will be replaced by the alias.
+        if has_user and col["name"] in user_fields_to_remove:
+            continue
+        meta.append(col)
+    if has_user:
+        meta.append({"name": "user", "type": "Nullable(String)"})
+    result["meta"] = meta
 
     def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
+        transformed = {translated_columns.get(key, key): value for key, value in row.items()}
+        if has_user:
+            for field in user_fields:
+                if field in transformed and transformed[field]:
+                    transformed["user"] = transformed[field]
+                    break
+            # Remove user component fields once the alias is resolved.
+            for field in user_fields_to_remove:
+                del transformed[field]
+        return transformed
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
@@ -612,7 +640,7 @@ def query(
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns, snuba_filter)
+    return transform_results(result, translated_columns, snuba_filter, selected_columns)
 
 
 def key_transaction_conditions(queryset):
@@ -702,21 +730,26 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         queryset (QuerySet) Filtered QuerySet of KeyTransactions
     """
     snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
-    snuba_filter.conditions.extend(key_transaction_conditions(queryset))
 
-    result = raw_query(
-        aggregations=snuba_filter.aggregations,
-        conditions=snuba_filter.conditions,
-        filter_keys=snuba_filter.filter_keys,
-        start=snuba_filter.start,
-        end=snuba_filter.end,
-        rollup=rollup,
-        orderby="time",
-        groupby=["time"],
-        dataset=Dataset.Discover,
-        limit=10000,
-        referrer=referrer,
-    )
+    if queryset.exists():
+        snuba_filter.conditions.extend(key_transaction_conditions(queryset))
+
+        result = raw_query(
+            aggregations=snuba_filter.aggregations,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            rollup=rollup,
+            orderby="time",
+            groupby=["time"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=referrer,
+        )
+    else:
+        result = {"data": []}
+
     result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)

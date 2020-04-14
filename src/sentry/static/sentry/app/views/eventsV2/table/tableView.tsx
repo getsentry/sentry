@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {Organization} from 'app/types';
+import {Organization, OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {IconEvent, IconStack} from 'app/icons';
@@ -21,7 +21,7 @@ import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/disco
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
-import ColumnEditModal from './columnEditModal';
+import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
 import CellAction from './cellAction';
@@ -174,6 +174,7 @@ class TableView extends React.Component<TableViewProps> {
     if (aggregation) {
       return (
         <ExpandAggregateRow
+          organization={organization}
           eventView={eventView}
           column={column}
           dataRow={dataRow}
@@ -202,15 +203,18 @@ class TableView extends React.Component<TableViewProps> {
     const {organization, eventView, tagKeys} = this.props;
     this.trackEditAnalytics(organization, true);
 
-    openModal(modalProps => (
-      <ColumnEditModal
-        {...modalProps}
-        organization={organization}
-        tagKeys={tagKeys}
-        columns={eventView.getColumns().map(col => col.column)}
-        onApply={this.handleUpdateColumns}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <ColumnEditModal
+          {...modalProps}
+          organization={organization}
+          tagKeys={tagKeys}
+          columns={eventView.getColumns().map(col => col.column)}
+          onApply={this.handleUpdateColumns}
+        />
+      ),
+      {modalCss}
+    );
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
@@ -240,7 +244,7 @@ class TableView extends React.Component<TableViewProps> {
   }
 
   render() {
-    const {isLoading, error, tableData, eventView, title} = this.props;
+    const {isLoading, error, tableData, eventView, title, organization} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
@@ -263,7 +267,14 @@ class TableView extends React.Component<TableViewProps> {
         }}
         actions={{
           editColumns: this.handleEditColumns,
-          downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
+          downloadAsCsv: () => {
+            trackAnalyticsEvent({
+              eventKey: 'discover_v2.results.download_csv',
+              eventName: 'Discoverv2: Download CSV',
+              organization_id: parseInt(organization.id, 10),
+            });
+            downloadAsCsv(tableData, columnOrder, title);
+          },
         }}
       />
     );
@@ -271,6 +282,7 @@ class TableView extends React.Component<TableViewProps> {
 }
 
 function ExpandAggregateRow(props: {
+  organization: OrganizationSummary;
   children: React.ReactNode;
   eventView: EventView;
   column: TableColumn<keyof TableDataRow>;
@@ -278,9 +290,17 @@ function ExpandAggregateRow(props: {
   location: Location;
   tableMeta: MetaType;
 }) {
-  const {children, column, dataRow, eventView, location} = props;
+  const {children, column, dataRow, eventView, location, organization} = props;
   const aggregation =
     column.column.kind === 'function' ? column.column.function[0] : undefined;
+
+  function handleClick() {
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.drilldown',
+      eventName: 'Discoverv2: Click aggregate drilldown',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
 
   // count(column) drilldown
   if (aggregation === 'count') {
@@ -291,7 +311,11 @@ function ExpandAggregateRow(props: {
       query: nextView.generateQueryStringObject(),
     };
 
-    return <Link to={target}>{children}</Link>;
+    return (
+      <Link to={target} onClick={handleClick}>
+        {children}
+      </Link>
+    );
   }
 
   // count_unique(column) drilldown
@@ -307,7 +331,11 @@ function ExpandAggregateRow(props: {
       query: nextView.generateQueryStringObject(),
     };
 
-    return <Link to={target}>{children}</Link>;
+    return (
+      <Link to={target} onClick={handleClick}>
+        {children}
+      </Link>
+    );
   }
 
   return <React.Fragment>{children}</React.Fragment>;

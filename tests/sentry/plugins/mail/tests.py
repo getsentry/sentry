@@ -16,6 +16,7 @@ from sentry.utils.compat.mock import Mock
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
+from sentry.mail.adapter import MailAdapter
 from sentry.models import (
     Activity,
     GroupSubscription,
@@ -46,12 +47,7 @@ class MailPluginTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch(
-        "sentry.models.ProjectOption.objects.get_value", Mock(side_effect=lambda p, k, d, **kw: d)
-    )
-    @mock.patch(
-        "sentry.plugins.sentry_mail.models.MailPlugin.get_sendable_users", Mock(return_value=[])
-    )
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
     def test_should_notify_no_sendable_users(self):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
@@ -73,10 +69,7 @@ class MailPluginTest(TestCase):
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
-    def test_notify_users_renders_interfaces_with_utf8(
-        self, _send_mail, _to_email_html, _get_title
-    ):
+    def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
         _to_email_html.return_value = u"רונית מגן"
         _get_title.return_value = "Stacktrace"
 
@@ -93,7 +86,7 @@ class MailPluginTest(TestCase):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
+    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
     def test_notify_users_does_email(self, _send_mail):
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -116,7 +109,7 @@ class MailPluginTest(TestCase):
         self.assertEquals(kwargs.get("reference"), group)
         assert kwargs.get("subject") == u"BAR-1 - hello world"
 
-    @mock.patch("sentry.plugins.sentry_mail.models.MailPlugin._send_mail")
+    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
     def test_multiline_error(self, _send_mail):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
@@ -201,7 +194,7 @@ class MailPluginTest(TestCase):
 
     def test_get_digest_subject(self):
         assert (
-            self.plugin.get_digest_subject(
+            self.plugin.mail_adapter.get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 {mock.sentinel.group: 3},
                 datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
@@ -209,7 +202,7 @@ class MailPluginTest(TestCase):
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
-    @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
         event = self.store_event(
@@ -235,7 +228,7 @@ class MailPluginTest(TestCase):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
+    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -600,43 +593,6 @@ class MailPluginOwnersTest(TestCase):
             self.plugin.notify(Notification(event=event))
         assert len(mail.outbox) == len(emails_sent_to)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
-
-    def test_get_send_to_with_team_owners(self):
-        event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
-        assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)
-        )
-
-        # Make sure that disabling mail alerts works as expected
-        UserOption.objects.set_value(
-            user=self.user2, key="mail:alert", value=0, project=self.project
-        )
-        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
-
-    def test_get_send_to_with_user_owners(self):
-        event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
-        assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.plugin.get_send_to(self.project, event.data)
-        )
-
-        # Make sure that disabling mail alerts works as expected
-        UserOption.objects.set_value(
-            user=self.user2, key="mail:alert", value=0, project=self.project
-        )
-        assert set([self.user.pk]) == self.plugin.get_send_to(self.project, event.data)
-
-    def test_get_send_to_with_user_owner(self):
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
-
-    def test_get_send_to_with_fallthrough(self):
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert set([self.user2.pk]) == self.plugin.get_send_to(self.project, event.data)
-
-    def test_get_send_to_without_fallthrough(self):
-        ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
-        event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert [] == self.plugin.get_send_to(self.project, event.data)
 
     def test_notify_users_with_owners(self):
         event_all_users = self.store_event(

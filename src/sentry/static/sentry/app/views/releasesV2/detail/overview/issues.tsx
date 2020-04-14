@@ -17,6 +17,7 @@ import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {getUtcDateString} from 'app/utils/dates';
+import DropdownButton from 'app/components/dropdownButton';
 
 enum IssuesType {
   NEW = 'new',
@@ -154,8 +155,12 @@ class Issues extends React.Component<Props, State> {
       <React.Fragment>
         <ControlsWrapper>
           <DropdownControl
-            label={this.renderFilterLabel(
-              issuesTypes.find(i => i.value === issuesType)?.label
+            button={({getActorProps}) => (
+              <FilterButton {...getActorProps()} isOpen={false}>
+                {this.renderFilterLabel(
+                  issuesTypes.find(i => i.value === issuesType)?.label
+                )}
+              </FilterButton>
             )}
           >
             {issuesTypes.map(({value, label}) => (
@@ -171,7 +176,9 @@ class Issues extends React.Component<Props, State> {
           </DropdownControl>
 
           <Feature features={['discover-basic']}>
-            <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+            <DiscoverButton to={this.getDiscoverUrl()}>
+              {t('Open in Discover')}
+            </DiscoverButton>
           </Feature>
         </ControlsWrapper>
 
@@ -191,15 +198,23 @@ class Issues extends React.Component<Props, State> {
   }
 }
 
+const FilterButton = styled(DropdownButton)``;
+const DiscoverButton = styled(Button)``;
+
 const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    ${FilterButton}, ${DiscoverButton} {
+      font-size: ${p => p.theme.fontSizeSmall};
+    }
+  }
 `;
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
   ${Panel} {
     /* smaller space between table and pagination */
     margin-bottom: -${space(1)};

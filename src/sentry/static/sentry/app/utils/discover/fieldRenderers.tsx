@@ -10,7 +10,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import Duration from 'app/components/duration';
 import ShortId from 'app/components/shortId';
-import floatFormat from 'app/utils/floatFormat';
+import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import Version from 'app/components/version';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 
@@ -49,11 +49,12 @@ type FieldFormatter = {
 
 type FieldFormatters = {
   boolean: FieldFormatter;
+  date: FieldFormatter;
+  duration: FieldFormatter;
   integer: FieldFormatter;
   number: FieldFormatter;
-  date: FieldFormatter;
+  percentage: FieldFormatter;
   string: FieldFormatter;
-  duration: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
@@ -75,22 +76,6 @@ const FIELD_FORMATTERS: FieldFormatters = {
       return <Container>{value}</Container>;
     },
   },
-  integer: {
-    sortField: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
-      </NumberContainer>
-    ),
-  },
-  number: {
-    sortField: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number' ? floatFormat(data[field], 5) : emptyValue}
-      </NumberContainer>
-    ),
-  },
   date: {
     sortField: true,
     renderFunc: (field, data) => (
@@ -104,14 +89,6 @@ const FIELD_FORMATTERS: FieldFormatters = {
       </Container>
     ),
   },
-  string: {
-    sortField: true,
-    renderFunc: (field, data) => {
-      // Some fields have long arrays in them, only show the tail of the data.
-      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
-      return <Container>{value}</Container>;
-    },
-  },
   duration: {
     sortField: true,
     renderFunc: (field, data) => (
@@ -123,6 +100,38 @@ const FIELD_FORMATTERS: FieldFormatters = {
         )}
       </NumberContainer>
     ),
+  },
+  integer: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
+      </NumberContainer>
+    ),
+  },
+  number: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? formatFloat(data[field], 5) : emptyValue}
+      </NumberContainer>
+    ),
+  },
+  percentage: {
+    sortField: true,
+    renderFunc: (field, data) => (
+      <NumberContainer>
+        {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
+      </NumberContainer>
+    ),
+  },
+  string: {
+    sortField: true,
+    renderFunc: (field, data) => {
+      // Some fields have long arrays in them, only show the tail of the data.
+      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
+      return <Container>{value}</Container>;
+    },
   },
 };
 
@@ -191,11 +200,11 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'user.id',
     renderFunc: data => {
       const userObj = {
-        id: data['user.id'],
-        name: data['user.name'],
-        email: data['user.email'],
-        username: data['user.username'],
-        ip_address: data['user.ip'],
+        id: data.user,
+        name: data.user,
+        email: data.user,
+        username: data.user,
+        ip_address: '',
       };
 
       const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;

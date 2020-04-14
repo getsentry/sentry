@@ -423,7 +423,8 @@ export type PluginWithProjectList = PluginNoProject & {
 export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
-  | PluginWithProjectList;
+  | PluginWithProjectList
+  | DocumentIntegration;
 
 export type DocumentIntegration = {
   slug: string;
@@ -937,13 +938,14 @@ export type NewQuery = {
   environment?: Readonly<string[]>;
   tags?: Readonly<string[]>;
   yAxis?: string;
+  display?: string;
+  createdBy?: User;
 };
 
 export type SavedQuery = NewQuery & {
   id: string;
   dateCreated: string;
   dateUpdated: string;
-  createdBy?: string;
 };
 
 export type SavedQueryState = {
@@ -1141,3 +1143,13 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
+
+export type Activity = {
+  data: any;
+  dateCreated: string;
+  type: string;
+  id: string;
+  issue?: Group;
+  project: Project;
+  user?: User;
+};

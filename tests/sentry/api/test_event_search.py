@@ -46,7 +46,8 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p75", "number") == "duration"
     assert get_json_meta_type("p95", "number") == "duration"
     assert get_json_meta_type("p99", "number") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
+    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "percentage"
+    assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
@@ -1216,13 +1217,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_general_negative_user_field(self):
         conditions = get_filter("!user:123").conditions
         assert len(conditions) == 4
-        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[0]
+        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[0]
         assert [
             [["isNull", ["user.username"]], "=", 1],
             ["user.username", "!=", "123"],
         ] == conditions[1]
-        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[2]
-        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[3]
+        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
+        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
@@ -1256,6 +1257,11 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
+
+    def test_blank_field_ignored(self):
+        fields = ["", "title", "   "]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == ["title", "id", "project.id"]
 
     def test_automatic_fields_no_aggregates(self):
         fields = ["event.type", "message"]
@@ -1304,10 +1310,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
@@ -1319,10 +1325,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]

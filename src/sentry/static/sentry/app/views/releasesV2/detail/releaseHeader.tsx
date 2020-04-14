@@ -17,9 +17,9 @@ import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion} from 'app/utils/formatters';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import ReleaseStat from './releaseStat';
-import Breadcrumbs from './breadcrumbs';
 import ReleaseActions from './releaseActions';
 
 type Props = {
@@ -51,8 +51,8 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         <Breadcrumbs
           crumbs={[
             {
-              label: t('Releases'),
               to: `/organizations/${orgId}/releases-v2/`,
+              label: t('Releases'),
             },
             {label: formatVersion(version)},
           ]}
@@ -141,15 +141,16 @@ const Layout = styled('div')`
     grid-column-gap: ${space(3)};
     grid-template-columns: 1fr 1fr;
     margin-bottom: 0;
+    align-items: flex-start;
   }
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  grid-gap: ${space(2)};
-  padding: ${space(1.5)} 0;
+  display: flex;
+  flex-wrap: wrap;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    padding: ${space(1.5)} 0;
     grid-auto-flow: column;
     grid-gap: ${space(4)};
   }

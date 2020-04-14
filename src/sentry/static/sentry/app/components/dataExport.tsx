@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -6,6 +7,7 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -71,7 +73,7 @@ class DataExport extends React.Component<Props, State> {
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
-          <Button
+          <NewButton
             size="small"
             priority="default"
             title="You can get on with your life. We'll email you when your data's ready."
@@ -79,9 +81,9 @@ class DataExport extends React.Component<Props, State> {
             disabled
           >
             {t("We're working on it...")}
-          </Button>
+          </NewButton>
         ) : (
-          <Button
+          <NewButton
             onClick={this.startDataExport}
             disabled={disabled || false}
             size="small"
@@ -90,12 +92,28 @@ class DataExport extends React.Component<Props, State> {
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}
-          </Button>
+          </NewButton>
         )}
       </Feature>
     );
   }
 }
+
+const NewButton = ({children, ...buttonProps}) => (
+  <Button {...buttonProps}>
+    {children}
+    <NewTag>{t('NEW')}</NewTag>
+  </Button>
+);
+
+const NewTag = styled('span')`
+  font-size: 9px;
+  padding: 3px ${space(1)};
+  margin: -3px -3px -3px ${space(0.75)};
+  background: ${p => p.theme.green};
+  color: ${p => p.theme.white};
+  border-radius: 20px;
+`;
 
 export {DataExport};
 export default withApi(withOrganization(DataExport));

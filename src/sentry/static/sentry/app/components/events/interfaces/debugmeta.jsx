@@ -401,7 +401,7 @@ class DebugMetaInterface extends React.PureComponent {
       return tct(
         'No images are referenced in the stack trace. [toggle: Show Unreferenced]',
         {
-          toggle: <Button size="large" priority="link" onClick={this.handleShowUnused} />,
+          toggle: <Button priority="link" onClick={this.handleShowUnused} />,
         }
       );
     }
