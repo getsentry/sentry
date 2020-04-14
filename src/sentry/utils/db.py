@@ -48,7 +48,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
     # values specified in select_related
     values = set([_f for _f in (getattr(o, column) for o in objects) if _f])
     if values:
-        qs = model.objects
+        qs = model._default_manager
         if database:
             qs = qs.using(database)
         if related:
