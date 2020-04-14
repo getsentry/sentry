@@ -6,7 +6,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -112,7 +112,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="query"
             label={t('Filter')}
             placeholder="error.type:TypeError"
-            help={t('Note: A filter of event.type:error is automatically applied')}
+            help={tct(`Note: A filter of [filter] is automatically applied`, {
+              filter: <code>event.type:error</code>,
+            })}
           >
             {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
