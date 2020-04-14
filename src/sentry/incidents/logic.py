@@ -576,7 +576,6 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.save()
 
         incidents.update(alert_rule=alert_rule_snapshot)
-        # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
@@ -588,6 +587,7 @@ def snapshot_alert_rule(alert_rule):
                 action.alert_rule_trigger = trigger
                 action.save()
 
+    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
     tasks.auto_resolve_snapshot_incidents.apply_async(
         kwargs={"alert_rule_id": alert_rule_snapshot.id}
     )
