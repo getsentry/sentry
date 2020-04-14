@@ -46,7 +46,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p75", "number") == "duration"
     assert get_json_meta_type("p95", "number") == "duration"
     assert get_json_meta_type("p99", "number") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "percentage"
+    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
     assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
