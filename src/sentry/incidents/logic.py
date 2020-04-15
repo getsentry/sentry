@@ -177,11 +177,25 @@ def set_incident_seen(incident, user=None):
     """
     Updates the incident to be seen
     """
-    incident_seen, created = IncidentSeen.objects.create_or_update(
-        incident=incident, user=user, values={"last_seen": timezone.now()}
-    )
 
-    return incident_seen
+    is_org_member = incident.organization.has_access(user)
+
+    if is_org_member:
+        is_project_member = False
+        for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
+            "project"
+        ):
+            if incident_project.project.member_set.filter(user=user).exists():
+                is_project_member = True
+                break
+
+        if is_project_member:
+            incident_seen, created = IncidentSeen.objects.create_or_update(
+                incident=incident, user=user, values={"last_seen": timezone.now()}
+            )
+            return incident_seen
+
+    return False
 
 
 @transaction.atomic
