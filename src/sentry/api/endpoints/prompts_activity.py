@@ -11,11 +11,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.models import Organization, PromptsActivity, Project
 from sentry.utils.compat import zip
-
-PROMPTS = {
-    "releases": {"required_fields": ["organization_id", "project_id"]},
-    "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
-}
+from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 
@@ -27,7 +23,7 @@ class PromptsActivitySerializer(serializers.Serializer):
     def validate_feature(self, value):
         if value is None:
             raise serializers.ValidationError("Must specify feature name")
-        if value not in PROMPTS:
+        if not prompt_config.has(value):
             raise serializers.ValidationError("Not a valid feature prompt")
         return value
 
@@ -40,10 +36,10 @@ class PromptsActivityEndpoint(Endpoint):
 
         feature = request.GET.get("feature")
 
-        if feature not in PROMPTS:
+        if not prompt_config.has(feature):
             return Response({"detail": "Invalid feature name"}, status=400)
 
-        required_fields = PROMPTS[feature]["required_fields"]
+        required_fields = prompt_config.required_fields(feature)
         for field in required_fields:
             if field not in request.GET:
                 return Response({"detail": 'Missing required field "%s"' % field}, status=400)
@@ -66,7 +62,7 @@ class PromptsActivityEndpoint(Endpoint):
         feature = serialized["feature"]
         status = serialized["status"]
 
-        required_fields = PROMPTS[feature]["required_fields"]
+        required_fields = prompt_config.required_fields(feature)
         fields = {k: request.data.get(k) for k in required_fields}
 
         if any(elem is None for elem in fields.values()):
