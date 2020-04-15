@@ -216,6 +216,7 @@ PROTECTED_TAG_KEYS = frozenset(["environment", "release", "sentry:release"])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
+    "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
