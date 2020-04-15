@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Panel, PanelItem} from 'app/components/panels';
 import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
@@ -13,10 +12,9 @@ import theme from 'app/utils/theme';
 import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 
-const HEADER_HEIGHT = 60;
-
 export const DiscoverWrapper = styled('div')`
   display: flex;
+  flex-direction: column;
   flex: 1;
 `;
 
@@ -31,23 +29,6 @@ export const DiscoverContainer = styled('div')`
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
-`;
-
-export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
-  position: absolute;
-  top: 0;
-  left: 0;
-`;
-
-export const PageTitle = styled('h2')`
-  display: flex;
-  font-size: 20px;
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-  align-items: center;
-  padding-left: ${space(4)};
-  height: ${HEADER_HEIGHT}px;
 `;
 
 export const ResultViewActions = styled('div')`
@@ -92,7 +73,6 @@ export const Sidebar = styled('div')`
   background: #fff;
   min-width: 320px;
   position: relative;
-  padding-top: ${HEADER_HEIGHT}px;
   @media (min-width: ${theme.breakpoints[2]}) {
     width: 360px;
   }
@@ -138,7 +118,6 @@ export const Body = styled('div')`
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const BodyContent = styled('div')`
@@ -276,9 +255,7 @@ export const SavedQueryList = styled(Panel)`
   overflow: hidden;
 `;
 
-export const SavedQueryListItem = styled(({isActive, ...props}: any) => (
-  <PanelItem {...props} />
-))`
+export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean}>`
   flex-direction: column;
   padding: 0;
   background-color: ${(p: any) => (p.isActive ? p.theme.whiteDark : p.theme.white)};
@@ -295,11 +272,9 @@ export const SavedQueryUpdated = styled('div')`
 `;
 
 export const QueryPanelContainer = styled('div')`
-  position: absolute;
   width: calc(100% + 1px); /* Add 1px for border */
-  height: calc(100% - ${HEADER_HEIGHT}px);
+  height: 100%;
   background-color: white;
-  top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
   animation: ${slideInLeft} 0.2s ease-in;
   overflow-y: scroll;
@@ -309,8 +284,7 @@ export const QueryPanelTitle = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(4)};
-  height: ${HEADER_HEIGHT}px;
+  padding: ${space(1)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 

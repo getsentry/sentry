@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
@@ -15,10 +15,10 @@ import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import localStorage from 'app/utils/localStorage';
 import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 
 import {
   DiscoverContainer,
-  DiscoverGlobalSelectionHeader,
   Body,
   BodyContent,
   HeadingContainer,
@@ -405,78 +405,13 @@ export default class Discover extends React.Component<Props, State> {
       utc,
     } = this.props;
 
-    const currentQuery = queryBuilder.getInternal();
-
     const shouldDisplayResult = resultManager.shouldDisplayResult();
 
-    const start =
-      (currentQuery.start &&
-        moment(currentQuery.start)
-          .local()
-          .toDate()) ||
-      currentQuery.start;
-    const end =
-      (currentQuery.end &&
-        moment(currentQuery.end)
-          .local()
-          .toDate()) ||
-      currentQuery.end;
-
     return (
-      <DiscoverContainer>
-        <Sidebar>
-          {this.renderSidebarNav()}
-          {view === 'saved' && (
-            <SavedQueryWrapper>
-              <SavedQueryList organization={organization} savedQuery={savedQuery} />
-            </SavedQueryWrapper>
-          )}
-          {view === 'query' && (
-            <NewQuery
-              organization={organization}
-              queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery || isLoading}
-              onUpdateField={this.updateField}
-              onRunQuery={this.runQuery}
-              onReset={this.reset}
-              isLoading={isLoading}
-            />
-          )}
-          {isEditingSavedQuery && savedQuery && (
-            <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
-              <EditSavedQuery
-                savedQuery={savedQuery}
-                queryBuilder={queryBuilder}
-                isFetchingQuery={isFetchingQuery}
-                onUpdateField={this.updateField}
-                onRunQuery={this.runQuery}
-                onDeleteQuery={this.deleteSavedQuery}
-                onSaveQuery={this.updateSavedQuery}
-                isLoading={isLoading}
-              />
-            </QueryPanel>
-          )}
-          <Feature
-            features={['organizations:discover-basic']}
-            organization={organization}
-          >
-            <SwitchLink
-              href={getDiscoverLandingUrl(organization)}
-              onClick={this.onGoLegacyDiscover}
-            >
-              {t('Go to New Discover')}
-            </SwitchLink>
-          </Feature>
-        </Sidebar>
-
-        <DiscoverGlobalSelectionHeader
+      <React.Fragment>
+        <GlobalSelectionHeader
           organization={organization}
-          projects={currentQuery.projects}
           hasCustomRouting
-          relative={currentQuery.range}
-          start={start}
-          end={end}
-          utc={utc}
           showEnvironmentSelector={false}
           onChangeProjects={this.updateProjects}
           onUpdateProjects={this.runQuery}
@@ -484,32 +419,79 @@ export default class Discover extends React.Component<Props, State> {
           onUpdateTime={this.updateDateTimeAndRun}
         />
 
-        <Body>
-          <BodyContent>
-            {shouldDisplayResult && (
-              <Result
-                location={location}
-                utc={utc}
-                data={data}
-                savedQuery={savedQuery}
-                onToggleEdit={toggleEditMode}
-                onFetchPage={this.onFetchPage}
+        <DiscoverContainer>
+          <Sidebar>
+            {this.renderSidebarNav()}
+            {view === 'saved' && (
+              <SavedQueryWrapper>
+                <SavedQueryList organization={organization} savedQuery={savedQuery} />
+              </SavedQueryWrapper>
+            )}
+            {view === 'query' && (
+              <NewQuery
+                organization={organization}
+                queryBuilder={queryBuilder}
+                isFetchingQuery={isFetchingQuery || isLoading}
+                onUpdateField={this.updateField}
+                onRunQuery={this.runQuery}
+                onReset={this.reset}
+                isLoading={isLoading}
               />
             )}
-            {!shouldDisplayResult && (
-              <React.Fragment>
-                <div>
-                  <HeadingContainer>
-                    <PageHeading>{t('Discover')}</PageHeading>
-                  </HeadingContainer>
-                </div>
-                <Intro updateQuery={this.updateAndRunQuery} />
-              </React.Fragment>
+            {isEditingSavedQuery && savedQuery && (
+              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+                <EditSavedQuery
+                  savedQuery={savedQuery}
+                  queryBuilder={queryBuilder}
+                  isFetchingQuery={isFetchingQuery}
+                  onUpdateField={this.updateField}
+                  onRunQuery={this.runQuery}
+                  onDeleteQuery={this.deleteSavedQuery}
+                  onSaveQuery={this.updateSavedQuery}
+                  isLoading={isLoading}
+                />
+              </QueryPanel>
             )}
-            {isFetchingQuery && <ResultLoading />}
-          </BodyContent>
-        </Body>
-      </DiscoverContainer>
+            <Feature
+              features={['organizations:discover-basic']}
+              organization={organization}
+            >
+              <SwitchLink
+                href={getDiscoverLandingUrl(organization)}
+                onClick={this.onGoLegacyDiscover}
+              >
+                {t('Go to New Discover')}
+              </SwitchLink>
+            </Feature>
+          </Sidebar>
+
+          <Body>
+            <BodyContent>
+              {shouldDisplayResult && (
+                <Result
+                  location={location}
+                  utc={utc}
+                  data={data}
+                  savedQuery={savedQuery}
+                  onToggleEdit={toggleEditMode}
+                  onFetchPage={this.onFetchPage}
+                />
+              )}
+              {!shouldDisplayResult && (
+                <React.Fragment>
+                  <div>
+                    <HeadingContainer>
+                      <PageHeading>{t('Discover')}</PageHeading>
+                    </HeadingContainer>
+                  </div>
+                  <Intro updateQuery={this.updateAndRunQuery} />
+                </React.Fragment>
+              )}
+              {isFetchingQuery && <ResultLoading />}
+            </BodyContent>
+          </Body>
+        </DiscoverContainer>
+      </React.Fragment>
     );
   }
 }
