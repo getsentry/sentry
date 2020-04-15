@@ -58,8 +58,9 @@ class DiscoverProcessor(object):
     def handle_fields(self, result_list):
         # Find issue short_id if present
         # (originally in `/api/bases/organization_events.py`)
+        new_result_list = result_list[:]
         if "issue" in self.header_fields:
-            issue_ids = set(result["issue.id"] for result in result_list)
+            issue_ids = set(result["issue.id"] for result in new_result_list)
             issues = {
                 i.id: i.qualified_short_id
                 for i in Group.objects.filter(
@@ -68,8 +69,7 @@ class DiscoverProcessor(object):
                     project__organization_id=self.params["organization_id"],
                 )
             }
-            for result in result_list:
+            for result in new_result_list:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
-
-        return result_list
+        return new_result_list
