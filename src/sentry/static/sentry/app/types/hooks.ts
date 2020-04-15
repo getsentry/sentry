@@ -197,9 +197,16 @@ type AnalyticsTrackEvent = (opts: {
 /**
  * Trigger adhoc analytics tracking in the hook store.
  */
-type AnalyticsTrackAdhocEvent = (
-  opts: Omit<Parameters<AnalyticsTrackEvent>[0], 'eventName'>
-) => void;
+type AnalyticsTrackAdhocEvent = (opts: {
+  /**
+   * The key used to identify the event.
+   */
+  eventKey: string;
+  /**
+   * Arbitrary data to track
+   */
+  [key: string]: any;
+}) => void;
 
 /**
  * Trigger experiment observed logging.
