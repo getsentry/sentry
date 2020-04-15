@@ -175,10 +175,20 @@ const SPECIAL_FIELDS: SpecialFields = {
   issue: {
     sortField: null,
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const issueID = data['issue.id'];
+
+      if (!issueID) {
+        return (
+          <Container>
+            <ShortId shortId={`${data.issue}`} />
+          </Container>
+        );
+      }
+
+      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
       return (
         <Container>
-          <OverflowLink to={target} aria-label={data['issue.id']}>
+          <OverflowLink to={target} aria-label={issueID}>
             <ShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
