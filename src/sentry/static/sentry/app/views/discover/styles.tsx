@@ -255,7 +255,7 @@ export const SavedQueryList = styled(Panel)`
   overflow: hidden;
 `;
 
-export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean}>`
+export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean | null}>`
   flex-direction: column;
   padding: 0;
   background-color: ${(p: any) => (p.isActive ? p.theme.whiteDark : p.theme.white)};
