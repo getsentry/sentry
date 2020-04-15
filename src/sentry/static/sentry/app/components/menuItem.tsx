@@ -41,8 +41,16 @@ type MenuItemProps = {
    * Enable to provide custom button/contents via children
    */
   noAnchor?: boolean;
+  /**
+   * A router target destination
+   */
+  to?: Pick<Link['props'], 'to'>;
+  /**
+   * A server rendered URL.
+   */
+  href?: Pick<React.HTMLProps<HTMLAnchorElement>, 'href'>;
   className?: string;
-} & Partial<Pick<Link['props'], 'to'>>;
+};
 
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 
@@ -57,6 +65,7 @@ class MenuItem extends React.Component<Props> {
     isActive: PropTypes.bool,
     noAnchor: PropTypes.bool,
     to: PropTypes.string,
+    href: PropTypes.string,
     query: PropTypes.object,
     className: PropTypes.string,
   };
@@ -73,7 +82,7 @@ class MenuItem extends React.Component<Props> {
   };
 
   renderAnchor = (): React.ReactNode => {
-    const {to, title, disabled, isActive, children} = this.props;
+    const {to, href, title, disabled, isActive, children} = this.props;
     if (to) {
       return (
         <MenuLink
@@ -86,6 +95,20 @@ class MenuItem extends React.Component<Props> {
         >
           {children}
         </MenuLink>
+      );
+    }
+
+    if (href) {
+      return (
+        <MenuAnchor
+          href={href}
+          onClick={this.handleClick}
+          tabIndex={-1}
+          isActive={isActive}
+          disabled={disabled}
+        >
+          {children}
+        </MenuAnchor>
       );
     }
 
@@ -131,7 +154,7 @@ class MenuItem extends React.Component<Props> {
         divider={divider}
         noAnchor={noAnchor}
         header={header}
-        {...omit(props, ['title', 'onSelect', 'eventKey', 'to'])}
+        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to'])}
       >
         {renderChildren}
       </MenuListItem>
@@ -148,20 +171,33 @@ type MenuListItemProps = {
 } & React.HTMLProps<HTMLLIElement>;
 
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
+  const common = `
+    display: block;
+    padding: ${space(0.5)} ${space(2)};
+    &:focus {
+      outline: 'none';
+    }
+  `;
+
   if (props.disabled) {
     return `
-    color: ${props.theme.disabled};
-    background: transparent;
-    cursor: not-allowed;
+      ${common}
+      color: ${props.theme.disabled};
+      background: transparent;
+      cursor: not-allowed;
     `;
   }
+
   if (props.isActive) {
     return `
+      ${common}
       color: ${props.theme.white};
       background: ${props.theme.purple};
     `;
   }
+
   return `
+    ${common}
     color: ${props.theme.foreground};
 
     &:hover {
@@ -181,6 +217,12 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
     }
   `;
 }
+
+const MenuAnchor = styled('a', {
+  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+})<MenuListItemProps>`
+  ${getListItemStyles}
+`;
 
 const MenuListItem = styled('li')<MenuListItemProps>`
   display: block;
@@ -206,23 +248,13 @@ background-color: ${p.theme.borderLight};
 `;
 
 const MenuTarget = styled('span')<MenuListItemProps>`
-  display: block;
-  padding: ${space(0.5)} ${space(2)};
-
   ${getListItemStyles}
 `;
 
 const MenuLink = styled(Link, {
   shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
 })<MenuListItemProps>`
-  display: block;
-  padding: ${space(0.5)} ${space(2)};
-
   ${getListItemStyles}
-
-  &:focus {
-    outline: none;
-  }
 `;
 
 export default MenuItem;
