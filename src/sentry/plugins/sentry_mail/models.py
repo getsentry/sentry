@@ -41,7 +41,10 @@ class MailPlugin(NotificationPlugin):
         return True
 
     def should_notify(self, group, event):
-        return self.mail_adapter.should_notify(group)
+        return (
+            not group.project.flags.has_issue_alerts_targeting
+            and self.mail_adapter.should_notify(group)
+        )
 
     def notify(self, notification, **kwargs):
         return self.mail_adapter.notify(
