@@ -495,6 +495,9 @@ INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
 
+# Most number of events for the top-n graph
+MAX_TOP_EVENTS = 5
+
 
 @unique
 class DataCategory(IntEnum):

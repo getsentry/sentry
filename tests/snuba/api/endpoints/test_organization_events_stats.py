@@ -677,7 +677,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "user.email"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -695,6 +695,27 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 attrs for time, attrs in results["data"]
             ]
 
+    def test_top_events_limits(self):
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "field": ["message", "user.email"],
+        }
+        with self.feature("organizations:discover-basic"):
+            data["topEvents"] = 50
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
+            data["topEvents"] = 0
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
+            data["topEvents"] = "a"
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
     def test_top_events_with_projects(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -705,10 +726,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "project"],
-                    "topEvents": [
-                        "{}:{}".format(event.project.slug, event.event_id)
-                        for event in self.events[:5]
-                    ],
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -739,7 +757,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["message", "issue"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -772,7 +790,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -803,7 +821,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -841,7 +859,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "yAxis": "count()",
                     "query": "transaction:/foo_bar/",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -867,7 +885,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "rpm()",
                     "field": ["message", "user.email"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )
@@ -895,7 +913,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": ["rpm()", "count()"],
                     "field": ["message", "user.email"],
-                    "topEvents": True,
+                    "topEvents": 5,
                 },
                 format="json",
             )

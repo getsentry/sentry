@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry import features, eventstore
+from sentry.constants import MAX_TOP_EVENTS
 from sentry.api.bases import OrganizationEventsV2EndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
@@ -20,9 +21,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         if not features.has("organizations:discover-basic", organization, actor=request.user):
             return self.get_v1_results(request, organization)
 
+        try:
+            limit = int(request.GET.get("topEvents", 0))
+        except ValueError:
+            return Response({"detail": "topEvents must be an integer"}, status=400)
+        if limit > MAX_TOP_EVENTS:
+            return Response(
+                {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)}, status=400
+            )
+        elif limit <= 0:
+            return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+
         def get_event_stats(query_columns, query, params, rollup, reference_event):
             if "topEvents" in request.GET:
-                # TODO(wmak): make topEvents an int, error if out of bounds and pass below
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=request.GET.getlist("field")[:],
@@ -30,7 +41,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     params=params,
                     yaxis=request.GET.getlist("yAxis"),
                     rollup=rollup,
-                    limit=5,
+                    limit=limit,
                     organization=organization,
                     referrer="api.organization-event-stats.find-topn",
                 )
