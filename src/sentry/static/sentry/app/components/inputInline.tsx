@@ -1,4 +1,5 @@
 import React from 'react';
+import dompurify from 'dompurify';
 import styled from '@emotion/styled';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -51,8 +52,13 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    (event.target as any).value = (event.target as any).textContent;
-    (event.currentTarget as any).value = (event.currentTarget as any).textContent;
+    const inputText = dompurify.sanitize(
+      (event.target as any).textContent || (event.currentTarget as any).textContent
+    );
+
+    (event.target as any).value = inputText;
+    (event.currentTarget as any).value = inputText;
+
     return event as React.FormEvent<HTMLInputElement>;
   }
 
@@ -159,7 +165,6 @@ class InputInline extends React.Component<Props, State> {
           {...this.props} // Pass DOMAttributes props first, extend/overwrite below
           ref={this.refInput}
           contentEditable={!this.props.disabled}
-          dangerouslySetInnerHTML={{__html: value || placeholder || ''}}
           isHovering={this.state.isHovering}
           isDisabled={this.props.disabled}
           onBlur={this.onBlur}
@@ -168,7 +173,9 @@ class InputInline extends React.Component<Props, State> {
           onChange={this.onChangeUsingOnInput} // Overwrite onChange too, just to be 100% sure
           onKeyDown={this.onKeyDown}
           onKeyUp={this.onKeyUp}
-        />
+        >
+          {value || placeholder || ''}
+        </Input>
         {!isFocused && !disabled && (
           <div onClick={this.onClickIcon}>
             <StyledIconEdit />
