@@ -26,6 +26,9 @@ class AreaChart extends React.Component {
               color: '#C4BFE9',
               opacity: 1.0,
             },
+            animation: false,
+            animationThreshold: 1,
+            animationDuration: 0,
             ...otherSeriesProps,
           })
         )}

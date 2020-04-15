@@ -15,6 +15,9 @@ type Props = {
   yAxisValue: string;
   yAxisOptions: SelectValue<string>[];
   onAxisChange: (value: string) => void;
+  displayMode: string;
+  displayOptions: SelectValue<string>[];
+  onDisplayChange: (value: string) => void;
 };
 
 export default function ChartFooter({
@@ -22,6 +25,9 @@ export default function ChartFooter({
   yAxisValue,
   yAxisOptions,
   onAxisChange,
+  displayMode,
+  displayOptions,
+  onDisplayChange,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -29,7 +35,7 @@ export default function ChartFooter({
   elements.push(
     total === null ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">
-        -
+        &mdash;
       </SectionValue>
     ) : (
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
@@ -39,12 +45,21 @@ export default function ChartFooter({
   return (
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
-      <OptionSelector
-        title={t('Y-Axis')}
-        selected={yAxisValue}
-        options={yAxisOptions}
-        onChange={onAxisChange}
-      />
+      <InlineContainer>
+        <OptionSelector
+          title={t('Display')}
+          selected={displayMode}
+          options={displayOptions}
+          onChange={onDisplayChange}
+          menuWidth="170px"
+        />
+        <OptionSelector
+          title={t('Y-Axis')}
+          selected={yAxisValue}
+          options={yAxisOptions}
+          onChange={onAxisChange}
+        />
+      </InlineContainer>
     </ChartControls>
   );
 }

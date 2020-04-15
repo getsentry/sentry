@@ -1,9 +1,9 @@
 import EventView, {
-  CHART_AXIS_OPTIONS,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'app/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -2113,6 +2113,35 @@ describe('EventView.getYAxis', function() {
       // yAxis defaults to the first entry of the default yAxis options
       expect(thisEventView.getYAxis()).toEqual('count()');
     }
+  });
+});
+
+describe('EventView.getDisplayOptions()', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should return default options', function() {
+    const eventView = new EventView(state);
+
+    expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
+  });
+
+  it('should disable previous when start/end are used.', function() {
+    const eventView = new EventView({
+      ...state,
+      end: '2020-04-13T12:13:14',
+      start: '2020-04-01T12:13:14',
+    });
+
+    const options = eventView.getDisplayOptions();
+    expect(options[1].value).toEqual('previous');
+    expect(options[1].disabled).toBeTruthy();
   });
 });
 
