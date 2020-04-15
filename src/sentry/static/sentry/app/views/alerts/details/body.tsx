@@ -59,7 +59,7 @@ export default class DetailsBody extends React.Component<Props> {
         incident.aggregation === AlertRuleAggregations.UNIQUE_USERS
           ? '-count_unique_user_id'
           : '-count_id',
-      query: (incident && incident.query) || '',
+      query: incident?.discoverQuery ?? '',
       projects: projects
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),

@@ -113,7 +113,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     sortField: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 5) : emptyValue}
+        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
       </NumberContainer>
     ),
   },
@@ -175,10 +175,20 @@ const SPECIAL_FIELDS: SpecialFields = {
   issue: {
     sortField: null,
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const issueID = data['issue.id'];
+
+      if (!issueID) {
+        return (
+          <Container>
+            <ShortId shortId={`${data.issue}`} />
+          </Container>
+        );
+      }
+
+      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
       return (
         <Container>
-          <OverflowLink to={target} aria-label={data['issue.id']}>
+          <OverflowLink to={target} aria-label={issueID}>
             <ShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
@@ -200,11 +210,11 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'user.id',
     renderFunc: data => {
       const userObj = {
-        id: data['user.id'],
-        name: data['user.name'],
-        email: data['user.email'],
-        username: data['user.username'],
-        ip_address: data['user.ip'],
+        id: data.user,
+        name: data.user,
+        email: data.user,
+        username: data.user,
+        ip_address: '',
       };
 
       const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;

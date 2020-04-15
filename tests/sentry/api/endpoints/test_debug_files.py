@@ -190,7 +190,7 @@ class DebugFilesUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
-        dsym, = response.data
+        (dsym,) = response.data
         assert dsym["cpuName"] == "any"
         assert dsym["headers"] == {"Content-Type": "text/x-proguard+plain"}
         assert dsym["objectName"] == "proguard-mapping"

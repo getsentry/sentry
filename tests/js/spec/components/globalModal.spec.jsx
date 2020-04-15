@@ -31,7 +31,7 @@ describe('GlobalModal', function() {
     }, 1);
   });
 
-  it('calls onClose handler when modal closes', function(done) {
+  it('calls onClose handler when modal is clicked out of', async function() {
     const wrapper = mount(<GlobalModal />);
     const closeSpy = jest.fn();
 
@@ -44,17 +44,33 @@ describe('GlobalModal', function() {
       {onClose: closeSpy}
     );
 
-    // async :<
-    setTimeout(() => {
-      wrapper.update();
-      const modal = $(document.body).find('.modal');
-      modal.find('.close').click();
+    await tick();
 
-      setTimeout(() => {
-        wrapper.update();
-        expect(closeSpy).toHaveBeenCalled();
-        done();
-      }, 1);
-    }, 1);
+    wrapper.update();
+    $(document.body)
+      .find('.modal .close')
+      .click();
+
+    await tick();
+
+    wrapper.update();
+    expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('calls onClose handler when closeModal prop is called', async function() {
+    const wrapper = mount(<GlobalModal />);
+    const closeSpy = jest.fn();
+
+    openModal(({closeModal: cm}) => <button onClick={cm} />, {onClose: closeSpy});
+
+    await tick();
+
+    wrapper.update();
+    wrapper.find('button').simulate('click');
+
+    await tick();
+
+    wrapper.update();
+    expect(closeSpy).toHaveBeenCalled();
   });
 });

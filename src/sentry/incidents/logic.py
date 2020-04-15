@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import timedelta
 
 import six
@@ -563,6 +564,30 @@ def create_alert_rule(
     return alert_rule
 
 
+def snapshot_alert_rule(alert_rule):
+    # Creates an archived alert_rule using the same properties as the passed rule
+    # It will also resolve any incidents attached to this rule.
+    with transaction.atomic():
+        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        incidents = Incident.objects.filter(alert_rule=alert_rule)
+        alert_rule_snapshot = deepcopy(alert_rule)
+        alert_rule_snapshot.id = None
+        alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule_snapshot.save()
+
+        incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+
+        for trigger in triggers:
+            actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+            trigger.id = None
+            trigger.alert_rule = alert_rule_snapshot
+            trigger.save()
+            for action in actions:
+                action.id = None
+                action.alert_rule_trigger = trigger
+                action.save()
+
+
 def update_alert_rule(
     alert_rule,
     projects=None,
@@ -618,7 +643,12 @@ def update_alert_rule(
         updated_fields["include_all_projects"] = include_all_projects
 
     with transaction.atomic():
+        incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
+        if incidents:
+            snapshot_alert_rule(alert_rule)
+
         alert_rule.update(**updated_fields)
+
         existing_subs = []
         if (
             query is not None

@@ -77,7 +77,7 @@ class AuthLoginView(BaseView):
             request.POST if op == "register" else None,
             initial=initial,
             # Custom auto_id to avoid ID collision with AuthenticationForm.
-            auto_id="id_registration_%s"
+            auto_id="id_registration_%s",
         )
 
     def can_register(self, request):

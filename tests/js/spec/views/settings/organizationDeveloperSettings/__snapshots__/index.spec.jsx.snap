@@ -244,7 +244,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                           <Component
                             aria-disabled={false}
                             aria-label="New Public Integration"
-                            className="css-z8at1v-StyledButton edwq9my0"
+                            className="css-1mpdtii-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -254,7 +254,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                             <Link
                               aria-disabled={false}
                               aria-label="New Public Integration"
-                              className="css-z8at1v-StyledButton edwq9my0"
+                              className="css-1mpdtii-StyledButton edwq9my0"
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
                               role="button"
@@ -265,7 +265,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               <a
                                 aria-disabled={false}
                                 aria-label="New Public Integration"
-                                className="css-z8at1v-StyledButton edwq9my0"
+                                className="css-1mpdtii-StyledButton edwq9my0"
                                 onClick={[Function]}
                                 role="button"
                                 size="small"
@@ -412,7 +412,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                           <Component
                             aria-disabled={false}
                             aria-label="New Internal Integration"
-                            className="css-z8at1v-StyledButton edwq9my0"
+                            className="css-1mpdtii-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -422,7 +422,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                             <Link
                               aria-disabled={false}
                               aria-label="New Internal Integration"
-                              className="css-z8at1v-StyledButton edwq9my0"
+                              className="css-1mpdtii-StyledButton edwq9my0"
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
                               role="button"
@@ -433,7 +433,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               <a
                                 aria-disabled={false}
                                 aria-label="New Internal Integration"
-                                className="css-z8at1v-StyledButton edwq9my0"
+                                className="css-1mpdtii-StyledButton edwq9my0"
                                 onClick={[Function]}
                                 role="button"
                                 size="small"

@@ -1,5 +1,6 @@
 /*eslint-env node*/
 module.exports = {
+  processors: ['stylelint-processor-styled-components'],
   extends: [
     'stylelint-config-recommended',
     'stylelint-config-styled-components',
@@ -7,7 +8,6 @@ module.exports = {
   ],
   rules: {
     'declaration-colon-newline-after': null,
-    'block-no-empty': null,
 
     // This is formatting related
     'declaration-bang-space-before': null,
@@ -15,5 +15,10 @@ module.exports = {
     // Doesn't work when we use values from theme
     'unit-no-unknown': null,
     'font-family-no-missing-generic-family-keyword': null,
+
+    // Does not seem useful
+    'no-descending-specificity': null,
+
+    'property-no-unknown': [true, {ignoreProperties: [/\$dummyValue/]}],
   },
 };

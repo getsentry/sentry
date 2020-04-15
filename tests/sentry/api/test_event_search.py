@@ -46,7 +46,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p75", "number") == "duration"
     assert get_json_meta_type("p95", "number") == "duration"
     assert get_json_meta_type("p99", "number") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "percentage"
+    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
     assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
@@ -233,6 +233,16 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+        assert parse_search_query("first_seen:>2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 6, 7, tzinfo=timezone.utc)
+                ),
+            )
+        ]
+
         assert parse_search_query("random:>2015-05-18") == [
             SearchFilter(
                 key=SearchKey(name="random"), operator="=", value=SearchValue(">2015-05-18")
@@ -280,7 +290,24 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07") == [
+        assert parse_search_query("first_seen:2018-01-01T05:06:07Z") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
+        ]
+
+        assert parse_search_query("first_seen:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
                 key=SearchKey(name="first_seen"),
                 operator=">=",
@@ -1217,13 +1244,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_general_negative_user_field(self):
         conditions = get_filter("!user:123").conditions
         assert len(conditions) == 4
-        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[0]
+        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[0]
         assert [
             [["isNull", ["user.username"]], "=", 1],
             ["user.username", "!=", "123"],
         ] == conditions[1]
-        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[2]
-        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[3]
+        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
+        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
@@ -1244,6 +1271,10 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_negative_arguments(self):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
+
+    def test_function_with_date_arguments(self):
+        result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "=", 1585769692000]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1310,10 +1341,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
@@ -1325,10 +1356,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]

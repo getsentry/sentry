@@ -241,9 +241,11 @@ class ReleaseSerializer(Serializer):
                 project, item_list
             )
         else:
-            first_seen, last_seen, issue_counts_by_release = self.__get_release_data_with_environment(
-                project, item_list, environment
-            )
+            (
+                first_seen,
+                last_seen,
+                issue_counts_by_release,
+            ) = self.__get_release_data_with_environment(project, item_list, environment)
 
         owners = {
             d["id"]: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
