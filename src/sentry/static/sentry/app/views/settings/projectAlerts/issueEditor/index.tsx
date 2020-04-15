@@ -141,7 +141,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const {organization, project} = this.props;
     const {uuid} = this.state;
-    const origRule = {...this.state.rule};
+    const origRule = this.state.rule;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
@@ -159,7 +159,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
       if (status === 'failed') {
         this.setState({
-          detailedError: {actions: [error ? error : 'An error occurred']},
+          detailedError: {actions: [error ? error : t('An error occurred')]},
           loading: false,
         });
         addErrorMessage(t('An error occurred'));
