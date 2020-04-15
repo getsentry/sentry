@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment-timezone';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -14,6 +15,8 @@ import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
+import {transactionSummaryRouteWithEventView} from 'app/views/performance/transactionSummary/utils';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -44,6 +47,7 @@ const GroupEventToolbar = createReactClass({
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   },
 
   shouldComponentUpdate(nextProps) {
@@ -82,6 +86,48 @@ const GroupEventToolbar = createReactClass({
     );
   },
 
+  renderRelatedTransactionButton() {
+    const {organization, event, orgId} = this.props;
+
+    const orgFeatures = new Set(organization.features);
+
+    if (!orgFeatures.has('performance-view')) {
+      return null;
+    }
+
+    const transactionTag = event?.tags?.find(tag => {
+      return tag?.key === 'transaction';
+    });
+
+    if (!transactionTag) {
+      return null;
+    }
+
+    const transactionName = transactionTag?.value;
+
+    if (typeof transactionName !== 'string' || !transactionName) {
+      return null;
+    }
+
+    const to = transactionSummaryRouteWithEventView({
+      orgSlug: orgId,
+      transaction: transactionName,
+      projectID: event.projectID,
+    });
+
+    return (
+      <div key="related-transaction">
+        <RelatedTransactionLink
+          className="btn btn-default btn-sm"
+          title={t('Related Transaction')}
+          to={to}
+        >
+          {t('Related Transaction')}
+        </RelatedTransactionLink>
+      </div>
+    );
+  },
+
   render() {
     const evt = this.props.event;
 
@@ -91,6 +137,7 @@ const GroupEventToolbar = createReactClass({
     const baseEventsPath = `/organizations/${orgId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
+      this.renderRelatedTransactionButton(),
       <Button
         key="oldest"
         to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
@@ -165,5 +212,9 @@ const GroupEventToolbar = createReactClass({
     );
   },
 });
+
+const RelatedTransactionLink = styled(Link)`
+  margin-right: ${space(2)};
+`;
 
 export default GroupEventToolbar;
