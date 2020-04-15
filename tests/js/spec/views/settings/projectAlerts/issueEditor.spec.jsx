@@ -154,4 +154,83 @@ describe('ProjectAlerts -> IssueEditor', function() {
       expect(updateOnboardingTask).toHaveBeenCalled();
     });
   });
+
+  describe('Edit Rule: Slack Channel Look Up', function() {
+    const uuid = 'xxxx-xxxx-xxxx';
+
+    beforeEach(async function() {
+      jest.useFakeTimers();
+    });
+
+    afterEach(function() {
+      jest.clearAllTimers();
+      MockApiClient.clearMockResponses();
+    });
+
+    it('pending status keeps loading true', async function() {
+      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        body: {status: 'pending'},
+      });
+      const {wrapper} = createWrapper();
+      const ruleEditor = wrapper.find('IssueRuleEditor').last();
+
+      ruleEditor.setState({uuid, loading: true});
+      await Promise.resolve();
+      ruleEditor.update();
+
+      ruleEditor.instance().fetchStatus();
+      jest.runOnlyPendingTimers();
+
+      await Promise.resolve();
+      ruleEditor.update();
+      expect(ruleEditor.state('loading')).toBe(true);
+    });
+
+    it('failed status renders error message', async function() {
+      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        body: {status: 'failed'},
+      });
+      const {wrapper} = createWrapper();
+      const ruleEditor = wrapper.find('IssueRuleEditor').last();
+
+      ruleEditor.setState({uuid, loading: true});
+      await Promise.resolve();
+      ruleEditor.update();
+
+      ruleEditor.instance().fetchStatus();
+      jest.runAllTimers();
+
+      await Promise.resolve();
+      ruleEditor.update();
+
+      expect(ruleEditor.state('loading')).toBe(false);
+      expect(ruleEditor.state('detailedError')).toEqual({actions: ['An error occurred']});
+    });
+
+    it('success status updates the rule', async function() {
+      const endpoint = `/projects/org-slug/project-slug/rule-task/${uuid}/`;
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+      });
+      const {wrapper} = createWrapper();
+      const ruleEditor = wrapper.find('IssueRuleEditor').last();
+
+      ruleEditor.setState({uuid, loading: true});
+      await Promise.resolve();
+      ruleEditor.update();
+
+      ruleEditor.instance().fetchStatus();
+      jest.runOnlyPendingTimers();
+
+      await Promise.resolve();
+      ruleEditor.update();
+      expect(ruleEditor.state('loading')).toBe(false);
+      expect(ruleEditor.state('rule').name).toBe('Slack Rule');
+    });
+  });
 });
