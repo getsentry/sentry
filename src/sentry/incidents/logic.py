@@ -177,11 +177,13 @@ def set_incident_seen(incident, user=None):
     """
     Updates the incident to be seen
     """
-    incident_seen, created = IncidentSeen.objects.create_or_update(
-        incident=incident, user=user, values={"last_seen": timezone.now()}
-    )
+    if incident.organization.has_access(user):
+        incident_seen, created = IncidentSeen.objects.create_or_update(
+            incident=incident, user=user, values={"last_seen": timezone.now()}
+        )
+        return incident_seen
 
-    return incident_seen
+    return False
 
 
 @transaction.atomic
