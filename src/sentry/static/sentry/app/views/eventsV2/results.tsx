@@ -160,6 +160,20 @@ class Results extends React.Component<Props, State> {
     });
   };
 
+  handleDisplayChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      display: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+  };
+
   getDocumentTitle(): string {
     const {eventView} = this.state;
     if (!eventView) {
@@ -232,6 +246,7 @@ class Results extends React.Component<Props, State> {
                     eventView={eventView}
                     location={location}
                     onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
                     total={totalValues}
                   />
                 </Top>

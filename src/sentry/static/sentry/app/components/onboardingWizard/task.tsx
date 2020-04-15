@@ -267,14 +267,7 @@ const TaskBlankAvatar = styled(posed(LetterAvatar)(completedItemPoses))`
   position: unset;
 `;
 
-// XXX(epurkhiser): The withRouter HoC has incorrect typings. It does not
-// correctly remove the WithRouterProps from the return type of the HoC, thus
-// we manually have to do this.
-type PropsWithoutRouter = Omit<Props, keyof ReactRouter.WithRouterProps>;
-
-const WrappedTask = withOrganization(
-  ReactRouter.withRouter(Task) as React.ComponentClass<PropsWithoutRouter>
-);
+const WrappedTask = withOrganization(ReactRouter.withRouter(Task));
 
 export default React.forwardRef<
   HTMLDivElement,
