@@ -158,11 +158,4 @@ const Form = styled('form')`
   position: relative;
 `;
 
-// XXX(epurkhiser): The withRouter HoC has incorrect typings. It does not
-// correctly remove the WithRouterProps from the return type of the HoC, thus
-// we manually have to do this.
-type PropsWithoutRouter = Omit<Props, keyof ReactRouter.WithRouterProps>;
-
-export default ReactRouter.withRouter(AsyncComponentSearchInput) as React.ComponentClass<
-  PropsWithoutRouter
->;
+export default ReactRouter.withRouter(AsyncComponentSearchInput);
