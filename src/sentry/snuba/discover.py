@@ -19,7 +19,7 @@ from sentry.api.event_search import (
 
 from sentry import eventstore
 
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project, ProjectStatus, Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
@@ -40,6 +40,7 @@ __all__ = (
     "query",
     "key_transaction_query",
     "timeseries_query",
+    "top_events_timeseries",
     "get_pagination_ids",
     "get_facets",
     "transform_results",
@@ -767,23 +768,9 @@ def timeseries_query(
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    if top_events:
-        selected_columns += top_events["columns"]
-
     snuba_filter, translated_columns = get_timeseries_snuba_filter(
         selected_columns, query, params, rollup, reference_event
     )
-
-    if top_events:
-        group_conditions = []
-        for field in top_events["columns"]:
-            # project is handled by filter_keys already
-            if field == "project":
-                continue
-            values = list({event.get(field) for event in top_events["data"] if field in event})
-            if values and all(values):
-                group_conditions.append([resolve_column(field), "IN", values])
-        snuba_filter.conditions.extend(group_conditions)
 
     result = raw_query(
         aggregations=snuba_filter.aggregations,
@@ -799,41 +786,93 @@ def timeseries_query(
         referrer=referrer,
     )
 
-    if top_events:
-        results = []
-        top_groupby = [
-            field
-            for field in top_events["columns"]
-            if resolve_column(field) in snuba_filter.groupby
-        ]
-        result = transform_results(result, translated_columns, snuba_filter)
-        for index, event in enumerate(top_events["data"]):
-            results.append(
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                row
-                                for row in result["data"]
-                                if all(row[field] == event[field] for field in top_groupby)
-                            ],
-                            snuba_filter.start,
-                            snuba_filter.end,
-                            rollup,
-                            "time",
-                        ),
-                        "values": event,
-                    },
-                    snuba_filter.start,
-                    snuba_filter.end,
-                    rollup,
-                )
-            )
-        return results
-    else:
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
+    result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    yaxis,
+    rollup,
+    limit,
+    organization,
+    referrer=None,
+):
+    orderby = ["-{}".format(axis) for axis in yaxis]
+    top_events = query(
+        selected_columns + yaxis,
+        query=user_query,
+        params=params,
+        orderby=orderby,
+        limit=limit,
+        referrer=referrer,
+    )
+
+    snuba_filter, translated_columns = get_timeseries_snuba_filter(
+        timeseries_columns + selected_columns, user_query, params, rollup
+    )
+
+    for field in selected_columns:
+        # project is handled by filter_keys already
+        if field in ["project", "project.id"]:
+            continue
+        values = list({event.get(field) for event in top_events["data"] if field in event})
+        if values and all(values):
+            snuba_filter.conditions.append([resolve_column(field), "IN", values])
+
+    result = raw_query(
+        aggregations=snuba_filter.aggregations,
+        conditions=snuba_filter.conditions,
+        filter_keys=snuba_filter.filter_keys,
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        rollup=rollup,
+        orderby="time",
+        groupby=["time"] + snuba_filter.groupby,
+        dataset=Dataset.Discover,
+        limit=10000,
+        referrer=referrer,
+    )
+
+    result = transform_results(result, translated_columns, snuba_filter)
+    issues = {}
+    if "issue" in selected_columns:
+        issues = Group.issues_mapping(
+            set([event["issue.id"] for event in top_events["data"]]),
+            params["project_id"],
+            organization,
+        )
+
+    translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
+    if "project.id" in translated_groupby:
+        translated_groupby.remove("project.id")
+        translated_groupby.append("project")
+    # so the result key is consistent
+    translated_groupby.sort()
+
+    results = {}
+    for row in result["data"]:
+        values = []
+        for field in translated_groupby:
+            if field == "issue.id":
+                values.append(issues.get(row["issue.id"], "unknown"))
+            else:
+                values.append(row.get(field) or "null")
+        result_key = ",".join(values)
+        results.setdefault(result_key, []).append(row)
+    for key, item in six.iteritems(results):
+        results[key] = SnubaTSResult(
+            {"data": zerofill(item, snuba_filter.start, snuba_filter.end, rollup, "time")},
+            snuba_filter.start,
+            snuba_filter.end,
+            rollup,
+        )
+
+    return results
 
 
 def get_id(result):

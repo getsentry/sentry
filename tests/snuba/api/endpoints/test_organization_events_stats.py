@@ -686,15 +686,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        results = {item["values"]["message"]: item for item in data}
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
-            assert message in results
-            values = results[message]["values"]
-            assert values["user.email"] == self.event_data[index]["data"]["user"].get("email")
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+            ]
             assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results[message]["data"]
+                attrs for time, attrs in results["data"]
             ]
 
     def test_top_events_with_projects(self):
@@ -720,15 +718,11 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        results = {item["values"]["message"]: item for item in data}
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
-            assert message in results
-            values = results[message]["values"]
-            assert values["project"] == event.project.slug
+            results = data[",".join([message, event.project.slug])]
             assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results[message]["data"]
+                attrs for time, attrs in results["data"]
             ]
 
     def test_top_events_with_issue(self):
@@ -755,19 +749,17 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        results = {item["values"]["message"]: item for item in data}
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
-            assert message in results
-            values = results[message]["values"]
             # Because we deleted the group for event 0
-            if index == 0:
-                assert values["issue"] == "unknown"
-            elif event.group:
-                assert values["issue"] == event.group.qualified_short_id
+            if index == 0 or event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[",".join([issue, message])]
             assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in results[message]["data"]
+                attrs for time, attrs in results["data"]
             ]
 
     def test_top_events_with_functions(self):
@@ -785,19 +777,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        duration = self.transaction.data["timestamp"] - self.transaction.data["start_timestamp"]
-
         data = response.data
 
         assert response.status_code == 200, response.content
         assert len(data) == 1
 
-        transaction_data = data[0]
-        values = transaction_data["values"]
-        assert values["transaction"] == self.transaction.transaction
-        assert values["avg_transaction_duration"] == duration * 1000.0
-        assert values["p99"] == duration * 1000.0
-        assert [attrs for time, attrs in transaction_data["data"]] == [
+        results = data[self.transaction.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
@@ -827,23 +813,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 2
 
-        results = {item["values"]["transaction"]: item for item in data}
-
-        transaction_data = results[self.transaction.transaction]
-        values = transaction_data["values"]
-        assert values["avg_transaction_duration"] == 120000.0
-        assert values["p99"] == 120000.0
-        assert [attrs for time, attrs in transaction_data["data"]] == [
+        results = data[self.transaction.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
 
-        transaction2_data = results[transaction2.transaction]
-        values = transaction2_data["values"]
-        assert values["transaction"] == transaction2.transaction
-        assert values["avg_transaction_duration"] == 240000.0
-        assert values["p99"] == 240000.0
-        assert [attrs for time, attrs in transaction2_data["data"]] == [
+        results = data[transaction2.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
             [{"count": 1}],
             [{"count": 0}],
         ]
@@ -853,7 +830,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
         transaction_data["transaction"] = "/foo_bar/"
-        transaction2 = self.store_event(transaction_data, project_id=self.project.id)
+        self.store_event(transaction_data, project_id=self.project.id)
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -874,11 +851,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 1
 
-        transaction2_data = data[0]
-        values = transaction2_data["values"]
-        assert values["transaction"] == transaction2.transaction
-        assert values["avg_transaction_duration"] == 240000.0
-        assert values["p99"] == 240000.0
+        transaction2_data = data["/foo_bar/"]
         assert [attrs for time, attrs in transaction2_data["data"]] == [
             [{"count": 1}],
             [{"count": 0}],
@@ -903,15 +876,13 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        results = {item["values"]["message"]: item for item in data}
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
-            assert message in results
-            values = results[message]["values"]
-            assert values["user.email"] == self.event_data[index]["data"]["user"].get("email")
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+            ]
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
-                attrs for time, attrs in results[message]["data"]
+                attrs for time, attrs in results["data"]
             ]
 
     def test_top_events_with_multiple_yaxis(self):
@@ -933,21 +904,15 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
-        rpm_results = {item["rpm()"]["values"]["message"]: item["rpm()"] for item in data}
-        count_results = {item["count()"]["values"]["message"]: item["count()"] for item in data}
-
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
-            assert message in rpm_results
-            values = rpm_results[message]["values"]
-            assert values["user.email"] == self.event_data[index]["data"]["user"].get("email")
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+            ]
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
-                attrs for time, attrs in rpm_results[message]["data"]
+                attrs for time, attrs in results["rpm()"]["data"]
             ]
 
-            assert message in count_results
-            values = count_results[message]["values"]
-            assert values["user.email"] == self.event_data[index]["data"]["user"].get("email")
             assert [{"count": self.event_data[index]["count"]}] in [
-                attrs for time, attrs in count_results[message]["data"]
+                attrs for time, attrs in results["count()"]["data"]
             ]

@@ -21,25 +21,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return self.get_v1_results(request, organization)
 
         def get_event_stats(query_columns, query, params, rollup, reference_event):
-            top_events = None
             if "topEvents" in request.GET:
-                orderby = request.GET.getlist("yAxis")
-                original_columns = request.GET.getlist("field")[:]
-                top_events = discover.query(
-                    selected_columns=original_columns + orderby,
-                    query=query,
+                # TODO(wmak): make topEvents an int, error if out of bounds and pass below
+                return discover.top_events_timeseries(
+                    timeseries_columns=query_columns,
+                    selected_columns=request.GET.getlist("field")[:],
+                    user_query=query,
                     params=params,
-                    orderby=["-{}".format(order) for order in orderby],
+                    yaxis=request.GET.getlist("yAxis"),
+                    rollup=rollup,
                     limit=5,
-                    reference_event=reference_event,
+                    organization=organization,
+                    referrer="api.organization-event-stats.find-topn",
                 )
-                top_events["columns"] = original_columns
             return discover.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
                 params=params,
                 rollup=rollup,
-                top_events=top_events,
                 reference_event=reference_event,
                 referrer="api.organization-event-stats",
             )
