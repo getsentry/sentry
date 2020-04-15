@@ -25,7 +25,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             node = rule_cls(project)
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
             if (
-                node.id == "sentry.rules.actions.notify_email.NotifyEmailAction"
+                node.id == "sentry.mail.actions.NotifyEmailAction"
                 and not has_issue_alerts_targeting
             ):
                 continue
