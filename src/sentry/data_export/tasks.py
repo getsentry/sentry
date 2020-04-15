@@ -103,22 +103,23 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     writer = create_writer(file, processor.header_fields)
     iteration = 0
     with snuba_error_handler(logger=logger):
-        while True:
+        is_completed = False
+        while not is_completed:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
+            is_exceeding_limit = limit and limit < next_offset
             gtv_list_unicode = processor.get_serialized_data(offset=offset)
-            if len(gtv_list_unicode) == 0:
-                break
             # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
             # See associated comment in './utils.py'
             gtv_list = convert_to_utf8(gtv_list_unicode)
-            if limit and limit < next_offset:
-                # Since the next offset will pass the limit, write the remainder and quit
+            if is_exceeding_limit:
+                # Since the next offset will pass the limit, just write the remainder
                 writer.writerows(gtv_list[: limit % SNUBA_MAX_RESULTS])
-                break
             else:
                 writer.writerows(gtv_list)
                 iteration += 1
+            # If there are no returned results, or we've passed the limit, stop iterating
+            is_completed = len(gtv_list) == 0 or is_exceeding_limit
 
 
 def process_discover(data_export, file):
