@@ -77,7 +77,6 @@ default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQ
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
-default_manager.add("organizations:issue-alerts-targeting", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
@@ -97,6 +96,7 @@ default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
 default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
+default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
 default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
