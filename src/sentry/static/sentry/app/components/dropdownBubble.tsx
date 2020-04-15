@@ -123,7 +123,7 @@ const DropdownBubble = styled('div')<Params>`
    * below dropdown actor button's zindex */
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
-  ${SettingsHeader} & {
+  ${/* sc-selector */ SettingsHeader} & {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
   }
 `;

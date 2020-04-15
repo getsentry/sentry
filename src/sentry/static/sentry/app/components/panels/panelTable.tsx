@@ -133,7 +133,7 @@ const Wrapper = styled(Panel, {
     }
   }
 
-  > ${TableEmptyStateWarning}, > ${LoadingWrapper} {
+  > ${/* sc-selector */ TableEmptyStateWarning}, > ${/* sc-selector */ LoadingWrapper} {
     border: none;
     grid-column: auto / span ${p => p.columns};
   }

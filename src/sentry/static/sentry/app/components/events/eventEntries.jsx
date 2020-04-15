@@ -264,10 +264,10 @@ class EventEntries extends React.Component {
 }
 
 const BorderlessEventEntries = styled(EventEntries)`
-  & ${DataSection} {
+  & ${/* sc-selector */ DataSection} {
     padding: ${space(3)} 0 0 0;
   }
-  & ${DataSection}:first-child {
+  & ${/* sc-selector */ DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
   }
