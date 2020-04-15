@@ -2615,7 +2615,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-router@3.0.22":
+"@types/react-router@^3.0.22":
   version "3.0.22"
   resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-3.0.22.tgz#047e971f2a5ff69aef981b4ffb69fa1150674e80"
   integrity sha512-MUjQtRC4vS+rTqQKag3r0Pf6wSy0Y2h/hfk4OE03STgNmtRWGfyjckHLHgESbdqz2VnL12xS6pdncsCDiudC2g==
