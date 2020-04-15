@@ -40,7 +40,7 @@ class SnubaTSDB(BaseTSDB):
     # other models.
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", None, [["type", "=", "error"]]
+            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
         ),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
