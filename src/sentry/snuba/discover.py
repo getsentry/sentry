@@ -768,7 +768,7 @@ def timeseries_query(
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    snuba_filter, translated_columns = get_timeseries_snuba_filter(
+    snuba_filter, _ = get_timeseries_snuba_filter(
         selected_columns, query, params, rollup, reference_event
     )
 
@@ -780,12 +780,11 @@ def timeseries_query(
         end=snuba_filter.end,
         rollup=rollup,
         orderby="time",
-        groupby=["time"] + snuba_filter.groupby,
+        groupby=["time"],
         dataset=Dataset.Discover,
         limit=10000,
         referrer=referrer,
     )
-
     result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)

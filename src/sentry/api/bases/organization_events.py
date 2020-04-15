@@ -132,12 +132,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_issues_mapping(self, issue_ids, project_ids, organization):
-        """ Map of group ids to short ids for each group
-
-            This is shared between handling top events timeseries and handling events data
-        """
-
     def get_event_stats_data(self, request, organization, get_event_stats):
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
