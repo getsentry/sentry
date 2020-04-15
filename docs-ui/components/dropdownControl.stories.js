@@ -3,7 +3,7 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {text, boolean} from '@storybook/addon-knobs';
 
-import DropdownControl from 'app/components/dropdownControl';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 
 storiesOf('UI|Dropdowns/DropdownControl', module)
@@ -22,12 +22,30 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
             menuOffset={menuOffset}
             alwaysRenderMenu={alwaysRenderMenu}
           >
-            <MenuItem href="">Item</MenuItem>
-            <MenuItem href="">Item</MenuItem>
+            <DropdownItem href="">Item</DropdownItem>
+            <DropdownItem href="">Item</DropdownItem>
+            <DropdownItem disabled href="">
+              Disabled Item
+            </DropdownItem>
+            <DropdownItem divider />
+            <DropdownItem isActive href="">
+              Active Item
+            </DropdownItem>
           </DropdownControl>
         </div>
       );
     })
+  )
+  .add(
+    'basic menu item',
+    withInfo('Element labels replace the button contents')(() => (
+      <div className="clearfix">
+        <DropdownControl label={<em>Slanty</em>}>
+          <MenuItem href="">Item</MenuItem>
+          <MenuItem href="">Item</MenuItem>
+        </DropdownControl>
+      </div>
+    ))
   )
   .add(
     'element label',
@@ -45,9 +63,7 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
     withInfo('button prop lets you replace the entire button.')(() => (
       <div className="clearfix">
         <DropdownControl
-          button={({isOpen, getActorProps}) => (
-            <button {...getActorProps()}>click me</button>
-          )}
+          button={({getActorProps}) => <button {...getActorProps()}>click me</button>}
         >
           <MenuItem href="">Item</MenuItem>
           <MenuItem href="">Item</MenuItem>

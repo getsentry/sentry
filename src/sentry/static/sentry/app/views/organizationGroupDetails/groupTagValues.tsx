@@ -120,8 +120,8 @@ class GroupTagValues extends AsyncComponent<
             payload={{
               queryType: ExportQueryType.IssuesByTag,
               queryInfo: {
-                project_id: group.project.id,
-                group_id: group.id,
+                project: group.project.id,
+                group: group.id,
                 key: tagKey,
               },
             }}
