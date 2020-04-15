@@ -47,10 +47,6 @@ class MailPluginTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
-    def test_should_notify_no_sendable_users(self):
-        assert not self.plugin.should_notify(group=Mock(), event=Mock())
-
     def test_simple_notification(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -632,3 +628,33 @@ class TestCanConfigureForProject(TestCase):
     def test_has_alerts_targeting(self):
         self.project.flags.has_issue_alerts_targeting = True
         assert not self.plugin.can_configure_for_project(self.project)
+
+
+class MailPluginShouldNotifyTest(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    def test_should_notify_no_sendable_users_has_issue_alerts_targeting(self):
+        self.group.project.flags.has_issue_alerts_targeting = True
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    def test_should_notify_no_sendable_users_not_has_issue_alerts_targeting(self):
+        self.group.project.flags.has_issue_alerts_targeting = False
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    def test_should_notify_sendable_users_has_issue_alerts_targetting(self):
+        self.group.project.flags.has_issue_alerts_targeting = True
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    def test_should_notify_sendable_users_not_has_issue_alerts_targetting(self):
+        self.group.project.flags.has_issue_alerts_targeting = False
+        self.group.project.save()
+        assert self.plugin.should_notify(group=self.group, event=Mock())
