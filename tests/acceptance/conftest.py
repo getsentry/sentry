@@ -56,11 +56,16 @@ def pytest_configure(config):
     """
     )
 
-    subprocess.call(
-        ["yarn", "webpack"],
-        env={
-            "NODE_ENV": "development",
-            "PATH": os.environ["PATH"],
-            "NODE_OPTIONS": "--max-old-space-size=4096",
-        },
-    )
+    try:
+        subprocess.call(
+            ["yarn", "--silent", "webpack"],
+            env={
+                "NODE_ENV": "development",
+                "PATH": os.environ["PATH"],
+                "NODE_OPTIONS": "--max-old-space-size=4096",
+            },
+        )
+    except OSError:
+        print(
+            "Unable to find `yarn` and/or `webpack` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
+        )
