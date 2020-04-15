@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent} from 'app/styles/organization';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -107,7 +107,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     }
 
     return (
-      <NoProjectMessage organization={organization}>
+      <LightWeightNoProjectMessage organization={organization}>
         <StyledPageContent>
           <ReleaseHeader
             location={location}
@@ -121,7 +121,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             {this.props.children}
           </ReleaseContext.Provider>
         </StyledPageContent>
-      </NoProjectMessage>
+      </LightWeightNoProjectMessage>
     );
   }
 }
