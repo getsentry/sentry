@@ -230,7 +230,7 @@ type LegacyAnalyticsEvent = (
   /**
    * Arbitrary data to track
    */
-  data: {[key: string]: number | string | boolean | number[] | string[]}
+  data: {[key: string]: any}
 ) => void;
 
 /**
