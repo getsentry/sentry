@@ -170,21 +170,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             results = {}
             for key, event_result in six.iteritems(result):
                 if len(columns) > 1:
-                    results[key] = {
-                        column: serializer.serialize(event_result, get_function_alias(query_column))
-                        for column, query_column in zip(columns, query_columns)
-                    }
+                    results[key] = self.serialize_multiple_axis(
+                        serializer, event_result, columns, query_columns
+                    )
                 else:
                     results[key] = serializer.serialize(event_result)
             return results
         elif len(columns) > 1:
-            # Return with requested yAxis as the key
-            return {
-                column: serializer.serialize(result, get_function_alias(query_column))
-                for column, query_column in zip(columns, query_columns)
-            }
+            return self.serialize_multiple_axis(serializer, result, columns, query_columns)
         else:
             return serializer.serialize(result)
+
+    def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
+        # Return with requested yAxis as the key
+        return {
+            column: serializer.serialize(event_result, get_function_alias(query_column))
+            for column, query_column in zip(columns, query_columns)
+        }
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
