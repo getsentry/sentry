@@ -44,11 +44,12 @@ type MenuItemProps = {
   /**
    * A router target destination
    */
-  to?: Pick<Link['props'], 'to'>;
+  to?: Link['props']['to'];
   /**
    * A server rendered URL.
    */
-  href?: Pick<React.HTMLProps<HTMLAnchorElement>, 'href'>;
+  href?: string;
+
   className?: string;
 };
 
