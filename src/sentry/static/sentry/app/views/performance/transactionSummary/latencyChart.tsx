@@ -240,7 +240,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
 
 function calculateTotal(total: number | null) {
   if (total === null) {
-    return '\u2015';
+    return '\u2014';
   }
   return total.toLocaleString();
 }
