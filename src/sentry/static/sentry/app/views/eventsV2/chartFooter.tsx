@@ -51,6 +51,7 @@ export default function ChartFooter({
           selected={displayMode}
           options={displayOptions}
           onChange={onDisplayChange}
+          menuWidth="170px"
         />
         <OptionSelector
           title={t('Y-Axis')}
