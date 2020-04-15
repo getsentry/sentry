@@ -1,5 +1,4 @@
 import React from 'react';
-import dompurify from 'dompurify';
 import styled from '@emotion/styled';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -43,8 +42,8 @@ type State = {
  */
 class InputInline extends React.Component<Props, State> {
   /**
-   * HACK(leedongwei): ContentEditable does not have the property, `value`. We
-   * coerce its `innerHtml` to `value` so it will have similar behaviour as a
+   * HACK(leedongwei): ContentEditable does not have the property `value`. We
+   * coerce its `innerText` to `value` so it will have similar behaviour as a
    * HTMLInputElement
    *
    * We probably need to attach this to every DOMAttribute event...
@@ -52,13 +51,11 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    const inputText = dompurify.sanitize(
-      (event.target as any).textContent || (event.currentTarget as any).textContent
-    );
+    const text =
+      (event.target as any).innerText || (event.currentTarget as any).innerText;
 
-    (event.target as any).value = inputText;
-    (event.currentTarget as any).value = inputText;
-
+    (event.target as any).value = text;
+    (event.currentTarget as any).value = text;
     return event as React.FormEvent<HTMLInputElement>;
   }
 
@@ -154,6 +151,8 @@ class InputInline extends React.Component<Props, State> {
     const {value, placeholder, disabled} = this.props;
     const {isFocused} = this.state;
 
+    const innerText = value || placeholder || '';
+
     return (
       <Wrapper
         style={this.props.style}
@@ -164,6 +163,7 @@ class InputInline extends React.Component<Props, State> {
         <Input
           {...this.props} // Pass DOMAttributes props first, extend/overwrite below
           ref={this.refInput}
+          suppressContentEditableWarning
           contentEditable={!this.props.disabled}
           isHovering={this.state.isHovering}
           isDisabled={this.props.disabled}
@@ -174,8 +174,9 @@ class InputInline extends React.Component<Props, State> {
           onKeyDown={this.onKeyDown}
           onKeyUp={this.onKeyUp}
         >
-          {value || placeholder || ''}
+          {innerText}
         </Input>
+
         {!isFocused && !disabled && (
           <div onClick={this.onClickIcon}>
             <StyledIconEdit />
