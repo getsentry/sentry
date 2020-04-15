@@ -26,6 +26,6 @@ const StyledBreadCrumb = styled(BreadCrumb)`
   cursor: pointer;
   background: ${p => p.theme.whiteDark};
   margin: 0 -1px;
-  border: 1px solid ${p => p.theme.borderLight};
-  border-top: none;
+  border-right: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.borderLight};
 `;
