@@ -110,7 +110,7 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
-        # TODO: add check if we are on slack v2
+        # TODO: add check if we are on slack v2 or check to see if we have user_access_token
         if settings.SLACK_INTEGRATION_USE_WST:
             access_token = integration.metadata["access_token"]
         else:
