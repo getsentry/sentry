@@ -15,6 +15,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.helpers import override_options, with_feature
 
 
 class SlackIntegrationTest(IntegrationTestCase):
@@ -27,6 +28,8 @@ class SlackIntegrationTest(IntegrationTestCase):
         access_token="xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
         access_extras=None,
         use_oauth_token_endpoint=True,
+        expected_client_id="slack-client-id",
+        expected_client_secret="slack-client-secret",
     ):
         responses.reset()
 
@@ -41,7 +44,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert params["state"]
         assert params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
         assert params["response_type"] == ["code"]
-        assert params["client_id"] == ["slack-client-id"]
+        assert params["client_id"] == [expected_client_id]
         # once we've asserted on it, switch to a singular values to make life
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
@@ -94,8 +97,8 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert req_params["grant_type"] == ["authorization_code"]
         assert req_params["code"] == ["oauth-code"]
         assert req_params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
-        assert req_params["client_id"] == ["slack-client-id"]
-        assert req_params["client_secret"] == ["slack-client-secret"]
+        assert req_params["client_id"] == [expected_client_id]
+        assert req_params["client_secret"] == [expected_client_secret]
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
@@ -193,3 +196,19 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assert_wst_setup_flow(authorizing_user_id="UXXXXXXX2")
         identity = Identity.objects.get()
         assert identity.external_id == "UXXXXXXX2"
+
+    @responses.activate
+    @with_feature("organizations:slack-v2")
+    def test_install_v2(self):
+        with override_options(
+            {"slack-v2.client-id": "other-id", "slack-v2.client-secret": "other-secret"}
+        ):
+            self.assert_setup_flow(
+                use_oauth_token_endpoint=False,
+                access_token="xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                access_extras={
+                    "bot": {"bot_access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
+                },
+                expected_client_id="other-id",
+                expected_client_secret="other-secret",
+            )

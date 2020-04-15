@@ -62,6 +62,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # Scopes differ depending on if it's a workspace app
+    # TODO: add check if we are on slack v2
     identity_oauth_scopes = (
         frozenset(["bot", "links:read", "links:write"])
         if not settings.SLACK_INTEGRATION_USE_WST
@@ -123,6 +124,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         data = state["identity"]["data"]
         assert data["ok"]
 
+        # TODO: add check if we are on slack v2
         if settings.SLACK_INTEGRATION_USE_WST:
             access_token = data["access_token"]
             user_id_slack = data["authorizing_user_id"]
@@ -142,6 +144,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         # When using bot tokens, we must use the user auth token for URL
         # unfurling
+        # TODO: add check if we are on slack v2
         if not settings.SLACK_INTEGRATION_USE_WST:
             metadata["user_access_token"] = data["access_token"]
 

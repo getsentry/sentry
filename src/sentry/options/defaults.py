@@ -122,6 +122,11 @@ register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 
+# Slack V2 Integration
+register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# TODO: add singing secret
+
 # GitHub Integration
 register("github-app.id", default=0)
 register("github-app.name", default="")
