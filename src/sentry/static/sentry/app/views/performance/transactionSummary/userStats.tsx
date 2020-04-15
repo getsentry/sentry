@@ -44,7 +44,7 @@ class UserStats extends React.Component<Props> {
     return (
       <EventsV2
         eventView={eventView}
-        organization={organization}
+        orgSlug={organization.slug}
         location={location}
         extraQuery={{per_page: 1}}
       >
