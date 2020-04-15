@@ -66,7 +66,7 @@ def pytest_configure(config):
             },
         )
 
-        if status == 1:
+        if status != 0:
             raise Exception(
                 "Unable to run `webpack` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
             )
