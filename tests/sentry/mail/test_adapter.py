@@ -12,7 +12,7 @@ from exam import fixture
 
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail.adapter import MailAdapter
+from sentry.mail.adapter import MailAdapter, ActionTargetType
 from sentry.models import (
     GroupStatus,
     OrganizationMember,
@@ -87,41 +87,49 @@ class MailAdapterGetSendToTest(BaseMailAdapterTest, TestCase):
     def test_get_send_to_with_team_owners(self):
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
         assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.adapter.get_send_to(self.project, event.data)
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
         )
 
         # Make sure that disabling mail alerts works as expected
         UserOption.objects.set_value(
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
-        assert set([self.user.pk]) == self.adapter.get_send_to(self.project, event.data)
+        assert set([self.user.pk]) == self.adapter.get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )
 
     def test_get_send_to_with_user_owners(self):
         event = self.store_event(data=self.make_event_data("foo.cbl"), project_id=self.project.id)
         assert sorted(set([self.user.pk, self.user2.pk])) == sorted(
-            self.adapter.get_send_to(self.project, event.data)
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
         )
 
         # Make sure that disabling mail alerts works as expected
         UserOption.objects.set_value(
             user=self.user2, key="mail:alert", value=0, project=self.project
         )
-        assert set([self.user.pk]) == self.adapter.get_send_to(self.project, event.data)
+        assert set([self.user.pk]) == self.adapter.get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )
 
     def test_get_send_to_with_user_owner(self):
         event = self.store_event(data=self.make_event_data("foo.jx"), project_id=self.project.id)
-        assert set([self.user2.pk]) == self.adapter.get_send_to(self.project, event.data)
+        assert set([self.user2.pk]) == self.adapter.get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )
 
     def test_get_send_to_with_fallthrough(self):
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
         assert set([self.user.pk, self.user2.pk]) == set(
-            self.adapter.get_send_to(self.project, event.data)
+            self.adapter.get_send_to(self.project, ActionTargetType.ISSUE_OWNERS, event=event.data)
         )
 
     def test_get_send_to_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
         event = self.store_event(data=self.make_event_data("foo.cpp"), project_id=self.project.id)
-        assert [] == self.adapter.get_send_to(self.project, event.data)
+        assert set([]) == self.adapter.get_send_to(
+            self.project, ActionTargetType.ISSUE_OWNERS, event=event.data
+        )
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
@@ -188,9 +196,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
 class MailAdapterBuildMessageTest(BaseMailAdapterTest, TestCase):
     def test(self):
         subject = "hello"
-        msg = self.adapter._build_message(self.project, subject)
-        assert msg._send_to == set([self.user.email])
-        assert msg.subject.endswith(subject)
+        assert self.adapter._build_message(self.project, subject) is None
 
     def test_specify_send_to(self):
         subject = "hello"
@@ -204,7 +210,7 @@ class MailAdapterSendMailTest(BaseMailAdapterTest, TestCase):
     def test(self):
         subject = "hello"
         with self.tasks():
-            self.adapter._send_mail(self.project, subject, body="hi")
+            self.adapter._send_mail(self.project, subject, body="hi", send_to=[self.user.id])
             msg = mail.outbox[0]
             assert msg.subject.endswith(subject)
             assert msg.recipients() == [self.user.email]
@@ -221,7 +227,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         notification = Notification(event=event, rule=rule)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
@@ -241,7 +247,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
@@ -261,7 +267,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
@@ -283,7 +289,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
@@ -297,7 +303,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         notification = Notification(event=event)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
@@ -354,7 +360,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         with self.tasks():
             notification = Notification(event=event)
 
-            self.adapter.notify(notification)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert len(mail.outbox) >= 1
 
@@ -365,7 +371,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     def assert_notify(self, event, emails_sent_to):
         mail.outbox = []
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(Notification(event=event))
+            self.adapter.notify(Notification(event=event), ActionTargetType.ISSUE_OWNERS)
         assert len(mail.outbox) == len(emails_sent_to)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
@@ -455,7 +461,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.notify_digest(project, digest)
+            self.adapter.notify_digest(project, digest, ActionTargetType.ISSUE_OWNERS)
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1
@@ -469,7 +475,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))
-        self.adapter.notify_digest(self.project, digest)
+        self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
@@ -493,7 +499,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.notify_digest(self.project, digest)
+            self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
 
         assert len(mail.outbox) == 1
 
@@ -508,7 +514,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
         rule = Rule.objects.create(project=self.project, label="my rule")
         futures = [RuleFuture(rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
-            self.adapter.rule_notify(event, futures)
+            self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
             notify.call_count == 1
 
     @mock.patch("sentry.mail.adapter.digests")
@@ -519,7 +525,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
         rule = Rule.objects.create(project=self.project, label="my rule")
 
         futures = [RuleFuture(rule, {})]
-        self.adapter.rule_notify(event, futures)
+        self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         digests.add.call_count == 1
 
 

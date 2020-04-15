@@ -20,7 +20,7 @@ import {getDuration, formatPercentage} from 'app/utils/formatters';
 import EventsRequest from './utils/eventsRequest';
 
 const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
-const PERCENTAGE_AGGREGATE_PATTERN = /^(apdex|error_rate)/;
+const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
 class EventsAreaChart extends React.Component {
   static propTypes = {

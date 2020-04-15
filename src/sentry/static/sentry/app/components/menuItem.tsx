@@ -1,21 +1,47 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import omit from 'lodash/omit';
+import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 type MenuItemProps = {
+  /**
+   * Should this item act as a header
+   */
   header?: boolean;
+  /**
+   * Should this item act as a divider
+   */
   divider?: boolean;
+  /**
+   * The title/tooltipe of the item
+   */
   title?: string;
+  /**
+   * Is the item disabled?
+   */
+  disabled?: boolean;
+  /**
+   * Triggered when the item is clicked
+   */
   onSelect?: (eventKey: any) => void;
+  /**
+   * Provided to the onSelect callback when this item is selected
+   */
   eventKey?: any;
+  /**
+   * Is the item actively seleted?
+   */
   isActive?: boolean;
+  /**
+   * Enable to provide custom button/contents via children
+   */
   noAnchor?: boolean;
-  href?: string;
   className?: string;
-  onClick?: (evt: React.MouseEvent) => void;
 } & Partial<Pick<Link['props'], 'to'>>;
 
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
@@ -25,62 +51,55 @@ class MenuItem extends React.Component<Props> {
     header: PropTypes.bool,
     divider: PropTypes.bool,
     title: PropTypes.string,
+    disabled: PropTypes.bool,
     onSelect: PropTypes.func,
     eventKey: PropTypes.any,
     isActive: PropTypes.bool,
     noAnchor: PropTypes.bool,
-    // basic link
-    href: PropTypes.string,
-    // router link
     to: PropTypes.string,
     query: PropTypes.object,
     className: PropTypes.string,
-    onClick: PropTypes.func,
   };
 
   handleClick = (e: React.MouseEvent): void => {
-    if (this.props.onSelect) {
+    const {onSelect, disabled, eventKey} = this.props;
+    if (disabled) {
+      return;
+    }
+    if (onSelect) {
       e.preventDefault();
-      this.props.onSelect(this.props.eventKey);
+      callIfFunction(onSelect, eventKey);
     }
   };
 
   renderAnchor = (): React.ReactNode => {
-    if (this.props.to) {
+    const {to, title, disabled, isActive, children} = this.props;
+    if (to) {
       return (
-        <Link
-          to={this.props.to}
-          title={this.props.title}
+        <MenuLink
+          to={to}
+          title={title}
           onClick={this.handleClick}
           tabIndex={-1}
+          isActive={isActive}
+          disabled={disabled}
         >
-          {this.props.children}
-        </Link>
-      );
-    }
-    if (this.props.href) {
-      return (
-        <a
-          title={this.props.title}
-          onClick={this.handleClick}
-          href={this.props.href}
-          tabIndex={-1}
-        >
-          {this.props.children}
-        </a>
+          {children}
+        </MenuLink>
       );
     }
 
     return (
-      <span
-        className="menu-target"
+      <MenuTarget
         role="button"
-        title={this.props.title}
+        title={title}
         onClick={this.handleClick}
         tabIndex={-1}
+        isActive={isActive}
+        disabled={disabled}
       >
         {this.props.children}
-      </span>
+      </MenuTarget>
     );
   };
 
@@ -91,16 +110,9 @@ class MenuItem extends React.Component<Props> {
       isActive,
       noAnchor,
       className,
-      onClick,
       children,
       ...props
     } = this.props;
-
-    const classes = {
-      'dropdown-header': header,
-      active: isActive,
-      divider,
-    };
 
     let renderChildren: React.ReactNode | null = null;
     if (noAnchor) {
@@ -112,16 +124,105 @@ class MenuItem extends React.Component<Props> {
     }
 
     return (
-      <li
+      <MenuListItem
+        className={className}
         role="presentation"
-        className={classNames(className, classes)}
-        onClick={onClick}
+        isActive={isActive}
+        divider={divider}
+        noAnchor={noAnchor}
+        header={header}
         {...omit(props, ['title', 'onSelect', 'eventKey', 'to'])}
       >
         {renderChildren}
-      </li>
+      </MenuListItem>
     );
   }
 }
+
+type MenuListItemProps = {
+  header?: boolean;
+  noAnchor?: boolean;
+  isActive?: boolean;
+  disabled?: boolean;
+  divider?: boolean;
+} & React.HTMLProps<HTMLLIElement>;
+
+function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
+  if (props.disabled) {
+    return `
+    color: ${props.theme.disabled};
+    background: transparent;
+    cursor: not-allowed;
+    `;
+  }
+  if (props.isActive) {
+    return `
+      color: ${props.theme.white};
+      background: ${props.theme.purple};
+    `;
+  }
+  return `
+    color: ${props.theme.foreground};
+
+    &:hover {
+      background: ${props.theme.offWhite};
+    }
+  `;
+}
+
+function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
+  if (!props.noAnchor) {
+    return '';
+  }
+
+  return `
+    & a {
+      ${getListItemStyles(props)}
+    }
+  `;
+}
+
+const MenuListItem = styled('li')<MenuListItemProps>`
+  display: block;
+
+  ${p =>
+    p.divider &&
+    `
+height: 1px;
+margin: ${space(0.5)} 0;
+overflow: hidden;
+background-color: ${p.theme.borderLight};
+    `}
+  ${p =>
+    p.header &&
+    `
+    padding: ${space(0.25)} ${space(1)};
+    font-size: ${p.theme.fontSizeSmall};
+    line-height: 1.4;
+    color: ${p.theme.gray2};
+  `}
+
+  ${getChildStyles}
+`;
+
+const MenuTarget = styled('span')<MenuListItemProps>`
+  display: block;
+  padding: ${space(0.5)} ${space(2)};
+
+  ${getListItemStyles}
+`;
+
+const MenuLink = styled(Link, {
+  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+})<MenuListItemProps>`
+  display: block;
+  padding: ${space(0.5)} ${space(2)};
+
+  ${getListItemStyles}
+
+  &:focus {
+    outline: none;
+  }
+`;
 
 export default MenuItem;
