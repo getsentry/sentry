@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0062_key_transactions_unique_with_owner'),
+        ('sentry', '0063_drop_alertrule_constraint'),
     ]
 
     operations = [
