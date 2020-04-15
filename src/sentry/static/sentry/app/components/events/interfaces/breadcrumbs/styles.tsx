@@ -4,12 +4,11 @@ import {css} from '@emotion/core';
 import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
-// TODO(style): color #e7eaef and #e7c0bc are not yet in theme
+// TODO(style): the color #fffcfb and  #e7c0bc are not yet in theme and no similar theme's color was found.
 const BreadCrumb = styled('li')<{error?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   padding: ${space(1)} ${space(3)} ${space(0.75)} ${space(3)} !important;
-  margin: 0 -1px;
   display: grid;
   grid-template-columns: 26px 1fr 50px;
   grid-gap: ${space(1.5)};
@@ -20,20 +19,19 @@ const BreadCrumb = styled('li')<{error?: boolean}>`
     top: 0;
     bottom: 0;
     left: 32px;
-    background: #e7eaef;
+    background: ${p => p.theme.borderLight};
     position: absolute;
   }
-  border-bottom: 1px solid #e7e4eb;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   ${p =>
     p.error &&
     css`
       background: #fffcfb;
       border: 1px solid #e7c0bc;
-      margin: -2px;
+      margin: -1px;
     `}
 `;
 
-// TODO(style): color #968ba0 is not yet in theme
 const BreadCrumbIconWrapper = styled('div')<{color?: Color; borderColor?: Color}>`
   display: flex;
   align-items: center;
@@ -47,7 +45,7 @@ const BreadCrumbIconWrapper = styled('div')<{color?: Color; borderColor?: Color}
   position: relative;
   color: ${p => (p.color ? p.theme[p.color] : 'inherit')};
   border-color: ${p => (p.borderColor ? p.theme[p.borderColor] : 'currentColor')};
-  border: 1px solid ${p => (p.color ? p.theme[p.color] : '#968ba0')};
+  border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray2)};
 `;
 
 export {BreadCrumb, BreadCrumbIconWrapper};

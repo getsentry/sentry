@@ -62,7 +62,6 @@ const StyledIconClose = styled(IconClose, {
 }>`
   position: absolute;
   cursor: pointer;
-  visibility: hidden;
   color: ${p => p.theme.gray6};
   right: ${space(0.75)};
   visibility: ${p => (p.show ? 'visible' : 'hidden')};

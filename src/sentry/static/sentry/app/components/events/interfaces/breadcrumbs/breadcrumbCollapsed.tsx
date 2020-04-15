@@ -22,11 +22,10 @@ const BreadcrumbCollapsed = ({quantity, onClick}: Props) => (
 
 export default BreadcrumbCollapsed;
 
-// TODO(style): color #e7e4eb is not yet in theme
 const StyledBreadCrumb = styled(BreadCrumb)`
   cursor: pointer;
   background: ${p => p.theme.whiteDark};
-  margin: 0 -2px;
-  border: 1px solid #e7e4eb;
+  margin: 0 -1px;
+  border: 1px solid ${p => p.theme.borderLight};
   border-top: none;
 `;
