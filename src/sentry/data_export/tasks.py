@@ -135,22 +135,24 @@ def process_discover(data_export, file, limit, environment_id):
     writer = create_writer(file, processor.header_fields)
     iteration = 0
     with snuba_error_handler(logger=logger):
-        while True:
+        is_completed = False
+        while not is_completed:
             offset = SNUBA_MAX_RESULTS * iteration
             next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
+            is_exceeding_limit = limit and limit < next_offset
             raw_data_unicode = processor.data_fn(offset=offset, limit=SNUBA_MAX_RESULTS)["data"]
-            if len(raw_data_unicode) == 0:
-                break
             # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
             # See associated comment in './utils.py'
             raw_data = convert_to_utf8(raw_data_unicode)
             raw_data = processor.handle_fields(raw_data)
-            if limit and limit < next_offset:
+            if is_exceeding_limit:
+                # Since the next offset will pass the limit, just write the remainder
                 writer.writerows(raw_data[: limit % SNUBA_MAX_RESULTS])
-                break
             else:
                 writer.writerows(raw_data)
                 iteration += 1
+            # If there are no returned results, or we've passed the limit, stop iterating
+            is_completed = len(raw_data) == 0 or is_exceeding_limit
 
 
 def create_writer(file, fields):
