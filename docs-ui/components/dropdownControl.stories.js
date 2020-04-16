@@ -22,11 +22,9 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
             menuOffset={menuOffset}
             alwaysRenderMenu={alwaysRenderMenu}
           >
-            <DropdownItem href="">Item</DropdownItem>
-            <DropdownItem href="">Item</DropdownItem>
-            <DropdownItem disabled href="">
-              Disabled Item
-            </DropdownItem>
+            <DropdownItem href="">Href Item</DropdownItem>
+            <DropdownItem to="">Router Item</DropdownItem>
+            <DropdownItem disabled>Disabled Item</DropdownItem>
             <DropdownItem divider />
             <DropdownItem isActive href="">
               Active Item
