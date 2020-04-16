@@ -97,7 +97,9 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     @property
     def identity_oauth_scopes(self):
-        return self.wst_oauth_scopes if self.use_wst_app else self.bot_oauth_scopes
+        if self.use_wst_app:
+            return self.wst_oauth_scopes
+        return self.bot_oauth_scopes
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
@@ -135,7 +137,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         access_token = data["access_token"]
         # bot apps have a different response format
-        # see: https://api.slack.com/authentication/quickstart#unfurling
+        # see: https://api.slack.com/authentication/quickstart#installing
         if self.use_wst_app:
             user_id_slack = data["authorizing_user_id"]
             team_name = data["team_name"]

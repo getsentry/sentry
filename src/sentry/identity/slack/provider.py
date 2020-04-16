@@ -23,8 +23,6 @@ class SlackIdentityProvider(OAuth2Provider):
     @property
     def use_slack_v2(self):
         # need to import here because of dependency issues
-        # would be nice to make the pipeline class have a use_slack_v2
-        # method but we use the same pipeline class everywhere
         from sentry.integrations.slack.utils import use_slack_v2
 
         return use_slack_v2(self.pipeline)
@@ -38,11 +36,9 @@ class SlackIdentityProvider(OAuth2Provider):
     # the deprecated oauth.token endpoint until we are able to migrate to a bot
     # app which uses oauth.access.
     def get_oauth_access_token_url(self):
-        return (
-            "https://slack.com/api/oauth.token"
-            if self.use_wst_app
-            else "https://slack.com/api/oauth.v2.access"
-        )
+        if self.use_wst_app:
+            return "https://slack.com/api/oauth.token"
+        return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):
         if self.use_slack_v2:
