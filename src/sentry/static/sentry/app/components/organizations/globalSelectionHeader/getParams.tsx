@@ -88,13 +88,17 @@ const getUtcValue = (maybe: string | string[] | undefined | null): string | unde
   return undefined;
 };
 
-interface Params {
+type Params = {
   start?: string | string[] | undefined | null;
   end?: string | string[] | undefined | null;
   period?: string | string[] | undefined | null;
   statsPeriod?: string | string[] | undefined | null;
   utc?: string | string[] | undefined | null;
   [others: string]: string | string[] | undefined | null;
+};
+
+function isEntryDefined<T>(t: T): t is {[K in keyof T]: Exclude<T[K], null | undefined>} {
+  return t[1] !== undefined && t[1] !== null;
 }
 
 // Filters out params with null values and returns a default
@@ -103,7 +107,10 @@ interface Params {
 // Accepts `period` and `statsPeriod` but will only return `statsPeriod`
 //
 // TODO(billy): Make period parameter name consistent
-export function getParams(params: Params): {[key: string]: string | string[]} {
+export function getParams(
+  params: Params,
+  {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
+) {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
@@ -113,27 +120,21 @@ export function getParams(params: Params): {[key: string]: string | string[]} {
   const dateTimeEnd = getDateTimeString(end);
 
   if (!(dateTimeStart && dateTimeEnd)) {
-    if (!coercedPeriod) {
+    if (!coercedPeriod && !allowEmptyPeriod) {
       coercedPeriod = DEFAULT_STATS_PERIOD;
     }
   }
 
   // Filter null values
-  return Object.entries({
-    statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : dateTimeStart,
-    end: coercedPeriod ? null : dateTimeEnd,
-    // coerce utc into a string (it can be both: a string representation from router,
-    // or a boolean from time range picker)
-    utc: getUtcValue(utc),
-    ...otherParams,
-  })
-    .filter(([_key, value]) => defined(value))
-    .reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key]: value,
-      }),
-      {}
-    );
+  return Object.fromEntries(
+    Object.entries({
+      statsPeriod: coercedPeriod,
+      start: coercedPeriod ? null : dateTimeStart,
+      end: coercedPeriod ? null : dateTimeEnd,
+      // coerce utc into a string (it can be both: a string representation from router,
+      // or a boolean from time range picker)
+      utc: getUtcValue(utc),
+      ...otherParams,
+    }).filter(isEntryDefined)
+  );
 }
