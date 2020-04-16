@@ -16,6 +16,7 @@ import {Series} from 'app/types/echarts';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {getExactDuration} from 'app/utils/formatters';
 import {fetchTotalCount} from 'app/actionCreators/events';
+import CHART_PALETTE from 'app/constants/chartPalette';
 
 import {YAxis} from './chart/releaseChartControls';
 import {getInterval, getReleaseEventView} from './chart/utils';
@@ -228,28 +229,56 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       crashed: {
         seriesName: t('Crashed'),
         data: [],
+        color: CHART_PALETTE[3][0],
+        areaStyle: {
+          color: CHART_PALETTE[3][0],
+          opacity: 1,
+        },
       },
       abnormal: {
         seriesName: t('Abnormal'),
         data: [],
+        color: CHART_PALETTE[3][1],
+        areaStyle: {
+          color: CHART_PALETTE[3][1],
+          opacity: 1,
+        },
       },
       errored: {
         seriesName: t('Errored'),
         data: [],
+        color: CHART_PALETTE[3][2],
+        areaStyle: {
+          color: CHART_PALETTE[3][2],
+          opacity: 1,
+        },
       },
-      total: {
-        seriesName: t('Total'),
+      healthy: {
+        seriesName: t('Healthy'),
         data: [],
+        color: CHART_PALETTE[3][3],
+        areaStyle: {
+          color: CHART_PALETTE[3][3],
+          opacity: 1,
+        },
       },
     };
 
     responseData.forEach(entry => {
       const [timeframe, values] = entry;
       const date = timeframe * 1000;
-      chartData.crashed.data.push({name: date, value: values[`${yAxis}_crashed`]});
-      chartData.abnormal.data.push({name: date, value: values[`${yAxis}_abnormal`]});
-      chartData.errored.data.push({name: date, value: values[`${yAxis}_errored`]});
-      chartData.total.data.push({name: date, value: values[yAxis]});
+      const crashed = values[`${yAxis}_crashed`];
+      const abnormal = values[`${yAxis}_abnormal`];
+      const errored = values[`${yAxis}_errored`];
+      const healthy = values[yAxis] - crashed - abnormal - errored;
+
+      chartData.crashed.data.push({name: date, value: crashed});
+      chartData.abnormal.data.push({name: date, value: abnormal});
+      chartData.errored.data.push({name: date, value: errored});
+      chartData.healthy.data.push({
+        name: date,
+        value: healthy >= 0 ? healthy : 0,
+      });
     });
 
     return {
@@ -266,21 +295,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       users: {
         seriesName: t('Crash Free Users'),
         data: [],
-        color: '#FF6969',
-        // TODO(releasesV2): tweak these 4 hex colors
-        areaStyle: {
-          color: '#FA4747',
-          opacity: 0.5,
-        },
+        color: CHART_PALETTE[1][0],
       },
       sessions: {
         seriesName: t('Crash Free Sessions'),
         data: [],
-        color: '#948BCF',
-        areaStyle: {
-          color: '#C4BFE9',
-          opacity: 0.5,
-        },
+        color: CHART_PALETTE[1][1],
       },
     };
 
