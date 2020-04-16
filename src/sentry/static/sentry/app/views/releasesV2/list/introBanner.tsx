@@ -39,14 +39,11 @@ class IntroBanner extends React.Component<{}, State> {
         backgroundImg={backgroundLighthouse}
         onCloseClick={this.handleBannerCloseClick}
       >
-        <BannerButton
-          href="https://docs.sentry.io/workflow/releases/?platform=browser#release-health"
-          external
-        >
+        <BannerButton href="https://docs.sentry.io/workflow/releases/health/" external>
           {t('View Features')}
         </BannerButton>
         <BannerButton
-          href="https://docs.sentry.io/workflow/releases/?platform=browser#getting-started"
+          href="https://docs.sentry.io/workflow/releases/health/#getting-started"
           external
           priority="primary"
         >
