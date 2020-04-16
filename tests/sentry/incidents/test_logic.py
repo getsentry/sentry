@@ -66,6 +66,7 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentSnapshot,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentSubscription,
     IncidentType,
 )
@@ -156,13 +157,21 @@ class UpdateIncidentStatus(TestCase):
 
     def test_status_already_set(self):
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        update_incident_status(incident, IncidentStatus.WARNING)
+        update_incident_status(
+            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
         assert incident.status == IncidentStatus.WARNING.value
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
         self.record_event.reset_mock()
-        update_incident_status(incident, status, user=user, comment=comment)
+        update_incident_status(
+            incident,
+            status,
+            user=user,
+            comment=comment,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
         assert incident.date_closed == expected_date_closed
@@ -616,7 +625,11 @@ class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
-        update_incident_status(closed_incident, IncidentStatus.CLOSED)
+        update_incident_status(
+            closed_incident,
+            IncidentStatus.CLOSED,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
         open_incident = create_incident(
             self.organization,
             IncidentType.ALERT_TRIGGERED,
