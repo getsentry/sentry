@@ -661,11 +661,10 @@ def update_alert_rule(
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
 
-    incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
-    if incidents:
-        snapshot_alert_rule(alert_rule)
-
     with transaction.atomic():
+        incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
+        if incidents:
+            snapshot_alert_rule(alert_rule)
         alert_rule.update(**updated_fields)
 
         existing_subs = []
@@ -799,11 +798,12 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
-            # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
         else:
             alert_rule.delete()
 
-    tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
+    if alert_rule.id:
+        # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+        tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
 
 def validate_alert_rule_query(query):

@@ -4,7 +4,6 @@ from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
-from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
@@ -16,7 +15,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
@@ -148,9 +147,8 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     queue="incidents",
     default_retry_delay=60 * 5,
-    max_retries=1,
+    max_retries=2,
 )
-@retry(exclude=(DeleteAborted,))
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     from sentry.incidents.models import AlertRule
     from sentry.incidents.logic import update_incident_status
@@ -161,20 +159,21 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
         return
 
     if alert_rule.status != AlertRuleStatus.SNAPSHOT.value:
-        raise DeleteAborted
+        return
 
+    batch_size = 50
     incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
         status=IncidentStatus.CLOSED.value
-    )
-
+    )[: batch_size + 1]
+    has_more = incidents.count() > batch_size
     if incidents:
-        has_more = incidents.count() > 1
-        incident = incidents.first()
-        update_incident_status(
-            incident,
-            IncidentStatus.CLOSED,
-            comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
-        )
+        incidents = incidents[:batch_size]
+        for incident in incidents:
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
+            )
 
     if has_more:
         auto_resolve_snapshot_incidents.apply_async(
