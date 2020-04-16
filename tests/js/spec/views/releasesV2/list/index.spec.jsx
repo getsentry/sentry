@@ -70,6 +70,14 @@ describe('ReleasesV2List', function() {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
+    expect(wrapper.find('ReleasePromo').text()).toContain("You Haven't Set Up Releases!");
+
+    location = {query: {statsPeriod: '30d'}};
+    wrapper = mountWithTheme(
+      <ReleaseList {...props} location={location} />,
+      routerContext
+    );
+    expect(wrapper.find('StyledPanel')).toHaveLength(0);
     expect(wrapper.find('EmptyMessage').text()).toEqual('There are no releases.');
 
     location = {query: {query: 'abc'}};

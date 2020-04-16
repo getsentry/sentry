@@ -33,6 +33,7 @@ const Illustration = styled(({data, className}: IllustrationProps) => (
 const cards = [
   {
     title: t("You Haven't Set Up Releases!"),
+    disclaimer: t('(you made no releases in 30 days)'),
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),

@@ -36,6 +36,7 @@ class ReleaseLandingCard extends React.Component {
 
         <StyledBox>
           <h3>{card.title}</h3>
+          {card.disclaimer && <Disclaimer>{card.disclaimer}</Disclaimer>}
           <p>{card.message}</p>
           {finalStep ? (
             <Button
@@ -91,6 +92,13 @@ const CardComponentContainer = styled('div')`
     width: 320px;
     max-height: 180px;
   }
+`;
+
+const Disclaimer = styled('small')`
+  display: block;
+  margin-top: -${space(3)};
+  margin-bottom: ${space(3)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default ReleaseLandingCard;

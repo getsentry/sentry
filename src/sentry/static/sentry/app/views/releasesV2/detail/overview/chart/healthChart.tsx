@@ -63,6 +63,9 @@ class HealthChart extends React.Component<Props> {
           },
         };
       case YAxis.SESSION_DURATION:
+        return {
+          scale: true,
+        };
       case YAxis.SESSIONS:
       case YAxis.USERS:
       default:
