@@ -142,7 +142,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         <Component
                           aria-disabled={false}
                           aria-label="New API Key"
-                          className="css-1mpdtii-StyledButton edwq9my0"
+                          className="css-z8at1v-StyledButton edwq9my0"
                           forwardRef={null}
                           onClick={[Function]}
                           role="button"
@@ -151,7 +151,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           <button
                             aria-disabled={false}
                             aria-label="New API Key"
-                            className="css-1mpdtii-StyledButton edwq9my0"
+                            className="css-z8at1v-StyledButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -162,14 +162,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               size="small"
                             >
                               <span
-                                className="css-19gcr2f-ButtonLabel edwq9my1"
+                                className="css-n7mdnv-ButtonLabel edwq9my1"
                               >
                                 <Icon
                                   hasChildren={true}
                                   size="small"
                                 >
                                   <span
-                                    className="css-5zck09-Icon edwq9my2"
+                                    className="css-1hbuack-Icon edwq9my2"
                                     size="small"
                                   >
                                     <ForwardRef(IconAdd)

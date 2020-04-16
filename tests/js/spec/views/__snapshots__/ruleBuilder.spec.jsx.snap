@@ -1080,7 +1080,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <Component
                 aria-disabled={true}
-                className="e1hyuoc710 css-14jegea-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -1088,7 +1088,7 @@ exports[`RuleBuilder renders 1`] = `
               >
                 <button
                   aria-disabled={true}
-                  className="e1hyuoc710 css-14jegea-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -1099,14 +1099,14 @@ exports[`RuleBuilder renders 1`] = `
                     size="small"
                   >
                     <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                      className="css-n7mdnv-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <span
-                          className="css-1j44i9a-Icon edwq9my2"
+                          className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
                           <ForwardRef(IconAdd)
@@ -3093,7 +3093,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <Component
                 aria-disabled={false}
-                className="e1hyuoc710 css-6209gq-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -3101,7 +3101,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               >
                 <button
                   aria-disabled={false}
-                  className="e1hyuoc710 css-6209gq-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -3112,14 +3112,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     size="small"
                   >
                     <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                      className="css-n7mdnv-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <span
-                          className="css-1j44i9a-Icon edwq9my2"
+                          className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
                           <ForwardRef(IconAdd)
