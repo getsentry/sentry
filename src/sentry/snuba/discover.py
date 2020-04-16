@@ -744,9 +744,7 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
-def timeseries_query(
-    selected_columns, query, params, rollup, top_events=None, reference_event=None, referrer=None
-):
+def timeseries_query(selected_columns, query, params, rollup, reference_event=None, referrer=None):
     """
     High-level API for doing arbitrary user timeseries queries against events.
 
@@ -864,10 +862,8 @@ def top_events_timeseries(
             organization,
         )
 
+    translated_columns["project_id"] = "project"
     translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
-    if "project.id" in translated_groupby:
-        translated_groupby.remove("project.id")
-        translated_groupby.append("project")
     # so the result key is consistent
     translated_groupby.sort()
 
