@@ -134,6 +134,8 @@ class SlackIntegrationProvider(IntegrationProvider):
         assert data["ok"]
 
         access_token = data["access_token"]
+        # bot apps have a different response format
+        # see: https://api.slack.com/authentication/quickstart#unfurling
         if self.use_wst_app:
             user_id_slack = data["authorizing_user_id"]
             team_name = data["team_name"]
