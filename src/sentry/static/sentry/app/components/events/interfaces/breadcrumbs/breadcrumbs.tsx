@@ -205,7 +205,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
                     <BreadCrumb
                       data-test-id="breadcrumb"
                       key={idx}
-                      error={
+                      hasError={
                         convertedBreadcrumb.type === 'message' ||
                         convertedBreadcrumb.type === 'error'
                       }
