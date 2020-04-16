@@ -24,8 +24,10 @@ import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleasePromo from './releasePromo';
 import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
@@ -144,7 +146,8 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
 
     if (searchQuery && searchQuery.length) {
@@ -157,7 +160,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     if (this.getSort() !== 'date') {
       const relativePeriod = getRelativeSummary(
-        location.query.statsPeriod || DEFAULT_STATS_PERIOD
+        statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
 
       return (
@@ -167,7 +170,11 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+    if (defined(statsPeriod) && statsPeriod !== '14d') {
+      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+    }
+
+    return <ReleasePromo orgSlug={organization.slug} />;
   }
 
   renderInnerBody() {
