@@ -78,6 +78,10 @@ class OrganizationReleases extends AsyncView {
       selection,
     } = this.props;
 
+    if (!projects) {
+      return true;
+    }
+
     const projectIds = new Set(
       selection.projects.length > 0
         ? selection.projects
