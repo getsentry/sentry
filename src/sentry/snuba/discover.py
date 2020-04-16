@@ -837,7 +837,11 @@ def top_events_timeseries(
             continue
         values = list({event.get(field) for event in top_events["data"] if field in event})
         if values and all(value is not None for value in values):
-            snuba_filter.conditions.append([resolve_column(field), "IN", values])
+            # timestamp needs special handling, creating a big OR instead
+            if field == "timestamp":
+                snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
+            else:
+                snuba_filter.conditions.append([resolve_column(field), "IN", values])
 
     result = raw_query(
         aggregations=snuba_filter.aggregations,
@@ -874,7 +878,7 @@ def top_events_timeseries(
             if field == "issue.id":
                 values.append(issues.get(row["issue.id"], "unknown"))
             else:
-                values.append(row.get(field) or "null")
+                values.append(six.text_type(row.get(field)) or "null")
         result_key = ",".join(values)
         results.setdefault(result_key, []).append(row)
     for key, item in six.iteritems(results):

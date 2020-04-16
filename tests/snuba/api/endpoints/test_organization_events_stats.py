@@ -944,7 +944,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 attrs for time, attrs in results["count()"]["data"]
             ]
 
-    def test_with_boolean(self):
+    def test_top_events_with_boolean(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -970,3 +970,57 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+    def test_top_events_with_timestamp(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": "event.type:default",
+                    "field": ["count()", "message", "timestamp"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:6]):
+            if event.message:
+                results = data[",".join([event.message, event.timestamp])]
+                assert [{"count": self.event_data[index]["count"]}] in [
+                    attrs for time, attrs in results["data"]
+                ]
+
+    def test_top_events_with_int(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "transaction.duration"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data[",".join([self.transaction.transaction, "120000"])]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
