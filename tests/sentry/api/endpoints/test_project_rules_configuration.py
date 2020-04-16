@@ -34,6 +34,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         node = rule.return_value
         node.id = "sentry.mail.actions.NotifyEmailAction"
         node.label = "hello"
+        node.prompt = "hello"
         node.is_enabled.return_value = True
         node.form_fields = {}
         rules.add(rule)
