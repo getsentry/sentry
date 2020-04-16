@@ -9,7 +9,7 @@ import AsyncView from 'app/views/asyncView';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
@@ -78,6 +78,10 @@ class OrganizationReleases extends AsyncView {
       selection,
     } = this.props;
 
+    if (!projects) {
+      return true;
+    }
+
     const projectIds = new Set(
       selection.projects.length > 0
         ? selection.projects
@@ -112,9 +116,13 @@ class OrganizationReleases extends AsyncView {
 
   renderReleaseProgress() {
     const {organization, selection} = this.props;
-    const allAccessibleProjects = organization.projects.filter(
+    const allAccessibleProjects = organization?.projects?.filter(
       project => project.hasAccess
     );
+
+    if (!allAccessibleProjects) {
+      return null;
+    }
 
     const hasSingleProject =
       selection.projects.length === 1 ||
@@ -159,7 +167,7 @@ class OrganizationReleases extends AsyncView {
 
     return (
       <PageContent>
-        <NoProjectMessage organization={organization}>
+        <LightWeightNoProjectMessage organization={organization}>
           <PageHeader>
             <PageHeading>{t('Releases')}</PageHeading>
             <div>
@@ -181,7 +189,7 @@ class OrganizationReleases extends AsyncView {
               <SwitchReleasesButton version="2" orgId={organization.id} />
             </Feature>
           </div>
-        </NoProjectMessage>
+        </LightWeightNoProjectMessage>
       </PageContent>
     );
   }
