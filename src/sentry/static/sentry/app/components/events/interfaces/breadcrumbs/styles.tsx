@@ -5,7 +5,7 @@ import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
 // TODO(style): the color #fffcfb and  #e7c0bc are not yet in theme and no similar theme's color was found.
-const BreadCrumb = styled('li')<{error?: boolean}>`
+const BreadCrumb = styled('li')<{hasError?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   padding: ${space(1)} ${space(3)} ${space(0.75)} ${space(3)} !important;
@@ -24,10 +24,10 @@ const BreadCrumb = styled('li')<{error?: boolean}>`
   }
   border-bottom: 1px solid ${p => p.theme.borderLight};
   :last-child:before {
-    bottom: 50%;
+    bottom: calc(100% - ${space(1)});
   }
   ${p =>
-    p.error &&
+    p.hasError &&
     css`
       background: #fffcfb;
       border: 1px solid #e7c0bc;
