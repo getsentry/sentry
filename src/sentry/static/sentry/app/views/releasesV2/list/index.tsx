@@ -17,15 +17,18 @@ import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-// import IntroBanner from 'app/views/releasesV2/list/introBanner';
+import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleasePromo from './releasePromo';
+import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
   orgId: string;
@@ -41,7 +44,7 @@ class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
-    return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
@@ -132,12 +135,19 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
+  shouldShowLoadingIndicator() {
+    const {loading, releases, reloading} = this.state;
+
+    return (loading && !reloading) || (loading && !releases?.length);
+  }
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderEmptyMessage() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
 
     if (searchQuery && searchQuery.length) {
@@ -150,7 +160,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     if (this.getSort() !== 'date') {
       const relativePeriod = getRelativeSummary(
-        location.query.statsPeriod || DEFAULT_STATS_PERIOD
+        statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
 
       return (
@@ -160,14 +170,18 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+    if (defined(statsPeriod) && statsPeriod !== '14d') {
+      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+    }
+
+    return <ReleasePromo orgSlug={organization.slug} />;
   }
 
   renderInnerBody() {
     const {location} = this.props;
-    const {loading, releases, reloading} = this.state;
+    const {releases, reloading} = this.state;
 
-    if ((loading && !reloading) || (loading && !releases?.length)) {
+    if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
@@ -205,7 +219,7 @@ class ReleasesList extends AsyncView<Props, State> {
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases v2')} <BetaTag />
+                {t('Releases')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
@@ -220,11 +234,15 @@ class ReleasesList extends AsyncView<Props, State> {
               </SortAndFilterWrapper>
             </StyledPageHeader>
 
-            {/* <IntroBanner /> */}
+            <IntroBanner />
 
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
+
+            {!this.shouldShowLoadingIndicator() && (
+              <SwitchReleasesButton version="1" orgId={organization.id} />
+            )}
           </LightWeightNoProjectMessage>
         </PageContent>
       </React.Fragment>
