@@ -23,6 +23,9 @@ const BreadCrumb = styled('li')<{error?: boolean}>`
     position: absolute;
   }
   border-bottom: 1px solid ${p => p.theme.borderLight};
+  :last-child:before {
+    bottom: 50%;
+  }
   ${p =>
     p.error &&
     css`
