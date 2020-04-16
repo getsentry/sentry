@@ -155,12 +155,7 @@ const omitIgnoredProps = (props: EventsRequestProps) =>
 function isMultiSeriesData(
   data: MultiSeriesData | EventsStats | null
 ): data is MultiSeriesData {
-  return (
-    data !== null &&
-    data.data === undefined &&
-    data.totals === undefined &&
-    Object.keys(data).length > 0
-  );
+  return data !== null && data.data === undefined && data.totals === undefined;
 }
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
