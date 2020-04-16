@@ -921,8 +921,6 @@ def get_json_meta_type(field_alias, snuba_type):
     if function_match:
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
-            if function_definition["result_type"] == "number" and snuba_type.startswith("DateTime"):
-                return "date"
             return function_definition.get("result_type")
     if "duration" in field_alias:
         return "duration"
@@ -1151,13 +1149,11 @@ FUNCTIONS = {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
-        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
-        "result_type": "number",
     },
     "avg": {
         "name": "avg",
