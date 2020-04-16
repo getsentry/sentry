@@ -5,7 +5,6 @@ import re
 import six
 from collections import defaultdict
 
-from django.conf import settings
 from django.db.models import Q
 
 from sentry import http
@@ -110,11 +109,12 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
-        # TODO: add check if we are on slack v2 or check to see if we have user_access_token
-        if settings.SLACK_INTEGRATION_USE_WST:
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        access_token = integration.metadata.get("user_access_token")
+        if not access_token:
             access_token = integration.metadata["access_token"]
-        else:
-            access_token = integration.metadata["user_access_token"]
 
         payload = {
             "token": access_token,

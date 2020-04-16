@@ -86,14 +86,15 @@ class SlackIntegrationProvider(IntegrationProvider):
         # TODO: Might need to add more scopes
         return frozenset(
             [
-                "groups:read",
-                "chat:write.public",
-                "chat:write.customize",
-                "team:read",
                 "channels:read",
+                "groups:read",
+                "users:read",
                 "chat:write",
                 "links:read",
                 "links:write",
+                "team:read",
+                "chat:write.public",
+                "chat:write.customize",
             ]
         )
 
@@ -127,32 +128,16 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return resp["team"]
 
-    # def get_identity(self, user_token):
-    #     payload = {"token": user_token}
-
-    #     session = http.build_session()
-    #     resp = session.get("https://slack.com/api/auth.test", params=payload)
-    #     resp.raise_for_status()
-    #     status_code = resp.status_code
-    #     resp = resp.json()
-    #     # TODO: track_response_code won't hit if we have an error status code
-    #     track_response_code(status_code, resp.get("ok"))
-
-    #     # TODO: check for resp["ok"]
-
-    #     return resp["user_id"]
-
     def build_integration(self, state):
         data = state["identity"]["data"]
         assert data["ok"]
 
+        access_token = data["access_token"]
         if self.use_wst_app:
-            access_token = data["access_token"]
             user_id_slack = data["authorizing_user_id"]
             team_name = data["team_name"]
             team_id = data["team_id"]
         else:
-            access_token = data["access_token"]
             user_id_slack = data["authed_user"]["id"]
             team_name = data["team"]["name"]
             team_id = data["team"]["id"]
@@ -166,12 +151,6 @@ class SlackIntegrationProvider(IntegrationProvider):
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
         }
-
-        # When using bot tokens, we must use the user auth token for URL
-        # unfurling
-        if not self.use_wst_app:
-            # TODO: I don't think we need this anymore
-            metadata["user_access_token"] = data["access_token"]
 
         return {
             "name": team_name,
