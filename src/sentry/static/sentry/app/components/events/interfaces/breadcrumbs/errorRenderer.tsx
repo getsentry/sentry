@@ -7,35 +7,36 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
-import {Crumb} from './types';
+import {BreadcrumbTypeDefault} from './types';
 
 type Props = {
-  crumb: Crumb;
+  breadcrumb: BreadcrumbTypeDefault;
 };
 
-const ErrorRenderer = ({crumb}: Props) => {
-  const {data} = crumb;
+const ErrorRenderer = ({breadcrumb}: Props) => {
+  const {data} = breadcrumb;
   return (
     <CrumbTable
-      crumb={crumb}
+      breadcrumb={breadcrumb}
       summary={
         <SummaryLine>
           <pre>
             <code>
-              {defined(data?.type) &&
+              {data?.type &&
                 getBreadcrumbCustomRendererValue({
                   value: <strong>{`${data.type}: `}</strong>,
                   meta: getMeta(data, 'type'),
                 })}
-              {defined(data?.value) &&
+              {defined(data) &&
+                defined(data?.value) &&
                 getBreadcrumbCustomRendererValue({
-                  value: crumb.message ? `${data.value}. ` : data.value,
+                  value: breadcrumb?.message ? `${data.value}. ` : data.value,
                   meta: getMeta(data, 'value'),
                 })}
-              {defined(crumb?.message) &&
+              {breadcrumb?.message &&
                 getBreadcrumbCustomRendererValue({
-                  value: crumb.message,
-                  meta: getMeta(crumb, 'message'),
+                  value: breadcrumb.message,
+                  meta: getMeta(breadcrumb, 'message'),
                 })}
             </code>
           </pre>

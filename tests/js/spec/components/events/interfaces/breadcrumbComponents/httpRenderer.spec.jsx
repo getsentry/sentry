@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 
 describe('HttpRenderer', function() {
@@ -8,7 +8,7 @@ describe('HttpRenderer', function() {
     it('should work', function() {
       const httpRendererWrapper = shallow(
         <HttpRenderer
-          crumb={{
+          breadcrumb={{
             data: {
               method: 'POST',
               url: 'http://example.com/foo',
@@ -35,9 +35,9 @@ describe('HttpRenderer', function() {
     });
 
     it("shouldn't blow up if crumb.data is missing", function() {
-      const httpRendererWrapper = mount(
+      const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
-          crumb={{
+          breadcrumb={{
             category: 'xhr',
             type: 'http',
           }}
@@ -48,9 +48,9 @@ describe('HttpRenderer', function() {
     });
 
     it("shouldn't blow up if url is not a string", function() {
-      const httpRendererWrapper = mount(
+      const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
-          crumb={{
+          breadcrumb={{
             category: 'xhr',
             type: 'http',
             data: {

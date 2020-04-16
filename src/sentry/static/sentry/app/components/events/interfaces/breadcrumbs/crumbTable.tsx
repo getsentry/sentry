@@ -3,13 +3,13 @@ import React from 'react';
 import Category from 'app/components/events/interfaces/breadcrumbs/category';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import {Crumb} from './types';
+import {Breadcrumb} from './types';
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 
 type Props = {
-  crumb: Crumb;
+  breadcrumb: Breadcrumb;
   kvData?: KvData;
-  summary: React.ReactElement;
+  summary: React.ReactNode;
   children?: React.ReactNode;
 };
 
@@ -17,7 +17,7 @@ type KvData = {
   [key: string]: any;
 };
 
-const CrumbTable = ({children, kvData, crumb, summary}: Props) => {
+const CrumbTable = ({children, kvData, breadcrumb, summary}: Props) => {
   const renderData = () => {
     if (!kvData) {
       return null;
@@ -45,7 +45,7 @@ const CrumbTable = ({children, kvData, crumb, summary}: Props) => {
       <thead>
         <tr>
           <td className="key">
-            <Category value={crumb.category} />
+            <Category value={breadcrumb.category} />
           </td>
           <td className="value">{summary}</td>
         </tr>

@@ -1,8 +1,7 @@
 import React from 'react';
 
-import {shallow} from 'sentry-test/enzyme';
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
-import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs/breadcrumbs';
 
 describe('BreadcrumbsInterface', function() {
   let PROPS;
@@ -40,36 +39,60 @@ describe('BreadcrumbsInterface', function() {
 
   describe('filterCrumbs', function() {
     it('should filter crumbs based on crumb message', function() {
-      const breadcrumbs = shallow(<BreadcrumbsInterface {...PROPS} />).instance();
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'hi')).toHaveLength(0);
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'up')).toHaveLength(13);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
+
+      breadcrumbSearhInput.simulate('change', {target: {value: 'hi'}});
+      expect(breadcrumbs.state().searchTerm).toBe('hi');
+      expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(0);
+
+      breadcrumbSearhInput.simulate('change', {target: {value: 'up'}});
+      expect(breadcrumbs.state().searchTerm).toBe('up');
+      expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(13);
     });
 
     it('should filter crumbs based on crumb level', function() {
-      const breadcrumbs = shallow(<BreadcrumbsInterface {...PROPS} />).instance();
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'hi')).toHaveLength(0);
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'ext')).toHaveLength(16);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
+
+      breadcrumbSearhInput.simulate('change', {target: {value: 'ext'}});
+      expect(breadcrumbs.state().searchTerm).toBe('ext');
+      expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(16);
     });
 
     it('should filter crumbs based on crumb category', function() {
-      const breadcrumbs = shallow(<BreadcrumbsInterface {...PROPS} />).instance();
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'hi')).toHaveLength(0);
-      expect(breadcrumbs.filterCrumbs(PROPS.data.values, 'error')).toHaveLength(2);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
+
+      breadcrumbSearhInput.simulate('change', {target: {value: 'error'}});
+      expect(breadcrumbs.state().searchTerm).toBe('error');
+      expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(2);
     });
   });
 
   describe('render', function() {
     it('should display the correct number of crumbs with no filter', function() {
-      const wrapper = shallow(<BreadcrumbsInterface {...PROPS} />);
-      expect(wrapper.find(Breadcrumb)).toHaveLength(10);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      expect(breadcrumbs.find('[data-test-id="breadcrumb"]').hostNodes()).toHaveLength(
+        10
+      );
     });
 
     it('should display the correct number of crumbs with a filter', function() {
-      const wrapper = shallow(<BreadcrumbsInterface {...PROPS} />);
-      wrapper.setState({queryValue: 'sup'});
-      expect(wrapper.find(Breadcrumb)).toHaveLength(10);
-      wrapper.setState({queryValue: 'sup', collapsed: false});
-      expect(wrapper.find(Breadcrumb)).toHaveLength(13);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      const breadcrumbSearhInput = breadcrumbs.find('[id="id-breadcumber-search"]');
+
+      breadcrumbSearhInput.simulate('change', {target: {value: 'sup'}});
+      expect(breadcrumbs.state().searchTerm).toBe('sup');
+      expect(breadcrumbs.find('[data-test-id="breadcrumb"]').hostNodes()).toHaveLength(
+        10
+      );
+
+      const collapsedBreadcrumb = breadcrumbs
+        .find('[data-test-id="breadcrumb-collapsed"]')
+        .hostNodes();
+      collapsedBreadcrumb.simulate('click');
+      expect(breadcrumbs.state().filteredBreadcrumbs).toHaveLength(13);
     });
 
     it('should not crash if data contains a toString attribute', () => {
@@ -77,8 +100,8 @@ describe('BreadcrumbsInterface', function() {
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
       PROPS.data.values = [{message: 'sup', category: 'default', level: 'info', data}];
-      const wrapper = shallow(<BreadcrumbsInterface {...PROPS} />);
-      expect(wrapper.find(Breadcrumb)).toHaveLength(1);
+      const breadcrumbs = mountWithTheme(<BreadcrumbsInterface {...PROPS} />);
+      expect(breadcrumbs.find('[data-test-id="breadcrumb"]').hostNodes()).toHaveLength(1);
     });
   });
 });
