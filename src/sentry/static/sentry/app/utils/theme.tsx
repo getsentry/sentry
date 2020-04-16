@@ -326,5 +326,6 @@ const theme = {
 } as const;
 
 export type Theme = typeof theme;
+export type Color = keyof typeof colors;
 
 export default theme;

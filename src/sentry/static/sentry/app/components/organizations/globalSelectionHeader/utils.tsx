@@ -1,40 +1,45 @@
+import {Location} from 'history';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 import identity from 'lodash/identity';
 
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {URL_PARAM, DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 
-// Parses URL query parameters for values relevant to global selection header
-export function getStateFromQuery(query) {
-  const parsedParams = getParams(query);
+import {getParams} from './getParams';
 
-  let start = parsedParams.start;
-  let end = parsedParams.end;
-  let project = query[URL_PARAM.PROJECT];
-  let environment = query[URL_PARAM.ENVIRONMENT];
+// Parses URL query parameters for values relevant to global selection header
+export function getStateFromQuery(
+  query: Location['query'],
+  {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
+) {
+  const parsedParams = getParams(query, {allowEmptyPeriod});
+
+  const projectFromQuery = query[URL_PARAM.PROJECT];
+  const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
   const period = parsedParams.statsPeriod;
   const utc = parsedParams.utc;
 
-  const hasAbsolute = !!start && !!end;
+  const hasAbsolute = !!parsedParams.start && !!parsedParams.end;
 
-  if (defined(project) && Array.isArray(project)) {
-    project = project.map(p => parseInt(p, 10));
-  } else if (defined(project)) {
-    const projectIdInt = parseInt(project, 10);
-    project = isNaN(projectIdInt) ? [] : [projectIdInt];
+  let project: number[] | null | undefined;
+  if (defined(projectFromQuery) && Array.isArray(projectFromQuery)) {
+    project = projectFromQuery.map(p => parseInt(p, 10));
+  } else if (defined(projectFromQuery)) {
+    const projectFromQueryIdInt = parseInt(projectFromQuery, 10);
+    project = isNaN(projectFromQueryIdInt) ? [] : [projectFromQueryIdInt];
+  } else {
+    project = projectFromQuery;
   }
 
-  if (defined(environment) && !Array.isArray(environment)) {
-    environment = [environment];
-  }
+  const environment =
+    defined(environmentFromQuery) && !Array.isArray(environmentFromQuery)
+      ? [environmentFromQuery]
+      : environmentFromQuery;
 
-  if (hasAbsolute) {
-    start = getUtcToLocalDateObject(start);
-    end = getUtcToLocalDateObject(end);
-  }
+  const start = hasAbsolute ? getUtcToLocalDateObject(parsedParams.start) : null;
+  const end = hasAbsolute ? getUtcToLocalDateObject(parsedParams.end) : null;
 
   return {
     project,

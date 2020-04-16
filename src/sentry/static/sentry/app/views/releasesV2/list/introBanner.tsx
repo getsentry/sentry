@@ -9,7 +9,7 @@ import space from 'app/styles/space';
 
 import backgroundLighthouse from '../../../../images/spot/background-lighthouse.svg';
 
-const BANNER_DISMISSED_KEY = 'releases-v2-banner-dismissed';
+const BANNER_DISMISSED_KEY = 'releases-banner-dismissed';
 
 type State = {
   isBannerHidden: boolean;
@@ -39,8 +39,16 @@ class IntroBanner extends React.Component<{}, State> {
         backgroundImg={backgroundLighthouse}
         onCloseClick={this.handleBannerCloseClick}
       >
-        <BannerButton>{t('View Features')}</BannerButton>
-        <BannerButton priority="primary">{t('Update SDK')}</BannerButton>
+        <BannerButton href="https://docs.sentry.io/workflow/releases/health/" external>
+          {t('View Features')}
+        </BannerButton>
+        <BannerButton
+          href="https://docs.sentry.io/workflow/releases/health/#getting-started"
+          external
+          priority="primary"
+        >
+          {t('Update SDK')}
+        </BannerButton>
       </StyledBanner>
     );
   }
