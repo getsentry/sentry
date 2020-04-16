@@ -421,3 +421,17 @@ class MailAdapter(object):
                 context=context,
                 send_to=[user_id],
             )
+
+    def notify_about_activity(self, activity):
+        # TODO: We should move these into the `mail` module.
+        from sentry.plugins.sentry_mail.activity import emails
+
+        email_cls = emails.get(activity.type)
+        if not email_cls:
+            logger.debug(
+                u"No email associated with activity type `{}`".format(activity.get_type_display())
+            )
+            return
+
+        email = email_cls(activity)
+        email.send()

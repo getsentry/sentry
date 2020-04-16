@@ -12,8 +12,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
-from .activity import emails
-
 logger = logging.getLogger(__name__)
 
 
@@ -57,15 +55,10 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_about_activity(self, activity):
-        email_cls = emails.get(activity.type)
-        if not email_cls:
-            logger.debug(
-                u"No email associated with activity type `{}`".format(activity.get_type_display())
-            )
+        if activity.project.flags.has_issue_alerts_targeting:
             return
 
-        email = email_cls(activity)
-        email.send()
+        return self.mail_adapter.notify_about_activity(activity)
 
     def handle_user_report(self, payload, project, **kwargs):
         from sentry.models import Group, GroupSubscription, GroupSubscriptionReason
