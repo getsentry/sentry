@@ -5,7 +5,7 @@ import {defined} from 'app/utils';
 
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
-function parseStatsPeriod(input: string) {
+export function parseStatsPeriod(input: string) {
   const result = input.match(STATS_PERIOD_PATTERN);
 
   if (!result) {
@@ -21,6 +21,21 @@ function parseStatsPeriod(input: string) {
     periodLength = 's';
   }
 
+  return {
+    period,
+    periodLength,
+  };
+}
+
+function coerceStatsPeriod(input: string) {
+  const result = parseStatsPeriod(input);
+
+  if (!result) {
+    return undefined;
+  }
+
+  const {period, periodLength} = result;
+
   return `${period}${periodLength}`;
 }
 
@@ -32,15 +47,15 @@ function getStatsPeriodValue(
       return undefined;
     }
 
-    const result = maybe.find(parseStatsPeriod);
+    const result = maybe.find(coerceStatsPeriod);
     if (!result) {
       return undefined;
     }
-    return parseStatsPeriod(result);
+    return coerceStatsPeriod(result);
   }
 
   if (typeof maybe === 'string') {
-    return parseStatsPeriod(maybe);
+    return coerceStatsPeriod(maybe);
   }
 
   return undefined;

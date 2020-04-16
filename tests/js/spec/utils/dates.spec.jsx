@@ -47,7 +47,7 @@ describe('utils.dates', function() {
     });
 
     it('handle invalid statsPeriod', function() {
-      expect(parsePeriodToHours('24')).toBe(-1);
+      expect(parsePeriodToHours('24')).toBe(24 / 3600);
       expect(parsePeriodToHours('')).toBe(-1);
       expect(parsePeriodToHours('24x')).toBe(-1);
     });
