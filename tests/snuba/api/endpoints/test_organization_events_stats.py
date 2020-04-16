@@ -676,7 +676,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "field": ["message", "user.email"],
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "user.email"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -701,7 +702,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
             "interval": "1h",
             "yAxis": "count()",
-            "field": ["message", "user.email"],
+            "orderby": ["-count()"],
+            "field": ["count()", "message", "user.email"],
         }
         with self.feature("organizations:discover-basic"):
             data["topEvents"] = 50
@@ -725,7 +727,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "field": ["message", "project"],
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "project"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -756,7 +759,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "field": ["message", "issue"],
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -789,6 +793,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
+                    "orderby": ["-p99()"],
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
                     "topEvents": 5,
                 },
@@ -820,6 +825,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
+                    "orderby": ["-p99()"],
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
                     "topEvents": 5,
                 },
@@ -857,6 +863,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "count()",
+                    "orderby": ["-p99()"],
                     "query": "transaction:/foo_bar/",
                     "field": ["transaction", "avg(transaction.duration)", "p99()"],
                     "topEvents": 5,
@@ -884,7 +891,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": "rpm()",
-                    "field": ["message", "user.email"],
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.email", "count()"],
                     "topEvents": 5,
                 },
                 format="json",
@@ -912,13 +920,48 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
                     "yAxis": ["rpm()", "count()"],
-                    "field": ["message", "user.email"],
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.email", "count()"],
                     "topEvents": 5,
                 },
                 format="json",
             )
 
         data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+            ]
+            assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
+                attrs for time, attrs in results["rpm()"]["data"]
+            ]
+
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["count()"]["data"]
+            ]
+
+    def test_testing(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": ["rpm()", "count()"],
+                    "orderby": ["timestamp"],
+                    "field": ["message", "user.email", "timestamp"],
+                    "topEvents": 2,
+                },
+                format="json",
+            )
+
+        data = response.data
+        print(data)
         assert response.status_code == 200, response.content
         assert len(data) == 5
 

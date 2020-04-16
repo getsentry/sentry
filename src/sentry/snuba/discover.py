@@ -795,7 +795,7 @@ def top_events_timeseries(
     selected_columns,
     user_query,
     params,
-    yaxis,
+    orderby,
     rollup,
     limit,
     organization,
@@ -820,9 +820,8 @@ def top_events_timeseries(
     organization (Organization) Used to map group ids to short ids
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-    orderby = ["-{}".format(axis) for axis in yaxis]
     top_events = query(
-        selected_columns + yaxis,
+        selected_columns,
         query=user_query,
         params=params,
         orderby=orderby,

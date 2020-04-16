@@ -21,25 +21,30 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         if not features.has("organizations:discover-basic", organization, actor=request.user):
             return self.get_v1_results(request, organization)
 
-        try:
-            limit = int(request.GET.get("topEvents", 0))
-        except ValueError:
-            return Response({"detail": "topEvents must be an integer"}, status=400)
-        if limit > MAX_TOP_EVENTS:
-            return Response(
-                {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)}, status=400
-            )
-        elif limit <= 0:
-            return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+        top_events = "topEvents" in request.GET
+        limit = None
+
+        if top_events:
+            try:
+                limit = int(request.GET.get("topEvents", 0))
+            except ValueError:
+                return Response({"detail": "topEvents must be an integer"}, status=400)
+            if limit > MAX_TOP_EVENTS:
+                return Response(
+                    {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
+                    status=400,
+                )
+            elif limit <= 0:
+                return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
         def get_event_stats(query_columns, query, params, rollup, reference_event):
-            if "topEvents" in request.GET:
+            if top_events:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=request.GET.getlist("field")[:],
                     user_query=query,
                     params=params,
-                    yaxis=request.GET.getlist("yAxis"),
+                    orderby=self.get_orderby(request),
                     rollup=rollup,
                     limit=limit,
                     organization=organization,
@@ -55,7 +60,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         return Response(
-            self.get_event_stats_data(request, organization, get_event_stats), status=200
+            self.get_event_stats_data(request, organization, get_event_stats, top_events),
+            status=200,
         )
 
     def get_v1_results(self, request, organization):

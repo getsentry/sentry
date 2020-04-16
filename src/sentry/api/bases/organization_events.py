@@ -132,7 +132,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats):
+    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
             query = request.GET.get("query")
@@ -166,17 +166,20 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             raise ParseError(detail=six.text_type(err))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        if "topEvents" in request.GET:
+        if top_events:
             results = {}
             for key, event_result in six.iteritems(result):
-                if len(columns) > 1:
+                if len(query_columns) > 1:
                     results[key] = self.serialize_multiple_axis(
                         serializer, event_result, columns, query_columns
                     )
                 else:
-                    results[key] = serializer.serialize(event_result)
+                    # Need to get function alias if count is a field, but not the axis
+                    results[key] = serializer.serialize(
+                        event_result, get_function_alias(query_columns[0])
+                    )
             return results
-        elif len(columns) > 1:
+        elif len(query_columns) > 1:
             return self.serialize_multiple_axis(serializer, result, columns, query_columns)
         else:
             return serializer.serialize(result)
