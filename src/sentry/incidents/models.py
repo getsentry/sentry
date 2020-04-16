@@ -140,6 +140,12 @@ class IncidentStatus(Enum):
     CRITICAL = 20
 
 
+class IncidentStatusMethod(Enum):
+    MANUAL = 1
+    RULE_UPDATED = 2
+    SENTRY = 3
+
+
 INCIDENT_STATUS = {
     IncidentStatus.OPEN: "Open",
     IncidentStatus.CLOSED: "Resolved",
@@ -164,6 +170,7 @@ class Incident(Model):
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
+    status_method = models.PositiveSmallIntegerField(default=IncidentStatusMethod.SENTRY.value)
     type = models.PositiveSmallIntegerField()
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
