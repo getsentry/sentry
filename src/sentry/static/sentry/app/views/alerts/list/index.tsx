@@ -25,6 +25,7 @@ import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import Access from 'app/components/acl/access';
 
 import {Incident} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
@@ -229,7 +230,7 @@ class IncidentsListContainer extends React.Component<Props> {
   };
 
   render() {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {pathname, query} = location;
     const {orgId} = params;
 
@@ -249,15 +250,25 @@ class IncidentsListContainer extends React.Component<Props> {
             </StyledPageHeading>
 
             <Actions>
-              <Button
-                onClick={this.handleAddAlertRule}
-                priority="primary"
-                href="#"
-                size="small"
-                icon={<IconAdd circle size="xs" />}
-              >
-                {t('Add Alert Rule')}
-              </Button>
+              <Access organization={organization} access={['project:write']}>
+                {({hasAccess}) => (
+                  <Button
+                    disabled={!hasAccess}
+                    title={
+                      !hasAccess
+                        ? t('You do not have permission to add alert rules.')
+                        : undefined
+                    }
+                    onClick={this.handleAddAlertRule}
+                    priority="primary"
+                    href="#"
+                    size="small"
+                    icon={<IconAdd circle size="xs" />}
+                  >
+                    {t('Add Alert Rule')}
+                  </Button>
+                )}
+              </Access>
 
               <Button
                 onClick={this.handleNavigateToSettings}
