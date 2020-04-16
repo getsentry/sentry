@@ -61,8 +61,6 @@ class SlackIntegrationProvider(IntegrationProvider):
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
-    setup_dialog_config = {"width": 600, "height": 900}
-
     # Scopes differ depending on if it's a workspace app
     wst_oauth_scopes = frozenset(
         [
@@ -90,6 +88,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.customize",
         ]
     )
+
+    setup_dialog_config = {"width": 600, "height": 900}
 
     @property
     def use_wst_app(self):
