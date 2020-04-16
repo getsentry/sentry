@@ -836,7 +836,7 @@ def top_events_timeseries(
         if field in ["project", "project.id"]:
             continue
         values = list({event.get(field) for event in top_events["data"] if field in event})
-        if values and all(values):
+        if values and all(value is not None for value in values):
             snuba_filter.conditions.append([resolve_column(field), "IN", values])
 
     result = raw_query(
