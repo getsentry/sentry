@@ -289,16 +289,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                             # if no specific environments are supplied, we either choose any
                             # groups/issues whose first release matches the given release_version,
                             Q(
-                                first_release_id__in=Release.objects.filter(
-                                    version=release_version,
-                                    organization_id=projects[0].organization_id,
-                                )
-                            )
-                            |
-                            # or we choose any groups whose first occurrence in any environment and the latest release at
-                            # the time of the groups' first occurrence matches the given
-                            # release_version
-                            Q(
                                 id__in=GroupEnvironment.objects.filter(
                                     first_release__version=release_version,
                                     first_release__organization_id=projects[0].organization_id,
