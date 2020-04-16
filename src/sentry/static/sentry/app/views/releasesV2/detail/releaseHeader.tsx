@@ -33,9 +33,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
   const {healthData} = project;
 
-  const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
@@ -50,7 +48,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${orgId}/releases-v2/`,
+              to: `/organizations/${orgId}/releases/`,
               label: t('Releases'),
             },
             {label: formatVersion(version)},
