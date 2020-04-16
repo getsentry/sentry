@@ -52,7 +52,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingTargetIndex: void 0,
     left: void 0,
     top: void 0,
-    fieldOptions: {},
+    fieldOptions: this.generateFieldOptions(),
   };
 
   componentDidMount() {
@@ -68,7 +68,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
       document.body.appendChild(this.portal);
     }
-    this.syncFields();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -88,7 +87,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   portal: HTMLElement | null = null;
   dragGhostRef = React.createRef<HTMLDivElement>();
 
-  syncFields() {
+  generateFieldOptions() {
     const {organization, tagKeys} = this.props;
 
     let fields = Object.keys(FIELDS);
@@ -148,7 +147,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
       });
     }
 
-    this.setState({fieldOptions});
+    return fieldOptions;
+  }
+
+  syncFields() {
+    this.setState({fieldOptions: this.generateFieldOptions()});
   }
 
   keyForColumn(column: Column, isGhost: boolean): string {
