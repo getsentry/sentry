@@ -29,6 +29,7 @@ class NotifyEventServiceForm(forms.Form):
 class NotifyEventServiceAction(EventAction):
     form_cls = NotifyEventServiceForm
     label = "Send a notification via {service}"
+    prompt = "Send a notification to one legacy integration"
 
     def __init__(self, *args, **kwargs):
         super(NotifyEventServiceAction, self).__init__(*args, **kwargs)

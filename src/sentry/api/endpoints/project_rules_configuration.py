@@ -24,6 +24,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         for rule_type, rule_cls in rules:
             node = rule_cls(project)
             context = {"id": node.id, "label": node.label, "enabled": node.is_enabled()}
+            if hasattr(node, "prompt"):
+                context["prompt"] = node.prompt
+
             if (
                 node.id == "sentry.mail.actions.NotifyEmailAction"
                 and not has_issue_alerts_targeting
