@@ -88,29 +88,23 @@ const getUtcValue = (maybe: string | string[] | undefined | null): string | unde
   return undefined;
 };
 
+type ParamValue = string | string[] | undefined | null;
 type Params = {
-  start?: string | string[] | undefined | null;
-  end?: string | string[] | undefined | null;
-  period?: string | string[] | undefined | null;
-  statsPeriod?: string | string[] | undefined | null;
-  utc?: string | string[] | undefined | null;
-  [others: string]: string | string[] | undefined | null;
+  start?: ParamValue;
+  end?: ParamValue;
+  period?: ParamValue;
+  statsPeriod?: ParamValue;
+  utc?: ParamValue;
 };
+type RestParams = {[others: string]: ParamValue};
 
-function isEntryDefined<T>(t: T): t is {[K in keyof T]: Exclude<T[K], null | undefined>} {
-  return t[1] !== undefined && t[1] !== null;
-}
-
-// Filters out params with null values and returns a default
-// `statsPeriod` when necessary.
-//
-// Accepts `period` and `statsPeriod` but will only return `statsPeriod`
-//
-// TODO(billy): Make period parameter name consistent
 export function getParams(
-  params: Params,
+  params: Params & RestParams,
   {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
-) {
+): {
+  [K in keyof Params]: Exclude<NonNullable<Params[K]>, string[]>;
+} &
+  RestParams {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
@@ -125,7 +119,6 @@ export function getParams(
     }
   }
 
-  // Filter null values
   return Object.fromEntries(
     Object.entries({
       statsPeriod: coercedPeriod,
@@ -135,6 +128,8 @@ export function getParams(
       // or a boolean from time range picker)
       utc: getUtcValue(utc),
       ...otherParams,
-    }).filter(isEntryDefined)
+    })
+      // Filter null values
+      .filter(([_key, value]) => defined(value))
   );
 }
