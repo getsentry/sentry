@@ -7,6 +7,7 @@ describe('getParams', function() {
     expect(getParams({statsPeriod: null})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: undefined})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: '24f'})).toEqual({statsPeriod: '14d'});
+    expect(getParams({statsPeriod: '24'})).toEqual({statsPeriod: '24s'});
   });
 
   it('should parse statsPeriod', function() {
