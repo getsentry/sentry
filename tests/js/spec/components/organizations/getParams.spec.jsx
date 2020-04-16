@@ -98,6 +98,10 @@ describe('getParams', function() {
     ).toEqual({statsPeriod: '14d'});
   });
 
+  it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function() {
+    expect(getParams({}, {allowEmptyPeriod: true})).toEqual({});
+  });
+
   it('should parse utc when it is defined', function() {
     expect(getParams({utc: 'true'})).toEqual({utc: 'true', statsPeriod: '14d'});
     expect(getParams({utc: 'false'})).toEqual({utc: 'false', statsPeriod: '14d'});
