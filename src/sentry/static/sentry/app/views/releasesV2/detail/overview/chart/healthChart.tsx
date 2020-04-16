@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
+import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
@@ -62,6 +63,9 @@ class HealthChart extends React.Component<Props> {
           },
         };
       case YAxis.SESSION_DURATION:
+        return {
+          scale: true,
+        };
       case YAxis.SESSIONS:
       case YAxis.USERS:
       default:
@@ -69,12 +73,23 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
+  getChart = () => {
+    const {yAxis} = this.props;
+    switch (yAxis) {
+      case YAxis.SESSION_DURATION:
+        return AreaChart;
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
+        return StackedAreaChart;
+      case YAxis.CRASH_FREE:
+      default:
+        return LineChart;
+    }
+  };
+
   render() {
-    const {utc, releaseSeries, timeseriesData, yAxis, zoomRenderProps} = this.props;
-    const Chart =
-      yAxis === YAxis.CRASH_FREE || yAxis === YAxis.SESSION_DURATION
-        ? AreaChart
-        : LineChart;
+    const {utc, releaseSeries, timeseriesData, zoomRenderProps} = this.props;
+    const Chart = this.getChart();
 
     const legend = {
       right: 16,

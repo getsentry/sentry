@@ -88,22 +88,23 @@ const getUtcValue = (maybe: string | string[] | undefined | null): string | unde
   return undefined;
 };
 
-interface Params {
-  start?: string | string[] | undefined | null;
-  end?: string | string[] | undefined | null;
-  period?: string | string[] | undefined | null;
-  statsPeriod?: string | string[] | undefined | null;
-  utc?: string | string[] | undefined | null;
-  [others: string]: string | string[] | undefined | null;
-}
+type ParamValue = string | string[] | undefined | null;
+type Params = {
+  start?: ParamValue;
+  end?: ParamValue;
+  period?: ParamValue;
+  statsPeriod?: ParamValue;
+  utc?: ParamValue;
+};
+type RestParams = {[others: string]: ParamValue};
 
-// Filters out params with null values and returns a default
-// `statsPeriod` when necessary.
-//
-// Accepts `period` and `statsPeriod` but will only return `statsPeriod`
-//
-// TODO(billy): Make period parameter name consistent
-export function getParams(params: Params): {[key: string]: string | string[]} {
+export function getParams(
+  params: Params & RestParams,
+  {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
+): {
+  [K in keyof Params]: Exclude<NonNullable<Params[K]>, string[]>;
+} &
+  RestParams {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
@@ -113,27 +114,22 @@ export function getParams(params: Params): {[key: string]: string | string[]} {
   const dateTimeEnd = getDateTimeString(end);
 
   if (!(dateTimeStart && dateTimeEnd)) {
-    if (!coercedPeriod) {
+    if (!coercedPeriod && !allowEmptyPeriod) {
       coercedPeriod = DEFAULT_STATS_PERIOD;
     }
   }
 
-  // Filter null values
-  return Object.entries({
-    statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : dateTimeStart,
-    end: coercedPeriod ? null : dateTimeEnd,
-    // coerce utc into a string (it can be both: a string representation from router,
-    // or a boolean from time range picker)
-    utc: getUtcValue(utc),
-    ...otherParams,
-  })
-    .filter(([_key, value]) => defined(value))
-    .reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key]: value,
-      }),
-      {}
-    );
+  return Object.fromEntries(
+    Object.entries({
+      statsPeriod: coercedPeriod,
+      start: coercedPeriod ? null : dateTimeStart,
+      end: coercedPeriod ? null : dateTimeEnd,
+      // coerce utc into a string (it can be both: a string representation from router,
+      // or a boolean from time range picker)
+      utc: getUtcValue(utc),
+      ...otherParams,
+    })
+      // Filter null values
+      .filter(([_key, value]) => defined(value))
+  );
 }

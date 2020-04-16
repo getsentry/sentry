@@ -38,6 +38,10 @@ const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 // Ports used by webpack dev server to proxy to backend and webpack
 const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
 const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+// Host to bind the webpack dev server to and host location of backend
+const SENTRY_BACKEND_HOST = env.SENTRY_BACKEND_HOST;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
+
 // Used by sentry devserver runner to force using webpack-dev-server
 const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
 const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
@@ -407,7 +411,7 @@ if (!IS_PRODUCTION) {
 
 // Dev only! Hot module reloading
 if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER)) {
-  const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+  const backendAddress = `http://${SENTRY_BACKEND_HOST}:${SENTRY_BACKEND_PORT}/`;
 
   if (SHOULD_HOT_MODULE_RELOAD) {
     // Hot reload react components on save
@@ -428,6 +432,7 @@ if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER
     hot: true,
     // If below is false, will reload on errors
     hotOnly: true,
+    host: SENTRY_WEBPACK_PROXY_HOST,
     port: SENTRY_WEBPACK_PROXY_PORT,
     stats: 'errors-only',
     overlay: false,
