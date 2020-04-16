@@ -236,7 +236,6 @@ class EventsChart extends React.Component {
             start={start}
             end={end}
             interval={router?.location?.query?.interval || getInterval(this.props, true)}
-            showLoading={false}
             query={query}
             includePrevious={includePrevious}
             currentSeriesName={currentSeriesName}

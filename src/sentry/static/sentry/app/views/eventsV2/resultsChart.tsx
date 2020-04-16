@@ -68,8 +68,10 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
+              field={eventView.getSimpleFields().map(f => f.field)}
               disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
               disableReleases={eventView.display !== DisplayModes.RELEASES}
+              topEvents={eventView.display === DisplayModes.TOP5 ? 5 : undefined}
               utc={utc === 'true'}
             />
           ),

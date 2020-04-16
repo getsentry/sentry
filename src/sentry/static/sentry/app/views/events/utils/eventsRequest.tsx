@@ -10,7 +10,6 @@ import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {truncationFormatter} from 'app/components/charts/utils';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
-import {assertType} from 'app/types/utils';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
@@ -36,9 +35,13 @@ type LoadingStatus = {
   errored: boolean;
 };
 
-type YAxisResults = {[yAxisName: string]: Series};
+// API response format for multiple series
+type MultiSeriesData = {[seriesName: string]: EventsStats};
 
-type RenderProps = LoadingStatus & TimeSeriesData & {results?: YAxisResults};
+// Chart format for multiple series.
+type MultiSeriesResults = {[seriesName: string]: Series};
+
+type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
 
 type DefaultProps = {
   /**
@@ -148,6 +151,17 @@ type EventsRequestState = {
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
+
+function isMultiSeriesData(
+  data: MultiSeriesData | EventsStats | null
+): data is MultiSeriesData {
+  return (
+    data !== null &&
+    data.data === undefined &&
+    data.totals === undefined &&
+    Object.keys(data).length > 0
+  );
+}
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
@@ -368,7 +382,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   }
 
   render() {
-    const {children, showLoading, topEvents, yAxis, ...props} = this.props;
+    const {children, showLoading, ...props} = this.props;
     const {timeseriesData, reloading, errored} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
@@ -377,18 +391,17 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
 
-    if (topEvents && timeseriesData) {
+    if (isMultiSeriesData(timeseriesData)) {
+      // Convert multi-series results into chartable series. Multi series results
+      // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      const results: YAxisResults = Object.fromEntries(
-        Object.keys(timeseriesData).map((resultId: string): [string, Series] => {
-          const seriesData: EventsStats = timeseriesData[resultId];
-          const seriesName = truncationFormatter(resultId, 80);
-          return [
-            seriesName,
-            this.transformTimeseriesData(seriesData.data, seriesName)[0],
-          ];
+      const results: MultiSeriesResults = Object.fromEntries(
+        Object.keys(timeseriesData).map((seriesName: string): [string, Series] => {
+          const seriesData: EventsStats = timeseriesData[seriesName];
+          const name = truncationFormatter(seriesName, 80);
+          return [name, this.transformTimeseriesData(seriesData.data, name)[0]];
         })
       );
 
@@ -401,30 +414,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         ...props,
       });
     }
-
-    if (Array.isArray(yAxis) && timeseriesData) {
-      // if yAxis is an array, then the API endpoint will return multiple sets of data
-      // in the form of a map: {[yAxisName: string]: Series}
-      const results: YAxisResults = Object.fromEntries(
-        yAxis.map((yAxisName: string): [string, Series] => {
-          // timeseries data
-          return [
-            yAxisName,
-            this.transformTimeseriesData(timeseriesData[yAxisName].data, yAxisName)[0],
-          ];
-        })
-      );
-      return children({
-        loading,
-        reloading,
-        errored,
-        results,
-        // sometimes we want to reference props that were given to EventsRequest
-        ...props,
-      });
-    }
-
-    assertType<EventsStats>(timeseriesData);
 
     const {
       data: transformedTimeseriesData,
