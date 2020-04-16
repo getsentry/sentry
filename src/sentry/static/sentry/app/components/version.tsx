@@ -50,10 +50,6 @@ type Props = {
    * Ellipsis on overflow
    */
   truncate?: boolean;
-  /**
-   * Use releases v2 (for example when linking to detail page)
-   */
-  v2?: boolean;
   className?: string;
 };
 
@@ -68,7 +64,6 @@ const Version = ({
   truncate,
   className,
   location,
-  v2,
 }: WithRouterProps & Props) => {
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
@@ -89,9 +84,9 @@ const Version = ({
       return (
         <LinkComponent
           to={{
-            pathname: `/organizations/${organization?.slug}/${
-              v2 ? 'releases-v2' : 'releases'
-            }/${encodeURIComponent(version)}/`,
+            pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+              version
+            )}/`,
             query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
           }}
           className={className}

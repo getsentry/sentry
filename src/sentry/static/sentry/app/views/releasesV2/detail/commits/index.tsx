@@ -133,35 +133,29 @@ class ReleaseCommits extends AsyncView<Props, State> {
       return <ReleaseNoCommitData orgId={orgId} />;
     }
 
+    if (commits.length === 0) {
+      return (
+        <Panel>
+          <PanelBody>
+            <EmptyStateWarning small>
+              {t('There are no commits associated with this release.')}
+            </EmptyStateWarning>
+          </PanelBody>
+        </Panel>
+      );
+    }
+
     return (
-      <ContentBox>
-        {commits.length ? (
-          <React.Fragment>
-            {Object.keys(commitsByRepository).length > 1 &&
-              this.renderRepoSwitcher(commitsByRepository)}
-            {reposToRender.map(repoName =>
-              this.renderCommitsForRepo(repoName, commitsByRepository)
-            )}
-          </React.Fragment>
-        ) : (
-          <Panel>
-            <PanelBody>
-              <EmptyStateWarning small>
-                {t('There are no commits associated with this release.')}
-              </EmptyStateWarning>
-            </PanelBody>
-          </Panel>
+      <React.Fragment>
+        {Object.keys(commitsByRepository).length > 1 &&
+          this.renderRepoSwitcher(commitsByRepository)}
+        {reposToRender.map(repoName =>
+          this.renderCommitsForRepo(repoName, commitsByRepository)
         )}
-      </ContentBox>
+      </React.Fragment>
     );
   }
 }
-
-const ContentBox = styled('div')`
-  padding: ${space(4)};
-  flex: 1;
-  background-color: ${p => p.theme.white};
-`;
 
 const RepoSwitcher = styled('div')`
   margin-bottom: ${space(1)};

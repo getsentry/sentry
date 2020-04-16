@@ -48,9 +48,9 @@ class ReleaseCommits extends React.Component {
   }
 
   getPath() {
-    const {orgId, projectId, version} = this.props.params;
+    const {orgId, projectId, release} = this.props.params;
 
-    const encodedVersion = encodeURIComponent(version);
+    const encodedVersion = encodeURIComponent(release);
 
     return projectId
       ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`

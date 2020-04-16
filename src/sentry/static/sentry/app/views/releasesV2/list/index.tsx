@@ -28,6 +28,7 @@ import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleasePromo from './releasePromo';
+import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
   orgId: string;
@@ -43,7 +44,7 @@ class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
-    return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
@@ -134,6 +135,12 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
+  shouldShowLoadingIndicator() {
+    const {loading, releases, reloading} = this.state;
+
+    return (loading && !reloading) || (loading && !releases?.length);
+  }
+
   renderLoading() {
     return this.renderBody();
   }
@@ -172,9 +179,9 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {location} = this.props;
-    const {loading, releases, reloading} = this.state;
+    const {releases, reloading} = this.state;
 
-    if ((loading && !reloading) || (loading && !releases?.length)) {
+    if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
@@ -212,7 +219,7 @@ class ReleasesList extends AsyncView<Props, State> {
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases v2')} <BetaTag />
+                {t('Releases')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
@@ -232,6 +239,10 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
+
+            {!this.shouldShowLoadingIndicator() && (
+              <SwitchReleasesButton version="1" orgId={organization.id} />
+            )}
           </LightWeightNoProjectMessage>
         </PageContent>
       </React.Fragment>

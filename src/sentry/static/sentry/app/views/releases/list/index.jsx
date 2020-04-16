@@ -17,6 +17,8 @@ import SentryTypes from 'app/sentryTypes';
 import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import Feature from 'app/components/acl/feature';
+import SwitchReleasesButton from 'app/views/releasesV2/utils/switchReleasesButton';
 
 import {getQuery} from './utils';
 import ReleaseLanding from './releaseLanding';
@@ -175,6 +177,9 @@ class OrganizationReleases extends AsyncView {
               <PanelBody>{this.renderStreamBody()}</PanelBody>
             </Panel>
             <Pagination pageLinks={this.state.releaseListPageLinks} />
+            <Feature features={['releases-v2']} organization={organization}>
+              <SwitchReleasesButton version="2" orgId={organization.id} />
+            </Feature>
           </div>
         </NoProjectMessage>
       </PageContent>

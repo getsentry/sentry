@@ -21,8 +21,8 @@ export default class ReleaseOverview extends AsyncComponent {
   };
 
   getEndpoints() {
-    const {orgId, version} = this.props.params;
-    const basePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
+    const {orgId, release} = this.props.params;
+    const basePath = `/organizations/${orgId}/releases/${encodeURIComponent(release)}/`;
     return [
       ['fileList', `${basePath}commitfiles/`],
       ['deploys', `${basePath}deploys/`],
@@ -35,11 +35,7 @@ export default class ReleaseOverview extends AsyncComponent {
   }
 
   renderBody() {
-    const {
-      release,
-      query,
-      params: {orgId, version},
-    } = this.props;
+    const {release, query, params} = this.props;
 
     const {fileList, repos} = this.state;
 
@@ -51,7 +47,7 @@ export default class ReleaseOverview extends AsyncComponent {
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <ReleaseIssues version={version} orgId={orgId} query={query} />
+            <ReleaseIssues version={params.release} orgId={params.orgId} query={query} />
             {hasRepos && (
               <div>
                 {Object.keys(filesByRepository).map((repository, i) => (
@@ -70,7 +66,7 @@ export default class ReleaseOverview extends AsyncComponent {
                 {release.lastCommit && (
                   <LastCommit commit={release.lastCommit} headerClass="nav-header" />
                 )}
-                <CommitAuthorStats orgId={orgId} version={version} />
+                <CommitAuthorStats orgId={params.orgId} version={params.release} />
                 <h6 className="nav-header m-b-1">{t('Projects Affected')}</h6>
                 <ul className="nav nav-stacked">
                   {release.projects.length === 0
@@ -78,9 +74,9 @@ export default class ReleaseOverview extends AsyncComponent {
                     : release.projects.map(project => (
                         <ReleaseProjectStatSparkline
                           key={project.slug}
-                          orgId={orgId}
+                          orgId={params.orgId}
                           project={project}
-                          version={version}
+                          version={params.release}
                         />
                       ))}
                 </ul>
@@ -90,8 +86,8 @@ export default class ReleaseOverview extends AsyncComponent {
             )}
             <ReleaseDeploys
               deploys={this.state.deploys}
-              version={version}
-              orgId={orgId}
+              version={params.release}
+              orgId={params.orgId}
             />
           </div>
         </div>

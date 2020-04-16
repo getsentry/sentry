@@ -6,7 +6,7 @@ exports[`ReleaseCommits organization release commits 1`] = `
   params={
     Object {
       "orgId": "123",
-      "version": "10.0",
+      "release": "10.0",
     }
   }
 >
@@ -24,7 +24,7 @@ exports[`ReleaseCommits organization release commits 1`] = `
     params={
       Object {
         "orgId": "123",
-        "version": "10.0",
+        "release": "10.0",
       }
     }
   >
@@ -391,7 +391,7 @@ exports[`ReleaseCommits project release commits 1`] = `
     Object {
       "orgId": "123",
       "projectId": "456",
-      "version": "10.0",
+      "release": "10.0",
     }
   }
 >
@@ -410,7 +410,7 @@ exports[`ReleaseCommits project release commits 1`] = `
       Object {
         "orgId": "123",
         "projectId": "456",
-        "version": "10.0",
+        "release": "10.0",
       }
     }
   >

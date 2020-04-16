@@ -44,7 +44,7 @@ describe('ReleaseArtifacts', function() {
     wrapper = mount(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
-        params={{orgId: '123', projectId: '456', version: 'abcdef'}}
+        params={{orgId: '123', projectId: '456', release: 'abcdef'}}
         organization={TestStubs.Organization({id: '123', access: ['project:read']})}
         api={api}
       />
@@ -53,7 +53,7 @@ describe('ReleaseArtifacts', function() {
     wrapperWithPermission = shallow(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
-        params={{orgId: '123', projectId: '456', version: 'abcdef'}}
+        params={{orgId: '123', projectId: '456', release: 'abcdef'}}
         organization={TestStubs.Organization({id: '123', access: ['project:write']})}
         api={api}
       />
@@ -122,7 +122,7 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('fetches data for organization releases', function() {
-      wrapper.setProps({params: {orgId: '123', version: 'abcdef'}});
+      wrapper.setProps({params: {orgId: '123', release: 'abcdef'}});
       wrapper.instance().fetchData();
 
       expect(organizationMock).toHaveBeenCalledWith(
