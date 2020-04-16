@@ -272,7 +272,6 @@ const HovercardArrow = styled('span')`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
@@ -281,7 +280,6 @@ const HovercardArrow = styled('span')`
   }
   &::after {
     border: 10px solid transparent;
-    /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${p => p.tipColor || getTipColor(p)};
   }
 `;

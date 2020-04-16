@@ -415,7 +415,6 @@ class Sidebar extends React.Component<Props, State> {
                           label={t('Discover')}
                           to={getDiscoverLandingUrl(organization)}
                           id="discover-v2"
-                          isNew
                         />
                       </GuideAnchor>
                     </Feature>

@@ -247,7 +247,7 @@ class Table extends React.Component<Props> {
     return (
       <EventsV2
         eventView={eventView}
-        organization={organization}
+        orgSlug={organization.slug}
         location={location}
         keyTransactions={keyTransactions}
       >
