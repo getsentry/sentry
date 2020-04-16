@@ -6,6 +6,7 @@ from six.moves.urllib.parse import urlencode
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
@@ -140,3 +141,41 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
         )
     )
     getattr(action, method)(incident, project)
+
+
+@instrumented_task(
+    name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
+    queue="incidents",
+    default_retry_delay=60 * 5,
+    max_retries=2,
+)
+def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
+    from sentry.incidents.models import AlertRule
+    from sentry.incidents.logic import update_incident_status
+
+    try:
+        alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
+    except AlertRule.DoesNotExist:
+        return
+
+    if alert_rule.status != AlertRuleStatus.SNAPSHOT.value:
+        return
+
+    batch_size = 50
+    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
+        status=IncidentStatus.CLOSED.value
+    )[: batch_size + 1]
+    has_more = incidents.count() > batch_size
+    if incidents:
+        incidents = incidents[:batch_size]
+        for incident in incidents:
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
+            )
+
+    if has_more:
+        auto_resolve_snapshot_incidents.apply_async(
+            kwargs={"alert_rule_id": alert_rule_id}, countdown=1
+        )

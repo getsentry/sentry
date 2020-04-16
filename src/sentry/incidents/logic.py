@@ -589,7 +589,7 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.save()
 
-        incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+        incidents.update(alert_rule=alert_rule_snapshot)
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
@@ -600,6 +600,11 @@ def snapshot_alert_rule(alert_rule):
                 action.id = None
                 action.alert_rule_trigger = trigger
                 action.save()
+
+    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+    tasks.auto_resolve_snapshot_incidents.apply_async(
+        kwargs={"alert_rule_id": alert_rule_snapshot.id}
+    )
 
 
 def update_alert_rule(
@@ -660,7 +665,6 @@ def update_alert_rule(
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             snapshot_alert_rule(alert_rule)
-
         alert_rule.update(**updated_fields)
 
         existing_subs = []
@@ -794,10 +798,12 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
-            for incident in incidents:
-                incident.update(status=IncidentStatus.CLOSED.value)
         else:
             alert_rule.delete()
+
+    if alert_rule.id:
+        # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+        tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
 
 def validate_alert_rule_query(query):

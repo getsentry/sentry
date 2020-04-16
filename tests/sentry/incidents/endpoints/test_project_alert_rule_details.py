@@ -173,25 +173,25 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert not AlertRule.objects_with_snapshots.filter(id=self.alert_rule.id).exists()
 
     def test_snapshot_and_create_new_with_same_name(self):
-
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
-        # We attach the rule to an incident so the rule is snapshotted instead of deleted.
-        incident = self.create_incident(alert_rule=self.alert_rule)
-
-        with self.feature("organizations:incidents"):
-            self.get_valid_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+        with self.tasks():
+            self.create_member(
+                user=self.user, organization=self.organization, role="owner", teams=[self.team]
             )
+            self.login_as(self.user)
 
-        alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
+            # We attach the rule to an incident so the rule is snapshotted instead of deleted.
+            incident = self.create_incident(alert_rule=self.alert_rule)
 
-        assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
-        assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
+            with self.feature("organizations:incidents"):
+                self.get_valid_response(
+                    self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
+                )
 
-        # We also confirm that the incident is automatically resolved.
-        assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
+            alert_rule = AlertRule.objects_with_snapshots.get(id=self.alert_rule.id)
+
+            assert not AlertRule.objects.filter(id=alert_rule.id).exists()
+            assert AlertRule.objects_with_snapshots.filter(id=alert_rule.id).exists()
+            assert alert_rule.status == AlertRuleStatus.SNAPSHOT.value
+
+            # We also confirm that the incident is automatically resolved.
+            assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
