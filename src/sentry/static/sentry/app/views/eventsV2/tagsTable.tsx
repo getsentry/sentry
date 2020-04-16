@@ -22,6 +22,15 @@ type Props = {
 
 const TagsTable = (props: Props) => {
   const {organization, event, eventView} = props;
+
+  // create a clone of the event object, and delete the its id.
+  // we do this so that the id will not be added to the search conditions
+  // when the tag is clicked
+  const eventReference = {...event};
+  if (eventReference.id) {
+    delete eventReference.id;
+  }
+
   const tags = event.tags;
   return (
     <StyledTagsTable>
@@ -43,7 +52,7 @@ const TagsTable = (props: Props) => {
               const nextView = getExpandedResults(
                 eventView,
                 {[tag.key]: tag.value},
-                event
+                eventReference
               );
               target = nextView.getResultsViewUrlTarget(organization.slug);
             }

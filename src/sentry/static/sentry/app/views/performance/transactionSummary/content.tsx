@@ -60,7 +60,7 @@ class SummaryContent extends React.Component<Props> {
           <EventsV2
             location={location}
             eventView={eventView}
-            organization={organization}
+            orgSlug={organization.slug}
             extraQuery={{
               per_page: TOP_SLOWEST_TRANSACTIONS,
             }}

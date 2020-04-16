@@ -97,15 +97,13 @@ class InstallationForm(forms.Form):
     )
     consumer_key = forms.CharField(
         label=_("Jira Consumer Key"),
-        widget=forms.TextInput(attrs={"placeholder": _("sentry-consumer-key")}),
+        widget=forms.TextInput(attrs={"placeholder": "sentry-consumer-key"}),
     )
     private_key = forms.CharField(
         label=_("Jira Consumer Private Key"),
         widget=forms.Textarea(
             attrs={
-                "placeholder": _(
-                    "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-                )
+                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
             }
         ),
     )
