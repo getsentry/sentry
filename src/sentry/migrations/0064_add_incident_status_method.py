@@ -30,16 +30,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name='alertrule',
-            options={'base_manager_name': 'objects_with_snapshots', 'default_manager_name': 'objects_with_snapshots'},
-        ),
-        migrations.AlterModelManagers(
-            name='alertrule',
-            managers=[
-                ('objects_with_snapshots', django.db.models.manager.Manager()),
-            ],
-        ),
         migrations.AddField(
             model_name='incident',
             name='status_method',
