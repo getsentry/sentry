@@ -186,7 +186,15 @@ export function intervalToMilliseconds(interval: string): number {
  * and converts it into hours
  */
 export function parsePeriodToHours(str: string): number {
-  const [, period, periodLength] = str.match(/([0-9]+)([smhdw])/);
+  const result = str.match(/([0-9]+)([smhdw])/);
+
+  if (!result) {
+    return -1;
+  }
+
+  const period = result[1];
+  const periodLength = result[2];
+
   const periodNumber = parseInt(period, 10);
 
   switch (periodLength) {
