@@ -25,7 +25,7 @@ const HttpRenderer = ({breadcrumb}: Props) => {
           {url}
         </ExternalLink>
       ) : (
-        <em>{url}</em>
+        <span>{url}</span>
       );
     }
 
