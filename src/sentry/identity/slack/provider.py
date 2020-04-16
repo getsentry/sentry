@@ -22,6 +22,9 @@ class SlackIdentityProvider(OAuth2Provider):
 
     @property
     def use_slack_v2(self):
+        # need to import here because of dependency issues
+        # would be nice to make the pipeline class have a use_slack_v2
+        # method but we use the same pipeline class everywhere
         from sentry.integrations.slack.utils import use_slack_v2
 
         return use_slack_v2(self.pipeline)

@@ -63,40 +63,41 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
+    # Scopes differ depending on if it's a workspace app
+    wst_oauth_scopes = frozenset(
+        [
+            "channels:read",
+            "groups:read",
+            "users:read",
+            "chat:write",
+            "links:read",
+            "links:write",
+            "team:read",
+        ]
+    )
+
+    # some info here: https://api.slack.com/authentication/quickstart
+    bot_oauth_scopes = frozenset(
+        [
+            "channels:read",
+            "groups:read",
+            "users:read",
+            "chat:write",
+            "links:read",
+            "links:write",
+            "team:read",
+            "chat:write.public",
+            "chat:write.customize",
+        ]
+    )
+
     @property
     def use_wst_app(self):
         return settings.SLACK_INTEGRATION_USE_WST and not use_slack_v2(self.pipeline)
 
     @property
     def identity_oauth_scopes(self):
-        # Scopes differ depending on if it's a workspace app
-        if self.use_wst_app:
-            return frozenset(
-                [
-                    "channels:read",
-                    "groups:read",
-                    "users:read",
-                    "chat:write",
-                    "links:read",
-                    "links:write",
-                    "team:read",
-                ]
-            )
-        # some info here: https://api.slack.com/authentication/quickstart
-        # TODO: Might need to add more scopes
-        return frozenset(
-            [
-                "channels:read",
-                "groups:read",
-                "users:read",
-                "chat:write",
-                "links:read",
-                "links:write",
-                "team:read",
-                "chat:write.public",
-                "chat:write.customize",
-            ]
-        )
+        return self.wst_oauth_scopes if self.use_wst_app else self.bot_oauth_scopes
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

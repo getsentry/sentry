@@ -26,8 +26,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         team_id="TXXXXXXX1",
         authorizing_user_id="UXXXXXXX1",
         access_token="xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-        access_extras=None,
-        use_oauth_token_endpoint=True,
+        is_wst_app=True,
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
     ):
@@ -38,9 +37,10 @@ class SlackIntegrationTest(IntegrationTestCase):
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
         assert redirect.netloc == "slack.com"
-        assert redirect.path == "/oauth/authorize"
+        assert redirect.path == "/oauth/authorize" if is_wst_app else "oauth/v2/authorize"
         params = parse_qs(redirect.query)
-        assert params["scope"] == [" ".join(self.provider.identity_oauth_scopes)]
+        scopes = self.provider.wst_oauth_scopes if is_wst_app else self.provider.bot_oauth_scopes
+        assert params["scope"] == [" ".join(scopes)]
         assert params["state"]
         assert params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
         assert params["response_type"] == ["code"]
@@ -49,29 +49,29 @@ class SlackIntegrationTest(IntegrationTestCase):
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
-        access_json = {
-            "ok": True,
-            "access_token": access_token,
-            "team_id": team_id,
-            "team_name": "Example",
-            "authorizing_user_id": authorizing_user_id,
-        }
-
-        if access_extras is not None:
-            access_json.update(access_extras)
+        if is_wst_app:
+            access_json = {
+                "ok": True,
+                "access_token": access_token,
+                "team_id": team_id,
+                "team_name": "Example",
+                "authorizing_user_id": authorizing_user_id,
+            }
+        else:
+            # TODO: make access token an input
+            access_json = {
+                "ok": True,
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "team": {"id": team_id, "name": "Example"},
+                "authed_user": {"id": authorizing_user_id},
+            }
 
         # XXX(epurkhiser): The slack workspace token app uses oauth.token, the
-        # slack bot app uses oauth.access.
-        if use_oauth_token_endpoint:
+        # slack bot app uses oauth.v2.access.
+        if is_wst_app:
             responses.add(responses.POST, "https://slack.com/api/oauth.token", json=access_json)
         else:
-            responses.add(responses.POST, "https://slack.com/api/oauth.access", json=access_json)
-
-        responses.add(
-            responses.GET,
-            "https://slack.com/api/auth.test",
-            json={"ok": True, "user_id": authorizing_user_id},
-        )
+            responses.add(responses.POST, "https://slack.com/api/oauth.v2.access", json=access_json)
 
         responses.add(
             responses.GET,
@@ -106,9 +106,7 @@ class SlackIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_bot_flow(self):
         self.assert_setup_flow(
-            use_oauth_token_endpoint=False,
-            access_token="xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            access_extras={"bot": {"bot_access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}},
+            is_wst_app=False, access_token="xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
         )
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -116,8 +114,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert integration.name == "Example"
         assert integration.metadata == {
             "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "user_access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "scopes": sorted(self.provider.identity_oauth_scopes),
+            "scopes": sorted(self.provider.bot_oauth_scopes),
             "icon": "http://example.com/ws_icon.jpg",
             "domain_name": "test-slack-workspace.slack.com",
         }
@@ -144,7 +141,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert integration.name == "Example"
         assert integration.metadata == {
             "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "scopes": sorted(self.provider.identity_oauth_scopes),
+            "scopes": sorted(self.provider.wst_oauth_scopes),
             "icon": "http://example.com/ws_icon.jpg",
             "domain_name": "test-slack-workspace.slack.com",
         }
@@ -204,11 +201,8 @@ class SlackIntegrationTest(IntegrationTestCase):
             {"slack-v2.client-id": "other-id", "slack-v2.client-secret": "other-secret"}
         ):
             self.assert_setup_flow(
-                use_oauth_token_endpoint=False,
+                is_wst_app=False,
                 access_token="xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                access_extras={
-                    "bot": {"bot_access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
-                },
                 expected_client_id="other-id",
                 expected_client_secret="other-secret",
             )
