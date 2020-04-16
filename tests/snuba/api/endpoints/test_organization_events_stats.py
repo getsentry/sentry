@@ -690,7 +690,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[
-                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
@@ -905,7 +905,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[
-                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["data"]
@@ -934,7 +934,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[
-                ",".join([message, self.event_data[index]["data"]["user"].get("email", "null")])
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["rpm()"]["data"]

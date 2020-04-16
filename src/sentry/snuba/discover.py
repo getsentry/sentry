@@ -878,7 +878,7 @@ def top_events_timeseries(
             if field == "issue.id":
                 values.append(issues.get(row["issue.id"], "unknown"))
             else:
-                values.append(six.text_type(row.get(field)) or "null")
+                values.append(six.text_type(row.get(field)))
         result_key = ",".join(values)
         results.setdefault(result_key, []).append(row)
     for key, item in six.iteritems(results):
