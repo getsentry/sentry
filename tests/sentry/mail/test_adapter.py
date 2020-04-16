@@ -15,6 +15,7 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail.adapter import MailAdapter, ActionTargetType
 from sentry.models import (
+    Activity,
     GroupStatus,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -24,6 +25,7 @@ from sentry.models import (
     Rule,
     User,
     UserOption,
+    UserOptionValue,
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import dump_schema, Matcher, Owner
@@ -703,3 +705,85 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
         assert set([user_2.id]) == self.adapter.get_send_to_member(project_2, text_type(user_2.id))
         assert set() == self.adapter.get_send_to_member(self.project, text_type(user_3.id))
+
+
+class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
+    def test_assignment(self):
+        UserOption.objects.set_value(
+            user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
+        )
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.ASSIGNED,
+            user=self.create_user("foo@example.com"),
+            data={"assignee": text_type(self.user.id), "assigneeType": "user"},
+        )
+
+        with self.tasks():
+            self.adapter.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert (
+            msg.subject
+            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
+        )
+        assert msg.to == [self.user.email]
+
+    def test_assignment_team(self):
+        UserOption.objects.set_value(
+            user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
+        )
+
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.ASSIGNED,
+            user=self.create_user("foo@example.com"),
+            data={"assignee": text_type(self.project.teams.first().id), "assigneeType": "team"},
+        )
+
+        with self.tasks():
+            self.adapter.notify_about_activity(activity)
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert (
+            msg.subject
+            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
+        )
+        assert msg.to == [self.user.email]
+
+    def test_note(self):
+        user_foo = self.create_user("foo@example.com")
+        UserOption.objects.set_value(
+            user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
+        )
+
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=Activity.NOTE,
+            user=user_foo,
+            data={"text": "sup guise"},
+        )
+
+        self.project.teams.first().organization.member_set.create(user=user_foo)
+
+        with self.tasks():
+            self.adapter.notify_about_activity(activity)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+
+        assert (
+            msg.subject
+            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
+        )
+        assert msg.to == [self.user.email]
