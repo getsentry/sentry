@@ -49,6 +49,8 @@ class SlackIntegrationTest(IntegrationTestCase):
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
+        # XXX(epurkhiser): The slack workspace token app uses oauth.token, the
+        # slack bot app uses oauth.v2.access.
         if is_wst_app:
             access_json = {
                 "ok": True,
@@ -57,6 +59,7 @@ class SlackIntegrationTest(IntegrationTestCase):
                 "team_name": "Example",
                 "authorizing_user_id": authorizing_user_id,
             }
+            responses.add(responses.POST, "https://slack.com/api/oauth.token", json=access_json)
         else:
             # TODO: make access token an input
             access_json = {
@@ -65,12 +68,6 @@ class SlackIntegrationTest(IntegrationTestCase):
                 "team": {"id": team_id, "name": "Example"},
                 "authed_user": {"id": authorizing_user_id},
             }
-
-        # XXX(epurkhiser): The slack workspace token app uses oauth.token, the
-        # slack bot app uses oauth.v2.access.
-        if is_wst_app:
-            responses.add(responses.POST, "https://slack.com/api/oauth.token", json=access_json)
-        else:
             responses.add(responses.POST, "https://slack.com/api/oauth.v2.access", json=access_json)
 
         responses.add(
