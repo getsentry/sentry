@@ -29,6 +29,7 @@ type Options = {
   yAxis?: string | string[];
   field?: string[];
   referenceEvent?: string;
+  topEvents?: number;
   keyTransactions?: boolean;
 };
 
@@ -62,6 +63,7 @@ export const doEventsRequest = (
     field,
     referenceEvent,
     keyTransactions,
+    topEvents,
   }: Options
 ): Promise<EventsStats | YAxisEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -74,6 +76,7 @@ export const doEventsRequest = (
       yAxis,
       field,
       referenceEvent,
+      topEvents,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

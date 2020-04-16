@@ -120,6 +120,8 @@ class EventsChart extends React.Component {
     disableReleases: PropTypes.bool,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
+    topEvents: PropTypes.number,
+    field: PropTypes.arrayOf(PropTypes.string),
   };
 
   render() {
@@ -139,6 +141,8 @@ class EventsChart extends React.Component {
       disableReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
+      field,
+      topEvents,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -170,6 +174,7 @@ class EventsChart extends React.Component {
       errored,
       loading,
       reloading,
+      results,
       timeseriesData,
       previousTimeseriesData,
     }) => {
@@ -180,6 +185,7 @@ class EventsChart extends React.Component {
           </ErrorPanel>
         );
       }
+      const seriesData = results ? Object.values(results) : timeseriesData;
 
       return (
         <TransitionChart loading={loading} reloading={reloading}>
@@ -192,10 +198,11 @@ class EventsChart extends React.Component {
             utc={utc}
             showLegend={showLegend}
             releaseSeries={releaseSeries || []}
-            timeseriesData={timeseriesData}
+            timeseriesData={seriesData}
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
+            stacked={typeof topEvents === 'number' && topEvents > 0}
           />
         </TransitionChart>
       );
@@ -235,6 +242,8 @@ class EventsChart extends React.Component {
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             yAxis={yAxis}
+            field={field}
+            topEvents={topEvents}
           >
             {eventData => chartImplementation({...eventData, zoomRenderProps})}
           </EventsRequest>
