@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0063_drop_alertrule_constraint'),
+        ('sentry', '0064_project_has_transactions'),
     ]
 
     operations = [
