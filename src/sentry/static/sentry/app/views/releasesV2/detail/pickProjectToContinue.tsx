@@ -16,7 +16,7 @@ type Props = {
 const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
   let navigating = false;
 
-  const path = `/organizations/${orgSlug}/releases-v2/${encodeURIComponent(
+  const path = `/organizations/${orgSlug}/releases/${encodeURIComponent(
     version
   )}/?project=`;
 
@@ -45,7 +45,7 @@ const PickProjectToContinue = ({orgSlug, version, router, projects}: Props) => {
         // we want this to be executed only if the user didn't select any project
         // (closed modal either via button, Esc, clicking outside, ...)
         if (!navigating) {
-          router.push(`/organizations/${orgSlug}/releases-v2/`);
+          router.push(`/organizations/${orgSlug}/releases/`);
         }
       },
     }

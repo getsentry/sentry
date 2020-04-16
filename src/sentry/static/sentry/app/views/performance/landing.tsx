@@ -77,11 +77,9 @@ class PerformanceLanding extends React.Component<Props, State> {
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.start
       ? getUtcToLocalDateObject(globalSelection.start)
-      : undefined;
+      : null;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
-      : undefined;
+    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
 
     const {utc} = getParams(location.query);
 
@@ -91,7 +89,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       datetime: {
         start,
         end,
-        period: globalSelection.statsPeriod,
+        period: globalSelection.statsPeriod || DEFAULT_STATS_PERIOD,
         utc: utc === 'true',
       },
     };

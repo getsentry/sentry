@@ -1,5 +1,11 @@
 import React from 'react';
 
-export const PlatformContext = React.createContext<{platform: string} | undefined>(
+import {PlatformKey} from 'app/data/platformCategories';
+
+const PlatformContext = React.createContext<{platform?: PlatformKey} | undefined>(
   undefined
 );
+
+const PlatformContextProvider = PlatformContext.Provider;
+
+export {PlatformContext, PlatformContextProvider};

@@ -21,7 +21,7 @@ class OrganizationReleasesV2Test(AcceptanceTestCase):
         )
         self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
-        self.path = u"/organizations/{}/releases-v2/".format(self.org.slug)
+        self.path = u"/organizations/{}/releases/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
 
     def test_no_access(self):
