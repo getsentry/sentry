@@ -29,6 +29,7 @@ from sentry.incidents.models import (
     IncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
 )
@@ -123,7 +124,9 @@ def create_incident(
     return incident
 
 
-def update_incident_status(incident, status, user=None, comment=None):
+def update_incident_status(
+    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
+):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
     the change. When the status is CLOSED we also set the date closed to the
@@ -146,7 +149,7 @@ def update_incident_status(incident, status, user=None, comment=None):
 
         prev_status = incident.status
 
-        kwargs = {"status": status.value}
+        kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = timezone.now()
         elif status == IncidentStatus.OPEN:
