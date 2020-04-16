@@ -39,7 +39,9 @@ class SnubaTSDB(BaseTSDB):
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
+        TSDBModel.project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
+        ),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, None
