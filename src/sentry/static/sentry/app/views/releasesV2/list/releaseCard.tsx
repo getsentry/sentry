@@ -62,7 +62,6 @@ const ReleaseCard = ({release, project, location, reloading}: Props) => (
                 tooltipRawVersion
                 truncate
                 projectId={String(project.id)}
-                v2
               />
               <TimeWithIcon date={release.dateReleased || release.dateCreated} />
             </VersionWrapper>

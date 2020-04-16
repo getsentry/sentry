@@ -121,6 +121,7 @@ register("cloudflare.secret-key", default="")
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
+register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # Slack V2 Integration
 register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
