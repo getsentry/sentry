@@ -299,7 +299,7 @@ const StyledButton = styled(
   }
 )<Props>`
   display: inline-block;
-  line-height: 1.2;
+  line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
   padding: 0;
   text-transform: none;
@@ -335,11 +335,11 @@ const getLabelPadding = ({
     case 'zero':
       return '0';
     case 'xsmall':
-      return '4px 8px';
+      return '5px 8px';
     case 'small':
-      return '8px 12px';
+      return '9px 12px';
     default:
-      return '11px 16px';
+      return '12px 16px';
   }
 };
 
@@ -361,18 +361,16 @@ type IconProps = {
   hasChildren?: boolean;
 };
 
-const getIconMargin = ({size, hasChildren}: IconProps) => {
+const getIconMargin = ({hasChildren}: IconProps) => {
   // If button is only an icon, then it shouldn't have margin
-  if (!hasChildren) {
-    return '0';
-  }
-
-  return size && size.endsWith('small') ? '6px' : '8px';
+  return !hasChildren ? '0' : '6px';
 };
 
 const Icon = styled('span')<IconProps>`
-  margin-right: ${getIconMargin};
   display: flex;
+  align-items: center;
+  margin-right: ${getIconMargin};
+  max-height: ${getFontSize};
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
