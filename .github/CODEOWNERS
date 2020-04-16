@@ -33,7 +33,6 @@
 setup.py            @getsentry/releases
 setup.cfg           @getsentry/releases
 requirements*.txt   @joshuarli
-.travis.yml         @joshuarli
 
 # Dev
 /config/                    @joshuarli
