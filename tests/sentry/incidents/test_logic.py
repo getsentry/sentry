@@ -158,7 +158,7 @@ class UpdateIncidentStatus(TestCase):
     def test_status_already_set(self):
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
         update_incident_status(
-            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.SENTRY
+            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
         assert incident.status == IncidentStatus.WARNING.value
 
@@ -166,7 +166,11 @@ class UpdateIncidentStatus(TestCase):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
-            incident, status, user=user, comment=comment, status_method=IncidentStatusMethod.SENTRY
+            incident,
+            status,
+            user=user,
+            comment=comment,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
         )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
@@ -622,7 +626,9 @@ class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         update_incident_status(
-            closed_incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.SENTRY
+            closed_incident,
+            IncidentStatus.CLOSED,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
         )
         open_incident = create_incident(
             self.organization,

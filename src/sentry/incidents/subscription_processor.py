@@ -251,7 +251,7 @@ class SubscriptionProcessor(object):
                 update_incident_status(
                     self.active_incident,
                     IncidentStatus.CLOSED,
-                    status_method=IncidentStatusMethod.SENTRY,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
                 )
                 self.active_incident = None
                 self.incident_triggers.clear()
@@ -287,7 +287,9 @@ class SubscriptionProcessor(object):
 
             if severity:
                 update_incident_status(
-                    self.active_incident, severity, status_method=IncidentStatusMethod.SENTRY
+                    self.active_incident,
+                    severity,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
                 )
 
     def update_alert_rule_stats(self):

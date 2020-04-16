@@ -125,7 +125,7 @@ def create_incident(
 
 
 def update_incident_status(
-    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.SENTRY
+    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
 ):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
