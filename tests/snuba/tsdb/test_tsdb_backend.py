@@ -107,6 +107,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "platform": "python",
                     "datetime": (self.now + timedelta(seconds=r)).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {
+                        "type": "transaction" if r % 1200 == 0 else "error",
                         "received": calendar.timegm(self.now.timetuple()) + r,
                         "tags": {
                             "foo": "bar",
@@ -196,10 +197,10 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=3600
         ) == {
             self.proj1.id: [
-                (timestamp(dts[0]), 6),
-                (timestamp(dts[1]), 6),
-                (timestamp(dts[2]), 6),
-                (timestamp(dts[3]), 6),
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
             ]
         }
 
@@ -214,8 +215,8 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             environment_ids=[self.proj1env1.id],
         ) == {
             self.proj1.id: [
-                (timestamp(dts[0]), 6),
-                (timestamp(dts[1]), 6),
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
                 (timestamp(dts[2]), 0),
                 (timestamp(dts[3]), 0),
             ]
@@ -250,8 +251,8 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
                 (timestamp(dts[1]), 0),
-                (timestamp(dts[2]), 6),
-                (timestamp(dts[3]), 6),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
             ]
         }
 
@@ -261,12 +262,15 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         dts = [daystart + timedelta(days=i) for i in range(2)]
         assert self.db.get_range(
             TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=86400
-        ) == {self.proj1.id: [(timestamp(dts[0]), 24), (timestamp(dts[1]), 0)]}
+        ) == {self.proj1.id: [(timestamp(dts[0]), 12), (timestamp(dts[1]), 0)]}
 
         # Minutely
         dts = [self.now + timedelta(minutes=i) for i in range(120)]
-        # Expect every 10th minute to have a 1, else 0
-        expected = [(to_timestamp(d), int(i % 10 == 0)) for i, d in enumerate(dts)]
+        # Expect every 20th minute to have a 1, else 0
+        expected = [
+            (to_timestamp(d), 1 if i % 10 == 0 and i % 20 != 0 else 0) for i, d in enumerate(dts)
+        ]
+        expected[0] = (expected[0][0], 0)
         assert self.db.get_range(
             TSDBModel.project, [self.proj1.id], dts[0], dts[-1], rollup=60
         ) == {self.proj1.id: expected}
