@@ -176,7 +176,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     display: block;
     padding: ${space(0.5)} ${space(2)};
     &:focus {
-      outline: 'none';
+      outline: none;
     }
   `;
 
