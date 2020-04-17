@@ -128,7 +128,7 @@ const Wrapper = styled(Panel, {
     padding: ${p => (p.disablePadding ? 0 : space(2))};
     border-bottom: 1px solid ${p => p.theme.borderDark};
 
-    &:nth-child(-${p => p.columns}) {
+    &:nth-last-child(-n + ${p => p.columns}) {
       border-bottom: none;
     }
   }
