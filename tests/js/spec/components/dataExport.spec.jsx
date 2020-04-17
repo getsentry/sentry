@@ -97,4 +97,25 @@ describe('DataExport', function() {
       dataExportId: 721,
     });
   });
+
+  it('should reset the state when receiving a new payload', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {id: 721},
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    wrapper.update();
+    expect(wrapper.find(DataExport).state('inProgress')).toEqual(true);
+    expect(wrapper.find(DataExport).state('dataExportId')).toEqual(721);
+    wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
+    expect(wrapper.find(DataExport).state('inProgress')).toEqual(false);
+    expect(wrapper.find(DataExport).state('dataExportId')).toBeUndefined();
+  });
 });
