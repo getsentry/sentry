@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -35,8 +36,22 @@ type State = {
 };
 
 class DataExport extends React.Component<Props, State> {
-  state: State = {
-    inProgress: false,
+  state = this.initialState;
+
+  componentDidUpdate({payload: prevPayload}) {
+    const {payload} = this.props;
+    if (!isEqual(prevPayload, payload)) this.resetState();
+  }
+
+  get initialState() {
+    return {
+      inProgress: false,
+      dataExportId: undefined,
+    };
+  }
+
+  resetState = () => {
+    this.setState(this.initialState);
   };
 
   startDataExport = async () => {
