@@ -3,12 +3,18 @@ from __future__ import absolute_import
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.receivers import try_mark_onboarding_complete
 
 
+class OnboardingTaskPermission(OrganizationPermission):
+    scope_map = {"POST": ["org:read"]}
+
+
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
+    permission_classes = (OnboardingTaskPermission,)
+
     def post(self, request, organization):
         try:
             task_id = OrganizationOnboardingTask.TASK_LOOKUP_BY_KEY[request.data["task"]]
