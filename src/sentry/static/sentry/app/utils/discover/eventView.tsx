@@ -528,10 +528,6 @@ class EventView {
     return this.fields.map(field => field.field);
   }
 
-  getSimpleFields(): Field[] {
-    return this.fields.filter(field => !isAggregateField(field.field));
-  }
-
   getAggregateFields(): Field[] {
     return this.fields.filter(field => isAggregateField(field.field));
   }

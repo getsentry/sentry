@@ -122,6 +122,7 @@ class EventsChart extends React.Component {
     previousSeriesName: PropTypes.string,
     topEvents: PropTypes.number,
     field: PropTypes.arrayOf(PropTypes.string),
+    orderby: PropTypes.string,
   };
 
   render() {
@@ -143,6 +144,7 @@ class EventsChart extends React.Component {
       previousSeriesName: previousName,
       field,
       topEvents,
+      orderby,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -242,6 +244,7 @@ class EventsChart extends React.Component {
             previousSeriesName={previousSeriesName}
             yAxis={yAxis}
             field={field}
+            orderby={orderby}
             topEvents={topEvents}
           >
             {eventData => chartImplementation({...eventData, zoomRenderProps})}

@@ -2145,7 +2145,7 @@ describe('EventView.getDisplayOptions()', function() {
   });
 });
 
-describe('EventView.getAggregateFields() & getSimpleFields()', function() {
+describe('EventView.getAggregateFields()', function() {
   const state = {
     fields: [
       {field: 'title'},
@@ -2170,13 +2170,6 @@ describe('EventView.getAggregateFields() & getSimpleFields()', function() {
     ];
 
     expect(eventView.getAggregateFields()).toEqual(expected);
-  });
-
-  it('getSimpleFields() returns only aggregates', function() {
-    const eventView = new EventView(state);
-    const expected = [{field: 'title'}, {field: 'transaction'}];
-
-    expect(eventView.getSimpleFields()).toEqual(expected);
   });
 });
 

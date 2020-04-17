@@ -134,6 +134,10 @@ type EventsRequestPartialProps = {
    * in the `results` child render function.
    */
   topEvents?: number;
+  /**
+   * How to order results when getting top events.
+   */
+  orderby?: string;
 };
 
 type TimeAggregationProps =
@@ -192,6 +196,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     field: PropTypes.arrayOf(PropTypes.string),
     referenceEvent: PropTypes.string,
     keyTransactions: PropTypes.bool,
+    topEvents: PropTypes.number,
+    orderby: PropTypes.string,
   };
 
   static defaultProps: DefaultProps = {
