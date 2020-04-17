@@ -25,7 +25,7 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident, IncidentStats} from '../types';
+import {Incident, IncidentStats, AlertRuleStatus} from '../types';
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';
@@ -191,15 +191,17 @@ export default class DetailsBody extends React.Component<Props> {
                 <React.Fragment>
                   <SideHeader>
                     <span>{t('Alert Rule')}</span>
-
-                    <SideHeaderLink
-                      to={{
-                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
-                      }}
-                    >
-                      <IconEdit />
-                      {t('View Rule')}
-                    </SideHeaderLink>
+                    {incident?.alertRule &&
+                      incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                        <SideHeaderLink
+                          to={{
+                            pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
+                          }}
+                        >
+                          <IconEdit />
+                          {t('View Rule')}
+                        </SideHeaderLink>
+                      )}
                   </SideHeader>
 
                   {this.renderRuleDetails()}
