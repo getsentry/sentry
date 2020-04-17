@@ -13,13 +13,24 @@ from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, Team, User
+from sentry.models import (
+    Commit,
+    Group,
+    GroupSubscription,
+    GroupSubscriptionReason,
+    ProjectOption,
+    ProjectOwnership,
+    Release,
+    Team,
+    User,
+)
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
@@ -435,3 +446,77 @@ class MailAdapter(object):
 
         email = email_cls(activity)
         email.send()
+
+    def handle_user_report(self, payload, project, **kwargs):
+        group = Group.objects.get(id=payload["report"]["issue"]["id"])
+
+        participants = GroupSubscription.objects.get_participants(group=group)
+
+        if not participants:
+            return
+
+        org = group.organization
+        enhanced_privacy = org.flags.enhanced_privacy
+
+        context = {
+            "project": project,
+            "project_link": absolute_uri(
+                u"/{}/{}/".format(project.organization.slug, project.slug)
+            ),
+            "issue_link": absolute_uri(
+                u"/{}/{}/issues/{}/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            # TODO(dcramer): we dont have permalinks to feedback yet
+            "link": absolute_uri(
+                u"/{}/{}/issues/{}/feedback/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            "group": group,
+            "report": payload["report"],
+            "enhanced_privacy": enhanced_privacy,
+        }
+
+        subject_prefix = self._build_subject_prefix(project)
+        subject = force_text(
+            u"{}{} - New Feedback from {}".format(
+                subject_prefix, group.qualified_short_id, payload["report"]["name"]
+            )
+        )
+
+        headers = {"X-Sentry-Project": project.slug}
+
+        # TODO(dcramer): this is copypasta'd from activity notifications
+        # and while it'd be nice to re-use all of that, they are currently
+        # coupled to <Activity> instances which makes this tough
+        for user, reason in participants.items():
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": generate_signed_link(
+                        user.id,
+                        "sentry-account-email-unsubscribe-issue",
+                        kwargs={"issue_id": group.id},
+                    ),
+                }
+            )
+
+            msg = MessageBuilder(
+                subject=subject,
+                template="sentry/emails/activity/new-user-feedback.txt",
+                html_template="sentry/emails/activity/new-user-feedback.html",
+                headers=headers,
+                type="notify.user-report",
+                context=context,
+                reference=group,
+            )
+            msg.add_users([user.id], project=project)
+            msg.send_async()
+
+    def handle_signal(self, name, payload, **kwargs):
+        if name == "user-reports.created":
+            self.handle_user_report(payload, **kwargs)
