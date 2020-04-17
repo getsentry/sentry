@@ -10,6 +10,7 @@ class FirstTransactionSentEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
         analytics.Attribute("platform", required=False),
+        analytics.Attribute("default_user_id", required=False),
     )
 
 
