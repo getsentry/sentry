@@ -191,8 +191,7 @@ export default class DetailsBody extends React.Component<Props> {
                 <React.Fragment>
                   <SideHeader>
                     <span>{t('Alert Rule')}</span>
-                    {incident?.alertRule &&
-                      incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                    {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
                         <SideHeaderLink
                           to={{
                             pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
