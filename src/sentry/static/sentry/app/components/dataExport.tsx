@@ -46,9 +46,10 @@ class DataExport extends React.Component<Props, State> {
       payload: {queryType, queryInfo},
     } = this.props;
     try {
-      const {id: dataExportId} = await api.requestPromise(
+      const [data, _, response] = await api.requestPromise(
         `/organizations/${slug}/data-export/`,
         {
+          includeAllArgs: true,
           method: 'POST',
           data: {
             query_type: queryType,
@@ -56,8 +57,11 @@ class DataExport extends React.Component<Props, State> {
           },
         }
       );
+      const {id: dataExportId} = data;
       addSuccessMessage(
-        t("Sit tight. We'll shoot you an email when your data is ready for download.")
+        response?.status === 201
+          ? t("Sit tight. We'll shoot you an email when your data is ready for download.")
+          : t("It looks like we're already working on it. Sit tight, we'll email you.")
       );
       this.setState({inProgress: true, dataExportId});
     } catch (_err) {
