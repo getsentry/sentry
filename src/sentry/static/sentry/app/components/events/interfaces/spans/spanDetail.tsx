@@ -53,11 +53,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     this.fetchSpanDescendents(span.span_id, span.trace_id)
       .then(response => {
-        if (
-          !response.data ||
-          !Array.isArray(response.data) ||
-          response.data.length <= 0
-        ) {
+        if (!response.data || !Array.isArray(response.data)) {
           return;
         }
 
@@ -100,13 +96,17 @@ class SpanDetail extends React.Component<Props, State> {
     if (!this.state.transactionResults) {
       // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
-      return <LoadingIndicator size={12} />;
+      return (
+        <StyledButton size="xsmall" disabled>
+          <StyledLoadingIndicator size={12} />
+        </StyledButton>
+      );
     }
 
     if (this.state.transactionResults.length <= 0) {
       return (
         <StyledButton size="xsmall" disabled>
-          {t('No Child')}
+          {t('No Children')}
         </StyledButton>
       );
     }
@@ -289,6 +289,13 @@ const SpanDetailContainer = styled('div')`
 
 const ValueTd = styled('td')`
   position: relative;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  height: ${space(2)};
+  margin: 0;
 `;
 
 const Row = ({
