@@ -82,3 +82,8 @@ export enum IncidentStatus {
   WARNING = 10,
   CRITICAL = 20,
 }
+
+export enum AlertRuleStatus {
+  PENDING = 0,
+  SNAPSHOT = 4,
+}
