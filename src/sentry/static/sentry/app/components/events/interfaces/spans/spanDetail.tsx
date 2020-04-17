@@ -5,6 +5,7 @@ import map from 'lodash/map';
 import {t} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import space from 'app/styles/space';
@@ -96,8 +97,18 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraversalButton(): React.ReactNode {
-    if (!this.state.transactionResults || this.state.transactionResults.length <= 0) {
-      return null;
+    if (!this.state.transactionResults) {
+      // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
+      // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
+      return <LoadingIndicator size={12} />;
+    }
+
+    if (this.state.transactionResults.length <= 0) {
+      return (
+        <StyledButton size="xsmall" disabled>
+          {t('No Child')}
+        </StyledButton>
+      );
     }
 
     const {span, orgId, trace, eventView} = this.props;
