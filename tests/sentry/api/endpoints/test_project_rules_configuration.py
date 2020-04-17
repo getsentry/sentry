@@ -8,12 +8,16 @@ from sentry.testutils import APITestCase
 
 
 class ProjectRuleConfigurationTest(APITestCase):
+    def setUp(self):
+        self.project.flags.has_issue_alerts_targeting = False
+        self.project.save()
+
     def test_simple(self):
         self.login_as(user=self.user)
 
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
-        self.create_project(teams=[team], name="bar")
+        self.create_project(teams=[team], name="baz")
 
         url = reverse(
             "sentry-api-0-project-rules-configuration",
@@ -22,7 +26,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert len(response.data["actions"]) == 4
+        assert len(response.data["actions"]) == 5
         assert len(response.data["conditions"]) == 9
 
     @property

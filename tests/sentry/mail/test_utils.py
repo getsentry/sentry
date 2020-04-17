@@ -17,6 +17,8 @@ class MigrateProjectToIssueAlertTargetingTest(TestCase):
         self.user_2 = self.create_user()
         self.team = self.create_team(self.organization, members=[self.user, self.user_2])
         self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.project.flags.has_issue_alerts_targeting = False
+        self.project.save()
         self.mail = plugins.get("mail")
 
     def create_rule(self, actions):

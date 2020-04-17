@@ -8,7 +8,13 @@ DEFAULT_RULE_LABEL = "Send a notification for new issues"
 DEFAULT_RULE_DATA = {
     "match": "all",
     "conditions": [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
-    "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+    "actions": [
+        {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": None,
+        }
+    ],
 }
 
 
