@@ -48,16 +48,14 @@ const ReleaseChartContainer = ({
 
           return (
             <TransitionChart loading={loading} reloading={reloading}>
-              <React.Fragment>
-                <TransparentLoadingMask visible={reloading} />
-                <HealthChart
-                  utc={utc}
-                  timeseriesData={chartData}
-                  zoomRenderProps={zoomRenderProps}
-                  reloading={reloading}
-                  yAxis={yAxis}
-                />
-              </React.Fragment>
+              <TransparentLoadingMask visible={reloading} />
+              <HealthChart
+                utc={utc}
+                timeseriesData={chartData}
+                zoomRenderProps={zoomRenderProps}
+                reloading={reloading}
+                yAxis={yAxis}
+              />
             </TransitionChart>
           );
         }}
