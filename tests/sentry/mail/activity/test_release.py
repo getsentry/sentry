@@ -19,7 +19,7 @@ from sentry.models import (
     UserOption,
     UserOptionValue,
 )
-from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
+from sentry.mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
 
 

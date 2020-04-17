@@ -12,7 +12,7 @@ class DebugNewProcessingIssuesEmailView(View):
     reprocessing_active = True
 
     def get(self, request):
-        from sentry.plugins.sentry_mail.activity.new_processing_issues import summarize_issues
+        from sentry.mail.activity.new_processing_issues import summarize_issues
 
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")

@@ -35,7 +35,7 @@ from sentry.models import (
     Team,
 )
 from sentry.event_manager import EventManager, get_event_type
-from sentry.plugins.sentry_mail.activity import emails
+from sentry.mail.activity import emails
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
