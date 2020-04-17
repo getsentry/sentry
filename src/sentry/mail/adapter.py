@@ -58,6 +58,7 @@ class MailAdapter(object):
     alert_option_key = "mail:alert"
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.rule_notify")
         rules = []
         extra = {
             "event_id": event.event_id,
@@ -154,6 +155,7 @@ class MailAdapter(object):
         return project.get_notification_recipients(self.alert_option_key)
 
     def should_notify(self, group):
+        metrics.incr("mail_adapter.should_notify")
         send_to = self.get_sendable_users(group.project)
         if not send_to:
             return False
@@ -280,6 +282,7 @@ class MailAdapter(object):
         )
 
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
+        metrics.incr("mail_adapter.notify")
         event = notification.event
 
         environment = event.get_tag("environment")
@@ -388,6 +391,7 @@ class MailAdapter(object):
         )
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
         for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
@@ -434,6 +438,7 @@ class MailAdapter(object):
             )
 
     def notify_about_activity(self, activity):
+        metrics.incr("mail_adapter.notify_about_activity")
         # TODO: We should move these into the `mail` module.
         from sentry.plugins.sentry_mail.activity import emails
 
@@ -448,6 +453,7 @@ class MailAdapter(object):
         email.send()
 
     def handle_user_report(self, payload, project, **kwargs):
+        metrics.incr("mail_adapter.handle_user_report")
         group = Group.objects.get(id=payload["report"]["issue"]["id"])
 
         participants = GroupSubscription.objects.get_participants(group=group)
@@ -518,5 +524,6 @@ class MailAdapter(object):
             msg.send_async()
 
     def handle_signal(self, name, payload, **kwargs):
+        metrics.incr("mail_adapter.handle_signal")
         if name == "user-reports.created":
             self.handle_user_report(payload, **kwargs)
