@@ -2,17 +2,18 @@ from __future__ import absolute_import
 
 import logging
 import time
+import six
 from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
-from sentry import http, features, tagstore
+from sentry import features, tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import metrics, json
+from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -27,6 +28,9 @@ from sentry.models import (
     Team,
     ReleaseProject,
 )
+
+from sentry.shared_integrations.exceptions import ApiError
+from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
 
@@ -45,15 +49,6 @@ CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
 QUERY_AGGREGATION_DISPLAY = ["events", "users affected"]
-SLACK_DATADOG_METRIC = "integrations.slack.http_response"
-
-
-def track_response_code(status_code, is_ok):
-    metrics.incr(
-        SLACK_DATADOG_METRIC,
-        sample_rate=1.0,
-        tags={"ok": False if is_ok is False else True, "status": status_code},
-    )
 
 
 def format_actor_option(actor):
@@ -408,21 +403,19 @@ def get_channel_id_with_timeout(integration, name, timeout):
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
     time_to_quit = time.time() + timeout
-    session = http.build_session()
+
+    client = SlackClient()
+    # session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
         cursor = ""
         while True:
-            items = session.get(
-                "https://slack.com/api/%s.list" % list_type,
+            endpoint = "/%s.list" % list_type
+            try:
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                params=dict(payload, cursor=cursor, limit=1000),
-            )
-            status_code = items.status_code
-            items = items.json()
-            track_response_code(status_code, items.get("ok"))
-            if not items.get("ok"):
+                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
+            except ApiError as e:
                 logger.info(
-                    "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
+                    "rule.slack.%s_list_failed" % list_type, extra={"error": six.text_type(e)}
                 )
                 return (prefix, None, False)
 
@@ -450,14 +443,14 @@ def send_incident_alert_notification(action, incident):
         "attachments": json.dumps([attachment]),
     }
 
-    session = http.build_session()
-    resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
-    status_code = resp.status_code
-    response = resp.json()
-    track_response_code(status_code, response.get("ok"))
-    resp.raise_for_status()
-    if not response.get("ok"):
-        logger.info("rule.fail.slack_post", extra={"error": response.get("error")})
+    client = SlackClient()
+    try:
+        client.post("/chat.postMessage", data=payload, timeout=5)
+    except ApiError as e:
+        logger.info(
+            "rule.fail.slack_post", extra={"error": six.text_type(e)},
+        )
+
 
 
 def use_slack_v2(pipeline):
