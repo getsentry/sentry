@@ -8,7 +8,7 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {assert} from 'app/types/utils';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 type Props = {
   location: Location;
@@ -42,7 +42,7 @@ class UserStats extends React.Component<Props> {
     const eventView = this.generateUserStatsEventView(this.props.eventView);
 
     return (
-      <EventsV2
+      <DiscoverQuery
         eventView={eventView}
         orgSlug={organization.slug}
         location={location}
@@ -88,7 +88,7 @@ class UserStats extends React.Component<Props> {
             </Container>
           );
         }}
-      </EventsV2>
+      </DiscoverQuery>
     );
   }
 }
