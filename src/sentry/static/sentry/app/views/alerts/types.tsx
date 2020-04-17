@@ -21,7 +21,7 @@ export type Incident = {
   projects: string[]; // Array of slugs
   seenBy: User[];
   status: IncidentStatus;
-  status_method: IncidentStatusMethod;
+  statusMethod: IncidentStatusMethod;
   title: string;
   hasSeen: boolean;
   alertRule: IncidentRule;
