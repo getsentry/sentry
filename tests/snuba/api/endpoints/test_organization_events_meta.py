@@ -99,3 +99,15 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_out_of_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(days=20)),
+                    "end": iso_format(before_now(days=15)),
+                },
+            )
+        assert response.status_code == 400
