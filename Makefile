@@ -141,6 +141,11 @@ test-js-build: node-version-check
 
 test-js: node-version-check
 	@echo "--> Running JavaScript tests"
+	@$(YARN) run test
+	@echo ""
+
+test-js-ci: node-version-check
+	@echo "--> Running CI JavaScript tests"
 	@$(YARN) run test-ci
 	@echo ""
 
@@ -151,9 +156,13 @@ test-styleguide:
 	@echo ""
 
 test-python:
+	@echo "--> Running Python tests"
+	py.test tests/integration tests/sentry
+
+test-python-ci:
 	sentry init
 	make build-platform-assets
-	@echo "--> Running Python tests"
+	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 else
@@ -230,11 +239,11 @@ travis-test-lint-js: lint-js
 
 .PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration
-travis-test-postgres: test-python
+travis-test-postgres: test-python-ci
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
-travis-test-js: test-js
+travis-test-js: test-js-ci
 travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
