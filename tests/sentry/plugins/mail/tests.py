@@ -33,7 +33,7 @@ from sentry.models import (
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins.base import Notification
-from sentry.plugins.sentry_mail.activity.base import ActivityEmail
+from sentry.mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.event_manager import get_event_type
 from sentry.testutils import TestCase
