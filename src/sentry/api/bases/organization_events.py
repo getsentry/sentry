@@ -114,15 +114,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        issues = {}
         if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row["issue.id"] for row in results)
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
-                )
-            }
+            issue_ids = set(row.get("issue.id") for row in results)
+            issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
@@ -138,7 +132,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats):
+    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
             query = request.GET.get("query")
@@ -171,14 +165,31 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         except InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
-        if len(columns) > 1:
-            # Return with requested yAxis as the key
-            return {
-                column: serializer.serialize(result, get_function_alias(query_column))
-                for column, query_column in zip(columns, query_columns)
-            }
+
+        if top_events:
+            results = {}
+            for key, event_result in six.iteritems(result):
+                if len(query_columns) > 1:
+                    results[key] = self.serialize_multiple_axis(
+                        serializer, event_result, columns, query_columns
+                    )
+                else:
+                    # Need to get function alias if count is a field, but not the axis
+                    results[key] = serializer.serialize(
+                        event_result, get_function_alias(query_columns[0])
+                    )
+            return results
+        elif len(query_columns) > 1:
+            return self.serialize_multiple_axis(serializer, result, columns, query_columns)
         else:
             return serializer.serialize(result)
+
+    def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
+        # Return with requested yAxis as the key
+        return {
+            column: serializer.serialize(event_result, get_function_alias(query_column))
+            for column, query_column in zip(columns, query_columns)
+        }
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
