@@ -2,7 +2,6 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 
 import ChartZoom from 'app/components/charts/chartZoom';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import {GlobalSelection} from 'app/types';
@@ -32,41 +31,36 @@ const ReleaseChartContainer = ({
   yAxis,
   router,
 }: Props) => {
-  const {datetime, projects} = selection;
+  const {datetime} = selection;
   const {utc, period, start, end} = datetime;
 
   return (
     <React.Fragment>
       <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-        {zoomRenderProps => (
-          <ReleaseSeries utc={utc} projects={projects}>
-            {({releaseSeries}) => {
-              if (errored) {
-                return (
-                  <ErrorPanel>
-                    <IconWarning color={theme.gray2} size="lg" />
-                  </ErrorPanel>
-                );
-              }
+        {zoomRenderProps => {
+          if (errored) {
+            return (
+              <ErrorPanel>
+                <IconWarning color={theme.gray2} size="lg" />
+              </ErrorPanel>
+            );
+          }
 
-              return (
-                <TransitionChart loading={loading} reloading={reloading}>
-                  <React.Fragment>
-                    <TransparentLoadingMask visible={reloading} />
-                    <HealthChart
-                      utc={utc}
-                      releaseSeries={releaseSeries}
-                      timeseriesData={chartData}
-                      zoomRenderProps={zoomRenderProps}
-                      reloading={reloading}
-                      yAxis={yAxis}
-                    />
-                  </React.Fragment>
-                </TransitionChart>
-              );
-            }}
-          </ReleaseSeries>
-        )}
+          return (
+            <TransitionChart loading={loading} reloading={reloading}>
+              <React.Fragment>
+                <TransparentLoadingMask visible={reloading} />
+                <HealthChart
+                  utc={utc}
+                  timeseriesData={chartData}
+                  zoomRenderProps={zoomRenderProps}
+                  reloading={reloading}
+                  yAxis={yAxis}
+                />
+              </React.Fragment>
+            </TransitionChart>
+          );
+        }}
       </ChartZoom>
     </React.Fragment>
   );
