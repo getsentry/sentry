@@ -3,29 +3,63 @@ import moment from 'moment';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
 
-const STATS_PERIOD_PATTERN = '^\\d+[hdmsw]?$';
+const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
-function validStatsPeriod(input: string) {
-  return !!input.match(STATS_PERIOD_PATTERN);
+export function parseStatsPeriod(input: string) {
+  const result = input.match(STATS_PERIOD_PATTERN);
+
+  if (!result) {
+    return undefined;
+  }
+
+  const period = result[1];
+
+  let periodLength = result[2];
+  if (!periodLength) {
+    // default to seconds.
+    // this behaviour is based on src/sentry/utils/dates.py
+    periodLength = 's';
+  }
+
+  return {
+    period,
+    periodLength,
+  };
 }
 
-const getStatsPeriodValue = (
+function coerceStatsPeriod(input: string) {
+  const result = parseStatsPeriod(input);
+
+  if (!result) {
+    return undefined;
+  }
+
+  const {period, periodLength} = result;
+
+  return `${period}${periodLength}`;
+}
+
+function getStatsPeriodValue(
   maybe: string | string[] | undefined | null
-): string | undefined => {
+): string | undefined {
   if (Array.isArray(maybe)) {
     if (maybe.length <= 0) {
       return undefined;
     }
 
-    return maybe.find(validStatsPeriod);
+    const result = maybe.find(coerceStatsPeriod);
+    if (!result) {
+      return undefined;
+    }
+    return coerceStatsPeriod(result);
   }
 
-  if (typeof maybe === 'string' && validStatsPeriod(maybe)) {
-    return maybe;
+  if (typeof maybe === 'string') {
+    return coerceStatsPeriod(maybe);
   }
 
   return undefined;
-};
+}
 
 // We normalize potential datetime strings into the form that would be valid
 // if it were to be parsed by datetime.strptime using the format %Y-%m-%dT%H:%M:%S.%f
