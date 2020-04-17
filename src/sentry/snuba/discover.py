@@ -1004,3 +1004,26 @@ def get_facets(query, params, limit=10, referrer=None):
         )
 
     return results
+
+
+def get_related_issues(params, lookup_keys):
+    snuba_filter = get_filter("", params)
+
+    conditions = []
+    if "transaction" in lookup_keys:
+        conditions.append(["transaction", "=", lookup_keys["transaction"]])
+
+    groups = raw_query(
+        aggregations=[["count", None, "count"]],
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        conditions=snuba_filter.conditions + conditions,
+        filter_keys=snuba_filter.filter_keys,
+        orderby=["-count"],
+        groupby=["group_id"],
+        dataset=Dataset.Discover,
+        limit=5,
+        referrer="api.discover.related_issues",
+    )
+
+    return groups["data"]
