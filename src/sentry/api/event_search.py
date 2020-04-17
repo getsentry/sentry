@@ -1185,6 +1185,8 @@ def is_function(field):
 
 def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
+    if match is None:
+        return field
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
     return get_function_alias_with_columns(match.group("function"), columns)
 

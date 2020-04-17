@@ -96,7 +96,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   renderBody() {
     const {organization, location, selection} = this.props;
     const {release, deploys, reloading} = this.state;
-    const project = release.projects.find(p => p.id === selection.projects[0]);
+    const project = release?.projects.find(p => p.id === selection.projects[0]);
 
     if (!project || !release) {
       if (reloading) {
@@ -117,9 +117,11 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             project={project}
           />
 
-          <ReleaseContext.Provider value={{release, project}}>
-            {this.props.children}
-          </ReleaseContext.Provider>
+          <ContentBox>
+            <ReleaseContext.Provider value={{release, project}}>
+              {this.props.children}
+            </ReleaseContext.Provider>
+          </ContentBox>
         </StyledPageContent>
       </LightWeightNoProjectMessage>
     );
@@ -215,6 +217,12 @@ const ProjectsFooterMessage = styled('div')`
   align-items: center;
   grid-template-columns: min-content 1fr;
   grid-gap: ${space(1)};
+`;
+
+const ContentBox = styled('div')`
+  padding: ${space(4)};
+  flex: 1;
+  background-color: white;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};

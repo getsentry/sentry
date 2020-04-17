@@ -29,11 +29,12 @@ class ProjectRuleConfigurationTest(APITestCase):
     def rules(self):
         rules = RuleRegistry()
         rule = Mock()
-        rule.id = "sentry.rules.actions.notify_email.NotifyEmailAction"
+        rule.id = "sentry.mail.actions.NotifyEmailAction"
         rule.rule_type = "action/lol"
         node = rule.return_value
-        node.id = "sentry.rules.actions.notify_email.NotifyEmailAction"
+        node.id = "sentry.mail.actions.NotifyEmailAction"
         node.label = "hello"
+        node.prompt = "hello"
         node.is_enabled.return_value = True
         node.form_fields = {}
         rules.add(rule)

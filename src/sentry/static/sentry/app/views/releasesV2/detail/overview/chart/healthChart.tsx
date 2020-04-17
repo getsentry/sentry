@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
+import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
@@ -13,7 +14,6 @@ import {YAxis} from './releaseChartControls';
 type Props = {
   reloading: boolean;
   utc: boolean;
-  releaseSeries: Series[];
   timeseriesData: Series[];
   zoomRenderProps: any;
   yAxis: YAxis;
@@ -25,10 +25,7 @@ class HealthChart extends React.Component<Props> {
       return false;
     }
 
-    if (
-      isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
-      isEqual(this.props.releaseSeries, nextProps.releaseSeries)
-    ) {
+    if (isEqual(this.props.timeseriesData, nextProps.timeseriesData)) {
       return false;
     }
 
@@ -62,6 +59,9 @@ class HealthChart extends React.Component<Props> {
           },
         };
       case YAxis.SESSION_DURATION:
+        return {
+          scale: true,
+        };
       case YAxis.SESSIONS:
       case YAxis.USERS:
       default:
@@ -69,12 +69,23 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
+  getChart = () => {
+    const {yAxis} = this.props;
+    switch (yAxis) {
+      case YAxis.SESSION_DURATION:
+        return AreaChart;
+      case YAxis.SESSIONS:
+      case YAxis.USERS:
+        return StackedAreaChart;
+      case YAxis.CRASH_FREE:
+      default:
+        return LineChart;
+    }
+  };
+
   render() {
-    const {utc, releaseSeries, timeseriesData, yAxis, zoomRenderProps} = this.props;
-    const Chart =
-      yAxis === YAxis.CRASH_FREE || yAxis === YAxis.SESSION_DURATION
-        ? AreaChart
-        : LineChart;
+    const {utc, timeseriesData, zoomRenderProps} = this.props;
+    const Chart = this.getChart();
 
     const legend = {
       right: 16,
@@ -98,7 +109,7 @@ class HealthChart extends React.Component<Props> {
         legend={legend}
         utc={utc}
         {...zoomRenderProps}
-        series={[...timeseriesData, ...releaseSeries]}
+        series={timeseriesData}
         isGroupedByDate
         seriesOptions={{
           showSymbol: false,

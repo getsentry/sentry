@@ -5,18 +5,18 @@ import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable'
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 import ExternalLink from 'app/components/links/externalLink';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
-import {Crumb} from './types';
+import {BreadcrumbTypeHTTP} from './types';
 
 type Props = {
-  crumb: Crumb;
+  breadcrumb: BreadcrumbTypeHTTP;
 };
 
-const HttpRenderer = ({crumb}: Props) => {
-  const {data} = crumb;
+const HttpRenderer = ({breadcrumb}: Props) => {
+  const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
     if (typeof url === 'string') {
@@ -25,35 +25,36 @@ const HttpRenderer = ({crumb}: Props) => {
           {url}
         </ExternalLink>
       ) : (
-        <em>{url}</em>
+        <span>{url}</span>
       );
     }
 
     try {
       return JSON.stringify(url);
-    } catch (e) {
+    } catch {
       return t('Invalid URL');
     }
   };
 
   return (
     <CrumbTable
-      crumb={crumb}
+      breadcrumb={breadcrumb}
       summary={
         <SummaryLine>
           <pre>
             <code>
-              {defined(data?.method) &&
+              {data?.method &&
                 getBreadcrumbCustomRendererValue({
                   value: <strong>{`${data.method} `}</strong>,
                   meta: getMeta(data, 'method'),
                 })}
-              {defined(data?.url) &&
+              {data?.url &&
                 getBreadcrumbCustomRendererValue({
                   value: renderUrl(data.url),
                   meta: getMeta(data, 'url'),
                 })}
-              {defined(data?.status_code) &&
+              {defined(data) &&
+                defined(data.status_code) &&
                 getBreadcrumbCustomRendererValue({
                   value: (
                     <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>

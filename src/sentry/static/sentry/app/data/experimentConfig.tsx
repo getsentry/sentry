@@ -25,6 +25,12 @@ export const experimentList = [
     parameter: 'variant',
     assignments: ['0', '1'],
   },
+  {
+    key: 'TrialEndingNotice',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(
