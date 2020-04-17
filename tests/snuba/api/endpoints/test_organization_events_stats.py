@@ -1024,3 +1024,32 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 3}],
             [{"count": 0}],
         ]
+
+    def test_top_events_with_user(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["user", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for key, result in six.iteritems(data):
+            # Because user represents all the possible user fields eg. user.id
+            # or user.email, the key is email followed by None several times
+            if key.startswith("bar@example.com"):
+                assert [attrs for time, attrs in result["data"]] == [
+                    [{"count": 6}],
+                    [{"count": 0}],
+                ]

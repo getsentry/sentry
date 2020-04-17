@@ -840,6 +840,14 @@ def top_events_timeseries(
             # timestamp needs special handling, creating a big OR instead
             if field == "timestamp":
                 snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
+            # A user field can be any of its field aliases, do an OR across all the user fields
+            elif field == "user":
+                snuba_filter.conditions.append(
+                    [
+                        [resolve_column(user_field), "IN", values]
+                        for user_field in FIELD_ALIASES["user"]["fields"]
+                    ]
+                )
             else:
                 snuba_filter.conditions.append([resolve_column(field), "IN", values])
 
