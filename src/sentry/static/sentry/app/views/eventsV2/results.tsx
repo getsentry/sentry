@@ -13,7 +13,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
@@ -224,7 +224,7 @@ class Results extends React.Component<Props, State> {
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <StyledPageContent>
-            <NoProjectMessage organization={organization}>
+            <LightWeightNoProjectMessage organization={organization}>
               <ResultsHeader
                 organization={organization}
                 location={location}
@@ -261,7 +261,7 @@ class Results extends React.Component<Props, State> {
                 </Main>
                 <Side eventView={eventView}>{this.renderTagsTable()}</Side>
               </ContentBox>
-            </NoProjectMessage>
+            </LightWeightNoProjectMessage>
           </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>

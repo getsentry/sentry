@@ -17,7 +17,7 @@ import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -267,7 +267,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   render() {
-    let body;
+    let body: React.ReactNode;
     const {location, organization} = this.props;
     const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
     if (loading) {
@@ -308,7 +308,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       >
         <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
           <StyledPageContent>
-            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+            <LightWeightNoProjectMessage organization={organization}>
+              {body}
+            </LightWeightNoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>
