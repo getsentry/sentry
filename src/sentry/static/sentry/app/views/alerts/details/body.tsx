@@ -305,10 +305,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const AlertWrapper = styled('div')`
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
-  padding-top: ${space(2)};
-  padding-bottom: 0;
+  padding: ${space(2)} ${space(4)} 0
 `;
 
 const StyledNavTabs = styled(NavTabs)`
