@@ -13,6 +13,7 @@ import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
@@ -25,7 +26,7 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident, IncidentStats} from '../types';
+import {Incident, IncidentStats, IncidentStatus, IncidentStatusMethod} from '../types';
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';
@@ -149,6 +150,17 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StyledPageContent>
+        {incident &&
+          incident.status === IncidentStatus.CLOSED &&
+          incident.status_method === IncidentStatusMethod.RULE_UPDATED && (
+            <AlertWrapper>
+              <Alert type="warning" icon="icon-warning-sm">
+                {t(
+                  'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+                )}
+              </Alert>
+            </AlertWrapper>
+          )}
         <ChartWrapper>
           {incident && stats ? (
             <Chart
@@ -290,6 +302,13 @@ const StyledPageContent = styled(PageContent)`
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)};
+`;
+
+const AlertWrapper = styled('div')`
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
+  padding-top: ${space(2)};
+  padding-bottom: 0;
 `;
 
 const StyledNavTabs = styled(NavTabs)`
