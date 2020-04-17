@@ -88,7 +88,8 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
-              disable={!hasHealthData && !hasDiscover}
+              hasHealthData={hasHealthData}
+              hasDiscover={hasDiscover}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
