@@ -194,7 +194,7 @@ export default class DetailsBody extends React.Component<Props> {
                     {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
                         <SideHeaderLink
                           to={{
-                            pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
+                            pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
                           }}
                         >
                           <IconEdit />
