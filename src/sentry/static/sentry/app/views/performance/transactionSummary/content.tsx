@@ -7,7 +7,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
 import Tags from 'app/views/eventsV2/tags';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
@@ -57,7 +57,7 @@ class SummaryContent extends React.Component<Props> {
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
-          <EventsV2
+          <DiscoverQuery
             location={location}
             eventView={eventView}
             orgSlug={organization.slug}
@@ -75,7 +75,7 @@ class SummaryContent extends React.Component<Props> {
                 totalValues={totalValues}
               />
             )}
-          </EventsV2>
+          </DiscoverQuery>
           <Side>
             <UserStats
               organization={organization}
