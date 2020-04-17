@@ -4,7 +4,7 @@ import six
 from django.core import mail
 
 from sentry.mail.actions import ActionTargetType, NotifyEmailAction, NotifyEmailForm
-from sentry.models import GroupStatus, OrganizationMember, OrganizationMemberTeam, Rule
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
 from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase
 from sentry.tasks.post_process import post_process_group
@@ -95,16 +95,6 @@ class NotifyEmailTest(RuleTestCase):
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
-
-    def test_should_not_notify(self):
-        event = self.get_event()
-        group = event.group
-        group.update(status=GroupStatus.RESOLVED)
-
-        rule = self.get_rule()
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 0
 
     def test_full_integration(self):
         one_min_ago = iso_format(before_now(minutes=1))
