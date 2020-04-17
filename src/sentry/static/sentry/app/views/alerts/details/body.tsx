@@ -152,7 +152,7 @@ export default class DetailsBody extends React.Component<Props> {
       <StyledPageContent>
         {incident &&
           incident.status === IncidentStatus.CLOSED &&
-          incident.status_method === IncidentStatusMethod.RULE_UPDATED && (
+          incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
             <AlertWrapper>
               <Alert type="warning" icon="icon-warning-sm">
                 {t(
