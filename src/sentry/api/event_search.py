@@ -1149,13 +1149,11 @@ FUNCTIONS = {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
-        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
-        "result_type": "number",
     },
     "avg": {
         "name": "avg",
