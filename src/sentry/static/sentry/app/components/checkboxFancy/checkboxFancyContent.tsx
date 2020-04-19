@@ -9,12 +9,12 @@ type Props = {
 };
 
 const CheckboxFancyContent = ({isChecked, isIndeterminate}: Props) => {
-  if (isChecked) {
-    return <IconCheckmark size="70%" color="white" />;
-  }
-
   if (isIndeterminate) {
     return <IconSubtract size="70%" color="white" />;
+  }
+
+  if (isChecked) {
+    return <IconCheckmark size="70%" color="white" />;
   }
 
   return null;
