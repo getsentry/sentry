@@ -1,54 +1,42 @@
-import React from 'react';
-
-import {Color} from 'app/utils/theme';
-import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
-import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
-import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
 import {IconInfo} from 'app/icons/iconInfo';
 import {IconWarning} from 'app/icons/iconWarning';
 import {IconLocation} from 'app/icons/iconLocation';
 import {IconUser} from 'app/icons/iconUser';
 import {IconRefresh} from 'app/icons/iconRefresh';
+import {t} from 'app/locale';
 
-import {Breadcrumb} from './types';
+import {BreadcrumbType, BreadcrumbDetails} from './types';
 
-type Output = {
-  color: Color;
-  borderColor: Color;
-  icon: React.ReactElement;
-  renderer: React.ReactElement;
-};
-
-function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
-  switch (breadcrumb.type) {
+function getBreadcrumbDetails(breadcrumbType: BreadcrumbType): BreadcrumbDetails {
+  switch (breadcrumbType) {
     case 'user':
     case 'ui': {
       return {
         color: 'purple',
-        icon: <IconUser />,
-        renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
+        icon: IconUser,
+        description: t('User Action'),
       };
     }
     case 'navigation': {
       return {
         color: 'blue',
-        icon: <IconLocation />,
-        renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
+        icon: IconLocation,
+        description: t('Navigation'),
       };
     }
     case 'info': {
       return {
         color: 'blue',
-        icon: <IconInfo />,
-        renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
+        icon: IconInfo,
+        description: t('Info'),
       };
     }
     case 'warning': {
       return {
         color: 'yellowOrange',
         borderColor: 'yellowOrangeDark',
-        icon: <IconWarning />,
-        renderer: <ErrorRenderer breadcrumb={breadcrumb} />,
+        icon: IconWarning,
+        description: t('Warning'),
       };
     }
     case 'exception':
@@ -56,21 +44,21 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     case 'error': {
       return {
         color: 'red',
-        icon: <IconWarning />,
-        renderer: <ErrorRenderer breadcrumb={breadcrumb} />,
+        icon: IconWarning,
+        description: t('Error'),
       };
     }
     case 'http': {
       return {
         color: 'green',
-        icon: <IconRefresh />,
-        renderer: <HttpRenderer breadcrumb={breadcrumb} />,
+        icon: IconRefresh,
+        description: t('Http request'),
       };
     }
     default:
       return {
-        icon: <span className="icon-console" />,
-        renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
+        icon: IconRefresh,
+        description: t('Others'),
       };
   }
 }

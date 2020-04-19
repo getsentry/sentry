@@ -1,3 +1,6 @@
+import {Color} from 'app/utils/theme';
+import {IconProps} from 'app/types/iconProps';
+
 type BreadcrumbCategory =
   | 'started'
   | 'UIViewController'
@@ -65,3 +68,10 @@ export type Breadcrumb =
   | BreadcrumbTypeDefault;
 
 export type BreadcrumbType = Breadcrumb['type'];
+
+export type BreadcrumbDetails = {
+  color?: Color;
+  borderColor?: Color;
+  icon?: React.ComponentType<IconProps>;
+  description: string;
+};
