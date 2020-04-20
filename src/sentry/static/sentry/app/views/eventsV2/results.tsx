@@ -22,6 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {ContentBox} from 'app/utils/discover/styles';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -30,7 +31,6 @@ import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
-import {ContentBox} from './styles';
 
 type Props = {
   api: Client;
