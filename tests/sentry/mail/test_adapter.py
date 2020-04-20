@@ -19,7 +19,6 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.mail.adapter import MailAdapter, ActionTargetType
 from sentry.models import (
     Activity,
-    GroupStatus,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -561,10 +560,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
 class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
     def test_should_notify(self):
         assert self.adapter.should_notify(self.group)
-
-    def test_should_not_notify_resolved(self):
-        self.group.update(status=GroupStatus.RESOLVED)
-        assert not self.adapter.should_notify(self.group)
 
     def test_should_not_notify_no_users(self):
         UserOption.objects.set_value(
