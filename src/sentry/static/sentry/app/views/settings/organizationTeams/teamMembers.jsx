@@ -3,7 +3,7 @@ import React from 'react';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
-import {Panel, PanelHeader} from 'app/components/panels';
+import {Panel, PanelItem, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {
@@ -307,12 +307,9 @@ class TeamMembers extends React.Component {
   }
 }
 
-const StyledMemberContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  padding: ${space(2)};
+const StyledMemberContainer = styled(PanelItem)`
+  justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 const StyledUserListElement = styled('div')`
