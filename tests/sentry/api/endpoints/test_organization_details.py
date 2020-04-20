@@ -5,6 +5,7 @@ from unittest.mock import patch
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.urls import reverse
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -329,6 +330,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "apdexThreshold": 450,
+            "provider": "github",
         }
 
         # needed to set require2FA
@@ -782,6 +785,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
+
+    def test_provider_config(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+        resp = self.client.put(url, data={"provider": "dummy"})
+        assert resp.status_code == 200, resp.content
 
 
 @region_silo_test
