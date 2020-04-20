@@ -17,7 +17,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconSubtract} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -261,14 +261,10 @@ class TeamMembers extends React.Component {
   removeButton = member => (
     <Button
       size="small"
+      icon={<IconSubtract size="xs" circle />}
       onClick={this.removeMember.bind(this, member)}
       label={t('Remove')}
     >
-      <InlineSvg
-        src="icon-circle-subtract"
-        size="1.25em"
-        style={{marginRight: space(1)}}
-      />
       {t('Remove')}
     </Button>
   );
@@ -312,22 +308,22 @@ class TeamMembers extends React.Component {
 }
 
 const StyledMemberContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr max-content;
   padding: ${space(2)};
+  align-items: center;
   border-bottom: 1px solid ${p => p.theme.borderLight};
 `;
 
 const StyledUserListElement = styled('div')`
-  font-size: 0.875em;
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(0.5)};
   align-items: center;
-  padding: ${space(0.5)};
 `;
 
 const StyledNameOrEmail = styled('div')`
-  flex-shrink: 1;
-  min-width: 0;
+  font-size: ${p => p.theme.fontSizeSmall};
   ${overflowEllipsis};
 `;
 
@@ -336,18 +332,17 @@ const StyledAvatar = styled(props => <UserAvatar {...props} />)`
   min-height: 1.75em;
   width: 1.5em;
   height: 1.5em;
-  margin-right: ${space(0.5)};
 `;
 
 const StyledMembersLabel = styled('div')`
-  width: 250px;
-  font-size: 0.875em;
+  display: grid;
+  grid-template-columns: 1fr max-content;
   padding: ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
 `;
 
 const StyledCreateMemberLink = styled(Link)`
-  float: right;
   text-transform: none;
 `;
 
