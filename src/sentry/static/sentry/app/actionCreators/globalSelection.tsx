@@ -44,7 +44,6 @@ type DateTimeObject = {
  *
  * Discover v1 uses a different interface, and passes slightly different datatypes e.g. Date for dates
  */
-// type UrlParams = {project?: string[]; environment?: EnvironmentId[]} & Params;
 type UrlParams = {
   project?: ProjectId[];
   environment?: EnvironmentId[];
