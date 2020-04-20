@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import space from 'app/styles/space';
 import {assert} from 'app/types/utils';
 import {t} from 'app/locale';
@@ -17,6 +17,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import withProjects from 'app/utils/withProjects';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -36,6 +37,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  projects: Project[];
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
@@ -137,7 +139,7 @@ class SummaryContentTable extends React.Component<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
-    const {organization, location, eventView} = this.props;
+    const {organization, projects, location, eventView} = this.props;
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -146,7 +148,7 @@ class SummaryContentTable extends React.Component<Props> {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(row, {organization, location});
+      let rendered = fieldRenderer(row, {organization, projects, location});
 
       const isFirstCell = index === 0;
 
@@ -243,4 +245,4 @@ export const HeaderButtonContainer = styled('div')`
   flex-direction: row;
 `;
 
-export default SummaryContentTable;
+export default withProjects(SummaryContentTable);

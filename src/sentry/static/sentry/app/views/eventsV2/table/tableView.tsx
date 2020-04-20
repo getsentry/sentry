@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {Organization, OrganizationSummary} from 'app/types';
+import {Organization, OrganizationSummary, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {IconEvent, IconStack} from 'app/icons';
@@ -18,6 +18,7 @@ import EventView, {
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import withProjects from 'app/utils/withProjects';
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
@@ -29,6 +30,7 @@ import CellAction from './cellAction';
 export type TableViewProps = {
   location: Location;
   organization: Organization;
+  projects: Project[];
 
   isLoading: boolean;
   error: string | null;
@@ -143,7 +145,7 @@ class TableView extends React.Component<TableViewProps> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode => {
-    const {location, organization, tableData, eventView} = this.props;
+    const {location, organization, projects, tableData, eventView} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -163,7 +165,7 @@ class TableView extends React.Component<TableViewProps> {
           location={location}
           tableMeta={tableData.meta}
         >
-          {fieldRenderer(dataRow, {organization, location})}
+          {fieldRenderer(dataRow, {organization, projects, location})}
         </ExpandAggregateRow>
       );
     }
@@ -176,7 +178,7 @@ class TableView extends React.Component<TableViewProps> {
         column={column}
         dataRow={dataRow}
       >
-        {fieldRenderer(dataRow, {organization, location})}
+        {fieldRenderer(dataRow, {organization, projects, location})}
       </CellAction>
     );
   };
@@ -333,4 +335,4 @@ const IconLink = styled(Link)`
   top: 3px;
 `;
 
-export default TableView;
+export default withProjects(TableView);

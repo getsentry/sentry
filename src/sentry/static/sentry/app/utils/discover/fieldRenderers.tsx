@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -28,6 +28,7 @@ import {MetaType, EventData} from './eventView';
  */
 type RenderFunctionBaggage = {
   organization: Organization;
+  projects?: Project[];
   location: Location;
 };
 
@@ -197,8 +198,8 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   project: {
     sortField: 'project',
-    renderFunc: (data, {organization}) => {
-      const project = organization.projects.find(p => p.slug === data.project);
+    renderFunc: (data, {projects}) => {
+      const project = projects ? projects.find(p => p.slug === data.project) : null;
       return (
         <Container>
           {project ? <ProjectBadge project={project} avatarSize={16} /> : data.project}
