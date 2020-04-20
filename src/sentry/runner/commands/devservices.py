@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import atexit
 import os
 import click
 from six import text_type
@@ -50,9 +51,63 @@ def devservices():
 
 @devservices.command()
 @click.option("--project", default="sentry")
+@click.argument("service", nargs=1)
+def attach(project, service):
+    """
+    Run a single devservice in foreground, as opposed to `up` which runs all of
+    them in the background.
+
+    Accepts a single argument, the name of the service to spawn. The service
+    will run with output printed to your terminal, and the ability to kill it
+    with ^C. This is used in devserver.
+
+    Note: This does not update images, you will have to use `devservices up`
+    for that.
+    """
+
+    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    from sentry.runner import configure
+
+    configure()
+
+    from django.conf import settings
+
+    client = get_docker_client()
+
+    container = _start_service(
+        client, service, settings.SENTRY_DEVSERVICES[service], project, never_pull=True
+    )
+
+    @atexit.register
+    def exit_handler():
+        click.echo("Shutting down {}".format(service))
+        try:
+            container.stop()
+        except KeyboardInterrupt:
+            pass
+
+    for line in container.logs(stream=True):
+        click.echo(line, nl=False)
+
+
+@devservices.command()
+@click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-def up(project, exclude):
-    "Run/update dependent services."
+@click.argument("service", nargs=1, required=False)
+def up(project, service, exclude):
+    """
+    Run/update dependent services.
+
+    This optionally accepts a single argument, the name of a single service to
+    spawn, as opposed to all of them. In that mode the service will run with
+    output printed to your terminal, and the ability to kill it with ^C. This
+    is used in devservices as well.
+
+    Note: To read logs of running services `docker logs -f sentry_snuba` is
+    sufficient.
+    """
+
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
     exclude = set(chain.from_iterable(x.split(",") for x in exclude))
@@ -62,20 +117,32 @@ def up(project, exclude):
     configure()
 
     from django.conf import settings
-    from sentry import options as sentry_options
-
-    import docker
 
     client = get_docker_client()
 
     get_or_create(client, "network", project)
+    pulled = set()
 
-    containers = {}
+    containers = _prepare_containers(project)
+
     for name, options in settings.SENTRY_DEVSERVICES.items():
         if name in exclude:
             continue
-        options = options.copy()
 
+        if name not in containers:
+            continue
+
+        _start_service(client, name, containers, project, pulled=pulled)
+
+
+def _prepare_containers(project):
+    from django.conf import settings
+    from sentry import options as sentry_options
+
+    containers = {}
+
+    for name, options in settings.SENTRY_DEVSERVICES.items():
+        options = options.copy()
         test_fn = options.pop("only_if", None)
         if test_fn and not test_fn(settings, sentry_options):
             click.secho("! Skipping {} due to only_if condition".format(name), err=True, fg="cyan")
@@ -90,40 +157,50 @@ def up(project, exclude):
         options["ports"] = ensure_interface(options["ports"])
         containers[name] = options
 
-    pulled = set()
-    for name, options in containers.items():
-        # HACK(mattrobenolt): special handle snuba backend because it needs to
-        # handle different values based on the eventstream backend
-        # For snuba, we can't run the full suite of devserver, but can only
-        # run the api.
-        if name == "snuba" and "snuba" in settings.SENTRY_EVENTSTREAM:
-            options["environment"].pop("DEFAULT_BROKERS", None)
-            options["command"] = ["devserver", "--no-workers"]
+    return containers
 
-        for key, value in options["environment"].items():
-            options["environment"][key] = value.format(containers=containers)
-        if options.pop("pull", False) and options["image"] not in pulled:
-            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-            client.images.pull(options["image"])
+
+def _start_service(client, name, containers, project, pulled=None):
+    import docker
+
+    from django.conf import settings
+
+    options = containers[name]
+
+    # HACK(mattrobenolt): special handle snuba backend because it needs to
+    # handle different values based on the eventstream backend
+    # For snuba, we can't run the full suite of devserver, but can only
+    # run the api.
+    if name == "snuba" and "snuba" in settings.SENTRY_EVENTSTREAM:
+        options["environment"].pop("DEFAULT_BROKERS", None)
+        options["command"] = ["devserver", "--no-workers"]
+
+    for key, value in options["environment"].items():
+        options["environment"][key] = value.format(containers=containers)
+
+    with_devserver = options.pop("with_devserver", False)
+    pull = options.pop("pull", False)
+    if not with_devserver and pull and options["image"] not in pulled:
+        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+        client.images.pull(options["image"])
+        if pulled is not None:
             pulled.add(options["image"])
-        for mount in options.get("volumes", {}).keys():
-            if "/" not in mount:
-                get_or_create(client, "volume", project + "_" + mount)
-                options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
-        try:
-            container = client.containers.get(options["name"])
-        except docker.errors.NotFound:
-            pass
-        else:
-            container.stop()
-            container.remove()
-        listening = ""
-        if options["ports"]:
-            listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
-        click.secho(
-            "> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow"
-        )
-        client.containers.run(**options)
+    for mount in options.get("volumes", {}).keys():
+        if "/" not in mount:
+            get_or_create(client, "volume", project + "_" + mount)
+            options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
+    try:
+        container = client.containers.get(options["name"])
+    except docker.errors.NotFound:
+        pass
+    else:
+        container.stop()
+        container.remove()
+    listening = ""
+    if options["ports"]:
+        listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+    click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
+    return client.containers.run(**options)
 
 
 @devservices.command()

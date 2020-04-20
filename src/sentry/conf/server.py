@@ -1477,6 +1477,7 @@ SENTRY_DEVSERVICES = {
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
