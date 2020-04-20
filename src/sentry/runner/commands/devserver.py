@@ -223,6 +223,10 @@ def devserver(
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
 
+    for name, container_options in settings.SENTRY_DEVSERVICES.items():
+        if container_options.get("with_devserver", False):
+            daemons += [(name, ["sentry", "devservices", "attach", name])]
+
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
     if daemons:

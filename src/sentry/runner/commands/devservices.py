@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import atexit
+import signal
 import os
 import click
 from six import text_type
@@ -71,21 +72,20 @@ def attach(project, service):
 
     configure()
 
-    from django.conf import settings
-
     client = get_docker_client()
+    containers = _prepare_containers(project)
+    container = _start_service(client, service, containers, project)
 
-    container = _start_service(
-        client, service, settings.SENTRY_DEVSERVICES[service], project, never_pull=True
-    )
-
-    @atexit.register
-    def exit_handler():
+    def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
         try:
             container.stop()
         except KeyboardInterrupt:
             pass
+
+    atexit.register(exit_handler)
+    signal.signal(signal.SIGINT, exit_handler)
+    signal.signal(signal.SIGTERM, exit_handler)
 
     for line in container.logs(stream=True):
         click.echo(line, nl=False)
@@ -180,7 +180,7 @@ def _start_service(client, name, containers, project, pulled=None):
 
     with_devserver = options.pop("with_devserver", False)
     pull = options.pop("pull", False)
-    if not with_devserver and pull and options["image"] not in pulled:
+    if not with_devserver and pull and (pulled is None or options["image"] not in pulled):
         click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
         client.images.pull(options["image"])
         if pulled is not None:
@@ -189,6 +189,7 @@ def _start_service(client, name, containers, project, pulled=None):
         if "/" not in mount:
             get_or_create(client, "volume", project + "_" + mount)
             options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
+
     try:
         container = client.containers.get(options["name"])
     except docker.errors.NotFound:
