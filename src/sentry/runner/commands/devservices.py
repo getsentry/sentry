@@ -74,7 +74,7 @@ def attach(project, service):
 
     client = get_docker_client()
     containers = _prepare_containers(project)
-    container = _start_service(client, service, containers, project)
+    container = _start_service(client, service, containers, project, fast=True)
 
     def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
@@ -160,12 +160,13 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, pulled=None):
+def _start_service(client, name, containers, project, pulled=None, fast=False):
     import docker
 
     from django.conf import settings
 
     options = containers[name]
+    options.pop("with_devserver", False)
 
     # HACK(mattrobenolt): special handle snuba backend because it needs to
     # handle different values based on the eventstream backend
@@ -178,9 +179,8 @@ def _start_service(client, name, containers, project, pulled=None):
     for key, value in options["environment"].items():
         options["environment"][key] = value.format(containers=containers)
 
-    with_devserver = options.pop("with_devserver", False)
     pull = options.pop("pull", False)
-    if not with_devserver and pull and (pulled is None or options["image"] not in pulled):
+    if not fast and pull and (pulled is None or options["image"] not in pulled):
         click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
         client.images.pull(options["image"])
         if pulled is not None:
@@ -190,16 +190,27 @@ def _start_service(client, name, containers, project, pulled=None):
             get_or_create(client, "volume", project + "_" + mount)
             options["volumes"][project + "_" + mount] = options["volumes"].pop(mount)
 
+    listening = ""
+    if options["ports"]:
+        listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+
     try:
         container = client.containers.get(options["name"])
     except docker.errors.NotFound:
         pass
     else:
+        if fast:
+            click.secho(
+                "> Starting existing '%s' container%s" % (options["name"], listening),
+                err=True,
+                fg="yellow",
+            )
+            container.start()
+            return container
+
         container.stop()
         container.remove()
-    listening = ""
-    if options["ports"]:
-        listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+
     click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
     return client.containers.run(**options)
 
