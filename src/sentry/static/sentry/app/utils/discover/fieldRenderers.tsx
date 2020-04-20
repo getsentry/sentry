@@ -204,7 +204,12 @@ const SPECIAL_FIELDS: SpecialFields = {
           <Projects orgId={organization.slug} slugs={[data.project]}>
             {({projects}) => {
               const project = projects.find(p => p.slug === data.project);
-              return <ProjectBadge project={project ? project : {slug: data.project}} avatarSize={16} />
+              return (
+                <ProjectBadge
+                  project={project ? project : {slug: data.project}}
+                  avatarSize={16}
+                />
+              );
             }}
           </Projects>
         </Container>
