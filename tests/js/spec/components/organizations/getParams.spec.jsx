@@ -1,4 +1,7 @@
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {
+  getParams,
+  parseStatsPeriod,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 describe('getParams', function() {
   it('should return default statsPeriod if it is not provided or is invalid', function() {
@@ -7,6 +10,7 @@ describe('getParams', function() {
     expect(getParams({statsPeriod: null})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: undefined})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: '24f'})).toEqual({statsPeriod: '14d'});
+    expect(getParams({statsPeriod: '24'})).toEqual({statsPeriod: '24s'});
   });
 
   it('should parse statsPeriod', function() {
@@ -109,5 +113,22 @@ describe('getParams', function() {
 
     expect(getParams({utc: null})).toEqual({statsPeriod: '14d'});
     expect(getParams({utc: undefined})).toEqual({statsPeriod: '14d'});
+  });
+});
+
+describe('parseStatsPeriod', function() {
+  it('should parse statsPeriod', function() {
+    expect(parseStatsPeriod('5s')).toEqual({period: '5', periodLength: 's'});
+    expect(parseStatsPeriod('11h')).toEqual({period: '11', periodLength: 'h'});
+    expect(parseStatsPeriod('14d')).toEqual({period: '14', periodLength: 'd'});
+    expect(parseStatsPeriod('24w')).toEqual({period: '24', periodLength: 'w'});
+    expect(parseStatsPeriod('42m')).toEqual({period: '42', periodLength: 'm'});
+  });
+
+  it('should return default statsPeriod if it is not provided or is invalid', function() {
+    expect(parseStatsPeriod('invalid')).toEqual(undefined);
+    expect(parseStatsPeriod('24f')).toEqual(undefined);
+    expect(parseStatsPeriod('')).toEqual(undefined);
+    expect(parseStatsPeriod('24')).toEqual({period: '24', periodLength: 's'});
   });
 });

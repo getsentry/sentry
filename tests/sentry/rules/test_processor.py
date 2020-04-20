@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.models import GroupRuleStatus, Rule, GroupStatus
 from sentry.plugins.base import plugins
+from sentry.mail.actions import ActionTargetType
 from sentry.testutils import TestCase
 from sentry.rules.processor import RuleProcessor
 
@@ -15,7 +16,11 @@ class RuleProcessorTest(TestCase):
     def setUp(self):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
-        action_data = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": ActionTargetType.ISSUE_OWNERS.value,
+            "targetIdentifier": None,
+        }
         condition_data = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
 
         Rule.objects.filter(project=self.event.project).delete()
@@ -36,7 +41,6 @@ class RuleProcessorTest(TestCase):
         results = list(rp.apply())
         assert len(results) == 1
         callback, futures = results[0]
-        assert callback == plugins.get("mail").rule_notify
         assert len(futures) == 1
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}

@@ -437,7 +437,7 @@ class MailAdapter(object):
     def notify_about_activity(self, activity):
         metrics.incr("mail_adapter.notify_about_activity")
         # TODO: We should move these into the `mail` module.
-        from sentry.plugins.sentry_mail.activity import emails
+        from sentry.mail.activity import emails
 
         email_cls = emails.get(activity.type)
         if not email_cls:

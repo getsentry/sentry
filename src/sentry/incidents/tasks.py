@@ -11,6 +11,7 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
+    IncidentStatusMethod,
     INCIDENT_STATUS,
 )
 from sentry.models import Project
@@ -173,6 +174,7 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
                 incident,
                 IncidentStatus.CLOSED,
                 comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
+                status_method=IncidentStatusMethod.RULE_UPDATED,
             )
 
     if has_more:

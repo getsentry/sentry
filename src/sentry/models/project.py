@@ -108,7 +108,7 @@ class Project(Model, PendingDeletionMixin):
             ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
             ("has_transactions", "This Project has sent transactions"),
         ),
-        default=0,
+        default=2,
         null=True,
     )
 

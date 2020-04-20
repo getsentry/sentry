@@ -96,7 +96,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   renderBody() {
     const {organization, location, selection} = this.props;
     const {release, deploys, reloading} = this.state;
-    const project = release.projects.find(p => p.id === selection.projects[0]);
+    const project = release?.projects.find(p => p.id === selection.projects[0]);
 
     if (!project || !release) {
       if (reloading) {
