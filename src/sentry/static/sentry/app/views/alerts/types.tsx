@@ -89,3 +89,8 @@ export enum IncidentStatusMethod {
   RULE_UPDATED = 2,
   RULE_TRIGGERED = 3,
 }
+
+export enum AlertRuleStatus {
+  PENDING = 0,
+  SNAPSHOT = 4,
+}
