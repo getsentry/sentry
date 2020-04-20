@@ -28,6 +28,7 @@ import EventEntries from 'app/components/events/eventEntries';
 import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
+import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
 
 import {generateTitle} from '../utils';
 import Pagination from './pagination';
@@ -35,7 +36,6 @@ import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
