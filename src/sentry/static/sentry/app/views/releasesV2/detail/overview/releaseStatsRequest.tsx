@@ -52,7 +52,8 @@ type Props = {
   location: Location;
   yAxis: YAxis;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
-  disable: boolean;
+  hasHealthData: boolean;
+  hasDiscover: boolean;
 };
 type State = {
   reloading: boolean;
@@ -86,9 +87,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
   fetchData = async () => {
     let data: Data | null = null;
-    const {yAxis, disable} = this.props;
+    const {yAxis, hasHealthData, hasDiscover} = this.props;
 
-    if (disable) {
+    if (!hasHealthData && !hasDiscover) {
       return;
     }
 
@@ -171,12 +172,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   fetchEventData = async () => {
-    const {api, orgId, location, selection, version} = this.props;
+    const {api, orgId, location, selection, version, hasHealthData} = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
     let userResponse, eventsCountResponse;
 
     // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
-    if (crashFreeTimeBreakdown) {
+    if (crashFreeTimeBreakdown || !hasHealthData) {
       eventsCountResponse = await fetchTotalCount(
         api,
         orgId,

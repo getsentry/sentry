@@ -144,14 +144,12 @@ const GroupDetailsActions = createReactClass({
     const discoverQuery = {
       id: undefined,
       name: group.title || group.type,
-      fields: ['title', 'url', 'count(id)', 'project', 'last_seen'],
-      widths: [400, 200, -1, 200, -1],
-      orderby: '-count_id',
+      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      orderby: '-timestamp',
       query: `issue.id:${group.id}`,
-      tags: ['environment', 'release', 'event.type', 'user.email'],
       projects: [project.id],
       version: 2,
-      range: '24h',
+      range: '90d',
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);

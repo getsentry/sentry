@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function() {
-  const {routerContext} = initializeOrg();
+  const {routerContext, organization} = initializeOrg();
   let mock;
   let projectMock;
   let wrapper;
@@ -15,7 +15,7 @@ describe('IncidentsList', function() {
   const createWrapper = async props => {
     wrapper = mountWithTheme(
       <IncidentsList
-        params={{orgId: 'org-slug'}}
+        params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
         {...props}
       />,
@@ -182,5 +182,24 @@ describe('IncidentsList', function() {
       '/organizations/org-slug/incidents/',
       expect.objectContaining({query: expect.objectContaining({status: 'all'})})
     );
+  });
+
+  it('disables the new alert button for members', async function() {
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    wrapper = await createWrapper({organization: noAccessOrg});
+
+    const addButton = wrapper.find('button[aria-label="Add Alert Rule"]');
+    expect(addButton.props()['aria-disabled']).toBe(true);
+
+    // Enabled with access
+    wrapper = await createWrapper();
+
+    // NOTE: A link when not disabled
+    const addLink = wrapper.find('a[aria-label="Add Alert Rule"]');
+    expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

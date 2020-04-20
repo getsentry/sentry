@@ -23,6 +23,7 @@ export type IssueAlertRuleFormField =
 export type IssueAlertRuleActionTemplate = {
   id: string;
   label: string;
+  prompt: string;
   enabled: boolean;
   formFields?: {
     [key: string]: IssueAlertRuleFormField;

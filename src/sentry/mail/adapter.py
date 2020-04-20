@@ -13,13 +13,24 @@ from sentry import digests, options
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
-from sentry.models import Commit, ProjectOption, ProjectOwnership, Release, Team, User
+from sentry.models import (
+    Commit,
+    Group,
+    GroupSubscription,
+    GroupSubscriptionReason,
+    ProjectOption,
+    ProjectOwnership,
+    Release,
+    Team,
+    User,
+)
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import group_id_to_email, MessageBuilder
+from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
@@ -47,6 +58,7 @@ class MailAdapter(object):
     alert_option_key = "mail:alert"
 
     def rule_notify(self, event, futures, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.rule_notify")
         rules = []
         extra = {
             "event_id": event.event_id,
@@ -143,11 +155,9 @@ class MailAdapter(object):
         return project.get_notification_recipients(self.alert_option_key)
 
     def should_notify(self, group):
-        send_to = self.get_sendable_users(group.project)
-        if not send_to:
-            return False
-
-        return group.is_unresolved()
+        metrics.incr("mail_adapter.should_notify")
+        # only notify if we have users to notify
+        return self.get_sendable_users(group.project)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """
@@ -269,6 +279,7 @@ class MailAdapter(object):
         )
 
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
+        metrics.incr("mail_adapter.notify")
         event = notification.event
 
         environment = event.get_tag("environment")
@@ -377,6 +388,7 @@ class MailAdapter(object):
         )
 
     def notify_digest(self, project, digest, target_type, target_identifier=None):
+        metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
         for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
@@ -421,3 +433,94 @@ class MailAdapter(object):
                 context=context,
                 send_to=[user_id],
             )
+
+    def notify_about_activity(self, activity):
+        metrics.incr("mail_adapter.notify_about_activity")
+        # TODO: We should move these into the `mail` module.
+        from sentry.mail.activity import emails
+
+        email_cls = emails.get(activity.type)
+        if not email_cls:
+            logger.debug(
+                u"No email associated with activity type `{}`".format(activity.get_type_display())
+            )
+            return
+
+        email = email_cls(activity)
+        email.send()
+
+    def handle_user_report(self, payload, project, **kwargs):
+        metrics.incr("mail_adapter.handle_user_report")
+        group = Group.objects.get(id=payload["report"]["issue"]["id"])
+
+        participants = GroupSubscription.objects.get_participants(group=group)
+
+        if not participants:
+            return
+
+        org = group.organization
+        enhanced_privacy = org.flags.enhanced_privacy
+
+        context = {
+            "project": project,
+            "project_link": absolute_uri(
+                u"/{}/{}/".format(project.organization.slug, project.slug)
+            ),
+            "issue_link": absolute_uri(
+                u"/{}/{}/issues/{}/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            # TODO(dcramer): we dont have permalinks to feedback yet
+            "link": absolute_uri(
+                u"/{}/{}/issues/{}/feedback/".format(
+                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                )
+            ),
+            "group": group,
+            "report": payload["report"],
+            "enhanced_privacy": enhanced_privacy,
+        }
+
+        subject_prefix = self._build_subject_prefix(project)
+        subject = force_text(
+            u"{}{} - New Feedback from {}".format(
+                subject_prefix, group.qualified_short_id, payload["report"]["name"]
+            )
+        )
+
+        headers = {"X-Sentry-Project": project.slug}
+
+        # TODO(dcramer): this is copypasta'd from activity notifications
+        # and while it'd be nice to re-use all of that, they are currently
+        # coupled to <Activity> instances which makes this tough
+        for user, reason in participants.items():
+            context.update(
+                {
+                    "reason": GroupSubscriptionReason.descriptions.get(
+                        reason, "are subscribed to this issue"
+                    ),
+                    "unsubscribe_link": generate_signed_link(
+                        user.id,
+                        "sentry-account-email-unsubscribe-issue",
+                        kwargs={"issue_id": group.id},
+                    ),
+                }
+            )
+
+            msg = MessageBuilder(
+                subject=subject,
+                template="sentry/emails/activity/new-user-feedback.txt",
+                html_template="sentry/emails/activity/new-user-feedback.html",
+                headers=headers,
+                type="notify.user-report",
+                context=context,
+                reference=group,
+            )
+            msg.add_users([user.id], project=project)
+            msg.send_async()
+
+    def handle_signal(self, name, payload, **kwargs):
+        metrics.incr("mail_adapter.handle_signal")
+        if name == "user-reports.created":
+            self.handle_user_report(payload, **kwargs)
