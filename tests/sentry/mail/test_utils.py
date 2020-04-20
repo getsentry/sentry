@@ -86,7 +86,7 @@ class MigrateProjectToIssueAlertTargetingTest(TestCase):
         migrate_project_to_issue_alert_targeting(self.project)
         assert not Rule.objects.filter(project=self.project).exists()
         for user in (self.user, self.user_2):
-            assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == "0"
+            assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == 0
             assert (
                 UserOption.objects.get_value(user, "workflow:notifications", project=self.project)
                 == "0"
@@ -121,7 +121,7 @@ class MigrateProjectToIssueAlertTargetingTest(TestCase):
             ],
         )
         for user in (self.user, self.user_2):
-            assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == "0"
+            assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == 0
             assert (
                 UserOption.objects.get_value(user, "workflow:notifications", project=self.project)
                 == "0"
