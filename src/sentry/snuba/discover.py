@@ -831,6 +831,8 @@ def top_events_timeseries(
         timeseries_columns + selected_columns, user_query, params, rollup
     )
 
+    user_fields = FIELD_ALIASES["user"]["fields"]
+
     for field in selected_columns:
         # project is handled by filter_keys already
         if field in ["project", "project.id"]:
@@ -843,10 +845,7 @@ def top_events_timeseries(
             # A user field can be any of its field aliases, do an OR across all the user fields
             elif field == "user":
                 snuba_filter.conditions.append(
-                    [
-                        [resolve_column(user_field), "IN", values]
-                        for user_field in FIELD_ALIASES["user"]["fields"]
-                    ]
+                    [[resolve_column(user_field), "IN", values] for user_field in user_fields]
                 )
             else:
                 snuba_filter.conditions.append([resolve_column(field), "IN", values])
@@ -865,7 +864,17 @@ def top_events_timeseries(
         referrer=referrer,
     )
 
-    result = transform_results(result, translated_columns, snuba_filter)
+    result = transform_results(result, translated_columns, snuba_filter, selected_columns)
+
+    translated_columns["project_id"] = "project"
+    translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
+
+    if "user" in selected_columns:
+        # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
+        for field in user_fields:
+            if field not in selected_columns:
+                translated_groupby.remove(field)
+        translated_groupby.append("user")
     issues = {}
     if "issue" in selected_columns:
         issues = Group.issues_mapping(
@@ -873,9 +882,6 @@ def top_events_timeseries(
             params["project_id"],
             organization,
         )
-
-    translated_columns["project_id"] = "project"
-    translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
     # so the result key is consistent
     translated_groupby.sort()
 
