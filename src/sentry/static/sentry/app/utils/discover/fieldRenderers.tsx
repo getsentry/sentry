@@ -2,7 +2,7 @@ import React from 'react';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -13,6 +13,7 @@ import ShortId from 'app/components/shortId';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import Version from 'app/components/version';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import Projects from 'app/utils/projects';
 
 import {
   Container,
@@ -28,7 +29,6 @@ import {MetaType, EventData} from './eventView';
  */
 type RenderFunctionBaggage = {
   organization: Organization;
-  projects: Project[];
   location: Location;
 };
 
@@ -198,11 +198,19 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   project: {
     sortField: 'project',
-    renderFunc: (data, {projects}) => {
-      const project = projects ? projects.find(p => p.slug === data.project) : null;
+    renderFunc: (data, {organization}) => {
       return (
         <Container>
-          {project ? <ProjectBadge project={project} avatarSize={16} /> : data.project}
+          <Projects orgId={organization.slug} slugs={[data.project]}>
+            {({projects}) => {
+              const project = projects.find(p => p.slug === data.project);
+              return project ? (
+                <ProjectBadge project={project} avatarSize={16} />
+              ) : (
+                data.project
+              );
+            }}
+          </Projects>
         </Container>
       );
     },

@@ -122,7 +122,7 @@ class Table extends React.Component<Props> {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(row, {organization, projects, location});
+      let rendered = fieldRenderer(row, {organization, location});
 
       const isFirstCell = index === 0;
 
