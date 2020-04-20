@@ -13,6 +13,7 @@ import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
@@ -20,12 +21,18 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconEdit, IconTelescope} from 'app/icons';
+import {IconEdit, IconTelescope, IconWarning} from 'app/icons';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident, IncidentStats} from '../types';
+import {
+  Incident,
+  IncidentStats,
+  AlertRuleStatus,
+  IncidentStatus,
+  IncidentStatusMethod,
+} from '../types';
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';
@@ -149,6 +156,17 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StyledPageContent>
+        {incident &&
+          incident.status === IncidentStatus.CLOSED &&
+          incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
+            <AlertWrapper>
+              <Alert type="warning" icon={<IconWarning size="sm" />}>
+                {t(
+                  'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+                )}
+              </Alert>
+            </AlertWrapper>
+          )}
         <ChartWrapper>
           {incident && stats ? (
             <Chart
@@ -191,15 +209,16 @@ export default class DetailsBody extends React.Component<Props> {
                 <React.Fragment>
                   <SideHeader>
                     <span>{t('Alert Rule')}</span>
-
-                    <SideHeaderLink
-                      to={{
-                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
-                      }}
-                    >
-                      <IconEdit />
-                      {t('View Rule')}
-                    </SideHeaderLink>
+                    {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                      <SideHeaderLink
+                        to={{
+                          pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
+                        }}
+                      >
+                        <IconEdit />
+                        {t('View Rule')}
+                      </SideHeaderLink>
+                    )}
                   </SideHeader>
 
                   {this.renderRuleDetails()}
@@ -290,6 +309,10 @@ const StyledPageContent = styled(PageContent)`
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)};
+`;
+
+const AlertWrapper = styled('div')`
+  padding: ${space(2)} ${space(4)} 0;
 `;
 
 const StyledNavTabs = styled(NavTabs)`

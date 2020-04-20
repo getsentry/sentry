@@ -60,11 +60,13 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 projects = self._get_projects_by_id({int(project_query)}, request, organization)
             data["query_info"]["project"] = [project.id for project in projects]
 
-        # Ensure discover features are enabled if necessary
-        if data["query_type"] == ExportQueryType.DISCOVER_STR and not features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ):
-            return Response({"detail": "You do not have access to discover features"}, status=403)
+        # Discover Pre-processing
+        if data["query_type"] == ExportQueryType.DISCOVER_STR:
+            if not features.has("organizations:discover-basic", organization, actor=request.user):
+                return Response(status=403)
+            if "project" not in data["query_info"]:
+                projects = self.get_projects(request, organization)
+                data["query_info"]["project"] = [project.id for project in projects]
 
         try:
             # If this user has sent a sent a request with the same payload and organization,

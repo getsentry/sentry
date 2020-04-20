@@ -89,9 +89,6 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if not event.group.is_unresolved():
-            return
-
         integration_id = self.get_option("workspace")
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())

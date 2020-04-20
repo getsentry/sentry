@@ -16,7 +16,6 @@ from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.snuba import (
     RateLimitExceeded,
-    QueryOutsideRetentionError,
     QueryIllegalTypeOfArgument,
     QueryExecutionError,
 )
@@ -130,13 +129,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
-        mock_query.side_effect = QueryOutsideRetentionError("test")
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
-                format="json",
-            )
+    def test_out_of_retention(self):
+        self.login_as(user=self.user)
+        self.create_project()
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "field": ["id", "timestamp"],
+                        "orderby": ["-timestamp", "-id"],
+                        "start": iso_format(before_now(days=20)),
+                        "end": iso_format(before_now(days=15)),
+                    },
+                    format="json",
+                )
 
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range. Please try a more recent date range."
@@ -1029,6 +1036,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
+        response.data["meta"]["max_timestamp"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 

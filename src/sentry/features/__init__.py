@@ -58,6 +58,7 @@ default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
+default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
@@ -74,6 +75,7 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
+default_manager.add("organizations:slack-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA

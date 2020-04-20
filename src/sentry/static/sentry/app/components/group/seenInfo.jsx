@@ -11,7 +11,8 @@ import {t} from 'app/locale';
 
 class SeenInfo extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
+    orgSlug: PropTypes.string.isRequired,
+    projectSlug: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     date: PropTypes.any,
     dateGlobal: PropTypes.any,
@@ -35,9 +36,9 @@ class SeenInfo extends React.Component {
   }
 
   getReleaseTrackingUrl() {
-    const {orgId, projectId} = this.props;
+    const {orgSlug, projectSlug} = this.props;
 
-    return `/settings/${orgId}/projects/${projectId}/release-tracking/`;
+    return `/settings/${orgSlug}/projects/${projectSlug}/release-tracking/`;
   }
 
   getTooltipTitle() {
@@ -65,7 +66,15 @@ class SeenInfo extends React.Component {
   }
 
   render() {
-    const {date, dateGlobal, environment, release, orgId, projectId} = this.props;
+    const {
+      date,
+      dateGlobal,
+      environment,
+      release,
+      orgSlug,
+      projectSlug,
+      projectId,
+    } = this.props;
     return (
       <dl className="seen-info">
         <dt key={0}>{t('When')}:</dt>
@@ -96,11 +105,11 @@ class SeenInfo extends React.Component {
         {defined(release) ? (
           <dd key={5}>
             <VersionHoverCard
-              orgId={orgId}
-              projectId={projectId}
+              orgId={orgSlug}
+              projectId={projectSlug}
               version={release.version}
             >
-              <Version version={release.version} truncate />
+              <Version version={release.version} truncate projectId={projectId} />
             </VersionHoverCard>
           </dd>
         ) : !this.props.hasRelease ? (
