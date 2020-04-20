@@ -94,18 +94,9 @@ def attach(project, service):
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-@click.argument("service", nargs=1, required=False)
-def up(project, service, exclude):
+def up(project, exclude):
     """
     Run/update dependent services.
-
-    This optionally accepts a single argument, the name of a single service to
-    spawn, as opposed to all of them. In that mode the service will run with
-    output printed to your terminal, and the ability to kill it with ^C. This
-    is used in devservices as well.
-
-    Note: To read logs of running services `docker logs -f sentry_snuba` is
-    sufficient.
     """
 
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
