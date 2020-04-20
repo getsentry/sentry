@@ -14,7 +14,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         environment = Environment.get_or_create(group.project, "production")
         environment2 = Environment.get_or_create(group.project, "staging")
 
-        url = u"/api/0/issues/{}/?enable_snuba=1".format(group.id)
+        url = u"/api/0/issues/{}/".format(group.id)
 
         from sentry.api.endpoints.group_details import tsdb
 
