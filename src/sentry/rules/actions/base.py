@@ -15,6 +15,9 @@ class EventAction(RuleBase):
 
         See the notification implementation for example usage.
 
+        Does not need to handle group state (e.g. is resolved or not)
+        Caller will handle state
+
         >>> def after(self, event, state):
         >>>     yield self.future(self.print_results)
         >>>

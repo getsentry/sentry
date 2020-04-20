@@ -156,11 +156,8 @@ class MailAdapter(object):
 
     def should_notify(self, group):
         metrics.incr("mail_adapter.should_notify")
-        send_to = self.get_sendable_users(group.project)
-        if not send_to:
-            return False
-
-        return group.is_unresolved()
+        # only notify if we have users to notify
+        return self.get_sendable_users(group.project)
 
     def get_send_to(self, project, target_type, target_identifier=None, event=None):
         """

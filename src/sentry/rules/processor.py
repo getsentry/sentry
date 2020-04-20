@@ -144,6 +144,10 @@ class RuleProcessor(object):
                     self.grouped_futures[key][1].append(rule_future)
 
     def apply(self):
+        # we should only apply rules on unresolved issues
+        if not self.event.group.is_unresolved():
+            return six.itervalues({})
+
         self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
