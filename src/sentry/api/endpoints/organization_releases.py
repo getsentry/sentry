@@ -208,10 +208,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         select_extra = {}
         sort_query = None
 
+        queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
-        else:
-            queryset = queryset.distinct()
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
