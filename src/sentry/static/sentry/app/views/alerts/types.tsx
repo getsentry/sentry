@@ -21,6 +21,7 @@ export type Incident = {
   projects: string[]; // Array of slugs
   seenBy: User[];
   status: IncidentStatus;
+  statusMethod: IncidentStatusMethod;
   title: string;
   hasSeen: boolean;
   alertRule: IncidentRule;
@@ -81,6 +82,12 @@ export enum IncidentStatus {
   CLOSED = 2,
   WARNING = 10,
   CRITICAL = 20,
+}
+
+export enum IncidentStatusMethod {
+  MANUAL = 1,
+  RULE_UPDATED = 2,
+  RULE_TRIGGERED = 3,
 }
 
 export enum AlertRuleStatus {
