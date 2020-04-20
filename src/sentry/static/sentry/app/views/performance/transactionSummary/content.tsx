@@ -5,14 +5,15 @@ import styled from '@emotion/styled';
 import {Organization} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
 import Tags from 'app/views/eventsV2/tags';
+import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
+import LatencyChart from './latencyChart';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -57,25 +58,37 @@ class SummaryContent extends React.Component<Props> {
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
-          <DiscoverQuery
-            location={location}
-            eventView={eventView}
-            orgSlug={organization.slug}
-            extraQuery={{
-              per_page: TOP_SLOWEST_TRANSACTIONS,
-            }}
-          >
-            {({isLoading, tableData}) => (
-              <SummaryContentTable
-                organization={organization}
-                location={location}
-                eventView={eventView}
-                tableData={tableData}
-                isLoading={isLoading}
-                totalValues={totalValues}
-              />
-            )}
-          </DiscoverQuery>
+          <div>
+            <LatencyChart
+              organization={organization}
+              location={location}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+              totalValues={totalValues}
+            />
+            <DiscoverQuery
+              location={location}
+              eventView={eventView}
+              orgSlug={organization.slug}
+              extraQuery={{
+                per_page: TOP_SLOWEST_TRANSACTIONS,
+              }}
+            >
+              {({isLoading, tableData}) => (
+                <SummaryContentTable
+                  organization={organization}
+                  location={location}
+                  eventView={eventView}
+                  tableData={tableData}
+                  isLoading={isLoading}
+                />
+              )}
+            </DiscoverQuery>
+          </div>
           <Side>
             <UserStats
               organization={organization}
