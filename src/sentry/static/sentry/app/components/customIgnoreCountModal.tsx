@@ -4,20 +4,24 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import {ResolutionStatusDetails} from 'app/types';
 import Button from 'app/components/button';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 
+type CountNames = 'ignoreCount' | 'ignoreUserCount';
+type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
+
 type Props = {
-  onSelected: (statusDetails: {[key: string]: number}) => void;
+  onSelected: (statusDetails: ResolutionStatusDetails) => void;
   onCanceled: () => void;
   show: boolean;
   label: string;
   countLabel: string;
-  countName: string;
-  windowName: string;
-  windowChoices: string[];
+  countName: CountNames;
+  windowName: WindowNames;
+  windowChoices: string[] | [number, string][];
 };
 
 type State = {
@@ -46,7 +50,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
     const {count, window} = this.state;
     const {countName, windowName} = this.props;
 
-    const statusDetails: {[key: string]: number} = {[countName]: count};
+    const statusDetails: ResolutionStatusDetails = {[countName]: count};
     if (window) {
       statusDetails[windowName] = window;
     }

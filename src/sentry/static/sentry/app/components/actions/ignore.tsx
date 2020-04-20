@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
+import {ResolutionStatusDetails} from 'app/types';
 import {t, tn} from 'app/locale';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
@@ -11,7 +12,42 @@ import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal'
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 
-export default class IgnoreActions extends React.Component {
+enum ModalStates {
+  COUNT,
+  DURATION,
+  USERS,
+}
+
+const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
+const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
+const IGNORE_WINDOWS: [number, string][] = [
+  [60, 'per hour'],
+  [24 * 60, 'per day'],
+  [24 * 7 * 60, 'per week'],
+];
+
+const defaultProps = {
+  isIgnored: false,
+  confirmLabel: t('Ignore'),
+};
+
+type UpdateParams = {
+  status: string;
+  statusDetails?: ResolutionStatusDetails;
+};
+
+type Props = {
+  onUpdate: (params: UpdateParams) => void;
+  disabled?: boolean;
+  shouldConfirm?: boolean;
+  confirmMessage?: string;
+} & typeof defaultProps;
+
+type State = {
+  modal: ModalStates | null;
+};
+
+export default class IgnoreActions extends React.Component<Props, State> {
   static propTypes = {
     isIgnored: PropTypes.bool,
     onUpdate: PropTypes.func.isRequired,
@@ -21,39 +57,20 @@ export default class IgnoreActions extends React.Component {
     confirmLabel: PropTypes.string,
   };
 
-  static defaultProps = {
-    isIgnored: false,
-    confirmLabel: 'Ignore',
+  static defaultProps = defaultProps;
+
+  state = {
+    modal: null,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {modal: false};
-  }
-  getIgnoreDurations() {
-    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  }
-
-  getIgnoreCounts() {
-    return [1, 10, 100, 1000, 10000, 100000];
-  }
-
-  getIgnoreWindows() {
-    return [
-      [60, 'per hour'],
-      [24 * 60, 'per day'],
-      [24 * 7 * 60, 'per week'],
-    ];
-  }
-
-  onCustomIgnore(statusDetails) {
+  onCustomIgnore(statusDetails: ResolutionStatusDetails) {
     this.setState({
-      modal: false,
+      modal: null,
     });
     this.onIgnore(statusDetails);
   }
 
-  onIgnore(statusDetails) {
+  onIgnore(statusDetails: ResolutionStatusDetails) {
     return this.props.onUpdate({
       status: 'ignored',
       statusDetails: statusDetails || {},
@@ -101,29 +118,29 @@ export default class IgnoreActions extends React.Component {
     return (
       <div style={{display: 'inline-block'}}>
         <CustomIgnoreDurationModal
-          show={this.state.modal === 'duration'}
+          show={this.state.modal === ModalStates.DURATION}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
         />
         <CustomIgnoreCountModal
-          show={this.state.modal === 'count'}
+          show={this.state.modal === ModalStates.COUNT}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it occurs again\u2026')}
           countLabel={t('Number of times')}
           countName="ignoreCount"
           windowName="ignoreWindow"
-          windowChoices={this.getIgnoreWindows()}
+          windowChoices={IGNORE_WINDOWS}
         />
         <CustomIgnoreCountModal
-          show={this.state.modal === 'users'}
+          show={this.state.modal === ModalStates.USERS}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it affects an additional\u2026')}
           countLabel={t('Number of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
-          windowChoices={this.getIgnoreWindows()}
+          windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
           <ActionLink
@@ -151,7 +168,7 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreDurations().map(duration => (
+                {IGNORE_DURATIONS.map(duration => (
                   <MenuItem noAnchor key={duration}>
                     <ActionLink
                       {...actionLinkProps}
@@ -163,7 +180,9 @@ export default class IgnoreActions extends React.Component {
                 ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
+                  <a onClick={() => this.setState({modal: ModalStates.DURATION})}>
+                    {t('Custom')}
+                  </a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -174,7 +193,7 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreCounts().map(count => (
+                {IGNORE_COUNTS.map(count => (
                   <li className="dropdown-submenu" key={count}>
                     <DropdownLink
                       title={tn('one time\u2026', '%s times\u2026', count)}
@@ -190,7 +209,7 @@ export default class IgnoreActions extends React.Component {
                           {t('from now')}
                         </ActionLink>
                       </MenuItem>
-                      {this.getIgnoreWindows().map(([hours, label]) => (
+                      {IGNORE_WINDOWS.map(([hours, label]) => (
                         <MenuItem noAnchor key={hours}>
                           <ActionLink
                             {...actionLinkProps}
@@ -210,7 +229,9 @@ export default class IgnoreActions extends React.Component {
                 ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
+                  <a onClick={() => this.setState({modal: ModalStates.USERS})}>
+                    {t('Custom')}
+                  </a>
                 </MenuItem>
               </DropdownLink>
             </li>
@@ -221,7 +242,7 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreCounts().map(count => (
+                {IGNORE_COUNTS.map(count => (
                   <li className="dropdown-submenu" key={count}>
                     <DropdownLink
                       title={tn('one user\u2026', '%s users\u2026', count)}
@@ -237,7 +258,7 @@ export default class IgnoreActions extends React.Component {
                           {t('from now')}
                         </ActionLink>
                       </MenuItem>
-                      {this.getIgnoreWindows().map(([hours, label]) => (
+                      {IGNORE_WINDOWS.map(([hours, label]) => (
                         <MenuItem noAnchor key={hours}>
                           <ActionLink
                             {...actionLinkProps}
@@ -257,7 +278,9 @@ export default class IgnoreActions extends React.Component {
                 ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>
+                  <a onClick={() => this.setState({modal: ModalStates.USERS})}>
+                    {t('Custom')}
+                  </a>
                 </MenuItem>
               </DropdownLink>
             </li>

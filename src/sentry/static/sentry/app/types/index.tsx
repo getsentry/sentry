@@ -1097,10 +1097,12 @@ export type ResolutionStatusDetails = {
   actor?: AvatarUser;
   autoResolved?: boolean;
   ignoreCount?: number;
+  // Sent in requests. ignoreUntil is used in responses.
+  ignoreDuration?: number;
   ignoreUntil?: string;
   ignoreUserCount?: number;
-  ignoreUserWindow?: string;
-  ignoreWindow?: string;
+  ignoreUserWindow?: number;
+  ignoreWindow?: number;
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
