@@ -273,6 +273,7 @@ class OrganizationUpdateTest(APITestCase):
             "require2FA": True,
             "allowJoinRequests": False,
             "apdexThreshold": 450,
+            "provider": "github",
         }
 
         # needed to set require2FA
@@ -683,6 +684,13 @@ class OrganizationUpdateTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert org.get_option("sentry:relay_pii_config") == value
         assert resp.data["relayPiiConfig"] == value
+
+    def test_provider_config(self):
+        org = self.create_organization(owner=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+        self.login_as(user=self.user)
+        resp = self.client.put(url, data={"provider": "dummy"})
+        assert resp.status_code == 200, resp.content
 
 
 class OrganizationDeleteTest(APITestCase):
