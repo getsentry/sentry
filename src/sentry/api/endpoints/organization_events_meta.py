@@ -73,7 +73,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 parsed_terms = parse_search_query(
                     'transaction:"{}"'.format(lookup_keys["transaction"])
                 )
-            except ParseError as e:
+            except ParseError:
                 return Response({"detail": "Invalid transaction search"}, status=400)
 
             if query_kwargs.get("search_filters"):
