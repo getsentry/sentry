@@ -1,6 +1,14 @@
 import {t} from 'app/locale';
 
-const binaryOperatorSuggestions: Suggestions = [
+export type SuggestionType = 'value' | 'unary' | 'binary' | 'string';
+
+export type Suggestion = {
+  type: SuggestionType;
+  value: string;
+  description?: string;
+};
+
+const binaryOperatorSuggestions: Array<Suggestion> = [
   {
     type: 'binary',
     value: '&&',
@@ -11,14 +19,14 @@ const binaryOperatorSuggestions: Suggestions = [
   },
 ];
 
-const unaryOperatorSuggestions: Suggestions = [
+const unaryOperatorSuggestions: Array<Suggestion> = [
   {
     type: 'unary',
     value: '!',
   },
 ];
 
-const defaultSuggestions: Suggestions = [
+const defaultSuggestions: Array<Suggestion> = [
   {type: 'value', value: '**', description: t('everywhere')},
   {type: 'value', value: 'password', description: t('attributes named "password"')},
   {type: 'value', value: '$error.value', description: t('the exception value')},
@@ -55,15 +63,5 @@ const defaultSuggestions: Suggestions = [
     description: t('the tag "server_name"'),
   },
 ];
-
-export type SuggestionType = 'value' | 'unary' | 'binary' | 'string';
-
-export type Suggestions = Array<Suggestion>;
-
-export type Suggestion = {
-  type: SuggestionType;
-  value: string;
-  description?: string;
-};
 
 export {unaryOperatorSuggestions, binaryOperatorSuggestions, defaultSuggestions};

@@ -11,12 +11,11 @@ import {
   unaryOperatorSuggestions,
   binaryOperatorSuggestions,
   Suggestion,
-  Suggestions,
   SuggestionType,
-} from './dataPrivacyRulesPanelSelectorFieldTypes';
+} from './dataPrivacyRulesPanelFormSelectorFieldSuggestions';
 
 type State = {
-  suggestions: Suggestions;
+  suggestions: Array<Suggestion>;
   fieldValues: Array<Suggestion | Array<Suggestion>>;
   activeSuggestion: number;
   showSuggestions: boolean;
@@ -351,7 +350,7 @@ class DataPrivacyRulesPanelSelectorField extends React.Component<Props, State> {
       <Wrapper ref={this.selectorField}>
         <StyledTextField
           name="from"
-          placeholder={t('an attribute, variable, or header name')}
+          placeholder={t('Enter custom attribute, variable or a header name')}
           onChange={this.handleChange}
           autoComplete="off"
           value={value}
@@ -402,7 +401,6 @@ const StyledTextField = styled(TextField)<{error?: string}>`
   input {
     height: 34px;
   }
-  margin-bottom: 0;
 `;
 
 const SuggestionsWrapper = styled('ul')`

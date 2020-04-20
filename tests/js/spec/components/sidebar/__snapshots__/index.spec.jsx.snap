@@ -1419,7 +1419,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
               >
                 <span
                   aria-describedby="tooltip-123456"
-                  class="css-1513qml-Container eowlwvy0"
+                  class="css-1hzbnlf-Container eowlwvy0"
                 >
                   <svg
                     fill="currentColor"
@@ -1450,7 +1450,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    class="css-1513qml-Container eowlwvy0"
+                    class="css-1hzbnlf-Container eowlwvy0"
                   >
                     <svg
                       fill="#FA5849"
@@ -1487,7 +1487,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    class="css-1513qml-Container eowlwvy0"
+                    class="css-1hzbnlf-Container eowlwvy0"
                   >
                     <svg
                       fill="#FA5849"
@@ -1524,7 +1524,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    class="css-1513qml-Container eowlwvy0"
+                    class="css-1hzbnlf-Container eowlwvy0"
                   >
                     <svg
                       fill="#FA5849"
@@ -1562,7 +1562,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    class="css-1513qml-Container eowlwvy0"
+                    class="css-1hzbnlf-Container eowlwvy0"
                   >
                     <svg
                       fill="#FA5849"
@@ -1600,7 +1600,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <span
                     aria-describedby="tooltip-123456"
-                    class="css-1513qml-Container eowlwvy0"
+                    class="css-1hzbnlf-Container eowlwvy0"
                   >
                     <svg
                       fill="#FA5849"
@@ -3452,7 +3452,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     >
                                       <span
                                         aria-describedby="tooltip-123456"
-                                        className="css-1513qml-Container eowlwvy0"
+                                        className="css-1hzbnlf-Container eowlwvy0"
                                         onBlur={[Function]}
                                         onFocus={[Function]}
                                         onMouseEnter={[Function]}
@@ -4130,7 +4130,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 >
                                                   <span
                                                     aria-describedby="tooltip-123456"
-                                                    className="css-1513qml-Container eowlwvy0"
+                                                    className="css-1hzbnlf-Container eowlwvy0"
                                                     onBlur={[Function]}
                                                     onFocus={[Function]}
                                                     onMouseEnter={[Function]}
@@ -4912,7 +4912,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 >
                                                   <span
                                                     aria-describedby="tooltip-123456"
-                                                    className="css-1513qml-Container eowlwvy0"
+                                                    className="css-1hzbnlf-Container eowlwvy0"
                                                     onBlur={[Function]}
                                                     onFocus={[Function]}
                                                     onMouseEnter={[Function]}
@@ -5700,7 +5700,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 >
                                                   <span
                                                     aria-describedby="tooltip-123456"
-                                                    className="css-1513qml-Container eowlwvy0"
+                                                    className="css-1hzbnlf-Container eowlwvy0"
                                                     onBlur={[Function]}
                                                     onFocus={[Function]}
                                                     onMouseEnter={[Function]}
@@ -6489,7 +6489,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 >
                                                   <span
                                                     aria-describedby="tooltip-123456"
-                                                    className="css-1513qml-Container eowlwvy0"
+                                                    className="css-1hzbnlf-Container eowlwvy0"
                                                     onBlur={[Function]}
                                                     onFocus={[Function]}
                                                     onMouseEnter={[Function]}
@@ -7176,7 +7176,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 >
                                                   <span
                                                     aria-describedby="tooltip-123456"
-                                                    className="css-1513qml-Container eowlwvy0"
+                                                    className="css-1hzbnlf-Container eowlwvy0"
                                                     onBlur={[Function]}
                                                     onFocus={[Function]}
                                                     onMouseEnter={[Function]}

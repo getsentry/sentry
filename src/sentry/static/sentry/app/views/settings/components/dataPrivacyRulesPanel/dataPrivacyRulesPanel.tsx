@@ -1,24 +1,32 @@
 import React from 'react';
-import omit from 'lodash/omit';
-import isEqual from 'lodash/isEqual';
+import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-import {Panel, PanelAlert, PanelBody} from 'app/components/panels';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
 import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
 
-import {EventIdFieldStatus} from './dataPrivacyRulesEventIdField';
-import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm';
-import {Suggestion, defaultSuggestions} from './dataPrivacyRulesPanelSelectorFieldTypes';
-import {RULE_TYPE, METHOD_TYPE} from './utils';
-import DataprivacyRulesPanelHeader from './dataprivacyRulesPanelHeader';
-import DataPrivacyRulesPanelFooter from './dataPrivacyRulesPanelFooter';
+import {defaultSuggestions} from './dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorFieldSuggestions';
+import DataPrivacyRulesPanelRuleModal from './dataPrivacyRulesPanelRuleModal';
+import DataPrivacyRulesPanelContent from './dataPrivacyRulesPanelContent';
+import {RULE_TYPE, METHOD_TYPE, EVENT_ID_FIELD_STATUS} from './utils';
 
-const DEFAULT_RULE_FROM_VALUE = '';
+const ADVANCED_DATASCRUBBING_LINK =
+  'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
-type Rule = React.ComponentProps<typeof DataPrivacyRulesPanelForm>['rule'];
+type Rule = NonNullable<
+  React.ComponentProps<typeof DataPrivacyRulesPanelRuleModal>['rule']
+>;
+
+type EventId = React.ComponentProps<typeof DataPrivacyRulesPanelRuleModal>['eventId'];
+
+type Suggestions = React.ComponentProps<
+  typeof DataPrivacyRulesPanelRuleModal
+>['selectorSuggestions'];
 
 type PiiConfig = {
   type: RULE_TYPE;
@@ -45,10 +53,9 @@ type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
-  selectorSuggestions: Array<Suggestion>;
-  eventIdInputValue: string;
-  eventIdStatus: EventIdFieldStatus;
-  isFormValid: boolean;
+  selectorSuggestions: Suggestions;
+  eventId: EventId;
+  showAddRuleModal?: boolean;
 };
 
 class DataPrivacyRulesPanel extends React.Component<Props, State> {
@@ -62,9 +69,9 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
     selectorSuggestions: [],
-    eventIdStatus: EventIdFieldStatus.NONE,
-    eventIdInputValue: '',
-    isFormValid: true,
+    eventId: {
+      value: '',
+    },
   };
 
   componentDidMount() {
@@ -133,20 +140,29 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
   loadSelectorSuggestions = async () => {
     const {organization, project} = this.context;
-    const {eventIdInputValue} = this.state;
+    const {eventId} = this.state;
 
-    if (!eventIdInputValue) {
-      this.setState({
+    if (!eventId.value) {
+      this.setState(prevState => ({
         selectorSuggestions: defaultSuggestions,
-        eventIdStatus: EventIdFieldStatus.NONE,
-      });
+        eventId: {
+          ...prevState.eventId,
+          status: undefined,
+        },
+      }));
       return;
     }
 
-    this.setState({eventIdStatus: EventIdFieldStatus.LOADING});
+    this.setState(prevState => ({
+      selectorSuggestions: defaultSuggestions,
+      eventId: {
+        ...prevState.eventId,
+        status: EVENT_ID_FIELD_STATUS.LOADING,
+      },
+    }));
 
     try {
-      const query: {projectId?: string; eventId: string} = {eventId: eventIdInputValue};
+      const query: {projectId?: string; eventId: string} = {eventId: eventId.value};
       if (project?.id) {
         query.projectId = project.id;
       }
@@ -154,104 +170,40 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
         {method: 'GET', query}
       );
-      const selectorSuggestions: Array<Suggestion> = rawSuggestions.suggestions;
+      const selectorSuggestions: Suggestions = rawSuggestions.suggestions;
 
       if (selectorSuggestions && selectorSuggestions.length > 0) {
-        this.setState({
+        this.setState(prevState => ({
           selectorSuggestions,
-          eventIdStatus: EventIdFieldStatus.LOADED,
-        });
+          eventId: {
+            ...prevState.eventId,
+            status: EVENT_ID_FIELD_STATUS.LOADED,
+          },
+        }));
         return;
       }
 
-      this.setState({
+      this.setState(prevState => ({
         selectorSuggestions: defaultSuggestions,
-        eventIdStatus: EventIdFieldStatus.NOT_FOUND,
-      });
-    } catch {
-      this.setState({
-        eventIdStatus: EventIdFieldStatus.ERROR,
-      });
-    }
-  };
-
-  handleEventIdChange = (value: string) => {
-    const eventId = value.replace(/-/g, '').trim();
-    this.setState({
-      eventIdStatus: EventIdFieldStatus.NONE,
-      selectorSuggestions: defaultSuggestions,
-      eventIdInputValue: eventId,
-    });
-  };
-
-  isEventIdValueValid = (): boolean => {
-    const {eventIdInputValue} = this.state;
-    if (eventIdInputValue && eventIdInputValue.length !== 32) {
-      this.setState({eventIdStatus: EventIdFieldStatus.INVALID});
-      return false;
-    }
-
-    return true;
-  };
-
-  handleEventIdBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-    event.preventDefault();
-
-    if (this.isEventIdValueValid()) {
-      this.loadSelectorSuggestions();
-    }
-  };
-
-  handleEventIdKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    event.persist();
-
-    const {keyCode} = event;
-
-    if (keyCode === 13 && this.isEventIdValueValid()) {
-      this.loadSelectorSuggestions();
-    }
-  };
-
-  handleAddRule = () => {
-    this.setState(prevState => ({
-      rules: [
-        ...prevState.rules,
-        {
-          id: prevState.rules.length + 1,
-          type: RULE_TYPE.CREDITCARD,
-          method: METHOD_TYPE.MASK,
-          from: DEFAULT_RULE_FROM_VALUE,
+        eventId: {
+          ...prevState.eventId,
+          status: EVENT_ID_FIELD_STATUS.LOADED,
         },
-      ],
-      isFormValid: false,
-    }));
-  };
-
-  handleDeleteRule = (ruleId: number) => {
-    this.setState(prevState => ({
-      rules: prevState.rules.filter(rule => rule.id !== ruleId),
-    }));
-  };
-
-  handleChange = (updatedRule: Rule) => {
-    this.setState(
-      prevState => ({
-        rules: prevState.rules.map(rule => {
-          if (rule.id === updatedRule.id) {
-            return updatedRule;
-          }
-          return rule;
-        }),
-      }),
-      () => {
-        this.handleValidation();
-      }
-    );
+      }));
+    } catch {
+      this.setState(prevState => ({
+        eventId: {
+          ...prevState.eventId,
+          status: EVENT_ID_FIELD_STATUS.ERROR,
+        },
+      }));
+    }
   };
 
   handleSubmit = async () => {
     const {endpoint} = this.props;
     const {rules} = this.state;
+
     let customRulesCounter = 0;
     const applications: Applications = {};
     const customRules: PiiConfigRule = {};
@@ -335,101 +287,141 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       });
   };
 
-  handleValidation = () => {
-    const {rules} = this.state;
-    const isAnyRuleFieldEmpty = rules.find(rule => {
-      const ruleKeys = Object.keys(omit(rule, 'id'));
-      const anyEmptyField = ruleKeys.find(ruleKey => !rule[ruleKey]);
-      return !!anyEmptyField;
-    });
+  handleAddRule = (newRule: Rule) => {
+    this.setState(
+      prevState => ({
+        rules: [
+          ...prevState.rules,
+          {
+            ...newRule,
+            id: prevState.rules.length + 1,
+          },
+        ],
+      }),
+      () => {
+        this.handleSubmit();
+      }
+    );
+  };
 
-    const isFormValid = !isAnyRuleFieldEmpty;
+  handleDeleteRule = (rulesToBeDeleted: Array<Rule['id']>) => {
+    this.setState(
+      prevState => ({
+        rules: prevState.rules.filter(rule => !rulesToBeDeleted.includes(rule.id)),
+      }),
+      () => {
+        this.handleSubmit();
+      }
+    );
+  };
 
+  handleUpdateRule = (updatedRule: Rule) => {
+    this.setState(
+      prevState => ({
+        rules: prevState.rules.map(rule => {
+          if (rule.id === updatedRule.id) {
+            return updatedRule;
+          }
+          return rule;
+        }),
+      }),
+      () => {
+        this.handleSubmit();
+      }
+    );
+  };
+
+  handleToggleAddRuleModal = (showAddRuleModal: boolean) => () => {
     this.setState({
-      isFormValid,
+      showAddRuleModal,
     });
   };
 
-  handleSaveForm = () => {
-    const {isFormValid} = this.state;
-
-    if (isFormValid) {
-      this.handleSubmit();
-      return;
-    }
-
-    addErrorMessage(t('Invalid rules form'));
-  };
-
-  handleCancelForm = () => {
-    this.setState(prevState => ({
-      rules: prevState.savedRules,
-    }));
+  handleUpdateEventId = (eventId: string) => {
+    this.setState(
+      {
+        eventId: {
+          value: eventId,
+        },
+      },
+      () => {
+        this.loadSelectorSuggestions();
+      }
+    );
   };
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {
-      rules,
-      savedRules,
-      eventIdInputValue,
-      selectorSuggestions,
-      eventIdStatus,
-      isFormValid,
-    } = this.state;
+    const {rules, selectorSuggestions, showAddRuleModal, eventId} = this.state;
 
     return (
       <React.Fragment>
         <Panel>
-          <DataprivacyRulesPanelHeader
-            onKeyDown={this.handleEventIdKeyDown}
-            onChange={this.handleEventIdChange}
-            onBlur={this.handleEventIdBlur}
-            value={eventIdInputValue}
-            status={eventIdStatus}
-            disabled={disabled}
-          />
+          <PanelHeader>
+            <div>{t('Data Privacy Rules')}</div>
+          </PanelHeader>
           <PanelAlert type="info">
             {additionalContext}{' '}
             {tct('For more details, see [linkToDocs].', {
               linkToDocs: (
-                <ExternalLink href="https://docs.sentry.io/data-management/advanced-datascrubbing/">
+                <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
                   {t('full documentation on data scrubbing')}
                 </ExternalLink>
               ),
             })}
           </PanelAlert>
           <PanelBody>
-            {rules.map(rule => (
-              <DataPrivacyRulesPanelForm
-                key={rule.id}
-                onDelete={this.handleDeleteRule}
-                onChange={this.handleChange}
-                selectorSuggestions={selectorSuggestions}
-                rule={rule}
+            <DataPrivacyRulesPanelContent
+              rules={rules}
+              disabled={disabled}
+              onDeleteRule={this.handleDeleteRule}
+              onUpdateRule={this.handleUpdateRule}
+              onUpdateEventId={this.handleUpdateEventId}
+              eventId={eventId}
+              selectorSuggestions={selectorSuggestions}
+            />
+            <PanelAction>
+              <Button
+                size="small"
                 disabled={disabled}
-              />
-            ))}
+                onClick={this.handleToggleAddRuleModal(true)}
+                priority="primary"
+              >
+                {t('Add Rule')}
+              </Button>
+              <Button
+                size="small"
+                href={ADVANCED_DATASCRUBBING_LINK}
+                target="_blank"
+                disabled={disabled}
+              >
+                {t('Learn More')}
+              </Button>
+            </PanelAction>
           </PanelBody>
-          <DataPrivacyRulesPanelFooter
-            onAddRule={this.handleAddRule}
-            onCancel={this.handleCancelForm}
-            onSave={this.handleSaveForm}
-            disabled={disabled}
-            disableCancelbutton={
-              (savedRules.length === 0 && rules.length === 0) ||
-              isEqual(rules, savedRules)
-            }
-            disableSaveButton={
-              !isFormValid ||
-              (savedRules.length === 0 && rules.length === 0) ||
-              isEqual(rules, savedRules)
-            }
-          />
         </Panel>
+        {showAddRuleModal && (
+          <DataPrivacyRulesPanelRuleModal
+            selectorSuggestions={selectorSuggestions}
+            onSaveRule={this.handleAddRule}
+            onClose={this.handleToggleAddRuleModal(false)}
+            onUpdateEventId={this.handleUpdateEventId}
+            eventId={eventId}
+          />
+        )}
       </React.Fragment>
     );
   }
 }
 
 export default DataPrivacyRulesPanel;
+
+const PanelAction = styled('div')`
+  padding: ${space(1)} ${space(2)};
+  position: relative;
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: auto auto;
+  justify-content: flex-start;
+  border-top: 1px solid ${p => p.theme.borderDark};
+`;

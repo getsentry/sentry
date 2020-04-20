@@ -66,7 +66,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
 >
   <Wrapper>
     <div
-      className="css-8p5quz-Wrapper e1e07je00"
+      className="css-8p5quz-Wrapper ejzttwd0"
     >
       <StyledTextField
         autoComplete="off"
@@ -76,25 +76,25 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         onChange={[Function]}
         onFocus={[Function]}
         onKeyDown={[Function]}
-        placeholder="an attribute, variable, or header name"
+        placeholder="Enter custom attribute, variable or a header name"
         required={false}
         value="$string"
       >
         <TextField
           autoComplete="off"
-          className="css-lml2jl-StyledTextField e1e07je01"
+          className="css-1bzu40-StyledTextField ejzttwd1"
           disabled={false}
           hideErrorMessage={false}
           name="from"
           onChange={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          placeholder="an attribute, variable, or header name"
+          placeholder="Enter custom attribute, variable or a header name"
           required={false}
           value="$string"
         >
           <div
-            className="css-lml2jl-StyledTextField e1e07je01 control-group"
+            className="css-1bzu40-StyledTextField ejzttwd1 control-group"
           >
             <div
               className="controls"
@@ -108,7 +108,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
                 onChange={[Function]}
                 onFocus={[Function]}
                 onKeyDown={[Function]}
-                placeholder="an attribute, variable, or header name"
+                placeholder="Enter custom attribute, variable or a header name"
                 required={false}
                 type="text"
                 value="$string"

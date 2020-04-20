@@ -70,10 +70,18 @@ function getMethodTypeSelectorFieldLabel(labelType: METHOD_TYPE): string {
       return '';
   }
 }
+enum EVENT_ID_FIELD_STATUS {
+  LOADING = 'loading',
+  INVALID = 'invalid',
+  NOT_FOUND = 'not_found',
+  LOADED = 'loaded',
+  ERROR = 'error',
+}
 
 export {
   RULE_TYPE,
   METHOD_TYPE,
+  EVENT_ID_FIELD_STATUS,
   getRuleTypeSelectorFieldLabel,
   getMethodTypeSelectorFieldLabel,
 };

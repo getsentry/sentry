@@ -1,11 +1,11 @@
 import React from 'react';
 
-import DataPrivacyRulesPanelSelectorField from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelSelectorField';
+import DataPrivacyRulesPanelSelectorField from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorField';
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
   defaultSuggestions,
-} from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelSelectorFieldTypes';
+} from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorFieldSuggestions';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 function renderComponent({
