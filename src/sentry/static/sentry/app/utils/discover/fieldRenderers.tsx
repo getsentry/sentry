@@ -28,7 +28,7 @@ import {MetaType, EventData} from './eventView';
  */
 type RenderFunctionBaggage = {
   organization: Organization;
-  projects?: Project[];
+  projects: Project[];
   location: Location;
 };
 
