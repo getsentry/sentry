@@ -21,9 +21,9 @@ enum ModalStates {
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 const IGNORE_WINDOWS: [number, string][] = [
-  [60, 'per hour'],
-  [24 * 60, 'per day'],
-  [24 * 7 * 60, 'per week'],
+  [60, t('per hour')],
+  [24 * 60, t('per day')],
+  [24 * 7 * 60, t('per week')],
 ];
 
 const defaultProps = {
@@ -93,7 +93,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
 
     const actionLinkProps = {
       shouldConfirm,
-      title: 'Ignore',
+      title: t('Ignore'),
       message: confirmMessage,
       confirmLabel,
       disabled,
@@ -145,7 +145,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
         <div className="btn-group">
           <ActionLink
             {...actionLinkProps}
-            title="Ignore"
+            title={t('Ignore')}
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
@@ -163,7 +163,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             <MenuItem header>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title={'For\u2026'}
+                title={t('For\u2026')}
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
@@ -188,7 +188,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title={'Until this occurs again\u2026'}
+                title={t('Until this occurs again\u2026')}
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
@@ -237,7 +237,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title={'Until this affects an additional\u2026'}
+                title={t('Until this affects an additional\u2026')}
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
