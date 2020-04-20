@@ -21,7 +21,7 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconEdit, IconTelescope} from 'app/icons';
+import {IconEdit, IconTelescope, IconWarning} from 'app/icons';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -154,7 +154,7 @@ export default class DetailsBody extends React.Component<Props> {
           incident.status === IncidentStatus.CLOSED &&
           incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
             <AlertWrapper>
-              <Alert type="warning" icon="icon-warning-sm">
+              <Alert type="warning" icon={<IconWarning size="sm" />}>
                 {t(
                   'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
                 )}
