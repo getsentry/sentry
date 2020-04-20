@@ -2,7 +2,6 @@ import React from 'react';
 
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 import getConfiguration from 'app/views/settings/project/navigationConfiguration';
-import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 import {Organization, Project} from 'app/types';
 
@@ -21,4 +20,4 @@ const ProjectSettingsNavigation = ({organization, project}: Props) => (
   />
 );
 
-export default withProject(withOrganization(ProjectSettingsNavigation));
+export default withProject(ProjectSettingsNavigation);
