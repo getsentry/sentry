@@ -13,7 +13,7 @@ from sentry.integrations import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
-from .utils import track_response_code
+from .utils import track_response_code, use_slack_v2
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
@@ -62,23 +62,45 @@ class SlackIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # Scopes differ depending on if it's a workspace app
-    identity_oauth_scopes = (
-        frozenset(["bot", "links:read", "links:write"])
-        if not settings.SLACK_INTEGRATION_USE_WST
-        else frozenset(
-            [
-                "channels:read",
-                "groups:read",
-                "users:read",
-                "chat:write",
-                "links:read",
-                "links:write",
-                "team:read",
-            ]
-        )
+    wst_oauth_scopes = frozenset(
+        [
+            "channels:read",
+            "groups:read",
+            "users:read",
+            "chat:write",
+            "links:read",
+            "links:write",
+            "team:read",
+        ]
+    )
+
+    # some info here: https://api.slack.com/authentication/quickstart
+    bot_oauth_scopes = frozenset(
+        [
+            "channels:read",
+            "groups:read",
+            "users:read",
+            "chat:write",
+            "links:read",
+            "links:write",
+            "team:read",
+            "im:read",
+            "chat:write.public",
+            "chat:write.customize",
+        ]
     )
 
     setup_dialog_config = {"width": 600, "height": 900}
+
+    @property
+    def use_wst_app(self):
+        return settings.SLACK_INTEGRATION_USE_WST and not use_slack_v2(self.pipeline)
+
+    @property
+    def identity_oauth_scopes(self):
+        if self.use_wst_app:
+            return self.wst_oauth_scopes
+        return self.bot_oauth_scopes
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
@@ -103,32 +125,28 @@ class SlackIntegrationProvider(IntegrationProvider):
         resp.raise_for_status()
         status_code = resp.status_code
         resp = resp.json()
+        # TODO: track_response_code won't hit if we have an error status code
         track_response_code(status_code, resp.get("ok"))
+
+        # TODO: check for resp["ok"]
 
         return resp["team"]
-
-    def get_identity(self, user_token):
-        payload = {"token": user_token}
-
-        session = http.build_session()
-        resp = session.get("https://slack.com/api/auth.test", params=payload)
-        resp.raise_for_status()
-        status_code = resp.status_code
-        resp = resp.json()
-        track_response_code(status_code, resp.get("ok"))
-
-        return resp["user_id"]
 
     def build_integration(self, state):
         data = state["identity"]["data"]
         assert data["ok"]
 
-        if settings.SLACK_INTEGRATION_USE_WST:
-            access_token = data["access_token"]
+        access_token = data["access_token"]
+        # bot apps have a different response format
+        # see: https://api.slack.com/authentication/quickstart#installing
+        if self.use_wst_app:
             user_id_slack = data["authorizing_user_id"]
+            team_name = data["team_name"]
+            team_id = data["team_id"]
         else:
-            access_token = data["bot"]["bot_access_token"]
-            user_id_slack = self.get_identity(data["access_token"])
+            user_id_slack = data["authed_user"]["id"]
+            team_name = data["team"]["name"]
+            team_id = data["team"]["id"]
 
         scopes = sorted(self.identity_oauth_scopes)
         team_data = self.get_team_info(access_token)
@@ -140,14 +158,9 @@ class SlackIntegrationProvider(IntegrationProvider):
             "domain_name": team_data["domain"] + ".slack.com",
         }
 
-        # When using bot tokens, we must use the user auth token for URL
-        # unfurling
-        if not settings.SLACK_INTEGRATION_USE_WST:
-            metadata["user_access_token"] = data["access_token"]
-
         return {
-            "name": data["team_name"],
-            "external_id": data["team_id"],
+            "name": team_name,
+            "external_id": team_id,
             "metadata": metadata,
             "user_identity": {
                 "type": "slack",
