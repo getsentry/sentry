@@ -369,22 +369,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={
-                "tags": {"sentry:release": release.version},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={
-                "tags": {"sentry:release": release.version},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project2.id,
         )
 
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(**{"first-release": '"%s"' % release.version})
+            response = self.get_valid_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id

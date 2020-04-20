@@ -275,9 +275,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         release.add_project(project2)
-        group = self.create_group(checksum="a" * 32, project=project, first_release=release)
-        self.create_group(checksum="b" * 32, project=project2, first_release=release)
-        url = "%s?query=%s" % (self.path, quote('first-release:"%s"' % release.version))
+        group = self.store_event(
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
+        ).group
+        self.store_event(
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project2.id,
+        )
+        url = "%s?query=%s" % (self.path, 'first-release:"%s"' % release.version)
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
