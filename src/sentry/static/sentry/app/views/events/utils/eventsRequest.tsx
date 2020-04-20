@@ -3,7 +3,12 @@ import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Organization, EventsStats, YAxisEventsStats, EventsStatsData} from 'app/types';
+import {
+  OrganizationSummary,
+  EventsStats,
+  YAxisEventsStats,
+  EventsStatsData,
+} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -88,7 +93,7 @@ type EventsRequestPartialProps = {
    * API client instance
    */
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   /**
    * List of project ids to query
    */
