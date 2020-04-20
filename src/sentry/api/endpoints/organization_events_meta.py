@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.utils import snuba
 from sentry.snuba import discover
 
 
@@ -25,7 +26,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
             )
-        except discover.InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
 
         return Response({"count": result["data"][0]["count"]})

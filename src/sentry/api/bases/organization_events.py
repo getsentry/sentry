@@ -17,9 +17,10 @@ from sentry.api.event_search import (
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
-from sentry.snuba.discover import ReferenceEvent
+from sentry.snuba import discover
 from sentry.utils.compat import map, zip
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -46,7 +47,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist("field")[:]
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            return ReferenceEvent(organization, reference_event_id, fields, start, end)
+            return discover.ReferenceEvent(organization, reference_event_id, fields, start, end)
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
@@ -162,8 +163,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
 
             result = get_event_stats(query_columns, query, params, rollup, reference_event)
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         if top_events:

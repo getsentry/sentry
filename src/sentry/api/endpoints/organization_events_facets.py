@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.snuba import discover
+from sentry.utils import snuba
 from sentry import features, tagstore
 
 
@@ -32,7 +33,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 params=params,
                 referrer="api.organization-events-facets.top-tags",
             )
-        except discover.InvalidSearchQuery as error:
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
             raise ParseError(detail=six.text_type(error))
 
         resp = defaultdict(lambda: {"key": "", "topValues": []})
