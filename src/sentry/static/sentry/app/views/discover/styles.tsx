@@ -39,17 +39,6 @@ export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
   left: 0;
 `;
 
-export const PageTitle = styled('h2')`
-  display: flex;
-  font-size: 20px;
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-  align-items: center;
-  padding-left: ${space(4)};
-  height: ${HEADER_HEIGHT}px;
-`;
-
 export const ResultViewActions = styled('div')`
   display: flex;
   align-items: flex-start;
@@ -276,9 +265,7 @@ export const SavedQueryList = styled(Panel)`
   overflow: hidden;
 `;
 
-export const SavedQueryListItem = styled(({isActive, ...props}: any) => (
-  <PanelItem {...props} />
-))`
+export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean | null}>`
   flex-direction: column;
   padding: 0;
   background-color: ${(p: any) => (p.isActive ? p.theme.whiteDark : p.theme.white)};
