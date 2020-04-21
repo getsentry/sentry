@@ -857,12 +857,15 @@ class EventView {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
+    // an eventview's start/end has higher precedence than the statsPeriod/period in the query string
+    const hasAbsoluteDate = this.start && this.end;
+
     // normalize datetime selection
     const normalizedTimeWindowParams = getParams({
       start: this.start || picked.start,
       end: this.end || picked.end,
-      period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod || picked.statsPeriod,
+      period: !hasAbsoluteDate ? decodeScalar(query.period) : undefined,
+      statsPeriod: !hasAbsoluteDate ? this.statsPeriod || picked.statsPeriod : undefined,
       utc: decodeScalar(query.utc),
     });
 

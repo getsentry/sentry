@@ -837,7 +837,11 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
 
     const location = {
-      query: {},
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '55d',
+      },
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -2385,8 +2389,9 @@ describe('isAPIPayloadSimilar', function() {
       const expected = {
         query: state.query,
         project: ['42'],
-        statsPeriod: state.statsPeriod,
         environment: state.environment,
+        end: '2019-10-02T00:00:00.000',
+        start: '2019-10-01T00:00:00.000',
       };
 
       expect(results).toEqual(expected);
