@@ -172,15 +172,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 version__in=versions,
             )
         }
-        tag_values = tagstore.get_release_tags(
-            [group.project_id], None, [version for version in versions if version in releases],
+        return serialize(
+            [releases.get(version, {"version": version}) for version in versions], request.user,
         )
-        return [
-            serialize(
-                releases.get(version, {"version": version}), request.user, tag_values=tag_values
-            )
-            for version in versions
-        ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
