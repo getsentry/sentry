@@ -55,17 +55,17 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_about_activity(self, activity):
-        metrics.incr("mail_plugin.notify_about_activity")
         if activity.project.flags.has_issue_alerts_targeting:
             return
+        metrics.incr("mail_plugin.notify_about_activity")
 
         return self.mail_adapter.notify_about_activity(activity)
 
     def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_plugin.handle_signal")
         if name == "user-reports.created":
             project = kwargs.get("project")
             if project and not project.flags.has_issue_alerts_targeting:
+                metrics.incr("mail_plugin.handle_signal")
                 self.mail_adapter.handle_signal(name, payload, **kwargs)
 
     def can_configure_for_project(self, project):
