@@ -25,11 +25,11 @@ from sentry.models import (
     Release,
     Integration,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.plugins.base import plugins
 
 
-class GroupDetailsTest(APITestCase):
+class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
 

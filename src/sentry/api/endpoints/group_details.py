@@ -163,6 +163,31 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             return {"version": version}
         return serialize(release, request.user)
 
+    def _get_first_last_release_info(self, request, group, versions):
+        releases = []
+        for version in versions:
+            try:
+                releases.append(
+                    Release.objects.get(
+                        projects=group.project,
+                        organization_id=group.project.organization_id,
+                        version=version,
+                    )
+                )
+            except Release.DoesNotExist:
+                releases.append(version)
+        tag_values = tagstore.get_release_tags(
+            [group.project_id],
+            None,
+            [release.version for release in releases if isinstance(release, Release)],
+        )
+        return [
+            serialize(release, request.user, tag_values=tag_values)
+            if isinstance(release, Release)
+            else {"version": release}
+            for release in releases
+        ]
+
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
@@ -199,9 +224,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = self._get_actions(request, group)
 
-        if first_release:
+        if first_release is not None and last_release is not None:
+            first_release, last_release = self._get_first_last_release_info(
+                request, group, [first_release, last_release]
+            )
+        elif first_release is not None:
             first_release = self._get_release_info(request, group, first_release)
-        if last_release:
+        elif last_release is not None:
             last_release = self._get_release_info(request, group, last_release)
 
         get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
