@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -254,17 +254,25 @@ class SpanDetail extends React.Component<Props, State> {
         </Link>
       ) : spanErrors.length === totalNumberOfErrors ? (
         <div>
-          <Link to={target}>
-            <span>{t('%d error events', totalNumberOfErrors)}</span>
-          </Link>
-          <span>{' occurred in this span.'}</span>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>{t('%d error events', totalNumberOfErrors)}</span>
+              </Link>
+            ),
+          })}
         </div>
       ) : (
         <div>
-          <Link to={target}>
-            <span>{`${spanErrors.length} out of the ${totalNumberOfErrors} error events`}</span>
-          </Link>
-          <span>{' occurred in this span.'}</span>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>
+                  {t('%d out of %d error events', spanErrors.length, totalNumberOfErrors)}
+                </span>
+              </Link>
+            ),
+          })}
         </div>
       );
 
