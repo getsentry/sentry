@@ -206,14 +206,15 @@ function getNewQueryParams(
   {resetParams}: Options = {}
 ) {
   // Reset cursor when changing parameters
-  const {cursor: _cursor, ...oldQuery} = oldQueryParams;
+  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
     : oldQuery;
 
   const newQuery = getParams({
     ...oldQueryWithoutResetParams,
-
+    // Some views update using `period`, and some `statsPeriod`, we should make this uniform
+    period: !obj.start && !obj.end ? obj.period || statsPeriod : null,
     ...obj,
   });
 
