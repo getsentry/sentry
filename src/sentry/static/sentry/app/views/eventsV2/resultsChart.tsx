@@ -51,6 +51,8 @@ class ResultsChart extends React.Component<ResultsChartProps> {
       : undefined;
 
     const {utc} = getParams(location.query);
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    const isTopEvents = eventView.display === DisplayModes.TOP5;
 
     return (
       <React.Fragment>
@@ -59,7 +61,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
             <EventsChart
               api={api}
               router={router}
-              query={eventView.getEventsAPIPayload(location).query}
+              query={apiPayload.query}
               organization={organization}
               showLegend
               yAxis={yAxisValue}
@@ -70,6 +72,9 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               period={globalSelection.statsPeriod}
               disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
               disableReleases={eventView.display !== DisplayModes.RELEASES}
+              field={isTopEvents ? apiPayload.field : undefined}
+              topEvents={isTopEvents ? 5 : undefined}
+              orderby={isTopEvents ? apiPayload.sort : undefined}
               utc={utc === 'true'}
             />
           ),

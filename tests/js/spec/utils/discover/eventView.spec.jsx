@@ -2145,6 +2145,34 @@ describe('EventView.getDisplayOptions()', function() {
   });
 });
 
+describe('EventView.getAggregateFields()', function() {
+  const state = {
+    fields: [
+      {field: 'title'},
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+      {field: 'transaction'},
+    ],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('getAggregateFields() returns only aggregates', function() {
+    const eventView = new EventView(state);
+    const expected = [
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+    ];
+
+    expect(eventView.getAggregateFields()).toEqual(expected);
+  });
+});
+
 describe('EventView.hasAggregateField', function() {
   it('ensures an eventview has an aggregate field', function() {
     let eventView = new EventView({
