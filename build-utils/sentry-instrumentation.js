@@ -9,7 +9,6 @@ const {
   TRAVIS_BRANCH,
   TRAVIS_PULL_REQUEST,
   TRAVIS_PULL_REQUEST_BRANCH,
-  TRAVIS_PULL_REQUEST_SHA,
 } = process.env;
 const IS_TRAVIS = !!TRAVIS_COMMIT;
 
@@ -35,7 +34,6 @@ class SentryInstrumentation {
 
     if (IS_TRAVIS) {
       this.Sentry.setTag('branch', TRAVIS_PULL_REQUEST_BRANCH || TRAVIS_BRANCH);
-      this.Sentry.setTag('commit', TRAVIS_PULL_REQUEST_SHA || TRAVIS_COMMIT);
       this.Sentry.setTag('pull_request', TRAVIS_PULL_REQUEST);
     }
 
@@ -149,8 +147,6 @@ class SentryInstrumentation {
           done();
           return;
         }
-        this.Sentry.setTag('webpack-hash', compilation.hash);
-
         this.measureBuildTime(startTime / 1000, endTime / 1000);
 
         // Only record this once and only on Travis
