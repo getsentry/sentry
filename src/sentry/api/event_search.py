@@ -1044,6 +1044,12 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p50": {
+        "name": "p50",
+        "args": [],
+        "aggregate": [u"quantile(0.5)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "p75": {
         "name": "p75",
         "args": [],
@@ -1060,6 +1066,12 @@ FUNCTIONS = {
         "name": "p99",
         "args": [],
         "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p100": {
+        "name": "p100",
+        "args": [],
+        "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
     "rps": {
