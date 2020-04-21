@@ -135,6 +135,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       this.setState({
         error: false,
+        loading: false,
         errorType: null,
         project,
       });
@@ -169,7 +170,6 @@ class GroupDetails extends React.Component<Props, State> {
           return;
         }
         this.setState({
-          loading: false,
           group,
         });
       }
