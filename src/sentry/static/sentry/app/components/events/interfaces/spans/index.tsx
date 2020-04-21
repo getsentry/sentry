@@ -193,19 +193,19 @@ function filterSpansWithErrors(
   const data = tableData?.data ?? [];
 
   const filtered = data.filter(row => {
-    const spanID = row['trace.span'] || '';
+    const spanId = row['trace.span'] || '';
 
-    if (!spanID) {
+    if (!spanId) {
       return false;
     }
 
-    if (spanID === parsedTrace.rootSpanID) {
+    if (spanId === parsedTrace.rootSpanID) {
       return true;
     }
 
     const hasSpan =
       parsedTrace.spans.findIndex(span => {
-        return spanID === span.span_id;
+        return spanId === span.span_id;
       }) >= 0;
 
     return hasSpan;
