@@ -187,7 +187,7 @@ function filterSpansWithErrors(
   tableData: TableData | null | undefined
 ): TableData | null | undefined {
   if (!tableData) {
-    return tableData;
+    return undefined;
   }
 
   const data = tableData?.data ?? [];
