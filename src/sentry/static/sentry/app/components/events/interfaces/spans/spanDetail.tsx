@@ -5,6 +5,7 @@ import map from 'lodash/map';
 import {t} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import space from 'app/styles/space';
@@ -52,11 +53,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     this.fetchSpanDescendents(span.span_id, span.trace_id)
       .then(response => {
-        if (
-          !response.data ||
-          !Array.isArray(response.data) ||
-          response.data.length <= 0
-        ) {
+        if (!response.data || !Array.isArray(response.data)) {
           return;
         }
 
@@ -96,8 +93,22 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraversalButton(): React.ReactNode {
-    if (!this.state.transactionResults || this.state.transactionResults.length <= 0) {
-      return null;
+    if (!this.state.transactionResults) {
+      // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
+      // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
+      return (
+        <StyledButton size="xsmall" disabled>
+          <StyledLoadingIndicator size={12} />
+        </StyledButton>
+      );
+    }
+
+    if (this.state.transactionResults.length <= 0) {
+      return (
+        <StyledButton size="xsmall" disabled>
+          {t('No Children')}
+        </StyledButton>
+      );
     }
 
     const {span, orgId, trace, eventView} = this.props;
@@ -278,6 +289,13 @@ const SpanDetailContainer = styled('div')`
 
 const ValueTd = styled('td')`
   position: relative;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  height: ${space(2)};
+  margin: 0;
 `;
 
 const Row = ({
