@@ -80,7 +80,7 @@ class SpansInterface extends React.Component<Props, State> {
       <AlertMessageContainer>
         <AlertMessage
           alert={{
-            id: 'id',
+            id: 'transaction-alert',
             message: <span>{label}</span>,
             type: 'error',
           }}
