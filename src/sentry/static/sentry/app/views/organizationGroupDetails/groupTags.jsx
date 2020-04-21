@@ -16,6 +16,7 @@ import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Version from 'app/components/version';
 
 class GroupTags extends React.Component {
   static propTypes = {
@@ -101,7 +102,11 @@ class GroupTags extends React.Component {
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">
-                  <DeviceName value={tagValue.name} />
+                  {tag.key === 'release' ? (
+                    <Version version={tagValue.name} anchor={false} />
+                  ) : (
+                    <DeviceName value={tagValue.name} />
+                  )}
                 </span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
