@@ -47,9 +47,12 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
-  const query = typeof location !== 'undefined' && location.search ? location.search : '';
+  const search = location?.search ?? '';
+  const hash = location?.hash ?? '';
 
-  const fullRoute = `${baseRoute.join('')}${typeof to !== 'string' ? '' : to}${query}`;
+  const fullRoute = `${baseRoute.join('')}${
+    typeof to !== 'string' ? '' : to
+  }${search}${hash}`;
 
   return replaceRouterParams(fullRoute, params);
 }
