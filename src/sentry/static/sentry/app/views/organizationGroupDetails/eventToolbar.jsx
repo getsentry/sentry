@@ -117,13 +117,9 @@ const GroupEventToolbar = createReactClass({
 
     return (
       <div key="related-transaction">
-        <RelatedTransactionLink
-          className="btn btn-default btn-sm"
-          title={t('Related Transaction')}
-          to={to}
-        >
+        <RelatedTransactionButton title={t('Related Transaction')} to={to}>
           {t('Related Transaction')}
-        </RelatedTransactionLink>
+        </RelatedTransactionButton>
       </div>
     );
   },
@@ -213,7 +209,7 @@ const GroupEventToolbar = createReactClass({
   },
 });
 
-const RelatedTransactionLink = styled(Link)`
+const RelatedTransactionButton = styled(Button)`
   margin-right: ${space(2)};
 `;
 
