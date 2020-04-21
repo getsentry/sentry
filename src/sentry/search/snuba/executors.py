@@ -11,7 +11,7 @@ from hashlib import md5
 
 from django.utils import timezone
 
-from sentry import options
+from sentry import options, features
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
@@ -332,6 +332,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Max Candidates", max_candidates)
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
+
+        if features.has("organizations:enterprise-perf"):
+            with sentry_sdk.start_span(op="snuba_group_candidate_query") as span:
+                candidate_count = group_queryset.count()
+                span.set_data("Result", candidate_count)
 
         too_many_candidates = False
         if not group_ids:
