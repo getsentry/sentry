@@ -89,8 +89,18 @@ class GroupTags extends React.Component {
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          let label;
           const pct = percent(tagValue.count, tag.totalValues);
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
+
+          switch (tag.key) {
+            case 'release':
+              label = <Version version={tagValue.name} anchor={false} />;
+              break;
+            default:
+              label = <DeviceName value={tagValue.name} />;
+          }
+
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
               <GlobalSelectionLink
@@ -101,13 +111,7 @@ class GroupTags extends React.Component {
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">
-                  {tag.key === 'release' ? (
-                    <Version version={tagValue.name} anchor={false} />
-                  ) : (
-                    <DeviceName value={tagValue.name} />
-                  )}
-                </span>
+                <span className="tag-bar-label">{label}</span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
