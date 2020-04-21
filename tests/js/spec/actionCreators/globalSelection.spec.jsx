@@ -1,6 +1,7 @@
 import {
   updateProjects,
   updateEnvironments,
+  updateDateTime,
   updateParams,
   updateParamsWithoutHistory,
 } from 'app/actionCreators/globalSelection';
@@ -70,6 +71,77 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
+  describe('updateDateTime()', function() {
+    it('updates statsPeriod when there is no existing stats period', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {},
+        },
+      });
+      updateDateTime({statsPeriod: '24h'}, router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          statsPeriod: '24h',
+        },
+      });
+    });
+
+    it('updates statsPeriod when there is an existing stats period', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {statsPeriod: '14d'},
+        },
+      });
+      updateDateTime({statsPeriod: '24h'}, router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          statsPeriod: '24h',
+        },
+      });
+    });
+
+    it('updates `statsPeriod` when given a new  `period`', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {},
+        },
+      });
+      updateDateTime({period: '24h'}, router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          statsPeriod: '24h',
+        },
+      });
+    });
+
+    it('changes to absolute date', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {statsPeriod: '24h'},
+        },
+      });
+      updateDateTime({start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'}, router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+        },
+      });
+    });
+  });
+
   describe('updateParams()', function() {
     it('updates history when queries are different', function() {
       const router = TestStubs.router({
@@ -108,57 +180,6 @@ describe('GlobalSelection ActionCreators', function() {
       );
 
       expect(router.push).not.toHaveBeenCalled();
-    });
-
-    it('updates statsPeriod when there is no existing stats period', function() {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {},
-        },
-      });
-      updateParams({statsPeriod: '24h'}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          statsPeriod: '24h',
-        },
-      });
-    });
-
-    it('updates statsPeriod when there is an existing stats period', function() {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {statsPeriod: '14d'},
-        },
-      });
-      updateParams({statsPeriod: '24h'}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          statsPeriod: '24h',
-        },
-      });
-    });
-
-    it('updates `statsPeriod` when given a new  `period`', function() {
-      const router = TestStubs.router({
-        location: {
-          pathname: '/test/',
-          query: {},
-        },
-      });
-      updateParams({period: '24h'}, router);
-
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/test/',
-        query: {
-          statsPeriod: '24h',
-        },
-      });
     });
   });
 
