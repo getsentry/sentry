@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import * as ReactRouter from 'react-router';
 
+import {SentryTransactionEvent} from 'app/types';
 import {t} from 'app/locale';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
@@ -14,7 +15,7 @@ import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import AlertMessage from 'app/components/alertMessage';
 import {TableData} from 'app/views/eventsV2/table/types';
 
-import {SentryTransactionEvent, ParsedTraceType} from './types';
+import {ParsedTraceType} from './types';
 import {parseTrace, getTraceDateTimeRange} from './utils';
 import TraceView from './traceView';
 

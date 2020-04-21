@@ -2,9 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {Event} from 'app/types';
+import {Event, SentryTransactionEvent} from 'app/types';
 import {
-  SentryTransactionEvent,
   SpanEntry,
   RawSpanType,
   TraceContextType,

@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {SentryTransactionEvent} from 'app/types';
 import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
@@ -11,7 +12,6 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
-  SentryTransactionEvent,
 } from './types';
 import {
   boundsGenerator,

@@ -6,10 +6,11 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
+import {SentryTransactionEvent} from 'app/types';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';
-import {RawSpanType, SentryTransactionEvent, ParsedTraceType} from './types';
+import {RawSpanType, ParsedTraceType} from './types';
 import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';

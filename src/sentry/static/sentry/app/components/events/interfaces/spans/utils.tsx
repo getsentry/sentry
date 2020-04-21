@@ -3,6 +3,7 @@ import moment from 'moment';
 import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
 
+import {SentryTransactionEvent} from 'app/types';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 import {
@@ -11,7 +12,6 @@ import {
   GapSpanType,
   RawSpanType,
   SpanEntry,
-  SentryTransactionEvent,
   TraceContextType,
 } from './types';
 
