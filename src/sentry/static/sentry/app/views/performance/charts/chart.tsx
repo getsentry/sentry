@@ -1,7 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 
-import {TimeSeriesData} from 'app/views/events/utils/eventsRequest';
+import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import Tooltip from 'app/components/tooltip';
@@ -10,7 +10,7 @@ import {HeaderTitle, ChartContainer, StyledIconQuestion} from '../styles';
 
 type Props = {
   yAxis: string;
-  data: TimeSeriesData;
+  data: Series;
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
   utc: boolean;
@@ -33,13 +33,10 @@ class Chart extends React.Component<Props> {
       loading,
       tooltipCopy,
     } = this.props;
-    const {timeseriesData} = data;
 
-    if (!timeseriesData || timeseriesData.length <= 0) {
+    if (!data || data.data.length <= 0) {
       return null;
     }
-
-    timeseriesData[0].seriesName = yAxis;
 
     const areaChartProps = {
       seriesOptions: {
@@ -81,7 +78,7 @@ class Chart extends React.Component<Props> {
           environments={environments}
         >
           {zoomRenderProps => (
-            <AreaChart {...zoomRenderProps} series={timeseriesData} {...areaChartProps} />
+            <AreaChart {...zoomRenderProps} series={[data]} {...areaChartProps} />
           )}
         </ChartZoom>
       </ChartContainer>

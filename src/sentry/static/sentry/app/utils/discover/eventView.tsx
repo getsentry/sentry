@@ -520,12 +520,12 @@ class EventView {
     return this.fields.length > 0;
   }
 
-  getFields(): string[] {
-    return this.fields.map(field => field.field);
-  }
-
   getWidths(): number[] {
     return this.fields.map(field => (field.width ? field.width : COL_WIDTH_UNDEFINED));
+  }
+
+  getFields(): string[] {
+    return this.fields.map(field => field.field);
   }
 
   getAggregateFields(): Field[] {
