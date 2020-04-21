@@ -241,23 +241,26 @@ class GroupDetails extends React.Component<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const {group, project, loading} = this.state;
+    const {error, group, project, loading} = this.state;
 
-    const isError = this.state.error;
+    const isError = error;
     const isLoading = loading || (!group && !isError);
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <React.Fragment>
-          <GlobalSelectionHeader
-            organization={organization}
-            forceProject={project}
-            showDateSelector={false}
-            shouldForceProject
-            lockedMessageSubject={t('issue')}
-            showIssueStreamLink
-            showProjectSettingsLink
-          />
+          {!isLoading && !isError ? (
+            <GlobalSelectionHeader
+              organization={organization}
+              forceProject={project}
+              showDateSelector={false}
+              shouldForceProject
+              lockedMessageSubject={t('issue')}
+              showIssueStreamLink
+              showProjectSettingsLink
+            />
+          ) : null}
+
           <PageContent>
             {isLoading ? (
               <LoadingIndicator />
