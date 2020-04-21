@@ -1361,8 +1361,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     to build a more complete snuba query based on event search conventions.
     """
     aggregations = []
-    # Avoid duplicates since this becomes groupby
-    columns = set()
+    columns = []
     groupby = []
     project_key = ""
     # Which column to map to project names
@@ -1385,12 +1384,10 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             continue
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
-            columns.update(column_additions)
+            columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
             aggregations.extend(agg_additions)
-
-    columns = list(columns)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
