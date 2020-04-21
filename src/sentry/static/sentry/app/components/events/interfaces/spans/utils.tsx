@@ -382,7 +382,7 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 export function getTraceContext(
   event: Readonly<SentryTransactionEvent>
 ): TraceContextType | undefined {
- return event?.contexts?.trace;
+  return event?.contexts?.trace;
 }
 
 export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
