@@ -255,7 +255,7 @@ class SpanDetail extends React.Component<Props, State> {
       ) : spanErrors.length === totalNumberOfErrors ? (
         <div>
           <Link to={target}>
-            <span>{`${totalNumberOfErrors} error events`}</span>
+            <span>{t('%d error events', totalNumberOfErrors)}</span>
           </Link>
           <span>{' occurred in this span.'}</span>
         </div>
