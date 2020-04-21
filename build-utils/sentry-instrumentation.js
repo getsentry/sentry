@@ -17,8 +17,8 @@ const GB_BYTE = 1073741824;
 
 class SentryInstrumentation {
   constructor() {
-    // Only run if SENTRY_INSTRUMENTATION` is set or when in travis, only in the javascript suite
-    if (!SENTRY_INSTRUMENTATION && TEST_SUITE !== 'js') {
+    // Only run if SENTRY_INSTRUMENTATION` is set or when in travis, only in the javascript suite that runs webpack
+    if (!SENTRY_INSTRUMENTATION && TEST_SUITE !== 'js-build') {
       return;
     }
 
