@@ -29,6 +29,7 @@ import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 
 import {generateTitle} from '../utils';
 import Pagination from './pagination';
@@ -309,6 +310,17 @@ const EventMetadata = (props: {
           })}
         />
       </MetadataContainer>
+      <Projects orgId={organization.slug} slugs={[projectId]}>
+        {({projects}) => {
+          const project = projects.find(p => p.slug === projectId);
+          return (
+            <StyledProjectBadge
+              project={project ? project : {slug: projectId}}
+              avatarSize={16}
+            />
+          );
+        }}
+      </Projects>
       <MetadataJSON href={eventJsonUrl} className="json-link">
         {t('Preview JSON')} (<FileSize bytes={event.size} />)
       </MetadataJSON>
@@ -368,6 +380,10 @@ const StyledEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: none;
   }
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(EventDetailsContent);
