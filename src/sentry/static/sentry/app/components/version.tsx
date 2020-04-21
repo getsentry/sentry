@@ -69,14 +69,12 @@ const Version = ({
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
-  if (!preserveGlobalSelection) {
-    if (projectId) {
-      // if user specifically sets projectId and not preserveGlobalSelection, use that
-      releaseDetailProjectId = projectId;
-    } else if (!new Set(organization?.features).has('global-views')) {
-      // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
-      releaseDetailProjectId = location?.query.project;
-    }
+  if (projectId) {
+    // we can override preserveGlobalSelection's project id
+    releaseDetailProjectId = projectId;
+  } else if (!organization?.features.includes('global-views')) {
+    // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
+    releaseDetailProjectId = location?.query.project;
   }
 
   const renderVersion = () => {

@@ -50,6 +50,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
             {
               to: `/organizations/${orgId}/releases/`,
               label: t('Releases'),
+              preserveGlobalSelection: true,
             },
             {label: formatVersion(version)},
           ]}
