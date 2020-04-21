@@ -9,7 +9,7 @@ import {Client} from 'app/api';
  * @param {String} eventId eventId or "latest" or "oldest"
  * @returns {Promise<Object>}
  */
-export function fetchGroupEventAndMarkSeen(
+export async function fetchGroupEventAndMarkSeen(
   api,
   orgId,
   projectId,
@@ -27,9 +27,8 @@ export function fetchGroupEventAndMarkSeen(
     query.environment = envNames;
   }
 
-  const promise = api.requestPromise(url, {query});
-
-  promise.then(data => {
+  try {
+    const data = await api.requestPromise(url, {query});
     api.bulkUpdate({
       orgId,
       projectId,
@@ -38,9 +37,9 @@ export function fetchGroupEventAndMarkSeen(
       data: {hasSeen: true},
     });
     return data;
-  });
-
-  return promise;
+  } catch (err) {
+    throw err;
+  }
 }
 
 export function fetchGroupUserReports(groupId, query) {
