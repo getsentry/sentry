@@ -94,7 +94,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
 
         <IconWrapper>
           <Clipboard value={version}>
-            <Tooltip title={version}>
+            <Tooltip title={version} containerDisplayMode="flex">
               <IconCopy size="xs" />
             </Tooltip>
           </Clipboard>
@@ -172,6 +172,8 @@ const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray4};
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
 `;
 
 const IconWrapper = styled('span')`
@@ -181,6 +183,7 @@ const IconWrapper = styled('span')`
   &,
   a {
     color: ${p => p.theme.gray2};
+    display: flex;
     &:hover {
       cursor: pointer;
       color: ${p => p.theme.gray4};
