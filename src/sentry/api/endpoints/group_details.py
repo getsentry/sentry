@@ -152,41 +152,27 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
-    def _get_release_info(self, request, group, version):
+    def _get_release_object(self, request, group, version):
         try:
-            release = Release.objects.get(
+            return Release.objects.get(
                 projects=group.project,
                 organization_id=group.project.organization_id,
                 version=version,
             )
         except Release.DoesNotExist:
             return {"version": version}
-        return serialize(release, request.user)
+
+    def _get_release_info(self, request, group, version):
+        return serialize(self._get_release_object(request, group, version), request.user)
 
     def _get_first_last_release_info(self, request, group, versions):
-        releases = []
-        for version in versions:
-            try:
-                releases.append(
-                    Release.objects.get(
-                        projects=group.project,
-                        organization_id=group.project.organization_id,
-                        version=version,
-                    )
-                )
-            except Release.DoesNotExist:
-                releases.append(version)
+        releases = [self._get_release_object(request, group, version) for version in versions]
         tag_values = tagstore.get_release_tags(
             [group.project_id],
             None,
             [release.version for release in releases if isinstance(release, Release)],
         )
-        return [
-            serialize(release, request.user, tag_values=tag_values)
-            if isinstance(release, Release)
-            else {"version": release}
-            for release in releases
-        ]
+        return [serialize(release, request.user, tag_values=tag_values) for release in releases]
 
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
