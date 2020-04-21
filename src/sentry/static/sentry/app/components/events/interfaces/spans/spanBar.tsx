@@ -1034,13 +1034,7 @@ const Chevron = styled(InlineSvg)`
 `;
 
 const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
-  color: ${props => {
-    if (props.spanErrors.length > 0) {
-      return props.theme.error;
-    }
-
-    return 'inherit';
-  }};
+color: ${p => p.spanErrors.length ? p.theme.error : 'inherit'};
 `;
 
 export default SpanBar;
