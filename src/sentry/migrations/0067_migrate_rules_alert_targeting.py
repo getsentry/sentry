@@ -44,7 +44,7 @@ def migrate_project_to_issue_alert_targeting(project, ProjectOption, Rule, User,
                 sentry_orgmember_set__teams__in=project.teams.all(), is_active=True
             ):
                 set_user_option(UserOption, user, "mail:alert", 0, project)
-                set_user_option(UserOption, user, "workflow:notifications", "0", project=project)
+                set_user_option(UserOption, user, "workflow:notifications", "2", project=project)
 
         # This marks the migration finished and shows the new UI
         project.flags.has_issue_alerts_targeting = True
