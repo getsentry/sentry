@@ -1,5 +1,6 @@
 import {
   updateProjects,
+  updateEnvironments,
   updateParams,
   updateParamsWithoutHistory,
 } from 'app/actionCreators/globalSelection';
@@ -23,7 +24,51 @@ describe('GlobalSelection ActionCreators', function() {
     });
   });
 
-  describe('updateEnvironments()', function() {});
+  describe('updateEnvironments()', function() {
+    it('updates single', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {environment: 'test'},
+        },
+      });
+      updateEnvironments(['new-env'], router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {environment: ['new-env']},
+      });
+    });
+
+    it('updates multiple', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {environment: 'test'},
+        },
+      });
+      updateEnvironments(['new-env', 'another-env'], router);
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {environment: ['new-env', 'another-env']},
+      });
+    });
+
+    it('removes environment', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {environment: 'test'},
+        },
+      });
+      updateEnvironments(null, router);
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {},
+      });
+    });
+  });
 
   describe('updateParams()', function() {
     it('updates history when queries are different', function() {
