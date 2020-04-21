@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import * as ReactRouter from 'react-router';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import {Panel} from 'app/components/panels';
@@ -71,13 +71,11 @@ class SpansInterface extends React.Component<Props, State> {
       return null;
     }
 
-    const label =
-      numOfErrors > 1
-        ? t(
-            `There are %d error events associated with this transaction event.`,
-            numOfErrors
-          )
-        : t(`There is an error event associated with this transaction event.`);
+    const label = tn(
+      'There is an error event associated with this transaction event.',
+      `There are %d error events associated with this transaction event.`,
+      numOfErrors
+    );
 
     return (
       <AlertMessageContainer>
