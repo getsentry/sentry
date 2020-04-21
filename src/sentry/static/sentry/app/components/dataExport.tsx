@@ -54,32 +54,38 @@ class DataExport extends React.Component<Props, State> {
     this.setState(this.initialState);
   };
 
-  startDataExport = async () => {
+  startDataExport = () => {
     const {
       api,
       organization: {slug},
       payload: {queryType, queryInfo},
     } = this.props;
-    try {
-      const {id: dataExportId} = await api.requestPromise(
-        `/organizations/${slug}/data-export/`,
-        {
-          method: 'POST',
-          data: {
-            query_type: queryType,
-            query_info: queryInfo,
-          },
-        }
-      );
-      addSuccessMessage(
-        t("Sit tight. We'll shoot you an email when your data is ready for download.")
-      );
-      this.setState({inProgress: true, dataExportId});
-    } catch (_err) {
-      addErrorMessage(
-        t("We tried our hardest, but we couldn't export your data. Give it another go.")
-      );
-    }
+
+    api
+      .requestPromise(`/organizations/${slug}/data-export/`, {
+        includeAllArgs: true,
+        method: 'POST',
+        data: {
+          query_type: queryType,
+          query_info: queryInfo,
+        },
+      })
+      .then(([data, _, response]) => {
+        const {id: dataExportId} = data;
+        addSuccessMessage(
+          response?.status === 201
+            ? t(
+                "Sit tight. We'll shoot you an email when your data is ready for download."
+              )
+            : t("It looks like we're already working on it. Sit tight, we'll email you.")
+        );
+        this.setState({inProgress: true, dataExportId});
+      })
+      .catch(_err => {
+        addErrorMessage(
+          t("We tried our hardest, but we couldn't export your data. Give it another go.")
+        );
+      });
   };
 
   render() {

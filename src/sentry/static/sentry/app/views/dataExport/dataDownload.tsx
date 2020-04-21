@@ -166,6 +166,7 @@ class DataDownload extends AsyncView<Props, State> {
     const {
       errors: {download: err},
     } = this.state;
+    const errDetail = err?.responseJSON?.detail;
     return (
       <Layout>
         <main>
@@ -174,9 +175,11 @@ class DataDownload extends AsyncView<Props, State> {
               {err.status} - {err.statusText}
             </h3>
           </Header>
-          <Body>
-            <p>{err.responseJSON.detail}</p>
-          </Body>
+          {errDetail && (
+            <Body>
+              <p>{errDetail}</p>
+            </Body>
+          )}
         </main>
       </Layout>
     );
