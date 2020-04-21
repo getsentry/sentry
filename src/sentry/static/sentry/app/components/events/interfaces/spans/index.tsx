@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import * as ReactRouter from 'react-router';
 
-import {SentryTransactionEvent} from 'app/types';
+import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
@@ -14,6 +14,7 @@ import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import AlertMessage from 'app/components/alertMessage';
 import {TableData} from 'app/views/eventsV2/table/types';
+import withOrganization from 'app/utils/withOrganization';
 
 import {ParsedTraceType} from './types';
 import {parseTrace, getTraceDateTimeRange} from './utils';
@@ -23,6 +24,7 @@ type Props = {
   orgId: string;
   event: SentryTransactionEvent;
   eventView: EventView;
+  organization: Organization;
 } & ReactRouter.WithRouterProps;
 
 type State = {
@@ -93,7 +95,7 @@ class SpansInterface extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, orgId, eventView, location} = this.props;
+    const {event, orgId, eventView, location, organization} = this.props;
     const {parsedTrace} = this.state;
 
     // construct discover query to fetch error events associated with this transaction
@@ -113,6 +115,8 @@ class SpansInterface extends React.Component<Props, State> {
       conditions.transaction = [event.title];
     }
 
+    const orgFeatures = new Set(organization.features);
+
     const traceErrorsEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Errors related to transaction ${parsedTrace.rootSpanID}`,
@@ -126,7 +130,9 @@ class SpansInterface extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: stringifyQueryObject(conditions),
-      projects: [],
+      // if an org has no global-views, we make an assumption that errors are collected in the same
+      // project as the current transaction event where spans are collected into
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -218,4 +224,4 @@ function filterSpansWithErrors(
   };
 }
 
-export default ReactRouter.withRouter(SpansInterface);
+export default ReactRouter.withRouter(withOrganization(SpansInterface));
