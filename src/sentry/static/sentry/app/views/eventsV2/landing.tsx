@@ -289,12 +289,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             onQueryChange={this.handleQueryChange}
           />
           <Feature features={['organizations:discover']} organization={organization}>
-            <SwitchLink
-              href={`/organizations/${organization.slug}/discover/`}
-              onClick={this.onGoLegacyDiscover}
-            >
-              {t('Go to Legacy Discover')}
-            </SwitchLink>
+            <div>
+              <SwitchLink
+                href={`/organizations/${organization.slug}/discover/`}
+                onClick={this.onGoLegacyDiscover}
+              >
+                {t('Go to Legacy Discover')}
+              </SwitchLink>
+            </div>
           </Feature>
         </PageContent>
       );
