@@ -89,7 +89,7 @@ class MigrateProjectToIssueAlertTargetingTest(TestCase):
             assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == 0
             assert (
                 UserOption.objects.get_value(user, "workflow:notifications", project=self.project)
-                == "0"
+                == "2"
             )
         assert self.project.flags.has_issue_alerts_targeting
 
@@ -124,6 +124,6 @@ class MigrateProjectToIssueAlertTargetingTest(TestCase):
             assert UserOption.objects.get_value(user, "mail:alert", project=self.project) == 0
             assert (
                 UserOption.objects.get_value(user, "workflow:notifications", project=self.project)
-                == "0"
+                == "2"
             )
         assert self.project.flags.has_issue_alerts_targeting
