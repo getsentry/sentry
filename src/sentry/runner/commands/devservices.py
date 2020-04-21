@@ -74,7 +74,7 @@ def attach(project, service):
 
     client = get_docker_client()
     containers = _prepare_containers(project)
-    container = _start_service(client, service, containers, project, fast=True)
+    container = _start_service(client, service, containers, project)
 
     def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
@@ -151,7 +151,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, pulled=None, fast=False):
+def _start_service(client, name, containers, project, pulled=None):
     import docker
 
     from django.conf import settings
@@ -171,7 +171,7 @@ def _start_service(client, name, containers, project, pulled=None, fast=False):
         options["environment"][key] = value.format(containers=containers)
 
     pull = options.pop("pull", False)
-    if not fast and pull and (pulled is None or options["image"] not in pulled):
+    if pull and (pulled is None or options["image"] not in pulled):
         click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
         client.images.pull(options["image"])
         if pulled is not None:
@@ -190,7 +190,9 @@ def _start_service(client, name, containers, project, pulled=None, fast=False):
     except docker.errors.NotFound:
         pass
     else:
-        if fast:
+        if not pull:
+            # devservices which are marked with pull True will need their containers
+            # to be recreated with the freshly pulled image.
             click.secho(
                 "> Starting existing '%s' container%s" % (options["name"], listening),
                 err=True,
@@ -218,9 +220,8 @@ def down(project, service):
     for container in client.containers.list(all=True):
         if container.name.startswith(prefix):
             if not service or container.name[len(prefix) :] in service:
-                click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
+                click.secho("> Stopping '%s' container" % container.name, err=True, fg="red")
                 container.stop()
-                container.remove()
 
 
 @devservices.command()
