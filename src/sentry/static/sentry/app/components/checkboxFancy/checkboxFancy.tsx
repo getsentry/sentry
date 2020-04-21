@@ -45,10 +45,10 @@ const CheckboxFancy = styled(
   width: ${p => p.size};
   height: ${p => p.size};
   border-radius: 5px;
-  background: ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : null)};
+  background: ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : 'transparent')};
   border: 2px solid
     ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : p.theme.gray2)};
-  cursor: ${p => (p.isDisabled ? 'disabled' : 'pointer')};
+  cursor: ${p => (p.isDisabled ? 'not-allowed' : 'pointer')};
   ${p => (!p.isChecked || !p.isIndeterminate) && 'transition: 500ms border ease-out'};
 
   &:hover {
