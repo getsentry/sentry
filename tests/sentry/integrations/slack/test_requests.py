@@ -167,7 +167,7 @@ class SlackEventRequestTest(TestCase):
             self.set_signature(options.get("slack.signing-secret"), self.request.body)
             self.slack_request.validate()
 
-    def test_signing_secret_v1(self):
+    def test_signing_secret_v2(self):
         with override_options({"slack-v2.signing-secret": "secret-v2"}):
             self.request.data = {"challenge": "abc123", "type": "url_verification"}
 
