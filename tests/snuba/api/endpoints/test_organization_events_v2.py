@@ -1677,7 +1677,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
             assert meta["error_rate"] == "percentage"
-            assert meta["impact"] == "number"
+            assert meta["impact_300"] == "number"
 
             data = response.data["data"]
             assert len(data) == 1
@@ -1688,7 +1688,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact"] == 1.0
+            assert data[0]["impact_300"] == 1.0
             assert data[0]["error_rate"] == 0.5
 
         with self.feature(
@@ -1929,7 +1929,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["event.type", "apdex(300)"],
-                    "sort": "-apdex",
+                    "sort": "-apdex(300)",
                     "query": "event.type:transaction",
                 },
             )
@@ -1937,7 +1937,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["apdex"] == 0.0
+            assert data[0]["apdex_300"] == 0.0
 
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
