@@ -110,7 +110,6 @@ def up(project, exclude):
     client = get_docker_client()
 
     get_or_create(client, "network", project)
-    pulled = set()
 
     containers = _prepare_containers(project)
 
@@ -121,7 +120,7 @@ def up(project, exclude):
         if name not in containers:
             continue
 
-        _start_service(client, name, containers, project, pulled=pulled)
+        _start_service(client, name, containers, project)
 
 
 def _prepare_containers(project):
@@ -149,11 +148,10 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, pulled=None):
+def _start_service(client, name, containers, project):
     from django.conf import settings
 
     options = containers[name]
-    options.pop("with_devserver", False)
 
     # HACK(mattrobenolt): special handle snuba backend because it needs to
     # handle different values based on the eventstream backend
@@ -166,12 +164,12 @@ def _start_service(client, name, containers, project, pulled=None):
     for key, value in options["environment"].items():
         options["environment"][key] = value.format(containers=containers)
 
+    # TODO: initial pull
     pull = options.pop("pull", False)
-    if pull and (pulled is None or options["image"] not in pulled):
+    if pull:
         click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
         client.images.pull(options["image"])
-        if pulled is not None:
-            pulled.add(options["image"])
+
     for mount in options.get("volumes", {}).keys():
         if "/" not in mount:
             get_or_create(client, "volume", project + "_" + mount)
@@ -181,12 +179,18 @@ def _start_service(client, name, containers, project, pulled=None):
     if options["ports"]:
         listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
+    # If a service is associated with the devserver, then do not run the created container.
+    # This was mainly added since it is not desirable to occupy port 8000 on the
+    # first "devservices up".
+    # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
+    with_devserver = options.pop("with_devserver", False)
+
     try:
         container = client.containers.get(options["name"])
     except docker.errors.NotFound:
         pass
     else:
-        if not pull:
+        if not pull and not with_devserver:
             # devservices which are marked with pull True will need their containers
             # to be recreated with the freshly pulled image.
             click.secho(
@@ -201,7 +205,18 @@ def _start_service(client, name, containers, project, pulled=None):
         container.remove()
 
     click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
-    return client.containers.run(**options)
+    container = client.containers.create(**options)
+
+    if with_devserver:
+        click.secho(
+            "> Not starting container '%s' because it should be started on-demand with devserver."
+            % options["name"],
+            fg="yellow",
+        )
+        return container
+
+    container.start()
+    return container
 
 
 @devservices.command()
