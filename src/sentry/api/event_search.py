@@ -1384,7 +1384,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             continue
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
-            columns.extend(column_additions)
+            columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
             aggregations.extend(agg_additions)

@@ -1040,3 +1040,61 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 3}],
             [{"count": 0}],
         ]
+
+    def test_top_events_with_user(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["user", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert [attrs for time, attrs in data["bar@example.com"]["data"]] == [
+            [{"count": 6}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["127.0.0.1"]["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_user_and_email(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["user", "user.email", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert [attrs for time, attrs in data["bar@example.com,bar@example.com"]["data"]] == [
+            [{"count": 6}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
