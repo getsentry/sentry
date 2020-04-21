@@ -155,6 +155,7 @@ class EventsChart extends React.Component {
     const currentSeriesName = currentName ?? yAxis;
 
     const tooltip = {
+      truncate: 80,
       valueFormatter(value) {
         if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
           return getDuration(value / 1000, 2);
