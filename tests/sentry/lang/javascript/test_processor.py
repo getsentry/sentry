@@ -845,7 +845,7 @@ class CacheSourceTest(TestCase):
         assert len(processor.cache.get_errors(abs_path)) == 1
         assert processor.cache.get_errors(abs_path)[0] == {"url": abs_path, "type": "js_no_source"}
 
-    def test_node_modules_file_no_source_okay(self):
+    def test_node_modules_file_no_source_no_error(self):
         """
         If someone hasn't uploaded node_modules (which most people don't), it
         shouldn't complain about a source file being missing.
@@ -887,11 +887,12 @@ class CacheSourceTest(TestCase):
 
         processor.cache_source(abs_path)
 
+        # file is cached, no errors are generated
         assert processor.cache.get(abs_path)
         assert len(processor.cache.get_errors(abs_path)) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
-    def test_node_modules_file_with_source_no_map(self, mock_discover_sourcemap):
+    def test_node_modules_file_with_source_but_no_map_records_error(self, mock_discover_sourcemap):
         """
         If someone has uploaded node_modules, but is missing maps, it should complain
         so that they either a) upload the maps, or b) don't upload the source files.

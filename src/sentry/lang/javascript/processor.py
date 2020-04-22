@@ -813,7 +813,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
         except http.BadSource as exc:
             # most people don't upload release artifacts for their third-party libraries,
-            # so ignore missing node_modules files for node events
+            # so ignore missing node_modules files
             if exc.data["type"] == EventError.JS_MISSING_SOURCE and "node_modules" in filename:
                 pass
             else:
