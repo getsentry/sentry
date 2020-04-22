@@ -147,7 +147,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
 @instrumented_task(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     queue="incidents",
-    default_retry_delay=60 * 5,
+    default_retry_delay=60,
     max_retries=2,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
