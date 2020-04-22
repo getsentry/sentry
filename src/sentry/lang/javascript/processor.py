@@ -767,9 +767,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 allow_scraping=self.allow_scraping,
             )
         except http.BadSource as exc:
-            cache.add_error(filename, exc.data)
-            return
+            # most people don't upload release artifacts for their third-party libraries,
+            # so ignore missing node_modules files for node events
+            if exc.data["type"] == EventError.JS_MISSING_SOURCE and "node_modules" in filename:
+                pass
+            else:
+                cache.add_error(filename, exc.data)
 
+            # either way, there's no more for us to do here, since we don't have
+            # a valid file to cache
+            return
         cache.add(filename, result.body, result.encoding)
         cache.alias(result.url, filename)
 
@@ -792,6 +799,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 allow_scraping=self.allow_scraping,
             )
         except http.BadSource as exc:
+            # we don't perform the same check here as above, because if someone has
+            # uploaded a node_modules file, which has a sourceMappingURL, they
+            # presumably would like it mapped (and would like to know why it's not
+            # working, if that's the case). If they're not looking for it to be
+            # mapped, then they shouldn't be uploading the source file in the
+            # first place.
             cache.add_error(filename, exc.data)
             return
 
