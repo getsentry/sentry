@@ -217,6 +217,49 @@ class TestAlertRuleSerializer(TestCase):
 
         assert serializer.is_valid(), serializer.errors
 
+    def test_boundary(self):
+        payload = {
+            "name": "hello_im_a_test",
+            "time_window": 10,
+            "query": "level:error",
+            "threshold_type": 0,
+            "aggregation": 0,
+            "threshold_period": 1,
+            "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 1,
+                    "resolveThreshold": 2,
+                    "thresholdType": AlertRuleThresholdType.ABOVE.value,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+
+        # Now do a two trigger test:
+        payload["triggers"].append(
+            {
+                "label": "warning",
+                "alertThreshold": 0,
+                "resolveThreshold": 1,
+                "thresholdType": AlertRuleThresholdType.ABOVE.value,
+                "actions": [
+                    {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                    {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                ],
+            }
+        )
+
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
         # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)

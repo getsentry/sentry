@@ -1479,6 +1479,10 @@ SENTRY_DEVSERVICES = {
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        # This directive tells `devservices up` that the reverse_proxy is not to be
+        # started up, only pulled and made available for `devserver` which will start
+        # it with `devservices attach --is-devserver reverse_proxy`.
+        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
