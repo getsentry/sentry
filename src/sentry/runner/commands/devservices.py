@@ -50,8 +50,9 @@ def devservices():
 
 @devservices.command()
 @click.option("--project", default="sentry")
+@click.option("--is-devserver", is_flag=True, default=False)
 @click.argument("service", nargs=1)
-def attach(project, service):
+def attach(project, is_devserver, service):
     """
     Run a single devservice in foreground, as opposed to `up` which runs all of
     them in the background.
@@ -72,7 +73,9 @@ def attach(project, service):
 
     client = get_docker_client()
     containers = _prepare_containers(project)
-    container = _start_service(client, service, containers, project)
+    container = _start_service(
+        client, service, containers, project, devserver_override=is_devserver
+    )
 
     def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
@@ -148,7 +151,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project):
+def _start_service(client, name, containers, project, devserver_override=False):
     from django.conf import settings
 
     options = containers[name]
@@ -214,7 +217,7 @@ def _start_service(client, name, containers, project):
     click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
     container = client.containers.create(**options)
 
-    if with_devserver:
+    if with_devserver and not devserver_override:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
             % options["name"],
