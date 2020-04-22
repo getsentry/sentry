@@ -122,6 +122,11 @@ export const AGGREGATIONS = {
   },
 
   // Tracing functions.
+  p50: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
   p75: {
     parameters: [],
     outputType: 'duration',
@@ -134,6 +139,11 @@ export const AGGREGATIONS = {
     isSortable: true,
   },
   p99: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
+  p100: {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
@@ -297,9 +307,11 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'transaction.status',
+  'p50',
   'p75',
   'p95',
   'p99',
+  'p100',
   'percentile',
   'error_rate',
   'apdex',
