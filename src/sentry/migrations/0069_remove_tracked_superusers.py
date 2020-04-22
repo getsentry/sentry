@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0066_alertrule_manager'),
+        ('sentry', '0068_project_default_flags'),
     ]
 
     operations = [
