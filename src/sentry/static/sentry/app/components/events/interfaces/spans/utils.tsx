@@ -390,7 +390,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     (entry: {type: string}) => entry.type === 'spans'
   );
 
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  let spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -409,10 +409,50 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       parentSpanID,
       numOfSpans: 0,
       spans: [],
+      orphanSpans: [],
     };
   }
 
+  // any span may be a parent of another span
+  const potentialParents = new Set(
+    spans.map(span => {
+      return span.span_id;
+    })
+  );
+
+  potentialParents.add(rootSpanID);
+
   // we reduce spans to become an object mapping span ids to their children
+
+  let orphanSpans = spans.filter(span => {
+    if (span.parent_span_id) {
+      // if this span has a parent that's not one of the known parents,
+      // then it's considered an orphan with respect to the spans within this transaction
+      const hasParent = potentialParents.has(span.parent_span_id);
+      return !hasParent;
+    }
+
+    return true;
+  });
+
+  orphanSpans.sort(sortSpansAscending);
+
+  orphanSpans.sort((firstSpan: RawSpanType, _secondSpan: RawSpanType) => {
+    if (firstSpan.parent_span_id === undefined) {
+      return -1;
+    }
+    return 0;
+  });
+
+  // TODO: debug
+  orphanSpans = orphanSpans.slice(0, 5);
+  spans = spans.filter(span => {
+    return !!!orphanSpans.find(orphanSpan => {
+      return span.span_id === orphanSpan.span_id;
+    });
+  });
+
+  console.log('orphanSpans', orphanSpans);
 
   const init: ParsedTraceType = {
     op: rootSpanOpName,
@@ -424,6 +464,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     parentSpanID,
     numOfSpans: spans.length,
     spans,
+    orphanSpans,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, span) => {
@@ -470,18 +511,20 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
   // sort span children by their start timestamps in ascending order
 
   Object.values(reduced.childSpans).forEach(spanChildren => {
-    spanChildren.sort((firstSpan, secondSpan) => {
-      if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
-        return -1;
-      }
-
-      if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
-        return 0;
-      }
-
-      return 1;
-    });
+    spanChildren.sort(sortSpansAscending);
   });
 
   return reduced;
+}
+
+function sortSpansAscending(firstSpan: RawSpanType, secondSpan: RawSpanType) {
+  if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
+    return -1;
+  }
+
+  if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
+    return 0;
+  }
+
+  return 1;
 }
