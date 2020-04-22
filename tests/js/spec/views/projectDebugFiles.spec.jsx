@@ -23,6 +23,7 @@ describe('ProjectDebugFiles', function() {
     const wrapper = shallow(
       <ProjectDebugFiles
         params={{orgId: 'org', projectId: 'project'}}
+        organization={TestStubs.Organization()}
         location={{query: {}}}
       />,
       TestStubs.routerContext()
@@ -45,6 +46,7 @@ describe('ProjectDebugFiles', function() {
       <ProjectDebugFiles
         params={{orgId: 'org', projectId: 'project'}}
         location={{query: {}}}
+        organization={TestStubs.Organization()}
       />,
       TestStubs.routerContext()
     );
