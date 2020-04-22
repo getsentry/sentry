@@ -1044,6 +1044,12 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p50": {
+        "name": "p50",
+        "args": [],
+        "aggregate": [u"quantile(0.5)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "p75": {
         "name": "p75",
         "args": [],
@@ -1060,6 +1066,12 @@ FUNCTIONS = {
         "name": "p99",
         "args": [],
         "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p100": {
+        "name": "p100",
+        "args": [],
+        "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
     "rps": {
@@ -1384,7 +1396,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             continue
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
-            columns.extend(column_additions)
+            columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
             aggregations.extend(agg_additions)

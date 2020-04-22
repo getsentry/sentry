@@ -191,18 +191,20 @@ const button = {
   },
 } as const;
 
+const iconSizes = {
+  xs: '12px',
+  sm: '16px',
+  md: '20px',
+  lg: '24px',
+  xl: '32px',
+};
+
 const theme = {
   breakpoints: ['768px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
 
-  iconSizes: {
-    xs: '12px',
-    sm: '16px',
-    md: '20px',
-    lg: '24px',
-    xl: '32px',
-  },
+  iconSizes,
 
   iconDirections: {
     up: '0',
@@ -327,5 +329,6 @@ const theme = {
 
 export type Theme = typeof theme;
 export type Color = keyof typeof colors;
+export type IconSizes = keyof typeof iconSizes;
 
 export default theme;

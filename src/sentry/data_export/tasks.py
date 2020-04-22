@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name="sentry.data_export.tasks.assemble_download", queue="data_export")
-def assemble_download(data_export_id, limit=None, environment_id=None):
+def assemble_download(data_export_id, limit=1000000, environment_id=None):
     # Get the ExportedData object
     try:
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})

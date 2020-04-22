@@ -5,11 +5,10 @@ import React from 'react';
 
 import {Organization, EventsStats, YAxisEventsStats, EventsStatsData} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
-import {assert, assertType} from 'app/types/utils';
 import {Client} from 'app/api';
+import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
-import {doEventsRequest} from 'app/actionCreators/events';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
@@ -29,38 +28,115 @@ export type TimeSeriesData = {
 type LoadingStatus = {
   loading: boolean;
   reloading: boolean;
+  /**
+   * Whether there was an error retrieving data
+   */
   errored: boolean;
 };
 
-type YAxisResults = {[yAxisName: string]: TimeSeriesData};
+// API response format for multiple series
+type MultiSeriesData = {[seriesName: string]: EventsStats};
 
-type RenderProps = LoadingStatus & TimeSeriesData & {results?: YAxisResults};
+// Chart format for multiple series.
+type MultiSeriesResults = {[seriesName: string]: Series};
+
+type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
 
 type DefaultProps = {
+  /**
+   * Relative time period for query.
+   *
+   * Use `start` and `end` for absolute dates.
+   *
+   * e.g. 24h, 7d, 30d
+   */
   period: any;
+  /**
+   * Absolute start date for query
+   */
   start: any;
+  /**
+   * Absolute end date for query
+   */
   end: any;
+  /**
+   * Interval to group results in
+   *
+   * e.g. 1d, 1h, 1m, 1s
+   */
   interval: string;
+  /**
+   * number of rows to return
+   */
   limit: number;
+  /**
+   * The query string to search events by
+   */
   query: string;
+  /**
+   * Include data for previous period
+   */
   includePrevious: boolean;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
   includeTransformedData: boolean;
 };
 
 type EventsRequestPartialProps = {
+  /**
+   * API client instance
+   */
   api: Client;
   organization: Organization;
+  /**
+   * List of project ids to query
+   */
   project?: number[];
+  /**
+   * List of environments to query
+   */
   environment?: string[];
+  /**
+   * List of fields to group with when doing a topEvents request.
+   */
   field?: string[];
+  /**
+   * Reference event to use when generating additional conditions.
+   */
   referenceEvent?: string;
+  /**
+   * Initial loading state
+   */
   loading?: boolean;
+  /**
+   * Should loading be shown.
+   */
   showLoading?: boolean;
+  /**
+   * The yAxis being plotted. If multiple yAxis are requested,
+   * the child render function will be called with `results`
+   */
   yAxis?: string | string[];
+  /**
+   * Name used for display current series data set tooltip
+   */
   currentSeriesName?: string;
   previousSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
+  /**
+   * Determines if the "key transactions" version of the event-stats endpoint should be used
+   */
   keyTransactions?: boolean;
+  /**
+   * The number of top results to get. When set a multi-series result will be returned
+   * in the `results` child render function.
+   */
+  topEvents?: number;
+  /**
+   * How to order results when getting top events.
+   */
+  orderby?: string;
 };
 
 type TimeAggregationProps =
@@ -79,69 +155,25 @@ const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
+function isMultiSeriesData(
+  data: MultiSeriesData | EventsStats | null
+): data is MultiSeriesData {
+  return data !== null && data.data === undefined && data.totals === undefined;
+}
+
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
-    /**
-     * API client instance
-     */
     api: PropTypes.object.isRequired,
-
     organization: SentryTypes.Organization.isRequired,
-
-    /**
-     * List of project ids to query
-     */
     project: PropTypes.arrayOf(PropTypes.number),
-
-    /**
-     * List of environments to query
-     */
     environment: PropTypes.arrayOf(PropTypes.string),
-
-    /**
-     * Relative time period for query.
-     *
-     * Use `start` and `end` for absolute dates.
-     *
-     * e.g. 24h, 7d, 30d
-     */
     period: PropTypes.string,
-
-    /**
-     * Absolute start date for query
-     */
     start: PropTypes.instanceOf(Date),
-
-    /**
-     * Absolute end date for query
-     */
     end: PropTypes.instanceOf(Date),
-
-    /**
-     * Interval to group results in
-     *
-     * e.g. 1d, 1h, 1m, 1s
-     */
     interval: PropTypes.string,
-
-    /**
-     * Include data for previous period
-     */
     includePrevious: PropTypes.bool,
-
-    /**
-     * number of rows to return
-     */
     limit: PropTypes.number,
-
-    /**
-     * The query string to search events by
-     */
     query: PropTypes.string,
-
-    /**
-     * Transform the response data to be something ingestible by charts
-     */
     includeTransformedData: PropTypes.bool,
 
     /**
@@ -154,38 +186,17 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
      * Name of series of aggregated timeseries
      */
     timeAggregationSeriesName: PropTypes.string,
-
-    /**
-     * Initial loading state
-     */
     loading: PropTypes.bool,
-
-    /**
-     * Whether there was an error retrieving data
-     */
     errored: PropTypes.bool,
-
-    /**
-     * Should loading be shown.
-     */
     showLoading: PropTypes.bool,
-
-    /**
-     * Name used for display current series data set tooltip
-     */
     currentSeriesName: PropTypes.string,
-    /**
-     * The yAxis being plotted
-     */
     yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 
     field: PropTypes.arrayOf(PropTypes.string),
     referenceEvent: PropTypes.string,
-
-    /**
-     * Determines if the "key transactions" version of the event-stats endpoint should be used
-     */
     keyTransactions: PropTypes.bool,
+    topEvents: PropTypes.number,
+    orderby: PropTypes.string,
   };
 
   static defaultProps: DefaultProps = {
@@ -195,7 +206,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     interval: '1d',
     limit: 15,
     query: '',
-
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -327,11 +337,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData(data: EventsStatsData): Series[] {
-    const seriesName = this.props.currentSeriesName ?? 'Current';
+  transformTimeseriesData(data: EventsStatsData, seriesName?: string): Series[] {
     return [
       {
-        seriesName,
+        seriesName: seriesName || 'Current',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -353,7 +362,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
-      ? this.transformTimeseriesData(current)
+      ? this.transformTimeseriesData(current, this.props.currentSeriesName)
       : [];
     const previousData = includeTransformedData
       ? this.transformPreviousPeriodData(current, previous)
@@ -382,38 +391,18 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
 
-    assert(timeseriesData);
-
-    if (Array.isArray(props.yAxis) && timeseriesData) {
-      // if yAxis is an array, then the API endpoint will return multiple sets of data
-      // in the form of a map: {[yAxisName: string]: EventsStats}
-
-      assertType<YAxisEventsStats>(timeseriesData);
-
-      const results: YAxisResults = Object.fromEntries(
-        props.yAxis.map((yAxisName: string): [string, TimeSeriesData] => {
-          const {
-            data: transformedTimeseriesData,
-            allData: allTimeseriesData,
-            originalData: originalTimeseriesData,
-            totals: timeseriesTotals,
-            originalPreviousData: originalPreviousTimeseriesData,
-            previousData: previousTimeseriesData,
-            timeAggregatedData,
-          } = this.processData(timeseriesData[yAxisName]);
-
-          // timeseries data
+    if (isMultiSeriesData(timeseriesData)) {
+      // Convert multi-series results into chartable series. Multi series results
+      // are created when multiple yAxis are used or a topEvents request is made.
+      // Convert the timeseries data into a multi-series result set.
+      // As the server will have replied with a map like:
+      // {[titleString: string]: EventsStats}
+      const results: MultiSeriesResults = Object.fromEntries(
+        Object.keys(timeseriesData).map((seriesName: string): [string, Series] => {
+          const seriesData: EventsStats = timeseriesData[seriesName];
           return [
-            yAxisName,
-            {
-              timeseriesData: transformedTimeseriesData,
-              allTimeseriesData,
-              originalTimeseriesData,
-              timeseriesTotals,
-              originalPreviousTimeseriesData,
-              previousTimeseriesData,
-              timeAggregatedData,
-            },
+            seriesName,
+            this.transformTimeseriesData(seriesData.data, seriesName)[0],
           ];
         })
       );
@@ -422,14 +411,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
         loading,
         reloading,
         errored,
-        // timeseries data
         results,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
     }
-
-    assertType<EventsStats>(timeseriesData);
 
     const {
       data: transformedTimeseriesData,
