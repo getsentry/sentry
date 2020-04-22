@@ -64,6 +64,7 @@ const ReleaseChartContainer = ({
           period={period}
           utc={utc}
           disablePrevious
+          disableReleases
           currentSeriesName={t('Events')}
         />
       ) : (

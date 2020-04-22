@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
@@ -405,22 +405,7 @@ export default class Discover extends React.Component<Props, State> {
       utc,
     } = this.props;
 
-    const currentQuery = queryBuilder.getInternal();
-
     const shouldDisplayResult = resultManager.shouldDisplayResult();
-
-    const start =
-      (currentQuery.start &&
-        moment(currentQuery.start)
-          .local()
-          .toDate()) ||
-      currentQuery.start;
-    const end =
-      (currentQuery.end &&
-        moment(currentQuery.end)
-          .local()
-          .toDate()) ||
-      currentQuery.end;
 
     return (
       <DiscoverContainer>
@@ -471,12 +456,7 @@ export default class Discover extends React.Component<Props, State> {
 
         <DiscoverGlobalSelectionHeader
           organization={organization}
-          projects={currentQuery.projects}
           hasCustomRouting
-          relative={currentQuery.range}
-          start={start}
-          end={end}
-          utc={utc}
           showEnvironmentSelector={false}
           onChangeProjects={this.updateProjects}
           onUpdateProjects={this.runQuery}

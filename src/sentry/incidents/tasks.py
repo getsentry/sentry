@@ -11,6 +11,7 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
+    IncidentStatusMethod,
     INCIDENT_STATUS,
 )
 from sentry.models import Project
@@ -146,7 +147,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
 @instrumented_task(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     queue="incidents",
-    default_retry_delay=60 * 5,
+    default_retry_delay=60,
     max_retries=2,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
@@ -173,6 +174,7 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
                 incident,
                 IncidentStatus.CLOSED,
                 comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
+                status_method=IncidentStatusMethod.RULE_UPDATED,
             )
 
     if has_more:

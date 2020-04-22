@@ -398,44 +398,11 @@ describe('EventsRequest', function() {
       await tick();
       wrapper.update();
 
-      const expectedDataResponse = {
-        allTimeseriesData: [
-          [
-            expect.anything(),
-            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
-          ],
-          [expect.anything(), [expect.objectContaining({count: 123})]],
-        ],
-        timeseriesData: [
-          {
-            seriesName: expect.anything(),
-            data: [
-              expect.objectContaining({
-                name: expect.anything(),
-                value: 123,
-              }),
-            ],
-          },
-        ],
-        previousTimeseriesData: {
-          seriesName: 'Previous',
-          data: [
-            expect.objectContaining({
-              name: expect.anything(),
-              value: 400,
-            }),
-          ],
-        },
-
-        originalTimeseriesData: [
-          [expect.anything(), [expect.objectContaining({count: 123})]],
-        ],
-
-        originalPreviousTimeseriesData: [
-          [
-            expect.anything(),
-            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
-          ],
+      const expectedData = {
+        seriesName: expect.anything(),
+        data: [
+          {name: expect.anything(), value: 400},
+          {name: expect.anything(), value: 123},
         ],
       };
 
@@ -444,8 +411,78 @@ describe('EventsRequest', function() {
           loading: false,
 
           results: {
-            'apdex()': expect.objectContaining(expectedDataResponse),
-            'rpm()': expect.objectContaining(expectedDataResponse),
+            'apdex()': expect.objectContaining(expectedData),
+            'rpm()': expect.objectContaining(expectedData),
+          },
+        })
+      );
+    });
+  });
+
+  describe('topEvents', function() {
+    beforeEach(function() {
+      doEventsRequest.mockClear();
+    });
+
+    it('supports topEvents parameter', async function() {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          'project1,error': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+          'project1,warning': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+        })
+      );
+
+      wrapper = mount(
+        <EventsRequest
+          {...DEFAULTS}
+          includePrevious
+          field={['project', 'level']}
+          topEvents={2}
+        >
+          {mock}
+        </EventsRequest>
+      );
+
+      await tick();
+      wrapper.update();
+
+      const expectedData = {
+        seriesName: expect.anything(),
+        data: [
+          {name: expect.anything(), value: 400},
+          {name: expect.anything(), value: 123},
+        ],
+      };
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+
+          results: {
+            'project1,error': expect.objectContaining(expectedData),
+            'project1,warning': expect.objectContaining(expectedData),
           },
         })
       );

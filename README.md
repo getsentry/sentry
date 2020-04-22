@@ -45,6 +45,5 @@ sending events from any language, in any application.
   - [Contributing](https://docs.sentry.io/internal/contributing/)
   - [Bug Tracker](https://github.com/getsentry/sentry/issues)
   - [Code](https://github.com/getsentry/sentry)
-  - [Discord](https://discord.gg/ez5KZN7)
   - [Transifex](https://www.transifex.com/getsentry/sentry/) (Translate
     Sentry\!)

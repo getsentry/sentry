@@ -411,7 +411,9 @@ def _prepare_query_params(query_params):
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise QueryOutsideRetentionError
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query

@@ -13,6 +13,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.snuba import discover
+from sentry.utils import snuba
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
@@ -31,8 +32,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
             )
-        except discover.InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
 
         return Response({"count": result["data"][0]["count"]})
 

@@ -106,8 +106,9 @@ class Project(Model, PendingDeletionMixin):
         flags=(
             ("has_releases", "This Project has sent release data"),
             ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
+            ("has_transactions", "This Project has sent transactions"),
         ),
-        default=0,
+        default=2,
         null=True,
     )
 

@@ -216,6 +216,7 @@ PROTECTED_TAG_KEYS = frozenset(["environment", "release", "sentry:release"])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
+    "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
@@ -494,6 +495,9 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+
+# Most number of events for the top-n graph
+MAX_TOP_EVENTS = 5
 
 
 @unique

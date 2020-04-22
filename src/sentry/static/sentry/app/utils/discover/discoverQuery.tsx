@@ -28,7 +28,7 @@ type State = {
   tableFetchID: symbol | undefined;
 } & ChildrenProps;
 
-class EventsV2 extends React.Component<Props, State> {
+class DiscoverQuery extends React.Component<Props, State> {
   static defaultProps = {
     keyTransactions: false,
   };
@@ -113,7 +113,7 @@ class EventsV2 extends React.Component<Props, State> {
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: err?.responseJSON?.detail ?? null,
           tableData: null,
         });
       });
@@ -133,4 +133,4 @@ class EventsV2 extends React.Component<Props, State> {
   }
 }
 
-export default withApi(EventsV2);
+export default withApi(DiscoverQuery);
