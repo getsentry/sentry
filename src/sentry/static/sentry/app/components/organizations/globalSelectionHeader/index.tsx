@@ -8,7 +8,6 @@ import withProjectsSpecified from 'app/utils/withProjectsSpecified';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 
-// TODO(ts): Intersect with types of GlobalSelectionHeader when it is converted to ts
 type Props = {
   organization: Organization;
   selection: GlobalSelection;

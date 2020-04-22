@@ -369,7 +369,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     // we have the project to force.
     //
     // If user does not have multiple project selection, we need to save the forced
-    // project into the store (f project is not in URL params), otherwise
+    // project into the store (if project is not in URL params), otherwise
     // there will be weird behavior in this component since it just picks a project
     if (!hasMultipleProjectFeature && forceProject && !prevProps.forceProject) {
       // Make sure a project isn't specified in query param already, since it should take precendence
