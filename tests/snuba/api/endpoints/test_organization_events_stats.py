@@ -661,7 +661,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 "data": {
                     "message": "not so bad",
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "fingerprint": ["group5"],
+                    "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                 },
                 "project": self.project,
@@ -1095,6 +1095,70 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
         assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_none_filter(self):
+        """ When a field is None in one of the top events, make sure we filter by it
+
+            In this case event[4] is a transaction and has no issue
+        """
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            if event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[issue]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_one_field_with_none(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": "event.type:transaction",
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data["unknown"]
+        assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]

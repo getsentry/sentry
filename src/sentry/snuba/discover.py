@@ -837,8 +837,10 @@ def top_events_timeseries(
         # project is handled by filter_keys already
         if field in ["project", "project.id"]:
             continue
+        if field == "issue":
+            field = FIELD_ALIASES["issue"]["column_alias"]
         values = list({event.get(field) for event in top_events["data"] if field in event})
-        if values and all(value is not None for value in values):
+        if values:
             # timestamp needs special handling, creating a big OR instead
             if field == "timestamp":
                 snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
@@ -847,6 +849,12 @@ def top_events_timeseries(
                 snuba_filter.conditions.append(
                     [[resolve_column(user_field), "IN", values] for user_field in user_fields]
                 )
+            elif None in values:
+                non_none_values = [value for value in values if value is not None]
+                condition = [[["isNull", [resolve_column(field)]], "=", 1]]
+                if non_none_values:
+                    condition.append([resolve_column(field), "IN", non_none_values])
+                snuba_filter.conditions.append(condition)
             else:
                 snuba_filter.conditions.append([resolve_column(field), "IN", values])
 
@@ -867,7 +875,9 @@ def top_events_timeseries(
     result = transform_results(result, translated_columns, snuba_filter, selected_columns)
 
     translated_columns["project_id"] = "project"
-    translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
+    translated_groupby = [
+        translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
+    ]
 
     if "user" in selected_columns:
         # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
