@@ -333,7 +333,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
 
-        if features.has("organizations:enterprise-perf"):
+        project_orgs = set(project.organization for project in projects)
+        query_org = tuple(project_orgs)[0] if len(project_orgs) == 1 else None
+        if query_org and features.has("organizations:enterprise-perf", query_org):
             with sentry_sdk.start_span(op="snuba_group_candidate_query") as span:
                 candidate_count = group_queryset.count()
                 span.set_data("Result", candidate_count)
