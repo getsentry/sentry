@@ -399,6 +399,42 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_project_filter_limits_automatic_fields(self, mock_query):
+        project2 = self.create_project(organization=self.organization)
+        mock_query.return_value = {
+            "meta": [{"name": "title"}, {"name": "project_id"}],
+            "data": [{"title": "stuff", "project_id": project2.id}],
+        }
+        discover.query(
+            selected_columns=["title", "project"],
+            query="project:{}".format(project2.slug),
+            params={"project_id": [self.project.id, project2.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=["title", "project_id"],
+            aggregations=[
+                [
+                    "transform(project_id, array({}), array('{}'), '')".format(
+                        six.text_type(project2.id), project2.slug
+                    ),
+                    None,
+                    "project",
+                ]
+            ],
+            filter_keys={},
+            dataset=Dataset.Discover,
+            end=None,
+            start=None,
+            conditions=[["project_id", "=", project2.id]],
+            groupby=["title", "project_id"],
+            having=[],
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_no_auto_fields(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "user_id"}, {"name": "email"}],
@@ -840,7 +876,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
             conditions=[["project_id", "=", project2.id]],
-            filter_keys={"project_id": [self.project.id, project2.id]},
+            filter_keys={},
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
