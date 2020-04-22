@@ -85,6 +85,12 @@ class NotifyEmailFormTest(TestCase):
         form = self.form_from_values(ActionTargetType.MEMBER.value, self.inactive_user)
         assert not form.is_valid()
 
+    def test_none_target_identifier(self):
+        json = {self.TARGET_TYPE_KEY: ActionTargetType.ISSUE_OWNERS.value}
+        json[self.TARGET_IDENTIFIER_KEY] = "None"
+        form = self.form_from_json(json)
+        assert form.is_valid()
+
 
 class NotifyEmailTest(RuleTestCase):
     rule_cls = NotifyEmailAction

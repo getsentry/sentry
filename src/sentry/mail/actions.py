@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django import forms
 
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.mail.adapter import ActionTargetType, MailAdapter
 from sentry.models import Project, User
 from sentry.rules.actions.base import EventAction
@@ -18,13 +17,25 @@ CHOICES = [
 
 class NotifyEmailForm(forms.Form):
     targetType = forms.ChoiceField(choices=CHOICES)
-    targetIdentifier = BoundedBigIntegerField().formfield(
+    targetIdentifier = forms.CharField(
         required=False, help_text="Only required if 'Member' or 'Team' is selected"
     )
 
     def __init__(self, project, *args, **kwargs):
         super(NotifyEmailForm, self).__init__(*args, **kwargs)
         self.project = project
+
+    def clean_targetIdentifier(self):
+        targetIdentifier = self.cleaned_data.get("targetIdentifier")
+        # XXX: Clean up some bad data in the database
+        if targetIdentifier == "None":
+            targetIdentifier = None
+        if targetIdentifier:
+            try:
+                targetIdentifier = int(targetIdentifier)
+            except ValueError:
+                raise forms.ValidationError("targetIdentifier must be an integer")
+        return targetIdentifier
 
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
