@@ -1,3 +1,4 @@
+import {ComponentClass, StatelessComponent} from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {InjectedRouter, Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -16,4 +17,16 @@ declare module 'react-router' {
     router: InjectedRouter<P, Q>;
     routes: PlainRoute[];
   }
+
+  type ComponentConstructor<P> = ComponentClass<P> | StatelessComponent<P>;
+
+  declare function withRouter<P extends WithRouterProps>(
+    component: ComponentConstructor<P>,
+    options?: Options
+  ): ComponentClass<Omit<P, keyof WithRouterProps>>;
+
+  declare function withRouter<P extends WithRouterProps, S>(
+    component: ComponentConstructor<P> & S,
+    options?: Options
+  ): ComponentClass<Omit<P, keyof WithRouterProps>> & S;
 }
