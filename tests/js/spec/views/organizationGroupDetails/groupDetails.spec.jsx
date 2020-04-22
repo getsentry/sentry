@@ -141,7 +141,6 @@ describe('groupDetails', function() {
       'There was an error loading data.Retry'
     );
 
-    console.log(wrapper.debug());
     wrapper.find('button[aria-label="Retry"]').simulate('click');
 
     expect(issueDetailsMock).toHaveBeenCalledTimes(2);
