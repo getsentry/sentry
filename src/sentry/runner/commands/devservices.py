@@ -189,7 +189,7 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
 
     listening = ""
     if options["ports"]:
-        listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+        listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for reverse_proxy to occupy port 8000 on the
@@ -197,26 +197,32 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 
+    container = None
     try:
         container = client.containers.get(options["name"])
     except docker.errors.NotFound:
         pass
-    else:
+
+    if container is not None:
         if not pull and not with_devserver:
             # devservices which are marked with pull True will need their containers
             # to be recreated with the freshly pulled image.
             click.secho(
-                "> Starting existing '%s' container%s" % (options["name"], listening),
+                "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
                 fg="yellow",
             )
+            # Note that if the container is already running, this will noop.
+            # This makes repeated `devservices up` quite fast.
             container.start()
             return container
 
+        click.secho("> Stopping container '%s'" % container.name, err=True, fg="yellow")
         container.stop()
+        click.secho("> Removing container '%s'" % container.name, err=True, fg="yellow")
         container.remove()
 
-    click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
+    click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
 
     # Two things call _start_service.
@@ -227,11 +233,12 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
     if with_devserver and not devserver_override:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
-            % options["name"],
+            % container.name,
             fg="yellow",
         )
         return container
 
+    click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
     container.start()
     return container
 
