@@ -177,7 +177,7 @@ class ReleaseSerializer(Serializer):
             False,
         )
 
-    def __get_release_data_no_environment(self, project, item_list):
+    def __get_release_data_no_environment(self, project, item_list, tag_values=None):
         if project is not None:
             project_ids = [project.id]
             specialized = True
@@ -186,9 +186,10 @@ class ReleaseSerializer(Serializer):
 
         first_seen = {}
         last_seen = {}
-        tag_values = tagstore.get_release_tags(
-            project_ids, environment_id=None, versions=[o.version for o in item_list]
-        )
+        if tag_values is None:
+            tag_values = tagstore.get_release_tags(
+                project_ids, environment_id=None, versions=[o.version for o in item_list]
+            )
         for tv in tag_values:
             first_val = first_seen.get(tv.value)
             last_val = last_seen.get(tv.value)
@@ -231,6 +232,7 @@ class ReleaseSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
         environment = kwargs.get("environment")
+        tag_values = kwargs.get("tag_values")
         with_health_data = kwargs.get("with_health_data", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
@@ -238,7 +240,7 @@ class ReleaseSerializer(Serializer):
 
         if environment is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
-                project, item_list
+                project, item_list, tag_values
             )
         else:
             (
