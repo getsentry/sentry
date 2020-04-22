@@ -26,6 +26,7 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Access from 'app/components/acl/access';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 
 import {Incident} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
@@ -245,83 +246,91 @@ class IncidentsListContainer extends React.Component<Props> {
     const status = getQueryStatus(query.status);
 
     return (
-      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
-        <PageContent>
-          <PageHeader>
-            <StyledPageHeading>
-              {t('Alerts')}{' '}
-              <BetaTag title={t('This page is in beta and may change in the future.')} />
-            </StyledPageHeading>
+      <React.Fragment>
+        <GlobalSelectionHeader organization={organization} showDateSelector={false} />
+        <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+          <PageContent>
+            <PageHeader>
+              <StyledPageHeading>
+                {t('Alerts')}{' '}
+                <BetaTag
+                  title={t('This page is in beta and may change in the future.')}
+                />
+              </StyledPageHeading>
 
-            <Actions>
-              <Access organization={organization} access={['project:write']}>
-                {({hasAccess}) => (
+              <Actions>
+                <Access organization={organization} access={['project:write']}>
+                  {({hasAccess}) => (
+                    <Button
+                      disabled={!hasAccess}
+                      title={
+                        !hasAccess
+                          ? t('You do not have permission to add alert rules.')
+                          : undefined
+                      }
+                      onClick={this.handleAddAlertRule}
+                      priority="primary"
+                      href="#"
+                      size="small"
+                      icon={<IconAdd circle size="xs" />}
+                    >
+                      {t('Add Alert Rule')}
+                    </Button>
+                  )}
+                </Access>
+
+                <Button
+                  onClick={this.handleNavigateToSettings}
+                  href="#"
+                  size="small"
+                  icon={<IconSettings size="xs" />}
+                >
+                  {t('Settings')}
+                </Button>
+
+                <ButtonBar merged active={status}>
                   <Button
-                    disabled={!hasAccess}
-                    title={
-                      !hasAccess
-                        ? t('You do not have permission to add alert rules.')
-                        : undefined
-                    }
-                    onClick={this.handleAddAlertRule}
-                    priority="primary"
-                    href="#"
+                    to={{pathname, query: openIncidentsQuery}}
+                    barId="open"
                     size="small"
-                    icon={<IconAdd circle size="xs" />}
                   >
-                    {t('Add Alert Rule')}
+                    {t('Active')}
                   </Button>
-                )}
-              </Access>
+                  <Button
+                    to={{pathname, query: closedIncidentsQuery}}
+                    barId="closed"
+                    size="small"
+                  >
+                    {t('Resolved')}
+                  </Button>
+                  <Button
+                    to={{pathname, query: allIncidentsQuery}}
+                    barId="all"
+                    size="small"
+                  >
+                    {t('All')}
+                  </Button>
+                </ButtonBar>
+              </Actions>
+            </PageHeader>
 
-              <Button
-                onClick={this.handleNavigateToSettings}
-                href="#"
-                size="small"
-                icon={<IconSettings size="xs" />}
-              >
-                {t('Settings')}
-              </Button>
-
-              <ButtonBar merged active={status}>
-                <Button
-                  to={{pathname, query: openIncidentsQuery}}
-                  barId="open"
-                  size="small"
-                >
-                  {t('Active')}
-                </Button>
-                <Button
-                  to={{pathname, query: closedIncidentsQuery}}
-                  barId="closed"
-                  size="small"
-                >
-                  {t('Resolved')}
-                </Button>
-                <Button
-                  to={{pathname, query: allIncidentsQuery}}
-                  barId="all"
-                  size="small"
-                >
-                  {t('All')}
-                </Button>
-              </ButtonBar>
-            </Actions>
-          </PageHeader>
-
-          <Alert type="info" icon="icon-circle-info">
-            {tct('This page is in beta and currently only shows [link:metric alerts]. ', {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
-              ),
-            })}
-            <ExternalLink href="mailto:alerting-feedback@sentry.io">
-              {t('Please contact us if you have any feedback.')}
-            </ExternalLink>
-          </Alert>
-          <IncidentsList {...this.props} />
-        </PageContent>
-      </DocumentTitle>
+            <Alert type="info" icon="icon-circle-info">
+              {tct(
+                'This page is in beta and currently only shows [link:metric alerts]. ',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
+                  ),
+                }
+              )}
+              <ExternalLink href="mailto:alerting-feedback@sentry.io">
+                {t('Please contact us if you have any feedback.')}
+              </ExternalLink>
+            </Alert>
+            <IncidentsList {...this.props} />
+          </PageContent>
+        </DocumentTitle>
+      </React.Fragment>
     );
   }
 }
