@@ -606,7 +606,7 @@ def snapshot_alert_rule(alert_rule):
 
     # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
     tasks.auto_resolve_snapshot_incidents.apply_async(
-        kwargs={"alert_rule_id": alert_rule_snapshot.id}
+        kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
     )
 
 
