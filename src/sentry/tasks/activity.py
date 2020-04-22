@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_activity_notifiers(project):
-    from sentry.mail.adapter import MailAdapter
+    from sentry.mail import mail_adapter
     from sentry.plugins.bases.notify import NotificationPlugin
     from sentry.plugins.base import plugins
 
@@ -23,7 +23,7 @@ def get_activity_notifiers(project):
             results.append(notifier)
 
     if project.flags.has_issue_alerts_targeting:
-        results.append(MailAdapter())
+        results.append(mail_adapter)
 
     return results
 

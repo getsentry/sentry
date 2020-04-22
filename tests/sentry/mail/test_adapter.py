@@ -16,7 +16,8 @@ from six import text_type
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.mail.adapter import MailAdapter, ActionTargetType
+from sentry.mail import mail_adapter
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
     Organization,
@@ -43,7 +44,7 @@ from sentry.utils.email import MessageBuilder
 class BaseMailAdapterTest(object):
     @fixture
     def adapter(self):
-        return MailAdapter()
+        return mail_adapter
 
     def make_event_data(self, filename, url="http://example.com"):
         mgr = EventManager(
@@ -259,7 +260,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
+    @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_notify_users_does_email(self, _send_mail):
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -282,7 +283,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         self.assertEquals(kwargs.get("reference"), group)
         assert kwargs.get("subject") == u"BAR-1 - hello world"
 
-    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
+    @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_multiline_error(self, _send_mail):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
@@ -471,7 +472,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
 
 
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
-    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
         event = self.store_event(
@@ -497,7 +498,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)

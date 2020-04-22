@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from django import forms
 
-from sentry.mail.adapter import ActionTargetType, MailAdapter
+from sentry.mail import mail_adapter
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import Project, User
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
@@ -89,20 +90,19 @@ class NotifyEmailAction(EventAction):
     def __init__(self, *args, **kwargs):
         super(NotifyEmailAction, self).__init__(*args, **kwargs)
         self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
-        self.mail_adapter = MailAdapter()
 
     def after(self, event, state):
         extra = {"event_id": event.event_id}
         group = event.group
 
-        if not self.mail_adapter.should_notify(group=group):
+        if not mail_adapter.should_notify(group=group):
             extra["group_id"] = group.id
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
-            lambda event, futures: self.mail_adapter.rule_notify(
+            lambda event, futures: mail_adapter.rule_notify(
                 event,
                 futures,
                 ActionTargetType(self.data["targetType"]),
