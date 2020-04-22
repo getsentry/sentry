@@ -1,5 +1,5 @@
 import {Box, Flex} from 'reflexbox';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -7,8 +7,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete} from 'app/icons/iconDelete';
@@ -24,35 +23,37 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
 
-function getFileType(dsym) {
-  switch (dsym.data && dsym.data.type) {
-    case 'exe':
+function getFileType(dsym: DebugFile) {
+  switch (dsym.data?.type) {
+    case DebugFileType.EXE:
       return t('executable');
-    case 'dbg':
+    case DebugFileType.DBG:
       return t('debug companion');
-    case 'lib':
+    case DebugFileType.LIB:
       return t('dynamic library');
     default:
       return null;
   }
 }
 
-function getFeatureTooltip(feature) {
+function getFeatureTooltip(feature: DebugFileFeature) {
   switch (feature) {
-    case 'symtab':
+    case DebugFileFeature.SYMTAB:
       return t(
         'Symbol tables are used as a fallback when full debug information is not available'
       );
-    case 'debug':
+    case DebugFileFeature.DEBUG:
       return t(
         'Debug information provides function names and resolves inlined frames during symbolication'
       );
-    case 'unwind':
+    case DebugFileFeature.UNWIND:
       return t(
         'Stack unwinding information improves the quality of stack traces extracted from minidumps'
       );
-    case 'sources':
+    case DebugFileFeature.SOURCES:
       return t(
         'Source code information allows Sentry to display source code context for stack frames'
       );
@@ -61,53 +62,88 @@ function getFeatureTooltip(feature) {
   }
 }
 
-const DebugSymbolDetails = styled('div')`
-  margin-top: 4px;
-`;
+type BuiltinSymbolSource = {
+  hidden: boolean;
+  id: string;
+  name: string;
+  sentry_key: string;
+};
 
-class ProjectDebugSymbols extends AsyncComponent {
-  static contextTypes = {
-    organization: PropTypes.object.isRequired,
-  };
+enum DebugFileType {
+  EXE = 'exe',
+  DBG = 'dbg',
+  LIB = 'lib',
+}
+
+enum DebugFileFeature {
+  SYMTAB = 'symtab',
+  DEBUG = 'debug',
+  UNWIND = 'unwind',
+  SOURCES = 'sources',
+}
+
+type DebugFile = {
+  codeId: string;
+  cpuName: string;
+  dateCreated: string;
+  debugId: string;
+  headers: Record<string, string>;
+  id: string;
+  objectName: string;
+  sha1: string;
+  size: number;
+  symbolType: string;
+  uuid: string;
+  data?: {type: DebugFileType; features: DebugFileFeature[]};
+};
+
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
+  project: Project;
+};
+
+type State = AsyncView['state'] & {
+  debugFiles: DebugFile[];
+  builtinSymbolSources?: BuiltinSymbolSource[];
+};
+
+class ProjectDebugSymbols extends AsyncView<Props, State> {
+  getTitle() {
+    const {projectId} = this.props.params;
+
+    return routeTitleGen(t('Debug Files'), projectId, false);
+  }
 
   getEndpoints() {
-    const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
-    const features = new Set(organization.features);
+    const {organization, params, location} = this.props;
+    const {orgId, projectId} = params;
 
-    const endpoints = [
-      ['project', `/projects/${orgId}/${projectId}/`],
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: this.props.location.query.query}},
+        {query: {query: location.query.query}},
       ],
     ];
 
-    if (features.has('symbol-sources')) {
+    if (organization.features.includes('symbol-sources')) {
       endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/']);
     }
 
     return endpoints;
   }
 
-  onDelete(id) {
+  onDelete(id: string) {
     const {orgId, projectId} = this.props.params;
+
     this.setState({
       loading: true,
     });
+
     this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/?id=${id}`, {
       method: 'DELETE',
       complete: () => this.fetchData(),
     });
-  }
-
-  renderNoQueryResults() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no releases match your filters.')}</p>
-      </EmptyStateWarning>
-    );
   }
 
   renderEmpty() {
@@ -119,13 +155,14 @@ class ProjectDebugSymbols extends AsyncComponent {
   }
 
   renderDsyms() {
+    const {debugFiles} = this.state;
     const {orgId, projectId} = this.props.params;
 
-    const rows = this.state.debugFiles.map((dsym, key) => {
+    return debugFiles.map((dsym, key) => {
       const url = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
       const fileType = getFileType(dsym);
       const symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
-      const features = dsym.data && dsym.data.features;
+      const {features} = dsym.data || {};
 
       return (
         <PanelItem key={key} alignItems="center" px={2} py={1}>
@@ -185,7 +222,7 @@ class ProjectDebugSymbols extends AsyncComponent {
                   title={t('You do not have permission to delete debug files.')}
                 >
                   <Confirm
-                    title={t('Delete')}
+                    confirmText={t('Delete')}
                     message={t('Are you sure you wish to delete this file?')}
                     onConfirm={() => this.onDelete(dsym.id)}
                     disabled={!hasAccess}
@@ -204,30 +241,21 @@ class ProjectDebugSymbols extends AsyncComponent {
         </PanelItem>
       );
     });
-
-    return rows;
-  }
-
-  renderDebugSymbols() {
-    return this.state.debugFiles.length > 0 ? this.renderDsyms() : this.renderEmpty();
   }
 
   renderBody() {
-    const {orgId, projectId} = this.props.params;
-    const {organization} = this.context;
-    const {project} = this.state;
-    const features = new Set(organization.features);
-    const access = new Set(organization.access);
+    const {organization, project, params} = this.props;
+    const {builtinSymbolSources, debugFiles, debugFilesPageLinks} = this.state;
+    const {orgId, projectId} = params;
+    const {features, access} = organization;
 
     const fieldProps = {
       organization,
-      builtinSymbolSources: this.state.builtinSymbolSources,
+      builtinSymbolSources,
     };
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle objSlug={projectId} title={t('Debug Files')} />
-
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>
@@ -238,7 +266,7 @@ class ProjectDebugSymbols extends AsyncComponent {
           `)}
         </TextBlock>
 
-        {features.has('symbol-sources') && (
+        {features.includes('symbol-sources') && (
           <React.Fragment>
             <PermissionAlert />
 
@@ -250,10 +278,9 @@ class ProjectDebugSymbols extends AsyncComponent {
               apiEndpoint={`/projects/${orgId}/${projectId}/`}
             >
               <JsonForm
-                access={access}
-                features={features}
+                features={new Set(features)}
                 title={t('External Sources')}
-                disabled={!access.has('project:write')}
+                disabled={!access.includes('project:write')}
                 fields={[fields.symbolSources, fields.builtinSymbolSources]}
                 additionalFieldProps={fieldProps}
               />
@@ -279,12 +306,18 @@ class ProjectDebugSymbols extends AsyncComponent {
               })}
             </Box>
           </PanelHeader>
-          <PanelBody>{this.renderDebugSymbols()}</PanelBody>
+          <PanelBody>
+            {debugFiles.length > 0 ? this.renderDsyms() : this.renderEmpty()}
+          </PanelBody>
         </Panel>
-        <Pagination pageLinks={this.state.debugFilesPageLinks} />
+        <Pagination pageLinks={debugFilesPageLinks} />
       </React.Fragment>
     );
   }
 }
+
+const DebugSymbolDetails = styled('div')`
+  margin-top: ${space(0.5)};
+`;
 
 export default ProjectDebugSymbols;
