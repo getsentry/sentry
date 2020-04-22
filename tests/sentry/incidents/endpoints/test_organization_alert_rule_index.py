@@ -223,7 +223,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
-            assert resp.data == {"nonFieldErrors": [u'First trigger must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
         self.create_member(
