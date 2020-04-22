@@ -29,6 +29,7 @@ from sentry.incidents.models import (
     IncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
 )
@@ -123,7 +124,9 @@ def create_incident(
     return incident
 
 
-def update_incident_status(incident, status, user=None, comment=None):
+def update_incident_status(
+    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
+):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
     the change. When the status is CLOSED we also set the date closed to the
@@ -146,7 +149,7 @@ def update_incident_status(incident, status, user=None, comment=None):
 
         prev_status = incident.status
 
-        kwargs = {"status": status.value}
+        kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = timezone.now()
         elif status == IncidentStatus.OPEN:
@@ -177,11 +180,25 @@ def set_incident_seen(incident, user=None):
     """
     Updates the incident to be seen
     """
-    incident_seen, created = IncidentSeen.objects.create_or_update(
-        incident=incident, user=user, values={"last_seen": timezone.now()}
-    )
 
-    return incident_seen
+    is_org_member = incident.organization.has_access(user)
+
+    if is_org_member:
+        is_project_member = False
+        for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
+            "project"
+        ):
+            if incident_project.project.member_set.filter(user=user).exists():
+                is_project_member = True
+                break
+
+        if is_project_member:
+            incident_seen, created = IncidentSeen.objects.create_or_update(
+                incident=incident, user=user, values={"last_seen": timezone.now()}
+            )
+            return incident_seen
+
+    return False
 
 
 @transaction.atomic
@@ -575,7 +592,7 @@ def snapshot_alert_rule(alert_rule):
         alert_rule_snapshot.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule_snapshot.save()
 
-        incidents.update(alert_rule=alert_rule_snapshot, status=IncidentStatus.CLOSED.value)
+        incidents.update(alert_rule=alert_rule_snapshot)
 
         for trigger in triggers:
             actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
@@ -586,6 +603,11 @@ def snapshot_alert_rule(alert_rule):
                 action.id = None
                 action.alert_rule_trigger = trigger
                 action.save()
+
+    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+    tasks.auto_resolve_snapshot_incidents.apply_async(
+        kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
+    )
 
 
 def update_alert_rule(
@@ -646,7 +668,6 @@ def update_alert_rule(
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
         if incidents:
             snapshot_alert_rule(alert_rule)
-
         alert_rule.update(**updated_fields)
 
         existing_subs = []
@@ -780,10 +801,12 @@ def delete_alert_rule(alert_rule):
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
         if incidents:
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
-            for incident in incidents:
-                incident.update(status=IncidentStatus.CLOSED.value)
         else:
             alert_rule.delete()
+
+    if alert_rule.id:
+        # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
+        tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
 
 def validate_alert_rule_query(query):

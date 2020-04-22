@@ -1,7 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
 
-import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
@@ -18,7 +17,7 @@ type Props = {
   api: Client;
   location: Location;
   eventView: EventView;
-  organization: Organization;
+  orgSlug: string;
   extraQuery?: {[key: string]: any};
   keyTransactions?: boolean;
 
@@ -29,7 +28,7 @@ type State = {
   tableFetchID: symbol | undefined;
 } & ChildrenProps;
 
-class EventsV2 extends React.Component<Props, State> {
+class DiscoverQuery extends React.Component<Props, State> {
   static defaultProps = {
     keyTransactions: false,
   };
@@ -72,7 +71,7 @@ class EventsV2 extends React.Component<Props, State> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, extraQuery, keyTransactions} = this.props;
+    const {eventView, orgSlug, location, extraQuery, keyTransactions} = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -80,7 +79,7 @@ class EventsV2 extends React.Component<Props, State> {
 
     const route = keyTransactions ? 'key-transactions' : 'eventsv2';
 
-    const url = `/organizations/${organization.slug}/${route}/`;
+    const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
 
@@ -114,7 +113,7 @@ class EventsV2 extends React.Component<Props, State> {
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: err?.responseJSON?.detail ?? null,
           tableData: null,
         });
       });
@@ -134,4 +133,4 @@ class EventsV2 extends React.Component<Props, State> {
   }
 }
 
-export default withApi(EventsV2);
+export default withApi(DiscoverQuery);

@@ -20,7 +20,7 @@ import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/components/searchBar';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -245,9 +245,9 @@ class Table extends React.Component<Props> {
     const columnOrder = eventView.getColumns();
 
     return (
-      <EventsV2
+      <DiscoverQuery
         eventView={eventView}
-        organization={organization}
+        orgSlug={organization.slug}
         location={location}
         keyTransactions={keyTransactions}
       >
@@ -271,7 +271,7 @@ class Table extends React.Component<Props> {
             <Pagination pageLinks={pageLinks} />
           </div>
         )}
-      </EventsV2>
+      </DiscoverQuery>
     );
   }
 }

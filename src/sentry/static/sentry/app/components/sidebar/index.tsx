@@ -38,6 +38,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
+import {wantsLegacyReleases} from 'app/views/releasesV2/utils';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -303,6 +304,20 @@ class Sidebar extends React.Component<Props, State> {
     return sidebarState;
   }
 
+  /**
+   * Determine which version of releases to show
+   */
+  shouldShowNewReleases() {
+    const {organization} = this.props;
+
+    // Bail as we can't do any more checks.
+    if (!organization || !organization.features) {
+      return false;
+    }
+
+    return organization.features.includes('releases-v2') && !wantsLegacyReleases();
+  }
+
   render() {
     const {organization, collapsed} = this.props;
     const {currentPanel, showPanel, horizontal} = this.state;
@@ -400,7 +415,6 @@ class Sidebar extends React.Component<Props, State> {
                           label={t('Discover')}
                           to={getDiscoverLandingUrl(organization)}
                           id="discover-v2"
-                          isNew
                         />
                       </GuideAnchor>
                     </Feature>
@@ -435,7 +449,6 @@ class Sidebar extends React.Component<Props, State> {
                       id="alerts"
                     />
                   </Feature>
-
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -448,6 +461,7 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
+                    isBeta={this.shouldShowNewReleases()}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
@@ -506,22 +520,6 @@ class Sidebar extends React.Component<Props, State> {
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
-                    />
-                  </Feature>
-                  <Feature features={['releases-v2']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/releases-v2/`,
-                          evt
-                        )
-                      }
-                      icon={<IconReleases size="md" />}
-                      label={t('Releases v2')}
-                      to={`/organizations/${organization.slug}/releases-v2/`}
-                      id="releasesv2"
-                      isBeta
                     />
                   </Feature>
                 </SidebarSection>

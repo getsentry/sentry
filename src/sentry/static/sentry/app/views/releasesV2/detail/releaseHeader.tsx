@@ -20,7 +20,6 @@ import {formatVersion} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
 
 import ReleaseStat from './releaseStat';
-import ReleaseActions from './releaseActions';
 
 type Props = {
   location: Location;
@@ -34,9 +33,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
   const {healthData} = project;
 
-  const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
@@ -51,8 +48,9 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${orgId}/releases-v2/`,
+              to: `/organizations/${orgId}/releases/`,
               label: t('Releases'),
+              preserveGlobalSelection: true,
             },
             {label: formatVersion(version)},
           ]}
@@ -88,7 +86,6 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions version={version} orgId={orgId} />
         </StatsWrapper>
       </Layout>
 
@@ -97,7 +94,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
 
         <IconWrapper>
           <Clipboard value={version}>
-            <Tooltip title={version}>
+            <Tooltip title={version} containerDisplayMode="flex">
               <IconCopy size="xs" />
             </Tooltip>
           </Clipboard>
@@ -175,6 +172,8 @@ const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray4};
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
 `;
 
 const IconWrapper = styled('span')`
@@ -184,6 +183,7 @@ const IconWrapper = styled('span')`
   &,
   a {
     color: ${p => p.theme.gray2};
+    display: flex;
     &:hover {
       cursor: pointer;
       color: ${p => p.theme.gray4};

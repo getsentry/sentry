@@ -25,6 +25,11 @@ describe('getFieldRenderer', function() {
       latest_event: 'deadbeef',
       project: project.slug,
     };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/${project.slug}/`,
+      body: project,
+    });
   });
 
   it('can render string fields', function() {
@@ -83,6 +88,6 @@ describe('getFieldRenderer', function() {
 
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
-    expect(value.props().project).toEqual(project);
+    expect(value.text()).toEqual(project.slug);
   });
 });

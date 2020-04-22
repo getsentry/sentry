@@ -1064,15 +1064,22 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
         assert set(results) == set([])
 
-        # mark group1's first_release to be release_1.
-        # group1 should show up for the same query as the previous query (see above)
-
-        self.group1.first_release = release_1
-        self.group1.save()
-        self.store_group(self.group1)
+        # Create a new event so that we get a group in this release
+        group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group9001"],
+                "event_id": "a" * 32,
+                "message": "hello",
+                "environment": "production",
+                "tags": {"server": "example.com"},
+                "release": release_1.version,
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        ).group
 
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
-        assert set(results) == set([self.group1])
+        assert set(results) == set([group])
 
     def test_first_release_environments(self):
         results = self.make_query(

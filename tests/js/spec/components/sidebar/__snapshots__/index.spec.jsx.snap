@@ -1177,7 +1177,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 <Component
                   aria-disabled={false}
                   aria-label="Learn more"
-                  className="css-1he25ws-StyledButton edwq9my0"
+                  className="css-12ogwys-StyledButton edwq9my0"
                   external={true}
                   forwardRef={null}
                   href="https://status.sentry.io"
@@ -1188,7 +1188,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   <ForwardRef(ExternalLink)
                     aria-disabled={false}
                     aria-label="Learn more"
-                    className="css-1he25ws-StyledButton edwq9my0"
+                    className="css-12ogwys-StyledButton edwq9my0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
                     role="button"
@@ -1197,7 +1197,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     <a
                       aria-disabled={false}
                       aria-label="Learn more"
-                      className="css-1he25ws-StyledButton edwq9my0"
+                      className="css-12ogwys-StyledButton edwq9my0"
                       href="https://status.sentry.io"
                       onClick={[Function]}
                       rel="noreferrer noopener"
@@ -1210,7 +1210,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                         size="small"
                       >
                         <span
-                          className="css-19gcr2f-ButtonLabel edwq9my1"
+                          className="css-n7mdnv-ButtonLabel edwq9my1"
                         >
                           Learn more
                         </span>
@@ -1251,18 +1251,19 @@ exports[`Sidebar can have onboarding feature 1`] = `
               class="css-1osy0pt-Container e1roosa10"
             >
               <svg
+                class="css-1vfby2y-RingSvg eqr38d41"
                 height="88"
                 width="88"
               >
                 <circle
-                  class="css-tvb94l-RingBackground eqr38d41"
+                  class="css-tvb94l-RingBackground eqr38d42"
                   color="#E7E1EC"
                   cx="44"
                   cy="44"
                   r="38"
                 />
                 <circle
-                  class="css-sn14z-RingBar eqr38d42"
+                  class="css-sn14z-RingBar eqr38d43"
                   color="#57be8c"
                   cx="44"
                   cy="44"
@@ -1367,7 +1368,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   <button
                     aria-disabled="false"
                     aria-label="Skip task"
-                    class="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
+                    class="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
                     role="button"
                   >
                     <span
@@ -1388,11 +1389,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       <a
                         aria-disabled="false"
                         aria-label="Community Forum"
-                        class="css-1mpdtii-StyledButton edwq9my0"
+                        class="css-z8at1v-StyledButton edwq9my0"
                         role="button"
                       >
                         <span
-                          class="css-1acbab4-ButtonLabel edwq9my1"
+                          class="css-1dw46ju-ButtonLabel edwq9my1"
                         >
                           Community Forum
                         </span>
@@ -1400,11 +1401,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       <button
                         aria-disabled="false"
                         aria-label="Just skip"
-                        class="css-1he25ws-StyledButton edwq9my0"
+                        class="css-12ogwys-StyledButton edwq9my0"
                         role="button"
                       >
                         <span
-                          class="css-1acbab4-ButtonLabel edwq9my1"
+                          class="css-1dw46ju-ButtonLabel edwq9my1"
                         >
                           Just skip
                         </span>
@@ -1882,133 +1883,139 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     textCss={[Function]}
                     value={0}
                   >
-                    <svg
+                    <RingSvg
                       height={88}
                       width={88}
                     >
-                      <RingBackground
-                        barWidth={12}
-                        color="#E7E1EC"
-                        cx={44}
-                        cy={44}
-                        r={38}
+                      <svg
+                        className="css-1vfby2y-RingSvg eqr38d41"
+                        height={88}
+                        width={88}
                       >
-                        <circle
-                          className="css-tvb94l-RingBackground eqr38d41"
+                        <RingBackground
+                          barWidth={12}
                           color="#E7E1EC"
                           cx={44}
                           cy={44}
                           r={38}
-                        />
-                      </RingBackground>
-                      <RingBar
-                        barWidth={12}
-                        circumference={238.76104167282426}
-                        color="#57be8c"
-                        cx={44}
-                        cy={44}
-                        r={38}
-                        strokeDashoffset={238.76104167282426}
-                        strokeLinecap="round"
-                      >
-                        <circle
-                          className="css-sn14z-RingBar eqr38d42"
+                        >
+                          <circle
+                            className="css-tvb94l-RingBackground eqr38d42"
+                            color="#E7E1EC"
+                            cx={44}
+                            cy={44}
+                            r={38}
+                          />
+                        </RingBackground>
+                        <RingBar
+                          barWidth={12}
+                          circumference={238.76104167282426}
                           color="#57be8c"
                           cx={44}
                           cy={44}
                           r={38}
                           strokeDashoffset={238.76104167282426}
                           strokeLinecap="round"
-                        />
-                      </RingBar>
-                      <foreignObject
-                        height="100%"
-                        width="100%"
-                      >
-                        <PoseGroup
-                          flipMove={true}
-                          preEnterPose="init"
                         >
-                          <Transition
-                            enterAfterExit={false}
-                            enterPose="enter"
-                            exitPose="exit"
+                          <circle
+                            className="css-sn14z-RingBar eqr38d43"
+                            color="#57be8c"
+                            cx={44}
+                            cy={44}
+                            r={38}
+                            strokeDashoffset={238.76104167282426}
+                            strokeLinecap="round"
+                          />
+                        </RingBar>
+                        <foreignObject
+                          height="100%"
+                          width="100%"
+                        >
+                          <PoseGroup
                             flipMove={true}
                             preEnterPose="init"
                           >
-                            <ForwardRef
-                              _pose="enter"
-                              key="7"
-                              percent={0}
-                              textCss={[Function]}
-                              x="50%"
-                              y="50%"
+                            <Transition
+                              enterAfterExit={false}
+                              enterPose="enter"
+                              exitPose="exit"
+                              flipMove={true}
+                              preEnterPose="init"
                             >
-                              <PoseElement
+                              <ForwardRef
                                 _pose="enter"
-                                elementType={
-                                  Object {
-                                    "$$typeof": Symbol(react.forward_ref),
-                                    "__emotion_base": "div",
-                                    "__emotion_forwardProp": undefined,
-                                    "__emotion_real": [Circular],
-                                    "__emotion_styles": Array [
-                                      "label:Text;",
-                                      "position:absolute;display:flex;align-items:center;justify-content:center;height:100%;width:100%;color:",
-                                      [Function],
-                                      ";font-size:",
-                                      [Function],
-                                      ";padding-top:1px;transition:color 100ms;",
-                                      [Function],
-                                    ],
-                                    "defaultProps": undefined,
-                                    "displayName": "Text",
-                                    "render": [Function],
-                                    "withComponent": [Function],
-                                  }
-                                }
-                                innerRef={null}
+                                key="7"
                                 percent={0}
-                                poseConfig={
-                                  Object {
-                                    "enter": Object {
-                                      "opacity": 1,
-                                      "y": 0,
-                                    },
-                                    "exit": Object {
-                                      "opacity": 0,
-                                      "y": 10,
-                                    },
-                                    "init": Object {
-                                      "opacity": 0,
-                                      "y": -10,
-                                    },
-                                  }
-                                }
                                 textCss={[Function]}
                                 x="50%"
                                 y="50%"
                               >
-                                <Text
+                                <PoseElement
+                                  _pose="enter"
+                                  elementType={
+                                    Object {
+                                      "$$typeof": Symbol(react.forward_ref),
+                                      "__emotion_base": "div",
+                                      "__emotion_forwardProp": undefined,
+                                      "__emotion_real": [Circular],
+                                      "__emotion_styles": Array [
+                                        "label:Text;",
+                                        "position:absolute;display:flex;align-items:center;justify-content:center;height:100%;width:100%;color:",
+                                        [Function],
+                                        ";font-size:",
+                                        [Function],
+                                        ";padding-top:1px;transition:color 100ms;",
+                                        [Function],
+                                      ],
+                                      "defaultProps": undefined,
+                                      "displayName": "Text",
+                                      "render": [Function],
+                                      "withComponent": [Function],
+                                    }
+                                  }
+                                  innerRef={null}
                                   percent={0}
+                                  poseConfig={
+                                    Object {
+                                      "enter": Object {
+                                        "opacity": 1,
+                                        "y": 0,
+                                      },
+                                      "exit": Object {
+                                        "opacity": 0,
+                                        "y": 10,
+                                      },
+                                      "init": Object {
+                                        "opacity": 0,
+                                        "y": -10,
+                                      },
+                                    }
+                                  }
                                   textCss={[Function]}
                                   x="50%"
                                   y="50%"
                                 >
-                                  <div
-                                    className="css-102hoso-Text-ProgressHeader eqr38d40"
+                                  <Text
+                                    percent={0}
+                                    textCss={[Function]}
                                     x="50%"
                                     y="50%"
                                   >
-                                    7
-                                  </div>
-                                </Text>
-                              </PoseElement>
-                            </ForwardRef>
-                          </Transition>
-                        </PoseGroup>
-                      </foreignObject>
-                    </svg>
+                                    <div
+                                      className="css-102hoso-Text-ProgressHeader eqr38d40"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      7
+                                    </div>
+                                  </Text>
+                                </PoseElement>
+                              </ForwardRef>
+                            </Transition>
+                          </PoseGroup>
+                        </foreignObject>
+                      </svg>
+                    </RingSvg>
                   </ProgressRing>
                   <HeadingText>
                     <div
@@ -3203,7 +3210,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <Component
                                                     aria-disabled={false}
                                                     aria-label="Skip task"
-                                                    className="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
+                                                    className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
                                                     forwardRef={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -3211,7 +3218,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     <button
                                                       aria-disabled={false}
                                                       aria-label="Skip task"
-                                                      className="e9zebce6 css-19omt2n-StyledButton-SkipButton edwq9my0"
+                                                      className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
                                                       onClick={[Function]}
                                                       role="button"
                                                     >
@@ -3291,7 +3298,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                 <Component
                                                                   aria-disabled={false}
                                                                   aria-label="Community Forum"
-                                                                  className="css-1mpdtii-StyledButton edwq9my0"
+                                                                  className="css-z8at1v-StyledButton edwq9my0"
                                                                   external={true}
                                                                   forwardRef={null}
                                                                   onClick={[Function]}
@@ -3302,7 +3309,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                   <Link
                                                                     aria-disabled={false}
                                                                     aria-label="Community Forum"
-                                                                    className="css-1mpdtii-StyledButton edwq9my0"
+                                                                    className="css-z8at1v-StyledButton edwq9my0"
                                                                     onClick={[Function]}
                                                                     onlyActiveOnIndex={false}
                                                                     role="button"
@@ -3313,7 +3320,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                     <a
                                                                       aria-disabled={false}
                                                                       aria-label="Community Forum"
-                                                                      className="css-1mpdtii-StyledButton edwq9my0"
+                                                                      className="css-z8at1v-StyledButton edwq9my0"
                                                                       onClick={[Function]}
                                                                       role="button"
                                                                       size="xsmall"
@@ -3325,7 +3332,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                         size="xsmall"
                                                                       >
                                                                         <span
-                                                                          className="css-1acbab4-ButtonLabel edwq9my1"
+                                                                          className="css-1dw46ju-ButtonLabel edwq9my1"
                                                                         >
                                                                           Community Forum
                                                                         </span>
@@ -3361,7 +3368,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                             <Component
                                                               aria-disabled={false}
                                                               aria-label="Just skip"
-                                                              className="css-1he25ws-StyledButton edwq9my0"
+                                                              className="css-12ogwys-StyledButton edwq9my0"
                                                               forwardRef={null}
                                                               onClick={[Function]}
                                                               role="button"
@@ -3370,7 +3377,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                               <button
                                                                 aria-disabled={false}
                                                                 aria-label="Just skip"
-                                                                className="css-1he25ws-StyledButton edwq9my0"
+                                                                className="css-12ogwys-StyledButton edwq9my0"
                                                                 onClick={[Function]}
                                                                 role="button"
                                                                 size="xsmall"
@@ -3380,7 +3387,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                                   size="xsmall"
                                                                 >
                                                                   <span
-                                                                    className="css-1acbab4-ButtonLabel edwq9my1"
+                                                                    className="css-1dw46ju-ButtonLabel edwq9my1"
                                                                   >
                                                                     Just skip
                                                                   </span>

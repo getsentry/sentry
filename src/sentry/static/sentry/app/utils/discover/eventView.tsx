@@ -24,6 +24,7 @@ import {
   getAggregateAlias,
 } from './fields';
 import {getSortField} from './fieldRenderers';
+import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -44,12 +45,6 @@ const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as con
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
-];
-
-// default list of yAxis options
-export const CHART_AXIS_OPTIONS = [
-  {label: 'count()', value: 'count()'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
 ];
 
 const reverseSort = (sort: Sort): Sort => ({
@@ -525,12 +520,12 @@ class EventView {
     return this.fields.length > 0;
   }
 
-  getFields(): string[] {
-    return this.fields.map(field => field.field);
-  }
-
   getWidths(): number[] {
     return this.fields.map(field => (field.width ? field.width : COL_WIDTH_UNDEFINED));
+  }
+
+  getFields(): string[] {
+    return this.fields.map(field => field.field);
   }
 
   getAggregateFields(): Field[] {
@@ -862,12 +857,25 @@ class EventView {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
+    const hasDateSelection = this.statsPeriod || (this.start && this.end);
+
+    // an eventview's date selection has higher precedence than the date selection in the query string
+    const dateSelection = hasDateSelection
+      ? {
+          start: this.start,
+          end: this.end,
+          statsPeriod: this.statsPeriod,
+        }
+      : {
+          start: picked.start,
+          end: picked.end,
+          period: decodeScalar(query.period),
+          statsPeriod: picked.statsPeriod,
+        };
+
     // normalize datetime selection
     const normalizedTimeWindowParams = getParams({
-      start: this.start || picked.start,
-      end: this.end || picked.end,
-      period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod || picked.statsPeriod,
+      ...dateSelection,
       utc: decodeScalar(query.utc),
     });
 
@@ -978,6 +986,18 @@ class EventView {
     }
 
     return defaultOption;
+  }
+
+  getDisplayOptions() {
+    if (!this.start && !this.end) {
+      return DISPLAY_MODE_OPTIONS;
+    }
+    return DISPLAY_MODE_OPTIONS.map(item => {
+      if (item.value === DisplayModes.PREVIOUS) {
+        return {...item, disabled: true};
+      }
+      return item;
+    });
   }
 }
 

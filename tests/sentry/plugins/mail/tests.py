@@ -23,6 +23,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
+    Project,
     ProjectOption,
     ProjectOwnership,
     Repository,
@@ -33,7 +34,7 @@ from sentry.models import (
 )
 from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins.base import Notification
-from sentry.plugins.sentry_mail.activity.base import ActivityEmail
+from sentry.mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.event_manager import get_event_type
 from sentry.testutils import TestCase
@@ -46,10 +47,6 @@ class MailPluginTest(TestCase):
     @fixture
     def plugin(self):
         return MailPlugin()
-
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
-    def test_should_notify_no_sendable_users(self):
-        assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
     def test_simple_notification(self):
         event = self.store_event(
@@ -267,6 +264,7 @@ class MailPluginTest(TestCase):
         assert msg.subject.startswith("[Example prefix]")
 
     def test_assignment(self):
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_issue_alerts_targeting))
         UserOption.objects.set_value(
             user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
         )
@@ -292,6 +290,7 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_issue_alerts_targeting))
         UserOption.objects.set_value(
             user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
         )
@@ -318,6 +317,7 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_note(self):
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_issue_alerts_targeting))
         user_foo = self.create_user("foo@example.com")
         UserOption.objects.set_value(
             user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
@@ -423,6 +423,7 @@ class MailPluginSignalsTest(TestCase):
         )
 
     def test_user_feedback(self):
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_issue_alerts_targeting))
         report = self.create_report()
         UserOption.objects.set_value(
             user=self.user, key="workflow:notifications", value=UserOptionValue.all_conversations
@@ -450,6 +451,7 @@ class MailPluginSignalsTest(TestCase):
         assert msg.to == [self.user.email]
 
     def test_user_feedback__enhanced_privacy(self):
+        self.project.update(flags=F("flags").bitand(~Project.flags.has_issue_alerts_targeting))
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
         assert self.organization.flags.enhanced_privacy.is_set is True
         UserOption.objects.set_value(
@@ -632,3 +634,33 @@ class TestCanConfigureForProject(TestCase):
     def test_has_alerts_targeting(self):
         self.project.flags.has_issue_alerts_targeting = True
         assert not self.plugin.can_configure_for_project(self.project)
+
+
+class MailPluginShouldNotifyTest(TestCase):
+    @fixture
+    def plugin(self):
+        return MailPlugin()
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    def test_should_notify_no_sendable_users_has_issue_alerts_targeting(self):
+        self.group.project.flags.has_issue_alerts_targeting = True
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    def test_should_notify_no_sendable_users_not_has_issue_alerts_targeting(self):
+        self.group.project.flags.has_issue_alerts_targeting = False
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    def test_should_notify_sendable_users_has_issue_alerts_targetting(self):
+        self.group.project.flags.has_issue_alerts_targeting = True
+        self.group.project.save()
+        assert not self.plugin.should_notify(group=self.group, event=Mock())
+
+    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    def test_should_notify_sendable_users_not_has_issue_alerts_targetting(self):
+        self.group.project.flags.has_issue_alerts_targeting = False
+        self.group.project.save()
+        assert self.plugin.should_notify(group=self.group, event=Mock())

@@ -458,3 +458,16 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
         assert "topValues" in actual
         assert sorted(expected) == sorted(actual["topValues"])
+
+    def test_out_of_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature(self.feature_list):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(before_now(days=20)),
+                        "end": iso_format(before_now(days=15)),
+                    },
+                )
+        assert response.status_code == 400

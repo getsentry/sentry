@@ -845,13 +845,13 @@ SENTRY_FEATURES = {
     "organizations:integrations-event-hooks": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable experimental performance improvements.
+    "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
-    # Enable selection of members, teams or code owners as email targets for issue alerts.
-    "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -879,6 +879,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
+    # Enable selection of members, teams or code owners as email targets for issue alerts.
+    "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,

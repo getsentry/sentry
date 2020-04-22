@@ -9,16 +9,17 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import Duration from 'app/components/duration';
-import ShortId from 'app/components/shortId';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import Version from 'app/components/version';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import Projects from 'app/utils/projects';
 
 import {
   Container,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
+  StyledShortId,
   VersionContainer,
 } from './styles';
 import {MetaType, EventData} from './eventView';
@@ -175,11 +176,21 @@ const SPECIAL_FIELDS: SpecialFields = {
   issue: {
     sortField: null,
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const issueID = data['issue.id'];
+
+      if (!issueID) {
+        return (
+          <Container>
+            <StyledShortId shortId={`${data.issue}`} />
+          </Container>
+        );
+      }
+
+      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
       return (
         <Container>
-          <OverflowLink to={target} aria-label={data['issue.id']}>
-            <ShortId shortId={`${data.issue}`} />
+          <OverflowLink to={target} aria-label={issueID}>
+            <StyledShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );
@@ -188,10 +199,19 @@ const SPECIAL_FIELDS: SpecialFields = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
-      const project = organization.projects.find(p => p.slug === data.project);
       return (
         <Container>
-          {project ? <ProjectBadge project={project} avatarSize={16} /> : data.project}
+          <Projects orgId={organization.slug} slugs={[data.project]}>
+            {({projects}) => {
+              const project = projects.find(p => p.slug === data.project);
+              return (
+                <ProjectBadge
+                  project={project ? project : {slug: data.project}}
+                  avatarSize={16}
+                />
+              );
+            }}
+          </Projects>
         </Container>
       );
     },
