@@ -53,15 +53,9 @@ type UrlParams = {
   };
 
 /**
- * TODO(ts): I think `InjectedRouter` is typed incorrectly, if you inspect in the application,
- * you'll see that `router` also includes `WithRouterProps`
- *
  * This can be null which will not perform any router side effects, and instead updates store.
  */
-type Router =
-  | (ReactRouter.InjectedRouter & ReactRouter.WithRouterProps)
-  | null
-  | undefined;
+type Router = ReactRouter.InjectedRouter | null | undefined;
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
