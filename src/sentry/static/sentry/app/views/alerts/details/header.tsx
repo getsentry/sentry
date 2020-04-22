@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
@@ -19,7 +18,8 @@ import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {IconCheckmark, IconChevron} from 'app/icons';
+import {IconCheckmark} from 'app/icons';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
@@ -80,20 +80,25 @@ export default class DetailsHeader extends React.Component<Props> {
 
     const project = incident && incident.projects && incident.projects[0];
 
+    const alertBreadcrumbLabel = dateStarted ? (
+      <IncidentDate>{dateStarted}</IncidentDate>
+    ) : (
+      t('Alert details')
+    );
+
     return (
       <Header>
         <PageHeading>
-          <Breadcrumb>
-            <IncidentsLink to={`/organizations/${params.orgId}/alerts/`}>
-              {t('Alerts')}
-            </IncidentsLink>
-            {dateStarted && (
-              <React.Fragment>
-                <IconChevron direction="right" color={theme.gray1} size={space(1.5)} />
-                <IncidentDate>{dateStarted}</IncidentDate>
-              </React.Fragment>
-            )}
-          </Breadcrumb>
+          <AlertBreadcrumbs
+            crumbs={[
+              {
+                key: 'alerts',
+                label: t('Alerts'),
+                to: `/organizations/${params.orgId}/alerts/`,
+              },
+              {key: 'details', label: alertBreadcrumbLabel},
+            ]}
+          />
           <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
             {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
           </IncidentTitle>
@@ -203,12 +208,9 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const Breadcrumb = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
+const AlertBreadcrumbs = styled(Breadcrumbs)`
   font-size: ${p => p.theme.fontSizeLarge};
+  padding: 0;
   margin-bottom: ${space(1)};
 `;
 
@@ -221,10 +223,6 @@ const IncidentTitle = styled('div', {
 const IncidentDate = styled('div')`
   font-size: 0.8em;
   color: ${p => p.theme.gray2};
-`;
-
-const IncidentsLink = styled(Link)`
-  color: inherit;
 `;
 
 const StatusMenuItem = styled(MenuItem)`
