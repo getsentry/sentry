@@ -1,15 +1,15 @@
-import {Box} from 'reflexbox';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import space from 'app/styles/space';
+import {PanelTable, PanelTableHeader} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -66,14 +66,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       method: 'DELETE',
       complete: () => this.fetchData(),
     });
-  }
-
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('There are no debug symbols for this project.')}</p>
-      </EmptyStateWarning>
-    );
   }
 
   renderDebugFiles() {
@@ -143,27 +135,34 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           {t('This list contains all uploaded debug information files:')}
         </TextBlock>
 
-        <Panel>
-          <PanelHeader hasButtons>
-            <Box width={4.5 / 12}>{t('Debug ID')}</Box>
-            <Box minWidth="auto" flex="1">
-              {t('Name')}
-            </Box>
-            <Box>
-              {this.renderSearchInput({
-                updateRoute: true,
-                placeholder: t('Search DIFs'),
-              })}
-            </Box>
-          </PanelHeader>
-          <PanelBody>
-            {debugFiles.length > 0 ? this.renderDebugFiles() : this.renderEmpty()}
-          </PanelBody>
-        </Panel>
+        <StyledPanelTable
+          headers={[
+            t('Debug ID'),
+            t('Name'),
+            this.renderSearchInput({
+              updateRoute: true,
+              placeholder: t('Search DIFs'),
+            }),
+          ]}
+          emptyMessage={t('There are no debug symbols for this project.')}
+          isEmpty={debugFiles.length === 0}
+        >
+          {this.renderDebugFiles()}
+        </StyledPanelTable>
+
         <Pagination pageLinks={debugFilesPageLinks} />
       </React.Fragment>
     );
   }
 }
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr 1.3fr auto;
+  ${PanelTableHeader} {
+    padding: ${space(1)} ${space(2)};
+    display: flex;
+    align-items: center;
+  }
+`;
 
 export default ProjectDebugSymbols;

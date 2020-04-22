@@ -1,9 +1,7 @@
 import React from 'react';
-import {Box, Flex} from 'reflexbox';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -13,6 +11,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete} from 'app/icons/iconDelete';
 import Access from 'app/components/acl/access';
+import {IconClock} from 'app/icons';
 
 import {getFileType, getFeatureTooltip} from './utils';
 import {DebugFile} from './types';
@@ -39,27 +38,24 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
   const {features} = data || {};
 
   return (
-    <PanelItem alignItems="center" px={2} py={1}>
-      <Box width={4.5 / 12}>
-        <code className="small">{debugId || uuid}</code>
-        <Flex mt="4px">
-          <Box width={4 / 12} pl="2px">
-            <p className="m-b-0 text-light small">
-              <FileSize bytes={size} />
-            </p>
-          </Box>
-          <Box width={8 / 12} pl={1}>
-            <p className="m-b-0 text-light small">
-              <span className="icon icon-clock" /> <TimeSince date={dateCreated} />
-            </p>
-          </Box>
-        </Flex>
-      </Box>
-      <Box flex="1">
-        {symbolType === 'proguard' && objectName === 'proguard-mapping'
-          ? '-'
-          : objectName}
-        <DebugSymbolDetails className="text-light small">
+    <React.Fragment>
+      <Column>
+        <DebugId>{debugId || uuid}</DebugId>
+        <TimeAndSizeWrapper>
+          <StyledFileSize bytes={size} />
+          <TimeWrapper>
+            <IconClock size="xs" />
+            <TimeSince date={dateCreated} />
+          </TimeWrapper>
+        </TimeAndSizeWrapper>
+      </Column>
+      <Column>
+        <Name>
+          {symbolType === 'proguard' && objectName === 'proguard-mapping'
+            ? '\u2015'
+            : objectName}
+        </Name>
+        <Details>
           {symbolType === 'proguard' && cpuName === 'any'
             ? t('proguard mapping')
             : `${cpuName} (${symbolType}${fileType && ` ${fileType}`})`}
@@ -70,9 +66,9 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
                 <Tag inline>{feature}</Tag>
               </Tooltip>
             ))}
-        </DebugSymbolDetails>
-      </Box>
-      <Box>
+        </Details>
+      </Column>
+      <RightColumn>
         <Access access={['project:releases']}>
           {({hasAccess}) => (
             <Button
@@ -110,13 +106,59 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
             </Tooltip>
           )}
         </Access>
-      </Box>
-    </PanelItem>
+      </RightColumn>
+    </React.Fragment>
   );
 };
 
-const DebugSymbolDetails = styled('div')`
-  margin-top: ${space(0.5)};
+const Column = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+`;
+
+const RightColumn = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+const DebugId = styled('code')`
+  display: inline-block;
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(1.5)};
+`;
+
+const TimeAndSizeWrapper = styled('div')`
+  width: 100%;
+  display: flex;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray3};
+`;
+
+const StyledFileSize = styled(FileSize)`
+  flex: 1;
+  padding-left: ${space(0.5)};
+`;
+
+const TimeWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(0.5)};
+  grid-template-columns: min-content 1fr;
+  flex: 2;
+  align-items: center;
+  padding-left: ${space(0.5)};
+`;
+
+const Name = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(1.5)};
+`;
+
+const Details = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray3};
 `;
 
 export default DebugFileRow;
