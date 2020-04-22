@@ -10,7 +10,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
-import {getInterval} from 'app/components/charts/utils';
+import {AREA_COLORS, getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -40,6 +40,10 @@ type Props = ReactRouter.WithRouterProps &
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
 const SERIES_ORDER = [...YAXIS_VALUES].reverse();
+
+// Flip the colors as this graph isn't stacked and we want the colors
+// in the same order as they are in discover top5 mode.
+const COLORS = [...AREA_COLORS].reverse();
 
 /**
  * Fetch and render a stacked area chart that shows duration
@@ -134,7 +138,19 @@ class DurationChart extends React.Component<Props> {
                 }
                 // Create a list of series based on the order of the fields,
                 const series = results
-                  ? SERIES_ORDER.map((key: string) => results[key])
+                  ? SERIES_ORDER.map((key: string, i: number) => {
+                      return {
+                        ...results[key],
+                        color: COLORS[i].line,
+                        lineStyle: {
+                          opacity: 0,
+                        },
+                        areaStyle: {
+                          color: COLORS[i].area,
+                          opacity: 1.0,
+                        },
+                      };
+                    })
                   : [];
 
                 return (
