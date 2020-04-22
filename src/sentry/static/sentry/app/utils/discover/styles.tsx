@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
+import ShortId from 'app/components/shortId';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -65,4 +66,8 @@ export const HeaderControls = styled('div')`
   justify-self: end;
   grid-row: 1/2;
   grid-column: 2/3;
+`;
+
+export const StyledShortId = styled(ShortId)`
+  justify-content: flex-start;
 `;
