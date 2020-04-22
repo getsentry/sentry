@@ -1,38 +1,41 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
 
+import {ResolutionStatusDetails} from 'app/types';
 import {t} from 'app/locale';
 
-export default class CustomIgnoreDurationModal extends React.Component {
-  static propTypes = {
-    onSelected: PropTypes.func,
-    onCanceled: PropTypes.func,
-    show: PropTypes.bool,
-    label: PropTypes.string,
-  };
+const defaultProps = {
+  label: t('Ignore this issue until \u2026'),
+};
 
-  static defaultProps = {
-    label: t('Ignore this issue until ..'),
-  };
+type Props = {
+  show: boolean;
+  onSelected: (details: ResolutionStatusDetails) => void;
+  onCanceled: () => void;
+} & typeof defaultProps;
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      dateWarning: false,
-    };
-    this.snoozeDateInputRef = React.createRef();
-    this.snoozeTimeInputRef = React.createRef();
-  }
+type State = {
+  dateWarning: boolean;
+};
+
+export default class CustomIgnoreDurationModal extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
+  state = {
+    dateWarning: false,
+  };
+  snoozeDateInputRef = React.createRef<HTMLInputElement>();
+
+  snoozeTimeInputRef = React.createRef<HTMLInputElement>();
 
   selectedIgnoreMinutes = () => {
-    const dateStr = this.snoozeDateInputRef.current.value; // YYYY-MM-DD
-    const timeStr = this.snoozeTimeInputRef.current.value; // HH:MM
+    const dateStr = this.snoozeDateInputRef.current?.value; // YYYY-MM-DD
+    const timeStr = this.snoozeTimeInputRef.current?.value; // HH:MM
     if (dateStr && timeStr) {
       const selectedDate = moment.utc(dateStr + ' ' + timeStr);
-      if (!isNaN(selectedDate)) {
+      if (!selectedDate.isValid()) {
         const now = moment.utc();
         return selectedDate.diff(now, 'minutes');
       }
@@ -103,7 +106,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
           </form>
         </div>
         {this.state.dateWarning && (
-          <div className="alert alert-error" style={{'margin-top': '5px'}}>
+          <div className="alert alert-error" style={{marginTop: '5px'}}>
             {t('Please enter a valid date in the future')}
           </div>
         )}
