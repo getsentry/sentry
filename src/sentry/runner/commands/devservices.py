@@ -95,7 +95,8 @@ def attach(project, is_devserver, service):
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-def up(project, exclude):
+@click.option("--fast", is_flag=True, default=False, help="Never pull.")
+def up(project, exclude, fast):
     """
     Run/update dependent services.
     """
@@ -123,7 +124,7 @@ def up(project, exclude):
         if name not in containers:
             continue
 
-        _start_service(client, name, containers, project)
+        _start_service(client, name, containers, project, fast=fast)
 
 
 def _prepare_containers(project):
@@ -151,7 +152,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, devserver_override=False):
+def _start_service(client, name, containers, project, fast=False, devserver_override=False):
     from django.conf import settings
 
     options = containers[name]
@@ -168,17 +169,18 @@ def _start_service(client, name, containers, project, devserver_override=False):
         options["environment"][key] = value.format(containers=containers)
 
     pull = options.pop("pull", False)
-    if pull:
-        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-        client.images.pull(options["image"])
-    else:
-        # We want make sure to pull everything on the first time,
-        # (the image doesn't exist), regardless of pull=True.
-        try:
-            client.images.get(options["image"])
-        except docker.errors.NotFound:
+    if not fast:
+        if pull:
             click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
             client.images.pull(options["image"])
+        else:
+            # We want make sure to pull everything on the first time,
+            # (the image doesn't exist), regardless of pull=True.
+            try:
+                client.images.get(options["image"])
+            except docker.errors.NotFound:
+                click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+                client.images.pull(options["image"])
 
     for mount in options.get("volumes", {}).keys():
         if "/" not in mount:
