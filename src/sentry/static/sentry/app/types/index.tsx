@@ -749,7 +749,14 @@ export type Integration = {
   provider: BaseIntegrationProvider & {aspects: any};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
-  configData: object;
+  configData: object & {
+    //installationType is only for Slack migration and can be removed after migrations are done
+    installationType?:
+      | 'workspace_app'
+      | 'classic_bot'
+      | 'born_as_bot'
+      | 'migrated_to_bot';
+  };
 };
 
 export type IntegrationExternalIssue = {

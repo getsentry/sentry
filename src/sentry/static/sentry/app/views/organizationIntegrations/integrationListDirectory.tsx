@@ -26,6 +26,7 @@ import {
   isPlugin,
   isDocumentIntegration,
   getCategoriesForIntegration,
+  isSlackWorkspaceApp,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -39,6 +40,7 @@ import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
 import withExperiment from 'app/utils/withExperiment';
 import {ExperimentAssignment} from 'app/types/experiments';
+import Feature from 'app/components/acl/feature';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
@@ -315,19 +317,30 @@ export class IntegrationListDirectory extends AsyncComponent<
       i => i.provider.key === provider.key
     );
 
+    const hasWorkspaceApp = integrations.some(isSlackWorkspaceApp);
+
     return (
-      <IntegrationRow
+      <Feature
         key={`row-${provider.key}`}
-        data-test-id="integration-row"
         organization={organization}
-        type="firstParty"
-        slug={provider.slug}
-        displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
-        publishStatus="published"
-        configurations={integrations.length}
-        categories={getCategoriesForIntegration(provider)}
-      />
+        features={['slack-migration']}
+      >
+        {({hasFeature}) => (
+          <IntegrationRow
+            key={`row-${provider.key}`}
+            data-test-id="integration-row"
+            organization={organization}
+            type="firstParty"
+            slug={provider.slug}
+            displayName={provider.name}
+            status={integrations.length ? 'Installed' : 'Not Installed'}
+            publishStatus="published"
+            configurations={integrations.length}
+            categories={getCategoriesForIntegration(provider)}
+            showSlackAlert={hasFeature && hasWorkspaceApp}
+          />
+        )}
+      </Feature>
     );
   };
 

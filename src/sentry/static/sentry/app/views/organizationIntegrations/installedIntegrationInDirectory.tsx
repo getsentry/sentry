@@ -14,6 +14,7 @@ import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {IconWarning} from 'app/icons';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -28,6 +29,7 @@ export type Props = {
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
   className?: string;
+  showSlackAlert?: boolean;
 };
 
 //TODO: Rename to InstalledIntegration when we can remove the old one
@@ -125,7 +127,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
   }
 
   render() {
-    const {className, integration, provider, organization} = this.props;
+    const {className, integration, provider, organization, showSlackAlert} = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -140,11 +142,33 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {
+              {showSlackAlert && (
                 <Tooltip
-                  disabled={this.hasConfiguration()}
-                  position="left"
-                  title="Integration not configurable"
+                  disabled={hasAccess}
+                  title={t(
+                    'You must be an organization owner, manager or admin to re-authenticate'
+                  )}
+                >
+                  <Button
+                    disabled={!hasAccess}
+                    priority="primary"
+                    size="small"
+                    icon={<IconWarning size="sm" />}
+                  >
+                    {t('Re-authenticate Now')}
+                  </Button>
+                </Tooltip>
+              )}
+              <Tooltip
+                disabled={this.hasConfiguration()}
+                position="left"
+                title="Integration not configurable"
+              >
+                <Tooltip
+                  disabled={hasAccess || !this.hasConfiguration()}
+                  title={t(
+                    'You must be an organization owner, manager or admin to configure'
+                  )}
                 >
                   <StyledButton
                     borderless
@@ -157,27 +181,34 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
-                    Configure
+                    {t('Configure')}
                   </StyledButton>
                 </Tooltip>
-              }
+              </Tooltip>
             </div>
             <div>
-              <Confirm
-                priority="danger"
-                onConfirming={this.handleUninstallClick}
-                disabled={!hasAccess}
-                {...removeConfirmProps}
+              <Tooltip
+                disabled={hasAccess}
+                title={t(
+                  'You must be an organization owner, manager or admin to uninstall'
+                )}
               >
-                <StyledButton
+                <Confirm
+                  priority="danger"
+                  onConfirming={this.handleUninstallClick}
                   disabled={!hasAccess}
-                  borderless
-                  icon={<IconDelete />}
-                  data-test-id="integration-remove-button"
+                  {...removeConfirmProps}
                 >
-                  Uninstall
-                </StyledButton>
-              </Confirm>
+                  <StyledButton
+                    disabled={!hasAccess}
+                    borderless
+                    icon={<IconDelete />}
+                    data-test-id="integration-remove-button"
+                  >
+                    {t('Uninstall')}
+                  </StyledButton>
+                </Confirm>
+              </Tooltip>
             </div>
 
             <IntegrationStatus status={integration.status} />

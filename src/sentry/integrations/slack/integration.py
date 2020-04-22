@@ -10,6 +10,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
     FeatureDescription,
+    IntegrationInstallation,
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
@@ -55,11 +56,20 @@ metadata = IntegrationMetadata(
 )
 
 
+class SlackIntegration(IntegrationInstallation):
+    def get_config_data(self):
+        metadata = self.model.metadata
+        # classic bots had a user_access_token in the metadata
+        default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+        return {"installationType": metadata.get("installation_type", default_installation)}
+
+
 class SlackIntegrationProvider(IntegrationProvider):
     key = "slack"
     name = "Slack"
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
+    integration_cls = SlackIntegration
 
     # Scopes differ depending on if it's a workspace app
     wst_oauth_scopes = frozenset(

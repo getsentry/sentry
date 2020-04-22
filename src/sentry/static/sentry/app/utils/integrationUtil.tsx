@@ -13,6 +13,7 @@ import {
   SentryApp,
   PluginWithProjectList,
   DocumentIntegration,
+  Integration,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -274,4 +275,8 @@ export function isDocumentIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocumentIntegration {
   return integration.hasOwnProperty('docUrl');
+}
+
+export function isSlackWorkspaceApp(integration: Integration) {
+  return integration.configData.installationType === 'workspace_app';
 }

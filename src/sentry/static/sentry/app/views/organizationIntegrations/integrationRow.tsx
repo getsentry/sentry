@@ -2,6 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import {IconWarning} from 'app/icons';
+import Button from 'app/components/button';
+import Alert from 'app/components/alert';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -20,6 +23,7 @@ type Props = {
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
+  showSlackAlert?: boolean;
 };
 
 const urlMap = {
@@ -39,6 +43,7 @@ const IntegrationRow = (props: Props) => {
     publishStatus,
     configurations,
     categories,
+    showSlackAlert,
   } = props;
 
   const baseUrl =
@@ -87,6 +92,18 @@ const IntegrationRow = (props: Props) => {
           ))}
         </InternalContainer>
       </FlexContainer>
+      {showSlackAlert && (
+        <AlertContainer>
+          <Alert type="warning" icon={<IconWarning size="sm" />}>
+            {t(
+              'Slack must be re-authorized to avoid a disruption of Slack notifications'
+            )}
+            <ResolveNowButton href={`${baseUrl}?tab=configurations`} size="xsmall">
+              {t('Resolve Now')}
+            </ResolveNowButton>
+          </Alert>
+        </AlertContainer>
+      )}
     </PanelItem>
   );
 };
@@ -171,6 +188,21 @@ const CategoryTag = styled(
   line-height: ${space(3)};
   text-align: center;
   color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
+`;
+
+const ResolveNowButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+  background: #ffffff;
+
+  border: ${p => `1px solid ${p.theme.gray2}`};
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  float: right;
+`;
+
+const AlertContainer = styled('div')`
+  padding: 0px 20px 0px 68px;
 `;
 
 export default IntegrationRow;
