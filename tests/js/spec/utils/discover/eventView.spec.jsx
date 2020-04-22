@@ -837,7 +837,11 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
 
     const location = {
-      query: {},
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '55d',
+      },
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -849,6 +853,117 @@ describe('EventView.getEventsAPIPayload()', function() {
       per_page: 50,
       project: [],
       environment: [],
+    });
+  });
+
+  it("an eventview's date selection has higher precedence than the date selection in the query string", function() {
+    const initialState = {
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      query: 'event.type:csp',
+      environment: [],
+      project: [],
+    };
+
+    const output = {
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      per_page: 50,
+      project: [],
+      environment: [],
+    };
+
+    // eventview's statsPeriod has highest precedence
+
+    let eventView = new EventView({
+      ...initialState,
+      statsPeriod: '90d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    let location = {
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '90d',
+    });
+
+    // eventview's start/end has higher precedence than the date selection in the query string
+
+    eventView = new EventView({
+      ...initialState,
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    location = {
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+    });
+
+    // the date selection in the query string should be applied as expected
+
+    eventView = new EventView(initialState);
+
+    location = {
+      query: {
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '55d',
+    });
+
+    location = {
+      query: {
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '30d',
+    });
+
+    location = {
+      query: {
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      start: '2020-10-01T00:00:00.000',
+      end: '2020-10-02T00:00:00.000',
     });
   });
 });
@@ -2142,6 +2257,34 @@ describe('EventView.getDisplayOptions()', function() {
     const options = eventView.getDisplayOptions();
     expect(options[1].value).toEqual('previous');
     expect(options[1].disabled).toBeTruthy();
+  });
+});
+
+describe('EventView.getAggregateFields()', function() {
+  const state = {
+    fields: [
+      {field: 'title'},
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+      {field: 'transaction'},
+    ],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('getAggregateFields() returns only aggregates', function() {
+    const eventView = new EventView(state);
+    const expected = [
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+    ];
+
+    expect(eventView.getAggregateFields()).toEqual(expected);
   });
 });
 

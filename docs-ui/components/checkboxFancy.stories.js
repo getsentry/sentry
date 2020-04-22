@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import {number, boolean} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy';
+import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 storiesOf('Style|Icons', module).add(
   'CheckboxFancy',
@@ -13,7 +13,7 @@ storiesOf('Style|Icons', module).add(
       <Container>
         <CheckboxFancy
           size={`${number('Size', 100)}px`}
-          checked={boolean('Checked', true)}
+          isChecked={boolean('Checked', true)}
         />
       </Container>
     );

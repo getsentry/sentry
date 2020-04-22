@@ -2,15 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {Event} from 'app/types';
+import {Event, SentryTransactionEvent} from 'app/types';
 import {
-  SentryTransactionEvent,
   SpanEntry,
   RawSpanType,
+  TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
 import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
-import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 

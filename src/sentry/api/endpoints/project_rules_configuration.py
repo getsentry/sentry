@@ -36,6 +36,15 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 
+            # It is possible for a project to have no services. In that scenario we do
+            # not want the front end to render the action as the action does not have
+            # options.
+            if (
+                node.id == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+                and len(node.get_services()) == 0
+            ):
+                continue
+
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
             elif rule_type.startswith("action/"):
