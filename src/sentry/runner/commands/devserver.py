@@ -19,6 +19,7 @@ _DEFAULT_DAEMONS = {
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
     "storybook": ["./bin/yarn", "storybook"],
+    "reverse_proxy": ["sentry", "devservices", "attach", "--is-devserver", "reverse_proxy"],
 }
 
 
@@ -207,7 +208,7 @@ def devserver(
             daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("reverse_proxy")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
