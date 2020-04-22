@@ -113,7 +113,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys}
+            deploys={deploys || []}
             project={project}
           />
 
