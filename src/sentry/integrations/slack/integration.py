@@ -157,6 +157,9 @@ class SlackIntegrationProvider(IntegrationProvider):
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
         }
+        # only set installation type for bot apps
+        if not self.use_wst_app:
+            metadata["installation_type"] = "born_as_bot"
 
         return {
             "name": team_name,

@@ -126,7 +126,7 @@ register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 # Slack V2 Integration
 register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-# TODO: add signing secret
+register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
