@@ -1,11 +1,9 @@
 from __future__ import absolute_import, print_function
 
-import six
 from sentry.utils.compat import mock
 
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -33,62 +31,3 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         response = self.client.get("%s?environment=invalid" % (url,), format="json")
         assert response.status_code == 404
-
-    def test_with_first_last_release(self):
-        self.login_as(user=self.user)
-        first_release = {
-            "first_seen": before_now(minutes=3),
-            "last_seen": before_now(minutes=2, seconds=30),
-        }
-        last_release = {
-            "first_seen": before_now(minutes=1),
-            "last_seen": before_now(minutes=1, seconds=30),
-        }
-
-        for timestamp in first_release.values():
-            self.store_event(
-                data={"release": "1.0", "timestamp": iso_format(timestamp)},
-                project_id=self.project.id,
-            )
-        self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
-            project_id=self.project.id,
-        )
-        for timestamp in last_release.values():
-            event = self.store_event(
-                data={"release": "1.0a", "timestamp": iso_format(timestamp)},
-                project_id=self.project.id,
-            )
-
-        group = event.group
-
-        url = u"/api/0/issues/{}/".format(group.id)
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
-        assert response.data["firstRelease"]["version"] == "1.0"
-        assert response.data["lastRelease"]["version"] == "1.0a"
-
-    def test_first_last_only_one_tagstore(self):
-        self.login_as(user=self.user)
-
-        event = self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(before_now(days=3))},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=3))},
-            project_id=self.project.id,
-        )
-
-        group = event.group
-
-        url = u"/api/0/issues/{}/".format(group.id)
-
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tagstore.get_release_tags"
-        ) as get_release_tags:
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200
-            assert get_release_tags.call_count == 1
