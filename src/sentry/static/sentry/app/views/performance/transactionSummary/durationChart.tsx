@@ -42,6 +42,7 @@ type Props = ReactRouter.WithRouterProps &
   };
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+const SERIES_ORDER = [...YAXIS_VALUES].reverse();
 
 /**
  * Fetch and render a stacked area chart that shows duration
@@ -57,6 +58,7 @@ class DurationChart extends React.Component<Props> {
       query,
       location,
       statsPeriod,
+      router,
     } = this.props;
 
     const start = this.props.start
@@ -96,15 +98,22 @@ class DurationChart extends React.Component<Props> {
     return (
       <React.Fragment>
         <HeaderTitle>
-          {t('Duration')}
+          {t('Duration Breakdown')}
           <Tooltip
             position="top"
-            title={t(`This graph shows transaction durations over time.`)}
+            title={t(
+              `This graph shows a breakdown of transaction durations by percentile over time.`
+            )}
           >
             <StyledIconQuestion size="sm" />
           </Tooltip>
         </HeaderTitle>
-        <ChartZoom period={statsPeriod} projects={project} environments={environment}>
+        <ChartZoom
+          router={router}
+          period={statsPeriod}
+          projects={project}
+          environments={environment}
+        >
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -131,7 +140,7 @@ class DurationChart extends React.Component<Props> {
                 }
                 // Create a list of series based on the order of the fields,
                 const series = results
-                  ? YAXIS_VALUES.reverse().map((key: string) => results[key])
+                  ? SERIES_ORDER.map((key: string) => results[key])
                   : [];
 
                 return (
