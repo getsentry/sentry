@@ -857,12 +857,25 @@ class EventView {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
+    const hasDateSelection = this.statsPeriod || (this.start && this.end);
+
+    // an eventview's date selection has higher precedence than the date selection in the query string
+    const dateSelection = hasDateSelection
+      ? {
+          start: this.start,
+          end: this.end,
+          statsPeriod: this.statsPeriod,
+        }
+      : {
+          start: picked.start,
+          end: picked.end,
+          period: decodeScalar(query.period),
+          statsPeriod: picked.statsPeriod,
+        };
+
     // normalize datetime selection
     const normalizedTimeWindowParams = getParams({
-      start: this.start || picked.start,
-      end: this.end || picked.end,
-      period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod || picked.statsPeriod,
+      ...dateSelection,
       utc: decodeScalar(query.utc),
     });
 
