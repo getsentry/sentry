@@ -27,7 +27,12 @@ except ImportError:
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, ReleaseFile, Organization
+
+# separate from either the source cache or the source maps cache, this is for
+# holding the results of attempting to fetch both kinds of files, either from the
+# database or from the internet
 from sentry.utils.cache import cache
+
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
@@ -141,7 +146,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
 
 def discover_sourcemap(result):
     """
-    Given a UrlResult object, attempt to discover a sourcemap.
+    Given a UrlResult object, attempt to discover a sourcemap URL.
     """
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
@@ -202,12 +207,19 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release, dist=None):
+    """
+    Attempt to retrieve a release artifact from the database.
+
+    Caches the result of that attempt (whether successful or not).
+    """
+
     dist_name = dist and dist.name or None
     cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
 
+    # not in the cache (meaning we haven't checked the database recently), so check the database
     if result is None:
         filename_choices = ReleaseFile.normalize(filename)
         filename_idents = [ReleaseFile.get_ident(f, dist_name) for f in filename_choices]
@@ -228,8 +240,10 @@ def fetch_release_file(filename, release, dist=None):
             )
             cache.set(cache_key, -1, 60)
             return None
+
         elif len(possible_files) == 1:
             releasefile = possible_files[0]
+
         else:
             # Pick first one that matches in priority order.
             # This is O(N*M) but there are only ever at most 4 things here
@@ -256,10 +270,11 @@ def fetch_release_file(filename, release, dist=None):
             # on the file system by `ReleaseFile.cache`, instead.
             cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
+    # in the cache as an unsucessful attempt
     elif result == -1:
-        # We cached an error, so normalize
-        # it down to None
         result = None
+
+    # in the cache as a successful attempt, including the zipped contents of the file
     else:
         # Previous caches would be a 3-tuple instead of a 4-tuple,
         # so this is being maintained for backwards compatibility
@@ -278,17 +293,25 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
-    Attempts to fetch from the cache.
+    Attempts to fetch from the database first (assuming there's a release on the
+    event), then the internet. Caches the result of each of those two attempts
+    sperately, whether or not those attempts are successful. Used for both
+    source files and source maps.
     """
+
     # If our url has been truncated, it'd be impossible to fetch
     # so we check for this early and bail
     if url[-3:] == "...":
         raise http.CannotFetch({"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)})
+
+    # if we've got a release to look on, try that first (incl associated cache)
     if release:
         with metrics.timer("sourcemaps.release_file"):
             result = fetch_release_file(url, release, dist)
     else:
         result = None
+
+    # otherwise, try the web-scraping cache and then the web itself
 
     cache_key = "source:cache:v4:%s" % (md5_text(url).hexdigest(),)
 
@@ -399,6 +422,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         except TypeError as e:
             raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})
     else:
+        # look in the database and, if not found, optionally try to scrape the web
         result = fetch_file(
             url, project=project, release=release, dist=dist, allow_scraping=allow_scraping
         )
@@ -476,8 +500,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ) is not False and self.project.get_option("sentry:scrape_javascript", True)
         self.fetch_count = 0
         self.sourcemaps_touched = set()
+
+        # cache holding mangled code, original code, and errors associated with
+        # each abs_path in the stacktrace
         self.cache = SourceCache()
+
+        # cache holding source URLs, corresponding source map URLs, and source map contents
         self.sourcemaps = SourceMapCache()
+
         self.release = None
         self.dist = None
 
@@ -523,6 +553,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         processable_frame.data = {"token": None}
 
     def process_frame(self, processable_frame, processing_task):
+        """
+        Attempt to demangle the given frame.
+        """
+
         frame = processable_frame.frame
         token = None
 
@@ -531,11 +565,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         all_errors = []
         sourcemap_applied = False
 
-        # can't fetch source if there's no filename present or no line
+        # can't demangle if there's no filename or line number present
         if not frame.get("abs_path") or not frame.get("lineno"):
             return
 
-        # can't fetch if this is internal node module as well
+        # also can't demangle node's internal modules
         # therefore we only process user-land frames (starting with /)
         # or those created by bundle/webpack internals
         if self.data.get("platform") == "node" and not frame.get("abs_path").startswith(
@@ -718,6 +752,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
 
         changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
+
         if sourcemap_applied or all_errors or changed_frame or changed_raw:
             if in_app is not None:
                 new_frame["in_app"] = in_app
@@ -728,6 +763,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return new_frames, raw_frames, all_errors
 
     def expand_frame(self, frame, source=None):
+        """
+        Mutate the given frame to include pre- and post-context lines.
+        """
+
         if frame.get("lineno") is not None:
             if source is None:
                 source = self.get_sourceview(frame["abs_path"])
@@ -747,6 +786,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         return self.cache.get(filename)
 
     def cache_source(self, filename):
+        """
+        Look for and (if found) cache a source file and its associated source
+        map (if any).
+        """
+
         sourcemaps = self.sourcemaps
         cache = self.cache
 
@@ -757,8 +801,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return
 
         # TODO: respect cache-control/max-age headers to some extent
-        logger.debug("Fetching remote source %r", filename)
+        logger.debug("Attempting to cache source %r", filename)
         try:
+            # this both looks in the database and tries to scrape the internet
             result = fetch_file(
                 filename,
                 project=self.project,
@@ -784,7 +829,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not sourcemap_url:
             return
 
-        logger.debug("Found sourcemap %r for minified script %r", sourcemap_url[:256], result.url)
+        logger.debug(
+            "Found sourcemap URL %r for minified script %r", sourcemap_url[:256], result.url
+        )
         sourcemaps.link(filename, sourcemap_url)
         if sourcemap_url in sourcemaps:
             return

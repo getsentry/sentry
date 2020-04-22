@@ -474,6 +474,8 @@ class DiscoverSourcemapTest(unittest.TestCase):
             discover_sourcemap(result)
 
 
+# NB: despite the very close name, this class (singular Module) is in fact
+# different from the GenerateModulesTest (plural Modules) class below
 class GenerateModuleTest(unittest.TestCase):
     def test_simple(self):
         assert generate_module(None) == "<unknown module>"
