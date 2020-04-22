@@ -1,4 +1,4 @@
-import {withRouter, WithRouterProps} from 'react-router';
+import * as ReactRouter from 'react-router';
 import React from 'react';
 
 import {GlobalSelection, Organization, Project} from 'app/types';
@@ -14,15 +14,17 @@ type Props = {
   selection: GlobalSelection;
   projects: Project[];
   loadingProjects: boolean;
-} & WithRouterProps &
+} & ReactRouter.WithRouterProps &
   React.ComponentProps<typeof GlobalSelectionHeader>;
 
 class GlobalSelectionHeaderContainer extends React.Component<Props> {
   render() {
-    return <GlobalSelectionHeader key={this.props.params.slug} {...this.props} />;
+    return <GlobalSelectionHeader {...this.props} />;
   }
 }
 
 export default withOrganization(
-  withProjectsSpecified(withRouter(withGlobalSelection(GlobalSelectionHeaderContainer)))
+  withProjectsSpecified(
+    ReactRouter.withRouter(withGlobalSelection(GlobalSelectionHeaderContainer))
+  )
 );
