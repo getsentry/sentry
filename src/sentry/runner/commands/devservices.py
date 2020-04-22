@@ -164,11 +164,18 @@ def _start_service(client, name, containers, project):
     for key, value in options["environment"].items():
         options["environment"][key] = value.format(containers=containers)
 
-    # TODO: initial pull
     pull = options.pop("pull", False)
     if pull:
         click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
         client.images.pull(options["image"])
+    else:
+        # We want make sure to pull everything on the first time,
+        # (the image doesn't exist), regardless of pull=True.
+        try:
+            client.images.get(options["image"])
+        except docker.errors.NotFound:
+            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+            client.images.pull(options["image"])
 
     for mount in options.get("volumes", {}).keys():
         if "/" not in mount:
