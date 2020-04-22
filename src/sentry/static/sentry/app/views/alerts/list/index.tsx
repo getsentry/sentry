@@ -62,27 +62,31 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       ],
     ];
   }
+
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
-    if (incidentList.length === 0) {
-      // Check if they have rules or not, to know which empty state message to display
-      const {params} = this.props;
 
-      try {
-        const alertRules = await this.api.requestPromise(
-          `/organizations/${params && params.orgId}/alert-rules/`,
-          {
-            method: 'GET',
-          }
-        );
-        this.setState({
-          hasAlertRule: alertRules.length > 0 ? true : false,
-        });
-      } catch (err) {
-        this.setState({
-          hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
-        });
-      }
+    if (incidentList.length !== 0) {
+      return;
+    }
+
+    // Check if they have rules or not, to know which empty state message to display
+    const {params} = this.props;
+
+    try {
+      const alertRules = await this.api.requestPromise(
+        `/organizations/${params && params.orgId}/alert-rules/`,
+        {
+          method: 'GET',
+        }
+      );
+      this.setState({
+        hasAlertRule: alertRules.length > 0 ? true : false,
+      });
+    } catch (err) {
+      this.setState({
+        hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
+      });
     }
   }
 
