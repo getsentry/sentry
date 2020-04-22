@@ -47,7 +47,9 @@ class TransactionSummaryCharts extends React.Component<Props> {
   render() {
     const {totalValues, eventView, organization, location} = this.props;
     const display = location.query.display
-      ? location.query.display
+      ? Array.isArray(location.query.display)
+        ? location.query.display[0]
+        : location.query.display
       : DisplayModes.LATENCY;
 
     return (
@@ -68,7 +70,6 @@ class TransactionSummaryCharts extends React.Component<Props> {
           {display === DisplayModes.DURATION && (
             <DurationChart
               organization={organization}
-              location={location}
               query={eventView.query}
               project={eventView.project}
               environment={eventView.environment}

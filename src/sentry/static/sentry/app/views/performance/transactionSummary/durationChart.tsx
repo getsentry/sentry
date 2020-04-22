@@ -1,6 +1,5 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -13,7 +12,6 @@ import TransparentLoadingMask from 'app/components/charts/components/transparent
 import TransitionChart from 'app/components/charts/transitionChart';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -38,7 +36,6 @@ type Props = ReactRouter.WithRouterProps &
   ViewProps & {
     api: Client;
     organization: OrganizationSummary;
-    location: Location;
   };
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
@@ -56,7 +53,6 @@ class DurationChart extends React.Component<Props> {
       environment,
       organization,
       query,
-      location,
       statsPeriod,
       router,
     } = this.props;
@@ -66,7 +62,6 @@ class DurationChart extends React.Component<Props> {
       : undefined;
 
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const {utc} = getParams(location.query);
 
     const legend = {
       right: 16,
@@ -119,15 +114,14 @@ class DurationChart extends React.Component<Props> {
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={project}
-              environment={environment}
+              project={[...project]}
+              environment={[...environment]}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
               showLoading={false}
               query={query}
               includePrevious={false}
-              utc={utc}
               yAxis={YAXIS_VALUES}
             >
               {({results, errored, loading, reloading}) => {
