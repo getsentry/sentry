@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -97,26 +96,7 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    const {api, organization} = this.props;
-
-    // Note: We do not load global selection store with any data when this component is used
-    // This is handled in `<OrganizationContext>` by examining the routes.
-    //
-    // When this view gets unmounted, attempt to load initial data so that projects/envs
-    // gets loaded with the last used one (via local storage). `forceUrlSync` will make
-    // `<GlobalSelectionHeader>` sync values from store to the URL (if they are different),
-    // otherwise they can out of sync because the component only syncs in `DidMount`, and
-    // the timing for that is not guaranteed.
-    //
-    // TBD: if this behavior is actually desired
-    if (organization.projects) {
-      GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
-        api: this.props.api,
-        onlyIfNeverLoaded: true,
-        forceUrlSync: true,
-      });
-    }
-
+    const {api} = this.props;
     api.clear();
   }
 

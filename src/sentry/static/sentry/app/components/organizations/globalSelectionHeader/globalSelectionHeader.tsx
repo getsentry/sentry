@@ -111,17 +111,6 @@ type Props = {
    */
   forceProject?: MinimalProject | null;
 
-  /**
-   * GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
-   *
-   * This component intentionally attempts to sync store --> URL Parameter
-   * only when mounted, except when this prop changes.
-   *
-   * XXX: This comes from GlobalSelectionStore and currently does not reset,
-   * so it happens at most once. Can add a reset as needed.
-   */
-  forceUrlSync: boolean;
-
   /// Props passed to child components ///
 
   /**
@@ -198,7 +187,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     showDateSelector: PropTypes.bool,
     hasCustomRouting: PropTypes.bool,
     resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
-    forceUrlSync: PropTypes.bool,
     showAbsolute: PropTypes.bool,
     showRelative: PropTypes.bool,
     allowClearTimeRange: PropTypes.bool,
@@ -337,11 +325,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       return true;
     }
 
-    // Update if `forceUrlSync` changes
-    if (!this.props.forceUrlSync && nextProps.forceUrlSync) {
-      return true;
-    }
-
     if (this.props.organization !== nextProps.organization) {
       return true;
     }
@@ -350,14 +333,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps) {
-    const {
-      hasCustomRouting,
-      location,
-      selection,
-      forceUrlSync,
-      forceProject,
-      shouldForceProject,
-    } = this.props;
+    const {hasCustomRouting, location, forceProject, shouldForceProject} = this.props;
 
     if (hasCustomRouting) {
       return;
@@ -390,23 +366,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
         this.enforceSingleProject({shouldForceProject, forceProject});
-      }
-    }
-
-    if (forceUrlSync && !prevProps.forceUrlSync) {
-      const {project, environment} = getStateFromQuery(location.query);
-
-      if (
-        !isEqual(project, selection.projects) ||
-        !isEqual(environment, selection.environments)
-      ) {
-        updateParamsWithoutHistory(
-          {
-            project: selection.projects,
-            environment: selection.environments,
-          },
-          this.getRouter()
-        );
       }
     }
 
