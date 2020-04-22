@@ -190,7 +190,7 @@ def _start_service(client, name, containers, project, devserver_override=False):
         listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
-    # This was mainly added since it is not desirable to occupy port 8000 on the
+    # This was mainly added since it was not desirable for reverse_proxy to occupy port 8000 on the
     # first "devservices up".
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
@@ -217,6 +217,11 @@ def _start_service(client, name, containers, project, devserver_override=False):
     click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
     container = client.containers.create(**options)
 
+    # Two things call _start_service.
+    # devservices up, and devservices attach.
+    # Containers that should be started on-demand with devserver, should ONLY be started via the latter.
+    # So devserver calls devservices attach --is-devserver reverse_proxy, which sets devserver_override.
+    # This additional logic is needed because devservices up also makes sure the necessary images are downloaded.
     if with_devserver and not devserver_override:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
