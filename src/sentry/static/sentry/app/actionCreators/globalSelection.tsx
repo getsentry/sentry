@@ -45,8 +45,8 @@ type DateTimeObject = {
  * Discover v1 uses a different interface, and passes slightly different datatypes e.g. Date for dates
  */
 type UrlParams = {
-  project?: ProjectId[];
-  environment?: EnvironmentId[];
+  project?: ProjectId[] | null;
+  environment?: EnvironmentId[] | null;
 } & DateTimeObject & {
     // TODO(discoverv1): This can be back to `ParamValue` when we remove Discover
     [others: string]: any;
@@ -119,7 +119,7 @@ export function updateDateTime(
  * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
 export function updateEnvironments(
-  environment: EnvironmentId[],
+  environment: EnvironmentId[] | null,
   router?: Router,
   options?: Options
 ) {
