@@ -1,22 +1,18 @@
 from __future__ import absolute_import
 
 import six
-from django.conf import settings
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry import search
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.event_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.snuba import discover
-
-
-IssueSeach = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
@@ -66,7 +62,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
         try:
             projects = self.get_projects(request, organization)
             query_kwargs = build_query_params_from_request(
-                request, organization, projects, params["environment"]
+                request, organization, projects, params.get("environment")
             )
             query_kwargs["limit"] = 5
             try:
@@ -81,7 +77,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             else:
                 query_kwargs["search_filters"] = parsed_terms
 
-            results = IssueSeach.query(**query_kwargs)
+            results = search.query(**query_kwargs)
         except discover.InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
 
