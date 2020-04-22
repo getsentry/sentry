@@ -6,11 +6,9 @@ import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
 import {Group, Organization, Project} from 'app/types';
-import {IconInfo} from 'app/icons';
 import {PageContent} from 'app/styles/organization';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
@@ -81,9 +79,10 @@ class GroupDetails extends React.Component<Props, State> {
     };
   }
 
-  remountComponent() {
+  remountComponent = () => {
     this.setState(this.initialState);
-  }
+    this.fetchData();
+  };
 
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
@@ -230,9 +229,7 @@ class GroupDetails extends React.Component<Props, State> {
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
-          <Alert type="error" icon={<IconInfo size="lg" />}>
-            {t('The issue you were looking for was not found.')}
-          </Alert>
+          <LoadingError message={t('The issue you were looking for was not found.')} />
         );
       default:
         return <LoadingError onRetry={this.remountComponent} />;

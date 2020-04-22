@@ -124,6 +124,28 @@ describe('groupDetails', function() {
     );
   });
 
+  it('renders error message when failing to retrieve issue details and can retry request', async function() {
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      statusCode: 403,
+    });
+    wrapper = createWrapper();
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+    expect(issueDetailsMock).toHaveBeenCalledTimes(1);
+    expect(MockComponent).not.toHaveBeenCalled();
+    expect(wrapper.find('LoadingError').text()).toEqual(
+      'There was an error loading data.Retry'
+    );
+
+    wrapper.find('button[aria-label="Retry"]').simulate('click');
+
+    expect(issueDetailsMock).toHaveBeenCalledTimes(2);
+  });
+
   it('fetches issue details for a given environment', async function() {
     const props = initializeOrg({
       project: TestStubs.Project(),
