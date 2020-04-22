@@ -8,7 +8,6 @@ import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {truncationFormatter} from 'app/components/charts/utils';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -401,8 +400,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       const results: MultiSeriesResults = Object.fromEntries(
         Object.keys(timeseriesData).map((seriesName: string): [string, Series] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          const name = truncationFormatter(seriesName, 80);
-          return [name, this.transformTimeseriesData(seriesData.data, name)[0]];
+          return [
+            seriesName,
+            this.transformTimeseriesData(seriesData.data, seriesName)[0],
+          ];
         })
       );
 
