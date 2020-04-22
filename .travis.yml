@@ -228,7 +228,7 @@ matrix:
         - redis-server
       install:
         - python setup.py install_egg_info
-        - pip install -U -e .
+        - pip install -U -e ".[dev]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
