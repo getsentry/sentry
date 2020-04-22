@@ -17,7 +17,7 @@ type Props = DefaultProps & {
 };
 
 /**
- * Renders an Alert box of type "error". Renders a "Retry" button only if a  `onRetry` callback is defined.
+ * Renders an Alert box of type "error". Renders a "Retry" button only if a `onRetry` callback is defined.
  */
 class LoadingError extends React.Component<Props> {
   static propTypes = {
