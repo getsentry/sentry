@@ -25,21 +25,6 @@ export type SpanEntry = {
   data: Array<RawSpanType>;
 };
 
-export type SentryTransactionEvent = {
-  entries: Array<SpanEntry>;
-  startTimestamp: number;
-  endTimestamp: number;
-  sdk?: {
-    name?: string;
-  };
-
-  // TODO(alberto):
-  // TODO(ts): type this
-  contexts?: {
-    trace?: any;
-  };
-};
-
 export type SpanChildrenLookupType = {[span_id: string]: Array<RawSpanType>};
 
 export type ParsedTraceType = {
@@ -59,3 +44,11 @@ export enum TickAlignment {
   Right,
   Center,
 }
+
+export type TraceContextType = {
+  op?: string;
+  type?: 'trace';
+  span_id?: string;
+  trace_id?: string;
+  parent_span_id?: string;
+};
