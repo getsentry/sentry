@@ -172,9 +172,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 version__in=versions,
             )
         }
-        return serialize(
-            [releases.get(version, {"version": version}) for version in versions], request.user,
+        serialized_releases = serialize(
+            [releases.get(version) for version in versions], request.user,
         )
+        # Default to a dictionary if the release object wasn't found and not serialized
+        return [
+            item if item is not None else {"version": versions[index]}
+            for index, item in enumerate(serialized_releases)
+        ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):

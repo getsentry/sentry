@@ -81,6 +81,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == six.text_type(group.id)
         assert response.data["firstRelease"]["version"] == "1.0"
 
+    def test_no_releases(self):
+        self.login_as(user=self.user)
+
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        group = event.group
+
+        url = u"/api/0/issues/{}/".format(group.id)
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["firstRelease"] is None
+        assert response.data["lastRelease"] is None
+
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
         group2 = self.create_group(status=GroupStatus.DELETION_IN_PROGRESS)

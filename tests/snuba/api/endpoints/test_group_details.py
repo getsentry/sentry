@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import six
 from sentry.utils.compat import mock
 
-from sentry.models import Environment
+from sentry.models import Environment, Release
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -37,12 +37,12 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_first_last_release(self):
         self.login_as(user=self.user)
         first_release = {
-            "first_seen": before_now(minutes=3),
-            "last_seen": before_now(minutes=2, seconds=30),
+            "firstEvent": before_now(minutes=3),
+            "lastEvent": before_now(minutes=2, seconds=30),
         }
         last_release = {
-            "first_seen": before_now(minutes=1),
-            "last_seen": before_now(minutes=1, seconds=30),
+            "firstEvent": before_now(minutes=1, seconds=30),
+            "lastEvent": before_now(minutes=1),
         }
 
         for timestamp in first_release.values():
@@ -67,8 +67,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(group.id)
-        assert response.data["firstRelease"]["version"] == "1.0"
-        assert response.data["lastRelease"]["version"] == "1.0a"
+        release = response.data["firstRelease"]
+        assert release["version"] == "1.0"
+        for event, timestamp in six.iteritems(first_release):
+            assert release[event].ctime() == timestamp.ctime()
+        release = response.data["lastRelease"]
+        assert release["version"] == "1.0a"
+        for event, timestamp in six.iteritems(last_release):
+            assert release[event].ctime() == timestamp.ctime()
 
     def test_first_last_only_one_tagstore(self):
         self.login_as(user=self.user)
@@ -92,3 +98,34 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
+
+    def test_first_release_only(self):
+        self.login_as(user=self.user)
+
+        first_event = before_now(days=3)
+
+        self.store_event(
+            data={"release": "1.0", "timestamp": iso_format(first_event)},
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={"release": "1.1", "timestamp": iso_format(before_now(days=1))},
+            project_id=self.project.id,
+        )
+        # Forcibly remove one of the releases
+        Release.objects.get(version="1.1").delete()
+
+        group = event.group
+
+        url = u"/api/0/issues/{}/".format(group.id)
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["firstRelease"]["version"] == "1.0"
+        # only one event
+        assert (
+            response.data["firstRelease"]["firstEvent"]
+            == response.data["firstRelease"]["lastEvent"]
+        )
+        assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
+        assert response.data["lastRelease"] == {"version": "1.1"}
