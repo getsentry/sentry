@@ -65,9 +65,10 @@ class EventWaiter extends React.Component<Props, State> {
     let firstEvent = null;
 
     try {
-      ({firstEvent} = await api.requestPromise(
+      const resp = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`
-      ));
+      );
+      firstEvent = resp.firstEvent;
     } catch (resp) {
       if (!resp) {
         return;
