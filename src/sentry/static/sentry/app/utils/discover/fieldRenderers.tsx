@@ -164,7 +164,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   id: {
     sortField: 'id',
     renderFunc: data => {
-      const id = data?.id;
+      const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
         return null;
       }
