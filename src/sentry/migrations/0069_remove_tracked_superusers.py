@@ -22,7 +22,6 @@ def remove_tracked_superuser_views(apps, schema_editor):
     tracked_views = IncidentSeen.objects.all().select_related("user", "incident")
     for tracked_view in tracked_views:
         tracked_user = tracked_view.user
-        tracked_incident = tracked_view.incident
         is_org_member = has_access(tracked_view.incident.organization, tracked_user)
         if not is_org_member:
             tracked_view.delete()
