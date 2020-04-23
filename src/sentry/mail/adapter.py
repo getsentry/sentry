@@ -44,15 +44,8 @@ class ActionTargetType(Enum):
 
 class MailAdapter(object):
     """
-    This class contains generic logic for notifying users via Email. Short term we'll
-    logic into this class from `MailPlugin` and have `MailPlugin` use the Adapter.
-    Once this is complete, we'll update logic in here to handle more cases for mail,
-    and eventually deprecate `MailPlugin` entirely.
+    This class contains generic logic for notifying users via Email.
     """
-
-    # TODO: Remove this once we've fully moved over to the new action. Just for use with
-    # `unsplit_key`
-    slug = "mail"
 
     mail_option_key = "mail:subject_prefix"
     alert_option_key = "mail:alert"
