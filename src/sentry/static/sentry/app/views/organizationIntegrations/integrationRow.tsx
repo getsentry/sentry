@@ -23,7 +23,7 @@ type Props = {
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
-  showSlackAlert?: boolean;
+  alertText?: string;
 };
 
 const urlMap = {
@@ -43,7 +43,7 @@ const IntegrationRow = (props: Props) => {
     publishStatus,
     configurations,
     categories,
-    showSlackAlert,
+    alertText,
   } = props;
 
   const baseUrl =
@@ -92,12 +92,10 @@ const IntegrationRow = (props: Props) => {
           ))}
         </InternalContainer>
       </FlexContainer>
-      {showSlackAlert && (
+      {alertText && (
         <AlertContainer>
           <Alert type="warning" icon={<IconWarning size="sm" />}>
-            {t(
-              'Slack must be re-authorized to avoid a disruption of Slack notifications'
-            )}
+            {alertText}
             <ResolveNowButton href={`${baseUrl}?tab=configurations`} size="xsmall">
               {t('Resolve Now')}
             </ResolveNowButton>

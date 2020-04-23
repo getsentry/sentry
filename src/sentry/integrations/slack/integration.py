@@ -45,6 +45,10 @@ setup_alert = {
     "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
 }
 
+reauthentication_alert = {
+    "alertText": _("Slack must be re-authorized to avoid a disruption of Slack notifications"),
+}
+
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -52,7 +56,7 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert]},
+    aspects={"alerts": [setup_alert], "reauthentication_alert": reauthentication_alert},
 )
 
 

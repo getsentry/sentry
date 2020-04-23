@@ -16,7 +16,7 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {IconWarning} from 'app/icons';
 
-const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
+const CONFIGURABLE_FEATURES = [];
 
 export type Props = {
   organization: Organization;
@@ -29,7 +29,7 @@ export type Props = {
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
   className?: string;
-  showSlackAlert?: boolean;
+  showReauthMessage: boolean;
 };
 
 //TODO: Rename to InstalledIntegration when we can remove the old one
@@ -64,6 +64,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     });
   };
 
+  //TODO(TS): add typing on aspects
   getRemovalBodyAndText(aspects) {
     if (aspects && aspects.removal_dialog) {
       return {
@@ -95,7 +96,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
-          Deleting this integration has consequences!
+          {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
       </React.Fragment>
@@ -113,7 +114,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
-          This integration cannot be removed on Sentry
+          {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}
       </React.Fragment>
@@ -127,7 +128,13 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
   }
 
   render() {
-    const {className, integration, provider, organization, showSlackAlert} = this.props;
+    const {
+      className,
+      integration,
+      provider,
+      organization,
+      showReauthMessage,
+    } = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -142,7 +149,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {showSlackAlert && (
+              {showReauthMessage && (
                 <Tooltip
                   disabled={hasAccess}
                   title={t(
@@ -160,30 +167,29 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                 </Tooltip>
               )}
               <Tooltip
-                disabled={this.hasConfiguration()}
+                disabled={this.hasConfiguration() && hasAccess}
                 position="left"
-                title="Integration not configurable"
+                title={
+                  !this.hasConfiguration()
+                    ? t('Integration not configurable')
+                    : t(
+                        'You must be an organization owner, manager or admin to configure'
+                      )
+                }
               >
-                <Tooltip
-                  disabled={hasAccess || !this.hasConfiguration()}
-                  title={t(
-                    'You must be an organization owner, manager or admin to configure'
-                  )}
+                <StyledButton
+                  borderless
+                  icon="icon-settings"
+                  disabled={
+                    !this.hasConfiguration() ||
+                    !hasAccess ||
+                    integration.status !== 'active'
+                  }
+                  to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                  data-test-id="integration-configure-button"
                 >
-                  <StyledButton
-                    borderless
-                    icon="icon-settings"
-                    disabled={
-                      !this.hasConfiguration() ||
-                      !hasAccess ||
-                      integration.status !== 'active'
-                    }
-                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                    data-test-id="integration-configure-button"
-                  >
-                    {t('Configure')}
-                  </StyledButton>
-                </Tooltip>
+                  {t('Configure')}
+                </StyledButton>
               </Tooltip>
             </div>
             <div>

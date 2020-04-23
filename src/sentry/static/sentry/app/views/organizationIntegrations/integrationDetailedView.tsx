@@ -15,7 +15,7 @@ import Button from 'app/components/button';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegrationInDirectory';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
-import {isSlackWorkspaceApp} from 'app/utils/integrationUtil';
+import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
@@ -215,9 +215,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             <div>
               {hasFeature && hasWorkspaceApp && (
                 <Alert type="warning" icon={<IconWarning size="sm" />}>
-                  {t(
-                    'Slack must be re-authorized to avoid a disruption of Slack notifications'
-                  )}
+                  {getReauthAlertText(provider)}
                 </Alert>
               )}
               <div>
@@ -232,7 +230,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
                       onReinstallIntegration={this.onInstall}
                       data-test-id={integration.id}
                       trackIntegrationEvent={this.trackIntegrationEvent}
-                      showSlackAlert={hasFeature && isSlackWorkspaceApp(integration)}
+                      showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
                     />
                   </InstallWrapper>
                 ))}

@@ -746,7 +746,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: any};
+  provider: BaseIntegrationProvider & {aspects: any}; //TODO: Type properly
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object & {

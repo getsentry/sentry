@@ -27,6 +27,7 @@ import {
   isDocumentIntegration,
   getCategoriesForIntegration,
   isSlackWorkspaceApp,
+  getReauthAlertText,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -337,7 +338,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             publishStatus="published"
             configurations={integrations.length}
             categories={getCategoriesForIntegration(provider)}
-            showSlackAlert={hasFeature && hasWorkspaceApp}
+            alertText={hasFeature && hasWorkspaceApp && getReauthAlertText(provider)}
           />
         )}
       </Feature>
