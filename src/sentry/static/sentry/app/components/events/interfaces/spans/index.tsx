@@ -73,7 +73,7 @@ class SpansInterface extends React.Component<Props, State> {
 
     const label = tn(
       'There is an error event associated with this transaction event.',
-      `There are %d error events associated with this transaction event.`,
+      `There are %s error events associated with this transaction event.`,
       numOfErrors
     );
 
