@@ -55,7 +55,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return endpoints;
   }
 
-  onDelete(id: string) {
+  handleDelete = (id: string) => {
     const {orgId, projectId} = this.props.params;
 
     this.setState({
@@ -66,7 +66,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       method: 'DELETE',
       complete: () => this.fetchData(),
     });
-  }
+  };
 
   renderDebugFiles() {
     const {debugFiles} = this.state;
@@ -79,7 +79,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         <DebugFileRow
           debugFile={debugFile}
           downloadUrl={downloadUrl}
-          onDelete={this.onDelete}
+          onDelete={this.handleDelete}
           key={debugFile.id}
         />
       );
