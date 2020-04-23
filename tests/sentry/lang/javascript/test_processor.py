@@ -474,6 +474,8 @@ class DiscoverSourcemapTest(unittest.TestCase):
             discover_sourcemap(result)
 
 
+# NB: despite the very close name, this class (singular Module) is in fact
+# different from the GenerateModulesTest (plural Modules) class below
 class GenerateModuleTest(unittest.TestCase):
     def test_simple(self):
         assert generate_module(None) == "<unknown module>"
@@ -815,3 +817,109 @@ class ErrorMappingTest(unittest.TestCase):
         assert not rewrite_exception(actual)
 
         assert actual == expected
+
+
+class CacheSourceTest(TestCase):
+    def test_file_no_source_records_error(self):
+        """
+        If we can't find a given file, either on the release or by scraping, an
+        error should be recorded.
+        """
+
+        project = self.create_project()
+
+        processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
+
+        # no release on the event, so won't find file in database
+        assert processor.release is None
+
+        # not a real url, so won't find file on the internet
+        abs_path = "app:///i/dont/exist.js"
+
+        # before caching, no errors
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+        processor.cache_source(abs_path)
+
+        # now we have an error
+        assert len(processor.cache.get_errors(abs_path)) == 1
+        assert processor.cache.get_errors(abs_path)[0] == {"url": abs_path, "type": "js_no_source"}
+
+    def test_node_modules_file_no_source_no_error(self):
+        """
+        If someone hasn't uploaded node_modules (which most people don't), it
+        shouldn't complain about a source file being missing.
+        """
+
+        project = self.create_project()
+        processor = JavaScriptStacktraceProcessor(data={}, stacktrace_infos=None, project=project)
+
+        # no release on the event, so won't find file in database
+        assert processor.release is None
+
+        # not a real url, so won't find file on the internet
+        abs_path = "app:///../node_modules/i/dont/exist.js"
+
+        processor.cache_source(abs_path)
+
+        # no errors, even though the file can't have been found
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+    def test_node_modules_file_with_source_is_used(self):
+        """
+        If someone has uploaded node_modules, files in there should be treated like
+        any other files (in other words, they should land in the cache with no errors).
+        """
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        abs_path = "app:///../node_modules/some-package/index.js"
+        self.create_release_file(release=release, name=abs_path)
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version}, stacktrace_infos=None, project=project
+        )
+        # in real life the preprocess step will pull release out of the data
+        # dictionary passed to the JavaScriptStacktraceProcessor constructor,
+        # but since this is just a unit test, we have to set it manually
+        processor.release = release
+
+        processor.cache_source(abs_path)
+
+        # file is cached, no errors are generated
+        assert processor.cache.get(abs_path)
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+    @patch("sentry.lang.javascript.processor.discover_sourcemap")
+    def test_node_modules_file_with_source_but_no_map_records_error(self, mock_discover_sourcemap):
+        """
+        If someone has uploaded node_modules, but is missing maps, it should complain
+        so that they either a) upload the maps, or b) don't upload the source files.
+        """
+
+        map_url = "app:///../node_modules/some-package/index.js.map"
+        mock_discover_sourcemap.return_value = map_url
+
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        abs_path = "app:///../node_modules/some-package/index.js"
+        self.create_release_file(release=release, name=abs_path)
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version}, stacktrace_infos=None, project=project
+        )
+        # in real life the preprocess step will pull release out of the data
+        # dictionary passed to the JavaScriptStacktraceProcessor constructor,
+        # but since this is just a unit test, we have to set it manually
+        processor.release = release
+
+        # before caching, no errors
+        assert len(processor.cache.get_errors(abs_path)) == 0
+
+        processor.cache_source(abs_path)
+
+        # now we have an error
+        assert len(processor.cache.get_errors(abs_path)) == 1
+        assert processor.cache.get_errors(abs_path)[0] == {"url": map_url, "type": "js_no_source"}
