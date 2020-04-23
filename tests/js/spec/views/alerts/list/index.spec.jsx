@@ -78,7 +78,11 @@ describe('IncidentsList', function() {
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
     expect(items.at(1).text()).toContain('Second incident');
-    expect(projectMock).toHaveBeenCalledTimes(1);
+
+    // GlobalSelectionHeader loads projects + the Projects render-prop
+    // component to load projects for all rows.
+    expect(projectMock).toHaveBeenCalledTimes(2);
+
     expect(projectMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
