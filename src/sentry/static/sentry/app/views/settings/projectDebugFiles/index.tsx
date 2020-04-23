@@ -183,7 +183,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
                   this.setState({showDetails: (e.target as HTMLInputElement).checked});
                 }}
               />
-              {t('details')}
+              {t('show details')}
             </Label>
 
             <SearchBar
@@ -247,6 +247,7 @@ const Label = styled('label')`
   font-weight: normal;
   display: flex;
   margin-bottom: 0;
+  white-space: nowrap;
   input {
     margin-top: 0;
     margin-right: ${space(1)};
