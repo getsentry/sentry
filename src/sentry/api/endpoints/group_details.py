@@ -34,6 +34,7 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -177,8 +178,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
         # Default to a dictionary if the release object wasn't found and not serialized
         return [
-            item if item is not None else {"version": versions[index]}
-            for index, item in enumerate(serialized_releases)
+            item if item is not None else {"version": version}
+            for item, version in zip(serialized_releases, versions)
         ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
