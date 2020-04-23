@@ -122,6 +122,7 @@ class IssueListSearchBar extends React.Component {
       ...props
     } = this.props;
 
+    console.log('defaultSearchItems', this.state.defaultSearchItems);
     return (
       <SmartSearchBarNoLeftCorners
         hasPinnedSearch

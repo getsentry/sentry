@@ -11,7 +11,7 @@ type Props = {
   onSelectAll: (selectAll: boolean) => void;
 };
 
-const BreadcrumbFilterHeader = ({
+const DataPrivacyRulesPanelContentFilter = ({
   selectedQuantity,
   isAllSelected,
   onSelectAll,
@@ -54,18 +54,19 @@ const BreadcrumbFilterHeader = ({
 
 const Wrapper = styled('div')`
   display: flex;
-  justify-content: flex-end;
   background-color: ${p => p.theme.offWhite};
-  padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  justify-content: flex-end;
 `;
 
 const CheckboxWrapper = styled('div')`
+  text-align: right;
   align-items: center;
   display: grid;
   grid-gap: ${space(1)};
-  grid-template-columns: 1fr 16px;
+  grid-template-columns: minmax(100px, auto) 16px;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export default BreadcrumbFilterHeader;
+export default DataPrivacyRulesPanelContentFilter;

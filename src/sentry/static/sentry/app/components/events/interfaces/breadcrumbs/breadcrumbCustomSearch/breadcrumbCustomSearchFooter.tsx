@@ -10,7 +10,7 @@ type Props = {
   onSubmit: () => void;
 };
 
-const BreadcrumbFilterFooter = ({onSubmit}: Props) => (
+const BreadcrumbCustomSearchFooter = ({onSubmit}: Props) => (
   <Wrapper>
     <ApplyFilterButton onClick={onSubmit} size="xsmall" priority="primary">
       {t('Apply Filter')}
@@ -23,7 +23,6 @@ const Wrapper = styled('div')`
   justify-content: flex-end;
   background-color: ${p => p.theme.offWhite};
   padding: ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
 `;
 
 const ApplyFilterButton = styled(Button)`
@@ -31,4 +30,4 @@ const ApplyFilterButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
-export default BreadcrumbFilterFooter;
+export default BreadcrumbCustomSearchFooter;

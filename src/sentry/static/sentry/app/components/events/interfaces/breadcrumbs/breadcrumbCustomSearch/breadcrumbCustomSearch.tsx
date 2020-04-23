@@ -9,28 +9,28 @@ import DropdownControl from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
-import BreadcrumbFilterHeader from './breadcrumbFilterHeader';
-import BreadcrumbFilterFooter from './breadcrumbFilterFooter';
+import BreadcrumbFilterHeader from './breadcrumbCustomSearchHeader';
+import BreadcrumbFilterFooter from './breadcrumbCustomSearchFooter';
 import {BreadcrumbDetails, BreadcrumbType} from '../types';
 import {BreadCrumbIconWrapper} from '../styles';
 
-type FilterData = {
+type CustomSearchData = {
   type: BreadcrumbType;
   isChecked: boolean;
 } & BreadcrumbDetails;
 
 type Props = {
-  onFilter: (filterData: Array<FilterData>) => () => void;
-  filterData: Array<FilterData>;
+  onFilter: (filterData: Array<CustomSearchData>) => () => void;
+  customSearchData: Array<CustomSearchData>;
 };
 
 type State = {
-  filterData: Array<FilterData>;
+  customSearchData: Array<CustomSearchData>;
 };
 
-class BreadcrumbFilter extends React.Component<Props, State> {
+class BreadcrumbCustomSearch extends React.Component<Props, State> {
   state = {
-    filterData: this.props.filterData,
+    customSearchData: this.props.customSearchData,
   };
 
   componentDidMount() {
@@ -38,15 +38,15 @@ class BreadcrumbFilter extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.filterData, this.props.filterData)) {
+    if (!isEqual(prevProps.customSearchData, this.props.customSearchData)) {
       this.loadState();
     }
   }
 
   loadState = () => {
-    const {filterData} = this.props;
+    const {customSearchData} = this.props;
     this.setState({
-      filterData,
+      customSearchData,
     });
   };
 
@@ -55,9 +55,8 @@ class BreadcrumbFilter extends React.Component<Props, State> {
   ) => {
     event.stopPropagation();
 
-    const {filterData} = this.state;
-
-    const newFilterData = filterData.map(data => {
+    const {customSearchData} = this.state;
+    const newFilterData = customSearchData.map(data => {
       if (data.type === breadcrumbType) {
         return {
           ...data,
@@ -68,13 +67,13 @@ class BreadcrumbFilter extends React.Component<Props, State> {
     });
 
     this.setState({
-      filterData: newFilterData,
+      customSearchData: newFilterData,
     });
   };
 
   handleSelectAll = (selectAll: boolean) => {
     this.setState(prevState => ({
-      filterData: prevState.filterData.map(data => ({
+      customSearchData: prevState.customSearchData.map(data => ({
         ...data,
         isChecked: selectAll,
       })),
@@ -83,14 +82,14 @@ class BreadcrumbFilter extends React.Component<Props, State> {
 
   render() {
     const {onFilter} = this.props;
-    const {filterData} = this.state;
+    const {customSearchData} = this.state;
 
-    const selectedQuantity = filterData.filter(data => data.isChecked).length;
+    const selectedQuantity = customSearchData.filter(data => data.isChecked).length;
 
     return (
       <Wrapper>
         <DropdownControl
-          menuWidth="10vw"
+          menuWidth="50vh"
           blendWithActor
           button={({isOpen, getActorProps}) => (
             <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
@@ -102,10 +101,10 @@ class BreadcrumbFilter extends React.Component<Props, State> {
             <BreadcrumbFilterHeader
               onSelectAll={this.handleSelectAll}
               selectedQuantity={selectedQuantity}
-              isAllSelected={filterData.length === selectedQuantity}
+              isAllSelected={customSearchData.length === selectedQuantity}
             />
             <List>
-              {filterData.map(
+              {customSearchData.map(
                 ({type, icon, color, borderColor, description, isChecked}) => {
                   const Icon = icon as React.ComponentType<IconProps>;
                   return (
@@ -114,22 +113,24 @@ class BreadcrumbFilter extends React.Component<Props, State> {
                       isChecked={isChecked}
                       onClick={this.handleClickItem(type)}
                     >
-                      <BreadCrumbIconWrapper
-                        color={color}
-                        borderColor={borderColor}
-                        size={20}
-                      >
-                        <Icon size="xs" />
-                      </BreadCrumbIconWrapper>
-                      <span>{description}</span>
+                      <ListItemDescription>
+                        <BreadCrumbIconWrapper
+                          color={color}
+                          borderColor={borderColor}
+                          size={20}
+                        >
+                          <Icon size="xs" />
+                        </BreadCrumbIconWrapper>
+                        <span>{description}</span>
+                      </ListItemDescription>
                       <CheckboxFancy isChecked={isChecked} />
                     </ListItem>
                   );
                 }
               )}
             </List>
-            {!isEqual(this.props.filterData, filterData) && (
-              <BreadcrumbFilterFooter onSubmit={onFilter(filterData)} />
+            {!isEqual(this.props.customSearchData, customSearchData) && (
+              <BreadcrumbFilterFooter onSubmit={onFilter(customSearchData)} />
             )}
           </React.Fragment>
         </DropdownControl>
@@ -138,10 +139,22 @@ class BreadcrumbFilter extends React.Component<Props, State> {
   }
 }
 
-export default BreadcrumbFilter;
+export default BreadcrumbCustomSearch;
 
 const StyledDropdownButton = styled(DropdownButton)`
+  border-right: 0;
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  border-radius: ${p =>
+    p.isOpen
+      ? `${p.theme.borderRadius} 0 0 0`
+      : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
+  white-space: nowrap;
   max-width: 200px;
+
+  &:hover,
+  &:active {
+    border-right: 0;
+  }
 `;
 
 const List = styled('ul')`
@@ -152,24 +165,38 @@ const List = styled('ul')`
 
 const ListItem = styled('li')<{isChecked?: boolean}>`
   display: grid;
-  grid-template-columns: 20px 1fr 16px;
+  grid-template-columns: 1fr 16px;
   grid-column-gap: ${space(1)};
   align-items: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   cursor: pointer;
-  font-size: ${p => p.theme.fontSizeMedium};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  border-top: 1px solid ${p => p.theme.borderLight};
-  margin-top: -1px;
   :hover {
     background-color: ${p => p.theme.offWhite};
   }
-  :last-child {
-    border-bottom: 0;
+  ${CheckboxFancy} {
+    opacity: ${p => (p.isChecked ? 1 : 0.3)};
+  }
+
+  &:hover ${CheckboxFancy} {
+    opacity: 1;
+  }
+
+  &:hover span {
+    color: ${p => p.theme.blue};
+    text-decoration: underline;
   }
 `;
 
 const Wrapper = styled('div')`
   position: relative;
   display: flex;
+`;
+
+const ListItemDescription = styled('div')`
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;

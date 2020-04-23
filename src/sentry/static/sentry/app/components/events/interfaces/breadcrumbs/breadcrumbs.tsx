@@ -7,6 +7,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import {Event} from 'app/types';
 import space from 'app/styles/space';
+import SimpleSmartSearch from 'app/components/simpleSmartSearch/simpleSmartSearch';
 import {IconProps} from 'app/types/iconProps';
 
 import {PlatformContextProvider} from './platformContext';
@@ -15,21 +16,24 @@ import BreadcrumbCollapsed from './breadcrumbCollapsed';
 import BreadcrumbRenderer from './breadcrumbRenderer';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbDetails from './getBreadcrumbDetails';
-import BreadcrumbFilter from './breadcrumbFilter/breadcrumbFilter';
+import BreadcrumbCustomSearch from './breadcrumbCustomSearch/breadcrumbCustomSearch';
 import {Breadcrumb, BreadcrumbDetails} from './types';
 import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
 type BreadcrumbWithDetails = Breadcrumb & BreadcrumbDetails;
-type BreadcrumbFilterData = React.ComponentProps<typeof BreadcrumbFilter>['filterData'];
+type BreadcrumbCustomSearchData = React.ComponentProps<
+  typeof BreadcrumbCustomSearch
+>['customSearchData'];
 
 type State = {
   isCollapsed: boolean;
   searchTerm: string;
   breadcrumbs: Array<BreadcrumbWithDetails>;
+  filteredBreadcrumbsByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
-  breadcrumbFilterData: BreadcrumbFilterData;
+  breadcrumbCustomSearchData: BreadcrumbCustomSearchData;
 };
 
 type Props = {
@@ -45,8 +49,9 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     isCollapsed: true,
     searchTerm: '',
     breadcrumbs: [],
+    filteredBreadcrumbsByCustomSearch: [],
     filteredBreadcrumbs: [],
-    breadcrumbFilterData: [],
+    breadcrumbCustomSearchData: [],
   };
 
   componentDidMount() {
@@ -63,14 +68,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
 
-    const breadcrumbFilterData: BreadcrumbFilterData = [];
+    const breadcrumbCustomSearchData: BreadcrumbCustomSearchData = [];
 
     const convertedBreadcrumbs = breadcrumbs.map(breadcrumb => {
       const convertedBreadcrumb = convertBreadcrumbType(breadcrumb);
       const breadcrumbDetails = getBreadcrumbDetails(convertedBreadcrumb.type);
 
-      if (!breadcrumbFilterData.find(b => b.type === convertedBreadcrumb.type)) {
-        breadcrumbFilterData.push({
+      if (!breadcrumbCustomSearchData.find(b => b.type === convertedBreadcrumb.type)) {
+        breadcrumbCustomSearchData.push({
           type: convertedBreadcrumb.type,
           ...breadcrumbDetails,
           isChecked: true,
@@ -86,7 +91,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     this.setState({
       breadcrumbs: convertedBreadcrumbs,
       filteredBreadcrumbs: convertedBreadcrumbs,
-      breadcrumbFilterData,
+      filteredBreadcrumbsByCustomSearch: convertedBreadcrumbs,
+      breadcrumbCustomSearchData,
     });
   };
 
@@ -155,28 +161,12 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     };
   };
 
-  handleChangeSearchTerm = (searchTerm: string) => {
-    const {breadcrumbs} = this.state;
-
-    const filteredBreadcrumbs = breadcrumbs.filter(
-      item =>
-        // return true if any of category, message, or level contain queryValue
-        !!['category', 'message', 'level'].find(prop => {
-          const propValue = (item[prop] || '').toLowerCase();
-          return propValue.includes(searchTerm);
-        })
-    );
-
+  handleFilterByCustomSearch = (
+    breadcrumbCustomSearchData: BreadcrumbCustomSearchData
+  ) => () => {
     this.setState({
-      searchTerm,
-      filteredBreadcrumbs,
-    });
-  };
-
-  handleFilter = (breadcrumbFilterData: BreadcrumbFilterData) => () => {
-    this.setState(prevState => ({
-      filteredBreadcrumbs: prevState.breadcrumbs.filter(breadcrumb => {
-        const foundBreadcrumbFilterData = breadcrumbFilterData.find(
+      filteredBreadcrumbsByCustomSearch: this.state.breadcrumbs.filter(breadcrumb => {
+        const foundBreadcrumbFilterData = breadcrumbCustomSearchData.find(
           crumbFilterData => crumbFilterData.type === breadcrumb.type
         );
         if (foundBreadcrumbFilterData) {
@@ -185,8 +175,30 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
         return false;
       }),
-      breadcrumbFilterData,
-    }));
+      breadcrumbCustomSearchData,
+    });
+  };
+
+  handleChangeSearchTerm = (value: string) => {
+    const {filteredBreadcrumbsByCustomSearch} = this.state;
+
+    const searchTerm = value.toLocaleLowerCase();
+
+    const filteredBreadcrumbs = filteredBreadcrumbsByCustomSearch.filter(
+      item =>
+        !!['category', 'message', 'level', 'timestamp'].find(prop => {
+          const searchValue = item[prop];
+          if (searchValue) {
+            return searchValue.toLowerCase().indexOf(searchTerm) !== -1;
+          }
+          return false;
+        })
+    );
+
+    this.setState({
+      searchTerm,
+      filteredBreadcrumbs,
+    });
   };
 
   handleCollapseToggle = () => {
@@ -204,7 +216,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
   render() {
     const {event, type} = this.props;
-    const {breadcrumbFilterData} = this.state;
+    const {breadcrumbCustomSearchData} = this.state;
 
     const {
       collapsedQuantity,
@@ -222,10 +234,18 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
           </h3>
         }
         actions={
-          <BreadcrumbFilter
-            onFilter={this.handleFilter}
-            filterData={breadcrumbFilterData}
-          />
+          <Search>
+            <BreadcrumbCustomSearch
+              onFilter={this.handleFilterByCustomSearch}
+              customSearchData={breadcrumbCustomSearchData}
+            />
+            <SimpleSmartSearch
+              showMaxResultQuantity={5}
+              placeholder={t('Search breadcrumbs...')}
+              onChange={this.handleChangeSearchTerm}
+              hasRecentSearches
+            />
+          </Search>
         }
         wrapTitle={false}
       >
@@ -283,4 +303,17 @@ const Content = styled('div')`
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};
+`;
+
+// const SmartSearchBarNoLeftCorners = styled(SimpleSmartSearch)`
+//   border-radius: ${p =>
+//     p.isOpen
+//       ? `0 ${p.theme.borderRadius} 0 0`
+//       : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+//   flex-grow: 1;
+// `;
+
+const Search = styled('div')`
+  display: flex;
+  min-width: 100vh;
 `;

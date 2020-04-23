@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 
 import FormField from 'app/components/forms/formField';
+import styled from 'app/styled';
 
 type InputFieldProps = FormField['props'] & {
   placeholder: string;
@@ -11,6 +13,7 @@ type InputFieldProps = FormField['props'] & {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  height?: number;
 };
 
 class InputField<
@@ -20,11 +23,19 @@ class InputField<
   static propTypes = {
     ...FormField.propTypes,
     placeholder: PropTypes.string,
+    height: PropTypes.string,
   };
 
+  getDefaultProps() {
+    return {
+      height: 40,
+    };
+  }
+
   getField() {
+    console.log('this', this.props.height);
     return (
-      <input
+      <StyledInput
         id={this.getId()} //TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
         type={this.getType()}
         className="form-control"
@@ -54,3 +65,7 @@ class InputField<
 }
 
 export default InputField;
+
+const StyledInput = styled('input', {shouldForwardProp: prop => isPropValid(prop)})`
+  height: ${p => (p.height ? `${p.height}px` : 'auto')};
+`;
