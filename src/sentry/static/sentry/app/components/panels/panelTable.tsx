@@ -139,7 +139,7 @@ const Wrapper = styled(Panel, {
   }
 `;
 
-const PanelTableHeader = styled('div')`
+export const PanelTableHeader = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: 13px;
   font-weight: 600;

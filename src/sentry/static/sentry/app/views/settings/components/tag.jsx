@@ -19,7 +19,15 @@ const getBorder = p =>
     : '';
 
 const Tag = styled(
-  ({children, icon, priority: _priority, size: _size, border: _border, ...props}) => (
+  ({
+    children,
+    icon,
+    inline: _inline,
+    priority: _priority,
+    size: _size,
+    border: _border,
+    ...props
+  }) => (
     <div {...props}>
       {icon && <StyledInlineSvg src={icon} size="12px" />}
       {children}
