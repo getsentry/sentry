@@ -12,17 +12,19 @@ import Confirm from 'app/components/confirm';
 import {IconDelete, IconClock, IconDownload} from 'app/icons';
 import Access from 'app/components/acl/access';
 import ButtonBar from 'app/components/buttonBar';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import {getFileType, getFeatureTooltip} from './utils';
 import {DebugFile} from './types';
 
 type Props = {
   debugFile: DebugFile;
+  showDetails: boolean;
   downloadUrl: string;
   onDelete: (id: string) => void;
 };
 
-const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
+const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) => {
   const {
     id,
     data,
@@ -33,6 +35,7 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
     objectName,
     cpuName,
     symbolType,
+    codeId,
   } = debugFile;
   const fileType = getFileType(debugFile);
   const {features} = data || {};
@@ -40,7 +43,9 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
   return (
     <React.Fragment>
       <Column>
-        <DebugId>{debugId || uuid}</DebugId>
+        <div>
+          <DebugId>{debugId || uuid}</DebugId>
+        </div>
         <TimeAndSizeWrapper>
           <StyledFileSize bytes={size} />
           <TimeWrapper>
@@ -55,7 +60,7 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
             ? '\u2015'
             : objectName}
         </Name>
-        <Details>
+        <Description>
           {symbolType === 'proguard' && cpuName === 'any'
             ? t('proguard mapping')
             : `${cpuName} (${symbolType}${fileType && ` ${fileType}`})`}
@@ -66,7 +71,17 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
                 <Tag inline>{feature}</Tag>
               </Tooltip>
             ))}
-        </Details>
+          {showDetails && (
+            <Details>
+              {/* there will be more stuff here in the future */}
+              {codeId && (
+                <Overflow>
+                  {t('Code ID')}: {codeId}
+                </Overflow>
+              )}
+            </Details>
+          )}
+        </Description>
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
@@ -114,26 +129,26 @@ const Column = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
 `;
 
 const RightColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
-  align-items: center;
+  align-items: flex-start;
+  margin-top: ${space(1)};
 `;
 
 const DebugId = styled('code')`
-  display: inline-block;
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1.5)};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: ${space(1)};
   color: ${p => p.theme.gray3};
+  align-items: center;
 `;
 
 const StyledFileSize = styled(FileSize)`
@@ -152,12 +167,27 @@ const TimeWrapper = styled('div')`
 
 const Name = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${space(1)};
+`;
+
+const Description = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray3};
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    line-height: 1.7;
+  }
 `;
 
 const Details = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray3};
+  display: grid;
+  grid-gap: ${space(0.75)};
+  &:not(:empty) {
+    margin-top: ${space(2)};
+  }
+`;
+
+const Overflow = styled('div')`
+  ${overflowEllipsis}
 `;
 
 export default DebugFileRow;
