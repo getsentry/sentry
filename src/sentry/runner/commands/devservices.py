@@ -120,6 +120,13 @@ def up(project, exclude, fast):
 
     containers = _prepare_containers(project)
 
+    if fast:
+        click.secho(
+            "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
+            err=True,
+            fg="red",
+        )
+
     for name, options in settings.SENTRY_DEVSERVICES.items():
         if name in exclude:
             continue
