@@ -3,7 +3,6 @@ import React from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
-import classNames from 'classnames';
 import capitalize from 'lodash/capitalize';
 
 import SentryTypes from 'app/sentryTypes';
@@ -88,12 +87,11 @@ class EventOrGroupHeader extends React.Component {
 
   render() {
     const {className, size, data} = this.props;
-    const cx = classNames('event-issue-header', className);
     const location = getLocation(data);
     const message = getMessage(data);
 
     return (
-      <div className={cx}>
+      <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
         {message && <Message size={size}>{message}</Message>}

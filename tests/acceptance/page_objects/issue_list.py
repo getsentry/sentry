@@ -14,7 +14,7 @@ class IssueListPage(BasePage):
         self.wait_until_loaded()
 
     def wait_for_stream(self):
-        self.browser.wait_until(".event-issue-header", timeout=20)
+        self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=20)
 
     def select_issue(self, position):
         self.browser.click(u'[data-test-id="group"]:nth-child({})'.format(position))

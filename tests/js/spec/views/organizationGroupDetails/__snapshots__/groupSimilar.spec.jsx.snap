@@ -835,7 +835,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               size="normal"
                             >
                               <div
-                                className="event-issue-header"
+                                data-test-id="event-issue-header"
                               >
                                 <Title
                                   size="normal"
