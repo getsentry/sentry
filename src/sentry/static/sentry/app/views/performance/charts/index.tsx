@@ -98,6 +98,9 @@ class Container extends React.Component<Props> {
               if (!results) {
                 return <LoadingPanel data-test-id="events-request-loading" />;
               }
+              const resultMap = Object.fromEntries(
+                results.map(item => [item.seriesName, item])
+              );
 
               return (
                 <ChartsGrid>
@@ -108,7 +111,7 @@ class Container extends React.Component<Props> {
                           <Chart
                             loading={loading || reloading}
                             yAxis={yAxis.label}
-                            data={results[yAxis.value]}
+                            data={resultMap[yAxis.value]}
                             router={router}
                             statsPeriod={globalSelection.statsPeriod}
                             utc={utc === 'true'}
