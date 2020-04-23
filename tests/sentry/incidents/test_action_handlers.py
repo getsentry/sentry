@@ -117,7 +117,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
-            "threshold_direction_string": "<",
+            "threshold_direction_string": ">",
             "time_window": "10 minutes",
             "triggered_at": timezone.now(),
             "unsubscribe_link": None,
