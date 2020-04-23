@@ -118,13 +118,6 @@ class SortRecordsTestCase(TestCase):
 
 
 class SplitKeyTestCase(TestCase):
-    def test_old_style_key(self):
-        assert split_key("mail:p:{}".format(self.project.id)) == (
-            self.project,
-            ActionTargetType.ISSUE_OWNERS,
-            None,
-        )
-
     def test_new_style_key_no_identifier(self):
         assert split_key(
             "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
