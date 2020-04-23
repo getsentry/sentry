@@ -157,9 +157,9 @@ class JsonForm extends React.Component<Props, State> {
     return (
       <Box {...otherProps}>
         {typeof forms !== 'undefined' &&
-          forms.map(formGroup => (
+          forms.map((formGroup, i) => (
             <FormPanel
-              key={formGroup.title}
+              key={i}
               title={formGroup.title}
               fields={formGroup.fields}
               {...formPanelProps}

@@ -11,7 +11,7 @@ type Props = {
   /**
    * Panel title
    */
-  title?: string;
+  title?: React.ReactNode;
 
   /**
    * List of fields to render
@@ -59,7 +59,7 @@ export default class FormPanel extends React.Component<Props> {
     } = this.props;
 
     return (
-      <Panel key={title} id={sanitizeQuerySelector(title ?? '')}>
+      <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
         {title && <PanelHeader>{title}</PanelHeader>}
         <PanelBody>
           {typeof renderHeader === 'function' && renderHeader({title, fields})}
