@@ -22,6 +22,7 @@ class SlackClient(ApiClient):
         span.set_http_status(code)
         span.set_tag("integration", "slack")
 
+        is_ok = False
         # If Slack gives us back a 200 we still want to check the 'ok' param
         if resp:
             response = resp.json()
@@ -46,12 +47,10 @@ class SlackClient(ApiClient):
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
 
-    def request(self, method, path, headers=None, data=None, params=None, timeout=None):
+    def request(self, method, path, headers=None, data=None, params=None, json=False, timeout=None):
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
         # can update that so we don't have to pass json=False here
-        response = self._request(
-            method, path, headers=headers, data=data, params=params, json=False
-        )
+        response = self._request(method, path, headers=headers, data=data, params=params, json=json)
         if not response.json.get("ok"):
             raise ApiError(response.get("error", ""))
         return response
