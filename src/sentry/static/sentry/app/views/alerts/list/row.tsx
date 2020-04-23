@@ -68,6 +68,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
           </TitleAndSparkLine>
 
           <ProjectBadge
+            avatarSize={18}
             project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
           />
 

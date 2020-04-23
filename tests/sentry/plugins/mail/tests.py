@@ -16,7 +16,7 @@ from sentry.utils.compat.mock import Mock
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.mail.adapter import MailAdapter
+from sentry.mail import mail_adapter
 from sentry.models import (
     Activity,
     GroupSubscription,
@@ -83,7 +83,7 @@ class MailPluginTest(TestCase):
         _get_title.assert_called_once_with()
         _to_email_html.assert_called_once_with(event)
 
-    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
+    @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_notify_users_does_email(self, _send_mail):
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -106,7 +106,7 @@ class MailPluginTest(TestCase):
         self.assertEquals(kwargs.get("reference"), group)
         assert kwargs.get("subject") == u"BAR-1 - hello world"
 
-    @mock.patch("sentry.mail.adapter.MailAdapter._send_mail")
+    @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_multiline_error(self, _send_mail):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
@@ -191,7 +191,7 @@ class MailPluginTest(TestCase):
 
     def test_get_digest_subject(self):
         assert (
-            self.plugin.mail_adapter.get_digest_subject(
+            mail_adapter.get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 {mock.sentinel.group: 3},
                 datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
@@ -199,7 +199,7 @@ class MailPluginTest(TestCase):
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
-    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
         event = self.store_event(
@@ -225,7 +225,7 @@ class MailPluginTest(TestCase):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @mock.patch.object(MailAdapter, "notify", side_effect=MailAdapter.notify, autospec=True)
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -641,25 +641,25 @@ class MailPluginShouldNotifyTest(TestCase):
     def plugin(self):
         return MailPlugin()
 
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    @mock.patch("sentry.mail.mail_adapter.get_sendable_users", Mock(return_value=[]))
     def test_should_notify_no_sendable_users_has_issue_alerts_targeting(self):
         self.group.project.flags.has_issue_alerts_targeting = True
         self.group.project.save()
         assert not self.plugin.should_notify(group=self.group, event=Mock())
 
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[]))
+    @mock.patch("sentry.mail.mail_adapter.get_sendable_users", Mock(return_value=[]))
     def test_should_notify_no_sendable_users_not_has_issue_alerts_targeting(self):
         self.group.project.flags.has_issue_alerts_targeting = False
         self.group.project.save()
         assert not self.plugin.should_notify(group=self.group, event=Mock())
 
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    @mock.patch("sentry.mail.mail_adapter.get_sendable_users", Mock(return_value=[1]))
     def test_should_notify_sendable_users_has_issue_alerts_targetting(self):
         self.group.project.flags.has_issue_alerts_targeting = True
         self.group.project.save()
         assert not self.plugin.should_notify(group=self.group, event=Mock())
 
-    @mock.patch("sentry.mail.adapter.MailAdapter.get_sendable_users", Mock(return_value=[1]))
+    @mock.patch("sentry.mail.mail_adapter.get_sendable_users", Mock(return_value=[1]))
     def test_should_notify_sendable_users_not_has_issue_alerts_targetting(self):
         self.group.project.flags.has_issue_alerts_targeting = False
         self.group.project.save()
