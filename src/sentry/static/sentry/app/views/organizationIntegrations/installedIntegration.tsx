@@ -27,6 +27,7 @@ export type Props = {
   className?: string;
 };
 
+//TODO: Replace with InstalledIntegrationInDirectory
 export default class InstalledIntegration extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
@@ -122,7 +123,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   get disableConfirmProps() {
     const {integration} = this.props;
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">

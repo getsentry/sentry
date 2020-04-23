@@ -657,6 +657,23 @@ export type PullRequest = {
   externalUrl: string;
 };
 
+type IntegrationDialog = {
+  actionText: string;
+  body: string;
+};
+
+type IntegrationAspects = {
+  alerts?: Array<{type: 'info' | 'warning'; text: string; icon?: string}>;
+  reauthentication_alert?: {alertText: string};
+  disable_dialog?: IntegrationDialog;
+  removal_dialog?: IntegrationDialog;
+  externalInstall?: {
+    url: string;
+    buttonText: string;
+    noticeText: string;
+  };
+};
+
 type BaseIntegrationProvider = {
   key: string;
   slug: string;
@@ -675,7 +692,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     noun: string;
     issue_url: string;
     source_url: string;
-    aspects: any; //TODO(ts)
+    aspects: IntegrationAspects;
   };
 };
 
@@ -746,7 +763,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: any}; //TODO: Type properly
+  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object & {

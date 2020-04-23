@@ -16,7 +16,7 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {IconWarning} from 'app/icons';
 
-const CONFIGURABLE_FEATURES = [];
+const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export type Props = {
   organization: Organization;
@@ -65,7 +65,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
   };
 
   //TODO(TS): add typing on aspects
-  getRemovalBodyAndText(aspects) {
+  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -110,7 +110,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
 
   get disableConfirmProps() {
     const {integration} = this.props;
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">

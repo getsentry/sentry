@@ -338,7 +338,9 @@ export class IntegrationListDirectory extends AsyncComponent<
             publishStatus="published"
             configurations={integrations.length}
             categories={getCategoriesForIntegration(provider)}
-            alertText={hasFeature && hasWorkspaceApp && getReauthAlertText(provider)}
+            alertText={
+              hasFeature && hasWorkspaceApp ? getReauthAlertText(provider) : undefined
+            }
           />
         )}
       </Feature>
