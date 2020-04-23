@@ -18,7 +18,6 @@ def remove_tracked_superuser_views(apps, schema_editor):
     This migration removes all of the views we've tracked before adding this change (i.e. superuser views of orgs we're not a part of).
     """
     IncidentSeen = apps.get_model("sentry", "IncidentSeen")
-    IncidentProject = apps.get_model("sentry", "IncidentProject")
     tracked_views = IncidentSeen.objects.all().select_related("user", "incident")
     for tracked_view in tracked_views:
         org_member = has_access(tracked_view.incident.organization, tracked_view.user)
