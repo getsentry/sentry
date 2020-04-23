@@ -15,6 +15,7 @@ import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
 import Hook from 'app/components/hook';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -65,10 +66,8 @@ class OrganizationGeneralSettings extends React.Component<Props> {
         <SentryDocumentTitle title={t('General Settings')} objSlug={orgId} />
         <div>
           <SettingsPageHeader title={t('Organization Settings')} />
-
-          {access.has('org:admin') && (
-            <Hook name="settings:organization-general-settings" />
-          )}
+          <PermissionAlert />
+          <Hook name="settings:organization-general-settings" />
 
           <OrganizationSettingsForm
             {...this.props}
