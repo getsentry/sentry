@@ -19,7 +19,6 @@ def remove_tracked_superuser_views(apps, schema_editor):
     """
     IncidentSeen = apps.get_model("sentry", "IncidentSeen")
     IncidentProject = apps.get_model("sentry", "IncidentProject")
-    Organization = apps.get_model("sentry", "Organization")
     tracked_views = IncidentSeen.objects.all().select_related("user", "incident")
     for tracked_view in tracked_views:
         tracked_user = tracked_view.user
