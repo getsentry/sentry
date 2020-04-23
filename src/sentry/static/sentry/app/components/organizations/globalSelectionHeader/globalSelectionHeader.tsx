@@ -1,17 +1,18 @@
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import PropTypes from 'prop-types';
+import React from 'react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 import partition from 'lodash/partition';
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
-import React from 'react';
+import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
+import {GlobalSelection, Environment, Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import {
   updateDateTime,
@@ -32,8 +33,6 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withProjectsSpecified from 'app/utils/withProjectsSpecified';
 
 import {getStateFromQuery} from './utils';
 import Header from './header';
@@ -44,100 +43,165 @@ function getProjectIdFromProject(project) {
   return parseInt(project.id, 10);
 }
 
-class GlobalSelectionHeader extends React.Component {
+type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
+const defaultProps = {
+  /**
+   * Disable automatic routing
+   */
+  hasCustomRouting: false,
+
+  /**
+   * Display Environment selector?
+   */
+  showEnvironmentSelector: true,
+
+  /**
+   * Display date selector?
+   */
+  showDateSelector: true,
+
+  /**
+   * Reset these URL params when we fire actions
+   * (custom routing only)
+   */
+  resetParamsOnChange: [],
+
+  /**
+   * Remove ability to select multiple projects even if organization has feature 'global-views'
+   */
+  disableMultipleProjectSelection: false,
+};
+
+type Props = {
+  organization: Organization;
+
+  /**
+   * List of projects to display in project selector (comes from HoC)
+   */
+  projects: Project[];
+
+  /**
+   * Currently selected values(s)
+   */
+  selection: GlobalSelection;
+
+  /**
+   * Whether or not the projects are currently being loaded in
+   */
+  loadingProjects: boolean;
+
+  className?: string;
+
+  /**
+   * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
+   */
+  specificProjectSlugs?: string[];
+
+  /**
+   * A project will be forced from parent component (selection is disabled, and if user
+   * does not have multi-project support enabled, it will not try to auto select a project).
+   *
+   * Project will be specified in the prop `forceProject` (since its data is async)
+   */
+  shouldForceProject?: boolean;
+
+  /**
+   * If a forced project is passed, selection is disabled
+   */
+  forceProject?: MinimalProject | null;
+
+  /**
+   * GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
+   *
+   * This component intentionally attempts to sync store --> URL Parameter
+   * only when mounted, except when this prop changes.
+   *
+   * XXX: This comes from GlobalSelectionStore and currently does not reset,
+   * so it happens at most once. Can add a reset as needed.
+   */
+  forceUrlSync: boolean;
+
+  /// Props passed to child components ///
+
+  /**
+   * Show absolute date selectors
+   */
+  showAbsolute?: boolean;
+  /**
+   * Show relative date selectors
+   */
+  showRelative?: boolean;
+
+  /**
+   * Allow user to clear the time range selection
+   */
+  allowClearTimeRange?: boolean;
+
+  /**
+   * Small info icon with tooltip hint text
+   */
+  timeRangeHint?: string;
+
+  // Callbacks //
+  onChangeProjects?: (val: number[]) => void;
+  onUpdateProjects?: () => void;
+  onChangeEnvironments?: (environments: Environment[]) => void;
+  onUpdateEnvironments?: (environments: Environment[]) => void;
+  onChangeTime?: (datetime: any) => void;
+  onUpdateTime?: (datetime: any) => void;
+
+  /**
+   * If true, there will be a back to issues stream icon link
+   */
+  showIssueStreamLink?: boolean;
+
+  /**
+   * If true, there will be a project settings icon link
+   * (forceProject prop needs to be present to know the right project slug)
+   */
+  showProjectSettingsLink?: boolean;
+
+  /**
+   * Subject that will be used in a tooltip that is shown on a lock icon hover
+   * E.g. This 'issue' is unique to a project
+   */
+  lockedMessageSubject?: string;
+
+  /**
+   * Message to display at the bottom of project list
+   */
+  projectsFooterMessage?: React.ReactNode;
+} & Partial<typeof defaultProps> &
+  Omit<WithRouterProps, 'router'> & {
+    router: WithRouterProps['router'] | null;
+  };
+
+type State = {
+  projects: Project[] | null;
+  environments: Environment[] | null;
+  searchQuery: string;
+};
+
+class GlobalSelectionHeader extends React.Component<Props, State> {
   static propTypes = {
     organization: SentryTypes.Organization,
     router: PropTypes.object,
-
-    /**
-     * List of projects to display in project selector (comes from HoC)
-     */
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    /**
-     * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
-     */
     specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
-
-    /**
-     * Remove ability to select multiple projects even if organization has feature 'global-views'
-     */
     disableMultipleProjectSelection: PropTypes.bool,
-
-    /**
-     * Whether or not the projects are currently being loaded in
-     */
     loadingProjects: PropTypes.bool,
-
-    /**
-     * A project will be forced from parent component (selection is disabled, and if user
-     * does not have multi-project support enabled, it will not try to auto select a project).
-     *
-     * Project will be specified in the prop `forceProject` (since its data is async)
-     */
     shouldForceProject: PropTypes.bool,
-
-    /**
-     * If a forced project is passed, selection is disabled
-     */
     forceProject: SentryTypes.Project,
-
-    /**
-     * Currently selected values(s)
-     */
     selection: SentryTypes.GlobalSelection,
-
-    /**
-     * Display Environment selector?
-     */
     showEnvironmentSelector: PropTypes.bool,
-
-    /**
-     * Display Environment selector?
-     */
     showDateSelector: PropTypes.bool,
-
-    /**
-     * Disable automatic routing
-     */
     hasCustomRouting: PropTypes.bool,
-
-    /**
-     * Reset these URL params when we fire actions
-     * (custom routing only)
-     */
     resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
-
-    /**
-     * GlobalSelectionStore is not always initialized (e.g. Group Details) before this is rendered
-     *
-     * This component intentionally attempts to sync store --> URL Parameter
-     * only when mounted, except when this prop changes.
-     *
-     * XXX: This comes from GlobalSelectionStore and currently does not reset,
-     * so it happens at most once. Can add a reset as needed.
-     */
     forceUrlSync: PropTypes.bool,
-
-    /// Props passed to child components ///
-
-    /**
-     * Show absolute date selectors
-     */
     showAbsolute: PropTypes.bool,
-    /**
-     * Show relative date selectors
-     */
     showRelative: PropTypes.bool,
-
-    /**
-     * Allow user to clear the time range selection
-     */
     allowClearTimeRange: PropTypes.bool,
-
-    /**
-     * Small info icon with tooltip hint text
-     */
     timeRangeHint: PropTypes.string,
 
     // Callbacks //
@@ -148,41 +212,19 @@ class GlobalSelectionHeader extends React.Component {
     onChangeTime: PropTypes.func,
     onUpdateTime: PropTypes.func,
 
-    /**
-     * If true, there will be a back to issues stream icon link
-     */
     showIssueStreamLink: PropTypes.bool,
-
-    /**
-     * If true, there will be a project settings icon link
-     * (forceProject prop needs to be present to know the right project slug)
-     */
     showProjectSettingsLink: PropTypes.bool,
-
-    /**
-     * Subject that will be used in a tooltip that is shown on a lock icon hover
-     * E.g. This 'issue' is unique to a project
-     */
     lockedMessageSubject: PropTypes.string,
-
-    /**
-     * Message to display at the bottom of project list
-     */
     projectsFooterMessage: PropTypes.node,
   };
 
-  static defaultProps = {
-    hasCustomRouting: false,
-    showEnvironmentSelector: true,
-    showDateSelector: true,
-    resetParamsOnChange: [],
-    disableMultipleProjectSelection: false,
-  };
+  static defaultProps = defaultProps;
 
-  constructor(props) {
-    super(props);
-    this.state = {};
-  }
+  state = {
+    projects: null,
+    environments: null,
+    searchQuery: '',
+  };
 
   componentDidMount() {
     if (this.props.hasCustomRouting) {
@@ -382,8 +424,16 @@ class GlobalSelectionHeader extends React.Component {
    * 3) first project user is a member of from org
    */
   enforceSingleProject = (
-    {requestedProjects, shouldForceProject, forceProject} = {},
-    otherParams
+    {
+      requestedProjects,
+      shouldForceProject,
+      forceProject,
+    }: {
+      requestedProjects?: number[];
+      shouldForceProject?: boolean;
+      forceProject?: MinimalProject | null;
+    } = {},
+    otherParams?
   ) => {
     let newProject;
 
@@ -490,7 +540,12 @@ class GlobalSelectionHeader extends React.Component {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
 
-  handleUpdateTime = ({relative: period, start, end, utc} = {}) => {
+  handleUpdateTime = ({
+    relative: period,
+    start,
+    end,
+    utc,
+  }: {relative?; start?; end?; utc?} = {}) => {
     const newValueObj = {
       period,
       start,
@@ -719,9 +774,7 @@ class GlobalSelectionHeader extends React.Component {
   }
 }
 
-export default withProjectsSpecified(
-  withRouter(withGlobalSelection(GlobalSelectionHeader))
-);
+export default GlobalSelectionHeader;
 
 const BackButtonWrapper = styled('div')`
   display: flex;
