@@ -11,7 +11,7 @@ def remove_tracked_superuser_views(apps, schema_editor):
     """
     IncidentSeen = apps.get_model("sentry", "IncidentSeen")
     IncidentProject = apps.get_model("sentry", "IncidentProject")
-    tracked_views = IncidentSeen.objects.all().select_related("user").select_related("incident")
+    tracked_views = IncidentSeen.objects.all().select_related("user", "incident")
     for tracked_view in tracked_views:
         tracked_user = tracked_view.user
         tracked_incident = tracked_view.incident
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
 
     dependencies = [
