@@ -164,9 +164,13 @@ const SPECIAL_FIELDS: SpecialFields = {
   id: {
     sortField: 'id',
     renderFunc: data => {
+      const id = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
       return (
         <Container>
-          <EventId value={data.id} />
+          <EventId value={id} />
         </Container>
       );
     },
