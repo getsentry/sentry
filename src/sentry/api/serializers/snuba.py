@@ -314,5 +314,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}
+        if "order" in result.data:
+            res["order"] = result.data["order"]
 
         return res
