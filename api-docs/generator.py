@@ -33,7 +33,7 @@ apidoc_containers_overrides = {
         "volumes": None,
     },
     "redis": {"ports": {"6379/tcp": 12355}, "volumes": None},
-    "clickhouse": {"ports": None, "volumes": None},
+    "clickhouse": {"ports": None, "volumes": None, "only_if": None},
     "snuba": {
         "ports": {"1218/tcp": 1219},
         "pull": None,
@@ -44,6 +44,7 @@ apidoc_containers_overrides = {
             "REDIS_HOST": namespace + "_redis",
         },
         "volumes": None,
+        "only_if": None,
     },
 }
 
