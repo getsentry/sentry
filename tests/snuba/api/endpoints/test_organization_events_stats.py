@@ -534,10 +534,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
+        response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 1}],
         ]
+        response.data["event_count"]["order"] == 1
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 2}],
@@ -961,8 +963,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
-            assert results["rpm()"]["order"] == index
-            assert results["count()"]["order"] == index
+            assert results["order"] == index
+            assert results["rpm()"]["order"] == 0
+            assert results["count()"]["order"] == 1
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["rpm()"]["data"]
             ]

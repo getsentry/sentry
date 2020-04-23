@@ -18,7 +18,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.compat import map, zip
+from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils import snuba
 
@@ -187,10 +187,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
         # Return with requested yAxis as the key
-        return {
-            column: serializer.serialize(event_result, get_function_alias(query_column))
-            for column, query_column in zip(columns, query_columns)
+        result = {
+            columns[index]: serializer.serialize(
+                event_result, get_function_alias(query_column), order=index
+            )
+            for index, query_column in enumerate(query_columns)
         }
+        # Set order if multi-axis + top events
+        if "order" in event_result.data:
+            result["order"] = event_result.data["order"]
+        return result
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
