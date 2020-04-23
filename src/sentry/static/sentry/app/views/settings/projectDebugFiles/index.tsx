@@ -66,7 +66,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return endpoints;
   }
 
-  handleDelete(id: string) {
+  handleDelete = (id: string) => {
     const {orgId, projectId} = this.props.params;
 
     this.setState({
@@ -77,7 +77,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       method: 'DELETE',
       complete: () => this.fetchData(),
     });
-  }
+  };
 
   handleSearch = (query: string) => {
     const {location, router} = this.props;
