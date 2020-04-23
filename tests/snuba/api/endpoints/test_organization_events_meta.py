@@ -244,3 +244,42 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["shortId"] == event1.group.qualified_short_id
         assert int(response.data[0]["id"]) == event1.group_id
+
+    def test_related_issues_transactions_with_quotes(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "transaction": '/beth/"sanchez"',
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-related-issues",
+            kwargs={"organization_slug": project.organization.slug},
+        )
+        response = self.client.get(
+            url, {"transaction": '/beth/"sanchez"', "project": project.id}, format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["shortId"] == event.group.qualified_short_id
+        assert int(response.data[0]["id"]) == event.group_id
+
+        url = reverse(
+            "sentry-api-0-organization-related-issues",
+            kwargs={"organization_slug": project.organization.slug},
+        )
+        response = self.client.get(
+            url, {"transaction": '/beth/\\"sanchez\\"', "project": project.id}, format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["shortId"] == event.group.qualified_short_id
+        assert int(response.data[0]["id"]) == event.group_id

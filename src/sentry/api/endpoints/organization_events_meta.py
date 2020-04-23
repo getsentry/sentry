@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import six
 
 from rest_framework.response import Response
@@ -38,6 +39,9 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         return Response({"count": result["data"][0]["count"]})
 
 
+UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
+
+
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request, organization):
         try:
@@ -67,9 +71,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             )
             query_kwargs["limit"] = 5
             try:
-                parsed_terms = parse_search_query(
-                    'transaction:"{}"'.format(lookup_keys["transaction"])
-                )
+                # Need to escape quotes in case some "joker" has a transaction with quotes
+                transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', lookup_keys["transaction"])
+                parsed_terms = parse_search_query('transaction:"{}"'.format(transaction_name))
             except ParseError:
                 return Response({"detail": "Invalid transaction search"}, status=400)
 
