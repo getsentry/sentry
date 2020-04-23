@@ -179,7 +179,7 @@ class SummaryContentTable extends React.Component<Props> {
   render() {
     const {eventView, organization} = this.props;
 
-    let title = t('Slowest Requests');
+    let title = t('Slowest Transactions');
     const parsed = tokenizeSearch(eventView.query);
     if (parsed['transaction.duration']) {
       title = t('Requests %s and %s in duration', ...parsed['transaction.duration']);

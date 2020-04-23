@@ -78,12 +78,12 @@ class UserStats extends React.Component<Props> {
           return (
             <Container>
               <div>
-                <StatTitle>{t('User Impact')}</StatTitle>
-                <StatNumber>{stats['impact()']}</StatNumber>
-              </div>
-              <div>
                 <StatTitle>{t('Apdex Score')}</StatTitle>
                 <StatNumber>{stats['apdex()']}</StatNumber>
+              </div>
+              <div>
+                <StatTitle>{t('User Impact')}</StatTitle>
+                <StatNumber>{stats['impact()']}</StatNumber>
               </div>
             </Container>
           );
