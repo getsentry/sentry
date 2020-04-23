@@ -117,10 +117,10 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
         )}
         <Modal.Footer>
           <ButtonBar gap={1}>
-            <Button priority="default" onClick={this.props.onCanceled}>
+            <Button type="button" priority="default" onClick={this.props.onCanceled}>
               {t('Cancel')}
             </Button>
-            <Button priority="primary" onClick={this.snoozeClicked}>
+            <Button type="button" priority="primary" onClick={this.snoozeClicked}>
               {t('Ignore')}
             </Button>
           </ButtonBar>
