@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openSudo} from 'app/actionCreators/modal';
 import * as OrganizationActionCreator from 'app/actionCreators/organization';
 import ConfigStore from 'app/stores/configStore';
@@ -27,7 +27,7 @@ describe('OrganizationContext', function() {
   let getOrgMock;
 
   const createWrapper = props => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <OrganizationContext
         api={api}
         params={{orgId: 'org-slug'}}

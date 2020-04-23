@@ -29,3 +29,4 @@ family:native function:kscrash_*                                     -app -group
 family:native function:"?[[]KSCrash *"                              -app -group
 family:native function:"?[[]SentryClient *"                         -app -group
 family:native function:"?[[]RNSentry *"                             -app -group
+family:native function:"?[[]SentrySDK *"                             -app -group

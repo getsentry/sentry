@@ -72,6 +72,7 @@ class SlackNotifyServiceForm(forms.Form):
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
     label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    prompt = "Send a Slack notification"
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -88,9 +89,6 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if not event.group.is_unresolved():
-            return
-
         integration_id = self.get_option("workspace")
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())

@@ -101,7 +101,7 @@ export type FeatureDisabledHooks = {
  */
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
-  'organization:header': GenericOrganizationComponentHook;
+  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
@@ -123,6 +123,7 @@ export type OnboardingHooks = {
 export type SettingsHooks = {
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+  'settings:organization-general-settings': GeneralSettingsHook;
 };
 
 /**
@@ -141,6 +142,11 @@ type RoutesHook = () => Route[];
 type GenericOrganizationComponentHook = (opts: {
   organization: Organization;
 }) => React.ReactNode;
+
+// TODO(ts): We should correct the organization header hook to conform to the
+// GenericOrganizationComponentHook, passing org as a prop object, not direct
+// as the only argument.
+type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
@@ -192,9 +198,16 @@ type AnalyticsTrackEvent = (opts: {
 /**
  * Trigger adhoc analytics tracking in the hook store.
  */
-type AnalyticsTrackAdhocEvent = (
-  opts: Omit<Parameters<AnalyticsTrackEvent>[0], 'eventName'>
-) => void;
+type AnalyticsTrackAdhocEvent = (opts: {
+  /**
+   * The key used to identify the event.
+   */
+  eventKey: string;
+  /**
+   * Arbitrary data to track
+   */
+  [key: string]: any;
+}) => void;
 
 /**
  * Trigger experiment observed logging.
@@ -225,7 +238,7 @@ type LegacyAnalyticsEvent = (
   /**
    * Arbitrary data to track
    */
-  data: {[key: string]: number | string | boolean}
+  data: {[key: string]: any}
 ) => void;
 
 /**
@@ -257,6 +270,11 @@ type OrganizationSettingsHook = (organization: Organization) => React.ReactEleme
 type SettingsConfigHook = (organization: Organization) => NavigationSection;
 
 /**
+ * Provides additional general setting components
+ */
+type GeneralSettingsHook = () => React.ReactElement;
+
+/**
  * Each sidebar label is wrapped with this hook, to allow sidebar item
  * augmentation.
  */
@@ -266,6 +284,10 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * the hook will have no effect.
    */
   id?: string;
+  /**
+   * The item label being wrapped
+   */
+  children: React.ReactNode;
 }>;
 
 /**

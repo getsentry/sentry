@@ -17,6 +17,7 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import {IconDelete} from 'app/icons/iconDelete';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
@@ -46,9 +47,8 @@ class ReleaseArtifacts extends React.Component {
   }
 
   getFilesEndpoint() {
-    // ?? to temporarily support releases V1 and V2
-    const {orgId, projectId, version, release} = this.props.params;
-    const encodedVersion = encodeURIComponent(version ?? release);
+    const {orgId, projectId, release} = this.props.params;
+    const encodedVersion = encodeURIComponent(release);
     const project = projectId ?? this.props.projectId;
 
     return project
@@ -172,7 +172,7 @@ class ReleaseArtifacts extends React.Component {
                         message={t('Are you sure you want to remove this artifact?')}
                         onConfirm={this.handleRemove.bind(this, file.id)}
                       >
-                        <span className="icon icon-trash" />
+                        <IconDelete />
                       </LinkWithConfirmation>
                     </div>
                   </AlignCenter>

@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -8,16 +9,25 @@ import withOrganization from 'app/utils/withOrganization';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import EventView from 'app/utils/discover/eventView';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {StyledPageHeader} from 'app/views/eventsV2/landing';
+import space from 'app/styles/space';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
+
+enum FilterViews {
+  ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
+  KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
+}
+
+const VIEWS = Object.values(FilterViews);
 
 type Props = {
   organization: Organization;
@@ -28,6 +38,7 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string | undefined;
+  currentView: FilterViews;
 };
 
 class PerformanceLanding extends React.Component<Props, State> {
@@ -35,9 +46,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     return {...prevState, eventView: generatePerformanceEventView(nextProps.location)};
   }
 
-  state = {
+  state: State = {
     eventView: generatePerformanceEventView(this.props.location),
     error: undefined,
+    currentView: FilterViews.ALL_TRANSACTIONS,
   };
 
   renderError = () => {
@@ -65,11 +77,9 @@ class PerformanceLanding extends React.Component<Props, State> {
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.start
       ? getUtcToLocalDateObject(globalSelection.start)
-      : undefined;
+      : null;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
-      : undefined;
+    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
 
     const {utc} = getParams(location.query);
 
@@ -79,7 +89,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       datetime: {
         start,
         end,
-        period: globalSelection.statsPeriod,
+        period: globalSelection.statsPeriod || DEFAULT_STATS_PERIOD,
         utc: utc === 'true',
       },
     };
@@ -100,6 +110,44 @@ class PerformanceLanding extends React.Component<Props, State> {
     return false;
   };
 
+  getViewLabel(currentView: FilterViews): string {
+    switch (currentView) {
+      case FilterViews.ALL_TRANSACTIONS:
+        return t('All Transactions');
+      case FilterViews.KEY_TRANSACTIONS:
+        return t('My Key Transactions');
+      default:
+        throw Error(`Unknown view: ${currentView}`);
+    }
+  }
+
+  renderDropdown() {
+    const selectView = (viewKey: FilterViews) => {
+      return () => {
+        this.setState({
+          currentView: viewKey,
+        });
+      };
+    };
+
+    return (
+      <ButtonBar merged active={this.state.currentView}>
+        {VIEWS.map(viewKey => {
+          return (
+            <Button
+              key={viewKey}
+              barId={viewKey}
+              size="small"
+              onClick={selectView(viewKey)}
+            >
+              {this.getViewLabel(viewKey)}
+            </Button>
+          );
+        })}
+      </ButtonBar>
+    );
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {eventView} = this.state;
@@ -113,27 +161,42 @@ class PerformanceLanding extends React.Component<Props, State> {
             allowClearTimeRange={this.allowClearTimeRange()}
           />
           <PageContent>
-            <NoProjectMessage organization={organization}>
-              <StyledPageHeader>{t('Performance')}</StyledPageHeader>
+            <LightWeightNoProjectMessage organization={organization}>
+              <StyledPageHeader>
+                <div>{t('Performance')}</div>
+                <div>{this.renderDropdown()}</div>
+              </StyledPageHeader>
               {this.renderError()}
               <Charts
                 eventView={eventView}
                 organization={organization}
                 location={location}
                 router={router}
+                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
               />
               <Table
                 eventView={eventView}
                 organization={organization}
                 location={location}
                 setError={this.setError}
+                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
               />
-            </NoProjectMessage>
+            </LightWeightNoProjectMessage>
           </PageContent>
         </React.Fragment>
       </SentryDocumentTitle>
     );
   }
 }
+
+export const StyledPageHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.gray4};
+  height: 40px;
+  margin-bottom: ${space(1)};
+`;
 
 export default withOrganization(PerformanceLanding);

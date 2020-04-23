@@ -7,6 +7,7 @@ import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import {Context} from 'app/components/forms/form';
+import {Meta} from 'app/types';
 
 type Value = string | number | boolean;
 
@@ -24,7 +25,7 @@ type FormFieldProps = {
   onChange?: (value: Value) => void;
   error?: string;
   value?: Value;
-  meta: any;
+  meta?: Meta;
 };
 
 type FormFieldState = {

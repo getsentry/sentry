@@ -12,7 +12,6 @@ type Props = {
 const deviceKnownDataValues = [
   DeviceKnownDataType.NAME,
   DeviceKnownDataType.FAMILY,
-  DeviceKnownDataType.RENDERED_MODEL,
   DeviceKnownDataType.CPU_DESCRIPTION,
   DeviceKnownDataType.ARCH,
   DeviceKnownDataType.BATTERY_LEVEL,
@@ -38,6 +37,7 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.SCREEN_HEIGHT_PIXELS,
   DeviceKnownDataType.SCREEN_RESOLUTION,
   DeviceKnownDataType.SCREEN_WIDTH_PIXELS,
+  DeviceKnownDataType.MODEL,
 ];
 
 const Device = ({data}: Props) => (

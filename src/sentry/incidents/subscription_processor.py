@@ -17,6 +17,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     Incident,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -61,9 +62,11 @@ class SubscriptionProcessor(object):
         self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
-        self.last_update, self.trigger_alert_counts, self.trigger_resolve_counts = get_alert_rule_stats(
-            self.alert_rule, self.subscription, self.triggers
-        )
+        (
+            self.last_update,
+            self.trigger_alert_counts,
+            self.trigger_resolve_counts,
+        ) = get_alert_rule_stats(self.alert_rule, self.subscription, self.triggers)
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
@@ -245,7 +248,11 @@ class SubscriptionProcessor(object):
             self.handle_incident_severity_update()
 
             if self.check_triggers_resolved():
-                update_incident_status(self.active_incident, IncidentStatus.CLOSED)
+                update_incident_status(
+                    self.active_incident,
+                    IncidentStatus.CLOSED,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                )
                 self.active_incident = None
                 self.incident_triggers.clear()
             self.trigger_resolve_counts[trigger.id] = 0
@@ -279,7 +286,11 @@ class SubscriptionProcessor(object):
                     severity = IncidentStatus.WARNING
 
             if severity:
-                update_incident_status(self.active_incident, severity)
+                update_incident_status(
+                    self.active_incident,
+                    severity,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                )
 
     def update_alert_rule_stats(self):
         """

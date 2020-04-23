@@ -167,7 +167,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                       </StyledInput>
                       <InputLoadingWrapper>
                         <div
-                          className="css-8mpytx-InputLoadingWrapper ejumqxq1"
+                          className="css-1bkeadj-InputLoadingWrapper ejumqxq1"
                         />
                       </InputLoadingWrapper>
                     </div>
@@ -406,7 +406,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                       </StyledInput>
                       <InputLoadingWrapper>
                         <div
-                          className="css-8mpytx-InputLoadingWrapper ejumqxq1"
+                          className="css-1bkeadj-InputLoadingWrapper ejumqxq1"
                         />
                       </InputLoadingWrapper>
                     </div>

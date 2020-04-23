@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconMail} from 'app/icons';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
@@ -14,7 +14,6 @@ import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tooltip from 'app/components/tooltip';
 import routeTitleGen from 'app/utils/routeTitle';
 
 class ProjectAlertSettings extends AsyncView {
@@ -85,24 +84,24 @@ class ProjectAlertSettings extends AsyncView {
         <SettingsPageHeader
           title={t('Alerts Settings')}
           action={
-            <Tooltip
-              disabled={canEditRule}
-              title={t('You do not have permission to edit alert rules.')}
+            <Button
+              to={`${basePath}new/`}
+              disabled={!canEditRule}
+              title={
+                !canEditRule
+                  ? t('You do not have permission to edit alert rules.')
+                  : undefined
+              }
+              priority="primary"
+              size="small"
+              icon={<IconAdd size="xs" circle />}
             >
-              <Button
-                to={`${basePath}new/`}
-                disabled={!canEditRule}
-                priority="primary"
-                size="small"
-                icon={<IconAdd size="xs" circle />}
-              >
-                {t('New Alert Rule')}
-              </Button>
-            </Tooltip>
+              {t('New Alert Rule')}
+            </Button>
           }
         />
         <PermissionAlert />
-        <AlertLink to="/settings/account/notifications/" icon="icon-mail">
+        <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'
           )}

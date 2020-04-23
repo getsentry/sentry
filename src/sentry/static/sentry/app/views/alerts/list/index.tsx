@@ -25,6 +25,7 @@ import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import Access from 'app/components/acl/access';
 
 import {Incident} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
@@ -34,6 +35,7 @@ const DEFAULT_QUERY_STATUS = 'open';
 
 type Props = {
   organization: Organization;
+  hasAlertRule?: boolean;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
@@ -61,10 +63,66 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     ];
   }
 
+  async onLoadAllEndpointsSuccess() {
+    const {incidentList} = this.state;
+
+    if (incidentList.length !== 0) {
+      return;
+    }
+
+    // Check if they have rules or not, to know which empty state message to display
+    const {params} = this.props;
+
+    try {
+      const alertRules = await this.api.requestPromise(
+        `/organizations/${params && params.orgId}/alert-rules/`,
+        {
+          method: 'GET',
+        }
+      );
+      this.setState({
+        hasAlertRule: alertRules.length > 0 ? true : false,
+      });
+    } catch (err) {
+      this.setState({
+        hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
+      });
+    }
+  }
+
+  /**
+   * Incidents list is currently at the organization level, but the link needs to
+   * go down to a specific project scope.
+   */
+  handleAddAlertRule = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
+    e.preventDefault();
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+  };
+
   renderEmpty() {
+    const {location} = this.props;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
+
+    const hasAlertRule = this.state.hasAlertRule ? this.state.hasAlertRule : false;
+
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Metric Alerts yet")}</p>
+        <p>
+          <React.Fragment>
+            {tct('No [status] metric alerts. ', {
+              status: status === 'open' || status === 'all' ? 'active' : 'resolved',
+            })}
+          </React.Fragment>
+          <React.Fragment>
+            {!hasAlertRule
+              ? tct('Start by [link:creating your first rule].', {
+                  link: <ExternalLink onClick={this.handleAddAlertRule} />,
+                })
+              : ''}
+          </React.Fragment>
+        </p>
       </EmptyStateWarning>
     );
   }
@@ -74,12 +132,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {loading, incidentList, incidentListPageLinks} = this.state;
+    const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {orgId} = this.props.params;
-
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
     );
+    const checkingForAlertRules =
+      incidentList && incidentList.length === 0 && hasAlertRule === undefined
+        ? true
+        : false;
+    const showLoadingIndicator = loading || checkingForAlertRules;
 
     return (
       <React.Fragment>
@@ -99,8 +161,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </PanelHeader>
 
           <PanelBody>
-            {loading && <LoadingIndicator />}
-            {!loading && (
+            {showLoadingIndicator && <LoadingIndicator />}
+            {!showLoadingIndicator && (
               <React.Fragment>
                 {incidentList.length === 0 && this.renderEmpty()}
                 <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
@@ -172,7 +234,7 @@ class IncidentsListContainer extends React.Component<Props> {
   };
 
   render() {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {pathname, query} = location;
     const {orgId} = params;
 
@@ -192,15 +254,25 @@ class IncidentsListContainer extends React.Component<Props> {
             </StyledPageHeading>
 
             <Actions>
-              <Button
-                onClick={this.handleAddAlertRule}
-                priority="primary"
-                href="#"
-                size="small"
-                icon={<IconAdd circle size="xs" />}
-              >
-                {t('Add Alert Rule')}
-              </Button>
+              <Access organization={organization} access={['project:write']}>
+                {({hasAccess}) => (
+                  <Button
+                    disabled={!hasAccess}
+                    title={
+                      !hasAccess
+                        ? t('You do not have permission to add alert rules.')
+                        : undefined
+                    }
+                    onClick={this.handleAddAlertRule}
+                    priority="primary"
+                    href="#"
+                    size="small"
+                    icon={<IconAdd circle size="xs" />}
+                  >
+                    {t('Add Alert Rule')}
+                  </Button>
+                )}
+              </Access>
 
               <Button
                 onClick={this.handleNavigateToSettings}

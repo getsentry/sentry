@@ -2,7 +2,7 @@ import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
-import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -19,8 +19,9 @@ import {TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {decodeScalar} from 'app/views/eventsV2/utils';
 import withProjects from 'app/utils/withProjects';
-import EventsV2 from 'app/utils/discover/eventsv2';
 import SearchBar from 'app/components/searchBar';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
@@ -59,6 +60,7 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
+  keyTransactions: boolean;
 
   projects: Project[];
   loadingProjects: boolean;
@@ -136,7 +138,11 @@ class Table extends React.Component<Props> {
           projectID,
         });
 
-        rendered = <Link to={target}>{rendered}</Link>;
+        rendered = (
+          <Link to={target} onClick={this.handleSummaryClick}>
+            {rendered}
+          </Link>
+        );
       }
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
@@ -149,7 +155,7 @@ class Table extends React.Component<Props> {
   }
 
   renderHeader({tableData}) {
-    const {location, eventView} = this.props;
+    const {location, eventView, organization} = this.props;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
 
@@ -174,6 +180,15 @@ class Table extends React.Component<Props> {
             };
           }
 
+          function handleClick() {
+            trackAnalyticsEvent({
+              eventKey: 'performance_views.overview.sort',
+              eventName: 'Performance Views: Sort Overview',
+              organization_id: parseInt(organization.id, 10),
+              field: field.field,
+            });
+          }
+
           return (
             <GridHeadCell>
               <SortLink
@@ -182,6 +197,7 @@ class Table extends React.Component<Props> {
                 eventView={eventView}
                 tableDataMeta={tableDataMeta}
                 generateSortLink={generateSortLink}
+                onClick={handleClick}
               />
             </GridHeadCell>
           );
@@ -196,10 +212,25 @@ class Table extends React.Component<Props> {
     return String(decodeScalar(location.query.query) || '').trim();
   }
 
-  handleTransactionSearchQuery = (searchQuery: string) => {
-    const {location} = this.props;
+  handleSummaryClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.navigate.summary',
+      eventName: 'Performance Views: Overview view summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
 
-    ReactRouter.browserHistory.push({
+  handleTransactionSearchQuery = (searchQuery: string) => {
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.search',
+      eventName: 'Performance Views: Transaction overview search',
+      organization_id: parseInt(organization.id, 10),
+    });
+
+    browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -210,11 +241,16 @@ class Table extends React.Component<Props> {
   };
 
   render() {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, keyTransactions} = this.props;
     const columnOrder = eventView.getColumns();
 
     return (
-      <EventsV2 eventView={eventView} organization={organization} location={location}>
+      <DiscoverQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+        keyTransactions={keyTransactions}
+      >
         {({pageLinks, isLoading, tableData}) => (
           <div>
             <StyledSearchBar
@@ -235,7 +271,7 @@ class Table extends React.Component<Props> {
             <Pagination pageLinks={pageLinks} />
           </div>
         )}
-      </EventsV2>
+      </DiscoverQuery>
     );
   }
 }

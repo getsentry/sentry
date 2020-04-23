@@ -24,6 +24,7 @@ import {
   getAggregateAlias,
 } from './fields';
 import {getSortField} from './fieldRenderers';
+import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -44,12 +45,6 @@ const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as con
 const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   ...DATETIME_QUERY_STRING_KEYS,
   'cursor',
-];
-
-// default list of yAxis options
-export const CHART_AXIS_OPTIONS = [
-  {label: 'count()', value: 'count()'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
 ];
 
 const reverseSort = (sort: Sort): Sort => ({
@@ -256,6 +251,7 @@ class EventView {
   statsPeriod: string | undefined;
   environment: Readonly<string[]>;
   yAxis: string | undefined;
+  display: string | undefined;
   createdBy: User | undefined;
 
   constructor(props: {
@@ -270,6 +266,7 @@ class EventView {
     statsPeriod: string | undefined;
     environment: Readonly<string[]>;
     yAxis: string | undefined;
+    display: string | undefined;
     createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -283,7 +280,6 @@ class EventView {
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-
     sorts = sort ? [sort] : [];
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
@@ -299,6 +295,7 @@ class EventView {
     this.statsPeriod = props.statsPeriod;
     this.environment = environment;
     this.yAxis = props.yAxis;
+    this.display = props.display;
     this.createdBy = props.createdBy;
   }
 
@@ -317,6 +314,7 @@ class EventView {
       statsPeriod: decodeScalar(statsPeriod),
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
+      display: decodeScalar(location.query.display),
       createdBy: undefined,
     });
   }
@@ -357,8 +355,6 @@ class EventView {
 
       return {field, width};
     });
-    const yAxis = saved.yAxis;
-
     // normalize datetime selection
     const {start, end, statsPeriod} = getParams({
       start: saved.start,
@@ -382,7 +378,8 @@ class EventView {
         },
         'environment'
       ),
-      yAxis,
+      yAxis: saved.yAxis,
+      display: saved.display,
       createdBy: saved.createdBy,
     });
   }
@@ -398,6 +395,7 @@ class EventView {
       'project',
       'environment',
       'yAxis',
+      'display',
     ];
 
     for (const key of keys) {
@@ -447,6 +445,7 @@ class EventView {
       range: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      display: this.display,
     };
 
     if (!newQuery.query) {
@@ -484,6 +483,7 @@ class EventView {
       tag: undefined,
       query: undefined,
       yAxis: undefined,
+      display: undefined,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -504,6 +504,7 @@ class EventView {
       project: this.project,
       query: this.query,
       yAxis: this.yAxis,
+      display: this.display,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -519,12 +520,12 @@ class EventView {
     return this.fields.length > 0;
   }
 
-  getFields(): string[] {
-    return this.fields.map(field => field.field);
-  }
-
   getWidths(): number[] {
     return this.fields.map(field => (field.width ? field.width : COL_WIDTH_UNDEFINED));
+  }
+
+  getFields(): string[] {
+    return this.fields.map(field => field.field);
   }
 
   getAggregateFields(): Field[] {
@@ -560,6 +561,7 @@ class EventView {
       statsPeriod: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      display: this.display,
       createdBy: this.createdBy,
     });
   }
@@ -798,21 +800,6 @@ class EventView {
     return newEventView;
   }
 
-  withMovedColumn({fromIndex, toIndex}: {fromIndex: number; toIndex: number}): EventView {
-    if (fromIndex === toIndex) {
-      return this;
-    }
-
-    const newEventView = this.clone();
-
-    const fields = [...newEventView.fields];
-    fields.splice(toIndex, 0, fields.splice(fromIndex, 1)[0]);
-
-    newEventView.fields = fields;
-
-    return newEventView;
-  }
-
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(
       sort =>
@@ -870,12 +857,25 @@ class EventView {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
+    const hasDateSelection = this.statsPeriod || (this.start && this.end);
+
+    // an eventview's date selection has higher precedence than the date selection in the query string
+    const dateSelection = hasDateSelection
+      ? {
+          start: this.start,
+          end: this.end,
+          statsPeriod: this.statsPeriod,
+        }
+      : {
+          start: picked.start,
+          end: picked.end,
+          period: decodeScalar(query.period),
+          statsPeriod: picked.statsPeriod,
+        };
+
     // normalize datetime selection
     const normalizedTimeWindowParams = getParams({
-      start: this.start || picked.start,
-      end: this.end || picked.end,
-      period: decodeScalar(query.period),
-      statsPeriod: this.statsPeriod || picked.statsPeriod,
+      ...dateSelection,
       utc: decodeScalar(query.utc),
     });
 
@@ -986,6 +986,18 @@ class EventView {
     }
 
     return defaultOption;
+  }
+
+  getDisplayOptions() {
+    if (!this.start && !this.end) {
+      return DISPLAY_MODE_OPTIONS;
+    }
+    return DISPLAY_MODE_OPTIONS.map(item => {
+      if (item.value === DisplayModes.PREVIOUS) {
+        return {...item, disabled: true};
+      }
+      return item;
+    });
   }
 }
 

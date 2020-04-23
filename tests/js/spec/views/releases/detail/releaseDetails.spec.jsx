@@ -34,14 +34,13 @@ describe('ReleaseDetails', function() {
   });
 
   it('shows release details', function() {
-    const noop = () => {};
     const params = {
       orgId: 'acme',
       projectId: 'anvils',
       project: {
         slug: 'anvils',
       },
-      version: '9.1.1',
+      release: '9.1.1',
     };
     const location = {
       pathname: '/',
@@ -49,7 +48,7 @@ describe('ReleaseDetails', function() {
     };
 
     const wrapper = mountWithTheme(
-      <ReleaseDetails location={location} params={params} setProjectNavSection={noop}>
+      <ReleaseDetails location={location} params={params}>
         <div>hi</div>
       </ReleaseDetails>,
       TestStubs.routerContext()

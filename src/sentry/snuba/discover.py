@@ -19,7 +19,7 @@ from sentry.api.event_search import (
 
 from sentry import eventstore
 
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project, ProjectStatus, Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
@@ -40,6 +40,7 @@ __all__ = (
     "query",
     "key_transaction_query",
     "timeseries_query",
+    "top_events_timeseries",
     "get_pagination_ids",
     "get_facets",
     "transform_results",
@@ -201,6 +202,8 @@ def find_histogram_buckets(field, params, conditions):
     if bucket_max == 0:
         raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
     bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
+    if bucket_size == 0.0:
+        bucket_size = 1.0
 
     # Determine the first bucket that will show up in our results so that we can
     # zerofill correctly.
@@ -393,19 +396,45 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(result, translated_columns, snuba_filter):
+def transform_results(result, translated_columns, snuba_filter, selected_columns=None):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    # Translate back columns that were converted to snuba format
+    if selected_columns is None:
+        selected_columns = []
+
+    # Determine user related fields to prune based on what wasn't selected.
+    user_fields = FIELD_ALIASES["user"]["fields"]
+    user_fields_to_remove = [field for field in user_fields if field not in selected_columns]
+
+    # If the user field was selected update the meta data
+    has_user = selected_columns and "user" in selected_columns
+    meta = []
     for col in result["meta"]:
+        # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
+        # Remove user fields as they will be replaced by the alias.
+        if has_user and col["name"] in user_fields_to_remove:
+            continue
+        meta.append(col)
+    if has_user:
+        meta.append({"name": "user", "type": "Nullable(String)"})
+    result["meta"] = meta
 
     def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
+        transformed = {translated_columns.get(key, key): value for key, value in row.items()}
+        if has_user:
+            for field in user_fields:
+                if field in transformed and transformed[field]:
+                    transformed["user"] = transformed[field]
+                    break
+            # Remove user component fields once the alias is resolved.
+            for field in user_fields_to_remove:
+                del transformed[field]
+        return transformed
 
     if len(translated_columns):
         result["data"] = [get_row(row) for row in result["data"]]
@@ -600,7 +629,7 @@ def query(
         referrer=referrer,
     )
 
-    return transform_results(result, translated_columns, snuba_filter)
+    return transform_results(result, translated_columns, snuba_filter, selected_columns)
 
 
 def key_transaction_conditions(queryset):
@@ -664,7 +693,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
             snuba_filter.conditions.extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_filter, _ = resolve_discover_aliases(snuba_filter)
+    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
     if not snuba_filter.aggregations:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
 
@@ -673,7 +702,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
     if len(snuba_filter.aggregations) == 1:
         snuba_filter.aggregations[0][2] = "count"
 
-    return snuba_filter
+    return snuba_filter, translated_columns
 
 
 def key_transaction_timeseries_query(selected_columns, query, params, rollup, referrer, queryset):
@@ -689,22 +718,27 @@ def key_transaction_timeseries_query(selected_columns, query, params, rollup, re
         referrer (str|None) A referrer string to help locate the origin of this query.
         queryset (QuerySet) Filtered QuerySet of KeyTransactions
     """
-    snuba_filter = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
-    snuba_filter.conditions.extend(key_transaction_conditions(queryset))
+    snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
 
-    result = raw_query(
-        aggregations=snuba_filter.aggregations,
-        conditions=snuba_filter.conditions,
-        filter_keys=snuba_filter.filter_keys,
-        start=snuba_filter.start,
-        end=snuba_filter.end,
-        rollup=rollup,
-        orderby="time",
-        groupby=["time"],
-        dataset=Dataset.Discover,
-        limit=10000,
-        referrer=referrer,
-    )
+    if queryset.exists():
+        snuba_filter.conditions.extend(key_transaction_conditions(queryset))
+
+        result = raw_query(
+            aggregations=snuba_filter.aggregations,
+            conditions=snuba_filter.conditions,
+            filter_keys=snuba_filter.filter_keys,
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            rollup=rollup,
+            orderby="time",
+            groupby=["time"],
+            dataset=Dataset.Discover,
+            limit=10000,
+            referrer=referrer,
+        )
+    else:
+        result = {"data": []}
+
     result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
@@ -732,8 +766,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
-
-    snuba_filter = get_timeseries_snuba_filter(
+    snuba_filter, _ = get_timeseries_snuba_filter(
         selected_columns, query, params, rollup, reference_event
     )
 
@@ -753,6 +786,134 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
 
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    orderby,
+    rollup,
+    limit,
+    organization,
+    referrer=None,
+):
+    """
+    High-level API for doing arbitrary user timeseries queries for a limited number of top events
+
+    Returns a dictionary of SnubaTSResult objects that have been zerofilled in
+    case of gaps. Each value of the dictionary should match the result of a timeseries query
+
+    timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
+                        usually matches the y-axis of the graph
+    selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
+                        this is to determine what the top events are
+    user_query (str) Filter query string to create conditions from. needs to be user_query
+                        to not conflict with the function query
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    orderby (Sequence[str]) The fields to order results by.
+    rollup (int) The bucket width in seconds
+    limit (int) The number of events to get timeseries for
+    organization (Organization) Used to map group ids to short ids
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    """
+    top_events = query(
+        selected_columns,
+        query=user_query,
+        params=params,
+        orderby=orderby,
+        limit=limit,
+        referrer=referrer,
+    )
+
+    snuba_filter, translated_columns = get_timeseries_snuba_filter(
+        timeseries_columns + selected_columns, user_query, params, rollup
+    )
+
+    user_fields = FIELD_ALIASES["user"]["fields"]
+
+    for field in selected_columns:
+        # project is handled by filter_keys already
+        if field in ["project", "project.id"]:
+            continue
+        if field == "issue":
+            field = FIELD_ALIASES["issue"]["column_alias"]
+        values = list({event.get(field) for event in top_events["data"] if field in event})
+        if values:
+            # timestamp needs special handling, creating a big OR instead
+            if field == "timestamp":
+                snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
+            # A user field can be any of its field aliases, do an OR across all the user fields
+            elif field == "user":
+                snuba_filter.conditions.append(
+                    [[resolve_column(user_field), "IN", values] for user_field in user_fields]
+                )
+            elif None in values:
+                non_none_values = [value for value in values if value is not None]
+                condition = [[["isNull", [resolve_column(field)]], "=", 1]]
+                if non_none_values:
+                    condition.append([resolve_column(field), "IN", non_none_values])
+                snuba_filter.conditions.append(condition)
+            else:
+                snuba_filter.conditions.append([resolve_column(field), "IN", values])
+
+    result = raw_query(
+        aggregations=snuba_filter.aggregations,
+        conditions=snuba_filter.conditions,
+        filter_keys=snuba_filter.filter_keys,
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        rollup=rollup,
+        orderby="time",
+        groupby=["time"] + snuba_filter.groupby,
+        dataset=Dataset.Discover,
+        limit=10000,
+        referrer=referrer,
+    )
+
+    result = transform_results(result, translated_columns, snuba_filter, selected_columns)
+
+    translated_columns["project_id"] = "project"
+    translated_groupby = [
+        translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
+    ]
+
+    if "user" in selected_columns:
+        # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
+        for field in user_fields:
+            if field not in selected_columns:
+                translated_groupby.remove(field)
+        translated_groupby.append("user")
+    issues = {}
+    if "issue" in selected_columns:
+        issues = Group.issues_mapping(
+            set([event["issue.id"] for event in top_events["data"]]),
+            params["project_id"],
+            organization,
+        )
+    # so the result key is consistent
+    translated_groupby.sort()
+
+    results = {}
+    for row in result["data"]:
+        values = []
+        for field in translated_groupby:
+            if field == "issue.id":
+                values.append(issues.get(row["issue.id"], "unknown"))
+            else:
+                values.append(six.text_type(row.get(field)))
+        result_key = ",".join(values)
+        results.setdefault(result_key, []).append(row)
+    for key, item in six.iteritems(results):
+        results[key] = SnubaTSResult(
+            {"data": zerofill(item, snuba_filter.start, snuba_filter.end, rollup, "time")},
+            snuba_filter.start,
+            snuba_filter.end,
+            rollup,
+        )
+
+    return results
 
 
 def get_id(result):

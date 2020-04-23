@@ -66,6 +66,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             organization, self.get_projects(request, organization)
         )
 
+        envs = self.get_environments(request, organization)
+        if envs:
+            incidents = incidents.filter(alert_rule__environment__in=envs)
+
         query_status = request.GET.get("status")
         if query_status is not None:
             if query_status == "open":

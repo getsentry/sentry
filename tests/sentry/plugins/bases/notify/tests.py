@@ -7,7 +7,6 @@ from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase
 from requests.exceptions import HTTPError, SSLError
-from sentry.models import GroupStatus
 
 
 class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
@@ -85,13 +84,3 @@ class DummyNotificationPluginTest(TestCase):
 
     def test_should_notify(self):
         assert self.plugin.should_notify(self.group, self.event)
-
-    def test_dont_notify_ignored(self):
-        self.group.status = GroupStatus.IGNORED
-        self.group.save()
-        assert not self.plugin.should_notify(self.group, self.event)
-
-    def test_dont_notify_resolved(self):
-        self.group.status = GroupStatus.RESOLVED
-        self.group.save()
-        assert not self.plugin.should_notify(self.group, self.event)

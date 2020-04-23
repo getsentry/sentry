@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import zip
+from sentry.utils.samples import load_data
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
@@ -572,3 +573,592 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400
+
+    def test_out_of_retention(self):
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(before_now(days=20)),
+                        "end": iso_format(before_now(days=15)),
+                        "query": "",
+                        "interval": "30m",
+                        "yAxis": "count()",
+                    },
+                )
+        assert response.status_code == 400
+
+
+class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super(OrganizationEventsStatsTopNEvents, self).setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.project = self.create_project()
+        self.project2 = self.create_project()
+        self.user2 = self.create_user()
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
+        self.event_data = [
+            {
+                "data": {
+                    "message": "poof",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "user": {"email": self.user.email},
+                    "fingerprint": ["group1"],
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "voof",
+                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "fingerprint": ["group2"],
+                    "user": {"email": self.user2.email},
+                },
+                "project": self.project2,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "very bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group3"],
+                    "user": {"email": "foo@example.com"},
+                },
+                "project": self.project,
+                "count": 3,
+            },
+            {
+                "data": {
+                    "message": "oh no",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group4"],
+                    "user": {"email": "bar@example.com"},
+                },
+                "project": self.project,
+                "count": 3,
+            },
+            {"data": transaction_data, "project": self.project, "count": 3},
+            # Not in the top 5
+            {
+                "data": {
+                    "message": "sorta bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group5"],
+                    "user": {"email": "bar@example.com"},
+                },
+                "project": self.project,
+                "count": 2,
+            },
+            {
+                "data": {
+                    "message": "not so bad",
+                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "fingerprint": ["group6"],
+                    "user": {"email": "bar@example.com"},
+                },
+                "project": self.project,
+                "count": 1,
+            },
+        ]
+
+        self.events = []
+        for index, event_data in enumerate(self.event_data):
+            data = event_data["data"].copy()
+            for i in range(event_data["count"]):
+                data["event_id"] = "{}{}".format(index, i) * 16
+                event = self.store_event(data, project_id=event_data["project"].id)
+            self.events.append(event)
+        self.transaction = self.events[4]
+
+        self.url = reverse(
+            "sentry-api-0-organization-events-stats",
+            kwargs={"organization_slug": self.project.organization.slug},
+        )
+
+    def test_simple_top_events(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "user.email"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
+            ]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_limits(self):
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "message", "user.email"],
+        }
+        with self.feature("organizations:discover-basic"):
+            data["topEvents"] = 50
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
+            data["topEvents"] = 0
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
+            data["topEvents"] = "a"
+            response = self.client.get(self.url, data, format="json",)
+            assert response.status_code == 400
+
+    def test_top_events_with_projects(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "project"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[",".join([message, event.project.slug])]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_with_issue(self):
+        # delete a group to make sure if this happens the value becomes unknown
+        event_group = self.events[0].group
+        event_group.delete()
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            # Because we deleted the group for event 0
+            if index == 0 or event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[",".join([issue, message])]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_with_functions(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-p99()"],
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data[self.transaction.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_functions_on_different_transactions(self):
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["transaction"] = "/foo_bar/"
+        transaction2 = self.store_event(transaction_data, project_id=self.project.id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-p99()"],
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 2
+
+        results = data[self.transaction.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+        results = data[transaction2.transaction]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_query(self):
+        transaction_data = load_data("transaction")
+        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["transaction"] = "/foo_bar/"
+        self.store_event(transaction_data, project_id=self.project.id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-p99()"],
+                    "query": "transaction:/foo_bar/",
+                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        transaction2_data = data["/foo_bar/"]
+        assert [attrs for time, attrs in transaction2_data["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_rpm(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "rpm()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.email", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
+            ]
+            assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_with_multiple_yaxis(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": ["rpm()", "count()"],
+                    "orderby": ["-count()"],
+                    "field": ["message", "user.email", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[
+                ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
+            ]
+            assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
+                attrs for time, attrs in results["rpm()"]["data"]
+            ]
+
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["count()"]["data"]
+            ]
+
+    def test_top_events_with_boolean(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "device.charging"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            message = event.message or event.transaction
+            results = data[",".join(["False", message])]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_with_timestamp(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": "event.type:default",
+                    "field": ["count()", "message", "timestamp"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:6]):
+            if event.message:
+                results = data[",".join([event.message, event.timestamp])]
+                assert [{"count": self.event_data[index]["count"]}] in [
+                    attrs for time, attrs in results["data"]
+                ]
+
+    def test_top_events_with_int(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "transaction.duration"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data[",".join([self.transaction.transaction, "120000"])]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_user(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["user", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert [attrs for time, attrs in data["bar@example.com"]["data"]] == [
+            [{"count": 6}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["127.0.0.1"]["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_with_user_and_email(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["user", "user.email", "count()"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        assert [attrs for time, attrs in data["bar@example.com,bar@example.com"]["data"]] == [
+            [{"count": 6}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+
+    def test_top_events_none_filter(self):
+        """ When a field is None in one of the top events, make sure we filter by it
+
+            In this case event[4] is a transaction and has no issue
+        """
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            if event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[issue]
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_one_field_with_none(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": "event.type:transaction",
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data["unknown"]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]

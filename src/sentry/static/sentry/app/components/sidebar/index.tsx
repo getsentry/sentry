@@ -37,13 +37,12 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
-import {logExperiment} from 'app/utils/analytics';
 import {Organization} from 'app/types';
+import {wantsLegacyReleases} from 'app/views/releasesV2/utils';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
 import OnboardingStatus from './onboardingStatus';
-import LegacyOnboardingStatus from './legacyOnboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
@@ -89,12 +88,6 @@ class Sidebar extends React.Component<Props, State> {
 
     this.hashChangeHandler();
     this.doCollapse(this.props.collapsed);
-
-    const {organization} = this.props;
-    logExperiment({
-      organization,
-      key: 'OnboardingSidebarV2Experiment',
-    });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
@@ -311,6 +304,20 @@ class Sidebar extends React.Component<Props, State> {
     return sidebarState;
   }
 
+  /**
+   * Determine which version of releases to show
+   */
+  shouldShowNewReleases() {
+    const {organization} = this.props;
+
+    // Bail as we can't do any more checks.
+    if (!organization || !organization.features) {
+      return false;
+    }
+
+    return organization.features.includes('releases-v2') && !wantsLegacyReleases();
+  }
+
   render() {
     const {organization, collapsed} = this.props;
     const {currentPanel, showPanel, horizontal} = this.state;
@@ -408,7 +415,6 @@ class Sidebar extends React.Component<Props, State> {
                           label={t('Discover')}
                           to={getDiscoverLandingUrl(organization)}
                           id="discover-v2"
-                          isNew
                         />
                       </GuideAnchor>
                     </Feature>
@@ -443,7 +449,6 @@ class Sidebar extends React.Component<Props, State> {
                       id="alerts"
                     />
                   </Feature>
-
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
@@ -456,6 +461,7 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
+                    isBeta={this.shouldShowNewReleases()}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
@@ -516,22 +522,6 @@ class Sidebar extends React.Component<Props, State> {
                       id="monitors"
                     />
                   </Feature>
-                  <Feature features={['releases-v2']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/releases-v2/`,
-                          evt
-                        )
-                      }
-                      icon={<IconReleases size="md" />}
-                      label={t('Releases v2')}
-                      to={`/organizations/${organization.slug}/releases-v2/`}
-                      id="releasesv2"
-                      isBeta
-                    />
-                  </Feature>
                 </SidebarSection>
 
                 <SidebarSection>
@@ -570,19 +560,16 @@ class Sidebar extends React.Component<Props, State> {
 
         {hasOrganization && (
           <SidebarSectionGroup>
-            {organization.experiments?.OnboardingSidebarV2Experiment === 1 &&
-              !horizontal && (
-                <SidebarSection noMargin noPadding>
-                  <OnboardingStatus
-                    org={organization}
-                    currentPanel={currentPanel}
-                    onShowPanel={() => this.togglePanel('todos')}
-                    showPanel={showPanel}
-                    hidePanel={this.hidePanel}
-                    {...sidebarItemProps}
-                  />
-                </SidebarSection>
-              )}
+            <SidebarSection noMargin noPadding>
+              <OnboardingStatus
+                org={organization}
+                currentPanel={currentPanel}
+                onShowPanel={() => this.togglePanel('todos')}
+                showPanel={showPanel}
+                hidePanel={this.hidePanel}
+                {...sidebarItemProps}
+              />
+            </SidebarSection>
 
             <SidebarSection>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
@@ -614,20 +601,6 @@ class Sidebar extends React.Component<Props, State> {
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
-
-            {organization.experiments?.OnboardingSidebarV2Experiment !== 1 &&
-              !horizontal && (
-                <SidebarSection noMargin>
-                  <LegacyOnboardingStatus
-                    org={organization}
-                    currentPanel={currentPanel}
-                    onShowPanel={() => this.togglePanel('todos')}
-                    showPanel={showPanel}
-                    hidePanel={this.hidePanel}
-                    {...sidebarItemProps}
-                  />
-                </SidebarSection>
-              )}
 
             {!horizontal && (
               <SidebarSection>

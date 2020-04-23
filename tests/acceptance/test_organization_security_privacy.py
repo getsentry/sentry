@@ -8,7 +8,9 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading-indicator")
         if snapshot_name is not None:
             self.browser.snapshot("organization settings security and privacy -- " + snapshot_name)
-        assert self.browser.element_exists('[data-test-id="organization-settings-security-and-privacy"]')
+        assert self.browser.element_exists(
+            '[data-test-id="organization-settings-security-and-privacy"]'
+        )
 
     def renders_2fa_setting(self):
         return self.browser.element_exists("#require2FA")

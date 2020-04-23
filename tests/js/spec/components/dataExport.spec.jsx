@@ -36,7 +36,7 @@ describe('DataExport', function() {
       mockRouterContext(mockAuthorizedOrg)
     );
     expect(wrapper.isEmptyRender()).toBe(false);
-    expect(wrapper.text()).toBe('Export All to CSV');
+    expect(wrapper.text()).toContain('Export All to CSV');
   });
 
   it('should render custom children if provided', function() {
@@ -45,7 +45,7 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload}>{testString}</WrappedDataExport>,
       mockRouterContext(mockAuthorizedOrg)
     );
-    expect(wrapper.text()).toBe(testString);
+    expect(wrapper.text()).toContain(testString);
   });
 
   it('should respect the disabled prop and not be clickable', function() {
@@ -90,11 +90,32 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toBe("We're working on it...");
+    expect(wrapper.text()).toContain("We're working on it...");
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: true,
       dataExportId: 721,
     });
+  });
+
+  it('should reset the state when receiving a new payload', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {id: 721},
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    wrapper.update();
+    expect(wrapper.find(DataExport).state('inProgress')).toEqual(true);
+    expect(wrapper.find(DataExport).state('dataExportId')).toEqual(721);
+    wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
+    expect(wrapper.find(DataExport).state('inProgress')).toEqual(false);
+    expect(wrapper.find(DataExport).state('dataExportId')).toBeUndefined();
   });
 });

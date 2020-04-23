@@ -13,6 +13,11 @@ class IssueDetailsPage(BasePage):
         self.browser.get(u"/organizations/{}/issues/{}/".format(org, groupid))
         self.wait_until_loaded()
 
+    def visit_tag_values(self, org, groupid, tag):
+        self.dismiss_assistant()
+        self.browser.get(u"/organizations/{}/issues/{}/tags/{}".format(org, groupid, tag))
+        self.browser.wait_until_not(".loading-indicator")
+
     def api_issue_get(self, groupid):
         return self.client.get(u"/api/0/issues/{}/".format(groupid))
 

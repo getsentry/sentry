@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function() {
-  const {routerContext} = initializeOrg();
+  const {routerContext, organization} = initializeOrg();
   let mock;
   let projectMock;
   let wrapper;
@@ -15,7 +15,7 @@ describe('IncidentsList', function() {
   const createWrapper = async props => {
     wrapper = mountWithTheme(
       <IncidentsList
-        params={{orgId: 'org-slug'}}
+        params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
         {...props}
       />,
@@ -132,10 +132,20 @@ describe('IncidentsList', function() {
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
+    const rules_mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      body: [],
+    });
 
     wrapper = await createWrapper();
+
+    expect(rules_mock).toHaveBeenCalledTimes(1);
+
+    await tick();
+    wrapper.update();
+
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any Metric Alerts yet");
+    expect(wrapper.text()).toContain('No active metric alerts.');
   });
 
   it('toggles all/open', async function() {
@@ -172,5 +182,24 @@ describe('IncidentsList', function() {
       '/organizations/org-slug/incidents/',
       expect.objectContaining({query: expect.objectContaining({status: 'all'})})
     );
+  });
+
+  it('disables the new alert button for members', async function() {
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    wrapper = await createWrapper({organization: noAccessOrg});
+
+    const addButton = wrapper.find('button[aria-label="Add Alert Rule"]');
+    expect(addButton.props()['aria-disabled']).toBe(true);
+
+    // Enabled with access
+    wrapper = await createWrapper();
+
+    // NOTE: A link when not disabled
+    const addLink = wrapper.find('a[aria-label="Add Alert Rule"]');
+    expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

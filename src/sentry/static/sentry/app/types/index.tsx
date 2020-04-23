@@ -1,4 +1,4 @@
-import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -286,15 +286,22 @@ type SentryEventBase = {
   latestEventID: string | null;
 };
 
+export type SentryTransactionEvent = {
+  type: 'transaction';
+  title?: string;
+  entries: SpanEntry[];
+  startTimestamp: number;
+  endTimestamp: number;
+  sdk?: {
+    name?: string;
+  };
+  contexts?: {
+    trace?: TraceContextType;
+  };
+} & SentryEventBase;
+
 // This type is incomplete
-export type Event =
-  | ({type: string} & SentryEventBase)
-  | ({
-      type: 'transaction';
-      entries: SpanEntry[];
-      startTimestamp: number;
-      endTimestamp: number;
-    } & SentryEventBase);
+export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -423,7 +430,8 @@ export type PluginWithProjectList = PluginNoProject & {
 export type AppOrProviderOrPlugin =
   | SentryApp
   | IntegrationProvider
-  | PluginWithProjectList;
+  | PluginWithProjectList
+  | DocumentIntegration;
 
 export type DocumentIntegration = {
   slug: string;
@@ -937,6 +945,7 @@ export type NewQuery = {
   environment?: Readonly<string[]>;
   tags?: Readonly<string[]>;
   yAxis?: string;
+  display?: string;
   createdBy?: User;
 };
 
@@ -1095,10 +1104,12 @@ export type ResolutionStatusDetails = {
   actor?: AvatarUser;
   autoResolved?: boolean;
   ignoreCount?: number;
+  // Sent in requests. ignoreUntil is used in responses.
+  ignoreDuration?: number;
   ignoreUntil?: string;
   ignoreUserCount?: number;
-  ignoreUserWindow?: string;
-  ignoreWindow?: string;
+  ignoreUserWindow?: number;
+  ignoreWindow?: number;
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
@@ -1141,3 +1152,13 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
+
+export type Activity = {
+  data: any;
+  dateCreated: string;
+  type: string;
+  id: string;
+  issue?: Group;
+  project: Project;
+  user?: User;
+};

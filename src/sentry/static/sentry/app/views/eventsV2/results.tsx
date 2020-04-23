@@ -13,7 +13,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
@@ -22,6 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {ContentBox} from 'app/utils/discover/styles';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -30,7 +31,6 @@ import Tags from './tags';
 import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
-import {ContentBox} from './styles';
 
 type Props = {
   api: Client;
@@ -160,6 +160,20 @@ class Results extends React.Component<Props, State> {
     });
   };
 
+  handleDisplayChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      display: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+  };
+
   getDocumentTitle(): string {
     const {eventView} = this.state;
     if (!eventView) {
@@ -210,7 +224,7 @@ class Results extends React.Component<Props, State> {
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <StyledPageContent>
-            <NoProjectMessage organization={organization}>
+            <LightWeightNoProjectMessage organization={organization}>
               <ResultsHeader
                 organization={organization}
                 location={location}
@@ -232,6 +246,7 @@ class Results extends React.Component<Props, State> {
                     eventView={eventView}
                     location={location}
                     onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
                     total={totalValues}
                   />
                 </Top>
@@ -246,7 +261,7 @@ class Results extends React.Component<Props, State> {
                 </Main>
                 <Side eventView={eventView}>{this.renderTagsTable()}</Side>
               </ContentBox>
-            </NoProjectMessage>
+            </LightWeightNoProjectMessage>
           </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import pytz
 import six
-from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
@@ -23,6 +22,22 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         self.project = self.create_project(name="bar", organization=self.org)
 
+    def test_save_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 1
+
     def test_save_key_transaction(self):
         data = load_data("transaction")
         with self.feature("organizations:performance-view"):
@@ -40,6 +55,28 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert key_transaction.transaction == data["transaction"]
         assert key_transaction.organization == self.org
 
+    def test_multiple_user_save(self):
+        data = load_data("transaction")
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+
+        self.login_as(user=user, superuser=False)
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.post(
+                url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
+            )
+        assert response.status_code == 201
+
+        key_transactions = KeyTransaction.objects.filter(transaction=data["transaction"])
+        assert len(key_transactions) == 2
+
     def test_duplicate_key_transaction(self):
         data = load_data("transaction")
         with self.feature("organizations:performance-view"):
@@ -52,7 +89,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             response = self.client.post(
                 url + "?project={}".format(self.project.id), {"transaction": data["transaction"]}
             )
-            assert response.status_code == 400
+            assert response.status_code == 204
 
         key_transactions = KeyTransaction.objects.filter(owner=self.user)
         assert len(key_transactions) == 1
@@ -103,12 +140,17 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     def test_max_key_transaction(self):
         data = load_data("transaction")
+        other_project = self.create_project(organization=self.org)
         for i in range(MAX_KEY_TRANSACTIONS):
+            if i % 2 == 0:
+                project = self.project
+            else:
+                project = other_project
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
                 transaction=data["transaction"] + six.text_type(i),
-                project=self.project,
+                project=project,
             )
         with self.feature("organizations:performance-view"):
             url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
@@ -123,7 +165,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             ]
         }
 
-    def test_get_no_key_transacitons(self):
+    def test_get_no_key_transactions(self):
         event_data = load_data("transaction")
         start_timestamp = iso_format(before_now(minutes=1))
         end_timestamp = iso_format(before_now(minutes=1))
@@ -157,9 +199,10 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                 },
             )
 
-        assert response.status_code == 404
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
 
-    def test_is_key_transaciton(self):
+    def test_is_key_transaction(self):
         event_data = load_data("transaction")
         start_timestamp = iso_format(before_now(minutes=1))
         end_timestamp = iso_format(before_now(minutes=1))
@@ -180,7 +223,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["isKey"]
 
-    def test_is_not_key_transaciton(self):
+    def test_is_not_key_transaction(self):
         event_data = load_data("transaction")
         start_timestamp = iso_format(before_now(minutes=1))
         end_timestamp = iso_format(before_now(minutes=1))
@@ -411,6 +454,90 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             == 0
         )
 
+    def test_delete_transaction_with_another_user(self):
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+
+        assert response.status_code == 204
+        # Original user still has a key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 1
+        )
+        # Deleting user has deleted the key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 0
+        )
+
+    def test_delete_key_transaction_as_member(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+        assert response.status_code == 204
+
+        key_transactions = KeyTransaction.objects.filter(owner=user)
+        assert len(key_transactions) == 0
+
+    def test_delete_nonexistent_transaction(self):
+        event_data = load_data("transaction")
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+
+        assert response.status_code == 204
+
     def test_delete_with_multiple_projects(self):
         other_user = self.create_user()
         other_org = self.create_organization(owner=other_user)
@@ -557,24 +684,16 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        prototype = {
-            "type": "transaction",
-            "transaction": "api.issue.delete",
-            "spans": [],
-            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
-            "tags": {"important": "yes"},
-        }
-        fixtures = (
-            ("d" * 32, before_now(minutes=32), "yes"),
-            ("e" * 32, before_now(hours=1, minutes=2), "no"),
-            ("f" * 32, before_now(hours=1, minutes=35), "yes"),
+        data = load_data("transaction")
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
+        data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=30)),
+                "start_timestamp": iso_format(before_now(minutes=31)),
+            }
         )
-        for fixture in fixtures:
-            data = prototype.copy()
-            data["event_id"] = fixture[0]
-            data["timestamp"] = iso_format(fixture[1])
-            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
-            data["tags"]["important"] = fixture[2]
+        for event_id in event_ids:
+            data["event_id"] = event_id
             self.store_event(data=data, project_id=self.project.id)
 
         with self.feature("organizations:performance-view"):
@@ -583,13 +702,123 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                 url,
                 format="json",
                 data={
-                    "end": iso_format(before_now()),
                     "start": iso_format(before_now(hours=2)),
-                    "interval": "30m",
+                    "end": iso_format(before_now()),
+                    "interval": "1h",
                     "yAxis": "count()",
-                    "query": "tags[important]: yes",
                     "project": [self.project.id],
                 },
             )
 
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+
+    @patch("django.utils.timezone.now")
+    def test_key_transaction_stats_with_multi_yaxis(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        data = load_data("transaction")
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
+        data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=30)),
+                "start_timestamp": iso_format(before_now(minutes=31)),
+            }
+        )
+        for event_id in event_ids:
+            data["event_id"] = event_id
+            self.store_event(data=data, project_id=self.project.id)
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.project.organization,
+            transaction=data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(hours=2)),
+                    "end": iso_format(before_now()),
+                    "interval": "1h",
+                    "yAxis": ["rps()", "rpm()"],
+                    "project": [self.project.id],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert len(response.data["rpm()"]["data"]) == 3
+        assert len(response.data["rps()"]["data"]) == 3
+        assert [{"count": 3.0 / (3600.0 / 60.0)}] in [
+            attrs for time, attrs in response.data["rpm()"]["data"]
+        ]
+        assert [{"count": 3.0 / 3600.0}] in [
+            attrs for time, attrs in response.data["rps()"]["data"]
+        ]
+
+    @patch("django.utils.timezone.now")
+    def test_key_transaction_stats_with_multi_yaxis_no_key_transactions(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        data = load_data("transaction")
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
+        data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=30)),
+                "start_timestamp": iso_format(before_now(minutes=31)),
+            }
+        )
+        for event_id in event_ids:
+            data["event_id"] = event_id
+            for i in range(5):
+                self.store_event(data=data, project_id=self.project.id)
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(hours=2)),
+                    "end": iso_format(before_now()),
+                    "interval": "1h",
+                    "yAxis": ["rps()", "rpm()"],
+                    "project": [self.project.id],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert len(response.data["rpm()"]["data"]) == 3
+        assert len(response.data["rps()"]["data"]) == 3
+        assert [attrs for time, attrs in response.data["rpm()"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+        assert [attrs for time, attrs in response.data["rps()"]["data"]] == [
+            [{"count": 0}],
+            [{"count": 0}],
+            [{"count": 0}],
+        ]
+
+    def test_key_transactions_without_feature(self):
+        url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+        functions = [self.client.get, self.client.post, self.client.delete]
+        for function in functions:
+            response = function(url)
+            assert response.status_code == 404
+        url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
+        response = self.client.get(url)
+        assert response.status_code == 404
+        url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
+        response = self.client.get(url)
         assert response.status_code == 404

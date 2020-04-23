@@ -1,10 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
-import space from 'app/styles/space';
 import ReleaseArtifactsV1 from 'app/views/releases/detail/releaseArtifacts';
 import AsyncView from 'app/views/asyncView';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -40,7 +38,7 @@ class ReleaseArtifacts extends AsyncView<Props> {
     const {params, location} = this.props;
 
     return (
-      <ContentBox>
+      <React.Fragment>
         <Alert type="warning">
           {t(
             'We are working on improving this experience, therefore Artifacts will be moving to Settings soon.'
@@ -53,15 +51,9 @@ class ReleaseArtifacts extends AsyncView<Props> {
           projectId={project.slug}
           smallEmptyMessage
         />
-      </ContentBox>
+      </React.Fragment>
     );
   }
 }
-
-const ContentBox = styled('div')`
-  padding: ${space(4)};
-  flex: 1;
-  background-color: ${p => p.theme.white};
-`;
 
 export default withOrganization(ReleaseArtifacts);

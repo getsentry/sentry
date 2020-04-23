@@ -20,10 +20,16 @@ export const experimentList = [
     assignments: ['controlV1', '2Optionsv1', '3OptionsV2'],
   },
   {
-    key: 'OnboardingSidebarV2Experiment',
+    key: 'IntegrationDirectoryCategoryExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'variant',
+    assignments: ['0', '1'],
+  },
+  {
+    key: 'TrialEndingNotice',
     type: ExperimentType.Organization,
     parameter: 'exposed',
-    assignments: [1, 0, -1],
+    assignments: [0, 1],
   },
 ] as const;
 

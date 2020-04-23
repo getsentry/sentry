@@ -19,6 +19,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {
   TableGrid,
@@ -29,7 +30,6 @@ import {
   GridBodyCellNumber,
   SummaryGridRow,
 } from '../styles';
-import LatencyChart from './latencyChart';
 
 type Props = {
   eventView: EventView;
@@ -38,10 +38,27 @@ type Props = {
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
-  totalValues: number | null;
 };
 
 class SummaryContentTable extends React.Component<Props> {
+  handleDiscoverViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_discover',
+      eventName: 'Performance Views: View in Discover from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  handleViewDetailsClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_details',
+      eventName: 'Performance Views: View Details from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   renderHeader() {
     const {eventView, tableData} = this.props;
 
@@ -143,7 +160,11 @@ class SummaryContentTable extends React.Component<Props> {
           eventView,
         });
 
-        rendered = <Link to={target}>{rendered}</Link>;
+        rendered = (
+          <Link to={target} onClick={this.handleViewDetailsClick}>
+            {rendered}
+          </Link>
+        );
       }
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
@@ -156,7 +177,7 @@ class SummaryContentTable extends React.Component<Props> {
   }
 
   render() {
-    const {eventView, location, organization, totalValues} = this.props;
+    const {eventView, organization} = this.props;
 
     let title = t('Slowest Requests');
     const parsed = tokenizeSearch(eventView.query);
@@ -165,22 +186,12 @@ class SummaryContentTable extends React.Component<Props> {
     }
 
     return (
-      <div>
-        <LatencyChart
-          organization={organization}
-          location={location}
-          query={eventView.query}
-          project={eventView.project}
-          environment={eventView.environment}
-          start={eventView.start}
-          end={eventView.end}
-          statsPeriod={eventView.statsPeriod}
-          totalValues={totalValues}
-        />
+      <React.Fragment>
         <Header>
           <HeaderTitle>{title}</HeaderTitle>
           <HeaderButtonContainer>
             <Button
+              onClick={this.handleDiscoverViewClick}
               to={eventView.getResultsViewUrlTarget(organization.slug)}
               size="small"
             >
@@ -196,7 +207,7 @@ class SummaryContentTable extends React.Component<Props> {
             <GridBody>{this.renderResults()}</GridBody>
           </TableGrid>
         </Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }

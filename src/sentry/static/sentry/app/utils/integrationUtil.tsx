@@ -12,6 +12,7 @@ import {
   AppOrProviderOrPlugin,
   SentryApp,
   PluginWithProjectList,
+  DocumentIntegration,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -32,8 +33,14 @@ export const clearAnalyticsSession = () => {
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
-export const getCategorySelectActive = () =>
-  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
+export const getCategorySelectActive = (organization?: Organization) => {
+  const variant = organization?.experiments?.IntegrationDirectoryCategoryExperiment;
+  const localStore = localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT);
+  if (localStore !== null) {
+    return localStore === '1';
+  }
+  return variant === '1';
+};
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -92,10 +99,17 @@ type IntegrationSearchEvent = {
   num_results: number;
 };
 
+type IntegrationCategorySelectEvent = {
+  eventKey: 'integrations.directory_category_selected';
+  eventName: 'Integrations: Directory Category Selected';
+  category: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
+  | IntegrationCategorySelectEvent
 ) & {
   view?:
     | 'external_install'
@@ -238,6 +252,9 @@ export const getCategoriesForIntegration = (
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);
   }
+  if (isDocumentIntegration(integration)) {
+    return getCategories(integration.features);
+  }
   return getCategories(integration.metadata.features);
 };
 
@@ -251,4 +268,10 @@ export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
+}
+
+export function isDocumentIntegration(
+  integration: AppOrProviderOrPlugin
+): integration is DocumentIntegration {
+  return integration.hasOwnProperty('docUrl');
 }

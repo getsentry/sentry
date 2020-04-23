@@ -93,9 +93,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
         )
         response = self.client.get(
-            url, format="json", data={"enable_snuba": "1", "environment": ["production", "staging"]}
-        )
-        response = self.client.get(
             url, format="json", data={"environment": ["production", "staging"]}
         )
 

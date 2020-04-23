@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import hmac
+import six
+from hashlib import sha256
+
 from sentry import options
 from sentry.models import Integration
 from sentry.utils import json
@@ -92,9 +96,35 @@ class SlackRequest(object):
             raise SlackRequestError(status=400)
 
     def _authorize(self):
-        if self.data.get("token") != options.get("slack.verification-token"):
-            self._error("slack.action.invalid-token")
-            raise SlackRequestError(status=401)
+        # check v1 then v2
+        signing_secret = options.get("slack.signing-secret")
+        verification_token = options.get("slack.verification-token")
+        # for v1, only check the verification_token if we don't have a signing_secret
+        if signing_secret:
+            if self._check_signing_secret(signing_secret):
+                return
+        elif verification_token and self._check_verification_token(verification_token):
+            return
+        # for v2, only check signing secret
+        signing_secret = options.get("slack-v2.signing-secret")
+        if signing_secret and self._check_signing_secret(signing_secret):
+            return
+        # unfortunately, we can't know which auth was supposed to succeed
+        self._error("slack.action.auth")
+        raise SlackRequestError(status=401)
+
+    def _check_signing_secret(self, signing_secret):
+        # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
+        # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
+        signature = self.request.META["HTTP_X_SLACK_SIGNATURE"]
+        timestamp = self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"]
+
+        req = six.binary_type("v0:%s:%s" % (timestamp, self.request.body))
+        request_hash = "v0=" + hmac.new(six.binary_type(signing_secret), req, sha256).hexdigest()
+        return hmac.compare_digest(six.binary_type(request_hash), six.binary_type(signature))
+
+    def _check_verification_token(self, verification_token):
+        return self.data.get("token") == verification_token
 
     def _validate_integration(self):
         try:
