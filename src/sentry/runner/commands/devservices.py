@@ -98,7 +98,8 @@ def attach(project, is_devserver, service):
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-def up(project, exclude):
+@click.option("--fast", is_flag=True, default=False, help="Never pull.")
+def up(project, exclude, fast):
     """
     Run/update dependent services.
     """
@@ -119,6 +120,13 @@ def up(project, exclude):
 
     containers = _prepare_containers(project)
 
+    if fast:
+        click.secho(
+            "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
+            err=True,
+            fg="red",
+        )
+
     for name, options in settings.SENTRY_DEVSERVICES.items():
         if name in exclude:
             continue
@@ -126,7 +134,7 @@ def up(project, exclude):
         if name not in containers:
             continue
 
-        _start_service(client, name, containers, project)
+        _start_service(client, name, containers, project, fast=fast)
 
 
 def _prepare_containers(project):
@@ -154,7 +162,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, devserver_override=False):
+def _start_service(client, name, containers, project, fast=False, devserver_override=False):
     from django.conf import settings
     import docker
 
@@ -172,17 +180,18 @@ def _start_service(client, name, containers, project, devserver_override=False):
         options["environment"][key] = value.format(containers=containers)
 
     pull = options.pop("pull", False)
-    if pull:
-        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-        client.images.pull(options["image"])
-    else:
-        # We want make sure to pull everything on the first time,
-        # (the image doesn't exist), regardless of pull=True.
-        try:
-            client.images.get(options["image"])
-        except docker.errors.NotFound:
+    if not fast:
+        if pull:
             click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
             client.images.pull(options["image"])
+        else:
+            # We want make sure to pull everything on the first time,
+            # (the image doesn't exist), regardless of pull=True.
+            try:
+                client.images.get(options["image"])
+            except docker.errors.NotFound:
+                click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+                client.images.pull(options["image"])
 
     for mount in options.get("volumes", {}).keys():
         if "/" not in mount:
@@ -191,7 +200,7 @@ def _start_service(client, name, containers, project, devserver_override=False):
 
     listening = ""
     if options["ports"]:
-        listening = " (listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+        listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for reverse_proxy to occupy port 8000 on the
@@ -199,26 +208,32 @@ def _start_service(client, name, containers, project, devserver_override=False):
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 
+    container = None
     try:
         container = client.containers.get(options["name"])
     except docker.errors.NotFound:
         pass
-    else:
+
+    if container is not None:
         if not pull and not with_devserver:
             # devservices which are marked with pull True will need their containers
             # to be recreated with the freshly pulled image.
             click.secho(
-                "> Starting existing '%s' container%s" % (options["name"], listening),
+                "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
                 fg="yellow",
             )
+            # Note that if the container is already running, this will noop.
+            # This makes repeated `devservices up` quite fast.
             container.start()
             return container
 
+        click.secho("> Stopping container '%s'" % container.name, err=True, fg="yellow")
         container.stop()
+        click.secho("> Removing container '%s'" % container.name, err=True, fg="yellow")
         container.remove()
 
-    click.secho("> Creating '%s' container%s" % (options["name"], listening), err=True, fg="yellow")
+    click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
 
     # Two things call _start_service.
@@ -229,11 +244,12 @@ def _start_service(client, name, containers, project, devserver_override=False):
     if with_devserver and not devserver_override:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
-            % options["name"],
+            % container.name,
             fg="yellow",
         )
         return container
 
+    click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
     container.start()
     return container
 
