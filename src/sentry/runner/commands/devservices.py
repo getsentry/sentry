@@ -8,10 +8,11 @@ from six import text_type
 from itertools import chain
 
 from sentry.utils.compat import map
-import docker
 
 
 def get_docker_client():
+    import docker
+
     client = docker.from_env()
     try:
         client.ping()
@@ -21,6 +22,8 @@ def get_docker_client():
 
 
 def get_or_create(client, thing, name):
+    import docker
+
     try:
         return getattr(client, thing + "s").get(name)
     except docker.errors.NotFound:
@@ -153,6 +156,7 @@ def _prepare_containers(project):
 
 def _start_service(client, name, containers, project, devserver_override=False):
     from django.conf import settings
+    import docker
 
     options = containers[name]
 
@@ -255,6 +259,8 @@ def down(project, service):
 @click.argument("service", nargs=-1)
 def rm(project, service):
     "Delete all services and associated data."
+
+    import docker
 
     click.confirm(
         "Are you sure you want to continue?\nThis will delete all of your Sentry related data!",
