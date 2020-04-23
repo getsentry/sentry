@@ -7,7 +7,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
@@ -62,7 +61,6 @@ class OrganizationSettingsForm extends AsyncComponent {
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <PermissionAlert />
         <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
 
         <Feature features={['datascrubbers-v2']}>
