@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+import six
+
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
-from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     IntegrationFeatures,
@@ -13,7 +14,10 @@ from sentry.integrations import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
-from .utils import track_response_code, use_slack_v2
+from sentry.shared_integrations.exceptions import ApiError
+
+from .client import SlackClient
+from .utils import logger, use_slack_v2
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
@@ -120,15 +124,11 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_team_info(self, access_token):
         payload = {"token": access_token}
 
-        session = http.build_session()
-        resp = session.get("https://slack.com/api/team.info", params=payload)
-        resp.raise_for_status()
-        status_code = resp.status_code
-        resp = resp.json()
-        # TODO: track_response_code won't hit if we have an error status code
-        track_response_code(status_code, resp.get("ok"))
-
-        # TODO: check for resp["ok"]
+        client = SlackClient()
+        try:
+            resp = client.get("/team.info", params=payload)
+        except ApiError as e:
+            logger.error("slack.team-info.response-error", extra={"error": six.text_type(e)})
 
         return resp["team"]
 
