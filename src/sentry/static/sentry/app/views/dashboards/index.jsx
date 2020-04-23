@@ -19,8 +19,10 @@ class Dashboards extends React.Component {
 
     return (
       <Feature features={['discover']} renderDisabled>
-        <GlobalSelectionHeader organization={organization} />
-
+        <GlobalSelectionHeader
+          organization={organization}
+          showEnvironmentSelector={false}
+        />
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <PageHeader>
