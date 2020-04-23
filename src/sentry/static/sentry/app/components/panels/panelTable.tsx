@@ -76,6 +76,7 @@ const PanelTable = ({
       columns={headers.length}
       disablePadding={disablePadding}
       className={className}
+      hasRows={shouldShowContent}
     >
       {headers.map((header, i) => (
         <PanelTableHeader key={i}>{header}</PanelTableHeader>
@@ -111,6 +112,7 @@ type WrapperProps = {
    * The number of columns the table will have, this is derived from the headers list
    */
   columns: number;
+  hasRows: boolean;
   disablePadding: Props['disablePadding'];
 };
 
@@ -126,10 +128,9 @@ const Wrapper = styled(Panel, {
 
   > * {
     padding: ${p => (p.disablePadding ? 0 : space(2))};
-    border-bottom: 1px solid ${p => p.theme.borderDark};
 
-    &:nth-child(-${p => p.columns}) {
-      border-bottom: none;
+    &:nth-last-child(n + ${p => (p.hasRows ? p.columns + 1 : 0)}) {
+      border-bottom: 1px solid ${p => p.theme.borderDark};
     }
   }
 
