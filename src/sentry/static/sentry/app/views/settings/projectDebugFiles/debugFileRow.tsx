@@ -9,9 +9,9 @@ import Tag from 'app/views/settings/components/tag';
 import FileSize from 'app/components/fileSize';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete, IconClock, IconDownload} from 'app/icons';
 import Access from 'app/components/acl/access';
-import {IconClock} from 'app/icons';
+import ButtonBar from 'app/components/buttonBar';
 
 import {getFileType, getFeatureTooltip} from './utils';
 import {DebugFile} from './types';
@@ -69,43 +69,42 @@ const DebugFileRow = ({debugFile, downloadUrl, onDelete}: Props) => {
         </Details>
       </Column>
       <RightColumn>
-        <Access access={['project:releases']}>
-          {({hasAccess}) => (
-            <Button
-              size="xsmall"
-              icon="icon-download"
-              href={downloadUrl}
-              disabled={!hasAccess}
-              css={{
-                marginRight: space(0.5),
-              }}
-            >
-              {t('Download')}
-            </Button>
-          )}
-        </Access>
-        <Access access={['project:write']}>
-          {({hasAccess}) => (
-            <Tooltip
-              disabled={hasAccess}
-              title={t('You do not have permission to delete debug files.')}
-            >
-              <Confirm
-                confirmText={t('Delete')}
-                message={t('Are you sure you wish to delete this file?')}
-                onConfirm={() => onDelete(id)}
+        <ButtonBar gap={0.5}>
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Button
+                size="xsmall"
+                icon={<IconDownload size="xs" />}
+                href={downloadUrl}
                 disabled={!hasAccess}
               >
-                <Button
-                  priority="danger"
-                  icon={<IconDelete size="xs" />}
-                  size="xsmall"
+                {t('Download')}
+              </Button>
+            )}
+          </Access>
+          <Access access={['project:write']}>
+            {({hasAccess}) => (
+              <Tooltip
+                disabled={hasAccess}
+                title={t('You do not have permission to delete debug files.')}
+              >
+                <Confirm
+                  confirmText={t('Delete')}
+                  message={t('Are you sure you wish to delete this file?')}
+                  onConfirm={() => onDelete(id)}
                   disabled={!hasAccess}
-                />
-              </Confirm>
-            </Tooltip>
-          )}
-        </Access>
+                >
+                  <Button
+                    priority="danger"
+                    icon={<IconDelete size="xs" />}
+                    size="xsmall"
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
+        </ButtonBar>
       </RightColumn>
     </React.Fragment>
   );
