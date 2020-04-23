@@ -894,7 +894,7 @@ def get_filter(query=None, params=None):
         for key in ("start", "end"):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
-        if not project_to_filter and "project_id" in params:
+        if "project_id" in params:
             if project_to_filter:
                 kwargs["project_ids"] = [project_to_filter]
             else:
