@@ -327,6 +327,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
+      if (depth === 0) {
+        // do not render a connector bar at depth 0,
+        // if we did render a connector bar, this bar would be placed at depth -1
+        // which does not exist.
+        return null;
+      }
       const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
       return <ConnectorBar style={{left}} key={`${spanID}-${depth}`} />;
     });
