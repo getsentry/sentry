@@ -4,6 +4,14 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+def has_access(org, user, access=None):
+    queryset = org.member_set.filter(user=user)
+    if access is not None:
+        queryset = queryset.filter(type__lte=access)
+
+    return queryset.exists()
+
+
 def remove_tracked_superuser_views(apps, schema_editor):
     """
     We recently added code to only track alert views of people in the org + member of associated alert projects.
@@ -11,11 +19,12 @@ def remove_tracked_superuser_views(apps, schema_editor):
     """
     IncidentSeen = apps.get_model("sentry", "IncidentSeen")
     IncidentProject = apps.get_model("sentry", "IncidentProject")
+    Organization = apps.get_model("sentry", "Organization")
     tracked_views = IncidentSeen.objects.all().select_related("user", "incident")
     for tracked_view in tracked_views:
         tracked_user = tracked_view.user
         tracked_incident = tracked_view.incident
-        is_org_member = tracked_incident.organization.has_access(tracked_user)
+        is_org_member = has_access(tracked_view.incident.organization, tracked_user)
         if not is_org_member:
             tracked_view.delete()
 
