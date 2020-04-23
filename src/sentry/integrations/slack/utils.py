@@ -405,7 +405,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
-    # session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
         cursor = ""
         while True:
@@ -450,7 +449,6 @@ def send_incident_alert_notification(action, incident):
         logger.info(
             "rule.fail.slack_post", extra={"error": six.text_type(e)},
         )
-
 
 
 def use_slack_v2(pipeline):
