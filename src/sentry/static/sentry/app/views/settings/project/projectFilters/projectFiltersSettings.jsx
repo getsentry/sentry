@@ -39,6 +39,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 10',
     title: 'Internet Explorer',
   },
+  ie11: {
+    icon: 'internet-explorer',
+    helpText: 'Version 11',
+    title: 'Internet Explorer',
+  },
   safari_pre_6: {
     icon: 'safari',
     helpText: 'Version 5 and lower',

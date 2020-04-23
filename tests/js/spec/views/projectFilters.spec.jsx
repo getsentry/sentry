@@ -132,7 +132,7 @@ describe('ProjectFilters', function() {
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'opera_pre_15',
+      'safari_pre_6',
     ]);
 
     // Toggle filter off
@@ -143,8 +143,8 @@ describe('ProjectFilters', function() {
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
-      'opera_pre_15',
       'safari_pre_6',
+      'ie11',
     ]);
 
     mock.mockReset();
@@ -160,8 +160,8 @@ describe('ProjectFilters', function() {
       .simulate('click');
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'opera_pre_15',
       'safari_pre_6',
+      'ie11',
     ]);
   });
 
@@ -178,6 +178,7 @@ describe('ProjectFilters', function() {
       'ie_pre_9',
       'ie9',
       'ie10',
+      'ie11',
       'safari_pre_6',
       'opera_pre_15',
       'opera_mini_pre_8',
