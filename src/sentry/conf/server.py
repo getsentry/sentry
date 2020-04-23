@@ -330,7 +330,6 @@ INSTALLED_APPS = (
     "sentry.lang.javascript.apps.Config",
     "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_mail.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
