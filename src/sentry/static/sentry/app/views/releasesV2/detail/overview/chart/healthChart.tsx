@@ -14,7 +14,6 @@ import {YAxis} from './releaseChartControls';
 type Props = {
   reloading: boolean;
   utc: boolean;
-  releaseSeries: Series[];
   timeseriesData: Series[];
   zoomRenderProps: any;
   yAxis: YAxis;
@@ -26,10 +25,7 @@ class HealthChart extends React.Component<Props> {
       return false;
     }
 
-    if (
-      isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
-      isEqual(this.props.releaseSeries, nextProps.releaseSeries)
-    ) {
+    if (isEqual(this.props.timeseriesData, nextProps.timeseriesData)) {
       return false;
     }
 
@@ -88,7 +84,7 @@ class HealthChart extends React.Component<Props> {
   };
 
   render() {
-    const {utc, releaseSeries, timeseriesData, zoomRenderProps} = this.props;
+    const {utc, timeseriesData, zoomRenderProps} = this.props;
     const Chart = this.getChart();
 
     const legend = {
@@ -113,7 +109,7 @@ class HealthChart extends React.Component<Props> {
         legend={legend}
         utc={utc}
         {...zoomRenderProps}
-        series={[...timeseriesData, ...releaseSeries]}
+        series={timeseriesData}
         isGroupedByDate
         seriesOptions={{
           showSymbol: false,

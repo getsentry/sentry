@@ -16,6 +16,7 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentStatus,
+    IncidentStatusMethod,
     QueryAggregations,
     TriggerStatus,
     INCIDENT_STATUS,
@@ -221,5 +222,7 @@ class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
-        update_incident_status(incident, IncidentStatus.CLOSED)
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+        )
         self.run_test(incident, "resolve")

@@ -23,14 +23,7 @@ class OrganizationGroupDetails extends React.Component {
   render() {
     const {selection, ...props} = this.props;
 
-    return (
-      <GroupDetails
-        environments={selection.environments}
-        enableSnuba
-        showGlobalHeader
-        {...props}
-      />
-    );
+    return <GroupDetails environments={selection.environments} {...props} />;
   }
 }
 

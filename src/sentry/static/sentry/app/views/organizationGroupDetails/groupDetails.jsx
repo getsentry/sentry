@@ -29,8 +29,6 @@ const GroupDetails = createReactClass({
 
     organization: SentryTypes.Organization,
     environments: PropTypes.arrayOf(PropTypes.string),
-    enableSnuba: PropTypes.bool,
-    showGlobalHeader: PropTypes.bool,
 
     finishProfile: PropTypes.func,
   },
@@ -41,12 +39,6 @@ const GroupDetails = createReactClass({
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
-
-  getDefaultProps() {
-    return {
-      enableSnuba: false,
-    };
-  },
 
   getInitialState() {
     return {
@@ -100,10 +92,6 @@ const GroupDetails = createReactClass({
 
     if (this.props.environments) {
       query.environment = this.props.environments;
-    }
-
-    if (this.props.enableSnuba) {
-      query.enable_snuba = '1';
     }
 
     this.props.api.request(this.getGroupDetailsEndpoint(), {
@@ -222,34 +210,28 @@ const GroupDetails = createReactClass({
     }
   },
 
-  renderContent(shouldShowGlobalHeader, project) {
-    const {environments} = this.props;
+  renderContent(project) {
+    const {children, environments} = this.props;
     const {group} = this.state;
 
-    const Content = (
-      <DocumentTitle title={this.getTitle()}>
-        <div className={this.props.className}>
-          <GroupHeader project={project} group={group} />
-          {React.cloneElement(this.props.children, {
-            environments,
-            group,
-            project,
-          })}
-        </div>
-      </DocumentTitle>
+    return (
+      <PageContent>
+        <DocumentTitle title={this.getTitle()}>
+          <div>
+            <GroupHeader project={project} group={group} />
+            {React.cloneElement(children, {
+              environments,
+              group,
+              project,
+            })}
+          </div>
+        </DocumentTitle>
+      </PageContent>
     );
-
-    // If we are showing global header (e.g. on Organization group details)
-    // We need `<PageContent>` for padding, otherwise render content as normal
-    if (shouldShowGlobalHeader) {
-      return <PageContent>{Content}</PageContent>;
-    }
-
-    return Content;
   },
 
   render() {
-    const {organization, showGlobalHeader} = this.props;
+    const {organization} = this.props;
     const {group, project, loading} = this.state;
 
     if (this.state.error) {
@@ -269,17 +251,15 @@ const GroupDetails = createReactClass({
 
     return (
       <React.Fragment>
-        {showGlobalHeader && (
-          <GlobalSelectionHeader
-            organization={organization}
-            forceProject={project}
-            showDateSelector={false}
-            shouldForceProject
-            lockedMessageSubject={t('issue')}
-            showIssueStreamLink
-            showProjectSettingsLink
-          />
-        )}
+        <GlobalSelectionHeader
+          organization={organization}
+          forceProject={project}
+          showDateSelector={false}
+          shouldForceProject
+          lockedMessageSubject={t('issue')}
+          showIssueStreamLink
+          showProjectSettingsLink
+        />
         {isLoading ? (
           <PageContent>
             <LoadingIndicator />
@@ -291,7 +271,7 @@ const GroupDetails = createReactClass({
                 fetchError ? (
                   <LoadingError message={t('Error loading the specified project')} />
                 ) : (
-                  this.renderContent(showGlobalHeader, projects[0])
+                  this.renderContent(projects[0])
                 )
               ) : (
                 <LoadingIndicator />

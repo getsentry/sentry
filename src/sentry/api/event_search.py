@@ -1149,13 +1149,11 @@ FUNCTIONS = {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
-        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
-        "result_type": "number",
     },
     "avg": {
         "name": "avg",
@@ -1185,6 +1183,8 @@ def is_function(field):
 
 def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
+    if match is None:
+        return field
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
     return get_function_alias_with_columns(match.group("function"), columns)
 
@@ -1384,7 +1384,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             continue
         column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
-            columns.extend(column_additions)
+            columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
             aggregations.extend(agg_additions)

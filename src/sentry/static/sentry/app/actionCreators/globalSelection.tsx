@@ -1,11 +1,67 @@
+import * as ReactRouter from 'react-router';
+import * as Sentry from '@sentry/browser';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import qs from 'query-string';
-import * as Sentry from '@sentry/browser';
 
+import {Environment} from 'app/types';
 import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+
+/**
+ * Note this is the internal project.id, NOT the slug, but it is the stringified version of it
+ */
+type ProjectId = string | number;
+type EnvironmentId = Environment['id'];
+
+type Options = {
+  /**
+   * List of parameters to remove when changing URL params
+   */
+  resetParams?: string[];
+};
+
+/**
+ * Can be relative time string or absolute (using start and end dates)
+ */
+type DateTimeObject = {
+  start?: Date | string | null;
+  end?: Date | string | null;
+  statsPeriod?: string | null;
+  utc?: string | boolean | null;
+  /**
+   * @deprecated
+   */
+  period?: string | null;
+};
+
+// Get Params type from `getParams` helper
+// type Params = Parameters<typeof getParams>[0];
+
+/**
+ * Cast project ids to strings, as everything is assumed to be a string in URL params
+ *
+ * Discover v1 uses a different interface, and passes slightly different datatypes e.g. Date for dates
+ */
+type UrlParams = {
+  project?: ProjectId[];
+  environment?: EnvironmentId[];
+} & DateTimeObject & {
+    // TODO(discoverv1): This can be back to `ParamValue` when we remove Discover
+    [others: string]: any;
+  };
+
+/**
+ * TODO(ts): I think `InjectedRouter` is typed incorrectly, if you inspect in the application,
+ * you'll see that `router` also includes `WithRouterProps`
+ *
+ * This can be null which will not perform any router side effects, and instead updates store.
+ */
+type Router =
+  | (ReactRouter.InjectedRouter & ReactRouter.WithRouterProps)
+  | null
+  | undefined;
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
@@ -15,13 +71,12 @@ export function resetGlobalSelection() {
 /**
  * Updates global project selection URL param if `router` is supplied
  * OTHERWISE fire action to update projects
- *
- * @param {Number[]} projects List of project ids
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateProjects(projects, router, options) {
+export function updateProjects(
+  projects: ProjectId[],
+  router?: Router,
+  options?: Options
+) {
   if (!isProjectsValid(projects)) {
     Sentry.withScope(scope => {
       scope.setExtra('projects', projects);
@@ -36,7 +91,7 @@ export function updateProjects(projects, router, options) {
   updateParams({project: projects}, router, options);
 }
 
-function isProjectsValid(projects) {
+function isProjectsValid(projects: ProjectId[]) {
   return Array.isArray(projects) && projects.every(project => isInteger(project));
 }
 
@@ -49,7 +104,11 @@ function isProjectsValid(projects) {
  * @param {Object} [options] Options object
  * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateDateTime(datetime, router, options) {
+export function updateDateTime(
+  datetime: DateTimeObject,
+  router?: Router,
+  options?: Options
+) {
   if (!router) {
     GlobalSelectionActions.updateDateTime(datetime);
   }
@@ -65,7 +124,11 @@ export function updateDateTime(datetime, router, options) {
  * @param {Object} [options] Options object
  * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateEnvironments(environment, router, options) {
+export function updateEnvironments(
+  environment: EnvironmentId[],
+  router?: Router,
+  options?: Options
+) {
   if (!router) {
     GlobalSelectionActions.updateEnvironments(environment);
   }
@@ -75,12 +138,11 @@ export function updateEnvironments(environment, router, options) {
 /**
  * Updates router/URL with new query params
  *
- * @param {Object} obj New query params
- * @param {Object} [router] React router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * @param obj New query params
+ * @param [router] React router object
+ * @param [options] Options object
  */
-export function updateParams(obj, router, options) {
+export function updateParams(obj: UrlParams, router?: Router, options?: Options) {
   // Allow another component to handle routing
   if (!router) {
     return;
@@ -103,12 +165,15 @@ export function updateParams(obj, router, options) {
  * Like updateParams but just replaces the current URL and does not create a
  * new browser history entry
  *
- * @param {Object} obj New query params
- * @param {Object} [router] React router object
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * @param obj New query params
+ * @param [router] React router object
+ * @param [options] Options object
  */
-export function updateParamsWithoutHistory(obj, router, options) {
+export function updateParamsWithoutHistory(
+  obj: UrlParams,
+  router?: Router,
+  options?: Options
+) {
   // Allow another component to handle routing
   if (!router) {
     return;
@@ -131,20 +196,24 @@ export function updateParamsWithoutHistory(obj, router, options) {
  * Creates a new query parameter object given new params and old params
  * Preserves the old query params, except for `cursor`
  *
- * @param {Object} obj New query params
- * @param {Object} oldQueryParams Old query params
- * @param {Object} [options] Options object
- * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
+ * @param obj New query params
+ * @param oldQueryParams Old query params
+ * @param [options] Options object
  */
-function getNewQueryParams(obj, oldQueryParams, {resetParams} = {}) {
+function getNewQueryParams(
+  obj: UrlParams,
+  oldQueryParams: UrlParams,
+  {resetParams}: Options = {}
+) {
   // Reset cursor when changing parameters
-  // eslint-disable-next-line no-unused-vars
-  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
-  const oldQueryWithoutResetParams =
-    (resetParams && !!resetParams.length && omit(oldQuery, resetParams)) || oldQuery;
+  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const oldQueryWithoutResetParams = !!resetParams?.length
+    ? omit(oldQuery, resetParams)
+    : oldQuery;
 
   const newQuery = getParams({
     ...oldQueryWithoutResetParams,
+    // Some views update using `period`, and some `statsPeriod`, we should make this uniform
     period: !obj.start && !obj.end ? obj.period || statsPeriod : null,
     ...obj,
   });
@@ -160,30 +229,19 @@ function getNewQueryParams(obj, oldQueryParams, {resetParams} = {}) {
   return newQuery;
 }
 
-// Filters out params with null values and returns a default
-// `statsPeriod` when necessary.
-//
-// Accepts `period` and `statsPeriod` but will only return `statsPeriod`
-//
-function getParams(params = {}) {
+function getParams(params: UrlParams): UrlParams {
   const {start, end, period, statsPeriod, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
   const coercedPeriod = statsPeriod || period;
 
   // Filter null values
-  return Object.entries({
-    statsPeriod: coercedPeriod,
-    start: coercedPeriod ? null : start,
-    end: coercedPeriod ? null : end,
-    ...otherParams,
-  })
-    .filter(([, value]) => defined(value))
-    .reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key]: value,
-      }),
-      {}
-    );
+  return Object.fromEntries(
+    Object.entries({
+      statsPeriod: coercedPeriod,
+      start: coercedPeriod ? null : start,
+      end: coercedPeriod ? null : end,
+      ...otherParams,
+    }).filter(([, value]) => defined(value))
+  );
 }

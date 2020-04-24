@@ -30,7 +30,6 @@ import {
   GridBodyCellNumber,
   SummaryGridRow,
 } from '../styles';
-import LatencyChart from './latencyChart';
 
 type Props = {
   eventView: EventView;
@@ -39,7 +38,6 @@ type Props = {
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
-  totalValues: number | null;
 };
 
 class SummaryContentTable extends React.Component<Props> {
@@ -179,7 +177,7 @@ class SummaryContentTable extends React.Component<Props> {
   }
 
   render() {
-    const {eventView, location, organization, totalValues} = this.props;
+    const {eventView, organization} = this.props;
 
     let title = t('Slowest Requests');
     const parsed = tokenizeSearch(eventView.query);
@@ -188,18 +186,7 @@ class SummaryContentTable extends React.Component<Props> {
     }
 
     return (
-      <div>
-        <LatencyChart
-          organization={organization}
-          location={location}
-          query={eventView.query}
-          project={eventView.project}
-          environment={eventView.environment}
-          start={eventView.start}
-          end={eventView.end}
-          statsPeriod={eventView.statsPeriod}
-          totalValues={totalValues}
-        />
+      <React.Fragment>
         <Header>
           <HeaderTitle>{title}</HeaderTitle>
           <HeaderButtonContainer>
@@ -220,7 +207,7 @@ class SummaryContentTable extends React.Component<Props> {
             <GridBody>{this.renderResults()}</GridBody>
           </TableGrid>
         </Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }
