@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -15,6 +15,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
+import Checkbox from 'app/components/checkbox';
+import SearchBar from 'app/components/searchBar';
 
 import {DebugFile, BuiltinSymbolSource} from './types';
 import DebugFileRow from './debugFileRow';
@@ -27,6 +29,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 type State = AsyncView['state'] & {
   debugFiles: DebugFile[];
   builtinSymbolSources?: BuiltinSymbolSource[];
+  showDetails: boolean;
 };
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
@@ -36,8 +39,16 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return routeTitleGen(t('Debug Files'), projectId, false);
   }
 
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      showDetails: false,
+    };
+  }
+
   getEndpoints() {
     const {organization, params, location} = this.props;
+    const {builtinSymbolSources} = this.state || {};
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -48,8 +59,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       ],
     ];
 
-    if (organization.features.includes('symbol-sources')) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/']);
+    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
+      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
     }
 
     return endpoints;
@@ -68,9 +79,32 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     });
   };
 
+  handleSearch = (query: string) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, query},
+    });
+  };
+
+  getQuery() {
+    const {query} = this.props.location.query;
+
+    return typeof query === 'string' ? query : undefined;
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderDebugFiles() {
-    const {debugFiles} = this.state;
+    const {debugFiles, showDetails} = this.state;
     const {orgId, projectId} = this.props.params;
+
+    if (!debugFiles?.length) {
+      return null;
+    }
 
     return debugFiles.map(debugFile => {
       const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${debugFile.id}`;
@@ -78,6 +112,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       return (
         <DebugFileRow
           debugFile={debugFile}
+          showDetails={showDetails}
           downloadUrl={downloadUrl}
           onDelete={this.handleDelete}
           key={debugFile.id}
@@ -88,13 +123,19 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, project, params} = this.props;
-    const {builtinSymbolSources, debugFiles, debugFilesPageLinks} = this.state;
+    const {
+      loading,
+      showDetails,
+      builtinSymbolSources,
+      debugFiles,
+      debugFilesPageLinks,
+    } = this.state;
     const {orgId, projectId} = params;
     const {features, access} = organization;
 
     const fieldProps = {
       organization,
-      builtinSymbolSources,
+      builtinSymbolSources: builtinSymbolSources || [],
     };
 
     return (
@@ -131,25 +172,40 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           </React.Fragment>
         )}
 
-        <TextBlock>
-          {t('This list contains all uploaded debug information files:')}
-        </TextBlock>
+        <Wrapper>
+          <TextBlock noMargin>{t('Uploaded debug information files')}:</TextBlock>
+
+          <Filters>
+            <Label>
+              <Checkbox
+                checked={showDetails}
+                onChange={e => {
+                  this.setState({showDetails: (e.target as HTMLInputElement).checked});
+                }}
+              />
+              {t('show details')}
+            </Label>
+
+            <SearchBar
+              placeholder={t('Search DIFs')}
+              onSearch={this.handleSearch}
+              query={this.getQuery()}
+            />
+          </Filters>
+        </Wrapper>
 
         <StyledPanelTable
           headers={[
             t('Debug ID'),
             t('Name'),
-            this.renderSearchInput({
-              updateRoute: true,
-              placeholder: t('Search DIFs'),
-            }),
+            <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
           emptyMessage={t('There are no debug symbols for this project.')}
-          isEmpty={debugFiles.length === 0}
+          isEmpty={debugFiles?.length === 0}
+          isLoading={loading}
         >
           {this.renderDebugFiles()}
         </StyledPanelTable>
-
         <Pagination pageLinks={debugFilesPageLinks} />
       </React.Fragment>
     );
@@ -157,11 +213,44 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 1.3fr auto;
-  ${PanelTableHeader} {
-    padding: ${space(1)} ${space(2)};
-    display: flex;
-    align-items: center;
+  grid-template-columns: 37% 1fr auto;
+`;
+
+const TextRight = styled('div')`
+  text-align: right;
+`;
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-gap: ${space(4)};
+  align-items: center;
+  margin-top: ${space(4)};
+  margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
+`;
+
+const Filters = styled('div')`
+  display: grid;
+  grid-template-columns: min-content minmax(200px, 400px);
+  align-items: center;
+  justify-content: flex-end;
+  grid-gap: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: min-content 1fr;
+  }
+`;
+
+const Label = styled('label')`
+  font-weight: normal;
+  display: flex;
+  margin-bottom: 0;
+  white-space: nowrap;
+  input {
+    margin-top: 0;
+    margin-right: ${space(1)};
   }
 `;
 
