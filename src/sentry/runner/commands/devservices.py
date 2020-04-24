@@ -223,15 +223,20 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         # to be recreated with the freshly pulled image.
         should_reuse_container = not pull
 
-        # If the container is started as part of devserver we should always pull
-        if with_devserver:
+        # Except if the container is started as part of devserver we should reuse it.
+        # Or, if we're in fast mode (devservices up --fast)
+        if with_devserver or fast:
             should_reuse_container = True
 
-        # Except when we're in --fast mode, which is the case for devserver
-        if fast:
-            should_reuse_container = False
-
         if should_reuse_container:
+            if with_devserver and not always_start:
+                click.secho(
+                    "> Not starting container '%s' because it should be started on-demand with devserver."
+                    % container.name,
+                    fg="yellow",
+                )
+                return container
+
             click.secho(
                 "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
