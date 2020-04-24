@@ -1,10 +1,10 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 
+import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import {OrganizationSummary} from 'app/types';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
@@ -39,11 +39,6 @@ type Props = ReactRouter.WithRouterProps &
   };
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
-const SERIES_ORDER = [...YAXIS_VALUES].reverse();
-
-// Flip the colors as this graph isn't stacked and we want the colors
-// in the same order as they are in discover top5 mode.
-const COLORS = [...AREA_COLORS].reverse();
 
 /**
  * Fetch and render a stacked area chart that shows duration
@@ -137,20 +132,23 @@ class DurationChart extends React.Component<Props> {
                   );
                 }
                 // Create a list of series based on the order of the fields,
+                // We need to flip it at the end to ensure the series stack right.
                 const series = results
-                  ? SERIES_ORDER.map((key: string, i: number) => {
-                      return {
-                        ...results[key],
-                        color: COLORS[i].line,
-                        lineStyle: {
-                          opacity: 0,
-                        },
-                        areaStyle: {
-                          color: COLORS[i].area,
-                          opacity: 1.0,
-                        },
-                      };
-                    })
+                  ? results
+                      .map((values, i: number) => {
+                        return {
+                          ...values,
+                          color: AREA_COLORS[i].line,
+                          lineStyle: {
+                            opacity: 0,
+                          },
+                          areaStyle: {
+                            color: AREA_COLORS[i].area,
+                            opacity: 1.0,
+                          },
+                        };
+                      })
+                      .reverse()
                   : [];
 
                 return (
