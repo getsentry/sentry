@@ -90,18 +90,19 @@ class SummaryContentTable extends React.Component<Props> {
 
     const columnOrder = this.props.eventView.getColumns();
 
-    tableData.data.forEach(row => {
+    tableData.data.forEach((row, i: number) => {
       // Another check to appease tsc
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(this.renderRow(row, columnOrder, tableData.meta));
+      cells = cells.concat(this.renderRow(row, i, columnOrder, tableData.meta));
     });
     return cells;
   }
 
   renderRow(
     row: TableDataRow,
+    rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
@@ -137,7 +138,7 @@ class SummaryContentTable extends React.Component<Props> {
       }
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
-      const key = `${column.key}:${index}`;
+      const key = `${rowIndex}:${column.key}:${index}`;
       if (isNumeric) {
         return <GridBodyCellNumber key={key}>{rendered}</GridBodyCellNumber>;
       }

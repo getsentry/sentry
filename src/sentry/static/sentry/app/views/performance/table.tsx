@@ -66,18 +66,19 @@ class Table extends React.Component<Props> {
     }
     const columnOrder = this.props.eventView.getColumns();
 
-    tableData.data.forEach(row => {
+    tableData.data.forEach((row, index: number) => {
       // check again to appease tsc
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(this.renderRow(row, columnOrder, tableData.meta));
+      cells = cells.concat(this.renderRow(row, index, columnOrder, tableData.meta));
     });
     return cells;
   }
 
   renderRow(
     row: TableDataRow,
+    rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
@@ -111,7 +112,7 @@ class Table extends React.Component<Props> {
         );
       }
 
-      const key = `${column.key}:${index}`;
+      const key = `${rowIndex}:${column.key}:${index}`;
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       if (isNumeric) {
         return <GridBodyCellNumber key={key}>{rendered}</GridBodyCellNumber>;
