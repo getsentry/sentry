@@ -26,6 +26,7 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Access from 'app/components/acl/access';
+import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 
 import {Incident} from '../types';
@@ -42,6 +43,14 @@ type Props = {
 type State = {
   incidentList: Incident[];
 };
+
+const trackDocumentationClicked = (org: Organization) =>
+  trackAnalyticsEvent({
+    eventKey: 'alert_stream.documentation_clicked',
+    eventName: 'Alert Stream: Documentation Clicked',
+    organization_id: org.id,
+    user_id: ConfigStore.get('user').id,
+  });
 
 function getQueryStatus(status: any) {
   return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
@@ -207,8 +216,8 @@ class IncidentsListContainer extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'alert_stream.viewed',
       eventName: 'Alert Stream: Viewed',
+      organization_id: organization.id,
       status,
-      organization_id: parseInt(organization.id, 10),
     });
   }
 
@@ -319,7 +328,10 @@ class IncidentsListContainer extends React.Component<Props> {
                 'This page is in beta and currently only shows [link:metric alerts]. ',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
+                    <ExternalLink
+                      onClick={() => trackDocumentationClicked(organization)}
+                      href="https://docs.sentry.io/workflow/alerts-notifications/alerts/"
+                    />
                   ),
                 }
               )}
