@@ -218,23 +218,21 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
                   {getReauthAlertText(provider)}
                 </Alert>
               )}
-              <div>
-                {configurations.map(integration => (
-                  <InstallWrapper key={integration.id}>
-                    <InstalledIntegration
-                      organization={organization}
-                      provider={provider}
-                      integration={integration}
-                      onRemove={this.onRemove}
-                      onDisable={this.onDisable}
-                      onReinstallIntegration={this.onInstall}
-                      data-test-id={integration.id}
-                      trackIntegrationEvent={this.trackIntegrationEvent}
-                      showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
-                    />
-                  </InstallWrapper>
-                ))}
-              </div>
+              {configurations.map(integration => (
+                <InstallWrapper key={integration.id}>
+                  <InstalledIntegration
+                    organization={organization}
+                    provider={provider}
+                    integration={integration}
+                    onRemove={this.onRemove}
+                    onDisable={this.onDisable}
+                    onReinstallIntegration={this.onInstall}
+                    data-test-id={integration.id}
+                    trackIntegrationEvent={this.trackIntegrationEvent}
+                    showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
+                  />
+                </InstallWrapper>
+              ))}
             </div>
           )}
         </Feature>
