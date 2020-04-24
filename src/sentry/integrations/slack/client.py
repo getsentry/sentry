@@ -15,9 +15,6 @@ class SlackClient(ApiClient):
     base_url = "https://slack.com/api"
     datadog_prefix = "integrations.slack"
 
-    def __init__(self):
-        super(SlackClient, self).__init__()
-
     def track_response_data(self, code, span, error=None, resp=None):
         span.set_http_status(code)
         span.set_tag("integration", "slack")
@@ -31,12 +28,11 @@ class SlackClient(ApiClient):
 
             # when 'ok' is False, we can add the error we get back as a tag
             if not is_ok:
-                span.set_tag("slack_error", response.get("error"))
+                error = response.get("error")
+                span.set_tag("slack_error", error)
 
         metrics.incr(
-            SLACK_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"ok": False if is_ok is False else True, "status": code},
+            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": is_ok, "status": code},
         )
 
         extra = {

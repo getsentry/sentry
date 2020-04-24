@@ -14,7 +14,7 @@ from sentry.integrations import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 from .client import SlackClient
 from .utils import logger, use_slack_v2
@@ -129,6 +129,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             resp = client.get("/team.info", params=payload)
         except ApiError as e:
             logger.error("slack.team-info.response-error", extra={"error": six.text_type(e)})
+            raise IntegrationError("Could not retrieve Slack team information.")
 
         return resp["team"]
 
