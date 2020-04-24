@@ -75,9 +75,9 @@ def attach(project, is_devserver, service):
     configure()
 
     client = get_docker_client()
-    containers = _prepare_containers(project)
+    containers = _prepare_containers(project, silent=True)
     container = _start_service(
-        client, service, containers, project, devserver_override=is_devserver
+        client, service, containers, project, fast=is_devserver, is_devserver=is_devserver
     )
 
     def exit_handler(*_):
@@ -137,7 +137,7 @@ def up(project, exclude, fast):
         _start_service(client, name, containers, project, fast=fast)
 
 
-def _prepare_containers(project):
+def _prepare_containers(project, silent=False):
     from django.conf import settings
     from sentry import options as sentry_options
 
@@ -147,7 +147,10 @@ def _prepare_containers(project):
         options = options.copy()
         test_fn = options.pop("only_if", None)
         if test_fn and not test_fn(settings, sentry_options):
-            click.secho("! Skipping {} due to only_if condition".format(name), err=True, fg="cyan")
+            if not silent:
+                click.secho(
+                    "! Skipping {} due to only_if condition".format(name), err=True, fg="cyan"
+                )
             continue
 
         options["network"] = project
@@ -162,7 +165,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, devserver_override=False):
+def _start_service(client, name, containers, project, fast=False, is_devserver=False):
     from django.conf import settings
     import docker
 
@@ -215,9 +218,11 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
         pass
 
     if container is not None:
-        if not pull and not with_devserver:
-            # devservices which are marked with pull True will need their containers
-            # to be recreated with the freshly pulled image.
+        # devservices which are marked with pull True will need their containers
+        # to be recreated with the freshly pulled image.
+        should_reuse_container = is_devserver or (not pull and not with_devserver)
+
+        if should_reuse_container:
             click.secho(
                 "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
@@ -239,9 +244,9 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
     # Two things call _start_service.
     # devservices up, and devservices attach.
     # Containers that should be started on-demand with devserver, should ONLY be started via the latter.
-    # So devserver calls devservices attach --is-devserver reverse_proxy, which sets devserver_override.
+    # So devserver calls devservices attach --is-devserver reverse_proxy, which sets is_devserver
     # This additional logic is needed because devservices up also makes sure the necessary images are downloaded.
-    if with_devserver and not devserver_override:
+    if with_devserver and not is_devserver:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
             % container.name,
