@@ -644,32 +644,7 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
-def convert_search_boolean_to_snuba_query(search_boolean):
-    def convert_term(term):
-        if isinstance(term, SearchFilter):
-            return convert_search_filter_to_snuba_query(term)
-        elif isinstance(term, AggregateFilter):
-            return convert_aggregate_filter_to_snuba_query(term, False)
-        elif isinstance(term, SearchBoolean):
-            return convert_search_boolean_to_snuba_query(term)
-        else:
-            raise InvalidSearchQuery(
-                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(
-                    term.__class__.__name__
-                )
-            )
-
-    if not search_boolean:
-        return search_boolean
-
-    left = convert_term(search_boolean.left_term)
-    right = convert_term(search_boolean.right_term)
-    operator = search_boolean.operator.lower()
-
-    return [operator, [left, right]]
-
-
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params):
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
@@ -870,15 +845,19 @@ def get_filter(query=None, params=None):
                 else:
                     kwargs["conditions"].append(user_conditions)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
-                converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
+                if "column_alias" in FIELD_ALIASES[name]:
+                    term = SearchFilter(
+                        SearchKey(FIELD_ALIASES[name]["column_alias"]), term.operator, term.value
+                    )
+                converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
                 if converted_filter:
-                    kwargs["having"].append(converted_filter)
+                    kwargs["conditions"].append(converted_filter)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
         elif isinstance(term, AggregateFilter):
-            converted_filter = convert_aggregate_filter_to_snuba_query(term, False, params)
+            converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
             if converted_filter:
                 kwargs["having"].append(converted_filter)
 
@@ -1044,6 +1023,12 @@ FUNCTIONS = {
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
         "result_type": "duration",
     },
+    "p50": {
+        "name": "p50",
+        "args": [],
+        "aggregate": [u"quantile(0.5)", "transaction.duration", None],
+        "result_type": "duration",
+    },
     "p75": {
         "name": "p75",
         "args": [],
@@ -1060,6 +1045,12 @@ FUNCTIONS = {
         "name": "p99",
         "args": [],
         "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p100": {
+        "name": "p100",
+        "args": [],
+        "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
     "rps": {

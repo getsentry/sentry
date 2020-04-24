@@ -788,6 +788,16 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
+def create_result_key(result_row, fields, issues):
+    values = []
+    for field in fields:
+        if field == "issue.id":
+            values.append(issues.get(result_row["issue.id"], "unknown"))
+        else:
+            values.append(six.text_type(result_row.get(field)))
+    return ",".join(values)
+
+
 def top_events_timeseries(
     timeseries_columns,
     selected_columns,
@@ -837,8 +847,10 @@ def top_events_timeseries(
         # project is handled by filter_keys already
         if field in ["project", "project.id"]:
             continue
+        if field == "issue":
+            field = FIELD_ALIASES["issue"]["column_alias"]
         values = list({event.get(field) for event in top_events["data"] if field in event})
-        if values and all(value is not None for value in values):
+        if values:
             # timestamp needs special handling, creating a big OR instead
             if field == "timestamp":
                 snuba_filter.conditions.append([["timestamp", "=", value] for value in values])
@@ -847,6 +859,12 @@ def top_events_timeseries(
                 snuba_filter.conditions.append(
                     [[resolve_column(user_field), "IN", values] for user_field in user_fields]
                 )
+            elif None in values:
+                non_none_values = [value for value in values if value is not None]
+                condition = [[["isNull", [resolve_column(field)]], "=", 1]]
+                if non_none_values:
+                    condition.append([resolve_column(field), "IN", non_none_values])
+                snuba_filter.conditions.append(condition)
             else:
                 snuba_filter.conditions.append([resolve_column(field), "IN", values])
 
@@ -867,7 +885,9 @@ def top_events_timeseries(
     result = transform_results(result, translated_columns, snuba_filter, selected_columns)
 
     translated_columns["project_id"] = "project"
-    translated_groupby = [translated_columns.get(field, field) for field in snuba_filter.groupby]
+    translated_groupby = [
+        translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
+    ]
 
     if "user" in selected_columns:
         # Determine user related fields to prune based on what wasn't selected, since transform_results does the same
@@ -887,17 +907,20 @@ def top_events_timeseries(
 
     results = {}
     for row in result["data"]:
-        values = []
-        for field in translated_groupby:
-            if field == "issue.id":
-                values.append(issues.get(row["issue.id"], "unknown"))
-            else:
-                values.append(six.text_type(row.get(field)))
-        result_key = ",".join(values)
-        results.setdefault(result_key, []).append(row)
+        result_key = create_result_key(row, translated_groupby, issues)
+        results.setdefault(result_key, {"data": []})["data"].append(row)
+    # Using the top events add the order to the results
+    for index, item in enumerate(top_events["data"]):
+        result_key = create_result_key(item, translated_groupby, issues)
+        results[result_key]["order"] = index
     for key, item in six.iteritems(results):
         results[key] = SnubaTSResult(
-            {"data": zerofill(item, snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill(
+                    item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
+                ),
+                "order": item["order"],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,

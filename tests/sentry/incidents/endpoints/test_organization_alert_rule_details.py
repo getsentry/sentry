@@ -195,11 +195,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
-            assert resp.data == {
-                "nonFieldErrors": [
-                    'First trigger must be labeled "critical", second trigger must be labeled "warning"'
-                ]
-            }
+            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
+            serialized_alert_rule["triggers"][0]["label"] = "critical"
+            serialized_alert_rule["triggers"][1]["label"] = "goodbye"
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+            assert resp.data == {"nonFieldErrors": ['Trigger 2 must be labeled "warning"']}
 
     def test_update_trigger_alert_threshold(self):
         self.create_member(

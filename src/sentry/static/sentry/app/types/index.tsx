@@ -1,4 +1,4 @@
-import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -286,26 +286,34 @@ type SentryEventBase = {
   latestEventID: string | null;
 };
 
+export type SentryTransactionEvent = {
+  type: 'transaction';
+  title?: string;
+  entries: SpanEntry[];
+  startTimestamp: number;
+  endTimestamp: number;
+  sdk?: {
+    name?: string;
+  };
+  contexts?: {
+    trace?: TraceContextType;
+  };
+} & SentryEventBase;
+
 // This type is incomplete
-export type Event =
-  | ({type: string} & SentryEventBase)
-  | ({
-      type: 'transaction';
-      entries: SpanEntry[];
-      startTimestamp: number;
-      endTimestamp: number;
-    } & SentryEventBase);
+export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
+// API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
+  order?: number;
 };
 
-export type YAxisEventsStats = {
-  [yAxisName: string]: EventsStats;
-};
+// API response format for multiple series
+export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
 
 /**
  * Avatars are a more primitive version of User.

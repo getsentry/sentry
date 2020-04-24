@@ -45,23 +45,17 @@ type DateTimeObject = {
  * Discover v1 uses a different interface, and passes slightly different datatypes e.g. Date for dates
  */
 type UrlParams = {
-  project?: ProjectId[];
-  environment?: EnvironmentId[];
+  project?: ProjectId[] | null;
+  environment?: EnvironmentId[] | null;
 } & DateTimeObject & {
     // TODO(discoverv1): This can be back to `ParamValue` when we remove Discover
     [others: string]: any;
   };
 
 /**
- * TODO(ts): I think `InjectedRouter` is typed incorrectly, if you inspect in the application,
- * you'll see that `router` also includes `WithRouterProps`
- *
  * This can be null which will not perform any router side effects, and instead updates store.
  */
-type Router =
-  | (ReactRouter.InjectedRouter & ReactRouter.WithRouterProps)
-  | null
-  | undefined;
+type Router = ReactRouter.InjectedRouter | null | undefined;
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
@@ -125,7 +119,7 @@ export function updateDateTime(
  * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
 export function updateEnvironments(
-  environment: EnvironmentId[],
+  environment: EnvironmentId[] | null,
   router?: Router,
   options?: Options
 ) {

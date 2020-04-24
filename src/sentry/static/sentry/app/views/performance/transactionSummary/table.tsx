@@ -4,16 +4,14 @@ import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
-import {assert} from 'app/types/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {Panel} from 'app/components/panels';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import {SectionHeading} from 'app/components/charts/styles';
+import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import SortLink from 'app/views/eventsV2/sortLink';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
@@ -21,15 +19,7 @@ import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/disco
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {
-  TableGrid,
-  GridHead,
-  GridBody,
-  GridHeadCell,
-  GridBodyCell,
-  GridBodyCellNumber,
-  SummaryGridRow,
-} from '../styles';
+import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from '../styles';
 
 type Props = {
   eventView: EventView;
@@ -89,49 +79,30 @@ class SummaryContentTable extends React.Component<Props> {
 
   renderResults() {
     const {isLoading, tableData} = this.props;
+    let cells: React.ReactNode[] = [];
 
     if (isLoading) {
-      return (
-        <tr>
-          <td colSpan={8}>
-            <LoadingIndicator />
-          </td>
-        </tr>
-      );
+      return cells;
     }
-
-    const hasResults =
-      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
-
-    if (!hasResults) {
-      return (
-        <tr>
-          <td colSpan={8}>
-            <EmptyStateWarning>
-              <p>{t('No transactions found')}</p>
-            </EmptyStateWarning>
-          </td>
-        </tr>
-      );
+    if (!tableData || !tableData.meta || !tableData.data) {
+      return cells;
     }
-
-    assert(tableData);
 
     const columnOrder = this.props.eventView.getColumns();
 
-    return tableData.data.map((row, index) => {
-      assert(tableData.meta);
-
-      return (
-        <SummaryGridRow key={index}>
-          {this.renderRowItem(row, columnOrder, tableData.meta)}
-        </SummaryGridRow>
-      );
+    tableData.data.forEach((row, i: number) => {
+      // Another check to appease tsc
+      if (!tableData.meta) {
+        return;
+      }
+      cells = cells.concat(this.renderRow(row, i, columnOrder, tableData.meta));
     });
+    return cells;
   }
 
-  renderRowItem(
+  renderRow(
     row: TableDataRow,
+    rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
@@ -151,7 +122,6 @@ class SummaryContentTable extends React.Component<Props> {
       if (isFirstCell) {
         // the first column of the row should link to the transaction details view
         // on Discover
-
         const eventSlug = generateEventSlug(row);
 
         const target = eventDetailsRouteWithEventView({
@@ -168,27 +138,30 @@ class SummaryContentTable extends React.Component<Props> {
       }
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
+      const key = `${rowIndex}:${column.key}:${index}`;
       if (isNumeric) {
-        return <GridBodyCellNumber key={column.key}>{rendered}</GridBodyCellNumber>;
+        return <GridBodyCellNumber key={key}>{rendered}</GridBodyCellNumber>;
       }
 
-      return <GridBodyCell key={column.key}>{rendered}</GridBodyCell>;
+      return <GridBodyCell key={key}>{rendered}</GridBodyCell>;
     });
   }
 
   render() {
-    const {eventView, organization} = this.props;
+    const {eventView, organization, isLoading, tableData} = this.props;
 
     let title = t('Slowest Requests');
     const parsed = tokenizeSearch(eventView.query);
     if (parsed['transaction.duration']) {
       title = t('Requests %s and %s in duration', ...parsed['transaction.duration']);
     }
+    const hasResults =
+      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
 
     return (
       <React.Fragment>
         <Header>
-          <HeaderTitle>{title}</HeaderTitle>
+          <SectionHeading>{title}</SectionHeading>
           <HeaderButtonContainer>
             <Button
               onClick={this.handleDiscoverViewClick}
@@ -199,24 +172,19 @@ class SummaryContentTable extends React.Component<Props> {
             </Button>
           </HeaderButtonContainer>
         </Header>
-        <Panel>
-          <TableGrid>
-            <GridHead>
-              <SummaryGridRow>{this.renderHeader()}</SummaryGridRow>
-            </GridHead>
-            <GridBody>{this.renderResults()}</GridBody>
-          </TableGrid>
-        </Panel>
+        <PanelTable
+          isEmpty={!hasResults}
+          emptyMessage={t('No transactions found')}
+          headers={this.renderHeader()}
+          isLoading={isLoading}
+          disablePadding
+        >
+          {this.renderResults()}
+        </PanelTable>
       </React.Fragment>
     );
   }
 }
-
-export const HeaderTitle = styled('h4')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
-`;
 
 export const Header = styled('div')`
   display: flex;

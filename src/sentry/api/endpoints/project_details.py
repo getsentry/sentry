@@ -26,7 +26,6 @@ from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.mail.utils import migrate_project_to_issue_alert_targeting
 from sentry.models import (
     AuditLogEntryEvent,
     Group,
@@ -129,9 +128,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     resolveAge = EmptyIntegerField(required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
-    # Temporary variable so we can test out the issue alert targeting data migration on
-    # specific projects before blanket applying globally.
-    migrateToIssueAlertTargeting = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -615,9 +611,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": ["Copy project settings failed."]}, status=409)
-
-            if result.get("migrateToIssueAlertTargeting"):
-                migrate_project_to_issue_alert_targeting(project)
 
             self.create_audit_entry(
                 request=request,

@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from django import forms
 
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.mail.adapter import ActionTargetType, MailAdapter
+from sentry.mail import mail_adapter
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import Project, User
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics
@@ -18,13 +18,25 @@ CHOICES = [
 
 class NotifyEmailForm(forms.Form):
     targetType = forms.ChoiceField(choices=CHOICES)
-    targetIdentifier = BoundedBigIntegerField().formfield(
+    targetIdentifier = forms.CharField(
         required=False, help_text="Only required if 'Member' or 'Team' is selected"
     )
 
     def __init__(self, project, *args, **kwargs):
         super(NotifyEmailForm, self).__init__(*args, **kwargs)
         self.project = project
+
+    def clean_targetIdentifier(self):
+        targetIdentifier = self.cleaned_data.get("targetIdentifier")
+        # XXX: Clean up some bad data in the database
+        if targetIdentifier == "None":
+            targetIdentifier = None
+        if targetIdentifier:
+            try:
+                targetIdentifier = int(targetIdentifier)
+            except ValueError:
+                raise forms.ValidationError("targetIdentifier must be an integer")
+        return targetIdentifier
 
     def clean(self):
         cleaned_data = super(NotifyEmailForm, self).clean()
@@ -78,20 +90,19 @@ class NotifyEmailAction(EventAction):
     def __init__(self, *args, **kwargs):
         super(NotifyEmailAction, self).__init__(*args, **kwargs)
         self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
-        self.mail_adapter = MailAdapter()
 
     def after(self, event, state):
         extra = {"event_id": event.event_id}
         group = event.group
 
-        if not self.mail_adapter.should_notify(group=group):
+        if not mail_adapter.should_notify(group=group):
             extra["group_id"] = group.id
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
-            lambda event, futures: self.mail_adapter.rule_notify(
+            lambda event, futures: mail_adapter.rule_notify(
                 event,
                 futures,
                 ActionTargetType(self.data["targetType"]),

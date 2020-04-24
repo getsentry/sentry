@@ -9,7 +9,7 @@ import {TableData} from 'app/views/eventsV2/table/types';
 type ChildrenProps = {
   isLoading: boolean;
   error: null | string;
-  tableData: TableData | null | undefined;
+  tableData: TableData | null;
   pageLinks: null | string;
 };
 

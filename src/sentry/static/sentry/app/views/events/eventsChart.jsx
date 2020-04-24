@@ -155,6 +155,7 @@ class EventsChart extends React.Component {
     const currentSeriesName = currentName ?? yAxis;
 
     const tooltip = {
+      truncate: 80,
       valueFormatter(value) {
         if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
           return getDuration(value / 1000, 2);
@@ -187,7 +188,7 @@ class EventsChart extends React.Component {
           </ErrorPanel>
         );
       }
-      const seriesData = results ? Object.values(results) : timeseriesData;
+      const seriesData = results ? results : timeseriesData;
 
       return (
         <TransitionChart loading={loading} reloading={reloading}>

@@ -9,7 +9,6 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import Duration from 'app/components/duration';
-import ShortId from 'app/components/shortId';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import Version from 'app/components/version';
 import {getAggregateAlias} from 'app/utils/discover/fields';
@@ -17,9 +16,11 @@ import Projects from 'app/utils/projects';
 
 import {
   Container,
+  EventId,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
+  StyledShortId,
   VersionContainer,
 } from './styles';
 import {MetaType, EventData} from './eventView';
@@ -147,6 +148,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  id: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'issue.id': SpecialField;
@@ -155,11 +157,24 @@ type SpecialFields = {
 };
 
 /**
- * "Special fields" do not map 1:1 to an single column in the event database,
- * they are a UI concept that combines the results of multiple fields and
- * displays with a custom render function.
+ * "Special fields" either do not map 1:1 to an single column in the event database,
+ * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FIELDS: SpecialFields = {
+  id: {
+    sortField: 'id',
+    renderFunc: data => {
+      const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+      return (
+        <Container>
+          <EventId value={id} />
+        </Container>
+      );
+    },
+  },
   'issue.id': {
     sortField: 'issue.id',
     renderFunc: (data, {organization}) => {
@@ -181,7 +196,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (!issueID) {
         return (
           <Container>
-            <ShortId shortId={`${data.issue}`} />
+            <StyledShortId shortId={`${data.issue}`} />
           </Container>
         );
       }
@@ -190,7 +205,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <ShortId shortId={`${data.issue}`} />
+            <StyledShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );

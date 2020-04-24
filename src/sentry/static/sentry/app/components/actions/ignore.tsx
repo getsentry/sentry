@@ -229,7 +229,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.USERS})}>
+                  <a onClick={() => this.setState({modal: ModalStates.COUNT})}>
                     {t('Custom')}
                   </a>
                 </MenuItem>

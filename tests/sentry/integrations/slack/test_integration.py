@@ -114,6 +114,7 @@ class SlackIntegrationTest(IntegrationTestCase):
             "scopes": sorted(self.provider.bot_oauth_scopes),
             "icon": "http://example.com/ws_icon.jpg",
             "domain_name": "test-slack-workspace.slack.com",
+            "installation_type": "born_as_bot",
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
