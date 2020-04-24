@@ -118,18 +118,12 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         # reloading page with no project id in URL after previously
         # selecting an explicit project should load previously selected project
         # from local storage
-        # below is currently broken
         # TODO check environment as well
+        # FIXME below is currently broken
         # self.issues_list.visit_issue_list(
         #     self.org.slug
         # )
         # self.issues_list.wait_until_loaded()
-        # print(self.browser.driver.execute_script( \
-        #     "var ls = window.localStorage, items = {}; " \
-        #     "for (var i = 0, k; i < ls.length; ++i) " \
-        #     "  items[k = ls.key(i)] = ls.getItem(k); " \
-        #     "return items; "))
-        # print(self.project_1.id, self.project_2.id, self.project_3.id)
         # assert u"project={}".format(self.project_3.id) in self.browser.current_url
 
     def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
@@ -159,7 +153,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
 
-            # TODO(billy): This is a bug, should not be in local storage
+            # FIXME(billy): This is a bug, should not be in local storage
             # should not be in local storage
             # assert self.browser.get_local_storage_item(u"global-selection:{}".format(self.org.slug)) is None
 
@@ -185,15 +179,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             # TODO check environment as well
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_until_loaded()
-            print(
-                self.browser.driver.execute_script(
-                    "var ls = window.localStorage, items = {}; "
-                    "for (var i = 0, k; i < ls.length; ++i) "
-                    "  items[k = ls.key(i)] = ls.getItem(k); "
-                    "return items; "
-                )
-            )
-            # TODO: This is current broken and is a bug
+            # FIXME: This is current broken and is a bug
             # assert u"project={}".format(self.project_3.id) in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
