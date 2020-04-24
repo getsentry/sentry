@@ -125,6 +125,7 @@ class SlackNotifyServiceAction(EventAction):
                         "error": six.text_type(e),
                         "project_id": event.project_id,
                         "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
                     },
                 )
 
