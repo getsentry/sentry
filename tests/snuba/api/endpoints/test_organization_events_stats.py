@@ -534,10 +534,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
+        response.data["user_count"]["order"] == 0
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 1}],
         ]
+        response.data["event_count"]["order"] == 1
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
             [{"count": 1}],
             [{"count": 2}],
@@ -613,7 +615,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "fingerprint": ["group1"],
                 },
                 "project": self.project2,
-                "count": 3,
+                "count": 7,
             },
             {
                 "data": {
@@ -623,7 +625,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "user": {"email": self.user2.email},
                 },
                 "project": self.project2,
-                "count": 3,
+                "count": 6,
             },
             {
                 "data": {
@@ -633,7 +635,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "user": {"email": "foo@example.com"},
                 },
                 "project": self.project,
-                "count": 3,
+                "count": 5,
             },
             {
                 "data": {
@@ -643,7 +645,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "user": {"email": "bar@example.com"},
                 },
                 "project": self.project,
-                "count": 3,
+                "count": 4,
             },
             {"data": transaction_data, "project": self.project, "count": 3},
             # Not in the top 5
@@ -661,7 +663,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 "data": {
                     "message": "not so bad",
                     "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
-                    "fingerprint": ["group5"],
+                    "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                 },
                 "project": self.project,
@@ -708,6 +710,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
+            assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
@@ -758,6 +761,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[",".join([message, event.project.slug])]
+            assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
@@ -796,6 +800,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 issue = event.group.qualified_short_id
 
             results = data[",".join([issue, message])]
+            assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
@@ -822,12 +827,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         results = data[self.transaction.transaction]
+        assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
 
     def test_top_events_with_functions_on_different_transactions(self):
+        """ Transaction2 has less events, but takes longer so order should be self.transaction then transaction2 """
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
@@ -854,12 +861,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 2
 
         results = data[self.transaction.transaction]
+        assert results["order"] == 1
         assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
 
         results = data[transaction2.transaction]
+        assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [
             [{"count": 1}],
             [{"count": 0}],
@@ -893,6 +902,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         transaction2_data = data["/foo_bar/"]
+        assert transaction2_data["order"] == 0
         assert [attrs for time, attrs in transaction2_data["data"]] == [
             [{"count": 1}],
             [{"count": 0}],
@@ -923,6 +933,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
+            assert results["order"] == index
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["data"]
             ]
@@ -952,6 +963,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
+            assert results["order"] == index
+            assert results["rpm()"]["order"] == 0
+            assert results["count()"]["order"] == 1
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
                 attrs for time, attrs in results["rpm()"]["data"]
             ]
@@ -983,6 +997,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
             results = data[",".join(["False", message])]
+            assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
@@ -1007,13 +1022,16 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         data = response.data
         assert response.status_code == 200, response.content
         assert len(data) == 5
+        # Transactions won't be in the results because of the query
+        del self.events[4]
+        del self.event_data[4]
 
-        for index, event in enumerate(self.events[:6]):
-            if event.message:
-                results = data[",".join([event.message, event.timestamp])]
-                assert [{"count": self.event_data[index]["count"]}] in [
-                    attrs for time, attrs in results["data"]
-                ]
+        for index, event in enumerate(self.events[:5]):
+            results = data[",".join([event.message, event.timestamp])]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
 
     def test_top_events_with_int(self):
         with self.feature("organizations:discover-basic"):
@@ -1036,6 +1054,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert len(data) == 1
 
         results = data[",".join([self.transaction.transaction, "120000"])]
+        assert results["order"] == 0
         assert [attrs for time, attrs in results["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
@@ -1061,8 +1080,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
+        assert data["bar@example.com"]["order"] == 0
         assert [attrs for time, attrs in data["bar@example.com"]["data"]] == [
-            [{"count": 6}],
+            [{"count": 7}],
             [{"count": 0}],
         ]
         assert [attrs for time, attrs in data["127.0.0.1"]["data"]] == [
@@ -1090,11 +1110,78 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(data) == 5
 
+        assert data["bar@example.com,bar@example.com"]["order"] == 0
         assert [attrs for time, attrs in data["bar@example.com,bar@example.com"]["data"]] == [
-            [{"count": 6}],
+            [{"count": 7}],
             [{"count": 0}],
         ]
         assert [attrs for time, attrs in data["127.0.0.1,None"]["data"]] == [
             [{"count": 3}],
             [{"count": 0}],
         ]
+
+    def test_top_events_none_filter(self):
+        """ When a field is None in one of the top events, make sure we filter by it
+
+            In this case event[4] is a transaction and has no issue
+        """
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 5
+
+        for index, event in enumerate(self.events[:5]):
+            if event.group is None:
+                issue = "unknown"
+            else:
+                issue = event.group.qualified_short_id
+
+            results = data[issue]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]
+
+    def test_top_events_one_field_with_none(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "query": "event.type:transaction",
+                    "field": ["count()", "issue"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+
+        results = data["unknown"]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 3}],
+            [{"count": 0}],
+        ]
+        assert results["order"] == 0

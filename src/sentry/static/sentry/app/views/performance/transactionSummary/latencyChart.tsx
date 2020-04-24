@@ -241,12 +241,10 @@ class LatencyChart extends AsyncComponent<Props, State> {
           <Tooltip
             position="top"
             title={t(
-              `This graph shows the volume of transactions that completed within each duration bucket.
-                X-axis values represent the median value of each bucket.
-                `
+              `Latency Distribution reflects the volume of transactions per median duration.`
             )}
           >
-            <StyledIconQuestion size="sm" />
+            <StyledIconQuestion />
           </Tooltip>
         </HeaderTitle>
         {this.renderComponent()}
