@@ -212,6 +212,19 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 
+    # Two things call _start_service.
+    # devservices up, and devservices attach.
+    # Containers that should be started on-demand with devserver
+    # should ONLY be started via the latter, which sets `always_start`.
+    if with_devserver and not always_start:
+        click.secho(
+            "> Not starting container '%s' because it should be started on-demand with devserver."
+            % options["name"],
+            fg="yellow",
+        )
+        # XXX: if always_start=False, do not expect to have a container returned 100% of the time.
+        return None
+
     container = None
     try:
         container = client.containers.get(options["name"])
@@ -229,14 +242,6 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
             should_reuse_container = True
 
         if should_reuse_container:
-            if with_devserver and not always_start:
-                click.secho(
-                    "> Not starting container '%s' because it should be started on-demand with devserver."
-                    % container.name,
-                    fg="yellow",
-                )
-                return container
-
             click.secho(
                 "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
@@ -254,18 +259,6 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 
     click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
-
-    # Two things call _start_service.
-    # devservices up, and devservices attach.
-    # Containers that should be started on-demand with devserver, should ONLY be started via the latter, which sets `always_start`.
-    if with_devserver and not always_start:
-        click.secho(
-            "> Not starting container '%s' because it should be started on-demand with devserver."
-            % container.name,
-            fg="yellow",
-        )
-        return container
-
     click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
     container.start()
     return container
