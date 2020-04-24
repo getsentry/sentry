@@ -75,6 +75,23 @@ class WorkItemWebhook(Endpoint):
         try:
             integration_secret = integration.metadata["subscription"]["secret"]
             webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
+            logger.info(
+                "vsts.simple-webhook-check",
+                extra={
+                    "equality1": integration_secret == webhook_payload_secret,
+                    "equality2": constant_time_compare(integration_secret, webhook_payload_secret),
+                },
+            )
+            # TODO(Steve): remove
+            # I don't want to put the webhook secret in logs except for my own integration I don't care about :)
+            if integration.id == 58554:
+                logger.info(
+                    "vst.special-webhook-sercret",
+                    extra={
+                        "integration_secret": six.text_type(integration_secret),
+                        "webhook_payload_secret": six.text_type(webhook_payload_secret),
+                    },
+                )
         except KeyError as e:
             logger.info(
                 "vsts.missing-webhook-secret",
