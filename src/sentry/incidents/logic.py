@@ -360,13 +360,13 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
     time_window_delta = timedelta(minutes=time_window)
     start = incident.date_started - time_window_delta if start is None else start
-    end = incident.current_end_date if end is None else end
+    end = incident.current_end_date + time_window_delta if end is None else end
     if windowed_stats:
         now = timezone.now()
         end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
-            end = now
+            end = now + time_window_delta
             start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
