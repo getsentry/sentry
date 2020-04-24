@@ -305,14 +305,15 @@ export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
+// API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
+  order?: number;
 };
 
-export type YAxisEventsStats = {
-  [yAxisName: string]: EventsStats;
-};
+// API response format for multiple series
+export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
 
 /**
  * Avatars are a more primitive version of User.
