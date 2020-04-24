@@ -794,7 +794,13 @@ def create_result_key(result_row, fields, issues):
         if field == "issue.id":
             values.append(issues.get(result_row["issue.id"], "unknown"))
         else:
-            values.append(six.text_type(result_row.get(field)))
+            value = result_row.get(field)
+            if isinstance(value, list):
+                if len(value) > 0:
+                    value = value[-1]
+                else:
+                    value = ""
+            values.append(six.text_type(value))
     return ",".join(values)
 
 
@@ -849,7 +855,14 @@ def top_events_timeseries(
             continue
         if field == "issue":
             field = FIELD_ALIASES["issue"]["column_alias"]
-        values = list({event.get(field) for event in top_events["data"] if field in event})
+        # Note that cause orderby shouldn't be an array field its not included in the values
+        values = list(
+            {
+                event.get(field)
+                for event in top_events["data"]
+                if field in event and not isinstance(event.get(field), list)
+            }
+        )
         if values:
             # timestamp needs special handling, creating a big OR instead
             if field == "timestamp":
@@ -906,13 +919,17 @@ def top_events_timeseries(
     translated_groupby.sort()
 
     results = {}
-    for row in result["data"]:
-        result_key = create_result_key(row, translated_groupby, issues)
-        results.setdefault(result_key, {"data": []})["data"].append(row)
     # Using the top events add the order to the results
     for index, item in enumerate(top_events["data"]):
         result_key = create_result_key(item, translated_groupby, issues)
-        results[result_key]["order"] = index
+        results[result_key] = {
+            "order": index,
+            "data": [],
+        }
+    for row in result["data"]:
+        result_key = create_result_key(row, translated_groupby, issues)
+        if result_key in results:
+            results[result_key]["data"].append(row)
     for key, item in six.iteritems(results):
         results[key] = SnubaTSResult(
             {
