@@ -58,6 +58,10 @@ class WorkItemWebhook(Endpoint):
 
             try:
                 self.check_webhook_secret(request, integration)
+                logger.info(
+                    "vsts.valid-webhook-secret",
+                    extra={"event_type": event_type, "integration_id": integration.id},
+                )
             except AssertionError:
                 logger.info(
                     "vsts.invalid-webhook-secret",
