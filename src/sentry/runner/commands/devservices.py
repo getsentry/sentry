@@ -53,9 +53,9 @@ def devservices():
 
 @devservices.command()
 @click.option("--project", default="sentry")
-@click.option("--is-devserver", is_flag=True, default=False)
+@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
-def attach(project, is_devserver, service):
+def attach(project, fast, service):
     """
     Run a single devservice in foreground, as opposed to `up` which runs all of
     them in the background.
@@ -76,9 +76,10 @@ def attach(project, is_devserver, service):
 
     client = get_docker_client()
     containers = _prepare_containers(project, silent=True)
-    container = _start_service(
-        client, service, containers, project, fast=is_devserver, is_devserver=is_devserver
-    )
+    if service not in containers:
+        raise click.ClickException("Service {} is not known or not enabled.".format(service))
+
+    container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
     def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
@@ -98,7 +99,7 @@ def attach(project, is_devserver, service):
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-@click.option("--fast", is_flag=True, default=False, help="Never pull.")
+@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 def up(project, exclude, fast):
     """
     Run/update dependent services.
@@ -165,7 +166,7 @@ def _prepare_containers(project, silent=False):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, is_devserver=False):
+def _start_service(client, name, containers, project, fast=False, always_start=False):
     from django.conf import settings
     import docker
 
@@ -220,7 +221,15 @@ def _start_service(client, name, containers, project, fast=False, is_devserver=F
     if container is not None:
         # devservices which are marked with pull True will need their containers
         # to be recreated with the freshly pulled image.
-        should_reuse_container = is_devserver or (not pull and not with_devserver)
+        should_reuse_container = not pull
+
+        # If the container is started as part of devserver we should always pull
+        if with_devserver:
+            should_reuse_container = True
+
+        # Except when we're in --fast mode, which is the case for devserver
+        if fast:
+            should_reuse_container = False
 
         if should_reuse_container:
             click.secho(
@@ -243,10 +252,8 @@ def _start_service(client, name, containers, project, fast=False, is_devserver=F
 
     # Two things call _start_service.
     # devservices up, and devservices attach.
-    # Containers that should be started on-demand with devserver, should ONLY be started via the latter.
-    # So devserver calls devservices attach --is-devserver reverse_proxy, which sets is_devserver
-    # This additional logic is needed because devservices up also makes sure the necessary images are downloaded.
-    if with_devserver and not is_devserver:
+    # Containers that should be started on-demand with devserver, should ONLY be started via the latter, which sets `always_start`.
+    if with_devserver and not always_start:
         click.secho(
             "> Not starting container '%s' because it should be started on-demand with devserver."
             % container.name,
