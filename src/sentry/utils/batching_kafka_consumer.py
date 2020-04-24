@@ -15,6 +15,7 @@ from confluent_kafka import (
     OFFSET_INVALID,
 )
 
+from django.conf import settings
 
 logger = logging.getLogger("batching-kafka-consumer")
 
@@ -164,9 +165,8 @@ class BatchingKafkaConsumer(object):
         tags = dict(tags or ())
         tags.update(self.__metrics_default_tags)
 
-        return self.__metrics.timing(
-            metric, value, tags=tags, sample_rate=self.__metrics_sample_rates.get(metric, 1)
-        )
+        sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
+        return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
     def create_consumer(
         self,
@@ -326,6 +326,7 @@ class BatchingKafkaConsumer(object):
         )
 
         batch_results_length = len(self.__batch_results)
+        self.__record_timing("batch.size", batch_results_length)
         if batch_results_length > 0:
             logger.debug("Flushing batch via worker")
             flush_start = time.time()
