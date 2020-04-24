@@ -28,12 +28,15 @@ class CommentDetailsEndpoint(IncidentEndpoint):
         args, kwargs = super(CommentDetailsEndpoint, self).convert_args(request, *args, **kwargs)
 
         try:
+            # Superusers may mutate any comment
+            user_filter = {} if request.user.is_superuser else {"user": request.user}
+
             kwargs["activity"] = IncidentActivity.objects.get(
                 id=activity_id,
-                user=request.user,
                 incident=kwargs["incident"],
                 # Only allow modifying comments
                 type=IncidentActivityType.COMMENT.value,
+                **user_filter
             )
         except IncidentActivity.DoesNotExist:
             raise ResourceDoesNotExist
