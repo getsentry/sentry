@@ -33,10 +33,20 @@ class SettingsWrapper extends React.Component {
     };
   }
 
+  shouldDisableScrollToTop(location, prevLocation) {
+    // we do not want to scroll to top when user just perform a search
+    return (
+      location.pathname === prevLocation.pathname &&
+      location.query?.query !== prevLocation.query?.query
+    );
+  }
+
   render() {
     return (
       <StyledSettingsWrapper>
-        <ScrollToTop>{this.props.children}</ScrollToTop>
+        <ScrollToTop disable={this.shouldDisableScrollToTop}>
+          {this.props.children}
+        </ScrollToTop>
       </StyledSettingsWrapper>
     );
   }
