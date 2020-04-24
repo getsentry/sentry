@@ -393,7 +393,7 @@ def test_get_binary_images_apple_string():
             {
                 "image_addr": "0x1406f000",
                 "image_size": 913408,
-                "image_vmaddr": "0x0",
+                # image_vmaddr defaults to 0x0
                 "code_file": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/PrivateFrameworks/CorePDF.framework/CorePDF",
                 "type": "native",
                 "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
@@ -452,7 +452,7 @@ def test_binary_images_without_code_file():
             {
                 "image_addr": "0x1406f000",
                 "image_size": 913408,
-                "image_vmaddr": "0x0",
+                # image_vmaddr defaults to 0x0
                 "type": "native",
                 "debug_id": "BE602DC1-D3A0-3389-B8F4-922C37DEA3DC",
             },
