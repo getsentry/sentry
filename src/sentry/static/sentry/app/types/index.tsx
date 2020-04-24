@@ -8,6 +8,7 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {Props as AlertProps} from 'app/components/alert';
 
 declare global {
   interface Window {
@@ -663,7 +664,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<{type: 'info' | 'warning'; text: string; icon?: string}>;
+  alerts?: Array<AlertProps & {text: string}>;
   reauthentication_alert?: {alertText: string};
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
