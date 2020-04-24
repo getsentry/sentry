@@ -290,7 +290,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result, column="count"):
+    def serialize(self, result, column="count", order=None):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -314,5 +314,10 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}
+        # If order is passed let that overwrite whats in data since its order for multi-axis
+        if order is not None:
+            res["order"] = order
+        elif "order" in result.data:
+            res["order"] = result.data["order"]
 
         return res
