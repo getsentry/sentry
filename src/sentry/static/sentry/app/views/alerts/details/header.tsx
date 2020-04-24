@@ -7,7 +7,6 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
 import Count from 'app/components/count';
 import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
@@ -43,27 +42,21 @@ export default class DetailsHeader extends React.Component<Props> {
     const isIncidentOpen = incident && isOpen(incident);
     const statusLabel = incident ? <Status incident={incident} /> : null;
 
-    return (
-      <Access access={['org:write']}>
-        {({hasAccess}) =>
-          hasAccess && isIncidentOpen ? (
-            <DropdownControl
-              data-test-id="status-dropdown"
-              label={statusLabel}
-              menuWidth="200px"
-              alignRight
-              buttonProps={{size: 'small', disabled: !incident}}
-            >
-              <StatusMenuItem onSelect={onStatusChange}>
-                <IconCheckmark circle color={theme.greenLight} />
-                {t('Resolve this incident')}
-              </StatusMenuItem>
-            </DropdownControl>
-          ) : (
-            statusLabel
-          )
-        }
-      </Access>
+    return isIncidentOpen ? (
+      <DropdownControl
+        data-test-id="status-dropdown"
+        label={statusLabel}
+        menuWidth="200px"
+        alignRight
+        buttonProps={{size: 'small', disabled: !incident}}
+      >
+        <StatusMenuItem onSelect={onStatusChange}>
+          <IconCheckmark circle color={theme.greenLight} />
+          {t('Resolve this incident')}
+        </StatusMenuItem>
+      </DropdownControl>
+    ) : (
+      statusLabel
     );
   }
 
