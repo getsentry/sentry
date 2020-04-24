@@ -3,15 +3,18 @@ from __future__ import absolute_import
 import six
 
 from sentry import analytics
-from sentry import http
+
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
 from sentry.utils import json
+from sentry.web.decorators import transaction_start
+from sentry.shared_integrations.exceptions import ApiError
 
+from .client import SlackClient
 from .link_identity import build_linking_url
 from .requests import SlackActionRequest, SlackRequestError
-from .utils import build_group_attachment, logger, track_response_code
+from .utils import build_group_attachment, logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -120,13 +123,11 @@ class SlackActionEndpoint(Endpoint):
             "token": integration.metadata["access_token"],
         }
 
-        session = http.build_session()
-        req = session.post("https://slack.com/api/dialog.open", data=payload)
-        status_code = req.status_code
-        resp = req.json()
-        if not resp.get("ok"):
-            logger.error("slack.action.response-error", extra={"response": resp})
-        track_response_code(status_code, resp.get("ok"))
+        slack_client = SlackClient()
+        try:
+            slack_client.post("/dialog.open", data=payload)
+        except ApiError as e:
+            logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
 
     def construct_reply(self, attachment, is_message=False):
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -149,6 +150,7 @@ class SlackActionEndpoint(Endpoint):
         # posted messages will not have the type at all.
         return data.get("original_message", {}).get("type") == "message"
 
+    @transaction_start("SlackActionEndpoint")
     def post(self, request):
         logging_data = {}
 
@@ -229,13 +231,14 @@ class SlackActionEndpoint(Endpoint):
             )
 
             # use the original response_url to update the link attachment
-            session = http.build_session()
-            req = session.post(slack_request.callback_data["orig_response_url"], json=body)
-            status_code = req.status_code
-            resp = req.json()
-            if not resp.get("ok"):
-                logger.error("slack.action.response-error", extra={"response": resp})
-            track_response_code(status_code, resp.get("ok"))
+            slack_client = SlackClient()
+            try:
+                slack_client.post(
+                    slack_request.callback_data["orig_response_url"], data=body, json=True
+                )
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": six.text_type(e)})
+
             return self.respond()
 
         # Usually we'll want to respond with the updated attachment including

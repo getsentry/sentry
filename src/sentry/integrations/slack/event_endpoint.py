@@ -7,13 +7,15 @@ from collections import defaultdict
 
 from django.db.models import Q
 
-from sentry import http
 from sentry.api.base import Endpoint
 from sentry.incidents.models import Incident
 from sentry.models import Group, Project
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.web.decorators import transaction_start
 
+from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import build_group_attachment, build_incident_attachment, logger, track_response_code
+from .utils import build_group_attachment, build_incident_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
@@ -123,17 +125,16 @@ class SlackEventEndpoint(Endpoint):
             "unfurls": json.dumps(results),
         }
 
-        session = http.build_session()
-        req = session.post("https://slack.com/api/chat.unfurl", data=payload)
-        status_code = req.status_code
-        response = req.json()
-        track_response_code(status_code, response.get("ok"))
-        req.raise_for_status()
-        if not response.get("ok"):
-            logger.error("slack.event.unfurl-error", extra={"response": response})
+        client = SlackClient()
+        try:
+            client.post("/chat.unfurl", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
+
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
+    @transaction_start("SlackEventEndpoint")
     def post(self, request):
         try:
             slack_request = SlackEventRequest(request)

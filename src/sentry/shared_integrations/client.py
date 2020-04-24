@@ -148,7 +148,7 @@ class BaseApiClient(object):
     def get_cache_prefix(self):
         return u"%s.%s.client:" % (self.integration_type, self.name)
 
-    def track_response_data(self, code, span, error=None):
+    def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
             u"%s.http_response" % (self.datadog_prefix),
             sample_rate=1.0,
@@ -242,7 +242,7 @@ class BaseApiClient(object):
                 self.track_response_data(resp.status_code, span, e)
                 raise ApiError.from_response(resp)
 
-            self.track_response_data(resp.status_code, span)
+            self.track_response_data(resp.status_code, span, None, resp)
 
             if resp.status_code == 204:
                 return {}
