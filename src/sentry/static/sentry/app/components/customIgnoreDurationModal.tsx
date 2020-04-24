@@ -3,6 +3,10 @@ import moment from 'moment';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
 
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import {IconWarning} from 'app/icons';
+import ButtonBar from 'app/components/buttonBar';
 import {ResolutionStatusDetails} from 'app/types';
 import {t} from 'app/locale';
 
@@ -71,13 +75,14 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
     );
 
     const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
+    const {show, onCanceled, label} = this.props;
 
     return (
-      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
-        <div className="modal-header">
-          <h4>{this.props.label}</h4>
-        </div>
-        <div className="modal-body">
+      <Modal show={show} animation={false} onHide={onCanceled}>
+        <Modal.Header>
+          <h4>{label}</h4>
+        </Modal.Header>
+        <Modal.Body>
           <form className="form-horizontal">
             <div className="control-group">
               <h6 className="nav-header">{t('Date')}</h6>
@@ -104,24 +109,22 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
               />
             </div>
           </form>
-        </div>
+        </Modal.Body>
         {this.state.dateWarning && (
-          <div className="alert alert-error" style={{marginTop: '5px'}}>
+          <Alert icon={<IconWarning size="md" />} type="error">
             {t('Please enter a valid date in the future')}
-          </div>
+          </Alert>
         )}
-        <div className="modal-footer">
-          <button
-            type="button"
-            className="btn btn-default"
-            onClick={this.props.onCanceled}
-          >
-            {t('Cancel')}
-          </button>
-          <button type="button" className="btn btn-primary" onClick={this.snoozeClicked}>
-            {t('Ignore')}
-          </button>
-        </div>
+        <Modal.Footer>
+          <ButtonBar gap={1}>
+            <Button type="button" priority="default" onClick={this.props.onCanceled}>
+              {t('Cancel')}
+            </Button>
+            <Button type="button" priority="primary" onClick={this.snoozeClicked}>
+              {t('Ignore')}
+            </Button>
+          </ButtonBar>
+        </Modal.Footer>
       </Modal>
     );
   }
