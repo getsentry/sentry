@@ -175,10 +175,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             # reloading page with no project id in URL after previously
             # selecting an explicit project should load previously selected project
             # from local storage
-            # below is currently broken
-            # TODO check environment as well
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_until_loaded()
+            # TODO check environment as well
             # FIXME: This is current broken and is a bug
             # assert u"project={}".format(self.project_3.id) in self.browser.current_url
             assert (
@@ -215,6 +214,14 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert u"project=" not in self.browser.current_url
             assert self.issues_list.global_selection.get_selected_project_slug() == "My Projects"
 
+            # can select a different project
+            self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
+            self.issues_list.wait_until_loaded()
+            assert u"project={}".format(self.project_3.id) in self.browser.current_url
+            assert (
+                self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
+            )
+
     @patch("django.utils.timezone.now")
     def test_issues_list_to_details_and_back_with_initial_project(self, mock_now):
         """
@@ -243,6 +250,12 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         # project id should remain in URL
         assert u"project={}".format(self.project_2.id) in self.browser.current_url
+
+        # can select a different project
+        self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
+        self.issues_list.wait_until_loaded()
+        assert u"project={}".format(self.project_3.id) in self.browser.current_url
+        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
     @patch("django.utils.timezone.now")
     def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now):
