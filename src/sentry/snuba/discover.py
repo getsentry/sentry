@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import logging
 
 from collections import namedtuple
 from copy import deepcopy
@@ -47,6 +48,8 @@ __all__ = (
     "zerofill",
 )
 
+
+logger = logging.getLogger(__name__)
 
 ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
 ReferenceEvent.__new__.__defaults__ = (None, None)
@@ -930,6 +933,11 @@ def top_events_timeseries(
         result_key = create_result_key(row, translated_groupby, issues)
         if result_key in results:
             results[result_key]["data"].append(row)
+        else:
+            logger.warning(
+                "Timeseries top events key mismatch",
+                extra={"result_key": result_key, "top_event_keys": results.keys()},
+            )
     for key, item in six.iteritems(results):
         results[key] = SnubaTSResult(
             {
