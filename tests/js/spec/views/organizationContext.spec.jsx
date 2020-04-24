@@ -113,7 +113,6 @@ describe('OrganizationContext', function() {
       url: '/organizations/org-slug/',
       statusCode: 403,
     });
-    console.error = jest.fn(); // eslint-disable-line no-console
     wrapper = createWrapper();
 
     // await dispatching action
@@ -122,8 +121,14 @@ describe('OrganizationContext', function() {
     await tick();
     await tick();
     wrapper.update();
+
+    // This test has been flakey and it's been hard to reproduce reliably
+    // Adding some debugging
+    if (!wrapper.find('LoadingError').length) {
+      console.log(wrapper.debug()); // eslint-disable-line no-console
+    }
+
     expect(wrapper.find('LoadingError')).toHaveLength(1);
-    console.error.mockRestore(); // eslint-disable-line no-console
   });
 
   it('opens sudo modal for superusers on 403s', async function() {
