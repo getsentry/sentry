@@ -13,7 +13,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import SearchInput from 'app/components/forms/searchInput';
+import SearchBar from 'app/components/searchBar';
 import {
   formatAddress,
   parseAddress,
@@ -356,8 +356,8 @@ class DebugMetaInterface extends React.PureComponent {
     this.setState({showDetails});
   };
 
-  handleChangeFilter = e => {
-    DebugMetaActions.updateFilter(e.target.value || '');
+  handleChangeFilter = value => {
+    DebugMetaActions.updateFilter(value || '');
   };
 
   isValidImage(image) {
@@ -427,11 +427,10 @@ class DebugMetaInterface extends React.PureComponent {
           {t('show unreferenced')}
         </Label>
         <SearchInputWrapper>
-          <SearchInput
-            value={filter}
+          <StyledSearchBar
+            query={filter}
             onChange={this.handleChangeFilter}
             placeholder={t('Search images\u2026')}
-            smaller
           />
         </SearchInputWrapper>
       </ToolbarWrapper>
@@ -583,6 +582,19 @@ const ToolbarWrapper = styled('div')`
 const SearchInputWrapper = styled('div')`
   max-width: 180px;
   display: inline-block;
+`;
+// TODO(matej): remove this once we refactor SearchBar to not use css classes
+// - it could accept size as a prop
+const StyledSearchBar = styled(SearchBar)`
+  .search-input {
+    height: 30px;
+  }
+  .search-clear-form {
+    top: 5px;
+  }
+  .icon-search {
+    top: 8px;
+  }
 `;
 
 export default DebugMetaInterface;

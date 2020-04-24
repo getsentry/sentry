@@ -33,7 +33,7 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import SearchInput from 'app/components/forms/searchInput';
+import SearchBar from 'app/components/searchBar';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
@@ -272,13 +272,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
-  onSearchChange = async ({target}) => {
-    this.setState({searchInput: target.value}, () => {
-      if (!target.value) {
+  handleSearchChange = async (value: string) => {
+    this.setState({searchInput: value}, () => {
+      if (!value) {
         return this.setState({displayedList: this.state.list});
       }
-      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      this.debouncedTrackIntegrationSearch(target.value, result.length);
+      const result = this.state.fuzzy && this.state.fuzzy.search(value);
+      this.debouncedTrackIntegrationSearch(value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
@@ -436,9 +436,9 @@ export class IntegrationListDirectory extends AsyncComponent<
                 ) : (
                   <div />
                 )}
-                <SearchInput
-                  value={this.state.searchInput || ''}
-                  onChange={this.onSearchChange}
+                <SearchBar
+                  query={this.state.searchInput || ''}
+                  onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
                 />
