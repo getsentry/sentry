@@ -492,7 +492,7 @@ class GridEditable<
         </Header>
 
         <Body>
-          <Grid ref={this.refGrid}>
+          <Grid data-test-id="grid-editable" ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>
