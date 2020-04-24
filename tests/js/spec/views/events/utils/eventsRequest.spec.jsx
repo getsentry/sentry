@@ -398,22 +398,21 @@ describe('EventsRequest', function() {
       await tick();
       wrapper.update();
 
-      const expectedData = {
-        seriesName: expect.anything(),
-        data: [
-          {name: expect.anything(), value: 400},
-          {name: expect.anything(), value: 123},
-        ],
+      const generateExpected = name => {
+        return {
+          seriesName: name,
+          data: [
+            {name: expect.anything(), value: 400},
+            {name: expect.anything(), value: 123},
+          ],
+        };
       };
 
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
           loading: false,
 
-          results: {
-            'apdex()': expect.objectContaining(expectedData),
-            'rpm()': expect.objectContaining(expectedData),
-          },
+          results: [generateExpected('rpm()'), generateExpected('apdex()')],
         })
       );
     });
@@ -468,22 +467,24 @@ describe('EventsRequest', function() {
       await tick();
       wrapper.update();
 
-      const expectedData = {
-        seriesName: expect.anything(),
-        data: [
-          {name: expect.anything(), value: 400},
-          {name: expect.anything(), value: 123},
-        ],
+      const generateExpected = name => {
+        return {
+          seriesName: name,
+          data: [
+            {name: expect.anything(), value: 400},
+            {name: expect.anything(), value: 123},
+          ],
+        };
       };
 
       expect(mock).toHaveBeenLastCalledWith(
         expect.objectContaining({
           loading: false,
 
-          results: {
-            'project1,error': expect.objectContaining(expectedData),
-            'project1,warning': expect.objectContaining(expectedData),
-          },
+          results: [
+            generateExpected('project1,error'),
+            generateExpected('project1,warning'),
+          ],
         })
       );
     });

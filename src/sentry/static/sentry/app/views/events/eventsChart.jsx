@@ -188,7 +188,7 @@ class EventsChart extends React.Component {
           </ErrorPanel>
         );
       }
-      const seriesData = results ? Object.values(results) : timeseriesData;
+      const seriesData = results ? results : timeseriesData;
 
       return (
         <TransitionChart loading={loading} reloading={reloading}>
