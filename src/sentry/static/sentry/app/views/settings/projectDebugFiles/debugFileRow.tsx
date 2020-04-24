@@ -114,6 +114,7 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
                     icon={<IconDelete size="xs" />}
                     size="xsmall"
                     disabled={!hasAccess}
+                    data-test-id="delete-dif"
                   />
                 </Confirm>
               </Tooltip>
