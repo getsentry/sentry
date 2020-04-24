@@ -37,6 +37,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         self.create_environment(name="development", project=self.project_1)
         self.create_environment(name="production", project=self.project_1)
+        self.create_environment(name="visible", project=self.project_1, is_hidden=False)
+        self.create_environment(name="not visible", project=self.project_1, is_hidden=True)
         self.create_environment(name="dev", project=self.project_2)
         self.create_environment(name="prod", project=self.project_2)
 
