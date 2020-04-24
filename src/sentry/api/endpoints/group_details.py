@@ -34,6 +34,7 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -160,8 +161,26 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 version=version,
             )
         except Release.DoesNotExist:
-            return {"version": version}
+            release = {"version": version}
         return serialize(release, request.user)
+
+    def _get_first_last_release_info(self, request, group, versions):
+        releases = {
+            release.version: release
+            for release in Release.objects.filter(
+                projects=group.project,
+                organization_id=group.project.organization_id,
+                version__in=versions,
+            )
+        }
+        serialized_releases = serialize(
+            [releases.get(version) for version in versions], request.user,
+        )
+        # Default to a dictionary if the release object wasn't found and not serialized
+        return [
+            item if item is not None else {"version": version}
+            for item, version in zip(serialized_releases, versions)
+        ]
 
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
@@ -199,9 +218,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         action_list = self._get_actions(request, group)
 
-        if first_release:
+        if first_release is not None and last_release is not None:
+            first_release, last_release = self._get_first_last_release_info(
+                request, group, [first_release, last_release]
+            )
+        elif first_release is not None:
             first_release = self._get_release_info(request, group, first_release)
-        if last_release:
+        elif last_release is not None:
             last_release = self._get_release_info(request, group, last_release)
 
         get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
