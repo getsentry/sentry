@@ -127,7 +127,7 @@ const Wrapper = styled(Panel, {
   grid-template-columns: repeat(${p => p.columns}, auto);
 
   > * {
-    padding: ${p => (p.disablePadding ? 0 : space(2))};
+    ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
 
     &:nth-last-child(n + ${p => (p.hasRows ? p.columns + 1 : 0)}) {
       border-bottom: 1px solid ${p => p.theme.borderDark};

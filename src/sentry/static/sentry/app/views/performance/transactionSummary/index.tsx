@@ -179,7 +179,7 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['transaction', 'transaction.duration', 'timestamp'],
+      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
       orderby: '-transaction.duration',
       query: stringifyQueryObject(conditions),
       projects: [],
