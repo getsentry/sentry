@@ -5,7 +5,7 @@ import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
-import {EventsStats, Organization, MultiSeriesEventsStats} from 'app/types';
+import {EventsStats, OrganizationSummary, MultiSeriesEventsStats} from 'app/types';
 
 function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
   if (keyTransactions) {
