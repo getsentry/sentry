@@ -290,7 +290,7 @@ function ExpandAggregateRow(props: {
     };
 
     return (
-      <Link to={target} onClick={handleClick}>
+      <Link data-test-id="expand-count" to={target} onClick={handleClick}>
         {children}
       </Link>
     );
@@ -310,7 +310,7 @@ function ExpandAggregateRow(props: {
     };
 
     return (
-      <Link to={target} onClick={handleClick}>
+      <Link data-test-id="expand-count-unique" to={target} onClick={handleClick}>
         {children}
       </Link>
     );
