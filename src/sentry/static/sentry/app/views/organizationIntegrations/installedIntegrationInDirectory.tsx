@@ -64,7 +64,6 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     });
   };
 
-  //TODO(TS): add typing on aspects
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {

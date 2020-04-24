@@ -95,7 +95,7 @@ const IntegrationRow = (props: Props) => {
       {alertText && (
         <AlertContainer>
           <Alert type="warning" icon={<IconWarning size="sm" />}>
-            {alertText}
+            <span>{alertText}</span>
             <ResolveNowButton href={`${baseUrl}?tab=configurations`} size="xsmall">
               {t('Resolve Now')}
             </ResolveNowButton>
@@ -191,16 +191,11 @@ const CategoryTag = styled(
 const ResolveNowButton = styled(Button)`
   color: ${p => p.theme.gray2};
   background: #ffffff;
-
-  border: ${p => `1px solid ${p.theme.gray2}`};
-  box-sizing: border-box;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
   float: right;
 `;
 
 const AlertContainer = styled('div')`
-  padding: 0px 20px 0px 68px;
+  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;
