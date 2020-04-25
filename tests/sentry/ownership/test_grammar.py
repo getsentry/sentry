@@ -11,8 +11,8 @@ fixture_data = """
   url:http://google.com/* #backend
 path:src/sentry/*       david@sentry.io
 
-tag.foo:bar             tagperson@sentry.io
-tag.foo:"bar baz"       tagperson@sentry.io
+tags.foo:bar             tagperson@sentry.io
+tags.foo:"bar baz"       tagperson@sentry.io
 """
 
 
@@ -21,8 +21,8 @@ def test_parse_rules():
         Rule(Matcher("path", "*.js"), [Owner("team", "frontend"), Owner("user", "m@robenolt.com")]),
         Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]),
         Rule(Matcher("path", "src/sentry/*"), [Owner("user", "david@sentry.io")]),
-        Rule(Matcher("tag.foo", "bar"), [Owner("user", "tagperson@sentry.io")]),
-        Rule(Matcher("tag.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
+        Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]),
+        Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
     ]
 
 
@@ -114,6 +114,6 @@ def test_matcher_test_tags():
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
     }
 
-    assert Matcher("tag.foo", "foo_value").test(data)
-    assert Matcher("tag.bar", "barval").test(data)
-    assert not Matcher("tag.barz", "barval").test(data)
+    assert Matcher("tags.foo", "foo_value").test(data)
+    assert Matcher("tags.bar", "barval").test(data)
+    assert not Matcher("tags.barz", "barval").test(data)

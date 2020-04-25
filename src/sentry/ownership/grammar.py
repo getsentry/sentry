@@ -24,7 +24,7 @@ matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
 matcher_type = "url" / "path" / event_tag
 
-event_tag   = ~r"tag.[^:]+"
+event_tag   = ~r"tags.[^:]+"
 
 owners       = _ owner+
 owner        = _ team_prefix identifier
@@ -91,7 +91,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return self.test_url(data)
         elif self.type == "path":
             return self.test_path(data)
-        elif self.type.startswith("tag."):
+        elif self.type.startswith("tags."):
             return self.test_tag(data)
         return False
 
@@ -115,7 +115,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return False
 
     def test_tag(self, data):
-        tag = self.type[4:]
+        tag = self.type[5:]
         for k, v in data.get("tags"):
             if k == tag and glob_match(v, self.pattern):
                 return True
