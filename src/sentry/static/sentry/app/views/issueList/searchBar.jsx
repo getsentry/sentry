@@ -119,10 +119,11 @@ class IssueListSearchBar extends React.Component {
       tagValueLoader, // eslint-disable-line no-unused-vars
       savedSearch,
       onSidebarToggle,
+      supportedTags,
       ...props
     } = this.props;
 
-    console.log('defaultSearchItems', this.state.defaultSearchItems);
+    console.log('props', props);
     return (
       <SmartSearchBarNoLeftCorners
         hasPinnedSearch
@@ -136,7 +137,7 @@ class IssueListSearchBar extends React.Component {
         onSavedRecentSearch={this.handleSavedRecentSearch}
         onSidebarToggle={onSidebarToggle}
         pinnedSearch={savedSearch && savedSearch.isPinned ? savedSearch : null}
-        {...props}
+        supportedTags={supportedTags}
       />
     );
   }

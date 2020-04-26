@@ -22,7 +22,7 @@ import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
-type BreadcrumbWithDetails = Breadcrumb & BreadcrumbDetails;
+type BreadcrumbWithDetails = Breadcrumb & BreadcrumbDetails & {id: number};
 type BreadcrumbCustomSearchData = React.ComponentProps<
   typeof BreadcrumbCustomSearch
 >['customSearchData'];
@@ -70,12 +70,13 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
     const breadcrumbCustomSearchData: BreadcrumbCustomSearchData = [];
 
-    const convertedBreadcrumbs = breadcrumbs.map(breadcrumb => {
+    const convertedBreadcrumbs = breadcrumbs.map((breadcrumb, index) => {
       const convertedBreadcrumb = convertBreadcrumbType(breadcrumb);
       const breadcrumbDetails = getBreadcrumbDetails(convertedBreadcrumb.type);
 
       if (!breadcrumbCustomSearchData.find(b => b.type === convertedBreadcrumb.type)) {
         breadcrumbCustomSearchData.push({
+          id: index,
           type: convertedBreadcrumb.type,
           ...breadcrumbDetails,
           isChecked: true,
@@ -83,6 +84,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       }
 
       return {
+        id: index,
         ...convertedBreadcrumb,
         ...breadcrumbDetails,
       };
@@ -223,6 +225,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       filteredCollapsedBreadcrumbs,
     } = this.getCollapsedCrumbQuantity();
 
+    console.log('filteredCollapsedBreadcrumbs', this.props.data);
+
     return (
       <EventDataSection
         type={type}
@@ -242,8 +246,13 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
             <SimpleSmartSearch
               showMaxResultQuantity={5}
               placeholder={t('Search breadcrumbs...')}
-              onChange={this.handleChangeSearchTerm}
+              // onChange={this.handleChangeSearchTerm}
+              resultsTitle={t('Breadcrumbs')}
+              source={filteredCollapsedBreadcrumbs}
+              filterSourceBy="message"
               hasRecentSearches
+              hasFullWidth
+              noLeftCorners
             />
           </Search>
         }
@@ -305,15 +314,7 @@ const Content = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-// const SmartSearchBarNoLeftCorners = styled(SimpleSmartSearch)`
-//   border-radius: ${p =>
-//     p.isOpen
-//       ? `0 ${p.theme.borderRadius} 0 0`
-//       : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
-//   flex-grow: 1;
-// `;
-
 const Search = styled('div')`
   display: flex;
-  min-width: 100vh;
+  width: 600px;
 `;

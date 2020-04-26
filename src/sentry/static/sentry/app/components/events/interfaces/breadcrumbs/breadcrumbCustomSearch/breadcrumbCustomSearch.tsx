@@ -15,6 +15,7 @@ import {BreadcrumbDetails, BreadcrumbType} from '../types';
 import {BreadCrumbIconWrapper} from '../styles';
 
 type CustomSearchData = {
+  id: number;
   type: BreadcrumbType;
   isChecked: boolean;
 } & BreadcrumbDetails;

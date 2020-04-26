@@ -229,7 +229,7 @@ class SmartSearchBar extends React.Component {
 
       tags: {},
 
-      dropdownVisible: false,
+      dropdownVisible: true,
       loading: false,
     };
 
@@ -307,22 +307,22 @@ class SmartSearchBar extends React.Component {
     this.setState({query: ''}, () => this.props.onSearch(this.state.query));
   };
 
-  onQueryFocus = () => {
-    this.setState({
-      dropdownVisible: true,
-    });
-  };
+  // onQueryFocus = () => {
+  //   this.setState({
+  //     dropdownVisible: true,
+  //   });
+  // };
 
-  onQueryBlur = e => {
-    // wait 200ms before closing dropdown in case blur was a result of
-    // clicking a menu option
-    const value = e.target.value;
-    this.blurTimeout = setTimeout(() => {
-      this.blurTimeout = null;
-      this.setState({dropdownVisible: false});
-      callIfFunction(this.props.onBlur, value);
-    }, DROPDOWN_BLUR_DURATION);
-  };
+  // onQueryBlur = e => {
+  //   // wait 200ms before closing dropdown in case blur was a result of
+  //   // clicking a menu option
+  //   const value = e.target.value;
+  //   this.blurTimeout = setTimeout(() => {
+  //     this.blurTimeout = null;
+  //     // this.setState({dropdownVisible: false});
+  //     callIfFunction(this.props.onBlur, value);
+  //   }, DROPDOWN_BLUR_DURATION);
+  // };
 
   onQueryChange = evt => {
     this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
@@ -961,8 +961,8 @@ class SmartSearchBar extends React.Component {
           ref={this.searchInput}
           autoComplete="off"
           value={this.state.query}
-          onFocus={this.onQueryFocus}
-          onBlur={this.onQueryBlur}
+          // onFocus={this.onQueryFocus}
+          // onBlur={this.onQueryBlur}
           onKeyUp={this.onKeyUp}
           onKeyDown={this.onKeyDown}
           onChange={this.onQueryChange}
@@ -993,11 +993,7 @@ class SmartSearchBar extends React.Component {
           <SearchSvg src="icon-search" />
         </SearchLabel>
 
-        {useFormWrapper ? (
-          <StyledForm onSubmit={this.onSubmit}>{input}</StyledForm>
-        ) : (
-          input
-        )}
+        {input}
         <StyledButtonBar>
           {this.state.query !== '' && (
             <InputButton
@@ -1013,111 +1009,6 @@ class SmartSearchBar extends React.Component {
             >
               <InlineSvg src="icon-close" size="11" />
             </InputButton>
-          )}
-          {hasPinnedSearch && (
-            <InputButton
-              type="button"
-              title={pinTooltip}
-              borderless
-              disabled={!hasQuery}
-              aria-label={pinTooltip}
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              onClick={this.onTogglePinnedSearch}
-              collapseIntoEllipsisMenu={1}
-              isActive={!!pinnedSearch}
-            >
-              <InlineSvg src={pinIconSrc} />
-            </InputButton>
-          )}
-          {canCreateSavedSearch && (
-            <ClassNames>
-              {({css}) => (
-                <CreateSavedSearchButton
-                  query={this.state.query}
-                  organization={organization}
-                  disabled={!hasQuery}
-                  withTooltip
-                  iconOnly
-                  buttonClassName={css`
-                    ${getInputButtonStyles({
-                      collapseIntoEllipsisMenu: 2,
-                    })}
-                  `}
-                />
-              )}
-            </ClassNames>
-          )}
-          {hasSearchBuilder && (
-            <SearchBuilderButton
-              title={t('Toggle search builder')}
-              borderless
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              collapseIntoEllipsisMenu={2}
-              aria-label={t('Toggle search builder')}
-              onClick={onSidebarToggle}
-            >
-              <InlineSvg src="icon-sliders" size="13" />
-            </SearchBuilderButton>
-          )}
-
-          {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
-            <StyledDropdownLink
-              anchorRight
-              caret={false}
-              title={
-                <EllipsisButton
-                  size="zero"
-                  borderless
-                  tooltipProps={{
-                    containerDisplayMode: 'flex',
-                  }}
-                  type="button"
-                  aria-label={t('Show more')}
-                >
-                  <EllipsisIcon src="icon-ellipsis-filled" />
-                </EllipsisButton>
-              }
-            >
-              {hasPinnedSearch && (
-                <DropdownElement
-                  showBelowMediaQuery={1}
-                  data-test-id="pin-icon"
-                  onClick={this.onTogglePinnedSearch}
-                >
-                  <MenuIcon src={pinIconSrc} size="13" />
-                  {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
-                </DropdownElement>
-              )}
-              {canCreateSavedSearch && (
-                <ClassNames>
-                  {({css}) => (
-                    <CreateSavedSearchButton
-                      query={this.state.query}
-                      organization={organization}
-                      disabled={!hasQuery}
-                      buttonClassName={css`
-                        ${getDropdownElementStyles({
-                          showBelowMediaQuery: 2,
-                          last: false,
-                        })}
-                      `}
-                    />
-                  )}
-                </ClassNames>
-              )}
-              {hasSearchBuilder && (
-                <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
-                  <MenuIcon src="icon-sliders" size="12" />
-                  Toggle sidebar
-                </DropdownElement>
-              )}
-            </StyledDropdownLink>
           )}
         </StyledButtonBar>
       </Container>
@@ -1233,35 +1124,8 @@ const SearchBuilderButton = styled(InputButton)`
   margin-right: ${space(0.5)};
 `;
 
-const StyledDropdownLink = styled(DropdownLink)`
-  display: none;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: flex;
-  }
-`;
-
-const DropdownElement = styled('a')`
-  ${getDropdownElementStyles}
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};
-`;
-
-const MenuIcon = styled(InlineSvg)`
-  margin-right: ${space(1)};
-`;
-
-const EllipsisButton = styled(InputButton)`
-  /* this is necessary because DropdownLink wraps the button in an unstyled span */
-  margin: 6px 0 0 0;
-`;
-
-const EllipsisIcon = styled(InlineSvg)`
-  width: 12px;
-  height: 12px;
-  transform: rotate(90deg);
 `;
 
 const SearchLabel = styled('label')`

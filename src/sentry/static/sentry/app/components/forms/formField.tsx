@@ -26,6 +26,7 @@ type FormFieldProps = {
   error?: string;
   value?: Value;
   meta?: Meta;
+  height?: string;
 };
 
 type FormFieldState = {
@@ -65,16 +66,18 @@ export default class FormField<
     error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
     value: PropTypes.any,
     meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
+    height: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
+  };
+
+  static contextTypes = {
+    form: PropTypes.object,
   };
 
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
-  };
-
-  static contextTypes = {
-    form: PropTypes.object,
+    height: 'auto',
   };
 
   constructor(props: Props, context: Context) {

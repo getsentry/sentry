@@ -40,19 +40,19 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 export const INTERFACES = {
-  exception: ExceptionInterface,
-  message: MessageInterface,
-  request: RequestInterface,
-  stacktrace: StacktraceInterface,
-  template: TemplateInterface,
-  csp: CspInterface,
-  expectct: GenericInterface,
-  expectstaple: GenericInterface,
-  hpkp: GenericInterface,
+  // exception: ExceptionInterface,
+  // message: MessageInterface,
+  // request: RequestInterface,
+  // stacktrace: StacktraceInterface,
+  // template: TemplateInterface,
+  // csp: CspInterface,
+  // expectct: GenericInterface,
+  // expectstaple: GenericInterface,
+  // hpkp: GenericInterface,
   breadcrumbs: BreadcrumbsInterface,
-  threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface,
-  spans: SpansInterface,
+  // threads: ThreadsInterface,
+  // debugmeta: DebugMetaInterface,
+  // spans: SpansInterface,
 };
 
 class EventEntries extends React.Component {
