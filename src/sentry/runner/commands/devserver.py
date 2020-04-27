@@ -19,6 +19,7 @@ _DEFAULT_DAEMONS = {
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
     "storybook": ["./bin/yarn", "storybook"],
+    "reverse_proxy": ["sentry", "devservices", "attach", "--is-devserver", "reverse_proxy"],
 }
 
 
@@ -160,12 +161,8 @@ def devserver(
         uwsgi_overrides["protocol"] = "http"
 
         os.environ["FORCE_WEBPACK_DEV_SERVER"] = "1"
-
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
-
-        os.environ["SENTRY_BACKEND_HOST"] = host
-        os.environ["SENTRY_WEBPACK_PROXY_HOST"] = host
 
         # webpack and/or typescript is causing memory issues
         os.environ["NODE_OPTIONS"] = (
@@ -207,7 +204,7 @@ def devserver(
             daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("reverse_proxy")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)

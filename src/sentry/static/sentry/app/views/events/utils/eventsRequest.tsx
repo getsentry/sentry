@@ -3,12 +3,16 @@ import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Organization, EventsStats, YAxisEventsStats, EventsStatsData} from 'app/types';
+import {
+  OrganizationSummary,
+  EventsStats,
+  MultiSeriesEventsStats,
+  EventsStatsData,
+} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {truncationFormatter} from 'app/components/charts/utils';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -35,11 +39,8 @@ type LoadingStatus = {
   errored: boolean;
 };
 
-// API response format for multiple series
-type MultiSeriesData = {[seriesName: string]: EventsStats};
-
 // Chart format for multiple series.
-type MultiSeriesResults = {[seriesName: string]: Series};
+type MultiSeriesResults = Series[];
 
 type RenderProps = LoadingStatus & TimeSeriesData & {results?: MultiSeriesResults};
 
@@ -89,7 +90,7 @@ type EventsRequestPartialProps = {
    * API client instance
    */
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   /**
    * List of project ids to query
    */
@@ -149,16 +150,16 @@ type EventsRequestProps = DefaultProps & TimeAggregationProps & EventsRequestPar
 type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
-  timeseriesData: null | EventsStats | YAxisEventsStats;
+  timeseriesData: null | EventsStats | MultiSeriesEventsStats;
 };
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-function isMultiSeriesData(
-  data: MultiSeriesData | EventsStats | null
-): data is MultiSeriesData {
+function isMultiSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats | null
+): data is MultiSeriesEventsStats {
   return data !== null && data.data === undefined && data.totals === undefined;
 }
 
@@ -236,7 +237,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   fetchData = async () => {
     const {api, ...props} = this.props;
-    let timeseriesData: EventsStats | YAxisEventsStats | null = null;
+    let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
@@ -392,19 +393,23 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
 
-    if (isMultiSeriesData(timeseriesData)) {
+    if (isMultiSeriesStats(timeseriesData)) {
       // Convert multi-series results into chartable series. Multi series results
       // are created when multiple yAxis are used or a topEvents request is made.
       // Convert the timeseries data into a multi-series result set.
       // As the server will have replied with a map like:
       // {[titleString: string]: EventsStats}
-      const results: MultiSeriesResults = Object.fromEntries(
-        Object.keys(timeseriesData).map((seriesName: string): [string, Series] => {
+      const results: MultiSeriesResults = Object.keys(timeseriesData)
+        .map((seriesName: string): [number, Series] => {
           const seriesData: EventsStats = timeseriesData[seriesName];
-          const name = truncationFormatter(seriesName, 80);
-          return [name, this.transformTimeseriesData(seriesData.data, name)[0]];
+          const transformed = this.transformTimeseriesData(
+            seriesData.data,
+            seriesName
+          )[0];
+          return [seriesData.order || 0, transformed];
         })
-      );
+        .sort((a, b) => a[0] - b[0])
+        .map(item => item[1]);
 
       return children({
         loading,

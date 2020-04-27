@@ -64,6 +64,9 @@ class IngestConsumerWorker(AbstractBatchWorker):
                     other_messages.append((process_userreport, message))
                 else:
                     raise ValueError("Unknown message type: {}".format(message_type))
+                metrics.incr(
+                    "ingest_consumer.flush.messages_seen", tags={"message_type": message_type}
+                )
 
         with metrics.timer("ingest_consumer.fetch_projects"):
             projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}

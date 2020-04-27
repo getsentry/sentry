@@ -19,6 +19,11 @@ class BaseIncidentCommentDetailsTest(object):
             self.incident, user=self.user, type=IncidentActivityType.DETECTED.value
         )
 
+        user2 = self.create_user()
+        self.user2_activity = self.create_incident_comment(
+            incident=self.incident, user=user2, comment="hello from another user"
+        )
+
     @fixture
     def organization(self):
         return self.create_organization()
@@ -76,6 +81,34 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.user == self.user
         assert activity.comment == comment
 
+    def test_cannot_edit_others_comment(self):
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug,
+                self.incident.identifier,
+                self.user2_activity.id,
+                comment="edited comment",
+                status_code=404,
+            )
+
+    def test_superuser_can_edit(self):
+        self.user.is_superuser = True
+        self.user.save()
+
+        edited_comment = "this comment has been edited"
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug,
+                self.incident.identifier,
+                self.user2_activity.id,
+                comment=edited_comment,
+                status_code=200,
+            )
+        activity = IncidentActivity.objects.get(id=self.user2_activity.id)
+        assert activity.user != self.user
+        assert activity.comment == edited_comment
+
 
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest, APITestCase):
     method = "delete"
@@ -86,3 +119,25 @@ class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTe
                 self.organization.slug, self.incident.identifier, self.activity.id, status_code=204
             )
         assert not IncidentActivity.objects.filter(id=self.activity.id).exists()
+
+    def test_cannot_delete_others_comments(self):
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug,
+                self.incident.identifier,
+                self.user2_activity.id,
+                status_code=404,
+            )
+
+    def test_superuser_can_delete(self):
+        self.user.is_superuser = True
+        self.user.save()
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug,
+                self.incident.identifier,
+                self.user2_activity.id,
+                status_code=204,
+            )
+        assert not IncidentActivity.objects.filter(id=self.user2_activity.id).exists()

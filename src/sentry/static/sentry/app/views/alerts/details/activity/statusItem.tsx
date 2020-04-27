@@ -5,7 +5,13 @@ import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {Incident, IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
+import {
+  Incident,
+  IncidentActivityType,
+  IncidentStatus,
+  ActivityType,
+  IncidentStatusMethod,
+} from '../../types';
 
 type Props = {
   activity: ActivityType;
@@ -66,12 +72,11 @@ class StatusItem extends React.Component<Props> {
                 currentTrigger: <StatusValue>{currentTrigger}</StatusValue>,
               })}
             {isClosed &&
-              !activity.user &&
+              incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED &&
               t(
                 'This alert has been auto-resolved because the rule that triggered it has been modified or deleted.'
               )}
             {isClosed &&
-              activity.user &&
               tct('[user] resolved the alert', {
                 user: <StatusValue>{authorName}</StatusValue>,
               })}

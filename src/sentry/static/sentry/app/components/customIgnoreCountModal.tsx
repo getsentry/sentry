@@ -1,14 +1,13 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {ResolutionStatusDetails} from 'app/types';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import space from 'app/styles/space';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
@@ -98,22 +97,16 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
           />
         </Modal.Body>
         <Modal.Footer>
-          <Actions>
+          <ButtonBar gap={1}>
             <Button type="button" onClick={onCanceled}>
               {t('Cancel')}
             </Button>
             <Button type="button" priority="primary" onClick={this.handleSubmit}>
               {t('Ignore')}
             </Button>
-          </Actions>
+          </ButtonBar>
         </Modal.Footer>
       </Modal>
     );
   }
 }
-
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-`;

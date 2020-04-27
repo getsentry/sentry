@@ -7,13 +7,13 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 type Props = {
-  title?: string;
+  title?: string | null;
 };
 
 const BetaTag = ({
   title = t('This feature is in beta and may change in the future.'),
 }: Props) => (
-  <Tooltip title={title} position="right">
+  <Tooltip title={title} disabled={!title} position="right">
     <StyledTag priority="beta" size="small">
       {t('beta')}
     </StyledTag>

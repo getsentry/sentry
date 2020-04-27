@@ -389,6 +389,45 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["user"] == data["user"]["ip_address"]
 
+    def test_has_issue(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
+
     def test_negative_user_search(self):
         self.login_as(user=self.user)
 
@@ -878,38 +917,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count_unique_user"] == 2
 
     def test_aggregation_alias_comparison(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        data = load_data("transaction")
-        data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        self.store_event(data, project_id=project.id)
-
-        data = load_data("transaction")
-        data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
-        event = self.store_event(data, project_id=project.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "field": ["transaction", "p95"],
-                    "query": "event.type:transaction p95:<4000",
-                    "orderby": ["transaction"],
-                },
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["transaction"] == event.transaction
-        assert data[0]["p95"] == 3000
-
-    def test_aggregation_alias_comparison_with_brackets(self):
         self.login_as(user=self.user)
         project = self.create_project()
         data = load_data("transaction")
@@ -1709,11 +1716,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "field": [
                         "event.type",
-                        "p75",
+                        "p50()",
+                        "p75()",
                         "p95()",
+                        "p99()",
+                        "p100()",
                         "percentile(transaction.duration, 0.99)",
                         "apdex(300)",
-                        "impact()",
+                        "impact(300)",
                         "error_rate()",
                     ],
                     "query": "event.type:transaction",
@@ -1722,20 +1732,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 200, response.content
             meta = response.data["meta"]
+            assert meta["p50"] == "duration"
             assert meta["p75"] == "duration"
             assert meta["p95"] == "duration"
+            assert meta["p99"] == "duration"
+            assert meta["p100"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
             assert meta["error_rate"] == "percentage"
-            assert meta["impact"] == "number"
+            assert meta["impact_300"] == "number"
 
             data = response.data["data"]
             assert len(data) == 1
+            assert data[0]["p50"] == 5000
             assert data[0]["p75"] == 5000
             assert data[0]["p95"] == 5000
+            assert data[0]["p99"] == 5000
+            assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact"] == 1.0
+            assert data[0]["impact_300"] == 1.0
             assert data[0]["error_rate"] == 0.5
 
         with self.feature(
@@ -1815,19 +1831,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "field": [
                         "event.type",
-                        "p75",
+                        "p50()",
+                        "p75()",
                         "p95()",
                         "percentile(transaction.duration, 0.99)",
+                        "p100()",
                     ],
-                    "query": "event.type:transaction p75:>1000 p95():>1000 percentile(transaction.duration, 0.99):>1000",
+                    "query": "event.type:transaction p50():>100 p75():>1000 p95():>1000 p100():>1000 percentile(transaction.duration, 0.99):>1000",
                 },
             )
 
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
+            assert data[0]["p50"] == 5000
             assert data[0]["p75"] == 5000
             assert data[0]["p95"] == 5000
+            assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
 
         with self.feature(
@@ -1837,7 +1857,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex", "impact()", "error_rate()"],
+                    "field": ["event.type", "apdex()", "impact()", "error_rate()"],
                     "query": "event.type:transaction apdex:>-1.0 impact():>0.5 error_rate():>0.25",
                 },
             )
@@ -1971,8 +1991,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex()"],
-                    "sort": "-apdex",
+                    "field": ["event.type", "apdex(300)"],
+                    "sort": "-apdex(300)",
                     "query": "event.type:transaction",
                 },
             )
@@ -1980,7 +2000,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["apdex"] == 0.0
+            assert data[0]["apdex_300"] == 0.0
 
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
