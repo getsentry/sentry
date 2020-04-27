@@ -301,31 +301,6 @@ describe('GlobalSelectionHeader', function() {
     expect(checkboxes.text()).toBe('staging');
   });
 
-  it('updates URL to match GlobalSelection store when re-rendered with `forceUrlSync` prop', async function() {
-    const wrapper = mountWithTheme(
-      <GlobalSelectionHeader router={router} organization={organization} />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    // Force load, will load from mocked localStorage
-    GlobalSelectionStore.loadInitialData(organization, {}, {forceUrlSync: true});
-
-    await tick();
-    wrapper.update();
-
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {
-          environment: ['staging'],
-          project: [3],
-        },
-      })
-    );
-  });
-
   it('updates GlobalSelection store with default period', async function() {
     mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,

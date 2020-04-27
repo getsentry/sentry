@@ -89,7 +89,11 @@ describe('OrganizationContext', function() {
       true,
       true
     );
-    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {}, {api});
+    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(
+      org,
+      {},
+      {api, skipLastUsed: false}
+    );
   });
 
   it('fetches new org when router params change', async function() {
@@ -259,7 +263,7 @@ describe('OrganizationContext', function() {
     expect(getOrgMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call `GlobalSelectionStore.loadInitialData` on group details route', async function() {
+  it('calls `GlobalSelectionStore.loadInitialData` with `skipLastUsed` option when loadigno group details route', async function() {
     expect(GlobalSelectionStore.loadInitialData).not.toHaveBeenCalled();
     wrapper = createWrapper({
       routes: [{path: '/organizations/:orgId/issues/:groupId/'}],
@@ -273,6 +277,10 @@ describe('OrganizationContext', function() {
     expect(wrapper.state('loading')).toBe(false);
     expect(wrapper.state('error')).toBe(null);
 
-    expect(GlobalSelectionStore.loadInitialData).not.toHaveBeenCalled();
+    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(
+      org,
+      {},
+      {api, skipLastUsed: true}
+    );
   });
 });
