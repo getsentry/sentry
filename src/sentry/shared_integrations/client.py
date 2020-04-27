@@ -62,7 +62,7 @@ class BaseApiResponse(object):
 
         # Some APIs will return JSON with an invalid content-type, so we try
         # to decode it anyways
-        if "application/json" not in response.headers.get("Content-Type", {}):
+        if "application/json" not in response.headers.get("Content-Type", ""):
             try:
                 data = json.loads(response.text, object_pairs_hook=OrderedDict)
             except (TypeError, ValueError):
