@@ -122,8 +122,7 @@ class TransactionSummary extends React.Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
+        <GlobalSelectionHeader>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <SummaryContent
@@ -135,7 +134,7 @@ class TransactionSummary extends React.Component<Props, State> {
               />
             </LightWeightNoProjectMessage>
           </StyledPageContent>
-        </React.Fragment>
+        </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
   }

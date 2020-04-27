@@ -255,9 +255,8 @@ class IncidentsListContainer extends React.Component<Props> {
     const status = getQueryStatus(query.status);
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} showDateSelector={false} />
-        <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+        <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <PageContent>
             <PageHeader>
               <StyledPageHeading>
@@ -341,8 +340,8 @@ class IncidentsListContainer extends React.Component<Props> {
             </Alert>
             <IncidentsList {...this.props} />
           </PageContent>
-        </DocumentTitle>
-      </React.Fragment>
+        </GlobalSelectionHeader>
+      </DocumentTitle>
     );
   }
 }

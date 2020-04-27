@@ -196,20 +196,17 @@ class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseProje
     }
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          lockedMessageSubject={t('release')}
-          shouldForceProject={projects.length === 1}
-          forceProject={projects.length === 1 ? projects[0] : undefined}
-          specificProjectSlugs={projects.map(p => p.slug)}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-          projectsFooterMessage={this.renderProjectsFooterMessage()}
-        />
-
+      <GlobalSelectionHeader
+        lockedMessageSubject={t('release')}
+        shouldForceProject={projects.length === 1}
+        forceProject={projects.length === 1 ? projects[0] : undefined}
+        specificProjectSlugs={projects.map(p => p.slug)}
+        disableMultipleProjectSelection
+        showProjectSettingsLink
+        projectsFooterMessage={this.renderProjectsFooterMessage()}
+      >
         <ReleasesV2Detail {...this.props} releaseProjects={projects} />
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

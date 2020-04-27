@@ -212,7 +212,7 @@ describe('EventsErrors', function() {
     let wrapper;
     let newParams;
 
-    beforeEach(function() {
+    beforeEach(async function() {
       const newLocation = {
         ...router.location,
         query: {
@@ -234,6 +234,7 @@ describe('EventsErrors', function() {
         },
       };
 
+      ProjectsStore.loadInitialData(organization.projects);
       wrapper = mountWithTheme(
         <EventsContainer
           router={newRouter}
@@ -245,6 +246,9 @@ describe('EventsErrors', function() {
         newRouterContext
       );
       mockRouterPush(wrapper, router);
+
+      await tick();
+      wrapper.update();
 
       // XXX: Note this spy happens AFTER initial render!
       tableRender = jest.spyOn(wrapper.find('EventsTable').instance(), 'render');
@@ -327,7 +331,7 @@ describe('EventsContainer', function() {
     });
   });
 
-  beforeEach(function() {
+  beforeEach(async function() {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -350,6 +354,8 @@ describe('EventsContainer', function() {
       body: {count: 5},
     });
 
+    ProjectsStore.loadInitialData(organization.projects);
+
     wrapper = mountWithTheme(
       <EventsContainer
         router={router}
@@ -360,6 +366,8 @@ describe('EventsContainer', function() {
       </EventsContainer>,
       routerContext
     );
+    await tick();
+    wrapper.update();
 
     mockRouterPush(wrapper, router);
   });
@@ -401,17 +409,17 @@ describe('EventsContainer', function() {
   });
 
   it('updates when changing projects', async function() {
-    ProjectsStore.loadInitialData(organization.projects);
-    // ensure that the wrapper gets new project values from withProjects HOC
-    wrapper.update();
-
-    expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([]);
+    // Project id = 3 should be first selected because of ProjectsStore.getAll sorting by slug
+    expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([3]);
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
+    // TODO(billy): Fix this sorting, 2 gets moved up
+    // because the component (ProjectSelector) sorts it and
+    // orders isBookmarked to the top
     wrapper
       .find('MultipleProjectSelector AutoCompleteItem ProjectSelectorItem')
-      .first()
+      .at(0)
       .simulate('click');
 
     await tick();

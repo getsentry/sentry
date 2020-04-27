@@ -3,12 +3,14 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentsList from 'app/views/alerts/list';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentsList', function() {
   const {routerContext, organization} = initializeOrg();
   let mock;
   let projectMock;
   let wrapper;
+  let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
@@ -55,23 +57,31 @@ describe('IncidentsList', function() {
       body: TestStubs.IncidentStats({totalEvents: 1000, uniqueUsers: 32}),
     });
 
+    projects = [
+      TestStubs.Project({slug: 'a', platform: 'javascript'}),
+      TestStubs.Project({slug: 'b'}),
+      TestStubs.Project({slug: 'c'}),
+      TestStubs.Project({slug: 'd'}),
+    ];
+
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [
-        TestStubs.Project({slug: 'a', platform: 'javascript'}),
-        TestStubs.Project({slug: 'b'}),
-        TestStubs.Project({slug: 'c'}),
-        TestStubs.Project({slug: 'd'}),
-      ],
+      body: projects,
     });
   });
 
   afterEach(function() {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
   it('displays list', async function() {
+    ProjectsStore.loadInitialData(projects);
     wrapper = await createWrapper();
+    await tick();
+    await tick();
+    await tick();
+    wrapper.update();
 
     const items = wrapper.find('IncidentPanelItem');
 
@@ -83,10 +93,10 @@ describe('IncidentsList', function() {
     // component to load projects for all rows.
     expect(projectMock).toHaveBeenCalledTimes(2);
 
-    expect(projectMock).toHaveBeenCalledWith(
+    expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {query: 'slug:a slug:b slug:c slug:d'},
+        query: {query: 'slug:a slug:b slug:c'},
       })
     );
     expect(
@@ -95,7 +105,7 @@ describe('IncidentsList', function() {
         .find('IdBadge')
         .prop('project')
     ).toMatchObject({
-      platform: 'javascript',
+      slug: 'a',
     });
 
     expect(

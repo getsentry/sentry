@@ -2,12 +2,29 @@ import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/browser';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import qs from 'query-string';
 
-import {Environment} from 'app/types';
+import {
+  DATE_TIME,
+  LOCAL_STORAGE_KEY,
+  URL_PARAM,
+} from 'app/constants/globalSelectionHeader';
+import {
+  Environment,
+  GlobalSelection,
+  MinimalProject,
+  Organization,
+  Project,
+} from 'app/types';
 import {defined} from 'app/utils';
+import {
+  getDefaultSelection,
+  getStateFromQuery,
+} from 'app/components/organizations/globalSelectionHeader/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import localStorage from 'app/utils/localStorage';
 
 /**
  * Note this is the internal project.id, NOT the slug, but it is the stringified version of it
@@ -37,9 +54,6 @@ type DateTimeObject = {
   period?: string | null;
 };
 
-// Get Params type from `getParams` helper
-// type Params = Parameters<typeof getParams>[0];
-
 /**
  * Cast project ids to strings, as everything is assumed to be a string in URL params
  *
@@ -63,9 +77,137 @@ export function resetGlobalSelection() {
   GlobalSelectionActions.reset();
 }
 
+function getProjectIdFromProject(project: MinimalProject) {
+  return parseInt(project.id, 10);
+}
+
+type InitializeUrlStateParams = {
+  organization: Organization;
+  queryParams: ReactRouter.WithRouterProps['location']['query'];
+  router: ReactRouter.WithRouterProps['router'];
+  memberProjects: Project[];
+  shouldForceProject?: boolean;
+  shouldEnforceSingleProject: boolean;
+  /**
+   * If true, do not load from local storage
+   */
+  skipLastUsed?: boolean;
+  defaultSelection?: Partial<GlobalSelection>;
+  forceProject?: MinimalProject | null;
+};
+
+export function initializeUrlState({
+  organization,
+  queryParams,
+  router,
+  memberProjects,
+  skipLastUsed,
+  shouldForceProject,
+  shouldEnforceSingleProject,
+  defaultSelection,
+  forceProject,
+}: InitializeUrlStateParams) {
+  const orgSlug = organization.slug;
+  const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
+  const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
+  const parsed = getStateFromQuery(queryParams);
+
+  let globalSelection: Omit<GlobalSelection, 'datetime'> & {
+    datetime: {
+      [K in keyof GlobalSelection['datetime']]: GlobalSelection['datetime'][K] | null;
+    };
+  } = {
+    ...getDefaultSelection(),
+    datetime: {
+      [DATE_TIME.START as 'start']: parsed.start || null,
+      [DATE_TIME.END as 'end']: parsed.end || null,
+      [DATE_TIME.PERIOD as 'period']: parsed.period || null,
+      [DATE_TIME.UTC as 'utc']: parsed.utc || null,
+    },
+    ...defaultSelection,
+  };
+
+  // We only save environment and project, so if those exist in
+  // URL, do not touch local storage
+  if (hasProjectOrEnvironmentInUrl) {
+    globalSelection.projects = parsed.project || [];
+    globalSelection.environments = parsed.environment || [];
+  } else if (!skipLastUsed) {
+    try {
+      const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
+      const storedValue = localStorage.getItem(localStorageKey);
+
+      if (storedValue) {
+        globalSelection = {
+          datetime: globalSelection.datetime,
+          ...JSON.parse(storedValue),
+        };
+      }
+    } catch (ex) {
+      // use default if invalid
+      console.error(ex); // eslint-disable-line no-console
+    }
+  }
+
+  const {projects, environments: environment, datetime} = globalSelection;
+  let newProject: number[] | null = null;
+  let project = projects;
+
+  /**
+   * Skip enforcing a single project if `shouldForceProject` is true,
+   * since a component is controlling what that project needs to be.
+   * This is true regardless if user has access to multi projects
+   */
+  if (shouldForceProject && forceProject) {
+    newProject = [getProjectIdFromProject(forceProject)];
+  } else if (shouldEnforceSingleProject && !shouldForceProject) {
+    /**
+     * If user does not have access to `global-views` (e.g. multi project select) *and* there is no
+     * `project` URL parameter, then we update URL params with:
+     * 1) the first project from the list of requested projects from URL params,
+     * 2) first project user is a member of from org
+     *
+     * Note this is intentionally skipped if `shouldForceProject == true` since we want to initialize store
+     * and wait for the forced project
+     */
+    if (projects && projects.length > 0) {
+      // If there is a list of projects from URL params, select first project from that list
+      newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
+    } else {
+      // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
+      // the URL param--Sentry will get the first project from the organization that the user is a member of.
+      newProject = [...memberProjects].slice(0, 1).map(getProjectIdFromProject);
+    }
+  }
+
+  if (newProject) {
+    globalSelection.projects = newProject;
+    project = newProject;
+  }
+
+  GlobalSelectionActions.initializeUrlState(globalSelection);
+  GlobalSelectionActions.setOrganization(organization);
+
+  // To keep URLs clean, don't push default period if url params are empty
+  const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
+    allowEmptyPeriod: true,
+  });
+
+  const newDatetime = {
+    ...datetime,
+    period:
+      !parsedWithNoDefaultPeriod.start &&
+      !parsedWithNoDefaultPeriod.end &&
+      !parsedWithNoDefaultPeriod.period
+        ? null
+        : datetime.period,
+    utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
+  };
+  updateParamsWithoutHistory({project, environment, ...newDatetime}, router);
+}
+
 /**
- * Updates global project selection URL param if `router` is supplied
- * OTHERWISE fire action to update projects
+ * Updates store and global project selection URL param if `router` is supplied
  */
 export function updateProjects(
   projects: ProjectId[],
@@ -80,9 +222,7 @@ export function updateProjects(
     return;
   }
 
-  if (!router) {
-    GlobalSelectionActions.updateProjects(projects);
-  }
+  GlobalSelectionActions.updateProjects(projects);
   updateParams({project: projects}, router, options);
 }
 
@@ -91,8 +231,7 @@ function isProjectsValid(projects: ProjectId[]) {
 }
 
 /**
- * Updates global datetime selection URL param if `router` is supplied
- * OTHERWISE fire action to update projects
+ * Updates store and global datetime selection URL param if `router` is supplied
  *
  * @param {Object} datetime Object with start, end, range keys
  * @param {Object} [router] Router object
@@ -104,15 +243,14 @@ export function updateDateTime(
   router?: Router,
   options?: Options
 ) {
-  if (!router) {
-    GlobalSelectionActions.updateDateTime(datetime);
-  }
+  GlobalSelectionActions.updateDateTime(datetime);
+  // We only save projects/environments to local storage, do not
+  // save anything when date changes.
   updateParams(datetime, router, {...options, save: false});
 }
 
 /**
- * Updates global environment selection URL param if `router` is supplied
- * OTHERWISE fire action to update projects
+ * Updates store and updates global environment selection URL param if `router` is supplied
  *
  * @param {String[]} environments List of environments
  * @param {Object} [router] Router object
@@ -124,9 +262,7 @@ export function updateEnvironments(
   router?: Router,
   options?: Options
 ) {
-  if (!router) {
-    GlobalSelectionActions.updateEnvironments(environment);
-  }
+  GlobalSelectionActions.updateEnvironments(environment);
   updateParams({environment}, router, options);
 }
 
