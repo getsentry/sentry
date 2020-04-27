@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
@@ -120,7 +121,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     api.clear();
   }
 
-  fetchData = () => {
+  fetchData = async () => {
     const {api, group, project, organization, params, environments} = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
@@ -135,32 +136,45 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     const envNames = environments.map(e => e.name);
 
-    api
-      .requestPromise(`/projects/${orgSlug}/${projSlug}/releases/completion/`)
-      .then(data => {
-        this.setState({
-          releasesCompletion: data,
-        });
-      });
-
-    fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
-      .then(data => {
-        this.setState({
-          event: data,
-          error: false,
-          loading: false,
-        });
-      })
-      .catch(() => {
-        this.setState({
-          event: null,
-          error: true,
-          loading: false,
-        });
-      });
+    /**
+     * Perform below requests in parallel
+     */
+    const releasesCompletionPromise = api.requestPromise(
+      `/projects/${orgSlug}/${projSlug}/releases/completion/`
+    );
+    const fetchGroupEventPromise = fetchGroupEventAndMarkSeen(
+      api,
+      orgSlug,
+      projSlug,
+      groupId,
+      eventId,
+      envNames
+    );
 
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);
+
+    const releasesCompletion = await releasesCompletionPromise;
+    this.setState({
+      releasesCompletion,
+    });
+
+    try {
+      const event = await fetchGroupEventPromise;
+      this.setState({
+        event,
+        error: false,
+        loading: false,
+      });
+    } catch (err) {
+      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
+      Sentry.captureException(err);
+      this.setState({
+        event: null,
+        error: true,
+        loading: false,
+      });
+    }
   };
 
   get showExampleCommit() {
