@@ -508,6 +508,45 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Assert the new query exists and has 'copy' added to the name.
         assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
+    @patch("django.utils.timezone.now")
+    def test_drilldown_result(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        min_ago = iso_format(before_now(minutes=1))
+        events = (
+            ("a" * 32, "oh no", "group-1"),
+            ("b" * 32, "oh no", "group-1"),
+            ("c" * 32, "this is bad", "group-2"),
+        )
+        for event in events:
+            self.store_event(
+                data={
+                    "event_id": event[0],
+                    "message": event[1],
+                    "timestamp": min_ago,
+                    "fingerprint": [event[2]],
+                    "type": "error",
+                },
+                project_id=self.project.id,
+            )
+
+        query = {"field": ["message", "project", "count()"], "query": "event.type:error"}
+        with self.feature(FEATURE_NAMES):
+            # Go directly to the query builder view
+            self.browser.get(self.result_path + "?" + urlencode(query, doseq=True))
+            self.wait_until_loaded()
+
+            # Click the first drilldown
+            self.browser.element('[data-test-id="expand-count"]').click()
+            self.wait_until_loaded()
+
+            assert self.browser.element_exists_by_test_id("grid-editable"), "table should exist."
+            headers = self.browser.find_elements_by_css_selector(
+                '[data-test-id="grid-editable"] thead th'
+            )
+            expected = ["", "MESSAGE", "PROJECT", "ID"]
+            actual = [header.text for header in headers]
+            assert expected == actual
+
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")
     def test_usage(self, mock_now):

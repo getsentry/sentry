@@ -19,7 +19,7 @@ describe('ProjectDebugFiles', function() {
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
 
-  it('renders', async function() {
+  it('renders', function() {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [TestStubs.DebugFile()],
@@ -38,7 +38,7 @@ describe('ProjectDebugFiles', function() {
     ).toBe('libS.so');
   });
 
-  it('renders empty', async function() {
+  it('renders empty', function() {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -49,5 +49,28 @@ describe('ProjectDebugFiles', function() {
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
       'There are no debug symbols for this project.'
     );
+  });
+
+  it('deletes the file', function() {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      body: [TestStubs.DebugFile()],
+    });
+
+    const deleteMock = MockApiClient.addMockResponse({
+      method: 'DELETE',
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
+        TestStubs.DebugFile().id
+      }`,
+    });
+
+    const wrapper = mountWithTheme(<ProjectDebugFiles {...props} />, routerContext);
+
+    wrapper.find('Button[data-test-id="delete-dif"]').simulate('click');
+
+    // Confirm Modal
+    wrapper.find('Modal Button[data-test-id="confirm-button"]').simulate('click');
+
+    expect(deleteMock).toHaveBeenCalled();
   });
 });

@@ -614,6 +614,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       <BackButtonWrapper>
         <Tooltip title={t('Back to Issues Stream')} position="bottom">
           <BackToIssues
+            data-test-id="back-to-issues"
             to={`/organizations/${organization.slug}/issues/${location.search}`}
           >
             <InlineSvg src="icon-arrow-left" />
