@@ -858,7 +858,7 @@ def top_events_timeseries(
             continue
         if field == "issue":
             field = FIELD_ALIASES["issue"]["column_alias"]
-        # Note that cause orderby shouldn't be an array field its not included in the values
+        # Note that because orderby shouldn't be an array field its not included in the values
         values = list(
             {
                 event.get(field)
@@ -935,7 +935,7 @@ def top_events_timeseries(
             results[result_key]["data"].append(row)
         else:
             logger.warning(
-                "Timeseries top events key mismatch",
+                "discover.top-events.timeseries.key-mismatch",
                 extra={"result_key": result_key, "top_event_keys": results.keys()},
             )
     for key, item in six.iteritems(results):
