@@ -93,8 +93,8 @@ def get_project_releases_by_stability(
     orderby = {
         "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
         "crash_free_users": [["divide", ["users_crashed", "users"]]],
-        "sessions": ["sessions"],
-        "users": ["users"],
+        "sessions": ["-sessions"],
+        "users": ["-users"],
     }[scope]
 
     conditions = []

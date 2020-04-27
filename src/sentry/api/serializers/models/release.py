@@ -186,10 +186,10 @@ class ReleaseSerializer(Serializer):
 
         first_seen = {}
         last_seen = {}
-        tvs = tagstore.get_release_tags(
+        tag_values = tagstore.get_release_tags(
             project_ids, environment_id=None, versions=[o.version for o in item_list]
         )
-        for tv in tvs:
+        for tv in tag_values:
             first_val = first_seen.get(tv.value)
             last_val = last_seen.get(tv.value)
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen

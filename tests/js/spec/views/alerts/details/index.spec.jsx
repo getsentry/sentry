@@ -15,8 +15,11 @@ describe('IncidentDetails', function() {
   const mockIncident = TestStubs.Incident({projects: [project.slug]});
   let activitiesList;
 
-  const createWrapper = props =>
-    mountWithTheme(<IncidentDetails params={params} {...props} />, routerContext);
+  const createWrapper = (props, routerCtx) =>
+    mountWithTheme(
+      <IncidentDetails params={params} {...props} />,
+      routerCtx ?? routerContext
+    );
 
   beforeAll(function() {
     ProjectsStore.loadInitialData([project]);
@@ -145,6 +148,23 @@ describe('IncidentDetails', function() {
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
     expect(wrapper.find('Status').text()).toBe('Resolved');
+  });
+
+  it('allows members to change issuet status', async function() {
+    const noAccessOrg = {...organization, access: ['project:read']};
+
+    const wrapper = createWrapper(
+      {},
+      {...routerContext, context: {...routerContext.context, organization: noAccessOrg}}
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('Status').text()).not.toBe('Resolved');
+    expect(wrapper.find('[data-test-id="status-dropdown"] DropdownButton').exists()).toBe(
+      true
+    );
   });
 
   it('toggles subscribe status with Subscribe button', async function() {

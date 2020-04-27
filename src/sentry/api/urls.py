@@ -92,7 +92,10 @@ from .endpoints.organization_event_details import OrganizationEventDetailsEndpoi
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
+from .endpoints.organization_events_meta import (
+    OrganizationEventsMetaEndpoint,
+    OrganizationEventsRelatedIssuesEndpoint,
+)
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_incident_activity_index import (
@@ -674,6 +677,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions-stats/$",
                     KeyTransactionStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/related-issues/$",
+                    OrganizationEventsRelatedIssuesEndpoint.as_view(),
+                    name="sentry-api-0-organization-related-issues",
                 ),
                 # Dashboards
                 url(
