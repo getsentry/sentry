@@ -39,7 +39,7 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
     const timeStr = this.snoozeTimeInputRef.current?.value; // HH:MM
     if (dateStr && timeStr) {
       const selectedDate = moment.utc(dateStr + ' ' + timeStr);
-      if (!selectedDate.isValid()) {
+      if (selectedDate.isValid()) {
         const now = moment.utc();
         return selectedDate.diff(now, 'minutes');
       }
