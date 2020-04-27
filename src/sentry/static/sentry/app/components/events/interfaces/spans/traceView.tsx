@@ -79,13 +79,9 @@ class TraceView extends React.PureComponent<Props, State> {
 
     const {parsedTrace} = this.props;
 
-    const {spans, orphanSpans} = parsedTrace;
+    const {spans} = parsedTrace;
 
-    const transformed: IndexedFusedSpan[] = [
-      generateRootSpan(parsedTrace),
-      ...spans,
-      ...orphanSpans,
-    ].map(
+    const transformed: IndexedFusedSpan[] = [generateRootSpan(parsedTrace), ...spans].map(
       (span): IndexedFusedSpan => {
         const indexed: string[] = [];
 

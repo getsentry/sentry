@@ -410,7 +410,6 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       parentSpanID,
       numOfSpans: 0,
       spans: [],
-      orphanSpans: [],
     };
   }
 
@@ -436,23 +435,16 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     return true;
   });
 
+  // sort orphaned span children by their start timestamps in ascending order
   orphanSpans.sort(sortSpansAscending);
 
-  orphanSpans.sort((firstSpan: RawSpanType, _secondSpan: RawSpanType) => {
-    if (firstSpan.parent_span_id === undefined) {
-      return -1;
-    }
-    return 0;
-  });
-
   // TODO: debug
-  orphanSpans = orphanSpans.slice(0, 5);
-  spans = spans.filter(span => {
-    return !!!orphanSpans.find(orphanSpan => {
-      return span.span_id === orphanSpan.span_id;
-    });
-  });
-
+  const result = orphanTheseSpans(
+    spans,
+    new Set(['86620893f627b0a6', 'b9884f1007035621'])
+  );
+  spans = result.spans;
+  orphanSpans = result.orphanSpans;
   console.log('orphanSpans', orphanSpans);
 
   const init: ParsedTraceType = {
@@ -517,6 +509,9 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     spanChildren.sort(sortSpansAscending);
   });
 
+  // TODO: sort orphan children in ascending order
+  // TODO: add orphan children to spanChildren
+
   return reduced;
 }
 
@@ -530,4 +525,23 @@ function sortSpansAscending(firstSpan: RawSpanType, secondSpan: RawSpanType) {
   }
 
   return 1;
+}
+
+// DEBUG
+function orphanTheseSpans(spans: Array<RawSpanType>, needleSpanIds: Set<string>) {
+  const orphanSpans: RawSpanType[] = [];
+
+  spans = spans.filter(span => {
+    if (needleSpanIds.has(span.span_id)) {
+      orphanSpans.push(span);
+      return false;
+    }
+
+    return true;
+  });
+
+  return {
+    spans,
+    orphanSpans,
+  };
 }

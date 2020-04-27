@@ -42,7 +42,6 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   numOfSpans: number;
   spans: RawSpanType[];
-  orphanSpans: RawSpanType[];
 };
 
 export enum TickAlignment {
