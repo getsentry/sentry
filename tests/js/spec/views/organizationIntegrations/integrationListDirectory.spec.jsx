@@ -44,7 +44,7 @@ describe('IntegrationListDirectory', function() {
     });
 
     it('shows installed integrations at the top in order of weight', async function() {
-      expect(wrapper.find('SearchInput').exists()).toBeTruthy();
+      expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(11);
 
