@@ -66,7 +66,10 @@ class BaseChart extends React.Component {
     tooltip: SentryTypes.EChartsTooltip,
 
     // DataZoom (allows for zooming of chart)
-    dataZoom: SentryTypes.EChartsDataZoom,
+    dataZoom: PropTypes.oneOfType([
+      SentryTypes.EChartsDataZoom,
+      PropTypes.arrayOf(SentryTypes.EChartsDataZoom),
+    ]),
 
     // Axis pointer options
     axisPointer: SentryTypes.EChartsAxisPointer,
@@ -266,7 +269,9 @@ class BaseChart extends React.Component {
           })
         : null
       : Array.isArray(xAxes)
-      ? xAxes.map(XAxis)
+      ? xAxes.map(axis =>
+          XAxis({...axis, useShortDate, start, end, period, isGroupedByDate, utc})
+        )
       : [XAxis(), XAxis()];
 
     return (

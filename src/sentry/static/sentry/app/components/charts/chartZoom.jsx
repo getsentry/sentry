@@ -32,6 +32,11 @@ class ChartZoom extends React.Component {
     disabled: PropTypes.bool,
 
     xAxis: SentryTypes.EChartsXAxis,
+    /**
+     * If you need the dataZoom control to control more than one chart.
+     * you can provide a list of the axis indexes.
+     */
+    xAxisIndex: PropTypes.arrayOf(PropTypes.number),
 
     // Callback for when chart has been zoomed
     onZoom: PropTypes.func,
@@ -195,6 +200,7 @@ class ChartZoom extends React.Component {
       utc,
       disabled,
       children,
+      xAxisIndex,
 
       onZoom, // eslint-disable-line no-unused-vars
       onRestore, // eslint-disable-line no-unused-vars
@@ -213,7 +219,7 @@ class ChartZoom extends React.Component {
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
-      dataZoom: DataZoom(),
+      dataZoom: DataZoom({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},
