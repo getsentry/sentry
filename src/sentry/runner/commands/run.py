@@ -459,25 +459,3 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
         get_ingest_consumer(consumer_types=consumer_types, **options).run()
-
-
-@run.command("outcomes-consumer")
-@log_options()
-@batching_kafka_options("outcomes-consumer")
-@click.option(
-    "--concurrency",
-    type=int,
-    default=1,
-    help="Spawn this many threads to process outcomes. Defaults to 1.",
-)
-@configuration
-def outcome_consumer(**options):
-    """
-    Runs an "outcomes consumer" task.
-
-    The "outcomes consumer" tasks read outcomes from a kafka topic and sends
-    signals for some of them.
-    """
-    from sentry.ingest.outcomes_consumer import get_outcomes_consumer
-
-    get_outcomes_consumer(**options).run()
