@@ -69,7 +69,7 @@ class BaseApiResponse(object):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
                 raise UnsupportedResponseType(
-                    response.headers.get("Content-Type", "No Content-Type"), response.status_code
+                    response.headers.get("Content-Type", ""), response.status_code
                 )
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
