@@ -12,7 +12,7 @@ export type Crumb = {
   /**
    * Label of the crumb
    */
-  label: string;
+  label: React.ReactNode;
 
   /**
    * Link of the crumb
@@ -32,7 +32,7 @@ export type Crumb = {
   key?: string;
 };
 
-type Props = {
+type Props = React.HTMLAttributes<HTMLDivElement> & {
   /**
    * Array of crumbs that will be rendered
    */
@@ -50,7 +50,7 @@ type Props = {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-const Breadcrumbs = ({crumbs, linkLastItem = false}: Props) => {
+const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
   if (crumbs.length === 0) {
     return null;
   }
@@ -60,10 +60,11 @@ const Breadcrumbs = ({crumbs, linkLastItem = false}: Props) => {
   }
 
   return (
-    <BreadcrumbList>
+    <BreadcrumbList {...props}>
       {crumbs.map(({label, to, preserveGlobalSelection, key}, index) => {
+        const labelKey = typeof label === 'string' ? label : '';
         const mapKey =
-          key ?? typeof to === 'string' ? `${label}${to}` : `${label}${index}`;
+          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
 
         return (
           <React.Fragment key={mapKey}>
