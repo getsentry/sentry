@@ -1185,3 +1185,65 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
         assert results["order"] == 0
+
+    def test_top_events_with_error_handled(self):
+        data = self.event_data[0]
+        data["data"]["level"] = "error"
+        data["data"]["exception"] = {
+            "values": [
+                {
+                    "type": "ValidationError",
+                    "value": "Bad request",
+                    "mechanism": {"handled": True, "type": "generic"},
+                }
+            ]
+        }
+        self.store_event(data["data"], project_id=data["project"].id)
+        data["data"]["exception"] = {
+            "values": [
+                {
+                    "type": "ValidationError",
+                    "value": "Bad request",
+                    "mechanism": {"handled": False, "type": "generic"},
+                }
+            ]
+        }
+        self.store_event(data["data"], project_id=data["project"].id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.handled"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+
+        assert response.status_code == 200, response.content
+        assert len(data) == 3
+
+        results = data[""]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 22}],
+            [{"count": 6}],
+        ]
+        assert results["order"] == 0
+
+        results = data["1"]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+        ]
+
+        results = data["0"]
+        assert [attrs for time, attrs in results["data"]] == [
+            [{"count": 1}],
+            [{"count": 0}],
+        ]
