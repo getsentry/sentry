@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {t} from 'app/locale';
 import {NewQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export const DEFAULT_STATS_PERIOD = '24h';

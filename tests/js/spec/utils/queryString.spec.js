@@ -70,3 +70,19 @@ describe('appendTagCondition', function() {
     expect(result).toEqual('user.name:"jill jones"');
   });
 });
+
+describe('decodeScalar()', function() {
+  it('unwraps array values', function() {
+    expect(utils.decodeScalar(['one', 'two'])).toEqual('one');
+  });
+
+  it('handles strings', function() {
+    expect(utils.decodeScalar('one')).toEqual('one');
+  });
+
+  it('handles falsey values', function() {
+    expect(utils.decodeScalar(undefined)).toBeUndefined();
+    expect(utils.decodeScalar(false)).toBeUndefined();
+    expect(utils.decodeScalar('')).toBeUndefined();
+  });
+});
