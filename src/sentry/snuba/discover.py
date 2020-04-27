@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import math
 import six
 
 from collections import namedtuple
@@ -425,7 +426,12 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
     result["meta"] = meta
 
     def get_row(row):
-        transformed = {translated_columns.get(key, key): value for key, value in row.items()}
+        transformed = {}
+        for key, value in row.items():
+            if isinstance(value, float) and math.isnan(value):
+                value = 0
+            transformed[translated_columns.get(key, key)] = value
+
         if has_user:
             for field in user_fields:
                 if field in transformed and transformed[field]:
@@ -788,6 +794,16 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
     return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
+def create_result_key(result_row, fields, issues):
+    values = []
+    for field in fields:
+        if field == "issue.id":
+            values.append(issues.get(result_row["issue.id"], "unknown"))
+        else:
+            values.append(six.text_type(result_row.get(field)))
+    return ",".join(values)
+
+
 def top_events_timeseries(
     timeseries_columns,
     selected_columns,
@@ -897,17 +913,20 @@ def top_events_timeseries(
 
     results = {}
     for row in result["data"]:
-        values = []
-        for field in translated_groupby:
-            if field == "issue.id":
-                values.append(issues.get(row["issue.id"], "unknown"))
-            else:
-                values.append(six.text_type(row.get(field)))
-        result_key = ",".join(values)
-        results.setdefault(result_key, []).append(row)
+        result_key = create_result_key(row, translated_groupby, issues)
+        results.setdefault(result_key, {"data": []})["data"].append(row)
+    # Using the top events add the order to the results
+    for index, item in enumerate(top_events["data"]):
+        result_key = create_result_key(item, translated_groupby, issues)
+        results[result_key]["order"] = index
     for key, item in six.iteritems(results):
         results[key] = SnubaTSResult(
-            {"data": zerofill(item, snuba_filter.start, snuba_filter.end, rollup, "time")},
+            {
+                "data": zerofill(
+                    item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
+                ),
+                "order": item["order"],
+            },
             snuba_filter.start,
             snuba_filter.end,
             rollup,

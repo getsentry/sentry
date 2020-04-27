@@ -1065,6 +1065,26 @@ export const EChartsGrid = PropTypes.shape({
   tooltip: EChartsTooltip,
 });
 
+export const EChartsAxisPointer = PropTypes.shape({
+  // A list of link groups
+  link: PropTypes.arrayOf(
+    PropTypes.shape({
+      // Link by x-axis index.
+      xAxisIndex: PropTypes.arrayOf(PropTypes.number),
+      // Link by y-axis index.
+      yAxisIndex: PropTypes.arrayOf(PropTypes.number),
+      // Link by x-axis id.
+      xAxisId: PropTypes.arrayOf(PropTypes.string),
+      // Link by y-axis id.
+      yAxisId: PropTypes.arrayOf(PropTypes.string),
+      // Link by x-axis name.
+      xAxisName: PropTypes.arrayOf(PropTypes.string),
+      // Link by y-axis name.
+      yAxisName: PropTypes.arrayOf(PropTypes.string),
+    })
+  ),
+});
+
 export const EChartsLegend = PropTypes.shape({
   // Show legend on chart
   show: PropTypes.bool,
@@ -1280,6 +1300,7 @@ const SentryTypes = {
   EChartsYAxis: EChartsAxis,
   EChartsTooltip,
   EChartsGrid,
+  EChartsAxisPointer,
   EChartsLegend,
   EChartsDataZoom,
   EChartsToolBox,

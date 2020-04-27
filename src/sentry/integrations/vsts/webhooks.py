@@ -58,6 +58,10 @@ class WorkItemWebhook(Endpoint):
 
             try:
                 self.check_webhook_secret(request, integration)
+                logger.info(
+                    "vsts.valid-webhook-secret",
+                    extra={"event_type": event_type, "integration_id": integration.id},
+                )
             except AssertionError:
                 logger.info(
                     "vsts.invalid-webhook-secret",
@@ -71,6 +75,15 @@ class WorkItemWebhook(Endpoint):
         try:
             integration_secret = integration.metadata["subscription"]["secret"]
             webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
+            # TODO(Steve): remove
+            logger.info(
+                "vsts.special-webhook-secret",
+                extra={
+                    "integration_id": integration.id,
+                    "integration_secret": six.text_type(integration_secret)[:6],
+                    "webhook_payload_secret": six.text_type(webhook_payload_secret)[:6],
+                },
+            )
         except KeyError as e:
             logger.info(
                 "vsts.missing-webhook-secret",
