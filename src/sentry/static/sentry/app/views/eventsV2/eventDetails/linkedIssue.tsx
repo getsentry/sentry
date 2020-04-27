@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
+import {IconWarning} from 'app/icons';
 import GroupChart from 'app/components/stream/groupChart';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
@@ -42,6 +44,20 @@ class LinkedIssue extends AsyncComponent<
 
   renderLoading() {
     return <Placeholder height="120px" bottomGutter={2} />;
+  }
+
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+    const hasNotFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (hasNotFound) {
+      return (
+        <Alert type="warning" icon={<IconWarning size="md" />}>
+          {t('The linked issue cannot be found. It may have been deleted, or merged.')}
+        </Alert>
+      );
+    }
+
+    return super.renderError(error, disableLog, disableReport);
   }
 
   renderBody() {
