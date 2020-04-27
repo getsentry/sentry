@@ -421,7 +421,7 @@ class QueryTransformTest(TestCase):
                     "project",
                 ]
             ],
-            filter_keys={},
+            filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
             start=None,
@@ -876,7 +876,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction", "duration"],
             conditions=[["project_id", "=", project2.id]],
-            filter_keys={},
+            filter_keys={"project_id": [project2.id]},
             groupby=[],
             dataset=Dataset.Discover,
             aggregations=[],
