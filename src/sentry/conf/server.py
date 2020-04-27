@@ -1490,6 +1490,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        "with_devserver": True,
     },
 }
 
