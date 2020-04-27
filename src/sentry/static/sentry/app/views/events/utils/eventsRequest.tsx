@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {
-  Organization,
+  OrganizationSummary,
   EventsStats,
   MultiSeriesEventsStats,
   EventsStatsData,
@@ -90,7 +90,7 @@ type EventsRequestPartialProps = {
    * API client instance
    */
   api: Client;
-  organization: Organization;
+  organization: OrganizationSummary;
   /**
    * List of project ids to query
    */
