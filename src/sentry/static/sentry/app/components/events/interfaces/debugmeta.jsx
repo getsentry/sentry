@@ -494,6 +494,7 @@ class DebugMetaInterface extends React.PureComponent {
 const Label = styled('label')`
   font-weight: normal;
   margin-right: 1em;
+  margin-bottom: 0;
 
   > input {
     margin-right: 1ex;
@@ -576,7 +577,7 @@ const EmptyItem = styled(PanelItem)`
 `;
 const ToolbarWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
 `;
 const SearchInputWrapper = styled('div')`

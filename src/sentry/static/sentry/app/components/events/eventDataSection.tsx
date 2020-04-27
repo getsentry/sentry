@@ -119,6 +119,8 @@ const Permalink = styled('a')`
 const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   position: relative;
   margin-bottom: ${space(3)};
 
