@@ -18,7 +18,6 @@ from sentry.incidents.models import (
     IncidentStatusMethod,
     INCIDENT_STATUS,
 )
-from sentry.incidents.logic import create_incident_snapshot
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
@@ -188,12 +187,16 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
         )
 
 
-@instrumented_task(name="sentry.incidents.tasks.take_incident_snapshots", queue="incidents")
+@instrumented_task(
+    name="sentry.incidents.tasks.take_incident_snapshots", queue="incident_snapshots"
+)
 def take_incident_snapshots():
     """
     Processes closed incidents and creates a snapshot if enough time has passed
     to create a meaningful snapshot with data after it's been closed.
     """
+    from sentry.incidents.logic import create_incident_snapshot
+
     batch_size = 50
 
     incidents = Incident.objects.filter(status=IncidentStatus.CLOSED.value)
