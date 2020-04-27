@@ -210,7 +210,7 @@ def take_incident_snapshots():
         if now >= incident.current_end_date + timedelta(minutes=time_window * 10):
             # Wait for time_window * 10 until taking snapshot, to show 10 points after the incident end's for short incidents.
             # This means we could be waiting up to 10 days for incident's with a 24 hour time window.
-            # Long incidents (i.e. incident duration > time_window*100 (or rather WINDOWED_STATS_DATA_POINTS / 2)) will still center the start point and not show the end
+            # Long incidents (i.e. incident duration > time_window*100 (or more accurately WINDOWED_STATS_DATA_POINTS / 2)) will still center the start point and not show the end
             if processed > batch_size:
                 take_incident_snapshots.apply_async(countdown=1)
                 break
