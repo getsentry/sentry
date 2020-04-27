@@ -46,7 +46,11 @@ const ReleaseActions = ({orgId, version}: Props) => {
         )}
       >
         <div>
-          <Tooltip title={t('You can only delete releases if they have no issues or health data.')}>
+          <Tooltip
+            title={t(
+              'You can only delete releases if they have no issues or health data.'
+            )}
+          >
             <Button icon={<IconDelete />} />
           </Tooltip>
         </div>
