@@ -13,7 +13,8 @@ import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
-import {decodeColumnOrder, decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {
   Sort,

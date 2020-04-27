@@ -25,9 +25,10 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {getPrebuiltQueries, decodeScalar} from './utils';
+import {getPrebuiltQueries} from './utils';
 import QueryList from './queryList';
 import backgroundSpace from '../../../images/spot/background-space.svg';
 
