@@ -14,12 +14,11 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile, Project
+from sentry.models import Activity, Release, Project
+from sentry.models.release import UnsafeReleaseDeletion
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
 @scenario("RetrieveOrganizationRelease")
@@ -219,18 +218,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
-        # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
-            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        release.delete()
+        try:
+            release.safe_delete()
+        except UnsafeReleaseDeletion as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         return Response(status=204)

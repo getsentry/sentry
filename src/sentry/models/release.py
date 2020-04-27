@@ -38,6 +38,14 @@ _dotted_path_prefix_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z
 DB_VERSION_LENGTH = 250
 
 
+ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
+ERR_RELEASE_HEALTH_DATA = "This release has health data and cannot be removed."
+
+
+class UnsafeReleaseDeletion(Exception):
+    pass
+
+
 class ReleaseProject(Model):
     __core__ = False
 
@@ -627,3 +635,32 @@ class Release(Model):
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group_project_lookup[group_id], "group_id": group_id}
             )
+
+    def safe_delete(self):
+        """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
+        exception.
+        """
+        from sentry.models import Group, ReleaseFile
+        from sentry.snuba.sessions import check_has_health_data
+
+        # we don't want to remove the first_release metadata on the Group, and
+        # while people might want to kill a release (maybe to remove files),
+        # removing the release is prevented
+        if Group.objects.filter(first_release=self).exists():
+            raise UnsafeReleaseDeletion(ERR_RELEASE_REFERENCED)
+
+        # We do not allow releases with health data to be deleted because
+        # the upserting from snuba data would create the release again.
+        # We would need to be able to delete this data from snuba which we
+        # can't do yet.
+        project_ids = list(self.projects.values_list("id").all())
+        if check_has_health_data([(p[0], self.version) for p in project_ids]):
+            raise UnsafeReleaseDeletion(ERR_RELEASE_HEALTH_DATA)
+
+        # TODO(dcramer): this needs to happen in the queue as it could be a long
+        # and expensive operation
+        file_list = ReleaseFile.objects.filter(release=self).select_related("file")
+        for releasefile in file_list:
+            releasefile.file.delete()
+            releasefile.delete()
+        self.delete()

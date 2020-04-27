@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
@@ -8,14 +10,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Release
+from sentry.models.release import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
-
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
@@ -152,18 +152,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
-        # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
-            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        release.delete()
+        try:
+            release.safe_delete()
+        except UnsafeReleaseDeletion as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         return Response(status=204)
