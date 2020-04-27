@@ -9,11 +9,17 @@ exports[`TextField render() renders with form context 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="text"
       value="fieldValue"
     />
@@ -30,11 +36,17 @@ exports[`TextField render() renders without form context 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="text"
       value=""
     />

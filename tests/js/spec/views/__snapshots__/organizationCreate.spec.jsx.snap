@@ -36,6 +36,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
     >
       <TextField
         disabled={false}
+        height="auto"
         hideErrorMessage={false}
         label="Organization Name"
         name="name"
@@ -44,6 +45,7 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
       />
       <BooleanField
         disabled={false}
+        height="auto"
         hideErrorMessage={false}
         label={
           <span>
@@ -113,6 +115,7 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
     >
       <TextField
         disabled={false}
+        height="auto"
         hideErrorMessage={false}
         label="Organization Name"
         name="name"

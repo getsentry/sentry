@@ -4,6 +4,7 @@ exports[`GenericField renders text as TextInput 1`] = `
 <TextField
   disabled={false}
   formState="Ready"
+  height="auto"
   help={null}
   hideErrorMessage={false}
   key="field-name"
@@ -21,6 +22,7 @@ exports[`GenericField renders text with choices as SelectCreatableField 1`] = `
   deprecatedSelectControl={true}
   disabled={false}
   formState="Ready"
+  height="auto"
   help={null}
   hideErrorMessage={false}
   key="field-name"

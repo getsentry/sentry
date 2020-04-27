@@ -70,6 +70,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                 >
                   <TextField
                     disabled={false}
+                    height="auto"
                     hideErrorMessage={false}
                     label="Label"
                     name="label"
@@ -89,11 +90,17 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-label"
                           name="label"
                           onChange={[Function]}
                           required={false}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value="Default"
                         />
@@ -102,6 +109,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                   </TextField>
                   <TextField
                     disabled={true}
+                    height="auto"
                     hideErrorMessage={false}
                     label="API Key"
                     name="key"
@@ -121,11 +129,17 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={true}
                           id="id-key"
                           name="key"
                           onChange={[Function]}
                           required={false}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value="aa624bcc12024702a202cd90be5feda0"
                         />
@@ -208,6 +222,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                   ]
                 }
                 disabled={false}
+                height="auto"
                 hideErrorMessage={false}
                 label="Scopes"
                 name="scope_list"
@@ -465,6 +480,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
               </MultipleCheckboxField>
               <TextareaField
                 disabled={false}
+                height="auto"
                 help="Separate multiple entries with a newline"
                 hideErrorMessage={false}
                 label="Allowed Domains"

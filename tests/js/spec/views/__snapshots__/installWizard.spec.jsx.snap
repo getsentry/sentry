@@ -64,6 +64,7 @@ exports[`InstallWizard renders 1`] = `
                     default=""
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     help="The technical contact for this Sentry installation."
                     hideErrorMessage={false}
                     isSet={true}
@@ -87,12 +88,18 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-system.admin-email"
                           name="system.admin-email"
                           onChange={[Function]}
                           placeholder="admin@example.com"
                           required={true}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="email"
                           value=""
                         />
@@ -118,6 +125,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue="sentry@localhost"
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     help="Email address to be used in From for all outbound email."
                     hideErrorMessage={false}
                     isSet={true}
@@ -140,11 +148,17 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.from"
                           name="mail.from"
                           onChange={[Function]}
                           required={true}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="email"
                           value="sentry@localhost"
                         />
@@ -162,6 +176,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue="localhost"
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     hideErrorMessage={false}
                     isSet={true}
                     key="mail.host"
@@ -184,12 +199,18 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.host"
                           name="mail.host"
                           onChange={[Function]}
                           placeholder="localhost"
                           required={true}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value="localhost"
                         />
@@ -202,6 +223,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue="25"
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     hideErrorMessage={false}
                     isSet={true}
                     key="mail.port"
@@ -224,12 +246,18 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.port"
                           name="mail.port"
                           onChange={[Function]}
                           placeholder="25"
                           required={true}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value="25"
                         />
@@ -242,6 +270,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue=""
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     hideErrorMessage={false}
                     isSet={true}
                     key="mail.username"
@@ -263,11 +292,17 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.username"
                           name="mail.username"
                           onChange={[Function]}
                           required={false}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value=""
                         />
@@ -280,6 +315,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue=""
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     hideErrorMessage={false}
                     isSet={true}
                     key="mail.password"
@@ -301,11 +337,17 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
+                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.password"
                           name="mail.password"
                           onChange={[Function]}
                           required={false}
+                          style={
+                            Object {
+                              "height": "auto",
+                            }
+                          }
                           type="text"
                           value=""
                         />
@@ -319,6 +361,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue={false}
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     hideErrorMessage={false}
                     isSet={true}
                     key="mail.use-tls"
@@ -361,6 +404,7 @@ exports[`InstallWizard renders 1`] = `
                     defaultValue={false}
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     help="Allow anyone to create an account and access this Sentry installation."
                     hideErrorMessage={false}
                     isSet={true}
@@ -408,6 +452,7 @@ exports[`InstallWizard renders 1`] = `
                     default={false}
                     disabled={false}
                     disabledReason={null}
+                    height="auto"
                     help={
                       <span>
                         <span>

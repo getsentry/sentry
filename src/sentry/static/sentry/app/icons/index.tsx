@@ -76,3 +76,4 @@ export {IconUser} from './iconUser';
 export {IconVsts} from './iconVsts';
 export {IconWarning} from './iconWarning';
 export {IconWindow} from './iconWindow';
+export {IconTerminal} from './iconTerminal';

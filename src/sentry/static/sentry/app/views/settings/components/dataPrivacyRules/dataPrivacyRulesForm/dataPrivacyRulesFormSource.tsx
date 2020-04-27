@@ -371,6 +371,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
           onBlur={onBlur}
           onFocus={this.handleFocus}
           disabled={disabled}
+          height="40px"
         />
         {showSuggestions && suggestions.length > 0 && (
           <SuggestionsWrapper ref={this.suggestionList} data-test-id="source-suggestions">
@@ -405,10 +406,6 @@ const Wrapper = styled('div')`
 
 const StyledTextField = styled(TextField)`
   width: 100%;
-  height: 40px;
-  input {
-    height: 40px;
-  }
 `;
 
 const SuggestionsWrapper = styled('ul')`

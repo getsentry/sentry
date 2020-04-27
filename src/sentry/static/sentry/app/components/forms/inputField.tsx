@@ -27,6 +27,7 @@ class InputField<
       <input
         id={this.getId()} //TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
         type={this.getType()}
+        data-test-id="input-field"
         className="form-control"
         autoComplete={this.props.autoComplete}
         placeholder={this.props.placeholder}
@@ -35,7 +36,10 @@ class InputField<
         name={this.props.name}
         required={this.props.required}
         value={this.state.value as string | number} //can't pass in boolean here
-        style={this.props.inputStyle}
+        style={{
+          height: this.props.height,
+          ...this.props.inputStyle,
+        }}
         onBlur={this.props.onBlur}
         onFocus={this.props.onFocus}
         onKeyPress={this.props.onKeyPress}

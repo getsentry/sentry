@@ -62,7 +62,7 @@ describe('RangeField', function() {
         },
       });
 
-      expect(wrapper.find('input').prop('value')).toBe(0);
+      expect(wrapper.find('[data-test-id="input-field"]').prop('value')).toBe(0);
     });
   });
 });

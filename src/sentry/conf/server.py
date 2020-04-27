@@ -858,6 +858,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
+    # Enable the new version of interface/breadcrumbs
+    "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,

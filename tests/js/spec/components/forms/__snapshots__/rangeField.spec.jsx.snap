@@ -9,11 +9,17 @@ exports[`RangeField render() renders 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="range"
       value=""
     />
@@ -30,11 +36,17 @@ exports[`RangeField render() renders with form context 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="range"
       value={2}
     />
@@ -51,11 +63,17 @@ exports[`RangeField render() renders with optional attributes 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="range"
       value=""
     />
@@ -72,11 +90,17 @@ exports[`RangeField render() renders with value 1`] = `
   >
     <input
       className="form-control"
+      data-test-id="input-field"
       disabled={false}
       id="id-fieldName"
       name="fieldName"
       onChange={[Function]}
       required={false}
+      style={
+        Object {
+          "height": "auto",
+        }
+      }
       type="range"
       value={2}
     />

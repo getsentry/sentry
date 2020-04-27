@@ -127,6 +127,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
       >
         <TextField
           disabled={false}
+          height="auto"
           hideErrorMessage={false}
           label="Email(s)"
           name="email"
@@ -149,12 +150,18 @@ exports[`InviteMember should render roles when available and allowed, and handle
               </label>
               <input
                 className="form-control"
+                data-test-id="input-field"
                 disabled={false}
                 id="id-email"
                 name="email"
                 onChange={[Function]}
                 placeholder="e.g. teammate@example.com"
                 required={false}
+                style={
+                  Object {
+                    "height": "auto",
+                  }
+                }
                 type="text"
                 value=""
               />
