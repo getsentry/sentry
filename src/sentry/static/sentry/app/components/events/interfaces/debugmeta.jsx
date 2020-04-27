@@ -8,12 +8,12 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
-import EventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection, {SectionHeader} from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import SearchInput from 'app/components/forms/searchInput';
+import SearchBar from 'app/components/searchBar';
 import {
   formatAddress,
   parseAddress,
@@ -356,8 +356,8 @@ class DebugMetaInterface extends React.PureComponent {
     this.setState({showDetails});
   };
 
-  handleChangeFilter = e => {
-    DebugMetaActions.updateFilter(e.target.value || '');
+  handleChangeFilter = value => {
+    DebugMetaActions.updateFilter(value || '');
   };
 
   isValidImage(image) {
@@ -427,11 +427,10 @@ class DebugMetaInterface extends React.PureComponent {
           {t('show unreferenced')}
         </Label>
         <SearchInputWrapper>
-          <SearchInput
-            value={filter}
+          <StyledSearchBar
+            query={filter}
             onChange={this.handleChangeFilter}
             placeholder={t('Search images\u2026')}
-            smaller
           />
         </SearchInputWrapper>
       </ToolbarWrapper>
@@ -457,7 +456,7 @@ class DebugMetaInterface extends React.PureComponent {
       : null;
 
     return (
-      <EventDataSection
+      <StyledEventDataSection
         event={this.props.event}
         type="packages"
         title={titleElement}
@@ -487,7 +486,7 @@ class DebugMetaInterface extends React.PureComponent {
             )}
           </PanelBody>
         </DebugImagesPanel>
-      </EventDataSection>
+      </StyledEventDataSection>
     );
   }
 }
@@ -495,9 +494,17 @@ class DebugMetaInterface extends React.PureComponent {
 const Label = styled('label')`
   font-weight: normal;
   margin-right: 1em;
+  margin-bottom: 0;
 
   > input {
     margin-right: 1ex;
+  }
+`;
+
+const StyledEventDataSection = styled(EventDataSection)`
+  ${SectionHeader} {
+    align-items: center;
+    flex-wrap: wrap;
   }
 `;
 
@@ -577,12 +584,25 @@ const EmptyItem = styled(PanelItem)`
 `;
 const ToolbarWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
 `;
 const SearchInputWrapper = styled('div')`
   max-width: 180px;
   display: inline-block;
+`;
+// TODO(matej): remove this once we refactor SearchBar to not use css classes
+// - it could accept size as a prop
+const StyledSearchBar = styled(SearchBar)`
+  .search-input {
+    height: 30px;
+  }
+  .search-clear-form {
+    top: 5px;
+  }
+  .icon-search {
+    top: 8px;
+  }
 `;
 
 export default DebugMetaInterface;
