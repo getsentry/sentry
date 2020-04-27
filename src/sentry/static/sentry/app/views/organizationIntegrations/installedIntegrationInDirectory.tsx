@@ -14,6 +14,7 @@ import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {IconWarning} from 'app/icons';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -28,6 +29,7 @@ export type Props = {
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
   className?: string;
+  showReauthMessage: boolean;
 };
 
 //TODO: Rename to InstalledIntegration when we can remove the old one
@@ -62,7 +64,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     });
   };
 
-  getRemovalBodyAndText(aspects) {
+  getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
     if (aspects && aspects.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,
@@ -93,7 +95,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
-          Deleting this integration has consequences!
+          {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
       </React.Fragment>
@@ -107,11 +109,11 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
 
   get disableConfirmProps() {
     const {integration} = this.props;
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
-          This integration cannot be removed on Sentry
+          {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}
       </React.Fragment>
@@ -125,7 +127,13 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
   }
 
   render() {
-    const {className, integration, provider, organization} = this.props;
+    const {
+      className,
+      integration,
+      provider,
+      organization,
+      showReauthMessage,
+    } = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -140,44 +148,72 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {
+              {showReauthMessage && (
                 <Tooltip
-                  disabled={this.hasConfiguration()}
-                  position="left"
-                  title="Integration not configurable"
+                  disabled={hasAccess}
+                  title={t(
+                    'You must be an organization owner, manager or admin to re-authenticate'
+                  )}
                 >
-                  <StyledButton
-                    borderless
-                    icon="icon-settings"
-                    disabled={
-                      !this.hasConfiguration() ||
-                      !hasAccess ||
-                      integration.status !== 'active'
-                    }
-                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                    data-test-id="integration-configure-button"
+                  <Button
+                    disabled={!hasAccess}
+                    priority="primary"
+                    size="small"
+                    icon={<IconWarning size="sm" />}
                   >
-                    Configure
-                  </StyledButton>
+                    {t('Re-authenticate Now')}
+                  </Button>
                 </Tooltip>
-              }
-            </div>
-            <div>
-              <Confirm
-                priority="danger"
-                onConfirming={this.handleUninstallClick}
-                disabled={!hasAccess}
-                {...removeConfirmProps}
+              )}
+              <Tooltip
+                disabled={this.hasConfiguration() && hasAccess}
+                position="left"
+                title={
+                  !this.hasConfiguration()
+                    ? t('Integration not configurable')
+                    : t(
+                        'You must be an organization owner, manager or admin to configure'
+                      )
+                }
               >
                 <StyledButton
-                  disabled={!hasAccess}
                   borderless
-                  icon={<IconDelete />}
-                  data-test-id="integration-remove-button"
+                  icon="icon-settings"
+                  disabled={
+                    !this.hasConfiguration() ||
+                    !hasAccess ||
+                    integration.status !== 'active'
+                  }
+                  to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                  data-test-id="integration-configure-button"
                 >
-                  Uninstall
+                  {t('Configure')}
                 </StyledButton>
-              </Confirm>
+              </Tooltip>
+            </div>
+            <div>
+              <Tooltip
+                disabled={hasAccess}
+                title={t(
+                  'You must be an organization owner, manager or admin to uninstall'
+                )}
+              >
+                <Confirm
+                  priority="danger"
+                  onConfirming={this.handleUninstallClick}
+                  disabled={!hasAccess}
+                  {...removeConfirmProps}
+                >
+                  <StyledButton
+                    disabled={!hasAccess}
+                    borderless
+                    icon={<IconDelete />}
+                    data-test-id="integration-remove-button"
+                  >
+                    {t('Uninstall')}
+                  </StyledButton>
+                </Confirm>
+              </Tooltip>
             </div>
 
             <IntegrationStatus status={integration.status} />

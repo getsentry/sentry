@@ -6,7 +6,7 @@ import six
 from django.test.utils import override_settings
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
-from sentry.integrations.slack import SlackIntegrationProvider
+from sentry.integrations.slack import SlackIntegrationProvider, SlackIntegration
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -14,7 +14,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, TestCase
 from sentry.testutils.helpers import override_options, with_feature
 
 
@@ -204,3 +204,20 @@ class SlackIntegrationTest(IntegrationTestCase):
                 expected_client_id="other-id",
                 expected_client_secret="other-secret",
             )
+
+
+class SlackIntegrationConfigTest(TestCase):
+    def setUp(self):
+        self.integration = Integration.objects.create(provider="slack", name="Slack", metadata={})
+        self.installation = SlackIntegration(self.integration, self.organization.id)
+
+    def test_config_data_workspace_app(self):
+        self.installation.get_config_data()["installationType"] = "workspace_app"
+
+    def test_config_data_user_token(self):
+        self.integration.metadata["user_access_token"] = "token"
+        self.installation.get_config_data()["installationType"] = "classic_bot"
+
+    def test_config_data_born_as_bot(self):
+        self.integration.metadata["installation_type"] = "born_as_bot"
+        self.installation.get_config_data()["installationType"] = "born_as_bot"

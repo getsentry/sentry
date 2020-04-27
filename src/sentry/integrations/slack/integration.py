@@ -11,6 +11,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
     FeatureDescription,
+    IntegrationInstallation,
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
@@ -48,6 +49,10 @@ setup_alert = {
     "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
 }
 
+reauthentication_alert = {
+    "alertText": "Slack must be re-authorized to avoid a disruption of Slack notifications",
+}
+
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -55,8 +60,16 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert]},
+    aspects={"alerts": [setup_alert], "reauthentication_alert": reauthentication_alert},
 )
+
+
+class SlackIntegration(IntegrationInstallation):
+    def get_config_data(self):
+        metadata = self.model.metadata
+        # classic bots had a user_access_token in the metadata
+        default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+        return {"installationType": metadata.get("installation_type", default_installation)}
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -64,6 +77,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     name = "Slack"
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
+    integration_cls = SlackIntegration
 
     # Scopes differ depending on if it's a workspace app
     wst_oauth_scopes = frozenset(
