@@ -172,7 +172,8 @@ def configure_sdk():
                 relay_transport.capture_event(event)
             else:
                 metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
-                sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
+                if event.get("type") != "transaction":
+                    sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
 
     sentry_sdk.init(
         transport=capture_event,
