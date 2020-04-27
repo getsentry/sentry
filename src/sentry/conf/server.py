@@ -682,6 +682,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=6),
         "options": {"expires": 60 * 25},
     },
+    "take-incident-snpashots": {
+        "task": "sentry.incidents.tasks.take_incident_snapshots",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 60, "queue": "incidents"},
+    },
 }
 
 BGTASKS = {

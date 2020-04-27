@@ -162,9 +162,6 @@ def update_incident_status(
 
         incident.update(**kwargs)
 
-        if status == IncidentStatus.CLOSED:
-            create_incident_snapshot(incident, windowed_stats=True)
-
         analytics.record(
             "incident.status_change",
             incident_id=incident.id,
@@ -366,7 +363,7 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
         end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
-            end = now + time_window_delta
+            end = now
             start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
