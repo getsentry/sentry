@@ -46,7 +46,7 @@ setup_alert = {
 }
 
 reauthentication_alert = {
-    "alertText": _("Slack must be re-authorized to avoid a disruption of Slack notifications"),
+    "alertText": "Slack must be re-authorized to avoid a disruption of Slack notifications",
 }
 
 metadata = IntegrationMetadata(
