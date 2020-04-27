@@ -21,7 +21,6 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getCategorySelectActive,
   isSentryApp,
   isPlugin,
   isDocumentIntegration,
@@ -39,8 +38,6 @@ import SearchBar from 'app/components/searchBar';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
-import withExperiment from 'app/utils/withExperiment';
-import {ExperimentAssignment} from 'app/types/experiments';
 import Feature from 'app/components/acl/feature';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
@@ -49,7 +46,6 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
-  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -439,19 +435,15 @@ export class IntegrationListDirectory extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive(this.props.organization) ? (
-                  <SelectControl
-                    name="select-categories"
-                    onChange={this.onCategorySelect}
-                    value={selectedCategory}
-                    choices={[
-                      ['', t('All Categories')],
-                      ...categoryList.map(category => [category, startCase(category)]),
-                    ]}
-                  />
-                ) : (
-                  <div />
-                )}
+                <SelectControl
+                  name="select-categories"
+                  onChange={this.onCategorySelect}
+                  value={selectedCategory}
+                  choices={[
+                    ['', t('All Categories')],
+                    ...categoryList.map(category => [category, startCase(category)]),
+                  ]}
+                />
                 <SearchBar
                   query={this.state.searchInput || ''}
                   onChange={this.handleSearchChange}
@@ -505,8 +497,4 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(
-  withExperiment(IntegrationListDirectory, {
-    experiment: 'IntegrationDirectoryCategoryExperiment',
-  })
-);
+export default withOrganization(IntegrationListDirectory);
