@@ -80,6 +80,7 @@ class JiraApiClient(ApiClient):
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
+    EMAIL_URL = "/rest/api/3/user/email"
 
     integration_name = "jira"
 
@@ -215,3 +216,7 @@ class JiraApiClient(ApiClient):
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+
+    def get_email(self, name_or_account_id):
+        user_id_field = self.user_id_field()
+        return self.get(self.EMAIL_URL, params={user_id_field: name_or_account_id})

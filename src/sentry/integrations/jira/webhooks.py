@@ -10,6 +10,7 @@ from sentry.integrations.atlassian_connect import (
     get_integration_from_jwt,
 )
 from sentry.models import sync_group_assignee_inbound
+from .client import JiraApiClient, JiraCloud
 
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
@@ -31,7 +32,14 @@ def handle_assignee_change(integration, data):
         sync_group_assignee_inbound(integration, None, issue_key, assign=False)
         return
 
-    if not assignee.get("emailAddress"):
+    account_id = assignee.get("accountId")
+    client = JiraApiClient(
+        integration.metadata["base_url"],
+        JiraCloud(integration.metadata["shared_secret"]),
+        verify_ssl=True,
+    )
+    email = client.get_email(account_id)
+    if not email:
         logger.info(
             "missing-assignee-email",
             extra={"issue_key": issue_key, "integration_id": integration.id},

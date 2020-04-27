@@ -46,6 +46,6 @@ class JiraDescriptorEndpoint(Endpoint):
                     ],
                 },
                 "apiMigrations": {"gdpr": True},
-                "scopes": ["read", "write", "act_as_user"],
+                "scopes": ["read", "write", "act_as_user", "access_email_addresses"],
             }
         )
