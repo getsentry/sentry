@@ -10,12 +10,14 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {AREA_COLORS, getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
@@ -61,6 +63,7 @@ class DurationChart extends React.Component<Props> {
       : undefined;
 
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
+    const utc = decodeScalar(router.location.query.utc);
 
     const legend = {
       right: 16,
@@ -152,24 +155,28 @@ class DurationChart extends React.Component<Props> {
                   : [];
 
                 return (
-                  <TransitionChart loading={loading} reloading={reloading}>
-                    <TransparentLoadingMask visible={reloading} />
-                    <AreaChart
-                      {...zoomRenderProps}
-                      legend={legend}
-                      series={series}
-                      seriesOptions={{
-                        showSymbol: false,
-                      }}
-                      tooltip={tooltip}
-                      grid={{
-                        left: '24px',
-                        right: '24px',
-                        top: '32px',
-                        bottom: '12px',
-                      }}
-                    />
-                  </TransitionChart>
+                  <ReleaseSeries utc={utc} api={api} projects={project}>
+                    {({releaseSeries}) => (
+                      <TransitionChart loading={loading} reloading={reloading}>
+                        <TransparentLoadingMask visible={reloading} />
+                        <AreaChart
+                          {...zoomRenderProps}
+                          legend={legend}
+                          series={[...series, ...releaseSeries]}
+                          seriesOptions={{
+                            showSymbol: false,
+                          }}
+                          tooltip={tooltip}
+                          grid={{
+                            left: '24px',
+                            right: '24px',
+                            top: '32px',
+                            bottom: '12px',
+                          }}
+                        />
+                      </TransitionChart>
+                    )}
+                  </ReleaseSeries>
                 );
               }}
             </EventsRequest>

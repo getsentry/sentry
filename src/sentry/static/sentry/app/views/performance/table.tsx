@@ -14,7 +14,7 @@ import EventView, {MetaType, EventData} from 'app/utils/discover/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import {decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/components/searchBar';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
