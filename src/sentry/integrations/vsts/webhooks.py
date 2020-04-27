@@ -77,7 +77,7 @@ class WorkItemWebhook(Endpoint):
             webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
             # TODO(Steve): remove
             logger.info(
-                "vsts.special-webhook-sercret",
+                "vsts.special-webhook-secret",
                 extra={
                     "integration_id": integration.id,
                     "integration_secret": six.text_type(integration_secret)[:6],
