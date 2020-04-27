@@ -87,11 +87,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions
-            version={version}
-            orgId={orgId}
-            hasHealthData={healthData?.hasHealthData}
-          />
+          <ReleaseActions version={version} orgId={orgId} />
         </StatsWrapper>
       </Layout>
 

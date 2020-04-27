@@ -12,16 +12,16 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import Tooltip from 'app/components/tooltip';
 
 import {deleteRelease} from './utils';
 
 type Props = {
   orgId: string;
   version: string;
-  hasHealthData: boolean;
 };
 
-const ReleaseActions = ({orgId, version, hasHealthData}: Props) => {
+const ReleaseActions = ({orgId, version}: Props) => {
   const handleDelete = async () => {
     const redirectPath = `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
@@ -30,16 +30,12 @@ const ReleaseActions = ({orgId, version, hasHealthData}: Props) => {
       await deleteRelease(orgId, version);
       addSuccessMessage(t('Release was successfully removed.'));
       browserHistory.push(redirectPath);
-    } catch {
-      addErrorMessage(
-        t('This release is referenced by active issues and cannot be removed.')
-      );
+    } catch (error) {
+      const errorMessage =
+        error.responseJSON?.detail ?? t('Release could not be be removed.');
+      addErrorMessage(errorMessage);
     }
   };
-
-  if (hasHealthData) {
-    return null;
-  }
 
   return (
     <Wrapper>
@@ -49,7 +45,11 @@ const ReleaseActions = ({orgId, version, hasHealthData}: Props) => {
           'Deleting this release is permanent and will affect other projects associated with it. Are you sure you wish to continue?'
         )}
       >
-        <Button icon={<IconDelete />} />
+        <div>
+          <Tooltip title={t('You can only delete releases if they have no data.')}>
+            <Button icon={<IconDelete />} />
+          </Tooltip>
+        </div>
       </Confirm>
     </Wrapper>
   );
