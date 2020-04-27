@@ -584,7 +584,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     id="message"
                                   >
                                     <div
-                                      className="css-10bos5g-SectionHeader e1fbjd861"
+                                      className="css-zang02-SectionHeader e1fbjd861"
                                       id="message"
                                     >
                                       <Permalink

@@ -8,7 +8,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
-import EventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection, {SectionHeader} from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -456,7 +456,7 @@ class DebugMetaInterface extends React.PureComponent {
       : null;
 
     return (
-      <EventDataSection
+      <StyledEventDataSection
         event={this.props.event}
         type="packages"
         title={titleElement}
@@ -486,7 +486,7 @@ class DebugMetaInterface extends React.PureComponent {
             )}
           </PanelBody>
         </DebugImagesPanel>
-      </EventDataSection>
+      </StyledEventDataSection>
     );
   }
 }
@@ -498,6 +498,13 @@ const Label = styled('label')`
 
   > input {
     margin-right: 1ex;
+  }
+`;
+
+const StyledEventDataSection = styled(EventDataSection)`
+  ${SectionHeader} {
+    align-items: center;
+    flex-wrap: wrap;
   }
 `;
 
