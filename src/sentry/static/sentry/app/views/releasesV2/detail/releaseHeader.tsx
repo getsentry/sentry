@@ -20,6 +20,7 @@ import {formatVersion} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
 
 import ReleaseStat from './releaseStat';
+import ReleaseActions from './releaseActions';
 
 type Props = {
   location: Location;
@@ -86,6 +87,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
+          <ReleaseActions version={version} orgId={orgId} />
         </StatsWrapper>
       </Layout>
 
