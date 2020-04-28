@@ -663,7 +663,7 @@ const StyledSearchBar = styled(SearchBar)`
     height: 30px;
   }
   .search-clear-form {
-    top: 5px;
+    top: 5px !important;
   }
   .icon-search {
     top: 8px;
