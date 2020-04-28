@@ -18,7 +18,11 @@ export type RawSpanType = {
   tags?: {[key: string]: string};
 };
 
-export type ProcessedSpanType = RawSpanType | GapSpanType;
+export type OrphanSpanType = {
+  type: 'orphan';
+} & RawSpanType;
+
+export type ProcessedSpanType = RawSpanType | GapSpanType | OrphanSpanType;
 
 export type SpanEntry = {
   type: 'spans';
