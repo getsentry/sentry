@@ -141,6 +141,26 @@ describe('EventsV2 > EventDetails', function() {
     expect(graph).toHaveLength(1);
   });
 
+  it('renders an alert when linked issues are missing', function() {
+    MockApiClient.addMockResponse({
+      url: '/issues/123/',
+      statusCode: 404,
+      method: 'GET',
+      body: {},
+    });
+    const wrapper = mountWithTheme(
+      <EventDetails
+        organization={TestStubs.Organization({projects: [TestStubs.Project()]})}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={{query: allEventsView.generateQueryStringObject()}}
+      />,
+      TestStubs.routerContext()
+    );
+    const alert = wrapper.find('Alert');
+    expect(alert).toHaveLength(1);
+    expect(alert.text()).toContain('linked issue cannot be found');
+  });
+
   it('navigates when tag values are clicked', async function() {
     const {organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
