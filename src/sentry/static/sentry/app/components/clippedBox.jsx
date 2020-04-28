@@ -54,9 +54,7 @@ class ClippedBox extends React.Component {
   }
 
   reveal = e => {
-    if (e) {
-      e.stopPropagation();
-    }
+    e?.stopPropagation();
 
     this.setState({
       clipped: false,
