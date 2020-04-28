@@ -169,7 +169,7 @@ class Incident(Model):
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
-    status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
+    status = models.PositiveSmallIntegerField(db_index=True, default=IncidentStatus.OPEN.value)
     status_method = models.PositiveSmallIntegerField(
         default=IncidentStatusMethod.RULE_TRIGGERED.value
     )
@@ -204,6 +204,11 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
+class IncidentSnapshotStatus(Enum):
+    PENDING = 1
+    COMPLETE = 2
+
+
 class IncidentSnapshot(Model):
     __core__ = True
 
@@ -211,6 +216,10 @@ class IncidentSnapshot(Model):
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
     unique_users = models.IntegerField()
     total_events = models.IntegerField()
+    status = models.PositiveSmallIntegerField(
+        db_index=True, default=IncidentSnapshotStatus.PENDING.value
+    )
+    target_run_date = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
