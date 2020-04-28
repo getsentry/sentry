@@ -1,4 +1,5 @@
 /* eslint import/no-unresolved:0 import/order:0 */
+import {PlatformIntegration} from 'app/types';
 import {platforms} from 'integration-docs-platforms';
 import {t} from 'app/locale';
 
@@ -20,4 +21,4 @@ export default [].concat(
   ...[...platforms, otherPlatform].map(platform =>
     platform.integrations.map(i => ({...i, language: platform.id}))
   )
-);
+) as PlatformIntegration[];

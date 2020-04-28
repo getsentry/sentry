@@ -1187,3 +1187,11 @@ export type Activity = {
   project: Project;
   user?: User;
 };
+
+export type PlatformIntegration = {
+  id: string;
+  type: 'framework' | 'language';
+  language: string;
+  link: string;
+  name: string;
+};
