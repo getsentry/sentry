@@ -204,11 +204,6 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
-class IncidentSnapshotStatus(Enum):
-    PENDING = 0
-    COMPLETE = 1
-
-
 class PendingIncidentSnapshot(Model):
     __core__ = True
 
