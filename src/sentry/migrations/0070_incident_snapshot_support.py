@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='incidentsnapshot',
             name='status',
-            field=models.PositiveSmallIntegerField(db_index=True, default=1),
+            field=models.PositiveSmallIntegerField(db_index=True, default=0),
         ),
         migrations.AddField(
             model_name='incidentsnapshot',

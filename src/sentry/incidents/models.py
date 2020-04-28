@@ -205,8 +205,8 @@ class Incident(Model):
 
 
 class IncidentSnapshotStatus(Enum):
-    PENDING = 1
-    COMPLETE = 2
+    PENDING = 0
+    COMPLETE = 1
 
 
 class IncidentSnapshot(Model):
