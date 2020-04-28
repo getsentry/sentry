@@ -1,5 +1,6 @@
 import moment from 'moment';
 
+import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {escape} from 'app/utils';
@@ -20,11 +21,7 @@ export const AREA_COLORS = [
   {line: '#422C6F', area: '#422C6F'},
 ];
 
-export type DateTimeObject = {
-  start: Date | null;
-  end: Date | null;
-  period?: string;
-};
+export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
 export function truncationFormatter(value: string, truncate: number): string {
   if (!truncate) {
