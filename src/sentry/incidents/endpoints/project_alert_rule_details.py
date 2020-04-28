@@ -8,7 +8,7 @@ from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
-from sentry.incidents.models import AlertRuleStatus
+
 
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
     def get(self, request, project, alert_rule):
@@ -21,9 +21,6 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         return Response(data)
 
     def put(self, request, project, alert_rule):
-        if alert_rule.status == AlertRuleStatus.ARCHIVED.value:
-            return Response("This rule cannot be updated", status=status.HTTP_400_BAD_REQUEST)
-
         serializer = DrfAlertRuleSerializer(
             context={"organization": project.organization, "access": request.access},
             instance=alert_rule,
