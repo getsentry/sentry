@@ -4,6 +4,7 @@ import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
 
 import {SentryTransactionEvent} from 'app/types';
+import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 import {
@@ -472,11 +473,13 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       return acc;
     }
 
-    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id!] ?? [];
+    assert(span.parent_span_id);
+
+    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
-    set(acc.childSpans, span.parent_span_id!, spanChildren);
+    set(acc.childSpans, span.parent_span_id, spanChildren);
 
     if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
       acc.traceStartTimestamp = span.start_timestamp;
