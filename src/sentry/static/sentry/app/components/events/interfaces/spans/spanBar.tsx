@@ -346,6 +346,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         return null;
       }
       const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+
       return (
         <ConnectorBar
           style={{left}}
@@ -356,9 +357,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     });
 
     if (hasToggler) {
+      // if there is a toggle button, we add a connector bar to create an attachment
+      // between the toggle button and any connector bars below the toggle button
       connectorBars.push(
         <ConnectorBar
-          style={{right: '16px', height: '10px', bottom: '0', top: 'auto'}}
+          style={{
+            right: '16px',
+            height: '10px',
+            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            top: 'auto',
+          }}
           key={`${spanID}-last`}
           orphanBranch={false}
         />
@@ -897,17 +905,18 @@ type TogglerTypes = OmitHtmlDivProps<{
 
 const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
-  height: 16px;
+  height: ${SPAN_ROW_HEIGHT}px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
   min-width: ${p => (p.hasToggler ? '40px' : '12px')};
   margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
+  align-items: center;
 `;
 
 const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
-  height: ${p => (p.isLast ? '80%' : '160%')};
+  height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
   border-left: ${p => {
     if (p.orphanBranch) {
@@ -918,7 +927,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   }};
 
   position: absolute;
-  top: -5px;
+  top: 0;
 
   &:before {
     content: '';
@@ -944,7 +953,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
     width: 3px;
     position: absolute;
     right: 0;
-    top: 11px;
+    top: ${SPAN_ROW_HEIGHT / 2 - 2}px;
   }
 `;
 
@@ -995,6 +1004,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 }>;
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
+  height: 16px;
   white-space: nowrap;
   min-width: 30px;
   display: flex;
