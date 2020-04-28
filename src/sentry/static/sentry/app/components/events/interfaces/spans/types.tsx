@@ -3,6 +3,7 @@ export type GapSpanType = {
   start_timestamp: number;
   timestamp: number; // this is essentially end_timestamp
   description?: string;
+  isOrphan: boolean;
 };
 
 export type RawSpanType = {
@@ -61,3 +62,12 @@ export type TraceContextType = {
   trace_id?: string;
   parent_span_id?: string;
 };
+
+type SpanTreeDepth = number;
+
+export type OrphanTreeDepth = {
+  type: 'orphan';
+  depth: number;
+};
+
+export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;

@@ -16,6 +16,8 @@ import {
   SpanType,
   SpanEntry,
   TraceContextType,
+  TreeDepthType,
+  OrphanTreeDepth,
 } from './types';
 
 type Rect = {
@@ -355,7 +357,13 @@ export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
 
 export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   if ('type' in span) {
-    return span.type === 'orphan';
+    if (span.type === 'orphan') {
+      return true;
+    }
+
+    if (span.type === 'gap') {
+      return span.isOrphan;
+    }
   }
 
   return false;
@@ -548,21 +556,19 @@ function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
   return 1;
 }
 
-// DEBUG
-// function orphanTheseSpans(spans: Array<RawSpanType>, needleSpanIds: Set<string>) {
-//   const orphanSpans: RawSpanType[] = [];
+export function isOrphanTreeDepth(
+  treeDepth: TreeDepthType
+): treeDepth is OrphanTreeDepth {
+  if (typeof treeDepth === 'number') {
+    return false;
+  }
+  return treeDepth?.type === 'orphan';
+}
 
-//   spans = spans.filter(span => {
-//     if (needleSpanIds.has(span.span_id)) {
-//       orphanSpans.push(span);
-//       return false;
-//     }
+export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
+  if (isOrphanTreeDepth(treeDepth)) {
+    return treeDepth.depth;
+  }
 
-//     return true;
-//   });
-
-//   return {
-//     spans,
-//     orphanSpans,
-//   };
-// }
+  return treeDepth;
+}
