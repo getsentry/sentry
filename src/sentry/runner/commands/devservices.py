@@ -104,6 +104,12 @@ def up(project, exclude, fast):
     """
     Run/update dependent services.
     """
+    if fast:
+        click.secho(
+            "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
+            err=True,
+            fg="red",
+        )
 
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
@@ -113,28 +119,15 @@ def up(project, exclude, fast):
 
     configure()
 
-    from django.conf import settings
-
     client = get_docker_client()
 
     get_or_create(client, "network", project)
 
     containers = _prepare_containers(project)
 
-    if fast:
-        click.secho(
-            "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
-            err=True,
-            fg="red",
-        )
-
-    for name, options in settings.SENTRY_DEVSERVICES.items():
+    for name, container_options in containers.items():
         if name in exclude:
             continue
-
-        if name not in containers:
-            continue
-
         _start_service(client, name, containers, project, fast=fast)
 
 
