@@ -223,7 +223,9 @@ def devserver(
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
 
-    for name, container_options in settings.SENTRY_DEVSERVICES.items():
+    from sentry.runner.commands.devservices import _prepare_containers
+
+    for name, container_options in _prepare_containers("sentry", silent=True).items():
         if container_options.get("with_devserver", False):
             daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
 
