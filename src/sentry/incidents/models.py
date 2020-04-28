@@ -169,7 +169,7 @@ class Incident(Model):
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
-    status = models.PositiveSmallIntegerField(db_index=True, default=IncidentStatus.OPEN.value)
+    status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
     status_method = models.PositiveSmallIntegerField(
         default=IncidentStatusMethod.RULE_TRIGGERED.value
     )
@@ -225,6 +225,7 @@ class IncidentSnapshot(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentsnapshot"
+        index_together = (("status", "target_run_date"),)
 
 
 class TimeSeriesSnapshot(Model):
