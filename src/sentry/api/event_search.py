@@ -799,6 +799,8 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    # Used to avoid doing multiple conditions on project ID
+    project_to_filter = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
@@ -819,6 +821,9 @@ def get_filter(query=None, params=None):
                 term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
+                    if term.operator == "=":
+                        project_to_filter = project.id
+
                     kwargs["conditions"].append(converted_filter)
             elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
@@ -869,7 +874,10 @@ def get_filter(query=None, params=None):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
-            kwargs["project_ids"] = params["project_id"]
+            if project_to_filter:
+                kwargs["project_ids"] = [project_to_filter]
+            else:
+                kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
             term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
@@ -1403,7 +1411,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
-        project_ids = snuba_filter.filter_keys.get("project_id", [])
+        # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
+        filtered_project_ids = None
+        if snuba_filter.conditions:
+            for cond in snuba_filter.conditions:
+                if cond[0] == "project_id":
+                    filtered_project_ids = [cond[2]] if cond[1] == "=" else cond[2]
+
+        project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [

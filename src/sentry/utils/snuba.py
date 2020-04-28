@@ -329,6 +329,11 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
                 for k in query_params.filter_keys
             ]
             project_ids = list(set.union(*map(set, ids)))
+    elif query_params.conditions:
+        project_ids = []
+        for cond in query_params.conditions:
+            if cond[0] == "project_id":
+                project_ids = [cond[2]] if cond[1] == "=" else cond[2]
     else:
         project_ids = []
 

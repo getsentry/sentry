@@ -1198,8 +1198,8 @@ class GetSnubaQueryArgsTest(TestCase):
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("project.name:{}".format(p1.slug), params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
-        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert _filter.project_ids == [p1.id, p2.id]
+        assert _filter.filter_keys == {"project_id": [p1.id]}
+        assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("!project.name:{}".format(p1.slug), params)
