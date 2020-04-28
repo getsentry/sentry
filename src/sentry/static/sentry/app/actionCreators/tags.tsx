@@ -10,50 +10,6 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 
 const MAX_TAGS = 1000;
 
-const BUILTIN_TAGS = [
-  'event.type',
-  'platform',
-  'message',
-  'title',
-  'location',
-  'timestamp',
-  'release',
-  'user.id',
-  'user.username',
-  'user.email',
-  'user.ip',
-  'sdk.name',
-  'sdk.version',
-  'contexts.key',
-  'contexts.value',
-  'http.method',
-  'http.url',
-  'os.build',
-  'os.kernel_version',
-  'device.brand',
-  'device.locale',
-  'device.uuid',
-  'device.model_id',
-  'device.arch',
-  'device.orientation',
-  'geo.country_code',
-  'geo.region',
-  'geo.city',
-  'error.type',
-  'error.value',
-  'error.mechanism',
-  'error.handled',
-  'stack.abs_path',
-  'stack.filename',
-  'stack.package',
-  'stack.module',
-  'stack.function',
-  'stack.stack_level',
-].map(tag => ({
-  key: tag,
-  name: tag,
-}));
-
 function tagFetchSuccess(tags: Tag[]) {
   const trimmedTags = tags.slice(0, MAX_TAGS);
 
@@ -83,21 +39,12 @@ export function loadOrganizationTags(
   if (selection.projects) {
     query.project = selection.projects.map(String);
   }
-  const promise = api
-    .requestPromise(url, {
-      method: 'GET',
-      query,
-    })
-    .then((tags: Tag[]) => [...BUILTIN_TAGS, ...tags]);
+  const promise = api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
 
-  promise.then(
-    results => {
-      tagFetchSuccess(results);
-    },
-    reason => {
-      TagActions.loadTagsError(reason);
-    }
-  );
+  promise.then(tagFetchSuccess, TagActions.loadTagsError);
 
   return promise;
 }
@@ -118,12 +65,10 @@ export function fetchOrganizationTags(
     query.project = projectIds;
   }
 
-  const promise = api
-    .requestPromise(url, {
-      method: 'GET',
-      query,
-    })
-    .then(tags => [...BUILTIN_TAGS, ...tags]);
+  const promise = api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
   promise.then(tagFetchSuccess, TagActions.loadTagsError);
 
   return promise;
