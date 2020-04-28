@@ -111,7 +111,6 @@ export function fetchOrganizationTags(
   projectIds: string[] | null = null
 ) {
   TagStore.reset();
-  TagActions.loadTags();
 
   const url = `/organizations/${orgId}/tags/`;
   const query: Query = {use_cache: '1'};
