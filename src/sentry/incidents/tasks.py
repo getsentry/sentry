@@ -9,7 +9,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
-    IncidentSnapshot,
+    PendingIncidentSnapshot,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
@@ -190,15 +190,17 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
 )
 def process_pending_incident_snapshots():
     """
-    Processes closed incidents and creates a snapshot if enough time has passed
-    to create a meaningful snapshot with data after it's been closed.
+    Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
+    has passed it's target_run_date.
     """
     from sentry.incidents.logic import create_incident_snapshot
 
     batch_size = 50
 
     now = timezone.now()
-    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=now).select_related("incident")
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(
+        target_run_date__lte=now
+    ).select_related("incident")
 
     if not pending_snapshots:
         return
