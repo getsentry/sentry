@@ -186,30 +186,29 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
 
 
 @instrumented_task(
-    name="sentry.incidents.tasks.take_incident_snapshots", queue="incident_snapshots"
+    name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
 )
-def take_incident_snapshots():
+def process_pending_incident_snapshots():
     """
     Processes closed incidents and creates a snapshot if enough time has passed
     to create a meaningful snapshot with data after it's been closed.
     """
-    from sentry.incidents.logic import complete_incident_snapshot
+    from sentry.incidents.logic import create_incident_snapshot
 
     batch_size = 50
 
     now = timezone.now()
-    snapshots = IncidentSnapshot.objects.filter(
-        status=IncidentSnapshot.PENDING.value, target_run_date__lte=now
-    ).select_related("incident")
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(target_run_date__lte=now).select_related("incident")
 
-    if not snapshots:
+    if not pending_snapshots:
         return
 
     processed = 0
-    for snapshot in snapshots:
+    for pending_snapshot in pending_snapshots:
+        incident = pending_snapshot.incident
         if processed > batch_size:
-            take_incident_snapshots.apply_async(countdown=1)
+            process_pending_incident_snapshots.apply_async(countdown=1)
             break
         else:
-            complete_incident_snapshot(snapshot, windowed_stats=True)
+            create_incident_snapshot(incident, windowed_stats=True)
             processed += 1

@@ -276,33 +276,28 @@ def create_pending_incident_snapshot(incident):
     target_run_date = incident.current_end_date + min(
         timedelta(minutes=time_window * 10), timedelta(days=10)
     )
-
-    return IncidentSnapshot.objects.create(
+    return PendingIncidentSnapshot.objects.create(
         incident=incident,
-        status=IncidentSnapshotStatus.PENDING.value,
         target_run_date=target_run_date,
     )
 
 
-def complete_incident_snapshot(snapshot, windowed_stats=False):
+def create_incident_snapshot(incident, windowed_stats=False):
     """
     Completes a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
-    incident = snapshot.incident
     assert incident.status == IncidentStatus.CLOSED.value
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
 
-    snapshot.update(
+    return IncidentSnapshot.objects.create(
+        incident=incident,
         event_stats_snapshot=event_stats_snapshot,
         unique_users=aggregates["unique_users"],
         total_events=aggregates["count"],
-        status=IncidentSnapshotStatus.COMPLETE.value,
     )
-
-    return snapshot
 
 
 def create_event_stat_snapshot(incident, windowed_stats=False):
@@ -385,6 +380,13 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
         start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
             end = now
+            
+            # latest_end_date = incident.current_end_date + min(
+            #     timedelta(minutes=time_window * 10), timedelta(days=10)
+            # )
+            # if end > latest_end_date:
+            #     end = latest_end_date
+
             start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
@@ -474,7 +476,7 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
         # so if they send False, we need to do a live calculation below.
         closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
         snapshots = IncidentSnapshot.objects.filter(
-            incident__in=closed, status=IncidentSnapshotStatus.COMPLETE.value
+            incident__in=closed
         )
         for snapshot in snapshots:
             event_stats = snapshot.event_stats_snapshot
