@@ -30,7 +30,7 @@ class ClippedBox extends React.Component {
   }
 
   componentDidMount() {
-    const renderedHeight = ReactDOM.findDOMNode(this).offsetHeight;
+    const renderedHeight = ReactDOM.findDOMNode(this).offsetHeight; // eslint-disable-line react/no-find-dom-node
 
     if (!this.state.clipped && renderedHeight > this.props.clipHeight) {
       /*eslint react/no-did-mount-set-state:0*/
@@ -42,8 +42,19 @@ class ClippedBox extends React.Component {
     }
   }
 
+  componentDidUpdate() {
+    if (this.state.revealed || !this.state.clipped) {
+      return;
+    }
+
+    const renderedHeight = ReactDOM.findDOMNode(this).offsetHeight; // eslint-disable-line react/no-find-dom-node
+    if (renderedHeight < this.props.clipHeight) {
+      this.reveal();
+    }
+  }
+
   reveal = e => {
-    e.stopPropagation();
+    e?.stopPropagation();
 
     this.setState({
       clipped: false,

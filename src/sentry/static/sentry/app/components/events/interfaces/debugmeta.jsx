@@ -2,7 +2,9 @@ import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
+import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
@@ -22,6 +24,8 @@ import {
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {IconSearch} from 'app/icons';
+import ClippedBox from 'app/components/clippedBox';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
@@ -90,13 +94,22 @@ export const combineStatus = (debugStatus, unwindStatus) => {
   return combined || 'unused';
 };
 
-class DebugImage extends React.PureComponent {
+class DebugImage extends React.Component {
   static propTypes = {
     image: PropTypes.object.isRequired,
     orgId: PropTypes.string,
     projectId: PropTypes.string,
     showDetails: PropTypes.bool.isRequired,
   };
+
+  shouldComponentUpdate(nextProps) {
+    return (
+      !isEqual(this.props.image, nextProps.image) ||
+      this.props.orgId !== nextProps.orgId ||
+      this.props.projectId !== nextProps.projectId ||
+      this.props.showDetails !== nextProps.showDetails
+    );
+  }
 
   getSettingsLink(image) {
     const {orgId, projectId} = this.props;
@@ -182,7 +195,7 @@ class DebugImage extends React.PureComponent {
 
         <ImageInfoGroup>
           <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-          <br />
+          <AddressDivider />
           <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
         </ImageInfoGroup>
 
@@ -259,7 +272,11 @@ class DebugImage extends React.PureComponent {
             return (
               <ImageActions>
                 <Tooltip title={t('Search for debug files in settings')}>
-                  <Button size="xsmall" icon="icon-settings" href={settingsUrl} />
+                  <Button
+                    size="xsmall"
+                    icon={<IconSearch size="xs" />}
+                    to={settingsUrl}
+                  />
                 </Tooltip>
               </ImageActions>
             );
@@ -463,29 +480,34 @@ class DebugMetaInterface extends React.PureComponent {
         actions={this.renderToolbar()}
         wrapTitle={false}
       >
-        <DebugImagesPanel>
-          <PanelBody>
-            {foundFrame && (
-              <ImageForBar frame={foundFrame} onShowAllImages={this.handleChangeFilter} />
-            )}
-            {filteredImages.length > 0 ? (
-              filteredImages.map(image => (
-                <DebugImage
-                  key={image.debug_id}
-                  image={image}
-                  orgId={this.props.orgId}
-                  projectId={this.props.projectId}
-                  showDetails={this.state.showDetails}
+        <ClippedBox clipHeight={350}>
+          <DebugImagesPanel>
+            <PanelBody>
+              {foundFrame && (
+                <ImageForBar
+                  frame={foundFrame}
+                  onShowAllImages={this.handleChangeFilter}
                 />
-              ))
-            ) : (
-              <EmptyItem>
-                <ImageIcon type="muted" src="icon-circle-exclamation" />{' '}
-                {this.getNoImagesMessage(images)}
-              </EmptyItem>
-            )}
-          </PanelBody>
-        </DebugImagesPanel>
+              )}
+              {filteredImages.length > 0 ? (
+                filteredImages.map(image => (
+                  <DebugImage
+                    key={image.debug_id}
+                    image={image}
+                    orgId={this.props.orgId}
+                    projectId={this.props.projectId}
+                    showDetails={this.state.showDetails}
+                  />
+                ))
+              ) : (
+                <EmptyItem>
+                  <ImageIcon type="muted" src="icon-circle-exclamation" />{' '}
+                  {this.getNoImagesMessage(images)}
+                </EmptyItem>
+              )}
+            </PanelBody>
+          </DebugImagesPanel>
+        </ClippedBox>
       </StyledEventDataSection>
     );
   }
@@ -504,22 +526,44 @@ const Label = styled('label')`
 const StyledEventDataSection = styled(EventDataSection)`
   ${SectionHeader} {
     align-items: center;
-    flex-wrap: wrap;
+    @media (max-width: ${p => p.theme.breakpoints[0]}) {
+      display: block;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding-bottom: ${space(4)};
+  }
+  /* to increase specificity */
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-bottom: ${space(2)};
   }
 `;
 
 const DebugImagesPanel = styled(Panel)`
-  max-height: 600px;
-  overflow-y: auto;
+  margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    max-height: 600px;
+    overflow-y: auto;
+  }
 `;
 
 const DebugImageItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeSmall};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-gap: ${space(1)};
+    position: relative;
+  }
 `;
 
 const ImageIcon = styled(InlineSvg)`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.alert[p.type].iconColor};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: ${p => p.theme.fontSizeExtraLarge};
+    margin-bottom: ${space(0.5)};
+  }
 `;
 
 const Formatted = styled('span')`
@@ -531,11 +575,19 @@ const ImageInfoGroup = styled('div')`
   flex-grow: ${p => (p.fullWidth ? 1 : null)};
 
   &:first-child {
-    margin-left: 0;
+    @media (min-width: ${p => p.theme.breakpoints[0]}) {
+      margin-left: 0;
+    }
   }
 `;
 
-const ImageActions = styled(ImageInfoGroup)``;
+const ImageActions = styled(ImageInfoGroup)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+  }
+`;
 
 const ImageTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
@@ -559,6 +611,15 @@ const ImageProp = styled('span')`
 
 const StatusLine = styled(ImageSubtext)`
   display: flex;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+  }
+`;
+
+const AddressDivider = styled('br')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const SymbolicationStatus = styled('span')`
@@ -585,11 +646,19 @@ const EmptyItem = styled(PanelItem)`
 const ToolbarWrapper = styled('div')`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-wrap: wrap;
+    margin-top: ${space(1)};
+  }
 `;
 const SearchInputWrapper = styled('div')`
   max-width: 180px;
   display: inline-block;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+    max-width: 100%;
+    margin-top: ${space(1)};
+  }
 `;
 // TODO(matej): remove this once we refactor SearchBar to not use css classes
 // - it could accept size as a prop
@@ -598,7 +667,7 @@ const StyledSearchBar = styled(SearchBar)`
     height: 30px;
   }
   .search-clear-form {
-    top: 5px;
+    top: 5px !important;
   }
   .icon-search {
     top: 8px;
