@@ -80,23 +80,13 @@ export default class DetailsHeader extends React.Component<Props> {
 
     const project = incident && incident.projects && incident.projects[0];
 
-    const alertBreadcrumbLabel = dateStarted ? (
-      <IncidentDate>{dateStarted}</IncidentDate>
-    ) : (
-      t('Alert details')
-    );
-
     return (
       <Header>
         <PageHeading>
           <AlertBreadcrumbs
             crumbs={[
-              {
-                key: 'alerts',
-                label: t('Alerts'),
-                to: `/organizations/${params.orgId}/alerts/`,
-              },
-              {key: 'details', label: alertBreadcrumbLabel},
+              {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
+              {label: dateStarted ?? t('Alert details')},
             ]}
           />
           <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
@@ -218,11 +208,6 @@ const IncidentTitle = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
-`;
-
-const IncidentDate = styled('div')`
-  font-size: 0.8em;
-  color: ${p => p.theme.gray2};
 `;
 
 const StatusMenuItem = styled(MenuItem)`
