@@ -27,6 +27,7 @@ from sentry.incidents.models import (
     IncidentGroup,
     IncidentProject,
     IncidentSnapshot,
+    PendingIncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
@@ -277,14 +278,13 @@ def create_pending_incident_snapshot(incident):
         timedelta(minutes=time_window * 10), timedelta(days=10)
     )
     return PendingIncidentSnapshot.objects.create(
-        incident=incident,
-        target_run_date=target_run_date,
+        incident=incident, target_run_date=target_run_date,
     )
 
 
 def create_incident_snapshot(incident, windowed_stats=False):
     """
-    Completes a snapshot of an incident. This includes the count of unique users
+    Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
@@ -380,12 +380,17 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
         start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
             end = now
-            
-            # latest_end_date = incident.current_end_date + min(
-            #     timedelta(minutes=time_window * 10), timedelta(days=10)
-            # )
-            # if end > latest_end_date:
-            #     end = latest_end_date
+
+            # If the incident ended already, 'now' could be greater than we'd like
+            # which would result in showing too many data points after an incident ended.
+            # This depends on when the task to process snapshots runs.
+            # To resolve that, we ensure that the end is never greater than the date
+            # an incident ended + the smaller of time_window*10 or 10 days.
+            latest_end_date = incident.current_end_date + min(
+                timedelta(minutes=time_window * 10), timedelta(days=10)
+            )
+            if end > latest_end_date:
+                end = latest_end_date
 
             start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
@@ -475,9 +480,7 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
         # At the moment, snapshots are only ever created with windowed_stats as True
         # so if they send False, we need to do a live calculation below.
         closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
-        snapshots = IncidentSnapshot.objects.filter(
-            incident__in=closed
-        )
+        snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
         for snapshot in snapshots:
             event_stats = snapshot.event_stats_snapshot
             incident_stats[snapshot.incident_id] = {
