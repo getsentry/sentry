@@ -213,9 +213,9 @@ class IncidentSnapshot(Model):
     __core__ = True
 
     incident = OneToOneCascadeDeletes("sentry.Incident")
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
-    unique_users = models.IntegerField()
-    total_events = models.IntegerField()
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", null=True)
+    unique_users = models.IntegerField(null=True)
+    total_events = models.IntegerField(null=True)
     status = models.PositiveSmallIntegerField(
         db_index=True, default=IncidentSnapshotStatus.PENDING.value
     )
