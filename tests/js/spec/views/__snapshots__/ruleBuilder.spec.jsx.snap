@@ -1099,14 +1099,14 @@ exports[`RuleBuilder renders 1`] = `
                     size="small"
                   >
                     <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                      className="css-n7mdnv-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <span
-                          className="css-1j44i9a-Icon edwq9my2"
+                          className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
                           <ForwardRef(IconAdd)
@@ -3112,14 +3112,14 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                     size="small"
                   >
                     <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                      className="css-n7mdnv-ButtonLabel edwq9my1"
                     >
                       <Icon
                         hasChildren={false}
                         size="small"
                       >
                         <span
-                          className="css-1j44i9a-Icon edwq9my2"
+                          className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
                           <ForwardRef(IconAdd)

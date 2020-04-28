@@ -330,7 +330,6 @@ INSTALLED_APPS = (
     "sentry.lang.javascript.apps.Config",
     "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_mail.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
@@ -845,13 +844,13 @@ SENTRY_FEATURES = {
     "organizations:integrations-event-hooks": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable experimental performance improvements.
+    "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
-    # Enable selection of members, teams or code owners as email targets for issue alerts.
-    "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -879,6 +878,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
+    # Enable selection of members, teams or code owners as email targets for issue alerts.
+    "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1379,7 +1380,18 @@ SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
         "ports": {"6379/tcp": 6379},
-        "command": ["redis-server", "--appendonly", "yes"],
+        "command": [
+            "redis-server",
+            "--appendonly",
+            "yes",
+            "--save",
+            "60",
+            "20",
+            "--auto-aof-rewrite-percentage",
+            "100",
+            "--auto-aof-rewrite-min-size",
+            "64mb",
+        ],
         "volumes": {"redis": {"bind": "/data"}},
     },
     "postgres": {
@@ -1466,6 +1478,10 @@ SENTRY_DEVSERVICES = {
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        # This directive tells `devservices up` that the reverse_proxy is not to be
+        # started up, only pulled and made available for `devserver` which will start
+        # it with `devservices attach --is-devserver reverse_proxy`.
+        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
@@ -1474,6 +1490,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
         "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        "with_devserver": True,
     },
 }
 
@@ -1848,3 +1865,4 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
 )
+SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"

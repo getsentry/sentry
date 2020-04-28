@@ -424,14 +424,14 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1dw46ju-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-1j44i9a-Icon edwq9my2"
+                                                          className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
                                                           <ForwardRef(IconDelete)
@@ -634,14 +634,14 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1dw46ju-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-1j44i9a-Icon edwq9my2"
+                                                          className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
                                                           <ForwardRef(IconDelete)
@@ -844,14 +844,14 @@ exports[`ProjectTags renders 1`] = `
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                      className="css-1dw46ju-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={false}
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-1j44i9a-Icon edwq9my2"
+                                                          className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
                                                           <ForwardRef(IconDelete)
@@ -1075,14 +1075,14 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1dw46ju-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}
                                                                   size="xsmall"
                                                                 >
                                                                   <span
-                                                                    className="css-1j44i9a-Icon edwq9my2"
+                                                                    className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
                                                                     <ForwardRef(IconDelete)
@@ -1310,14 +1310,14 @@ exports[`ProjectTags renders 1`] = `
                                                               size="xsmall"
                                                             >
                                                               <span
-                                                                className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                                className="css-1dw46ju-ButtonLabel edwq9my1"
                                                               >
                                                                 <Icon
                                                                   hasChildren={false}
                                                                   size="xsmall"
                                                                 >
                                                                   <span
-                                                                    className="css-1j44i9a-Icon edwq9my2"
+                                                                    className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
                                                                     <ForwardRef(IconDelete)

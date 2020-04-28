@@ -17,7 +17,7 @@ import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -25,9 +25,10 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {getPrebuiltQueries, decodeScalar} from './utils';
+import {getPrebuiltQueries} from './utils';
 import QueryList from './queryList';
 import backgroundSpace from '../../../images/spot/background-space.svg';
 
@@ -267,7 +268,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   render() {
-    let body;
+    let body: React.ReactNode;
     const {location, organization} = this.props;
     const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
     if (loading) {
@@ -289,12 +290,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             onQueryChange={this.handleQueryChange}
           />
           <Feature features={['organizations:discover']} organization={organization}>
-            <SwitchLink
-              href={`/organizations/${organization.slug}/discover/`}
-              onClick={this.onGoLegacyDiscover}
-            >
-              {t('Go to Legacy Discover')}
-            </SwitchLink>
+            <div>
+              <SwitchLink
+                href={`/organizations/${organization.slug}/discover/`}
+                onClick={this.onGoLegacyDiscover}
+              >
+                {t('Go to Legacy Discover')}
+              </SwitchLink>
+            </div>
           </Feature>
         </PageContent>
       );
@@ -308,7 +311,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       >
         <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
           <StyledPageContent>
-            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+            <LightWeightNoProjectMessage organization={organization}>
+              {body}
+            </LightWeightNoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>

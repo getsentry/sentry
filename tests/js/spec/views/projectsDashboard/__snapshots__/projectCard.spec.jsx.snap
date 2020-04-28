@@ -1052,7 +1052,7 @@ exports[`ProjectCard renders 1`] = `
                                     size="xsmall"
                                   >
                                     <span
-                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      className="css-1dw46ju-ButtonLabel edwq9my1"
                                     >
                                       Track deploys
                                     </span>

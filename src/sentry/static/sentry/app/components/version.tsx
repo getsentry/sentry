@@ -50,10 +50,6 @@ type Props = {
    * Ellipsis on overflow
    */
   truncate?: boolean;
-  /**
-   * Use releases v2 (for example when linking to detail page)
-   */
-  v2?: boolean;
   className?: string;
 };
 
@@ -68,20 +64,17 @@ const Version = ({
   truncate,
   className,
   location,
-  v2,
 }: WithRouterProps & Props) => {
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
-  if (!preserveGlobalSelection) {
-    if (projectId) {
-      // if user specifically sets projectId and not preserveGlobalSelection, use that
-      releaseDetailProjectId = projectId;
-    } else if (!new Set(organization?.features).has('global-views')) {
-      // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
-      releaseDetailProjectId = location?.query.project;
-    }
+  if (projectId) {
+    // we can override preserveGlobalSelection's project id
+    releaseDetailProjectId = projectId;
+  } else if (!organization?.features.includes('global-views')) {
+    // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
+    releaseDetailProjectId = location?.query.project;
   }
 
   const renderVersion = () => {
@@ -89,9 +82,9 @@ const Version = ({
       return (
         <LinkComponent
           to={{
-            pathname: `/organizations/${organization?.slug}/${
-              v2 ? 'releases-v2' : 'releases'
-            }/${encodeURIComponent(version)}/`,
+            pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+              version
+            )}/`,
             query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
           }}
           className={className}

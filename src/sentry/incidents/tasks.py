@@ -1,26 +1,22 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
-
 from django.core.urlresolvers import reverse
 from six.moves.urllib.parse import urlencode
 
-from sentry import deletions
 from sentry.auth.access import from_user
-from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleStatus,
     AlertRuleTriggerAction,
+    AlertRuleStatus,
     Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
+    IncidentStatusMethod,
     INCIDENT_STATUS,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils import metrics
@@ -100,44 +96,6 @@ def build_activity_context(activity, user):
     }
 
 
-@instrumented_task(
-    name="sentry.incidents.tasks.delete_alert_rule",
-    queue="cleanup",
-    default_retry_delay=60 * 5,
-    max_retries=1,
-)
-@retry(exclude=(DeleteAborted,))
-def delete_alert_rule(alert_rule_id, transaction_id=None, **kwargs):
-    from sentry.incidents.models import AlertRule
-
-    try:
-        instance = AlertRule.objects_with_deleted.get(id=alert_rule_id)
-    except AlertRule.DoesNotExist:
-        return
-
-    if instance.status not in (
-        AlertRuleStatus.DELETION_IN_PROGRESS.value,
-        AlertRuleStatus.PENDING_DELETION.value,
-    ):
-        raise DeleteAborted
-
-    task = deletions.get(
-        model=AlertRule, query={"id": alert_rule_id}, transaction_id=transaction_id or uuid4().hex
-    )
-    has_more = task.chunk()
-    if has_more:
-        delete_alert_rule.apply_async(
-            kwargs={"alert_rule_id": alert_rule_id, "transaction_id": transaction_id}, countdown=15
-        )
-
-
-class AlertRuleDeletionTask(deletions.ModelDeletionTask):
-    manager_name = "objects_with_deleted"
-
-
-deletions.default_manager.register(AlertRule, AlertRuleDeletionTask)
-
-
 @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
 def handle_snuba_query_update(subscription_update, subscription):
     """
@@ -184,3 +142,42 @@ def handle_trigger_action(action_id, incident_id, project_id, method):
         )
     )
     getattr(action, method)(incident, project)
+
+
+@instrumented_task(
+    name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
+    queue="incidents",
+    default_retry_delay=60,
+    max_retries=2,
+)
+def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
+    from sentry.incidents.models import AlertRule
+    from sentry.incidents.logic import update_incident_status
+
+    try:
+        alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
+    except AlertRule.DoesNotExist:
+        return
+
+    if alert_rule.status != AlertRuleStatus.SNAPSHOT.value:
+        return
+
+    batch_size = 50
+    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
+        status=IncidentStatus.CLOSED.value
+    )[: batch_size + 1]
+    has_more = incidents.count() > batch_size
+    if incidents:
+        incidents = incidents[:batch_size]
+        for incident in incidents:
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
+                status_method=IncidentStatusMethod.RULE_UPDATED,
+            )
+
+    if has_more:
+        auto_resolve_snapshot_incidents.apply_async(
+            kwargs={"alert_rule_id": alert_rule_id}, countdown=1
+        )

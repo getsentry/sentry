@@ -2,6 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import {IconWarning} from 'app/icons';
+import Button from 'app/components/button';
+import Alert from 'app/components/alert';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
@@ -20,6 +23,7 @@ type Props = {
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
   categories: string[];
+  alertText?: string;
 };
 
 const urlMap = {
@@ -39,6 +43,7 @@ const IntegrationRow = (props: Props) => {
     publishStatus,
     configurations,
     categories,
+    alertText,
   } = props;
 
   const baseUrl =
@@ -87,6 +92,16 @@ const IntegrationRow = (props: Props) => {
           ))}
         </InternalContainer>
       </FlexContainer>
+      {alertText && (
+        <AlertContainer>
+          <Alert type="warning" icon={<IconWarning size="sm" />}>
+            <span>{alertText}</span>
+            <ResolveNowButton href={`${baseUrl}?tab=configurations`} size="xsmall">
+              {t('Resolve Now')}
+            </ResolveNowButton>
+          </Alert>
+        </AlertContainer>
+      )}
     </PanelItem>
   );
 };
@@ -171,6 +186,16 @@ const CategoryTag = styled(
   line-height: ${space(3)};
   text-align: center;
   color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
+`;
+
+const ResolveNowButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+  background: #ffffff;
+  float: right;
+`;
+
+const AlertContainer = styled('div')`
+  padding: 0px ${space(3)} 0px 68px;
 `;
 
 export default IntegrationRow;

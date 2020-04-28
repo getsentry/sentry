@@ -426,7 +426,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                       size="small"
                                     >
                                       <span
-                                        className="css-19gcr2f-ButtonLabel edwq9my1"
+                                        className="css-n7mdnv-ButtonLabel edwq9my1"
                                       >
                                         Compare
                                       </span>
@@ -487,7 +487,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                     size="small"
                                   >
                                     <span
-                                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                                      className="css-n7mdnv-ButtonLabel edwq9my1"
                                     >
                                       Collapse All
                                     </span>
@@ -987,7 +987,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   size="normal"
                                 >
                                   <div
-                                    className="event-issue-header"
+                                    data-test-id="event-issue-header"
                                   >
                                     <Title
                                       size="normal"
@@ -1736,7 +1736,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                                   size="normal"
                                 >
                                   <div
-                                    className="event-issue-header"
+                                    data-test-id="event-issue-header"
                                   >
                                     <Title
                                       size="normal"

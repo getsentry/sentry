@@ -12,6 +12,7 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentSubscription,
 )
+from sentry.snuba.models import QueryDatasets
 from sentry.utils.db import attach_foreignkey
 
 
@@ -37,6 +38,7 @@ class IncidentSerializer(Serializer):
             "organizationId": six.text_type(obj.organization_id),
             "projects": attrs["projects"],
             "status": obj.status,
+            "statusMethod": obj.status_method,
             "type": obj.type,
             "title": obj.title,
             "query": obj.query,
@@ -97,5 +99,19 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context["hasSeen"] = seen_list["has_seen"]
         context["groups"] = attrs["groups"]
         context["alertRule"] = serialize(obj.alert_rule, user)
+        # The query we should use to get accurate results in Discover.
+        context["discoverQuery"] = self._build_discover_query(obj)
 
         return context
+
+    def _build_discover_query(self, incident):
+        query = incident.query
+        if (
+            incident.alert_rule
+            and QueryDatasets(incident.alert_rule.dataset) == QueryDatasets.EVENTS
+        ):
+            query = incident.alert_rule.query
+            condition = "event.type:error"
+            query = "{} {}".format(condition, query) if query else condition
+
+        return query

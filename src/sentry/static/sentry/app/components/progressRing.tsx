@@ -112,7 +112,7 @@ const ProgressRing = ({
     typeof progressColor === 'function' ? progressColor({percent, theme}) : progressColor;
 
   return (
-    <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
+    <RingSvg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
       <RingBackground
         r={radius}
         barWidth={barWidth}
@@ -133,9 +133,13 @@ const ProgressRing = ({
       <foreignObject height="100%" width="100%">
         {text !== undefined && textNode}
       </foreignObject>
-    </svg>
+    </RingSvg>
   );
 };
+
+const RingSvg = styled('svg')`
+  position: relative;
+`;
 
 const RingBackground = styled('circle')<{color: string; barWidth: number}>`
   fill: none;

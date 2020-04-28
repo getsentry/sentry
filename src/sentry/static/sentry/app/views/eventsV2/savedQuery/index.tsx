@@ -283,9 +283,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         data-test-id="discover2-savedquery-button-delete"
         onClick={this.handleDeleteQuery}
         disabled={this.props.disabled}
-      >
-        <IconDelete size="xs" color={theme.gray4} />
-      </Button>
+        icon={<IconDelete />}
+      />
     );
   }
 

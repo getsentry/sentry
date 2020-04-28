@@ -514,7 +514,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                               size="small"
                                             >
                                               <span
-                                                className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                className="css-n7mdnv-ButtonLabel edwq9my1"
                                               >
                                                 Enable Plugin
                                               </span>
@@ -566,7 +566,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                               size="small"
                                             >
                                               <span
-                                                className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                className="css-n7mdnv-ButtonLabel edwq9my1"
                                               >
                                                 Reset Configuration
                                               </span>

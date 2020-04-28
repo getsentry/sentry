@@ -666,7 +666,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                          className="css-1dw46ju-ButtonLabel edwq9my1"
                                                         >
                                                           Add Team
                                                           <StyledChevronDown>

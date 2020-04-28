@@ -10,11 +10,11 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
+import {HeaderBox, HeaderControls} from 'app/utils/discover/styles';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
 import SavedQueryButtonGroup from './savedQuery';
-import {HeaderBox, HeaderControls} from './styles';
 
 type Props = {
   api: Client;

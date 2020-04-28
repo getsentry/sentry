@@ -5,9 +5,9 @@ import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
-import {EventsStats, Organization, YAxisEventsStats} from 'app/types';
+import {EventsStats, OrganizationSummary, MultiSeriesEventsStats} from 'app/types';
 
-function getBaseUrl(org: Organization, keyTransactions: boolean | undefined) {
+function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
   if (keyTransactions) {
     return `/organizations/${org.slug}/key-transactions-stats/`;
   }
@@ -16,7 +16,7 @@ function getBaseUrl(org: Organization, keyTransactions: boolean | undefined) {
 }
 
 type Options = {
-  organization: Organization;
+  organization: OrganizationSummary;
   project?: number[];
   environment?: string[];
   period?: string;
@@ -30,6 +30,8 @@ type Options = {
   field?: string[];
   referenceEvent?: string;
   keyTransactions?: boolean;
+  topEvents?: number;
+  orderby?: string;
 };
 
 /**
@@ -62,8 +64,10 @@ export const doEventsRequest = (
     field,
     referenceEvent,
     keyTransactions,
+    topEvents,
+    orderby,
   }: Options
-): Promise<EventsStats | YAxisEventsStats> => {
+): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -74,6 +78,8 @@ export const doEventsRequest = (
       yAxis,
       field,
       referenceEvent,
+      topEvents,
+      orderby,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

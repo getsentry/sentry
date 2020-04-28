@@ -140,12 +140,17 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     def test_max_key_transaction(self):
         data = load_data("transaction")
+        other_project = self.create_project(organization=self.org)
         for i in range(MAX_KEY_TRANSACTIONS):
+            if i % 2 == 0:
+                project = self.project
+            else:
+                project = other_project
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
                 transaction=data["transaction"] + six.text_type(i),
-                project=self.project,
+                project=project,
             )
         with self.feature("organizations:performance-view"):
             url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
@@ -442,6 +447,53 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert (
             KeyTransaction.objects.filter(
                 owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 0
+        )
+
+    def test_delete_transaction_with_another_user(self):
+        event_data = load_data("transaction")
+
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+        self.login_as(user=user, superuser=False)
+        KeyTransaction.objects.create(
+            owner=user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.delete(
+                url + "?project={}".format(self.project.id),
+                {"transaction": event_data["transaction"]},
+            )
+
+        assert response.status_code == 204
+        # Original user still has a key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            ).count()
+            == 1
+        )
+        # Deleting user has deleted the key transaction
+        assert (
+            KeyTransaction.objects.filter(
+                owner=user,
                 organization=self.org,
                 transaction=event_data["transaction"],
                 project=self.project,

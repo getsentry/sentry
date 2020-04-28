@@ -172,7 +172,7 @@ const Controls = styled('div')`
 const Fingerprint = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  ${Controls} & {
+  ${/* sc-selector */ Controls} & {
     font-weight: normal;
     margin: 0;
   }

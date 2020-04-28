@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent} from 'app/styles/organization';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -96,7 +96,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   renderBody() {
     const {organization, location, selection} = this.props;
     const {release, deploys, reloading} = this.state;
-    const project = release.projects.find(p => p.id === selection.projects[0]);
+    const project = release?.projects.find(p => p.id === selection.projects[0]);
 
     if (!project || !release) {
       if (reloading) {
@@ -107,21 +107,23 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     }
 
     return (
-      <NoProjectMessage organization={organization}>
+      <LightWeightNoProjectMessage organization={organization}>
         <StyledPageContent>
           <ReleaseHeader
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys}
+            deploys={deploys || []}
             project={project}
           />
 
-          <ReleaseContext.Provider value={{release, project}}>
-            {this.props.children}
-          </ReleaseContext.Provider>
+          <ContentBox>
+            <ReleaseContext.Provider value={{release, project}}>
+              {this.props.children}
+            </ReleaseContext.Provider>
+          </ContentBox>
         </StyledPageContent>
-      </NoProjectMessage>
+      </LightWeightNoProjectMessage>
     );
   }
 }
@@ -215,6 +217,12 @@ const ProjectsFooterMessage = styled('div')`
   align-items: center;
   grid-template-columns: min-content 1fr;
   grid-gap: ${space(1)};
+`;
+
+const ContentBox = styled('div')`
+  padding: ${space(4)};
+  flex: 1;
+  background-color: white;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};

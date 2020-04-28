@@ -9,7 +9,7 @@ import withOrganization from 'app/utils/withOrganization';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import EventView from 'app/utils/discover/eventView';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -77,11 +77,9 @@ class PerformanceLanding extends React.Component<Props, State> {
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.start
       ? getUtcToLocalDateObject(globalSelection.start)
-      : undefined;
+      : null;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
-      : undefined;
+    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
 
     const {utc} = getParams(location.query);
 
@@ -91,7 +89,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       datetime: {
         start,
         end,
-        period: globalSelection.statsPeriod,
+        period: globalSelection.statsPeriod || DEFAULT_STATS_PERIOD,
         utc: utc === 'true',
       },
     };
@@ -163,7 +161,7 @@ class PerformanceLanding extends React.Component<Props, State> {
             allowClearTimeRange={this.allowClearTimeRange()}
           />
           <PageContent>
-            <NoProjectMessage organization={organization}>
+            <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <div>{t('Performance')}</div>
                 <div>{this.renderDropdown()}</div>
@@ -183,7 +181,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                 setError={this.setError}
                 keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
               />
-            </NoProjectMessage>
+            </LightWeightNoProjectMessage>
           </PageContent>
         </React.Fragment>
       </SentryDocumentTitle>

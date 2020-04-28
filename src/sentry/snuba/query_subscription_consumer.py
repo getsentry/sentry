@@ -199,6 +199,12 @@ class QuerySubscriptionConsumer(object):
                 extra={
                     "timestamp": contents["timestamp"],
                     "query_subscription_id": contents["subscription_id"],
+                    "project_id": subscription.project_id,
+                    "subscription_dataset": subscription.dataset,
+                    "subscription_query": subscription.query,
+                    "subscription_aggregation": subscription.aggregation,
+                    "subscription_time_window": subscription.time_window,
+                    "subscription_resolution": subscription.resolution,
                     "contents": contents,
                     "offset": message.offset(),
                     "partition": message.partition(),

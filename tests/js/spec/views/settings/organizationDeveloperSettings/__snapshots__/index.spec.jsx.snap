@@ -277,14 +277,14 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                   size="small"
                                 >
                                   <span
-                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    className="css-n7mdnv-ButtonLabel edwq9my1"
                                   >
                                     <Icon
                                       hasChildren={true}
                                       size="small"
                                     >
                                       <span
-                                        className="css-5zck09-Icon edwq9my2"
+                                        className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
                                         <ForwardRef(IconAdd)
@@ -445,14 +445,14 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                   size="small"
                                 >
                                   <span
-                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    className="css-n7mdnv-ButtonLabel edwq9my1"
                                   >
                                     <Icon
                                       hasChildren={true}
                                       size="small"
                                     >
                                       <span
-                                        className="css-5zck09-Icon edwq9my2"
+                                        className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
                                         <ForwardRef(IconAdd)

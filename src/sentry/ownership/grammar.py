@@ -147,7 +147,7 @@ class OwnershipVisitor(NodeVisitor):
     def visit_matcher_tag(self, node, children):
         if not children:
             return "path"
-        tag, = children
+        (tag,) = children
         type, _ = tag
         return type[0].text
 

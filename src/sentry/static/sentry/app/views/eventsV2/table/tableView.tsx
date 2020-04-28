@@ -21,7 +21,7 @@ import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/disco
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
 import SortLink from '../sortLink';
-import ColumnEditModal from './columnEditModal';
+import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
 import CellAction from './cellAction';
@@ -58,28 +58,10 @@ class TableView extends React.Component<TableViewProps> {
    * Updates a column on resizing
    */
   _resizeColumn = (columnIndex: number, nextColumn: TableColumn<keyof TableDataRow>) => {
-    const {location, eventView, organization} = this.props;
+    const {location, eventView} = this.props;
 
     const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
-
-    if (nextEventView !== eventView) {
-      const changed: string[] = [];
-
-      const prevField = eventView.fields[columnIndex];
-      const nextField = nextEventView.fields[columnIndex];
-      if (prevField.width !== nextField.width) {
-        changed.push('width');
-      }
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_column',
-        eventName: 'Discoverv2: A column was updated',
-        updated_at_index: columnIndex,
-        changed,
-        organization_id: parseInt(organization.id, 10),
-      });
-    }
 
     pushEventViewToLocation({
       location,
@@ -201,47 +183,45 @@ class TableView extends React.Component<TableViewProps> {
 
   handleEditColumns = () => {
     const {organization, eventView, tagKeys} = this.props;
-    this.trackEditAnalytics(organization, true);
 
-    openModal(modalProps => (
-      <ColumnEditModal
-        {...modalProps}
-        organization={organization}
-        tagKeys={tagKeys}
-        columns={eventView.getColumns().map(col => col.column)}
-        onApply={this.handleUpdateColumns}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <ColumnEditModal
+          {...modalProps}
+          organization={organization}
+          tagKeys={tagKeys}
+          columns={eventView.getColumns().map(col => col.column)}
+          onApply={this.handleUpdateColumns}
+        />
+      ),
+      {modalCss}
+    );
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
     const {organization, eventView} = this.props;
-    this.trackEditAnalytics(organization, false);
+
+    // metrics
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.update_columns',
+      eventName: 'Discoverv2: Update columns',
+      organization_id: parseInt(organization.id, 10),
+    });
 
     const nextView = eventView.withColumns(columns);
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
   };
 
-  trackEditAnalytics(organization: Organization, isEditing: boolean) {
-    if (isEditing) {
-      // metrics
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.table.column_header.edit_mode.enter',
-        eventName: 'Discoverv2: Enter column header edit mode',
-        organization_id: parseInt(organization.id, 10),
-      });
-    } else {
-      // metrics
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.table.column_header.edit_mode.exit',
-        eventName: 'Discoverv2: Exit column header edit mode',
-        organization_id: parseInt(organization.id, 10),
-      });
-    }
-  }
-
   render() {
-    const {isLoading, error, tableData, eventView, title, organization} = this.props;
+    const {
+      isLoading,
+      error,
+      location,
+      tableData,
+      eventView,
+      title,
+      organization,
+    } = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
@@ -262,6 +242,7 @@ class TableView extends React.Component<TableViewProps> {
           renderPrependColumns: this._renderPrependColumns as any,
           prependColumnWidths: ['40px'],
         }}
+        location={location}
         actions={{
           editColumns: this.handleEditColumns,
           downloadAsCsv: () => {
@@ -309,7 +290,7 @@ function ExpandAggregateRow(props: {
     };
 
     return (
-      <Link to={target} onClick={handleClick}>
+      <Link data-test-id="expand-count" to={target} onClick={handleClick}>
         {children}
       </Link>
     );
@@ -329,7 +310,7 @@ function ExpandAggregateRow(props: {
     };
 
     return (
-      <Link to={target} onClick={handleClick}>
+      <Link data-test-id="expand-count-unique" to={target} onClick={handleClick}>
         {children}
       </Link>
     );

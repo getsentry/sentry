@@ -42,6 +42,15 @@ type Props = {} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   download: Download;
+  errors: {
+    download: {
+      status: number;
+      statusText: string;
+      responseJSON: {
+        detail: string;
+      };
+    };
+  };
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
@@ -125,7 +134,6 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
-
   renderValid(): React.ReactNode {
     const {
       download: {dateExpired},
@@ -152,6 +160,28 @@ class DataDownload extends AsyncView<Props, State> {
           </p>
         </Body>
       </React.Fragment>
+    );
+  }
+  renderError(): React.ReactNode {
+    const {
+      errors: {download: err},
+    } = this.state;
+    const errDetail = err?.responseJSON?.detail;
+    return (
+      <Layout>
+        <main>
+          <Header>
+            <h3>
+              {err.status} - {err.statusText}
+            </h3>
+          </Header>
+          {errDetail && (
+            <Body>
+              <p>{errDetail}</p>
+            </Body>
+          )}
+        </main>
+      </Layout>
     );
   }
 

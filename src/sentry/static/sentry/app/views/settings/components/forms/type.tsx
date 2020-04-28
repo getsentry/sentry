@@ -140,6 +140,6 @@ export type Field = (
 export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
-  title?: string;
+  title?: React.ReactNode;
   fields: FieldObject[];
 };

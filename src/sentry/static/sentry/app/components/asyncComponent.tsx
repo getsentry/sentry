@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {Client} from 'app/api';
 import {metric} from 'app/utils/analytics';
@@ -37,7 +38,7 @@ type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 
 type RenderSearchInputArgs = Omit<
   SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url'
+  'api' | 'onSuccess' | 'onError' | 'url' | keyof WithRouterProps
 > & {
   stateKey?: string;
   url?: SearchInputProps['url'];

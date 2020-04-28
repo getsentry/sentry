@@ -15,9 +15,9 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import withApi from 'app/utils/withApi';
 
 import SummaryContent from './content';
@@ -125,7 +125,7 @@ class TransactionSummary extends React.Component<Props, State> {
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <StyledPageContent>
-            <NoProjectMessage organization={organization}>
+            <LightWeightNoProjectMessage organization={organization}>
               <SummaryContent
                 location={location}
                 organization={organization}
@@ -133,7 +133,7 @@ class TransactionSummary extends React.Component<Props, State> {
                 transactionName={transactionName}
                 totalValues={totalValues}
               />
-            </NoProjectMessage>
+            </LightWeightNoProjectMessage>
           </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>
@@ -179,7 +179,7 @@ function generateSummaryEventView(
       id: undefined,
       version: 2,
       name: transactionName,
-      fields: ['transaction', 'transaction.duration', 'timestamp'],
+      fields: ['id', 'user', 'transaction.duration', 'timestamp'],
       orderby: '-transaction.duration',
       query: stringifyQueryObject(conditions),
       projects: [],

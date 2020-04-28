@@ -25,6 +25,9 @@ import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import Access from 'app/components/acl/access';
+import ConfigStore from 'app/stores/configStore';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 
 import {Incident} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
@@ -40,6 +43,14 @@ type Props = {
 type State = {
   incidentList: Incident[];
 };
+
+const trackDocumentationClicked = (org: Organization) =>
+  trackAnalyticsEvent({
+    eventKey: 'alert_stream.documentation_clicked',
+    eventName: 'Alert Stream: Documentation Clicked',
+    organization_id: org.id,
+    user_id: ConfigStore.get('user').id,
+  });
 
 function getQueryStatus(status: any) {
   return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
@@ -61,27 +72,31 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       ],
     ];
   }
+
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
-    if (incidentList.length === 0) {
-      // Check if they have rules or not, to know which empty state message to display
-      const {params} = this.props;
 
-      try {
-        const alertRules = await this.api.requestPromise(
-          `/organizations/${params && params.orgId}/alert-rules/`,
-          {
-            method: 'GET',
-          }
-        );
-        this.setState({
-          hasAlertRule: alertRules.length > 0 ? true : false,
-        });
-      } catch (err) {
-        this.setState({
-          hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
-        });
-      }
+    if (incidentList.length !== 0) {
+      return;
+    }
+
+    // Check if they have rules or not, to know which empty state message to display
+    const {params} = this.props;
+
+    try {
+      const alertRules = await this.api.requestPromise(
+        `/organizations/${params && params.orgId}/alert-rules/`,
+        {
+          method: 'GET',
+        }
+      );
+      this.setState({
+        hasAlertRule: alertRules.length > 0 ? true : false,
+      });
+    } catch (err) {
+      this.setState({
+        hasAlertRule: true, // endpoint failed, using true as the "safe" choice in case they actually do have rules
+      });
     }
   }
 
@@ -201,8 +216,8 @@ class IncidentsListContainer extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: 'alert_stream.viewed',
       eventName: 'Alert Stream: Viewed',
+      organization_id: organization.id,
       status,
-      organization_id: parseInt(organization.id, 10),
     });
   }
 
@@ -229,7 +244,7 @@ class IncidentsListContainer extends React.Component<Props> {
   };
 
   render() {
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
     const {pathname, query} = location;
     const {orgId} = params;
 
@@ -240,73 +255,94 @@ class IncidentsListContainer extends React.Component<Props> {
     const status = getQueryStatus(query.status);
 
     return (
-      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
-        <PageContent>
-          <PageHeader>
-            <StyledPageHeading>
-              {t('Alerts')}{' '}
-              <BetaTag title={t('This page is in beta and may change in the future.')} />
-            </StyledPageHeading>
+      <React.Fragment>
+        <GlobalSelectionHeader organization={organization} showDateSelector={false} />
+        <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+          <PageContent>
+            <PageHeader>
+              <StyledPageHeading>
+                {t('Alerts')}{' '}
+                <BetaTag
+                  title={t('This page is in beta and may change in the future.')}
+                />
+              </StyledPageHeading>
 
-            <Actions>
-              <Button
-                onClick={this.handleAddAlertRule}
-                priority="primary"
-                href="#"
-                size="small"
-                icon={<IconAdd circle size="xs" />}
-              >
-                {t('Add Alert Rule')}
-              </Button>
+              <Actions>
+                <Access organization={organization} access={['project:write']}>
+                  {({hasAccess}) => (
+                    <Button
+                      disabled={!hasAccess}
+                      title={
+                        !hasAccess
+                          ? t('You do not have permission to add alert rules.')
+                          : undefined
+                      }
+                      onClick={this.handleAddAlertRule}
+                      priority="primary"
+                      href="#"
+                      size="small"
+                      icon={<IconAdd circle size="xs" />}
+                    >
+                      {t('Add Alert Rule')}
+                    </Button>
+                  )}
+                </Access>
 
-              <Button
-                onClick={this.handleNavigateToSettings}
-                href="#"
-                size="small"
-                icon={<IconSettings size="xs" />}
-              >
-                {t('Settings')}
-              </Button>
-
-              <ButtonBar merged active={status}>
                 <Button
-                  to={{pathname, query: openIncidentsQuery}}
-                  barId="open"
+                  onClick={this.handleNavigateToSettings}
+                  href="#"
                   size="small"
+                  icon={<IconSettings size="xs" />}
                 >
-                  {t('Active')}
+                  {t('Settings')}
                 </Button>
-                <Button
-                  to={{pathname, query: closedIncidentsQuery}}
-                  barId="closed"
-                  size="small"
-                >
-                  {t('Resolved')}
-                </Button>
-                <Button
-                  to={{pathname, query: allIncidentsQuery}}
-                  barId="all"
-                  size="small"
-                >
-                  {t('All')}
-                </Button>
-              </ButtonBar>
-            </Actions>
-          </PageHeader>
 
-          <Alert type="info" icon="icon-circle-info">
-            {tct('This page is in beta and currently only shows [link:metric alerts]. ', {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/workflow/alerts-notifications/alerts/" />
-              ),
-            })}
-            <ExternalLink href="mailto:alerting-feedback@sentry.io">
-              {t('Please contact us if you have any feedback.')}
-            </ExternalLink>
-          </Alert>
-          <IncidentsList {...this.props} />
-        </PageContent>
-      </DocumentTitle>
+                <ButtonBar merged active={status}>
+                  <Button
+                    to={{pathname, query: openIncidentsQuery}}
+                    barId="open"
+                    size="small"
+                  >
+                    {t('Active')}
+                  </Button>
+                  <Button
+                    to={{pathname, query: closedIncidentsQuery}}
+                    barId="closed"
+                    size="small"
+                  >
+                    {t('Resolved')}
+                  </Button>
+                  <Button
+                    to={{pathname, query: allIncidentsQuery}}
+                    barId="all"
+                    size="small"
+                  >
+                    {t('All')}
+                  </Button>
+                </ButtonBar>
+              </Actions>
+            </PageHeader>
+
+            <Alert type="info" icon="icon-circle-info">
+              {tct(
+                'This page is in beta and currently only shows [link:metric alerts]. ',
+                {
+                  link: (
+                    <ExternalLink
+                      onClick={() => trackDocumentationClicked(organization)}
+                      href="https://docs.sentry.io/workflow/alerts-notifications/alerts/"
+                    />
+                  ),
+                }
+              )}
+              <ExternalLink href="mailto:alerting-feedback@sentry.io">
+                {t('Please contact us if you have any feedback.')}
+              </ExternalLink>
+            </Alert>
+            <IncidentsList {...this.props} />
+          </PageContent>
+        </DocumentTitle>
+      </React.Fragment>
     );
   }
 }

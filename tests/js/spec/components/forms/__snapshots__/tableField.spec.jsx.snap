@@ -303,14 +303,14 @@ exports[`TableField renders renders with form context 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <span
-                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                    className="css-1dw46ju-ButtonLabel edwq9my1"
                                                   >
                                                     <Icon
                                                       hasChildren={true}
                                                       size="xsmall"
                                                     >
                                                       <span
-                                                        className="css-5zck09-Icon edwq9my2"
+                                                        className="css-1hbuack-Icon edwq9my2"
                                                         size="xsmall"
                                                       >
                                                         <ForwardRef(IconAdd)
@@ -724,14 +724,14 @@ exports[`TableField renders renders without form context 1`] = `
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              className="css-1dw46ju-ButtonLabel edwq9my1"
                                             >
                                               <Icon
                                                 hasChildren={true}
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-5zck09-Icon edwq9my2"
+                                                  className="css-1hbuack-Icon edwq9my2"
                                                   size="xsmall"
                                                 >
                                                   <ForwardRef(IconAdd)

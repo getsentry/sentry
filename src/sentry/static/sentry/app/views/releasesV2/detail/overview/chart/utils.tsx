@@ -33,7 +33,7 @@ export function getReleaseEventView(
     query: `release:${version} !event.type:transaction`,
     orderby: '-last_seen',
     range: period,
-    environments,
+    environment: environments,
     projects,
     start: start ? getUtcDateString(start) : undefined,
     end: end ? getUtcDateString(end) : undefined,
