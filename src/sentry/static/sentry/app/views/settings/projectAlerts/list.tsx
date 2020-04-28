@@ -144,6 +144,11 @@ const ScrollWrapper = styled('div')`
 const StyledPanelTable = styled(PanelTable)`
   width: fit-content;
   min-width: 100%;
+
+  > * {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const HeaderActions = styled('div')`
