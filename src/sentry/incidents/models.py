@@ -209,23 +209,30 @@ class IncidentSnapshotStatus(Enum):
     COMPLETE = 1
 
 
+class PendingIncidentSnapshot(Model):
+    __core__ = True
+
+    incident = OneToOneCascadeDeletes("sentry.Incident")
+    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pendingincidentsnapshot"
+
+
 class IncidentSnapshot(Model):
     __core__ = True
 
     incident = OneToOneCascadeDeletes("sentry.Incident")
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", null=True)
-    unique_users = models.IntegerField(null=True)
-    total_events = models.IntegerField(null=True)
-    status = models.PositiveSmallIntegerField(
-        db_index=True, default=IncidentSnapshotStatus.PENDING.value
-    )
-    target_run_date = models.DateTimeField(default=timezone.now)
+    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot")
+    unique_users = models.IntegerField()
+    total_events = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentsnapshot"
-        index_together = (("status", "target_run_date"),)
 
 
 class TimeSeriesSnapshot(Model):
