@@ -5,6 +5,8 @@ import six
 from django.db.models import Q
 from rest_framework.response import Response
 
+import sentry_sdk
+
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -107,7 +109,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
+            projects = list(queryset)
+            with sentry_sdk.start_span(op="serialize_all_organization_projects") as span:
+                span.set_data("Project Count", len(projects))
+                serialized = serialize(projects, request.user, ProjectSummarySerializer())
+            return Response(serialized)
         else:
             return self.paginate(
                 request=request,
