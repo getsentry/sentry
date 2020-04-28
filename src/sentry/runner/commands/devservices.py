@@ -77,7 +77,7 @@ def attach(project, fast, service):
     client = get_docker_client()
     containers = _prepare_containers(project, silent=True)
     if service not in containers:
-        raise click.ClickException("Service {} is not known or not enabled.".format(service))
+        raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
 
     container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
@@ -108,6 +108,31 @@ def up(services, project, exclude, fast):
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring up.
     """
+    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
+
+    from sentry.runner import configure
+
+    configure()
+
+    containers = _prepare_containers(project, silent=True)
+
+    if services:
+        selected_containers = {}
+        for service in services:
+            if service not in containers:
+                click.secho(
+                    "Service `{}` is not known or not enabled.\n".format(service),
+                    err=True,
+                    fg="red",
+                )
+                click.secho(
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
+                    err=True,
+                )
+                raise click.Abort()
+            selected_containers[service] = containers[service]
+        containers = selected_containers
+
     if fast:
         click.secho(
             "> Warning! Fast mode completely eschews any image updating, so services may be stale.",
@@ -115,35 +140,14 @@ def up(services, project, exclude, fast):
             fg="red",
         )
 
-    os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
-    from sentry.runner import configure
-
-    configure()
-
     client = get_docker_client()
-
     get_or_create(client, "network", project)
 
-    containers = _prepare_containers(project, silent=True)
-
     exclude = set(chain.from_iterable(x.split(",") for x in exclude))
-
     for name, container_options in containers.items():
         if name in exclude:
             continue
-
-        # XXX: Ideally the list of services can be precomputed and set as default value
-        #      at cli parsing time.
-        #      Then, we can also raise errors at cli parsing time if a service isn't known.
-        #      And also list the ones to choose from. Take this from container's names,
-        #      which respects only_if. Need to raise error on e.g. sentry devservices up relay
-        #      if relay is disabled.
-        if services:
-            if name in services:
-                _start_service(client, name, containers, project, fast=fast)
-        else:
-            _start_service(client, name, containers, project, fast=fast)
+        _start_service(client, name, containers, project, fast=fast)
 
 
 def _prepare_containers(project, silent=False):
