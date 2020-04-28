@@ -12,6 +12,8 @@ import {
   ProcessedSpanType,
   GapSpanType,
   RawSpanType,
+  OrphanSpanType,
+  SpanType,
   SpanEntry,
   TraceContextType,
 } from './types';
@@ -348,6 +350,11 @@ export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
   return span.type === 'gap';
 }
 
+function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
+  // @ts-ignore
+  return span.type === 'orphan';
+}
+
 export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
   if (isGapSpan(span)) {
     return defaultSpanID;
@@ -391,7 +398,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     (entry: {type: string}) => entry.type === 'spans'
   );
 
-  let spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
   const traceID = (traceContext && traceContext.trace_id) || '';
@@ -420,32 +427,10 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     })
   );
 
+  // the root transaction span is a parent of all other spans
   potentialParents.add(rootSpanID);
 
   // we reduce spans to become an object mapping span ids to their children
-
-  let orphanSpans = spans.filter(span => {
-    if (span.parent_span_id) {
-      // if this span has a parent that's not one of the known parents,
-      // then it's considered an orphan with respect to the spans within this transaction
-      const hasParent = potentialParents.has(span.parent_span_id);
-      return !hasParent;
-    }
-
-    return true;
-  });
-
-  // sort orphaned span children by their start timestamps in ascending order
-  orphanSpans.sort(sortSpansAscending);
-
-  // TODO: debug
-  const result = orphanTheseSpans(
-    spans,
-    new Set(['86620893f627b0a6', 'b9884f1007035621'])
-  );
-  spans = result.spans;
-  orphanSpans = result.orphanSpans;
-  console.log('orphanSpans', orphanSpans);
 
   const init: ParsedTraceType = {
     op: rootSpanOpName,
@@ -457,21 +442,38 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     parentSpanID,
     numOfSpans: spans.length,
     spans,
-    orphanSpans,
   };
 
-  const reduced: ParsedTraceType = spans.reduce((acc, span) => {
-    if (!isValidSpanID(getSpanParentSpanID(span))) {
-      return acc;
+  const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
+    let span: SpanType = inputSpan;
+
+    const parentSpanId = getSpanParentSpanID(span);
+
+    const hasParent = parentSpanId && potentialParents.has(parentSpanId);
+
+    if (!isValidSpanID(parentSpanId) || !hasParent) {
+      // this span is considered an orphan with respect to the spans within this transaction.
+      // although the span is an orphan, it's still a descendant of this transaction,
+      // so we set its parent span id to be the root transaction span's id
+      span.parent_span_id = rootSpanID;
+
+      span = {
+        type: 'orphan',
+        ...span,
+      } as OrphanSpanType;
     }
 
     assert(span.parent_span_id);
 
-    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
+    // get any span children whose parent_span_id is equal to span.parent_span_id,
+    // otherwise start with an empty array
+    const spanChildren: Array<SpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
     set(acc.childSpans, span.parent_span_id, spanChildren);
+
+    // set trace start & end timestamps based on given span's start and end timestamps
 
     if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
       acc.traceStartTimestamp = span.start_timestamp;
@@ -503,20 +505,32 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     return acc;
   }, init);
 
-  // sort span children by their start timestamps in ascending order
+  // sort span children
 
   Object.values(reduced.childSpans).forEach(spanChildren => {
-    spanChildren.sort(sortSpansAscending);
+    spanChildren.sort(sortSpans);
   });
-
-  // TODO: sort orphan children in ascending order
-  // TODO: add orphan children to spanChildren
 
   return reduced;
 }
 
-function sortSpansAscending(firstSpan: RawSpanType, secondSpan: RawSpanType) {
+function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
+  // orphan spans come after non-ophan spans.
+
+  if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
+    // sort secondSpan before firstSpan
+    return 1;
+  }
+
+  if (!isOrphanSpan(firstSpan) && isOrphanSpan(secondSpan)) {
+    // sort firstSpan before secondSpan
+    return -1;
+  }
+
+  // sort spans by their start timestamp in ascending order
+
   if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
+    // sort firstSpan before secondSpan
     return -1;
   }
 
@@ -524,24 +538,25 @@ function sortSpansAscending(firstSpan: RawSpanType, secondSpan: RawSpanType) {
     return 0;
   }
 
+  // sort secondSpan before firstSpan
   return 1;
 }
 
 // DEBUG
-function orphanTheseSpans(spans: Array<RawSpanType>, needleSpanIds: Set<string>) {
-  const orphanSpans: RawSpanType[] = [];
+// function orphanTheseSpans(spans: Array<RawSpanType>, needleSpanIds: Set<string>) {
+//   const orphanSpans: RawSpanType[] = [];
 
-  spans = spans.filter(span => {
-    if (needleSpanIds.has(span.span_id)) {
-      orphanSpans.push(span);
-      return false;
-    }
+//   spans = spans.filter(span => {
+//     if (needleSpanIds.has(span.span_id)) {
+//       orphanSpans.push(span);
+//       return false;
+//     }
 
-    return true;
-  });
+//     return true;
+//   });
 
-  return {
-    spans,
-    orphanSpans,
-  };
-}
+//   return {
+//     spans,
+//     orphanSpans,
+//   };
+// }

@@ -22,7 +22,11 @@ export type OrphanSpanType = {
   type: 'orphan';
 } & RawSpanType;
 
-export type ProcessedSpanType = RawSpanType | GapSpanType | OrphanSpanType;
+export type SpanType = RawSpanType | OrphanSpanType;
+
+// this type includes natural spans which are part of the transaction event payload,
+// and as well as pseudo-spans (e.g. gap spans)
+export type ProcessedSpanType = SpanType | GapSpanType;
 
 export type SpanEntry = {
   type: 'spans';
@@ -30,7 +34,7 @@ export type SpanEntry = {
 };
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: Array<RawSpanType>};
+export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
 
 export type ParsedTraceType = {
   op: string;
@@ -41,7 +45,7 @@ export type ParsedTraceType = {
   traceStartTimestamp: number;
   traceEndTimestamp: number;
   numOfSpans: number;
-  spans: RawSpanType[];
+  spans: SpanType[];
 };
 
 export enum TickAlignment {
