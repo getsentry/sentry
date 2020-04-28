@@ -272,10 +272,6 @@ def delete_comment(activity):
 def create_pending_incident_snapshot(incident):
     assert incident.status == IncidentStatus.CLOSED.value
 
-    event_stats_snapshot = TimeSeriesSnapshot.objects.create(
-        start=timezone.now(), end=timezone.now(), values=[], period=1,
-    )
-
     time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
     target_run_date = incident.current_end_date + min(
         timedelta(minutes=time_window * 10), timedelta(days=10)
@@ -283,9 +279,6 @@ def create_pending_incident_snapshot(incident):
 
     return IncidentSnapshot.objects.create(
         incident=incident,
-        event_stats_snapshot=event_stats_snapshot,
-        unique_users=0,
-        total_events=0,
         status=IncidentSnapshotStatus.PENDING.value,
         target_run_date=target_run_date,
     )
