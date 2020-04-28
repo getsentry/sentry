@@ -50,20 +50,26 @@ export default function getConfiguration({
           description: t('Manage issue ownership rules for a project'),
         },
         {
+          path: `${pathPrefix}/data-forwarding/`,
+          title: t('Data Forwarding'),
+        },
+      ],
+    },
+    {
+      name: t('Processing'),
+      items: [
+        {
+          path: `${pathPrefix}/debug-symbols/`,
+          title: t('Debug Files'),
+        },
+        {
           path: `${pathPrefix}/data-privacy/`,
           title: t('Data Privacy'),
           description: t('Configure Datascrubbers for a project'),
           show: () => organization.features?.includes('datascrubbers-v2'),
           badge: () => 'new',
         },
-        {
-          path: `${pathPrefix}/data-forwarding/`,
-          title: t('Data Forwarding'),
-        },
-        {
-          path: `${pathPrefix}/debug-symbols/`,
-          title: t('Debug Files'),
-        },
+
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
