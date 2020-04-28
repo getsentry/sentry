@@ -203,24 +203,3 @@ class RedisBufferTest(TestCase):
             "s": "1"
         }
     """
-
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis._local_buffers", dict())
-    def test_signal_only_saved_local_buffs(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        model = mock.Mock()
-        model.__name__ = "Mock"
-        columns = {"times_seen": 1}
-        filters = {"pk": 1, "datetime": now}
-
-        self.buf.incr(
-            model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True
-        )
-
-        from sentry.buffer.redis import _local_buffers
-
-        frozen_filters = tuple(sorted(filters.items()))
-        key = (frozen_filters, model)
-        values = _local_buffers[key]
-
-        assert values[-1]  # signal_only stored last
