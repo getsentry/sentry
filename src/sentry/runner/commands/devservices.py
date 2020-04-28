@@ -97,12 +97,16 @@ def attach(project, fast, service):
 
 
 @devservices.command()
+@click.argument("services", nargs=-1)
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
-def up(project, exclude, fast):
+def up(services, project, exclude, fast):
     """
     Run/update dependent services.
+
+    The default is everything, however you may pass positional arguments to specify
+    an explicit list of services to bring up.
     """
     if fast:
         click.secho(
@@ -113,8 +117,6 @@ def up(project, exclude, fast):
 
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
-    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
-
     from sentry.runner import configure
 
     configure()
@@ -123,12 +125,25 @@ def up(project, exclude, fast):
 
     get_or_create(client, "network", project)
 
-    containers = _prepare_containers(project)
+    containers = _prepare_containers(project, silent=True)
+
+    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
 
     for name, container_options in containers.items():
         if name in exclude:
             continue
-        _start_service(client, name, containers, project, fast=fast)
+
+        # XXX: Ideally the list of services can be precomputed and set as default value
+        #      at cli parsing time.
+        #      Then, we can also raise errors at cli parsing time if a service isn't known.
+        #      And also list the ones to choose from. Take this from container's names,
+        #      which respects only_if. Need to raise error on e.g. sentry devservices up relay
+        #      if relay is disabled.
+        if services:
+            if name in services:
+                _start_service(client, name, containers, project, fast=fast)
+        else:
+            _start_service(client, name, containers, project, fast=fast)
 
 
 def _prepare_containers(project, silent=False):
