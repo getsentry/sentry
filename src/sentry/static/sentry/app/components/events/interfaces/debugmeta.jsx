@@ -542,6 +542,10 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    max-height: 600px;
+    overflow-y: auto;
+  }
 `;
 
 const DebugImageItem = styled(PanelItem)`
