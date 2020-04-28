@@ -4,6 +4,8 @@ import six
 from rest_framework.exceptions import PermissionDenied, ParseError
 from django.core.cache import cache
 
+import sentry_sdk
+
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -217,19 +219,26 @@ class OrganizationEndpoint(Endpoint):
         if project_ids:
             qs = qs.filter(id__in=project_ids)
 
-        if force_global_perms:
+        with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
-        else:
-            if (
-                user
-                and is_active_superuser(request)
-                or requested_projects
-                or include_all_accessible
-            ):
-                func = request.access.has_project_access
+            span.set_data("Project Count", len(projects))
+        with sentry_sdk.start_span(op="apply_project_permissions") as span:
+            span.set_data("Project Count", len(projects))
+            if force_global_perms:
+                span.set_tag("mode", "force_global_perms")
             else:
-                func = request.access.has_project_membership
-            projects = [p for p in qs if func(p)]
+                if (
+                    user
+                    and is_active_superuser(request)
+                    or requested_projects
+                    or include_all_accessible
+                ):
+                    span.set_tag("mode", "has_project_access")
+                    func = request.access.has_project_access
+                else:
+                    span.set_tag("mode", "has_project_membership")
+                    func = request.access.has_project_membership
+                projects = [p for p in qs if func(p)]
 
         project_ids = set(p.id for p in projects)
 
@@ -285,7 +294,8 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        self.check_object_permissions(request, organization)
+        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+            self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)
 
