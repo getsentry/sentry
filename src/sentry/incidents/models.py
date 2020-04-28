@@ -204,6 +204,18 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
+class PendingIncidentSnapshot(Model):
+    __core__ = True
+
+    incident = OneToOneCascadeDeletes("sentry.Incident")
+    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pendingincidentsnapshot"
+
+
 class IncidentSnapshot(Model):
     __core__ = True
 
