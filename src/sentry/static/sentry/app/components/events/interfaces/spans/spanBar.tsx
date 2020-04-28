@@ -18,6 +18,7 @@ import {
   getHumanDuration,
   getSpanID,
   getSpanOperation,
+  isOrphanSpan,
 } from './utils';
 import {ParsedTraceType, ProcessedSpanType} from './types';
 import {
@@ -347,7 +348,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     return (
-      <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
+      <SpanTreeConnector
+        isLast={isLast}
+        hasToggler={hasToggler}
+        orphanBranch={isOrphanSpan(span)}
+      >
         {connectorBars}
       </SpanTreeConnector>
     );
@@ -883,17 +888,31 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   justify-content: flex-end;
 `;
 
-const SpanTreeConnector = styled('div')<TogglerTypes>`
+const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? '80%' : '160%')};
   width: 100%;
-  border-left: 1px solid ${p => p.theme.gray1};
+  border-left: ${p => {
+    if (p.orphanBranch) {
+      return `1px dashed ${p.theme.gray1}`;
+    }
+
+    return `1px solid ${p.theme.gray1}`;
+  }};
+
   position: absolute;
   top: -5px;
 
   &:before {
     content: '';
     height: 1px;
-    background-color: ${p => p.theme.gray1};
+    border-bottom: ${p => {
+      if (p.orphanBranch) {
+        return `1px dashed ${p.theme.gray1}`;
+      }
+
+      return `1px solid ${p.theme.gray1}`;
+    }};
+
     width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};

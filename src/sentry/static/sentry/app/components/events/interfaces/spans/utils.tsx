@@ -350,7 +350,7 @@ export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
   return span.type === 'gap';
 }
 
-function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
+export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   // @ts-ignore
   return span.type === 'orphan';
 }
