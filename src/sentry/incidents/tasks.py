@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from six.moves.urllib.parse import urlencode
@@ -195,28 +193,23 @@ def take_incident_snapshots():
     Processes closed incidents and creates a snapshot if enough time has passed
     to create a meaningful snapshot with data after it's been closed.
     """
-    from sentry.incidents.logic import create_incident_snapshot
+    from sentry.incidents.logic import complete_incident_snapshot
 
     batch_size = 50
 
-    incidents = Incident.objects.filter(status=IncidentStatus.CLOSED.value)
-    snapshots = IncidentSnapshot.objects.filter(incident__in=incidents).values_list("id", flat=True)
-    incidents_to_snapshot = [i for i in incidents if i.id not in snapshots]
+    now = timezone.now()
+    snapshots = IncidentSnapshot.objects.filter(
+        status=IncidentSnapshot.PENDING.value, target_run_date__lte=now
+    ).select_related("incident")
 
-    if not incidents_to_snapshot:
+    if not snapshots:
         return
 
     processed = 0
-    for incident in incidents_to_snapshot:
-        now = timezone.now()
-        time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
-        if now >= incident.current_end_date + timedelta(minutes=time_window * 10):
-            # Wait for time_window * 10 until taking snapshot, to show 10 points after the incident end's for short incidents.
-            # This means we could be waiting up to 10 days for incident's with a 24 hour time window.
-            # Long incidents (i.e. incident duration > time_window*100 (or more accurately WINDOWED_STATS_DATA_POINTS / 2)) will still center the start point and not show the end
-            if processed > batch_size:
-                take_incident_snapshots.apply_async(countdown=1)
-                break
-            else:
-                create_incident_snapshot(incident, windowed_stats=True)
-                processed += 1
+    for snapshot in snapshots:
+        if processed > batch_size:
+            take_incident_snapshots.apply_async(countdown=1)
+            break
+        else:
+            complete_incident_snapshot(snapshot, windowed_stats=True)
+            processed += 1

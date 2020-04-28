@@ -162,6 +162,9 @@ def update_incident_status(
 
         incident.update(**kwargs)
 
+        if status == IncidentStatus.CLOSED:
+            create_pending_incident_snapshot(incident)
+
         analytics.record(
             "incident.status_change",
             incident_id=incident.id,
@@ -266,22 +269,47 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def create_incident_snapshot(incident, windowed_stats=False):
+def create_pending_incident_snapshot(incident):
+    assert incident.status == IncidentStatus.CLOSED.value
+
+    event_stats_snapshot = TimeSeriesSnapshot.objects.create(
+        start=timezone.now(), end=timezone.now(), values=[], period=1,
+    )
+
+    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
+    target_run_date = incident.current_end_date + min(
+        timedelta(minutes=time_window * 10), timedelta(days=10)
+    )
+
+    return IncidentSnapshot.objects.create(
+        incident=incident,
+        event_stats_snapshot=event_stats_snapshot,
+        unique_users=0,
+        total_events=0,
+        status=IncidentSnapshotStatus.PENDING.value,
+        target_run_date=target_run_date,
+    )
+
+
+def complete_incident_snapshot(snapshot, windowed_stats=False):
     """
-    Creates a snapshot of an incident. This includes the count of unique users
+    Completes a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
-
+    incident = snapshot.incident
     assert incident.status == IncidentStatus.CLOSED.value
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
-    return IncidentSnapshot.objects.create(
-        incident=incident,
+
+    snapshot.update(
         event_stats_snapshot=event_stats_snapshot,
         unique_users=aggregates["unique_users"],
         total_events=aggregates["count"],
+        status=IncidentSnapshotStatus.COMPLETE.value,
     )
+
+    return snapshot
 
 
 def create_event_stat_snapshot(incident, windowed_stats=False):
@@ -452,7 +480,9 @@ def bulk_get_incident_stats(incidents, windowed_stats=False):
         # At the moment, snapshots are only ever created with windowed_stats as True
         # so if they send False, we need to do a live calculation below.
         closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
-        snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
+        snapshots = IncidentSnapshot.objects.filter(
+            incident__in=closed, status=IncidentSnapshotStatus.COMPLETE.value
+        )
         for snapshot in snapshots:
             event_stats = snapshot.event_stats_snapshot
             incident_stats[snapshot.incident_id] = {
