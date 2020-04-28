@@ -16,6 +16,7 @@ import Projects from 'app/utils/projects';
 
 import {
   Container,
+  EventId,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -147,6 +148,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  id: SpecialField;
   project: SpecialField;
   user: SpecialField;
   'issue.id': SpecialField;
@@ -155,11 +157,24 @@ type SpecialFields = {
 };
 
 /**
- * "Special fields" do not map 1:1 to an single column in the event database,
- * they are a UI concept that combines the results of multiple fields and
- * displays with a custom render function.
+ * "Special fields" either do not map 1:1 to an single column in the event database,
+ * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FIELDS: SpecialFields = {
+  id: {
+    sortField: 'id',
+    renderFunc: data => {
+      const id: string | unknown = data?.id;
+      if (typeof id !== 'string') {
+        return null;
+      }
+      return (
+        <Container>
+          <EventId value={id} />
+        </Container>
+      );
+    },
+  },
   'issue.id': {
     sortField: 'issue.id',
     renderFunc: (data, {organization}) => {

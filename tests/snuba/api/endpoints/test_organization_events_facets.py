@@ -25,6 +25,16 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         )
         self.min_ago_iso = iso_format(self.min_ago)
 
+    def assert_facet(self, response, key, expected):
+        actual = None
+        for facet in response.data:
+            if facet["key"] == key:
+                actual = facet
+                break
+        assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
+        assert "topValues" in actual
+        assert sorted(expected) == sorted(actual["topValues"])
+
     def test_simple(self):
         self.store_event(
             data={
@@ -270,6 +280,33 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"name": "two", "value": "two", "count": 1}]
         self.assert_facet(response, "number", expected)
 
+    def test_project_filtered(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"number": "two"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"number": "one"},
+            },
+            project_id=self.project2.id,
+        )
+
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url, {"query": "project:{}".format(self.project.slug)}, format="json"
+            )
+
+        assert response.status_code == 200, response.content
+        expected = [{"name": "two", "value": "two", "count": 1}]
+        self.assert_facet(response, "number", expected)
+
     def test_project_key(self):
         self.store_event(
             data={
@@ -448,16 +485,6 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 {"count": 1, "name": None, "value": None},
             ]
             self.assert_facet(response, "environment", expected)
-
-    def assert_facet(self, response, key, expected):
-        actual = None
-        for facet in response.data:
-            if facet["key"] == key:
-                actual = facet
-                break
-        assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
-        assert "topValues" in actual
-        assert sorted(expected) == sorted(actual["topValues"])
 
     def test_out_of_retention(self):
         with self.options({"system.event-retention-days": 10}):

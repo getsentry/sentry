@@ -94,7 +94,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <SelectField
             name="environment"
             label={t('Environment')}
-            help={t('Select an environment')}
+            help={t('Choose which environment events must match')}
             placeholder={t('All environments')}
             choices={
               defined(this.state.environments)
@@ -112,7 +112,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="query"
             label={t('Filter')}
             placeholder="error.type:TypeError"
-            help={tct(`Note: A filter of [filter] is automatically applied`, {
+            help={tct(`By default a filter of [filter] is automatically applied`, {
               filter: <code>event.type:error</code>,
             })}
           >

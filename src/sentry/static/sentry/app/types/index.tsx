@@ -8,6 +8,7 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {Props as AlertProps} from 'app/components/alert';
 
 declare global {
   interface Window {
@@ -305,14 +306,15 @@ export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
+// API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
+  order?: number;
 };
 
-export type YAxisEventsStats = {
-  [yAxisName: string]: EventsStats;
-};
+// API response format for multiple series
+export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
 
 /**
  * Avatars are a more primitive version of User.
@@ -446,10 +448,9 @@ export type DocumentIntegration = {
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
-  forceUrlSync?: boolean;
   datetime: {
-    start: Date | null;
-    end: Date | null;
+    start: Date | string | null;
+    end: Date | string | null;
     period: string;
     utc: boolean;
   };
@@ -656,6 +657,23 @@ export type PullRequest = {
   externalUrl: string;
 };
 
+type IntegrationDialog = {
+  actionText: string;
+  body: string;
+};
+
+type IntegrationAspects = {
+  alerts?: Array<AlertProps & {text: string}>;
+  reauthentication_alert?: {alertText: string};
+  disable_dialog?: IntegrationDialog;
+  removal_dialog?: IntegrationDialog;
+  externalInstall?: {
+    url: string;
+    buttonText: string;
+    noticeText: string;
+  };
+};
+
 type BaseIntegrationProvider = {
   key: string;
   slug: string;
@@ -674,7 +692,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     noun: string;
     issue_url: string;
     source_url: string;
-    aspects: any; //TODO(ts)
+    aspects: IntegrationAspects;
   };
 };
 
@@ -745,10 +763,17 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: BaseIntegrationProvider & {aspects: any};
+  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
-  configData: object;
+  configData: object & {
+    //installationType is only for Slack migration and can be removed after migrations are done
+    installationType?:
+      | 'workspace_app'
+      | 'classic_bot'
+      | 'born_as_bot'
+      | 'migrated_to_bot';
+  };
 };
 
 export type IntegrationExternalIssue = {

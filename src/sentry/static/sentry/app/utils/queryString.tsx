@@ -56,7 +56,23 @@ export function appendTagCondition(
   return currentQuery;
 }
 
+export function decodeScalar(
+  value: string[] | string | undefined | null
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
+}
+
 export default {
+  decodeScalar,
   formatQueryString,
   addQueryParamsToExistingUrl,
   appendTagCondition,

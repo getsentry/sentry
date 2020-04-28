@@ -205,15 +205,13 @@ const OrganizationContext = createReactClass({
       // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
       // We do not want to load the user's last used env/project in this case, otherwise will
       // lead to very confusing behavior.
-      if (
-        !this.props.routes.find(
-          ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
-        )
-      ) {
-        GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
-          api: this.props.api,
-        });
-      }
+      const skipLastUsed = !!this.props.routes.find(
+        ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
+      );
+      GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
+        skipLastUsed,
+        api: this.props.api,
+      });
     } else if (error) {
       // If user is superuser, open sudo window
       const user = ConfigStore.get('user');

@@ -116,7 +116,7 @@ const Permalink = styled('a')`
   padding: ${space(0.25)} 5px;
 `;
 
-const SectionHeader = styled('div')`
+export const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   position: relative;

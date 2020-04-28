@@ -644,32 +644,7 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
-def convert_search_boolean_to_snuba_query(search_boolean):
-    def convert_term(term):
-        if isinstance(term, SearchFilter):
-            return convert_search_filter_to_snuba_query(term)
-        elif isinstance(term, AggregateFilter):
-            return convert_aggregate_filter_to_snuba_query(term, False)
-        elif isinstance(term, SearchBoolean):
-            return convert_search_boolean_to_snuba_query(term)
-        else:
-            raise InvalidSearchQuery(
-                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(
-                    term.__class__.__name__
-                )
-            )
-
-    if not search_boolean:
-        return search_boolean
-
-    left = convert_term(search_boolean.left_term)
-    right = convert_term(search_boolean.right_term)
-    operator = search_boolean.operator.lower()
-
-    return [operator, [left, right]]
-
-
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params):
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
@@ -824,6 +799,8 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    # Used to avoid doing multiple conditions on project ID
+    project_to_filter = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
@@ -844,6 +821,9 @@ def get_filter(query=None, params=None):
                 term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
+                    if term.operator == "=":
+                        project_to_filter = project.id
+
                     kwargs["conditions"].append(converted_filter)
             elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
@@ -870,15 +850,19 @@ def get_filter(query=None, params=None):
                 else:
                     kwargs["conditions"].append(user_conditions)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
-                converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
+                if "column_alias" in FIELD_ALIASES[name]:
+                    term = SearchFilter(
+                        SearchKey(FIELD_ALIASES[name]["column_alias"]), term.operator, term.value
+                    )
+                converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
                 if converted_filter:
-                    kwargs["having"].append(converted_filter)
+                    kwargs["conditions"].append(converted_filter)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
         elif isinstance(term, AggregateFilter):
-            converted_filter = convert_aggregate_filter_to_snuba_query(term, False, params)
+            converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
             if converted_filter:
                 kwargs["having"].append(converted_filter)
 
@@ -890,7 +874,10 @@ def get_filter(query=None, params=None):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
-            kwargs["project_ids"] = params["project_id"]
+            if project_to_filter:
+                kwargs["project_ids"] = [project_to_filter]
+            else:
+                kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
             term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
@@ -1424,7 +1411,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
-        project_ids = snuba_filter.filter_keys.get("project_id", [])
+        # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
+        filtered_project_ids = None
+        if snuba_filter.conditions:
+            for cond in snuba_filter.conditions:
+                if cond[0] == "project_id":
+                    filtered_project_ids = [cond[2]] if cond[1] == "=" else cond[2]
+
+        project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [

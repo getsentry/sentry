@@ -9,11 +9,13 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.web.decorators import transaction_start
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 
+    @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request, project, rule_id):
         """
         Retrieve a rule
@@ -28,6 +30,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         )
         return Response(serialize(rule, request.user))
 
+    @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request, project, rule_id):
         """
         Update a rule
@@ -81,6 +84,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request, project, rule_id):
         """
         Delete a rule

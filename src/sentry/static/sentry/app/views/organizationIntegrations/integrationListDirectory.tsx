@@ -21,11 +21,12 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getCategorySelectActive,
   isSentryApp,
   isPlugin,
   isDocumentIntegration,
   getCategoriesForIntegration,
+  isSlackWorkspaceApp,
+  getReauthAlertText,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -33,12 +34,11 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import SearchInput from 'app/components/forms/searchInput';
+import SearchBar from 'app/components/searchBar';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
-import withExperiment from 'app/utils/withExperiment';
-import {ExperimentAssignment} from 'app/types/experiments';
+import Feature from 'app/components/acl/feature';
 
 import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
@@ -46,7 +46,6 @@ import IntegrationRow from './integrationRow';
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
-  experimentAssignment: ExperimentAssignment['IntegrationDirectoryCategoryExperiment'];
 };
 
 type State = {
@@ -272,13 +271,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
-  onSearchChange = async ({target}) => {
-    this.setState({searchInput: target.value}, () => {
-      if (!target.value) {
+  handleSearchChange = async (value: string) => {
+    this.setState({searchInput: value}, () => {
+      if (!value) {
         return this.setState({displayedList: this.state.list});
       }
-      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      this.debouncedTrackIntegrationSearch(target.value, result.length);
+      const result = this.state.fuzzy && this.state.fuzzy.search(value);
+      this.debouncedTrackIntegrationSearch(value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
@@ -315,19 +314,32 @@ export class IntegrationListDirectory extends AsyncComponent<
       i => i.provider.key === provider.key
     );
 
+    const hasWorkspaceApp = integrations.some(isSlackWorkspaceApp);
+
     return (
-      <IntegrationRow
+      <Feature
         key={`row-${provider.key}`}
-        data-test-id="integration-row"
         organization={organization}
-        type="firstParty"
-        slug={provider.slug}
-        displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
-        publishStatus="published"
-        configurations={integrations.length}
-        categories={getCategoriesForIntegration(provider)}
-      />
+        features={['slack-migration']}
+      >
+        {({hasFeature}) => (
+          <IntegrationRow
+            key={`row-${provider.key}`}
+            data-test-id="integration-row"
+            organization={organization}
+            type="firstParty"
+            slug={provider.slug}
+            displayName={provider.name}
+            status={integrations.length ? 'Installed' : 'Not Installed'}
+            publishStatus="published"
+            configurations={integrations.length}
+            categories={getCategoriesForIntegration(provider)}
+            alertText={
+              hasFeature && hasWorkspaceApp ? getReauthAlertText(provider) : undefined
+            }
+          />
+        )}
+      </Feature>
     );
   };
 
@@ -423,22 +435,18 @@ export class IntegrationListDirectory extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive(this.props.organization) ? (
-                  <SelectControl
-                    name="select-categories"
-                    onChange={this.onCategorySelect}
-                    value={selectedCategory}
-                    choices={[
-                      ['', t('All Categories')],
-                      ...categoryList.map(category => [category, startCase(category)]),
-                    ]}
-                  />
-                ) : (
-                  <div />
-                )}
-                <SearchInput
-                  value={this.state.searchInput || ''}
-                  onChange={this.onSearchChange}
+                <SelectControl
+                  name="select-categories"
+                  onChange={this.onCategorySelect}
+                  value={selectedCategory}
+                  choices={[
+                    ['', t('All Categories')],
+                    ...categoryList.map(category => [category, startCase(category)]),
+                  ]}
+                />
+                <SearchBar
+                  query={this.state.searchInput || ''}
+                  onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
                 />
@@ -489,8 +497,4 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(
-  withExperiment(IntegrationListDirectory, {
-    experiment: 'IntegrationDirectoryCategoryExperiment',
-  })
-);
+export default withOrganization(IntegrationListDirectory);
