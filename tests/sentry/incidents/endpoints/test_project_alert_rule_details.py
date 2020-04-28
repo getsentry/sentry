@@ -178,7 +178,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         serialized_alert_rule = self.get_serialized_alert_rule()
 
         # Archive the rule so that the endpoint 404s:
-        alert_rule.status = AlertRuleStatus.ARCHIVED.value
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
         alert_rule.save()
 
         with self.feature("organizations:incidents"):
