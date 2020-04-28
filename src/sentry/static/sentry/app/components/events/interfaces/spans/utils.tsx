@@ -346,13 +346,19 @@ export function getTraceDateTimeRange(input: {
 }
 
 export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
-  // @ts-ignore
-  return span.type === 'gap';
+  if ('type' in span) {
+    return span.type === 'gap';
+  }
+
+  return false;
 }
 
 export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
-  // @ts-ignore
-  return span.type === 'orphan';
+  if ('type' in span) {
+    return span.type === 'orphan';
+  }
+
+  return false;
 }
 
 export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
