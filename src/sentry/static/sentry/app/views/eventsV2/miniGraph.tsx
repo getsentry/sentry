@@ -78,7 +78,7 @@ class MiniGraph extends React.Component<Props> {
         start={start}
         end={end}
         period={period}
-        interval={getInterval({start, end, period}, true)}
+        interval={getInterval({start, end, period}, false)}
         project={project as number[]}
         environment={environment as string[]}
         includePrevious={false}
