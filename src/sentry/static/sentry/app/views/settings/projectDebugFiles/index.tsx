@@ -94,6 +94,14 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return typeof query === 'string' ? query : undefined;
   }
 
+  getEmptyMessage() {
+    if (this.getQuery()) {
+      return t('There are no debug symbols that match your search.');
+    }
+
+    return t('There are no debug symbols for this project.');
+  }
+
   renderLoading() {
     return this.renderBody();
   }
@@ -200,7 +208,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             t('Name'),
             <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
-          emptyMessage={t('There are no debug symbols for this project.')}
+          emptyMessage={this.getEmptyMessage()}
           isEmpty={debugFiles?.length === 0}
           isLoading={loading}
         >

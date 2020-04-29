@@ -63,7 +63,7 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
         <Description>
           {symbolType === 'proguard' && cpuName === 'any'
             ? t('proguard mapping')
-            : `${cpuName} (${symbolType}${fileType && ` ${fileType}`})`}
+            : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
 
           {features &&
             features.map(feature => (
@@ -75,9 +75,9 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
             <Details>
               {/* there will be more stuff here in the future */}
               {codeId && (
-                <Overflow>
+                <DetailsItem>
                   {t('Code ID')}: {codeId}
-                </Overflow>
+                </DetailsItem>
               )}
             </Details>
           )}
@@ -179,16 +179,11 @@ const Description = styled('div')`
   }
 `;
 
-const Details = styled('div')`
-  display: grid;
-  grid-gap: ${space(0.75)};
-  &:not(:empty) {
-    margin-top: ${space(2)};
-  }
-`;
+const Details = styled('div')``;
 
-const Overflow = styled('div')`
+const DetailsItem = styled('div')`
   ${overflowEllipsis}
+  margin-top: ${space(1)}
 `;
 
 export default DebugFileRow;

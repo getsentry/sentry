@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import pytest
 
+from sentry.utils.compat.mock import patch
+
 from sentry.tasks.relay import schedule_update_config_cache
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
@@ -124,7 +126,7 @@ def test_invalidate(
 
 
 @pytest.mark.django_db
-def test_project_reload_cache(default_project, task_runner, redis_cache):
+def test_project_update_option(default_project, task_runner, redis_cache):
     with task_runner():
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
@@ -140,3 +142,29 @@ def test_project_reload_cache(default_project, task_runner, redis_cache):
         )
 
     assert redis_cache.get(default_project.id) is None
+
+
+@pytest.mark.django_db
+def test_project_delete_option(default_project, task_runner, redis_cache):
+    with task_runner():
+        default_project.delete_option("sentry:relay_pii_config")
+
+    assert redis_cache.get(default_project.id)["config"]["piiConfig"] == {}
+
+
+@pytest.mark.django_db
+def test_project_get_option_does_not_reload(default_project, task_runner, monkeypatch):
+    from sentry.models import ProjectOption
+
+    ProjectOption.objects._option_cache.clear()
+
+    with task_runner():
+        with patch("sentry.models.projectoption.cache.get", return_value=None):
+            with patch(
+                "sentry.models.projectoption.schedule_update_config_cache"
+            ) as update_config_cache:
+                default_project.get_option(
+                    "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
+                )
+
+    update_config_cache.assert_not_called()  # noqa

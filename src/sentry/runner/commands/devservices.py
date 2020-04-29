@@ -53,9 +53,9 @@ def devservices():
 
 @devservices.command()
 @click.option("--project", default="sentry")
-@click.option("--is-devserver", is_flag=True, default=False)
+@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
-def attach(project, is_devserver, service):
+def attach(project, fast, service):
     """
     Run a single devservice in foreground, as opposed to `up` which runs all of
     them in the background.
@@ -75,10 +75,11 @@ def attach(project, is_devserver, service):
     configure()
 
     client = get_docker_client()
-    containers = _prepare_containers(project)
-    container = _start_service(
-        client, service, containers, project, devserver_override=is_devserver
-    )
+    containers = _prepare_containers(project, silent=True)
+    if service not in containers:
+        raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
+
+    container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
     def exit_handler(*_):
         click.echo("Shutting down {}".format(service))
@@ -96,29 +97,41 @@ def attach(project, is_devserver, service):
 
 
 @devservices.command()
+@click.argument("services", nargs=-1)
 @click.option("--project", default="sentry")
 @click.option("--exclude", multiple=True, help="Services to ignore and not run.")
-@click.option("--fast", is_flag=True, default=False, help="Never pull.")
-def up(project, exclude, fast):
+@click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
+def up(services, project, exclude, fast):
     """
     Run/update dependent services.
+
+    The default is everything, however you may pass positional arguments to specify
+    an explicit list of services to bring up.
     """
-
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
-    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
 
     from sentry.runner import configure
 
     configure()
 
-    from django.conf import settings
+    containers = _prepare_containers(project, silent=True)
 
-    client = get_docker_client()
-
-    get_or_create(client, "network", project)
-
-    containers = _prepare_containers(project)
+    if services:
+        selected_containers = {}
+        for service in services:
+            if service not in containers:
+                click.secho(
+                    "Service `{}` is not known or not enabled.\n".format(service),
+                    err=True,
+                    fg="red",
+                )
+                click.secho(
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
+                    err=True,
+                )
+                raise click.Abort()
+            selected_containers[service] = containers[service]
+        containers = selected_containers
 
     if fast:
         click.secho(
@@ -127,17 +140,17 @@ def up(project, exclude, fast):
             fg="red",
         )
 
-    for name, options in settings.SENTRY_DEVSERVICES.items():
+    client = get_docker_client()
+    get_or_create(client, "network", project)
+
+    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
+    for name, container_options in containers.items():
         if name in exclude:
             continue
-
-        if name not in containers:
-            continue
-
         _start_service(client, name, containers, project, fast=fast)
 
 
-def _prepare_containers(project):
+def _prepare_containers(project, silent=False):
     from django.conf import settings
     from sentry import options as sentry_options
 
@@ -147,7 +160,10 @@ def _prepare_containers(project):
         options = options.copy()
         test_fn = options.pop("only_if", None)
         if test_fn and not test_fn(settings, sentry_options):
-            click.secho("! Skipping {} due to only_if condition".format(name), err=True, fg="cyan")
+            if not silent:
+                click.secho(
+                    "! Skipping {} due to only_if condition".format(name), err=True, fg="cyan"
+                )
             continue
 
         options["network"] = project
@@ -162,7 +178,7 @@ def _prepare_containers(project):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, devserver_override=False):
+def _start_service(client, name, containers, project, fast=False, always_start=False):
     from django.conf import settings
     import docker
 
@@ -208,6 +224,19 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 
+    # Two things call _start_service.
+    # devservices up, and devservices attach.
+    # Containers that should be started on-demand with devserver
+    # should ONLY be started via the latter, which sets `always_start`.
+    if with_devserver and not always_start:
+        click.secho(
+            "> Not starting container '%s' because it should be started on-demand with devserver."
+            % options["name"],
+            fg="yellow",
+        )
+        # XXX: if always_start=False, do not expect to have a container returned 100% of the time.
+        return None
+
     container = None
     try:
         container = client.containers.get(options["name"])
@@ -215,9 +244,16 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
         pass
 
     if container is not None:
-        if not pull and not with_devserver:
-            # devservices which are marked with pull True will need their containers
-            # to be recreated with the freshly pulled image.
+        # devservices which are marked with pull True will need their containers
+        # to be recreated with the freshly pulled image.
+        should_reuse_container = not pull
+
+        # Except if the container is started as part of devserver we should reuse it.
+        # Or, if we're in fast mode (devservices up --fast)
+        if with_devserver or fast:
+            should_reuse_container = True
+
+        if should_reuse_container:
             click.secho(
                 "> Starting EXISTING container '%s' %s" % (container.name, listening),
                 err=True,
@@ -235,20 +271,6 @@ def _start_service(client, name, containers, project, fast=False, devserver_over
 
     click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
-
-    # Two things call _start_service.
-    # devservices up, and devservices attach.
-    # Containers that should be started on-demand with devserver, should ONLY be started via the latter.
-    # So devserver calls devservices attach --is-devserver reverse_proxy, which sets devserver_override.
-    # This additional logic is needed because devservices up also makes sure the necessary images are downloaded.
-    if with_devserver and not devserver_override:
-        click.secho(
-            "> Not starting container '%s' because it should be started on-demand with devserver."
-            % container.name,
-            fg="yellow",
-        )
-        return container
-
     click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
     container.start()
     return container
