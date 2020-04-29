@@ -11,7 +11,7 @@ from sentry.db.models import (
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
-    ModelPlus,
+    DefaultFieldsModel,
 )
 from sentry.signals import integration_added
 
@@ -19,7 +19,7 @@ from sentry.signals import integration_added
 logger = logging.getLogger(__name__)
 
 
-class PagerDutyService(Model):
+class PagerDutyService(DefaultFieldsModel):
     __core__ = False
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
@@ -32,7 +32,7 @@ class PagerDutyService(Model):
         db_table = "sentry_pagerdutyservice"
 
 
-class IntegrationExternalProject(Model):
+class IntegrationExternalProject(DefaultFieldsModel):
     __core__ = False
 
     organization_integration_id = BoundedPositiveIntegerField(db_index=True)
@@ -48,7 +48,7 @@ class IntegrationExternalProject(Model):
         unique_together = (("organization_integration_id", "external_id"),)
 
 
-class OrganizationIntegration(ModelPlus):
+class OrganizationIntegration(DefaultFieldsModel):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
@@ -82,7 +82,7 @@ class ProjectIntegration(Model):
         unique_together = (("project", "integration"),)
 
 
-class Integration(Model):
+class Integration(DefaultFieldsModel):
     __core__ = False
 
     organizations = models.ManyToManyField(

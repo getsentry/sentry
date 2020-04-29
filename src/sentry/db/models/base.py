@@ -14,7 +14,7 @@ from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
-__all__ = ("BaseModel", "Model", "ModelPlus", "sane_repr")
+__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr")
 
 UNSAVED = object()
 
@@ -128,20 +128,18 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
-class ModelPlus(BaseModel):
-    id = BoundedBigAutoField(primary_key=True)
+class DefaultFieldsModel(Model):
     date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         abstract = True
-
-    __repr__ = sane_repr("id")
 
 
 def __model_post_save(instance, **kwargs):
     if not isinstance(instance, BaseModel):
         return
-    if isinstance(instance, ModelPlus):
+    if isinstance(instance, DefaultFieldsModel):
         instance.date_updated = timezone.now()
     instance._update_tracked_data()
 
