@@ -70,6 +70,7 @@ const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset(this.selection);
     this.listenTo(GlobalSelectionActions.reset, this.onReset);
+    this.listenTo(GlobalSelectionActions.save, this.onSave);
     this.listenTo(GlobalSelectionActions.updateProjects, this.updateProjects);
     this.listenTo(GlobalSelectionActions.updateDateTime, this.updateDateTime);
     this.listenTo(GlobalSelectionActions.updateEnvironments, this.updateEnvironments);
@@ -148,7 +149,6 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       projects,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
@@ -161,7 +161,6 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       datetime,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
@@ -174,11 +173,20 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       environments,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
-  updateLocalStorage() {
+  /**
+   * Save to local storage when user explicitly changes header values.
+   *
+   * e.g. if localstorage is empty, user loads issue details for project "foo"
+   * this should not consider "foo" as last used and should not save to local storage.
+   *
+   * However, if user then changes environment, it should...? Currently it will
+   * save the current project alongside environment to local storage. It's debatable if
+   * this is the desired behavior.
+   */
+  onSave(updateObj) {
     // Do nothing if no org is loaded or user is not an org member. Only
     // organizations that a user has membership in will be available via the
     // organizations store
@@ -186,11 +194,13 @@ const GlobalSelectionStore = Reflux.createStore({
       return;
     }
 
+    const {project, environment} = updateObj;
+
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
       const dataToSave = {
-        projects: this.selection.projects,
-        environments: this.selection.environments,
+        projects: project || this.selection.projects,
+        environments: environment || this.selection.environments,
       };
       localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     } catch (ex) {
