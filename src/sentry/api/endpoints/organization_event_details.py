@@ -5,7 +5,7 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry import eventstore, features
 from sentry.snuba import discover
 from sentry.models.project import Project, ProjectStatus
@@ -19,8 +19,6 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response(status=404)
 

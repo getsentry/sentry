@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
+from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
@@ -31,7 +31,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -60,7 +60,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             try:
                 group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
-                raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
+                raise ParseError(detail="Invalid group parameter. Values must be numbers")
 
             projects = Project.objects.filter(
                 organization=organization, group__id__in=group_ids
@@ -74,7 +74,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
         snuba_args = {
             "start": _filter.start,

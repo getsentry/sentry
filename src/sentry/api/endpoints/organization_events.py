@@ -13,7 +13,6 @@ from sentry.api.base import LINK_HEADER
 from sentry.api.bases import (
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
-    OrganizationEventsError,
     NoProjects,
 )
 from sentry.api.helpers.events import get_direct_hit_response
@@ -40,7 +39,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 self.get_filter_params(request, organization),
                 "api.organization-events-direct-hit",
             )
-        except (OrganizationEventsError, NoProjects):
+        except NoProjects:
             pass
         else:
             if direct_hit_resp:
@@ -49,8 +48,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
@@ -124,8 +121,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response([])
 

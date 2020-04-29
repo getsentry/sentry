@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import six
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.serializers import serialize
 
 
@@ -12,8 +11,6 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         try:
             filter_params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response([])
 
