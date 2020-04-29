@@ -560,6 +560,9 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     op="snuba", description=u"query {}".format(body)
                 ) as span:
                     span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    for extra_key in ["conditions", "groupby", "aggregations", "selected_columns"]:
+                        if extra_key in query_params:
+                            span.set_data(extra_key, query_params.get(extra_key))
                     return (
                         _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
                         forward,
