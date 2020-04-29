@@ -21,7 +21,6 @@ type Props = DefaultProps & {
   popperStyle?: React.CSSProperties;
   delay?: number;
   isHoverable?: boolean;
-  className?: string;
 };
 
 type State = {
@@ -166,7 +165,7 @@ class Tooltip extends React.Component<Props, State> {
 
     propList.containerDisplayMode = this.props.containerDisplayMode;
     return (
-      <Container {...propList} className={this.props.className} ref={ref}>
+      <Container {...propList} ref={ref}>
         {children}
       </Container>
     );
