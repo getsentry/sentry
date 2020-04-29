@@ -89,6 +89,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                                      DIFs of.
         :qparam string query: If set, this parameter is used to locate DIFs with.
         :qparam string id: If set, the specified DIF will be sent in the response.
+        :qparam string file_formats: If set, only DIFs with these formats will be returned.
         :auth: required
         """
         download_requested = request.GET.get("id") is not None
@@ -98,6 +99,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         code_id = request.GET.get("code_id")
         debug_id = request.GET.get("debug_id")
         query = request.GET.get("query")
+        file_formats = request.GET.getlist("file_formats")
+
+        DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
         # If this query contains a debug identifier, normalize it to allow for
         # more lenient queries (e.g. supporting Breakpad ids). Use the index to
@@ -124,12 +128,16 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 | Q(file__headers__icontains=query)
             )
 
-            KNOWN_DIF_FORMATS_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_FORMATS))
-            file_format = KNOWN_DIF_FORMATS_REVERSE.get(query)
-            if file_format:
-                q |= Q(file__headers__icontains=file_format)
+            known_file_format = DIF_MIMETYPES.get(query)
+            if known_file_format:
+                q |= Q(file__headers__icontains=known_file_format)
         else:
             q = Q()
+
+        for file_format in file_formats:
+            known_file_format = DIF_MIMETYPES.get(file_format)
+            if known_file_format:
+                q |= Q(file__headers__icontains=known_file_format)
 
         queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
 
