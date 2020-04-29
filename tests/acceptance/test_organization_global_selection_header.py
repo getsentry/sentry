@@ -153,9 +153,11 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
 
-            # FIXME(billy): This is a bug, should not be in local storage
             # should not be in local storage
-            # assert self.browser.get_local_storage_item(u"global-selection:{}".format(self.org.slug)) is None
+            assert (
+                self.browser.get_local_storage_item(u"global-selection:{}".format(self.org.slug))
+                is None
+            )
 
             # reloads page with no project id in URL, remains "My Projects" because
             # there has been no explicit project selection via UI
