@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import operator
 import six
-import logging
+
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
@@ -19,8 +19,6 @@ from functools import reduce
 from sentry.utils.compat import zip
 
 PATH_SEPERATORS = frozenset(["/", "\\"])
-
-logger = logging.getLogger("sentry.utils.committers")
 
 
 def tokenize_path(path):
@@ -229,16 +227,6 @@ def get_event_file_committers(project, event, frame_limit=25):
 
     relevant_commits = list(
         {match for match in commit_path_matches for match in commit_path_matches[match]}
-    )
-
-    logger.info(
-        "relevant_commits",
-        extra={
-            "relevant_commits": relevant_commits,
-            "project_id": project.id,
-            "group_id": event.group_id,
-            "commit_path_matches": commit_path_matches,
-        },
     )
 
     return _get_committers(annotated_frames, relevant_commits)
