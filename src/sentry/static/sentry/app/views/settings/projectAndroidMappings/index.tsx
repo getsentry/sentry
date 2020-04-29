@@ -4,12 +4,8 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {PanelTable} from 'app/components/panels';
-import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import Pagination from 'app/components/pagination';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -18,8 +14,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import Checkbox from 'app/components/checkbox';
 import SearchBar from 'app/components/searchBar';
 
-import {DebugFile, BuiltinSymbolSource} from './types';
-import DebugFileRow from './debugFileRow';
+import {DebugFile} from './types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -27,41 +22,36 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  debugFiles: DebugFile[];
-  builtinSymbolSources?: BuiltinSymbolSource[];
+  mappings: DebugFile[];
   showDetails: boolean;
 };
 
-class ProjectDebugSymbols extends AsyncView<Props, State> {
+class ProjectAndroidMappings extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
-    return routeTitleGen(t('Debug Files'), projectId, false);
+    return routeTitleGen(t('Android Mappings'), projectId, false);
   }
 
-  getDefaultState() {
+  getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      mappings: [],
       showDetails: false,
     };
   }
 
   getEndpoints() {
-    const {organization, params, location} = this.props;
-    const {builtinSymbolSources} = this.state || {};
+    const {params, location} = this.props;
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
-        'debugFiles',
+        'mappings',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: location.query.query}},
+        {query: {query: location.query.query, file_formats: 'proguard'}},
       ],
     ];
-
-    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
-    }
 
     return endpoints;
   }
@@ -96,59 +86,46 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   getEmptyMessage() {
     if (this.getQuery()) {
-      return t('There are no debug symbols that match your search.');
+      return t('There are no mappings that match your search.');
     }
 
-    return t('There are no debug symbols for this project.');
+    return t('There are no mappings for this project.');
   }
 
   renderLoading() {
     return this.renderBody();
   }
 
-  renderDebugFiles() {
-    const {debugFiles, showDetails} = this.state;
+  renderMappings() {
+    const {mappings, showDetails} = this.state;
     const {orgId, projectId} = this.props.params;
 
-    if (!debugFiles?.length) {
+    if (!mappings?.length) {
       return null;
     }
 
-    return debugFiles.map(debugFile => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${debugFile.id}`;
+    return mappings.map(mapping => {
+      const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${mapping.id}`;
 
-      return (
-        <DebugFileRow
-          debugFile={debugFile}
-          showDetails={showDetails}
-          downloadUrl={downloadUrl}
-          onDelete={this.handleDelete}
-          key={debugFile.id}
-        />
-      );
+      return '';
+      // return (
+      //   <DebugFileRow
+      //     debugFile={debugFile}
+      //     showDetails={showDetails}
+      //     downloadUrl={downloadUrl}
+      //     onDelete={this.handleDelete}
+      //     key={debugFile.id}
+      //   />
+      // );
     });
   }
 
   renderBody() {
-    const {organization, project, params} = this.props;
-    const {
-      loading,
-      showDetails,
-      builtinSymbolSources,
-      debugFiles,
-      debugFilesPageLinks,
-    } = this.state;
-    const {orgId, projectId} = params;
-    const {features, access} = organization;
-
-    const fieldProps = {
-      organization,
-      builtinSymbolSources: builtinSymbolSources || [],
-    };
+    const {loading, showDetails, mappings, mappingsPageLinks} = this.state;
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Debug Information Files')} />
+        <SettingsPageHeader title={t('Android Mappings')} />
 
         <TextBlock>
           {t(`
@@ -158,30 +135,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           `)}
         </TextBlock>
 
-        {features.includes('symbol-sources') && (
-          <React.Fragment>
-            <PermissionAlert />
-
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={project}
-              apiMethod="PUT"
-              apiEndpoint={`/projects/${orgId}/${projectId}/`}
-            >
-              <JsonForm
-                features={new Set(features)}
-                title={t('External Sources')}
-                disabled={!access.includes('project:write')}
-                fields={[fields.symbolSources, fields.builtinSymbolSources]}
-                additionalFieldProps={fieldProps}
-              />
-            </Form>
-          </React.Fragment>
-        )}
-
         <Wrapper>
-          <TextBlock noMargin>{t('Uploaded debug information files')}:</TextBlock>
+          <TextBlock noMargin>{t('Uploaded mappings')}:</TextBlock>
 
           <Filters>
             <Label>
@@ -195,7 +150,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             </Label>
 
             <SearchBar
-              placeholder={t('Search DIFs')}
+              placeholder={t('Search mappings')}
               onSearch={this.handleSearch}
               query={this.getQuery()}
             />
@@ -209,12 +164,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
           emptyMessage={this.getEmptyMessage()}
-          isEmpty={debugFiles?.length === 0}
+          isEmpty={mappings?.length === 0}
           isLoading={loading}
         >
-          {this.renderDebugFiles()}
+          {this.renderMappings()}
         </StyledPanelTable>
-        <Pagination pageLinks={debugFilesPageLinks} />
+        <Pagination pageLinks={mappingsPageLinks} />
       </React.Fragment>
     );
   }
@@ -262,4 +217,4 @@ const Label = styled('label')`
   }
 `;
 
-export default ProjectDebugSymbols;
+export default ProjectAndroidMappings;

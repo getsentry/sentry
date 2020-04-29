@@ -63,6 +63,10 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
+          path: `${pathPrefix}/android-mappings/`,
+          title: t('Android Mappings'),
+        },
+        {
           path: `${pathPrefix}/data-privacy/`,
           title: t('Data Privacy'),
           description: t('Configure Datascrubbers for a project'),
