@@ -8,6 +8,7 @@ import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrat
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconDelete} from 'app/icons/iconDelete';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
@@ -26,6 +27,7 @@ export type Props = {
   className?: string;
 };
 
+//TODO: Replace with InstalledIntegrationInDirectory
 export default class InstalledIntegration extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
@@ -121,7 +123,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   get disableConfirmProps() {
     const {integration} = this.props;
-    const {body, actionText} = integration.provider.aspects.disable_dialog;
+    const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
@@ -191,7 +193,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 <StyledButton
                   disabled={!hasAccess}
                   borderless
-                  icon="icon-trash"
+                  icon={<IconDelete />}
                   data-test-id="integration-remove-button"
                 >
                   Uninstall

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
@@ -10,6 +9,7 @@ import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import EventView from 'app/utils/discover/eventView';
+import {TableDataRow} from 'app/views/eventsV2/table/types';
 
 import {
   toPercent,
@@ -183,6 +183,8 @@ type SpanBarProps = {
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
   eventView: EventView;
+  totalNumberOfErrors: number;
+  spanErrors: TableDataRow[];
 };
 
 type SpanBarState = {
@@ -222,7 +224,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const {span, orgId, isRoot, eventView, trace} = this.props;
+    const {
+      span,
+      orgId,
+      isRoot,
+      eventView,
+      trace,
+      totalNumberOfErrors,
+      spanErrors,
+    } = this.props;
 
     return (
       <SpanDetail
@@ -231,6 +241,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         isRoot={!!isRoot}
         eventView={eventView}
         trace={trace}
+        totalNumberOfErrors={totalNumberOfErrors}
+        spanErrors={spanErrors}
       />
     );
   };
@@ -375,14 +387,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderTitle = () => {
-    const {span, treeDepth} = this.props;
+    const {span, treeDepth, spanErrors} = this.props;
 
-    const op = getSpanOperation(span) ? (
-      <strong>{`${getSpanOperation(span)} \u2014 `}</strong>
+    const operationName = getSpanOperation(span) ? (
+      <strong>
+        <OperationName spanErrors={spanErrors}>{getSpanOperation(span)}</OperationName>
+        {` \u2014 `}
+      </strong>
     ) : (
       ''
     );
-    const description = get(span, 'description', getSpanID(span));
+    const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
@@ -396,7 +411,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }}
         >
           <span>
-            {op}
+            {operationName}
             {description}
           </span>
         </SpanBarTitle>
@@ -1016,6 +1031,10 @@ const WarningIcon = styled(InlineSvg)`
 const Chevron = styled(InlineSvg)`
   width: 7px;
   margin-left: ${space(0.25)};
+`;
+
+const OperationName = styled('span')<{spanErrors: TableDataRow[]}>`
+  color: ${p => (p.spanErrors.length ? p.theme.error : 'inherit')};
 `;
 
 export default SpanBar;

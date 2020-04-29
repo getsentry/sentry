@@ -137,7 +137,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (
       <AddButton
-        data-test-id="add-button"
+        data-test-id="install-button"
         disabled={disabledFromFeatures || !userHasAccess}
         onClick={this.handleAddToProject}
         size="small"
@@ -173,7 +173,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 }
 
 const AddButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 export default withOrganization(PluginDetailedView);

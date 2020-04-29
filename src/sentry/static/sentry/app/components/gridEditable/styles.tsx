@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
+import DataExport from 'app/components/dataExport';
 import space from 'app/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
@@ -59,6 +60,21 @@ export const HeaderButton = styled('div')<{disabled?: boolean}>`
   &:hover,
   &:active {
     color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+  }
+`;
+
+export const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
+  border: none;
+  font-weight: normal;
+  box-shadow: none;
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  svg {
+    margin-right: ${space(0.5)};
+  }
+  &:hover,
+  &:active {
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+    box-shadow: none;
   }
 `;
 
@@ -308,11 +324,12 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   &:hover::before {
     position: absolute;
     top: 0;
-    left: 3px;
+    left: 2px;
     content: ' ';
     display: block;
-    width: 5px;
+    width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purpleLight};
+    background-color: ${p => p.theme.purple};
+    opacity: 0.4;
   }
 `;

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -15,6 +14,8 @@ import {
   getRuleTypeSelectorFieldLabel,
   getMethodTypeSelectorFieldLabel,
 } from './utils';
+import DataPrivacyRulesPanelSelectorField from './dataPrivacyRulesPanelSelectorField';
+import {Suggestion} from './dataPrivacyRulesPanelSelectorFieldTypes';
 
 type Rule = {
   id: number;
@@ -27,6 +28,7 @@ type Rule = {
 type Props = {
   onDelete: (ruleId: Rule['id']) => void;
   onChange: (rule: Rule) => void;
+  selectorSuggestions: Array<Suggestion>;
   rule: Rule;
   disabled?: boolean;
 };
@@ -41,14 +43,20 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
     errors: {},
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.rule.from !== this.props.rule.from) {
+      this.handleValidation('from')();
+    }
+  }
+
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
     const rule: Rule = {
-      ...omit(this.props.rule, 'customRegularExpression'),
+      ...this.props.rule,
       [stateProperty]: value,
     };
 
-    if (stateProperty === 'type' && value === RULE_TYPE.PATTERN) {
-      rule.customRegularExpression = this.props.rule.customRegularExpression || '';
+    if (rule.type !== RULE_TYPE.PATTERN) {
+      delete rule.customRegularExpression;
     }
 
     this.props.onChange({
@@ -85,12 +93,12 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {onDelete, rule, disabled} = this.props;
+    const {onDelete, rule, disabled, selectorSuggestions} = this.props;
     const {from, customRegularExpression, type, method} = rule;
     const {errors} = this.state;
 
     return (
-      <Wrapper hasError={Object.keys(errors).length > 0}>
+      <Wrapper>
         <WrapperFields>
           <StyledSelectControl
             placeholder={t('Select method')}
@@ -99,7 +107,6 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getMethodTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={40}
             value={method}
             onChange={({value}) => this.handleChange('method', value)}
             isDisabled={disabled}
@@ -113,28 +120,25 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               label: getRuleTypeSelectorFieldLabel(value),
               value,
             }))}
-            height={40}
             value={type}
             onChange={({value}) => this.handleChange('type', value)}
             isDisabled={disabled}
             openOnFocus
             required
           />
-          <From disabled={disabled}>{t('from')}</From>
-          <StyledTextField
-            name="from"
-            placeholder={t('ex. strings, numbers, custom')}
-            onChange={(value: string) => {
-              this.handleChange('from', value);
-            }}
-            value={from}
-            inputStyle={{
-              height: '100%',
-            }}
-            onBlur={this.handleValidation('from')}
-            error={errors.from}
-            disabled={disabled}
-          />
+          <From>
+            <FromLabel disabled={disabled}>{t('from')}</FromLabel>
+            <DataPrivacyRulesPanelSelectorField
+              onChange={(value: string) => {
+                this.handleChange('from', value);
+              }}
+              value={from}
+              onBlur={this.handleValidation('from')}
+              selectorSuggestions={selectorSuggestions}
+              error={errors.from}
+              disabled={disabled}
+            />
+          </From>
           {type === RULE_TYPE.PATTERN && (
             <CustomRegularExpression
               name="customRegularExpression"
@@ -143,9 +147,6 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
                 this.handleChange('customRegularExpression', value);
               }}
               value={customRegularExpression}
-              inputStyle={{
-                height: '100%',
-              }}
               onBlur={this.handleValidation('customRegularExpression')}
               error={errors.customRegularExpression}
               disabled={disabled}
@@ -153,7 +154,12 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
           )}
         </WrapperFields>
         {onDelete && (
-          <StyledIconTrash disabled={disabled} onClick={this.handleDelete}>
+          <StyledIconTrash
+            disabled={disabled}
+            size="small"
+            onClick={this.handleDelete}
+            fullHeight={type === RULE_TYPE.PATTERN}
+          >
             <IconDelete />
           </StyledIconTrash>
         )}
@@ -164,72 +170,96 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
 
 export default DataPrivacyRulesForm;
 
-const Wrapper = styled('div')<{hasError?: boolean}>`
-  padding: ${p => `${space(p.hasError ? 4 : 2)} ${space(3)}`};
+const Wrapper = styled('div')`
+  padding: ${space(3)} ${space(2)};
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: 1fr 40px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
   border-bottom: 1px solid ${p => p.theme.borderDark};
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr 40px;
+  }
 `;
 
 const WrapperFields = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  align-items: center;
+  grid-row-gap: ${space(3)};
+  align-items: flex-start;
   justify-items: start;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: minmax(157px, 1fr) minmax(300px, 1fr);
-    justify-items: end;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr 1fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: minmax(157px, 1fr) minmax(300px, 1fr) max-content minmax(
-        300px,
-        1fr
-      );
-    justify-items: start;
+    grid-template-columns: 200px 200px 1fr;
   }
 `;
 
-const From = styled('div')<{disabled?: boolean}>`
+const FromLabel = styled('div')<{disabled?: boolean}>`
   color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray5)};
+  height: 100%;
+  align-items: center;
+  display: flex;
+  width: 100%;
+  justify-content: center;
 `;
 
+const From = styled('div')`
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-column-end: -1;
+  grid-column-start: 1;
+  grid-gap: ${space(2)};
+  width: 100%;
+  height: 34px;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-column-end: auto;
+    grid-column-start: auto;
+  }
+`;
+
+// TODO(Priscila): make possible to set min-height in the SelectControl
 const StyledSelectControl = styled(SelectControl)<{isDisabled?: boolean}>`
   width: 100%;
-  height: 100%;
+  line-height: 18px;
   ${p =>
     p.isDisabled &&
     `
       cursor: not-allowed;
       pointer-events: auto;
     `}
-`;
-
-const StyledTextField = styled(TextField)<{error?: string}>`
-  width: 100%;
-  height: 40px;
-  > * {
-    height: 100%;
-    min-height: 100%;
+  height: 34px;
+  > *:first-child {
+    height: 34px;
+    min-height: 34px !important;
   }
-  ${p =>
-    !p.error &&
-    `
-      margin-bottom: 0;
-    `}
 `;
 
-const CustomRegularExpression = styled(StyledTextField)`
+const CustomRegularExpression = styled(TextField)<{error?: string}>`
   grid-column-start: 1;
   grid-column-end: -1;
-  font-family: ${p => p.theme.text.familyMono};
+  width: 100%;
+  font-size: ${p => p.theme.fontSizeSmall};
+  height: 34px;
+  input {
+    height: 34px;
+    font-family: ${p => p.theme.text.familyMono};
+  }
+  margin-bottom: 0;
 `;
 
-const StyledIconTrash = styled(Button)`
+const StyledIconTrash = styled(Button)<{fullHeight?: boolean}>`
   color: ${p => p.theme.gray3};
-  width: 40px;
   height: 100%;
+  width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    width: 40px;
+    height: ${p => (p.fullHeight ? '100%' : '34px')};
+  }
 `;

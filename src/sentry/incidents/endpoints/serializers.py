@@ -34,6 +34,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.models import QueryAggregations
+from sentry.utils.compat import zip
 
 
 string_to_action_type = {
@@ -311,91 +312,82 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
         triggers = data.get("triggers", [])
-        if triggers:
-            if len(triggers) == 1:
-                critical = triggers[0]
-                if critical.get("label", None) != CRITICAL_TRIGGER_LABEL:
-                    raise serializers.ValidationError(
-                        'First trigger must be labeled "%s"' % (CRITICAL_TRIGGER_LABEL)
-                    )
-                if critical["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
-                    alert_op, trigger_error = (
-                        operator.lt,
-                        "alert threshold must be above resolution threshold",
-                    )
-                elif critical["threshold_type"] == AlertRuleThresholdType.BELOW.value:
-                    alert_op, trigger_error = (
-                        operator.gt,
-                        "alert threshold must be below resolution threshold",
-                    )
-                if critical["resolve_threshold"] is not None:
-                    if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
-                        raise serializers.ValidationError("Critical " + trigger_error)
-            elif len(triggers) == 2:
-                critical = triggers[0]
-                warning = triggers[1]
-                if (
-                    critical.get("label", None) != CRITICAL_TRIGGER_LABEL
-                    or warning["label"] != WARNING_TRIGGER_LABEL
-                ):
-                    raise serializers.ValidationError(
-                        'First trigger must be labeled "%s", second trigger must be labeled "%s"'
-                        % (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL)
-                    )
-                else:
-                    if critical["threshold_type"] != warning["threshold_type"]:
-                        raise serializers.ValidationError(
-                            "Must have matching threshold types (i.e. critical and warning triggers must both be an upper or lower bound)"
-                        )
+        if not triggers:
+            raise serializers.ValidationError("Must include at least one trigger")
+        if len(triggers) > 2:
+            raise serializers.ValidationError(
+                "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
+            )
 
-                    if critical["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
-                        alert_op, resolve_op = operator.lt, operator.lt
-                        alert_error = (
-                            "Critical trigger must have an alert threshold above warning trigger"
-                        )
-                        resolve_error = "Critical trigger must have a resolution threshold above (or equal to) warning trigger"
-                        trigger_error = "alert threshold must be above resolution threshold"
-                    elif critical["threshold_type"] == AlertRuleThresholdType.BELOW.value:
-                        alert_op, resolve_op = operator.gt, operator.gt
-                        alert_error = (
-                            "Critical trigger must have an alert threshold below warning trigger"
-                        )
-                        resolve_error = "Critical trigger must have a resolution threshold below (or equal to) warning trigger"
-                        trigger_error = "alert threshold must be below resolution threshold"
-                    else:
-                        raise serializers.ValidationError(
-                            "Invalid threshold type. Valid values are %s"
-                            % [item.value for item in AlertRuleThresholdType]
-                        )
-
-                    if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
-                        raise serializers.ValidationError(alert_error)
-                    elif resolve_op(critical["resolve_threshold"], warning["resolve_threshold"]):
-                        raise serializers.ValidationError(resolve_error)
-
-                    if critical["resolve_threshold"] is not None:
-                        if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
-                            raise serializers.ValidationError("Critical " + trigger_error)
-
-                    if warning["resolve_threshold"] is not None:
-                        if alert_op(warning["alert_threshold"], warning["resolve_threshold"]):
-                            raise serializers.ValidationError("Warning " + trigger_error)
-            else:
+        for i, (trigger, expected_label) in enumerate(
+            zip(triggers, (CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL))
+        ):
+            if trigger.get("label", None) != expected_label:
                 raise serializers.ValidationError(
-                    "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
+                    'Trigger {} must be labeled "{}"'.format(i + 1, expected_label)
+                )
+        critical = triggers[0]
+        self._validate_trigger_thresholds(critical)
+
+        if len(triggers) == 2:
+            warning = triggers[1]
+            if critical["threshold_type"] != warning["threshold_type"]:
+                raise serializers.ValidationError(
+                    "Must have matching threshold types (i.e. critical and warning "
+                    "triggers must both be an upper or lower bound)"
+                )
+            self._validate_trigger_thresholds(warning)
+            self._validate_critical_warning_triggers(critical, warning)
+
+        # Triggers have passed checks. Check that all triggers have at least one action now.
+        for trigger in triggers:
+            actions = trigger.get("actions")
+            if not actions:
+                raise serializers.ValidationError(
+                    '"' + trigger["label"] + '" trigger must have an action.'
                 )
 
-            # Triggers have passed checks. Check that all triggers have at least one action now.
-            for trigger in triggers:
-                actions = trigger.get("actions", [])
-                if actions == []:
-                    raise serializers.ValidationError(
-                        '"' + trigger["label"] + '" trigger must have an action.'
-                    )
-        else:
-            raise serializers.ValidationError("Must include at least one trigger")
-
         return data
+
+    def _validate_trigger_thresholds(self, trigger):
+        if trigger.get("resolve_threshold") is None:
+            return
+        # Since we're comparing non-inclusive thresholds here (>, <), we need
+        # to modify the values when we compare. An example of why:
+        # Alert > 0, resolve < 1. This means that we want to alert on values
+        # of 1 or more, and resolve on values of 0 or less. This is valid, but
+        # without modifying the values, this boundary case will fail.
+        if trigger["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
+            alert_op, alert_add, resolve_add = operator.lt, 1, -1
+        else:
+            alert_op, alert_add, resolve_add = operator.gt, -1, 1
+
+        if alert_op(
+            trigger["alert_threshold"] + alert_add, trigger["resolve_threshold"] + resolve_add
+        ):
+            raise serializers.ValidationError(
+                "{} alert threshold must be above resolution threshold".format(trigger["label"])
+            )
+
+    def _validate_critical_warning_triggers(self, critical, warning):
+        if critical["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
+            alert_op = operator.lt
+            threshold_type = "above"
+        elif critical["threshold_type"] == AlertRuleThresholdType.BELOW.value:
+            alert_op = operator.gt
+            threshold_type = "below"
+
+        if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
+            raise serializers.ValidationError(
+                "Critical trigger must have an alert threshold {} warning trigger".format(
+                    threshold_type
+                )
+            )
+        elif alert_op(critical["resolve_threshold"], warning["resolve_threshold"]):
+            raise serializers.ValidationError(
+                "Critical trigger must have a resolution threshold {} (or equal to) "
+                "warning trigger".format(threshold_type)
+            )
 
     def create(self, validated_data):
         try:

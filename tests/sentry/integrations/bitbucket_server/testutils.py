@@ -42,16 +42,14 @@ COMMIT_CHANGELIST_EXAMPLE = {
                 "parent": "",
                 "name": "a.txt",
                 "extension": "txt",
-                "toString": "a.txt"
+                "toString": "a.txt",
             },
             "executable": False,
             "percentUnchanged": -1,
             "type": "MODIFY",
             "nodeType": "FILE",
             "srcExecutable": False,
-            "properties": {
-                "gitChangeType": "MODIFY"
-            }
+            "properties": {"gitChangeType": "MODIFY"},
         },
         {
             "path": {
@@ -59,16 +57,14 @@ COMMIT_CHANGELIST_EXAMPLE = {
                 "parent": "",
                 "name": "b.txt",
                 "extension": "txt",
-                "toString": "b.txt"
+                "toString": "b.txt",
             },
             "executable": False,
             "percentUnchanged": -1,
             "type": "ADD",
             "nodeType": "FILE",
             "srcExecutable": False,
-            "properties": {
-                "gitChangeType": "ADD"
-            }
+            "properties": {"gitChangeType": "ADD"},
         },
         {
             "path": {
@@ -76,16 +72,14 @@ COMMIT_CHANGELIST_EXAMPLE = {
                 "parent": "",
                 "name": "c.txt",
                 "extension": "txt",
-                "toString": "c.txt"
+                "toString": "c.txt",
             },
             "executable": False,
             "percentUnchanged": -1,
             "type": "DELETE",
             "nodeType": "FILE",
             "srcExecutable": False,
-            "properties": {
-                "gitChangeType": "DELETE"
-            }
+            "properties": {"gitChangeType": "DELETE"},
         },
         {
             "path": {
@@ -93,24 +87,22 @@ COMMIT_CHANGELIST_EXAMPLE = {
                 "parent": "",
                 "name": "d.txt",
                 "extension": "txt",
-                "toString": "d.txt"
+                "toString": "d.txt",
             },
             "srcPath": {
                 "components": ["d.txt"],
                 "parent": "",
                 "name": "e.txt",
                 "extension": "txt",
-                "toString": "e.txt"
+                "toString": "e.txt",
             },
             "executable": False,
             "percentUnchanged": -1,
             "type": "MOVE",
             "nodeType": "FILE",
             "srcExecutable": False,
-            "properties": {
-                "gitChangeType": "MOVE"
-            }
-        }
+            "properties": {"gitChangeType": "MOVE"},
+        },
     ]
 }
 

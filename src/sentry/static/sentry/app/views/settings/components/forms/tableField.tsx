@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import flatten from 'lodash/flatten';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
@@ -8,79 +8,63 @@ import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import InputField from 'app/views/settings/components/forms/inputField';
 import space from 'app/styles/space';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconDelete} from 'app/icons';
+import Confirm from 'app/components/confirm';
+import Alert from 'app/components/alert';
+import {singleLineRenderer} from 'app/utils/marked';
+import {TableType} from 'app/views/settings/components/forms/type';
 
 const defaultProps = {
+  /**
+   * Text used for the 'add' button. An empty string can be used
+   * to just render the "+" icon.
+   */
   addButtonText: t('Add Item'),
+  /**
+   * Automatically save even if fields are empty
+   */
   allowEmpty: false,
-  // Since we're saving an object, there isn't a great way to render the
-  // change within the toast. Just turn off displaying the from/to portion of
-  // the message.
-  formatMessageValue: false,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
-type Props = {
-  name?: string;
-  columnLabels: object;
-  columnKeys: string[];
-} & DefaultProps &
-  InputField['props'];
+//Maybe not the best way of getting the props from TableType but it works
+type Props = DefaultProps & InputField['props'] & Omit<TableType, 'type'>;
 
 export default class TableField extends React.Component<Props> {
-  static propTypes = {
-    ...InputField.propTypes,
-    /**
-     * Text used for the 'add' button. An empty string can be used
-     * to just render the "+" icon.
-     */
-    addButtonText: PropTypes.node,
-    /**
-     * An object with of column labels (headers) for the table.
-     */
-    columnLabels: PropTypes.object.isRequired,
-    /**
-     * A list of column keys for the table, in the order that you want
-     * the columns to appear - order doesn't matter in columnLabels
-     */
-    columnKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
-    /**
-     * Automatically save even if fields are empty
-     */
-    allowEmpty: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   hasValue = value => defined(value) && !objectIsEmpty(value);
 
-  renderField = props => {
+  renderField = (props: Props) => {
     const {
       onChange,
       onBlur,
       addButtonText,
       columnLabels,
       columnKeys,
-      disabled,
+      disabled: rawDisabled,
       allowEmpty,
+      confirmDeleteMessage,
     } = props;
 
-    const mappedKeys = columnKeys;
+    const mappedKeys = columnKeys || [];
     const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {id: ''});
 
     const valueIsEmpty = this.hasValue(props.value);
-    const value = valueIsEmpty ? props.value : [];
+    const value = valueIsEmpty ? (props.value as any[]) : [];
 
-    const saveChanges = (nextValue: object) => {
-      onChange(nextValue, []);
+    const saveChanges = (nextValue: object[]) => {
+      onChange?.(nextValue, []);
 
-      const validValues = !Object.values(nextValue)
-        .map(o => Object.values(o).find(v => v === null))
-        .includes(null);
+      //nextValue is an array of ObservableObjectAdministration objects
+      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
+        ([key, val]) => key !== 'id' && !val //don't allow empty values except if it's the ID field
+      );
 
       if (allowEmpty || validValues) {
-        onBlur();
+        //TOOD: add debouncing or use a form save button
+        onBlur?.(nextValue, []);
       }
     };
 
@@ -89,7 +73,6 @@ export default class TableField extends React.Component<Props> {
     };
 
     const removeRow = rowIndex => {
-      //eslint-disable-next-line no-unused-vars
       const newValue = [...value];
       newValue.splice(rowIndex, 1);
       saveChanges(newValue);
@@ -106,6 +89,9 @@ export default class TableField extends React.Component<Props> {
         : null;
       saveChanges(newValue);
     };
+
+    //should not be a function for this component
+    const disabled = typeof rawDisabled === 'function' ? false : rawDisabled;
 
     const button = (
       <Button
@@ -124,12 +110,28 @@ export default class TableField extends React.Component<Props> {
       return <div>{button}</div>;
     }
 
+    const renderConfirmMessage = () => {
+      return (
+        <React.Fragment>
+          <Alert type="error">
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(
+                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
+                ),
+              }}
+            />
+          </Alert>
+        </React.Fragment>
+      );
+    };
+
     return (
       <React.Fragment>
         <HeaderContainer>
           {mappedKeys.map((fieldKey, i) => (
             <Header key={fieldKey}>
-              <HeaderLabel>{columnLabels[fieldKey]}</HeaderLabel>
+              <HeaderLabel>{columnLabels?.[fieldKey]}</HeaderLabel>
               {i === mappedKeys.length - 1 && button}
             </Header>
           ))}
@@ -145,14 +147,21 @@ export default class TableField extends React.Component<Props> {
                   />
                 </RowInput>
                 {i === mappedKeys.length - 1 && (
-                  <RemoveButton>
-                    <Button
-                      icon="icon-trash"
-                      size="small"
-                      disabled={disabled}
-                      onClick={() => removeRow(rowIndex)}
-                    />
-                  </RemoveButton>
+                  <Confirm
+                    priority="danger"
+                    disabled={disabled}
+                    onConfirm={() => removeRow(rowIndex)}
+                    message={renderConfirmMessage()}
+                  >
+                    <RemoveButton>
+                      <Button
+                        icon={<IconDelete />}
+                        size="small"
+                        disabled={disabled}
+                        label={t('delete')}
+                      />
+                    </RemoveButton>
+                  </Confirm>
                 )}
               </Row>
             ))}
@@ -163,9 +172,14 @@ export default class TableField extends React.Component<Props> {
   };
 
   render() {
+    //We need formatMessageValue=false since we're saving an object
+    // and there isn't a great way to render the
+    // change within the toast. Just turn off displaying the from/to portion of
+    // the message
     return (
       <InputField
         {...this.props}
+        formatMessageValue={false}
         inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
         field={this.renderField}
       />

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import copy
+import json
 import six
 import pytest
 import pytz
@@ -149,6 +150,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
+
+        self.dismiss_assistant()
+
+    def dismiss_assistant(self):
+        res = self.client.put(
+            "/api/0/assistant/?v2",
+            content_type="application/json",
+            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
+        )
+        assert res.status_code == 201
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -424,9 +435,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
-            # Dismiss assistant as it is in the way.
-            self.browser.element('[aria-label="Got It"]').click()
-
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()
             self.wait_until_loaded()
@@ -499,6 +507,45 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('[data-test-id="card-{}"]'.format(duplicate_name))
         # Assert the new query exists and has 'copy' added to the name.
         assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
+
+    @patch("django.utils.timezone.now")
+    def test_drilldown_result(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        min_ago = iso_format(before_now(minutes=1))
+        events = (
+            ("a" * 32, "oh no", "group-1"),
+            ("b" * 32, "oh no", "group-1"),
+            ("c" * 32, "this is bad", "group-2"),
+        )
+        for event in events:
+            self.store_event(
+                data={
+                    "event_id": event[0],
+                    "message": event[1],
+                    "timestamp": min_ago,
+                    "fingerprint": [event[2]],
+                    "type": "error",
+                },
+                project_id=self.project.id,
+            )
+
+        query = {"field": ["message", "project", "count()"], "query": "event.type:error"}
+        with self.feature(FEATURE_NAMES):
+            # Go directly to the query builder view
+            self.browser.get(self.result_path + "?" + urlencode(query, doseq=True))
+            self.wait_until_loaded()
+
+            # Click the first drilldown
+            self.browser.element('[data-test-id="expand-count"]').click()
+            self.wait_until_loaded()
+
+            assert self.browser.element_exists_by_test_id("grid-editable"), "table should exist."
+            headers = self.browser.find_elements_by_css_selector(
+                '[data-test-id="grid-editable"] thead th'
+            )
+            expected = ["", "MESSAGE", "PROJECT", "ID"]
+            actual = [header.text for header in headers]
+            assert expected == actual
 
     @pytest.mark.skip(reason="not done")
     @patch("django.utils.timezone.now")

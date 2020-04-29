@@ -20,8 +20,7 @@ enum METHOD_TYPE {
   MASK = 'mask',
   REMOVE = 'remove',
   HASH = 'hash',
-  // TODO(Priscila): reactivate METHOD_TYPE.REPLACE
-  // REPLACE = 'replace',
+  REPLACE = 'replace',
 }
 
 function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
@@ -29,11 +28,11 @@ function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
     case RULE_TYPE.ANYTHING:
       return t('Anything');
     case RULE_TYPE.IMEI:
-      return t('IMEI Numbers');
+      return t('IMEI numbers');
     case RULE_TYPE.MAC:
       return t('MAC addresses');
     case RULE_TYPE.EMAIL:
-      return t('Email Addresses');
+      return t('Email addresses');
     case RULE_TYPE.PEMKEY:
       return t('PEM keys');
     case RULE_TYPE.URLAUTH:
@@ -45,13 +44,13 @@ function getRuleTypeSelectorFieldLabel(labelType: RULE_TYPE): string {
     case RULE_TYPE.UUID:
       return t('UUIDs');
     case RULE_TYPE.CREDITCARD:
-      return t('Credit Card Number');
+      return t('Credit card numbers');
     case RULE_TYPE.PASSWORD:
       return t('Password fields');
     case RULE_TYPE.IP:
-      return t('IP Addresses');
+      return t('IP addresses');
     case RULE_TYPE.PATTERN:
-      return t('Custom Regular Expression');
+      return t('Regex matches');
     default:
       return '';
   }
@@ -65,9 +64,8 @@ function getMethodTypeSelectorFieldLabel(labelType: METHOD_TYPE): string {
       return t('Hash');
     case METHOD_TYPE.REMOVE:
       return t('Remove');
-    // TODO(Priscila): reactivate METHOD_TYPE.REPLACE
-    // case METHOD_TYPE.REPLACE:
-    //   return t('Replace');
+    case METHOD_TYPE.REPLACE:
+      return t('Replace');
     default:
       return '';
   }

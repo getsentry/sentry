@@ -1,4 +1,3 @@
-import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -14,11 +13,9 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'app/actionCreators/guides';
-import {CloseIcon} from 'app/components/assistant/styles';
 import {Guide} from 'app/components/assistant/types';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import GuideStore from 'app/stores/guideStore';
 import Hovercard, {Body as HovercardBody} from 'app/components/hovercard';
 import space from 'app/styles/space';
@@ -28,6 +25,7 @@ type Props = {
   target?: string;
   position?: string;
   disabled?: boolean;
+  offset?: string;
 };
 
 type State = {
@@ -48,6 +46,7 @@ const GuideAnchor = createReactClass<Props, State>({
     target: PropTypes.string,
     position: PropTypes.string,
     disabled: PropTypes.bool,
+    offset: PropTypes.string,
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
@@ -86,6 +85,7 @@ const GuideAnchor = createReactClass<Props, State>({
     const active =
       data.currentGuide &&
       data.currentGuide.steps[data.currentStep].target === this.props.target;
+
     this.setState({
       active,
       currentGuide: data.currentGuide,
@@ -119,7 +119,7 @@ const GuideAnchor = createReactClass<Props, State>({
     dismissGuide(currentGuide.guide, step, orgId);
   },
 
-  getHovercardExpBody() {
+  getHovercardBody() {
     const {currentGuide, step} = this.state;
 
     const totalStepCount = currentGuide.steps.length;
@@ -129,7 +129,7 @@ const GuideAnchor = createReactClass<Props, State>({
     const hasManySteps = totalStepCount > 1;
 
     return (
-      <GuideExpContainer>
+      <GuideContainer>
         <GuideContent>
           <GuideTitle>{currentStep.title}</GuideTitle>
           <GuideDescription>{currentStep.description}</GuideDescription>
@@ -137,7 +137,11 @@ const GuideAnchor = createReactClass<Props, State>({
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton size="small" onClick={this.handleFinish}>
+              <StyledButton
+                size="small"
+                href="#" // to clear `#assistant` from the url
+                onClick={this.handleFinish}
+              >
                 {hasManySteps ? t('Enough Already') : t('Got It')}
               </StyledButton>
             ) : (
@@ -166,133 +170,33 @@ const GuideAnchor = createReactClass<Props, State>({
             </StepCount>
           )}
         </GuideAction>
-      </GuideExpContainer>
-    );
-  },
-
-  getHovercardBody() {
-    const {currentGuide, step} = this.state;
-
-    return (
-      <GuideContainer>
-        <GuideInputRow>
-          <StyledTitle>{currentGuide.steps[step].title}</StyledTitle>
-          {step < currentGuide.steps.length - 1 && (
-            <CloseLink onClick={this.handleDismiss} href="#" data-test-id="close-button">
-              <CloseIcon />
-            </CloseLink>
-          )}
-        </GuideInputRow>
-        <StyledContent>
-          <div>{currentGuide.steps[step].description}</div>
-          <Actions>
-            <div>
-              {step < currentGuide.steps.length - 1 ? (
-                <Button priority="success" size="small" onClick={this.handleNextStep}>
-                  {t('Next')}
-                </Button>
-              ) : (
-                <Button priority="success" size="small" onClick={this.handleFinish}>
-                  {t(currentGuide.steps.length === 1 ? 'Got It' : 'Done')}
-                </Button>
-              )}
-            </div>
-          </Actions>
-        </StyledContent>
       </GuideContainer>
     );
   },
 
-  renderHovercardExp() {
-    const {children, position} = this.props;
+  render() {
+    const {disabled, children, position, offset} = this.props;
+    const {active} = this.state;
+
+    if (!active || disabled) {
+      return children ? children : null;
+    }
 
     return (
       <StyledHovercard
         show
-        body={this.getHovercardExpBody()}
+        body={this.getHovercardBody()}
         tipColor={theme.purple}
         position={position}
+        offset={offset}
       >
         <span ref={el => (this.containerElement = el)}>{children}</span>
       </StyledHovercard>
     );
   },
-
-  render() {
-    const {disabled, children, position} = this.props;
-    const {active} = this.state;
-    const user = ConfigStore.get('user');
-
-    if (!active || disabled || !user) {
-      return children ? children : null;
-    }
-
-    const hasExperiment = user?.experiments?.AssistantGuideExperiment === 1;
-
-    return hasExperiment ? (
-      this.renderHovercardExp()
-    ) : (
-      <ClassNames>
-        {({css}) => (
-          <Hovercard
-            show
-            body={this.getHovercardBody()}
-            bodyClassName={css`
-              background-color: ${theme.greenDark};
-              margin: -1px;
-            `}
-            tipColor={theme.greenDark}
-            position={position}
-          >
-            <span ref={el => (this.containerElement = el)}>{children}</span>
-          </Hovercard>
-        )}
-      </ClassNames>
-    );
-  },
 });
 
 const GuideContainer = styled('div')`
-  background-color: ${p => p.theme.greenDark};
-  border-color: ${p => p.theme.greenLight};
-  color: ${p => p.theme.offWhite};
-`;
-
-const CloseLink = styled('a')`
-  color: ${p => p.theme.offWhite};
-  &:hover {
-    color: ${p => p.theme.offWhite};
-  }
-  display: flex;
-`;
-
-const GuideInputRow = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledTitle = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  flex-grow: 1;
-`;
-
-const StyledContent = styled('div')`
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1.5;
-
-  a {
-    color: ${p => p.theme.greenLight};
-  }
-`;
-
-const Actions = styled('div')`
-  margin-top: 1em;
-`;
-
-// experiment styles
-const GuideExpContainer = styled('div')`
   display: grid;
   grid-template-rows: repeat(2, auto);
   grid-gap: ${space(2)};

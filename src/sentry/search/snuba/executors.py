@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import time
 import six
+import sentry_sdk
 from datetime import timedelta
 from hashlib import md5
 
@@ -325,9 +326,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # to something that we can send down to Snuba in a `group_id IN (...)`
         # clause.
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
-        too_many_candidates = False
-        group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+
+        with sentry_sdk.start_span(op="snuba_group_query") as span:
+            group_ids = list(group_queryset.values_list("id", flat=True)[: max_candidates + 1])
+            span.set_data("Max Candidates", max_candidates)
+            span.set_data("Result Size", len(group_ids))
         metrics.timing("snuba.search.num_candidates", len(group_ids))
+
+        too_many_candidates = False
         if not group_ids:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
@@ -542,7 +548,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            snuba_groups, snuba_total = self.snuba_search(
+            kwargs = dict(
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -553,6 +559,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 get_sample=True,
                 search_filters=search_filters,
             )
+            if not too_many_candidates:
+                kwargs["group_ids"] = group_ids
+
+            snuba_groups, snuba_total = self.snuba_search(**kwargs)
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result

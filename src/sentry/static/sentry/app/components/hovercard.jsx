@@ -50,6 +50,10 @@ class Hovercard extends React.Component {
      * Color of the arrow tip
      */
     tipColor: PropTypes.string,
+    /**
+     * Offset for the arrow
+     */
+    offset: PropTypes.string,
   };
 
   static defaultProps = {
@@ -101,6 +105,7 @@ class Hovercard extends React.Component {
       position,
       show,
       tipColor,
+      offset,
     } = this.props;
 
     // Maintain the hovercard class name for BC with less styles
@@ -147,6 +152,7 @@ class Hovercard extends React.Component {
                   style={style}
                   placement={placement}
                   withHeader={!!header}
+                  offset={offset}
                   className={cx}
                   {...hoverProps}
                 >
@@ -188,6 +194,7 @@ const slideIn = p => keyframes`
 const getTipColor = p => (p.placement === 'bottom' ? p.theme.offWhite : '#fff');
 const getTipDirection = p =>
   VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
+const getOffset = p => p.offset ?? space(2);
 
 const StyledHovercard = styled('div')`
   border-radius: 4px;
@@ -214,10 +221,10 @@ const StyledHovercard = styled('div')`
   animation-play-state: ${p => (p.visible ? 'running' : 'paused')};
 
   /* Offset for the arrow */
-  ${p => (p.placement === 'top' ? 'margin-bottom: 15px' : '')};
-  ${p => (p.placement === 'bottom' ? 'margin-top: 15px' : '')};
-  ${p => (p.placement === 'left' ? 'margin-right: 15px' : '')};
-  ${p => (p.placement === 'right' ? 'margin-left: 15px' : '')};
+  ${p => (p.placement === 'top' ? `margin-bottom: ${getOffset(p)}` : '')};
+  ${p => (p.placement === 'bottom' ? `margin-top: ${getOffset(p)}` : '')};
+  ${p => (p.placement === 'left' ? `margin-right: ${getOffset(p)}` : '')};
+  ${p => (p.placement === 'right' ? `margin-left: ${getOffset(p)}` : '')};
 `;
 
 const Header = styled('div')`
@@ -265,7 +272,6 @@ const HovercardArrow = styled('span')`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
@@ -274,7 +280,6 @@ const HovercardArrow = styled('span')`
   }
   &::after {
     border: 10px solid transparent;
-    /* stylelint-disable-next-line property-no-unknown */
     border-${getTipDirection}-color: ${p => p.tipColor || getTipColor(p)};
   }
 `;

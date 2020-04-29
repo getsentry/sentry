@@ -107,6 +107,8 @@ def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
         try:
@@ -139,6 +141,8 @@ def parse_datetime_value(value):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
+    if len(value) >= 6 and value[-6] == "+":
+        value = value[:-6]
 
     result = None
 
@@ -327,7 +331,8 @@ def tokenize_query(query):
                 break
         query_params[state].append(token)
 
-    result["query"] = map(format_query, query_params["query"])
+    if "query" in query_params:
+        result["query"] = map(format_query, query_params["query"])
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)

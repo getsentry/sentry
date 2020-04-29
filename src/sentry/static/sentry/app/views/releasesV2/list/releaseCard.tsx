@@ -7,7 +7,7 @@ import Count from 'app/components/count';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
-import {Project, AvatarProject, ProjectRelease} from 'app/types';
+import {ProjectRelease, ReleaseProject} from 'app/types';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
@@ -18,13 +18,13 @@ import ReleaseHealth from './releaseHealth';
 
 type Props = {
   release: ProjectRelease;
-  project?: Project | AvatarProject;
+  project: ReleaseProject;
   location: Location;
+  reloading: boolean;
 };
 
-const ReleaseCard = ({release, project, location}: Props) => (
-  // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
-  <Panel>
+const ReleaseCard = ({release, project, location, reloading}: Props) => (
+  <StyledPanel reloading={reloading ? 1 : 0}>
     <PanelBody>
       <StyledPanelItem>
         <HeaderLayout>
@@ -57,12 +57,10 @@ const ReleaseCard = ({release, project, location}: Props) => (
             <VersionWrapper>
               <Version
                 version={release.version}
-                // TODO(releasesV2): we don't use this for now
-                // preserveGlobalSelection
+                preserveGlobalSelection
                 tooltipRawVersion
                 truncate
-                projectId={String(release.projectId)}
-                v2
+                projectId={String(project.id)}
               />
               <TimeWithIcon date={release.dateReleased || release.dateCreated} />
             </VersionWrapper>
@@ -94,8 +92,13 @@ const ReleaseCard = ({release, project, location}: Props) => (
     {release.healthData?.hasHealthData && (
       <ReleaseHealth release={release} location={location} />
     )}
-  </Panel>
+  </StyledPanel>
 );
+
+const StyledPanel = styled(Panel)<{reloading: number}>`
+  opacity: ${p => (p.reloading ? 0.5 : 1)};
+  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
+`;
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

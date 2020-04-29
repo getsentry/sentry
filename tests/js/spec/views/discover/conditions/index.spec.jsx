@@ -35,7 +35,8 @@ describe('Conditions', function() {
   it('addRow()', function() {
     wrapper
       .find('AddText')
-      .find('Link')
+      .find("[data-test-id='conditions-add-text-link']")
+      .hostNodes()
       .simulate('click');
     expect(onChangeMock).toHaveBeenCalledWith([[null, null, null]]);
   });

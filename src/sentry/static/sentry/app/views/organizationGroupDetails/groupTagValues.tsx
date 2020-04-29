@@ -7,14 +7,17 @@ import styled from '@emotion/styled';
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import UserAvatar from 'app/components/avatar/userAvatar';
+import UserBadge from 'app/components/idBadge/userBadge';
+import Button from 'app/components/button';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import {IconMail, IconOpen} from 'app/icons';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import DataExport from 'app/components/dataExport';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import {Group, Tag, TagValue} from 'app/types';
 
 type RouteParams = {
@@ -45,10 +48,6 @@ class GroupTagValues extends AsyncComponent<
     ];
   }
 
-  getUserDisplayName(item: TagValue): string {
-    return item.email || item.username || item.identifier || item.ipAddress || item.value;
-  }
-
   renderBody() {
     const {
       group,
@@ -73,31 +72,30 @@ class GroupTagValues extends AsyncComponent<
             <span className="label">{pct}</span>
           </td>
           <td>
-            <GlobalSelectionLink
-              to={{
-                pathname: issuesPath,
-                query: {query},
-              }}
-            >
-              {tag.key === 'user' ? (
-                <React.Fragment>
-                  <UserAvatar user={tagValue} size={20} className="avatar" />
-                  <span className="m-left">{this.getUserDisplayName(tagValue)}</span>
-                </React.Fragment>
-              ) : (
-                <DeviceName value={tagValue.name} />
+            <ValueWrapper>
+              <GlobalSelectionLink
+                to={{
+                  pathname: issuesPath,
+                  query: {query},
+                }}
+              >
+                {tag.key === 'user' ? (
+                  <UserBadge user={tagValue} avatarSize={20} hideEmail />
+                ) : (
+                  <DeviceName value={tagValue.name} />
+                )}
+              </GlobalSelectionLink>
+              {tagValue.email && (
+                <StyledExternalLink href={`mailto:${tagValue.email}`}>
+                  <IconMail size="xs" color={theme.gray2} />
+                </StyledExternalLink>
               )}
-            </GlobalSelectionLink>
-            {tagValue.email && (
-              <ExternalLink href={`mailto:${tagValue.email}`} className="external-icon">
-                <em className="icon-envelope" />
-              </ExternalLink>
-            )}
-            {isUrl(tagValue.value) && (
-              <a href={tagValue.value} className="external-icon">
-                <em className="icon-open" />
-              </a>
-            )}
+              {isUrl(tagValue.value) && (
+                <StyledExternalLink href={tagValue.value}>
+                  <IconOpen size="xs" color={theme.gray2} />
+                </StyledExternalLink>
+              )}
+            </ValueWrapper>
           </td>
           <td>
             <TimeSince date={tagValue.lastSeen} />
@@ -107,26 +105,28 @@ class GroupTagValues extends AsyncComponent<
     });
 
     return (
-      <TableWrapper>
-        <h3>
+      <React.Fragment>
+        <Header>
           {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <a
+          <BrowserExportButton
+            size="small"
+            priority="default"
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="btn btn-default btn-sm m-left m-right"
           >
             {t('Export Page to CSV')}
-          </a>
+          </BrowserExportButton>
+          <a />
           <DataExport
             payload={{
-              queryType: 'Issues-by-Tag',
+              queryType: ExportQueryType.IssuesByTag,
               queryInfo: {
-                project_id: group.project.id,
-                group_id: group.id,
+                project: group.project.id,
+                group: group.id,
                 key: tagKey,
               },
             }}
           />
-        </h3>
+        </Header>
         <table className="table table-striped">
           <thead>
             <tr>
@@ -143,22 +143,28 @@ class GroupTagValues extends AsyncComponent<
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
           </small>
         </p>
-      </TableWrapper>
+      </React.Fragment>
     );
   }
 }
+const Header = styled('h3')`
+  display: flex;
+  align-items: flex-end;
+`;
 
-const TableWrapper = styled('div')`
-  .m-left {
-    margin-left: ${space(1.5)};
-  }
-  .m-right {
-    margin-right: ${space(1.5)};
-  }
+const BrowserExportButton = styled(Button)`
+  margin: 0 ${space(1.5)};
 `;
 
 const TableHeader = styled('th')<{width: number}>`
   width: ${p => p.width}px;
+`;
+const ValueWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+const StyledExternalLink = styled(ExternalLink)`
+  margin-left: ${space(0.5)};
 `;
 
 export {GroupTagValues};

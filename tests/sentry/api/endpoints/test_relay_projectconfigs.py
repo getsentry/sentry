@@ -126,7 +126,7 @@ def test_internal_relays_should_receive_full_configs(
     cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
 
-    public_key, = cfg["publicKeys"]
+    (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["isEnabled"]
     assert "quotas" in public_key
@@ -214,7 +214,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
     cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
-    public_key, = cfg["publicKeys"]
+    (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["isEnabled"]
     assert "quotas" not in public_key
@@ -289,8 +289,8 @@ def test_relay_projectconfig_cache_full_config(
         result, status_code = call_endpoint(full_config=True)
         assert status_code < 400
 
-    http_cfg, = six.itervalues(result["configs"])
-    call, = projectconfig_cache_set
+    (http_cfg,) = six.itervalues(result["configs"])
+    (call,) = projectconfig_cache_set
     assert len(call) == 1
     redis_cfg = call[six.text_type(default_project.id)]
 
@@ -310,7 +310,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
-    http_cfg, = six.itervalues(result["configs"])
+    (http_cfg,) = six.itervalues(result["configs"])
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
@@ -328,7 +328,7 @@ def test_relay_disabled_project(
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
-    http_cfg, = six.itervalues(result["configs"])
+    (http_cfg,) = six.itervalues(result["configs"])
     assert http_cfg == {"disabled": True}
 
     assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]

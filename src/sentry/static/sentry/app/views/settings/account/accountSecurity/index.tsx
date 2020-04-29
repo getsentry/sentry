@@ -13,6 +13,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {IconDelete} from 'app/icons/iconDelete';
 import PasswordForm from 'app/views/settings/account/passwordForm';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -167,7 +168,11 @@ class AccountSecurity extends AsyncView<Props> {
                               onConfirm={() => onDisable(auth)}
                               disabled={deleteDisabled}
                             >
-                              <Button size="small" icon="icon-trash" />
+                              <Button
+                                size="small"
+                                label={t('delete')}
+                                icon={<IconDelete />}
+                              />
                             </RemoveConfirm>
                           </Tooltip>
                         )}

@@ -1,15 +1,17 @@
-Unable to Export Data
----------------------
+We couldn't export your data.
+-----------------------------
 
-The data export you created at {{creation}} has failed.
-We were unable to generate your report due to an error:
+Well, this is a little awkward.
+The data export that you created at {{creation}} didn't work. Sorry about that.
+
+It looks like there was an error:
 
     {{error_message}}
 
-We received the following payload:
+This is what you sent us. Maybe it'll help you sort this out.
 
-    {{payload}}
+{{payload|safe}}
 
-Troubleshooting & References:
+Need a little more help?
  - https://docs.sentry.io/ (Documentation)
  - https://help.sentry.io/ (FAQs)

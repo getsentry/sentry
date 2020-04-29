@@ -8,8 +8,9 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Link from 'app/components/links/link';
 import TextOverflow from 'app/components/textOverflow';
+import {Theme} from 'app/utils/theme';
+import Link from 'app/components/links/link';
 
 import {SidebarOrientation} from './types';
 
@@ -21,8 +22,6 @@ const LabelHook = HookOrDefault({
 type Props = ReactRouter.WithRouterProps & {
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
-
-  // TODO(ts): Replace with React.ComponentProps<typeof Link> when possible
   index?: boolean;
   href?: string;
   to?: string;
@@ -60,6 +59,10 @@ type Props = ReactRouter.WithRouterProps & {
    */
   isNew?: boolean;
   /**
+   * Additional badge letting users know a tab is in beta.
+   */
+  isBeta?: boolean;
+  /**
    * Sidebar is at "top" or "left" of screen
    */
   orientation: SidebarOrientation;
@@ -76,6 +79,7 @@ const SidebarItem = ({
   active,
   hasPanel,
   isNew,
+  isBeta,
   collapsed,
   className,
   orientation,
@@ -98,12 +102,11 @@ const SidebarItem = ({
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
         active={isActive ? 'true' : undefined}
-        href={href}
-        to={to}
+        to={(to ? to : href) || ''}
         className={className}
-        onClick={(e: React.MouseEvent<HTMLAnchorElement>) =>
-          typeof onClick === 'function' && onClick(id, e)
-        }
+        onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+          typeof onClick === 'function' && onClick(id, event);
+        }}
       >
         <SidebarItemWrapper>
           <SidebarItemIcon>{icon}</SidebarItemIcon>
@@ -114,6 +117,11 @@ const SidebarItem = ({
                 {isNew && (
                   <StyledTag priority="beta" size="small">
                     {t('New')}
+                  </StyledTag>
+                )}
+                {isBeta && (
+                  <StyledTag priority="beta" size="small">
+                    {t('Beta')}
                   </StyledTag>
                 )}
               </LabelHook>
@@ -130,21 +138,21 @@ const SidebarItem = ({
 
 export default ReactRouter.withRouter(SidebarItem);
 
-const getActiveStyle = ({active, theme}) => {
+const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
   if (!active) {
     return '';
   }
   return css`
-    color: ${theme.white};
+    color: ${theme?.white};
 
     &:active,
     &:focus,
     &:hover {
-      color: ${theme.white};
+      color: ${theme?.white};
     }
 
     &:before {
-      background-color: ${theme.purple};
+      background-color: ${theme?.purple};
     }
   `;
 };
@@ -174,7 +182,7 @@ const StyledSidebarItem = styled(Link)`
     transition: 0.15s background-color linear;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     margin: 0 4px;
 
     &:before {

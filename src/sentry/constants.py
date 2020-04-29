@@ -81,6 +81,11 @@ ENVIRONMENT_NAME_MAX_LENGTH = 64
 
 SENTRY_APP_SLUG_MAX_LENGTH = 64
 
+# Maximum number of results we are willing to fetch when calculating rollup
+# Clients should adapt the interval width based on their display width.
+MAX_ROLLUP_POINTS = 4500
+
+
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
@@ -211,6 +216,7 @@ PROTECTED_TAG_KEYS = frozenset(["environment", "release", "sentry:release"])
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
+    "sentry.mail.actions.NotifyEmailAction",
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.conditions.every_event.EveryEventCondition",
@@ -489,6 +495,9 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+
+# Most number of events for the top-n graph
+MAX_TOP_EVENTS = 5
 
 
 @unique

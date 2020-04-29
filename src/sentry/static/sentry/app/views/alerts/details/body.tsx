@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {
@@ -12,8 +11,9 @@ import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
-import {getUtcDateString, intervalToMilliseconds} from 'app/utils/dates';
+import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
@@ -21,15 +21,21 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconEdit, IconTelescope} from 'app/icons';
+import {IconTelescope, IconWarning, IconLink} from 'app/icons';
+import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Incident, IncidentStats} from '../types';
+import {
+  Incident,
+  IncidentStats,
+  AlertRuleStatus,
+  IncidentStatus,
+  IncidentStatusMethod,
+} from '../types';
 import Activity from './activity';
 import Chart from './chart';
-import SideHeader from './sideHeader';
 
 type Props = {
   incident?: Incident;
@@ -38,25 +44,18 @@ type Props = {
 
 export default class DetailsBody extends React.Component<Props> {
   getDiscoverUrl(projects: Project[]) {
-    const {incident, params} = this.props;
+    const {incident, params, stats} = this.props;
     const {orgId} = params;
 
-    if (!projects || !projects.length || !incident) {
+    if (!projects || !projects.length || !incident || !stats) {
       return '';
     }
 
     const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const timeWindowInMs = intervalToMilliseconds(timeWindowString);
-    const startBeforeTimeWindow = moment(incident.dateStarted).subtract(
-      timeWindowInMs,
-      'ms'
+    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+    const end = getUtcDateString(
+      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
     );
-    const end = incident.dateClosed ?? getUtcDateString(new Date());
-
-    // We want the discover chart to start at "dateStarted" - "timeWindow" - "20%"
-    const additionalWindowBeforeStart =
-      moment(end).diff(startBeforeTimeWindow, 'ms') * 0.2;
-    const start = startBeforeTimeWindow.subtract(additionalWindowBeforeStart, 'ms');
 
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -67,12 +66,12 @@ export default class DetailsBody extends React.Component<Props> {
         incident.aggregation === AlertRuleAggregations.UNIQUE_USERS
           ? '-count_unique_user_id'
           : '-count_id',
-      query: (incident && incident.query) || '',
+      query: incident?.discoverQuery ?? '',
       projects: projects
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      start: getUtcDateString(start),
+      start,
       end,
     };
 
@@ -105,6 +104,10 @@ export default class DetailsBody extends React.Component<Props> {
 
   renderRuleDetails() {
     const {incident} = this.props;
+
+    if (incident === undefined) {
+      return <Placeholder height="200px" />;
+    }
 
     const criticalTrigger = incident?.alertRule.triggers.find(
       ({label}) => label === 'critical'
@@ -157,6 +160,17 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StyledPageContent>
+        {incident &&
+          incident.status === IncidentStatus.CLOSED &&
+          incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
+            <AlertWrapper>
+              <Alert type="warning" icon={<IconWarning size="sm" />}>
+                {t(
+                  'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+                )}
+              </Alert>
+            </AlertWrapper>
+          )}
         <ChartWrapper>
           {incident && stats ? (
             <Chart
@@ -174,7 +188,7 @@ export default class DetailsBody extends React.Component<Props> {
           <ActivityPageContent>
             <StyledNavTabs underlined>
               <li className="active">
-                <Link>{t('Activity')}</Link>
+                <Link to="">{t('Activity')}</Link>
               </li>
 
               <SeenByTab>
@@ -194,50 +208,44 @@ export default class DetailsBody extends React.Component<Props> {
             />
           </ActivityPageContent>
           <Sidebar>
-            <PageContent>
-              {incident?.alertRule && (
-                <React.Fragment>
-                  <SideHeader>
-                    <span>{t('Alert Rule')}</span>
-
-                    <SideHeaderLink
-                      to={{
-                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
-                      }}
-                    >
-                      <IconEdit />
-                      {t('View Rule')}
-                    </SideHeaderLink>
-                  </SideHeader>
-
-                  {this.renderRuleDetails()}
-
-                  <SideHeader>
-                    <span>{t('Query')}</span>
-                    <Feature features={['discover-basic']}>
-                      <Projects
-                        slugs={incident && incident.projects}
-                        orgId={params.orgId}
-                      >
-                        {({initiallyLoaded, projects, fetching}) => (
-                          <SideHeaderLink
-                            disabled={!incident || fetching || !initiallyLoaded}
-                            to={this.getDiscoverUrl(
-                              ((initiallyLoaded && projects) as Project[]) || []
-                            )}
-                          >
-                            <IconTelescope size="xs" />
-                            {t('View in Discover')}
-                          </SideHeaderLink>
-                        )}
-                      </Projects>
-                    </Feature>
-                  </SideHeader>
-
-                  <Query>{incident?.alertRule.query || '""'}</Query>
-                </React.Fragment>
+            <SidebarHeading>
+              <span>{t('Alert Rule')}</span>
+              {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                <SideHeaderLink
+                  to={{
+                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
+                  }}
+                >
+                  {t('View Rule')}
+                  <IconLink size="xs" />
+                </SideHeaderLink>
               )}
-            </PageContent>
+            </SidebarHeading>
+            {this.renderRuleDetails()}
+
+            <SidebarHeading>
+              <span>{t('Query')}</span>
+              <Feature features={['discover-basic']}>
+                <Projects slugs={incident?.projects} orgId={params.orgId}>
+                  {({initiallyLoaded, fetching, projects}) => (
+                    <SideHeaderLink
+                      disabled={!incident || fetching || !initiallyLoaded}
+                      to={this.getDiscoverUrl(
+                        ((initiallyLoaded && projects) as Project[]) || []
+                      )}
+                    >
+                      {t('View in Discover')}
+                      <IconTelescope size="xs" />
+                    </SideHeaderLink>
+                  )}
+                </Projects>
+              </Feature>
+            </SidebarHeading>
+            {incident ? (
+              <Query>{incident?.alertRule.query || '""'}</Query>
+            ) : (
+              <Placeholder height="30px" />
+            )}
           </Sidebar>
         </Main>
       </StyledPageContent>
@@ -257,30 +265,28 @@ const Main = styled('div')`
 `;
 
 const ActivityPageContent = styled(PageContent)`
-  width: 60%;
   @media (max-width: ${theme.breakpoints[0]}) {
     width: 100%;
     margin-bottom: 0;
   }
 `;
 
-const Sidebar = styled('div')`
-  width: 40%;
-
-  ${PageContent} {
-    padding-top: ${space(3)};
-  }
+const Sidebar = styled(PageContent)`
+  width: 400px;
+  flex: none;
+  padding-top: ${space(3)};
 
   @media (max-width: ${theme.breakpoints[0]}) {
     width: 100%;
-    border: 0;
-
-    ${PageContent} {
-      padding-top: ${space(3)};
-      margin-bottom: 0;
-      border-bottom: 1px solid ${p => p.theme.borderLight};
-    }
+    padding-top: ${space(3)};
+    margin-bottom: 0;
+    border-bottom: 1px solid ${p => p.theme.borderLight};
   }
+`;
+
+const SidebarHeading = styled(SectionHeading)`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const SideHeaderLink = styled(Link)`
@@ -288,7 +294,7 @@ const SideHeaderLink = styled(Link)`
   grid-auto-flow: column;
   align-items: center;
   grid-gap: ${space(0.5)};
-  text-transform: none;
+  font-weight: normal;
 `;
 
 const StyledPageContent = styled(PageContent)`
@@ -298,6 +304,10 @@ const StyledPageContent = styled(PageContent)`
 
 const ChartWrapper = styled('div')`
   padding: ${space(2)};
+`;
+
+const AlertWrapper = styled('div')`
+  padding: ${space(2)} ${space(4)} 0;
 `;
 
 const StyledNavTabs = styled(NavTabs)`
@@ -320,12 +330,12 @@ const StyledSeenByList = styled(SeenByList)`
 
 const RuleDetails = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   grid-template-columns: auto max-content;
   margin-bottom: ${space(2)};
 
   & > span {
-    padding: ${space(0.25)} ${space(1)};
+    padding: ${space(0.5)} ${space(1)};
   }
 
   & > span:nth-child(2n + 2) {
@@ -334,15 +344,14 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.offWhite2};
+    background-color: ${p => p.theme.offWhite};
   }
 `;
 
 const Query = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  background-color: ${p => p.theme.offWhite2};
-  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeSmall};
+  background-color: ${p => p.theme.offWhite};
   padding: ${space(0.5)} ${space(1)};
   color: ${p => p.theme.gray4};
 `;

@@ -17,9 +17,9 @@ import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion} from 'app/utils/formatters';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import ReleaseStat from './releaseStat';
-import Breadcrumbs from './breadcrumbs';
 import ReleaseActions from './releaseActions';
 
 type Props = {
@@ -34,15 +34,13 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
   const {healthData} = project;
 
-  const releasePath = `/organizations/${orgId}/releases-v2/${encodeURIComponent(
-    version
-  )}/`;
+  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
     {title: t('Commits'), to: `${releasePath}commits/`},
-    {title: t('Artifacts'), to: `${releasePath}artifacts/`},
     {title: t('Files Changed'), to: `${releasePath}files-changed/`},
+    {title: t('Artifacts'), to: `${releasePath}artifacts/`},
   ];
 
   return (
@@ -51,8 +49,9 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         <Breadcrumbs
           crumbs={[
             {
+              to: `/organizations/${orgId}/releases/`,
               label: t('Releases'),
-              to: `/organizations/${orgId}/releases-v2/`,
+              preserveGlobalSelection: true,
             },
             {label: formatVersion(version)},
           ]}
@@ -97,7 +96,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
 
         <IconWrapper>
           <Clipboard value={version}>
-            <Tooltip title={version}>
+            <Tooltip title={version} containerDisplayMode="flex">
               <IconCopy size="xs" />
             </Tooltip>
           </Clipboard>
@@ -141,15 +140,16 @@ const Layout = styled('div')`
     grid-column-gap: ${space(3)};
     grid-template-columns: 1fr 1fr;
     margin-bottom: 0;
+    align-items: flex-start;
   }
 `;
 
 const StatsWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  grid-gap: ${space(2)};
-  padding: ${space(1.5)} 0;
+  display: flex;
+  flex-wrap: wrap;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    padding: ${space(1.5)} 0;
     grid-auto-flow: column;
     grid-gap: ${space(4)};
   }
@@ -174,6 +174,8 @@ const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray4};
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
 `;
 
 const IconWrapper = styled('span')`
@@ -183,6 +185,7 @@ const IconWrapper = styled('span')`
   &,
   a {
     color: ${p => p.theme.gray2};
+    display: flex;
     &:hover {
       cursor: pointer;
       color: ${p => p.theme.gray4};

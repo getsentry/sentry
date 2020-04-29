@@ -5,12 +5,14 @@ import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import flatten from 'lodash/flatten';
 import uniq from 'lodash/uniq';
+import startCase from 'lodash/startCase';
 
 import {
   Organization,
   Integration,
   SentryApp,
   IntegrationProvider,
+  DocumentIntegration,
   SentryAppInstallation,
   PluginWithProjectList,
   AppOrProviderOrPlugin,
@@ -19,26 +21,26 @@ import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
-  getSortIntegrationsByWeightActive,
-  getCategorySelectActive,
   isSentryApp,
   isPlugin,
+  isDocumentIntegration,
   getCategoriesForIntegration,
+  isSlackWorkspaceApp,
+  getReauthAlertText,
 } from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
-import SearchInput from 'app/components/forms/searchInput';
+import SearchBar from 'app/components/searchBar';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import space from 'app/styles/space';
-import {logExperiment} from 'app/utils/analytics';
 import SelectControl from 'app/components/forms/selectControl';
+import Feature from 'app/components/acl/feature';
 
-import {POPULARITY_WEIGHT} from './constants';
+import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
 import IntegrationRow from './integrationRow';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
@@ -63,7 +65,7 @@ type State = {
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
-export class OrganizationIntegrations extends AsyncComponent<
+export class IntegrationListDirectory extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
@@ -72,20 +74,6 @@ export class OrganizationIntegrations extends AsyncComponent<
   shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
-
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'IntegrationDirectorySortWeightExperiment',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'variant',
-    });
-  }
 
   getDefaultState() {
     return {
@@ -121,7 +109,8 @@ export class OrganizationIntegrations extends AsyncComponent<
       .concat(published)
       .concat(orgOwned)
       .concat(this.providers)
-      .concat(plugins);
+      .concat(plugins)
+      .concat(Object.values(documentIntegrations));
 
     const list = this.sortIntegrations(combined);
 
@@ -204,24 +193,26 @@ export class OrganizationIntegrations extends AsyncComponent<
       return integration.projectList.length > 0 ? 2 : 0;
     }
 
-    if (!isSentryApp(integration)) {
-      return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    if (isSentryApp(integration)) {
+      const install = this.getAppInstall(integration);
+      if (install) {
+        return install.status === 'pending' ? 1 : 2;
+      }
+      return 0;
     }
 
-    const install = this.getAppInstall(integration);
-
-    if (install) {
-      return install.status === 'pending' ? 1 : 2;
+    if (isDocumentIntegration(integration)) {
+      return 0;
     }
 
-    return 0;
+    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
     POPULARITY_WEIGHT[integration.slug] ?? 1;
 
   sortByName = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) =>
-    a.name.localeCompare(b.name);
+    a.slug.localeCompare(b.slug);
 
   sortByPopularity = (a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     const weightA = this.getPopularityWeight(a);
@@ -233,16 +224,23 @@ export class OrganizationIntegrations extends AsyncComponent<
     this.getInstallValue(b) - this.getInstallValue(a);
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
-    if (getSortIntegrationsByWeightActive(this.props.organization)) {
-      return integrations
-        .sort(this.sortByName)
-        .sort(this.sortByPopularity)
-        .sort(this.sortByInstalled);
-    }
-    return integrations.sort(this.sortByName).sort(this.sortByInstalled);
+    return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
+      //sort by whether installed first
+      const diffWeight = this.sortByInstalled(a, b);
+      if (diffWeight !== 0) {
+        return diffWeight;
+      }
+      //then sort by popularity
+      const diffPop = this.sortByPopularity(a, b);
+      if (diffPop !== 0) {
+        return diffPop;
+      }
+      //then sort by name
+      return this.sortByName(a, b);
+    });
   }
 
-  async componentDidUpdate(_, prevState: State) {
+  async componentDidUpdate(_: Props, prevState: State) {
     if (this.state.list.length !== prevState.list.length) {
       await this.createSearch();
     }
@@ -273,13 +271,13 @@ export class OrganizationIntegrations extends AsyncComponent<
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
-  onSearchChange = async ({target}) => {
-    this.setState({searchInput: target.value}, () => {
-      if (!target.value) {
+  handleSearchChange = async (value: string) => {
+    this.setState({searchInput: value}, () => {
+      if (!value) {
         return this.setState({displayedList: this.state.list});
       }
-      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      this.debouncedTrackIntegrationSearch(target.value, result.length);
+      const result = this.state.fuzzy && this.state.fuzzy.search(value);
+      this.debouncedTrackIntegrationSearch(value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
@@ -295,7 +293,17 @@ export class OrganizationIntegrations extends AsyncComponent<
         return getCategoriesForIntegration(integration).includes(category);
       });
 
-      return this.setState({displayedList: result});
+      return this.setState({displayedList: result}, () =>
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.directory_category_selected',
+            eventName: 'Integrations: Directory Category Selected',
+            view: 'integrations_directory',
+            category,
+          },
+          this.props.organization
+        )
+      );
     });
   };
   // Rendering
@@ -306,19 +314,32 @@ export class OrganizationIntegrations extends AsyncComponent<
       i => i.provider.key === provider.key
     );
 
+    const hasWorkspaceApp = integrations.some(isSlackWorkspaceApp);
+
     return (
-      <IntegrationRow
+      <Feature
         key={`row-${provider.key}`}
-        data-test-id="integration-row"
         organization={organization}
-        type="firstParty"
-        slug={provider.slug}
-        displayName={provider.name}
-        status={integrations.length ? 'Installed' : 'Not Installed'}
-        publishStatus="published"
-        configurations={integrations.length}
-        categories={getCategoriesForIntegration(provider)}
-      />
+        features={['slack-migration']}
+      >
+        {({hasFeature}) => (
+          <IntegrationRow
+            key={`row-${provider.key}`}
+            data-test-id="integration-row"
+            organization={organization}
+            type="firstParty"
+            slug={provider.slug}
+            displayName={provider.name}
+            status={integrations.length ? 'Installed' : 'Not Installed'}
+            publishStatus="published"
+            configurations={integrations.length}
+            categories={getCategoriesForIntegration(provider)}
+            alertText={
+              hasFeature && hasWorkspaceApp ? getReauthAlertText(provider) : undefined
+            }
+          />
+        )}
+      </Feature>
     );
   };
 
@@ -369,11 +390,31 @@ export class OrganizationIntegrations extends AsyncComponent<
     );
   };
 
+  renderDocumentIntegration = (integration: DocumentIntegration) => {
+    const {organization} = this.props;
+    return (
+      <IntegrationRow
+        key={`doc-int-${integration.slug}`}
+        organization={organization}
+        type="documentIntegration"
+        slug={integration.slug}
+        displayName={integration.name}
+        publishStatus="published"
+        configurations={0}
+        categories={getCategoriesForIntegration(integration)}
+      />
+    );
+  };
+
   renderIntegration = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration)) {
       return this.renderSentryApp(integration);
-    } else if (isPlugin(integration)) {
+    }
+    if (isPlugin(integration)) {
       return this.renderPlugin(integration);
+    }
+    if (isDocumentIntegration(integration)) {
+      return this.renderDocumentIntegration(integration);
     }
     return this.renderProvider(integration);
   };
@@ -383,7 +424,8 @@ export class OrganizationIntegrations extends AsyncComponent<
     const {displayedList, selectedCategory, list} = this.state;
 
     const title = t('Integrations');
-    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration)));
+    const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
+
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -393,20 +435,18 @@ export class OrganizationIntegrations extends AsyncComponent<
             title={title}
             action={
               <ActionContainer>
-                {getCategorySelectActive() ? (
-                  <SelectControl
-                    name="select-categories"
-                    onChange={this.onCategorySelect}
-                    value={selectedCategory}
-                    choices={[
-                      ['', t('All categories')],
-                      ...categoryList.map(category => [category, category]),
-                    ]}
-                  />
-                ) : null}
-                <SearchInput
-                  value={this.state.searchInput || ''}
-                  onChange={this.onSearchChange}
+                <SelectControl
+                  name="select-categories"
+                  onChange={this.onCategorySelect}
+                  value={selectedCategory}
+                  choices={[
+                    ['', t('All Categories')],
+                    ...categoryList.map(category => [category, startCase(category)]),
+                  ]}
+                />
+                <SearchBar
+                  query={this.state.searchInput || ''}
+                  onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
                 />
@@ -457,4 +497,4 @@ const EmptyResultsBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-export default withOrganization(OrganizationIntegrations);
+export default withOrganization(IntegrationListDirectory);

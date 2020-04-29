@@ -2,9 +2,9 @@
 
 exports[`AlertLink renders 1`] = `
 <StyledLink
+  openInNewTab={false}
   priority="warning"
   size="normal"
-  target="_self"
   to="/settings/accounts/notifications"
   withoutMarginBottom={false}
 >
@@ -21,16 +21,14 @@ exports[`AlertLink renders 1`] = `
 
 exports[`AlertLink renders with icon 1`] = `
 <StyledLink
+  openInNewTab={false}
   priority="warning"
   size="normal"
-  target="_self"
   to="/settings/accounts/notifications"
   withoutMarginBottom={false}
 >
   <IconWrapper>
-    <InlineSvg
-      src="icon-mail"
-    />
+    <ForwardRef(IconMail) />
   </IconWrapper>
   <AlertLinkText>
     This is an external link button

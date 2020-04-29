@@ -79,18 +79,16 @@ class EventDataSection extends React.Component<Props> {
             </Permalink>
             {titleNode}
             {type === 'extra' && (
-              <ButtonBar merged>
+              <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
-                  className={!raw ? 'active' : ''}
-                  priority={!raw ? 'primary' : 'default'}
+                  barId="formatted"
                   size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, false)}
                 >
                   {t('Formatted')}
                 </Button>
                 <Button
-                  className={raw ? 'active' : ''}
-                  priority={raw ? 'primary' : 'default'}
+                  barId="raw"
                   size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, true)}
                 >
@@ -118,7 +116,7 @@ const Permalink = styled('a')`
   padding: ${space(0.25)} 5px;
 `;
 
-const SectionHeader = styled('div')`
+export const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   position: relative;

@@ -154,14 +154,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
 export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
-declare global {
-  interface Window {
-    csrfCookieName?: string;
-    sentryEmbedCallback?: ((embed: any) => void) | null;
-  }
-}
-
-export const CSRF_COOKIE_NAME: string = window.csrfCookieName || 'sc';
+export const CSRF_COOKIE_NAME = window.csrfCookieName ?? 'sc';
 
 export const ALL_ENVIRONMENTS_KEY = '__all_environments__';
 
@@ -224,6 +217,7 @@ export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
 export const DEFAULT_PER_PAGE = 50;
+export const TEAMS_PER_PAGE = 25;
 
 // Webpack configures DEPLOY_PREVIEW_CONFIG for deploy preview builds.
 // eslint-disable-next-line no-undef

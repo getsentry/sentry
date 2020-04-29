@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
 import React from 'react';
@@ -10,6 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
+import {IconCommit} from 'app/icons/iconCommit';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
@@ -210,12 +210,8 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
-        <Box flex={1} pl={2}>
-          {t('Repositories')}
-        </Box>
-        <Box pr={1} style={{textTransform: 'none'}}>
-          {this.renderDropdown()}
-        </Box>
+        <HeaderText>{t('Repositories')}</HeaderText>
+        <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
       </PanelHeader>
     );
 
@@ -226,7 +222,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
           <PanelBody>
             {itemList.length === 0 && (
               <EmptyMessage
-                icon="icon-commit"
+                icon={<IconCommit />}
                 title={t('Sentry is better with commit data')}
                 description={t(
                   'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
@@ -256,6 +252,16 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const HeaderText = styled('div')`
+  padding-left: ${space(2)};
+  flex: 1;
+`;
+
+const DropdownWrapper = styled('div')`
+  padding-right: ${space(1)};
+  text-transform: none;
+`;
 
 const StyledReposLabel = styled('div')`
   width: 250px;

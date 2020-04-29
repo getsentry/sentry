@@ -62,6 +62,14 @@ class SourceCache(object):
 
 
 class SourceMapCache(object):
+    """
+    Stores mappings between
+
+        - the url of a file to be demangled and the url of its associated
+          source map, and
+        - a source map's url and the map's contents.
+    """
+
     def __init__(self):
         self._cache = {}
         self._mapping = {}

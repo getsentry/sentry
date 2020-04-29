@@ -1,9 +1,9 @@
 import EventView, {
-  CHART_AXIS_OPTIONS,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'app/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -32,6 +32,7 @@ describe('EventView constructor', function() {
       statsPeriod: undefined,
       environment: [],
       yAxis: undefined,
+      display: undefined,
     });
   });
 });
@@ -52,6 +53,7 @@ describe('EventView.fromLocation()', function() {
         statsPeriod: '14d',
         environment: ['staging'],
         yAxis: 'p95',
+        display: 'previous',
       },
     };
 
@@ -72,6 +74,7 @@ describe('EventView.fromLocation()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'p95',
+      display: 'previous',
     });
   });
 
@@ -181,6 +184,7 @@ describe('EventView.fromSavedQuery()', function() {
       end: '2019-10-02T00:00:00',
       orderby: '-id',
       environment: ['staging'],
+      display: 'previous',
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -200,6 +204,7 @@ describe('EventView.fromSavedQuery()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: undefined,
+      display: 'previous',
     });
 
     const eventView2 = EventView.fromSavedQuery({
@@ -521,6 +526,7 @@ describe('EventView.generateQueryStringObject()', function() {
       start: null,
       end: undefined,
       yAxis: undefined,
+      display: 'previous',
     });
 
     const expected = {
@@ -532,6 +538,7 @@ describe('EventView.generateQueryStringObject()', function() {
       query: '',
       project: [],
       environment: [],
+      display: 'previous',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -553,6 +560,7 @@ describe('EventView.generateQueryStringObject()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'count()',
+      display: 'releases',
     };
 
     const eventView = new EventView(state);
@@ -570,6 +578,7 @@ describe('EventView.generateQueryStringObject()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'count()',
+      display: 'releases',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -611,6 +620,7 @@ describe('EventView.getEventsAPIPayload()', function() {
       project: [567],
       environment: ['prod'],
       yAxis: 'users',
+      display: 'releases',
     });
 
     expect(eventView.getEventsAPIPayload({})).toEqual({
@@ -827,7 +837,11 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
 
     const location = {
-      query: {},
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '55d',
+      },
     };
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -839,6 +853,117 @@ describe('EventView.getEventsAPIPayload()', function() {
       per_page: 50,
       project: [],
       environment: [],
+    });
+  });
+
+  it("an eventview's date selection has higher precedence than the date selection in the query string", function() {
+    const initialState = {
+      fields: generateFields(['title', 'count()']),
+      sorts: generateSorts(['count']),
+      query: 'event.type:csp',
+      environment: [],
+      project: [],
+    };
+
+    const output = {
+      field: ['title', 'count()'],
+      sort: '-count',
+      query: 'event.type:csp',
+      per_page: 50,
+      project: [],
+      environment: [],
+    };
+
+    // eventview's statsPeriod has highest precedence
+
+    let eventView = new EventView({
+      ...initialState,
+      statsPeriod: '90d',
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    let location = {
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '90d',
+    });
+
+    // eventview's start/end has higher precedence than the date selection in the query string
+
+    eventView = new EventView({
+      ...initialState,
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    location = {
+      query: {
+        // these should not be part of the API payload
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+    });
+
+    // the date selection in the query string should be applied as expected
+
+    eventView = new EventView(initialState);
+
+    location = {
+      query: {
+        statsPeriod: '55d',
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '55d',
+    });
+
+    location = {
+      query: {
+        period: '30d',
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      statsPeriod: '30d',
+    });
+
+    location = {
+      query: {
+        start: '2020-10-01T00:00:00',
+        end: '2020-10-02T00:00:00',
+      },
+    };
+
+    expect(eventView.getEventsAPIPayload(location)).toEqual({
+      ...output,
+      start: '2020-10-01T00:00:00.000',
+      end: '2020-10-02T00:00:00.000',
     });
   });
 });
@@ -864,6 +989,7 @@ describe('EventView.getFacetsAPIPayload()', function() {
         sort: 'the world',
         project: '1234',
         environment: ['staging'],
+        display: 'releases',
       },
     };
 
@@ -893,6 +1019,7 @@ describe('EventView.toNewQuery()', function() {
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: ['staging'],
+    display: 'releases',
   };
 
   it('outputs the right fields', function() {
@@ -913,6 +1040,7 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
+      display: 'releases',
     };
 
     expect(output).toEqual(expected);
@@ -941,6 +1069,7 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
+      display: 'releases',
     };
 
     expect(output).toEqual(expected);
@@ -969,6 +1098,7 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
+      display: 'releases',
     };
 
     expect(output).toEqual(expected);
@@ -1046,6 +1176,7 @@ describe('EventView.clone()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      display: 'releases',
     };
 
     const eventView = new EventView(state);
@@ -1659,46 +1790,6 @@ describe('EventView.withDeletedColumn()', function() {
   });
 });
 
-describe('EventView.withMovedColumn()', function() {
-  const state = {
-    id: '1234',
-    name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
-    query: 'event.type:error',
-    project: [42],
-    start: '2019-10-01T00:00:00',
-    end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
-    environment: ['staging'],
-  };
-
-  it('returns itself when attempting to move column to the same placement', function() {
-    const eventView = new EventView(state);
-
-    const eventView2 = eventView.withMovedColumn({fromIndex: 0, toIndex: 0});
-
-    expect(eventView2 === eventView).toBeTruthy();
-    expect(eventView).toMatchObject(state);
-  });
-
-  it('move column', function() {
-    const eventView = new EventView(state);
-
-    const eventView2 = eventView.withMovedColumn({fromIndex: 0, toIndex: 1});
-
-    expect(eventView2 !== eventView).toBeTruthy();
-    expect(eventView).toMatchObject(state);
-
-    const nextState = {
-      ...state,
-      fields: [...state.fields].reverse(),
-    };
-
-    expect(eventView2).toMatchObject(nextState);
-  });
-});
-
 describe('EventView.getSorts()', function() {
   it('returns fields', function() {
     const eventView = new EventView({
@@ -1875,6 +1966,7 @@ describe('EventView.isEqualTo()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'fam',
+      display: 'releases',
     };
 
     const eventView = new EventView(state);
@@ -1926,6 +2018,7 @@ describe('EventView.isEqualTo()', function() {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'fam',
+      display: 'releases',
     };
 
     const differences = {
@@ -1940,6 +2033,7 @@ describe('EventView.isEqualTo()', function() {
       statsPeriod: '24d',
       environment: [],
       yAxis: 'ok boomer',
+      display: 'previous',
     };
     const eventView = new EventView(state);
 
@@ -1962,6 +2056,7 @@ describe('EventView.getResultsViewUrlTarget()', function() {
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: ['staging'],
+    display: 'previous',
   };
   const organization = TestStubs.Organization();
 
@@ -1971,6 +2066,7 @@ describe('EventView.getResultsViewUrlTarget()', function() {
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toEqual(state.project);
+    expect(result.query.display).toEqual(state.display);
   });
 });
 
@@ -2132,6 +2228,63 @@ describe('EventView.getYAxis', function() {
       // yAxis defaults to the first entry of the default yAxis options
       expect(thisEventView.getYAxis()).toEqual('count()');
     }
+  });
+});
+
+describe('EventView.getDisplayOptions()', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should return default options', function() {
+    const eventView = new EventView(state);
+
+    expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
+  });
+
+  it('should disable previous when start/end are used.', function() {
+    const eventView = new EventView({
+      ...state,
+      end: '2020-04-13T12:13:14',
+      start: '2020-04-01T12:13:14',
+    });
+
+    const options = eventView.getDisplayOptions();
+    expect(options[1].value).toEqual('previous');
+    expect(options[1].disabled).toBeTruthy();
+  });
+});
+
+describe('EventView.getAggregateFields()', function() {
+  const state = {
+    fields: [
+      {field: 'title'},
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+      {field: 'transaction'},
+    ],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('getAggregateFields() returns only aggregates', function() {
+    const eventView = new EventView(state);
+    const expected = [
+      {field: 'count()'},
+      {field: 'count_unique(user)'},
+      {field: 'apdex(300)'},
+    ];
+
+    expect(eventView.getAggregateFields()).toEqual(expected);
   });
 });
 
@@ -2336,20 +2489,6 @@ describe('isAPIPayloadSimilar', function() {
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
 
       expect(results).toBe(false);
-    });
-
-    it('is similar when a column is moved', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
-
-      const otherEventView = thisEventView.withMovedColumn({fromIndex: 0, toIndex: 1});
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(true);
     });
   });
 

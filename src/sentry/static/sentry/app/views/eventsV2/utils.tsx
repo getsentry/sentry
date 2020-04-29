@@ -1,16 +1,12 @@
 import Papa from 'papaparse';
-import pick from 'lodash/pick';
-import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
 import {Event, Organization, OrganizationSummary} from 'app/types';
-import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
-import {TagSegment} from 'app/components/tagDistributionMeter';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
@@ -26,70 +22,6 @@ import {
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
 import {TableColumn, TableDataRow} from './table/types';
-
-export type EventQuery = {
-  field: string[];
-  project?: string | string[];
-  sort?: string | string[];
-  query: string;
-  per_page?: number;
-  referrer?: string;
-};
-
-export type Tag = {
-  key: string;
-  topValues: Array<TagSegment>;
-};
-
-/**
- * Fetches tag facets for a query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {String} query
- * @returns {Promise<Object>}
- */
-export function fetchTagFacets(
-  api: Client,
-  orgSlug: string,
-  query: EventQuery
-): Promise<Tag[]> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
-
-  const queryOption = {...urlParams, query: query.query};
-
-  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
-    query: queryOption,
-  });
-}
-
-/**
- * Fetches total count of events for a given query
- *
- * @param {Object} api
- * @param {String} orgSlug
- * @param {string} query
- * @returns {Promise<Number>}
- */
-export function fetchTotalCount(
-  api: Client,
-  orgSlug: String,
-  query: EventQuery
-): Promise<number> {
-  const urlParams = pick(query, Object.values(URL_PARAM));
-
-  const queryOption = {...urlParams, query: query.query};
-
-  type Response = {
-    count: number;
-  };
-
-  return api
-    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
-      query: queryOption,
-    })
-    .then((res: Response) => res.count);
-}
 
 export type QueryWithColumnState =
   | Query
@@ -186,21 +118,6 @@ export function getPrebuiltQueries(organization: Organization) {
   }
 
   return views;
-}
-
-export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
@@ -377,8 +294,9 @@ function generateAdditionalConditions(
     // Or is a simple key in the event. More complex deeply nested fields are
     // more challenging to get at as their location in the structure does not
     // match their name.
-    if (dataRow[dataKey]) {
-      const nextValue = String(dataRow[dataKey]).trim();
+    if (dataRow.hasOwnProperty(dataKey)) {
+      const value = dataRow[dataKey];
+      const nextValue = value === null || value === undefined ? '' : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':

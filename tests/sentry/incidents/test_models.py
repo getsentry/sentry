@@ -14,6 +14,7 @@ from sentry.utils.compat.mock import Mock, patch
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
@@ -348,6 +349,24 @@ class IncidentDurationTest(unittest.TestCase):
         assert incident.duration == timedelta(minutes=5)
         incident.date_closed = incident.date_started + timedelta(minutes=2)
         assert incident.duration == timedelta(minutes=2)
+
+
+class IncidentAlertRuleRelationTest(TestCase):
+    def test(self):
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+        self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+
+        assert self.incident.alert_rule.id == self.alert_rule.id
+        all_alert_rules = list(AlertRule.objects.all())
+        assert self.alert_rule in all_alert_rules
+
+        self.alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        self.alert_rule.save()
+
+        all_alert_rules = list(AlertRule.objects.all())
+        assert self.alert_rule not in all_alert_rules
+        assert self.incident.alert_rule.id == self.alert_rule.id
 
 
 @freeze_time()

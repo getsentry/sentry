@@ -15,11 +15,12 @@ import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {getDuration} from 'app/utils/formatters';
+import {getDuration, formatPercentage} from 'app/utils/formatters';
 
 import EventsRequest from './utils/eventsRequest';
 
 const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
+const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -52,8 +53,8 @@ class EventsAreaChart extends React.Component {
 
   render() {
     const {
-      loading, // eslint-disable-line no-unused-vars
-      reloading, // eslint-disable-line no-unused-vars
+      loading: _loading,
+      reloading: _reloading,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -115,6 +116,13 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxis: PropTypes.string,
+    disablePrevious: PropTypes.bool,
+    disableReleases: PropTypes.bool,
+    currentSeriesName: PropTypes.string,
+    previousSeriesName: PropTypes.string,
+    topEvents: PropTypes.number,
+    field: PropTypes.arrayOf(PropTypes.string),
+    orderby: PropTypes.string,
   };
 
   render() {
@@ -130,16 +138,30 @@ class EventsChart extends React.Component {
       environments,
       showLegend,
       yAxis,
+      disablePrevious,
+      disableReleases,
+      currentSeriesName: currentName,
+      previousSeriesName: previousName,
+      field,
+      topEvents,
+      orderby,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
-    const includePrevious = !start && !end;
-    const previousSeriesName = yAxis ? t('previous %s', yAxis) : undefined;
+    const includePrevious = !disablePrevious && !start && !end;
+
+    const previousSeriesName =
+      previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
+    const currentSeriesName = currentName ?? yAxis;
 
     const tooltip = {
+      truncate: 80,
       valueFormatter(value) {
         if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
           return getDuration(value / 1000, 2);
+        }
+        if (PERCENTAGE_AGGREGATE_PATTERN.test(yAxis)) {
+          return formatPercentage(value, 2);
         }
         if (typeof value === 'number') {
           return value.toLocaleString();
@@ -148,6 +170,55 @@ class EventsChart extends React.Component {
         return value;
       },
     };
+
+    let chartImplementation = ({
+      zoomRenderProps,
+      releaseSeries,
+      errored,
+      loading,
+      reloading,
+      results,
+      timeseriesData,
+      previousTimeseriesData,
+    }) => {
+      if (errored) {
+        return (
+          <ErrorPanel>
+            <IconWarning color={theme.gray2} size="lg" />
+          </ErrorPanel>
+        );
+      }
+      const seriesData = results ? results : timeseriesData;
+
+      return (
+        <TransitionChart loading={loading} reloading={reloading}>
+          <TransparentLoadingMask visible={reloading} />
+          <EventsAreaChart
+            {...zoomRenderProps}
+            tooltip={tooltip}
+            loading={loading}
+            reloading={reloading}
+            utc={utc}
+            showLegend={showLegend}
+            releaseSeries={releaseSeries || []}
+            timeseriesData={seriesData}
+            previousTimeseriesData={previousTimeseriesData}
+            currentSeriesName={currentSeriesName}
+            previousSeriesName={previousSeriesName}
+            stacked={typeof topEvents === 'number' && topEvents > 0}
+          />
+        </TransitionChart>
+      );
+    };
+
+    if (!disableReleases) {
+      const previousChart = chartImplementation;
+      chartImplementation = chartProps => (
+        <ReleaseSeries utc={utc} api={api} projects={projects}>
+          {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
+        </ReleaseSeries>
+      );
+    }
 
     return (
       <ChartZoom
@@ -168,47 +239,16 @@ class EventsChart extends React.Component {
             start={start}
             end={end}
             interval={router?.location?.query?.interval || getInterval(this.props, true)}
-            showLoading={false}
             query={query}
             includePrevious={includePrevious}
-            currentSeriesName={yAxis}
+            currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             yAxis={yAxis}
+            field={field}
+            orderby={orderby}
+            topEvents={topEvents}
           >
-            {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => (
-              <ReleaseSeries utc={utc} api={api} projects={projects}>
-                {({releaseSeries}) => {
-                  if (errored) {
-                    return (
-                      <ErrorPanel>
-                        <IconWarning color={theme.gray2} size="lg" />
-                      </ErrorPanel>
-                    );
-                  }
-
-                  return (
-                    <TransitionChart loading={loading} reloading={reloading}>
-                      <React.Fragment>
-                        <TransparentLoadingMask visible={reloading} />
-                        <EventsAreaChart
-                          {...zoomRenderProps}
-                          tooltip={tooltip}
-                          loading={loading}
-                          reloading={reloading}
-                          utc={utc}
-                          showLegend={showLegend}
-                          releaseSeries={releaseSeries}
-                          timeseriesData={timeseriesData}
-                          previousTimeseriesData={previousTimeseriesData}
-                          currentSeriesName={yAxis}
-                          previousSeriesName={previousSeriesName}
-                        />
-                      </React.Fragment>
-                    </TransitionChart>
-                  );
-                }}
-              </ReleaseSeries>
-            )}
+            {eventData => chartImplementation({...eventData, zoomRenderProps})}
           </EventsRequest>
         )}
       </ChartZoom>

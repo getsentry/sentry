@@ -13,13 +13,14 @@ import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 
-import ReleaseChartContainer from './chart';
+import ReleaseChart from './chart/';
 import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
-import ReleaseStatsRequest from './chart/releaseStatsRequest';
+import ReleaseStatsRequest from './releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
+import SwitchReleasesButton from '../../utils/switchReleasesButton';
 
 import {ReleaseContext} from '..';
 
@@ -53,21 +54,30 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
-  getYAxis(): YAxis {
+  getYAxis(hasHealthData: boolean): YAxis {
     const {yAxis} = this.props.location.query;
 
-    return typeof yAxis === 'string' ? (yAxis as YAxis) : 'sessions';
+    if (typeof yAxis === 'string') {
+      return yAxis as YAxis;
+    }
+
+    if (hasHealthData) {
+      return YAxis.SESSIONS;
+    }
+
+    return YAxis.EVENTS;
   }
 
   render() {
-    const {organization, params, selection, location, api, router} = this.props;
-    const yAxis = this.getYAxis();
+    const {organization, selection, location, api, router} = this.props;
 
     return (
       <ReleaseContext.Consumer>
         {({release, project}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
+          const hasDiscover = organization.features.includes('discover-basic');
+          const yAxis = this.getYAxis(hasHealthData);
 
           return (
             <ReleaseStatsRequest
@@ -78,23 +88,32 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
+              hasHealthData={hasHealthData}
+              hasDiscover={hasDiscover}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <ContentBox>
                   <Main>
-                    {hasHealthData && (
-                      <ReleaseChartContainer
-                        onYAxisChange={this.handleYAxisChange}
+                    {(hasDiscover || hasHealthData) && (
+                      <ReleaseChart
+                        {...releaseStatsProps}
                         selection={selection}
                         yAxis={yAxis}
+                        onYAxisChange={this.handleYAxisChange}
                         router={router}
-                        {...releaseStatsProps}
+                        organization={organization}
+                        hasHealthData={hasHealthData}
+                        location={location}
+                        api={api}
+                        version={version}
+                        hasDiscover={hasDiscover}
                       />
                     )}
+
                     <Issues
                       orgId={organization.slug}
-                      projectId={project.id}
-                      version={params.release}
+                      selection={selection}
+                      version={version}
                       location={location}
                     />
                   </Main>
@@ -110,12 +129,11 @@ class ReleaseOverview extends AsyncView<Props> {
                     {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}
-                        startDate={release.dateReleased ?? release.dateCreated}
                       />
                     )}
-                    {/* TODO(releasesV2): hidden for now */}
-                    {/* <SessionDuration /> */}
                   </Sidebar>
+
+                  <SwitchReleasesButton version="1" orgId={organization.id} />
                 </ContentBox>
               )}
             </ReleaseStatsRequest>
@@ -127,11 +145,7 @@ class ReleaseOverview extends AsyncView<Props> {
 }
 
 const ContentBox = styled('div')`
-  padding: ${space(4)};
-  flex: 1;
-  background-color: white;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
     grid-column-gap: ${space(3)};
     grid-template-columns: minmax(470px, 1fr) minmax(220px, 280px);

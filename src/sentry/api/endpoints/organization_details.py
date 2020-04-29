@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
@@ -170,6 +171,10 @@ class OrganizationSerializer(serializers.Serializer):
         if qs.exists():
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
         return value
+
+    def validate_relayPiiConfig(self, value):
+        organization = self.context["organization"]
+        return validate_pii_config_update(organization, value)
 
     def validate_sensitiveFields(self, value):
         if value and not all(value):

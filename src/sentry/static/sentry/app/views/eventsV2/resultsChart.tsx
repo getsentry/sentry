@@ -12,6 +12,7 @@ import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import {EventsChart} from 'app/views/events/eventsChart';
 import EventView from 'app/utils/discover/eventView';
+import {DisplayModes} from 'app/utils/discover/types';
 
 import ChartFooter from './chartFooter';
 
@@ -50,6 +51,8 @@ class ResultsChart extends React.Component<ResultsChartProps> {
       : undefined;
 
     const {utc} = getParams(location.query);
+    const apiPayload = eventView.getEventsAPIPayload(location);
+    const isTopEvents = eventView.display === DisplayModes.TOP5;
 
     return (
       <React.Fragment>
@@ -58,7 +61,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
             <EventsChart
               api={api}
               router={router}
-              query={eventView.getEventsAPIPayload(location).query}
+              query={apiPayload.query}
               organization={organization}
               showLegend
               yAxis={yAxisValue}
@@ -67,6 +70,11 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
+              disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
+              disableReleases={eventView.display !== DisplayModes.RELEASES}
+              field={isTopEvents ? apiPayload.field : undefined}
+              topEvents={isTopEvents ? 5 : undefined}
+              orderby={isTopEvents ? apiPayload.sort : undefined}
               utc={utc === 'true'}
             />
           ),
@@ -77,7 +85,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
   }
 }
 
-type ResultsChartContainerProps = {
+type ContainerProps = {
   api: Client;
   router: ReactRouter.InjectedRouter;
   eventView: EventView;
@@ -87,10 +95,11 @@ type ResultsChartContainerProps = {
   // chart footer props
   total: number | null;
   onAxisChange: (value: string) => void;
+  onDisplayChange: (value: string) => void;
 };
 
-class ResultsChartContainer extends React.Component<ResultsChartContainerProps> {
-  shouldComponentUpdate(nextProps: ResultsChartContainerProps) {
+class ResultsChartContainer extends React.Component<ContainerProps> {
+  shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
@@ -109,6 +118,7 @@ class ResultsChartContainer extends React.Component<ResultsChartContainerProps> 
       router,
       total,
       onAxisChange,
+      onDisplayChange,
       organization,
     } = this.props;
 
@@ -127,7 +137,10 @@ class ResultsChartContainer extends React.Component<ResultsChartContainerProps> 
           total={total}
           yAxisValue={yAxisValue}
           yAxisOptions={eventView.getYAxisOptions()}
-          onChange={onAxisChange}
+          onAxisChange={onAxisChange}
+          displayOptions={eventView.getDisplayOptions()}
+          displayMode={eventView.display || DisplayModes.NONE}
+          onDisplayChange={onDisplayChange}
         />
       </StyledPanel>
     );

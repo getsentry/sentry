@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 import {Client} from 'app/api';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import OrganizationActions from 'app/actions/organizationActions';
@@ -53,19 +54,43 @@ export async function fetchOrganizationDetails(
     } else {
       // create a new client so the request is not cancelled
       const uncancelableApi = new Client();
-      const [projects, teams] = await Promise.all([
-        uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
-          query: {
-            all_projects: 1,
-          },
-        }),
-        uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
-      ]);
-      ProjectActions.loadProjects(projects);
-      TeamActions.loadTeams(teams);
+      try {
+        const [projects, teams] = await Promise.all([
+          uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
+            query: {
+              all_projects: 1,
+            },
+          }),
+          uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+        ]);
+        ProjectActions.loadProjects(projects);
+        TeamActions.loadTeams(teams);
+      } catch (err) {
+        // It's possible these requests fail with a 403 if the user has a role with insufficient access
+        // to projects and teams, but *can* access org details (e.g. billing).
+        // An example of this is in org settings.
+        //
+        // Ignore 403s and bubble up other API errors
+        if (err.status !== 403) {
+          throw err;
+        }
+      }
     }
   } catch (err) {
+    if (!err) {
+      return;
+    }
+
     OrganizationActions.fetchOrgError(err);
+
+    if (err.status === 403 || err.status === 401) {
+      if (err.responseJSON?.detail) {
+        addErrorMessage(err.responseJSON.detail);
+      }
+
+      return;
+    }
+
     Sentry.captureException(err);
   }
 }

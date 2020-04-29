@@ -1,24 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import map from 'lodash/map';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import DateTime from 'app/components/dateTime';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import {
-  generateEventSlug,
-  generateEventDetailsRoute,
-} from 'app/views/eventsV2/eventDetails/utils';
+import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
 import {assert} from 'app/types/utils';
+import AlertMessage from 'app/components/alertMessage';
+import {TableDataRow} from 'app/views/eventsV2/table/types';
+import Link from 'app/components/links/link';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
 import {isGapSpan, getTraceDateTimeRange} from './utils';
@@ -36,6 +36,8 @@ type Props = {
   isRoot: boolean;
   eventView: EventView;
   trace: Readonly<ParsedTraceType>;
+  totalNumberOfErrors: number;
+  spanErrors: TableDataRow[];
 };
 
 type State = {
@@ -56,11 +58,7 @@ class SpanDetail extends React.Component<Props, State> {
 
     this.fetchSpanDescendents(span.span_id, span.trace_id)
       .then(response => {
-        if (
-          !response.data ||
-          !Array.isArray(response.data) ||
-          response.data.length <= 0
-        ) {
+        if (!response.data || !Array.isArray(response.data)) {
           return;
         }
 
@@ -100,18 +98,30 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraversalButton(): React.ReactNode {
-    if (!this.state.transactionResults || this.state.transactionResults.length <= 0) {
-      return null;
+    if (!this.state.transactionResults) {
+      // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
+      // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
+      return (
+        <StyledButton size="xsmall" disabled>
+          <StyledLoadingIndicator size={12} />
+        </StyledButton>
+      );
     }
 
-    const {span, orgId, trace} = this.props;
+    if (this.state.transactionResults.length <= 0) {
+      return (
+        <StyledButton size="xsmall" disabled>
+          {t('No Children')}
+        </StyledButton>
+      );
+    }
+
+    const {span, orgId, trace, eventView} = this.props;
 
     assert(!isGapSpan(span));
 
     if (this.state.transactionResults.length === 1) {
-      const {eventView} = this.props;
-
-      const parentTransactionLink = generateEventDetailsRoute({
+      const parentTransactionLink = eventDetailsRoute({
         eventSlug: generateSlug(this.state.transactionResults[0]),
         orgSlug: this.props.orgId,
       });
@@ -133,7 +143,7 @@ class SpanDetail extends React.Component<Props, State> {
       end: trace.traceEndTimestamp,
     });
 
-    const eventView = EventView.fromSavedQuery({
+    const childrenEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Children from Span ID ${span.span_id}`,
       fields: [
@@ -145,8 +155,7 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-      projects: [],
+      projects: eventView.project,
       version: 2,
       start,
       end,
@@ -156,7 +165,7 @@ class SpanDetail extends React.Component<Props, State> {
       <StyledButton
         data-test-id="view-child-transactions"
         size="xsmall"
-        to={eventView.getResultsViewUrlTarget(orgId)}
+        to={childrenEventView.getResultsViewUrlTarget(orgId)}
       >
         {t('View Children')}
       </StyledButton>
@@ -164,7 +173,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraceButton() {
-    const {span, orgId, trace} = this.props;
+    const {span, orgId, trace, eventView} = this.props;
 
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
@@ -175,7 +184,7 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
-    const eventView = EventView.fromSavedQuery({
+    const traceEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Transactions with Trace ID ${span.trace_id}`,
       fields: [
@@ -187,17 +196,96 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
-      tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
-      projects: [],
+      projects: eventView.project,
       version: 2,
       start,
       end,
     });
 
     return (
-      <StyledButton size="xsmall" to={eventView.getResultsViewUrlTarget(orgId)}>
+      <StyledButton size="xsmall" to={traceEventView.getResultsViewUrlTarget(orgId)}>
         {t('Search by Trace')}
       </StyledButton>
+    );
+  }
+
+  renderSpanErrorMessage() {
+    const {orgId, spanErrors, totalNumberOfErrors, span, trace, eventView} = this.props;
+
+    if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
+      return null;
+    }
+
+    // invariant: spanErrors.length <= totalNumberOfErrors
+
+    const eventSlug = generateEventSlug(spanErrors[0]);
+
+    const {start, end} = getTraceDateTimeRange({
+      start: trace.traceStartTimestamp,
+      end: trace.traceEndTimestamp,
+    });
+
+    const errorsEventView = EventView.fromSavedQuery({
+      id: undefined,
+      name: `Error events associated with span ${span.span_id}`,
+      fields: ['title', 'project', 'issue', 'timestamp'],
+      orderby: '-timestamp',
+      query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
+      projects: eventView.project,
+      version: 2,
+      start,
+      end,
+    });
+
+    const target =
+      spanErrors.length === 1
+        ? {
+            pathname: eventDetailsRoute({
+              orgSlug: orgId,
+              eventSlug,
+            }),
+          }
+        : errorsEventView.getResultsViewUrlTarget(orgId);
+
+    const message =
+      totalNumberOfErrors === 1 ? (
+        <Link to={target}>
+          <span>{t('An error event occurred in this span.')}</span>
+        </Link>
+      ) : spanErrors.length === totalNumberOfErrors ? (
+        <div>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>{t('%d error events', totalNumberOfErrors)}</span>
+              </Link>
+            ),
+          })}
+        </div>
+      ) : (
+        <div>
+          {tct('[link] occurred in this span.', {
+            link: (
+              <Link to={target}>
+                <span>
+                  {t('%d out of %d error events', spanErrors.length, totalNumberOfErrors)}
+                </span>
+              </Link>
+            ),
+          })}
+        </div>
+      );
+
+    return (
+      <AlertMessage
+        alert={{
+          id: `span-error-${span.span_id}`,
+          message,
+          type: 'error',
+        }}
+        system
+        hideCloseButton
+      />
     );
   }
 
@@ -222,51 +310,54 @@ class SpanDetail extends React.Component<Props, State> {
           event.stopPropagation();
         }}
       >
-        <table className="table key-value">
-          <tbody>
-            <Row title="Span ID" extra={this.renderTraversalButton()}>
-              {span.span_id}
-            </Row>
-            <Row title="Trace ID" extra={this.renderTraceButton()}>
-              {span.trace_id}
-            </Row>
-            <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-            <Row title="Description">{get(span, 'description', '')}</Row>
-            <Row title="Start Date">
-              {getDynamicText({
-                fixed: 'Mar 16, 2020 9:10:12 AM UTC',
-                value: (
-                  <React.Fragment>
-                    <DateTime date={startTimestamp * 1000} />
-                    {` (${startTimestamp})`}
-                  </React.Fragment>
-                ),
-              })}
-            </Row>
-            <Row title="End Date">
-              {getDynamicText({
-                fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                value: (
-                  <React.Fragment>
-                    <DateTime date={endTimestamp * 1000} />
-                    {` (${endTimestamp})`}
-                  </React.Fragment>
-                ),
-              })}
-            </Row>
-            <Row title="Duration">{durationString}</Row>
-            <Row title="Operation">{span.op || ''}</Row>
-            <Row title="Same Process as Parent">
-              {String(!!span.same_process_as_parent)}
-            </Row>
-            <Tags span={span} />
-            {map(get(span, 'data', {}), (value, key) => (
-              <Row title={key} key={key}>
-                {JSON.stringify(value, null, 4) || ''}
+        {this.renderSpanErrorMessage()}
+        <SpanDetails>
+          <table className="table key-value">
+            <tbody>
+              <Row title="Span ID" extra={this.renderTraversalButton()}>
+                {span.span_id}
               </Row>
-            ))}
-          </tbody>
-        </table>
+              <Row title="Trace ID" extra={this.renderTraceButton()}>
+                {span.trace_id}
+              </Row>
+              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Start Date">
+                {getDynamicText({
+                  fixed: 'Mar 16, 2020 9:10:12 AM UTC',
+                  value: (
+                    <React.Fragment>
+                      <DateTime date={startTimestamp * 1000} />
+                      {` (${startTimestamp})`}
+                    </React.Fragment>
+                  ),
+                })}
+              </Row>
+              <Row title="End Date">
+                {getDynamicText({
+                  fixed: 'Mar 16, 2020 9:10:13 AM UTC',
+                  value: (
+                    <React.Fragment>
+                      <DateTime date={endTimestamp * 1000} />
+                      {` (${endTimestamp})`}
+                    </React.Fragment>
+                  ),
+                })}
+              </Row>
+              <Row title="Duration">{durationString}</Row>
+              <Row title="Operation">{span.op || ''}</Row>
+              <Row title="Same Process as Parent">
+                {String(!!span.same_process_as_parent)}
+              </Row>
+              <Tags span={span} />
+              {map(span?.data ?? {}, (value, key) => (
+                <Row title={key} key={key}>
+                  {JSON.stringify(value, null, 4) || ''}
+                </Row>
+              ))}
+            </tbody>
+          </table>
+        </SpanDetails>
       </SpanDetailContainer>
     );
   }
@@ -280,12 +371,22 @@ const StyledButton = styled(Button)`
 
 const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.gray1};
-  padding: ${space(2)};
   cursor: auto;
+`;
+
+const SpanDetails = styled('div')`
+  padding: ${space(2)};
 `;
 
 const ValueTd = styled('td')`
   position: relative;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  display: flex;
+  align-items: center;
+  height: ${space(2)};
+  margin: 0;
 `;
 
 const Row = ({
@@ -317,7 +418,7 @@ const Row = ({
 };
 
 const Tags = ({span}: {span: RawSpanType}) => {
-  const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
+  const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
     return null;

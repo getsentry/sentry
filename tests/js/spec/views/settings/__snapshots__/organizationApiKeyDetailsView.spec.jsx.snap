@@ -207,7 +207,6 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                     ],
                   ]
                 }
-                className="api-key-details"
                 disabled={false}
                 hideErrorMessage={false}
                 label="Scopes"
@@ -215,7 +214,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                 required={true}
               >
                 <div
-                  className="api-key-details control-group"
+                  className="control-group"
                 >
                   <div
                     className="required"

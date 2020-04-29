@@ -1,13 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import startCase from 'lodash/startCase';
 
-import {
-  Organization,
-  IntegrationFeature,
-  IntegrationInstallationStatus,
-  SentryAppStatus,
-} from 'app/types';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
@@ -15,16 +10,24 @@ import Tag from 'app/views/settings/components/tag';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
+import Alert, {Props as AlertProps} from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
+import marked, {singleLineRenderer} from 'app/utils/marked';
+import {IconClose, IconGithub, IconGeneric, IconDocs, IconProject} from 'app/icons';
+import {
+  Organization,
+  IntegrationFeature,
+  IntegrationInstallationStatus,
+  SentryAppStatus,
+} from 'app/types';
 import {
   getIntegrationFeatureGate,
   trackIntegrationEvent,
   SingleIntegrationEvent,
   getCategories,
 } from 'app/utils/integrationUtil';
-import Alert, {Props as AlertProps} from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconClose, IconGithub, IconGeneric, IconDocs} from 'app/icons';
+import {Panel} from 'app/components/panels';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -69,7 +72,7 @@ class AbstractIntegrationDetailedView<
    */
 
   //The analytics type used in analytics which is snake case
-  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' {
+  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' | 'document' {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -95,7 +98,7 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  get installationStatus(): IntegrationInstallationStatus {
+  get installationStatus(): IntegrationInstallationStatus | null {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -115,17 +118,15 @@ class AbstractIntegrationDetailedView<
   getIcon(title: string) {
     switch (title) {
       case 'View Source':
-        return <StyledIconCode />;
+        return <IconProject />;
       case 'Report Issue':
-        return <StyledIconGithub />;
+        return <IconGithub />;
       case 'Documentation':
-        return <StyledIconDocs />;
       case 'Splunk Setup Instructions':
-        return <StyledIconDocs />;
       case 'Trello Setup Instructions':
-        return <StyledIconDocs />;
+        return <IconDocs />;
       default:
-        return <StyledIconGeneric />;
+        return <IconGeneric />;
     }
   }
 
@@ -161,14 +162,15 @@ class AbstractIntegrationDetailedView<
 
   renderEmptyConfigurations() {
     return (
-      <EmptyConfigurationContainer>
-        <EmptyConfigurationTitle>You haven't set anything up yet</EmptyConfigurationTitle>
-        <EmptyConfigurationBody>
-          But that doesn’t have to be the case for long! Add an installation to get
-          started.
-        </EmptyConfigurationBody>
-        <div>{this.renderAddInstallButton(true)}</div>
-      </EmptyConfigurationContainer>
+      <Panel>
+        <EmptyMessage
+          title={t("You haven't set anything up yet")}
+          description={t(
+            'But that doesn’t have to be the case for long! Add an installation to get started.'
+          )}
+          action={this.renderAddInstallButton(true)}
+        />
+      </Panel>
     );
   }
 
@@ -276,12 +278,14 @@ class AbstractIntegrationDetailedView<
           <Flex>
             <Name>{this.integrationName}</Name>
             <StatusWrapper>
-              <IntegrationStatus status={this.installationStatus} />
+              {this.installationStatus && (
+                <IntegrationStatus status={this.installationStatus} />
+              )}
             </StatusWrapper>
           </Flex>
           <Flex>
             {tags.map(feature => (
-              <StyledTag key={feature}>{feature}</StyledTag>
+              <StyledTag key={feature}>{startCase(feature)}</StyledTag>
             ))}
           </Flex>
         </NameContainer>
@@ -332,10 +336,10 @@ class AbstractIntegrationDetailedView<
           </FlexContainer>
           <Metadata>
             {!!this.author && (
-              <div>
+              <AuthorInfo>
                 <CreatedContainer>{t('Created By')}</CreatedContainer>
-                <AuthorName>{this.author}</AuthorName>
-              </div>
+                <div>{this.author}</div>
+              </AuthorInfo>
             )}
             {this.resourceLinks.map(({title, url}) => (
               <ExternalLinkContainer key={url}>
@@ -375,6 +379,7 @@ const CapitalizedLink = styled('a')`
 `;
 
 const StyledTag = styled(Tag)`
+  text-transform: none;
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
@@ -430,15 +435,24 @@ const Description = styled('div')`
 `;
 
 const Metadata = styled(Flex)`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-auto-rows: max-content;
+  grid-auto-flow: row;
+  grid-gap: ${space(2)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
 `;
 
-const AuthorName = styled('div')`
-  margin-bottom: ${space(4)};
+const AuthorInfo = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const ExternalLinkContainer = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
 `;
 
 const StatusWrapper = styled('div')`
@@ -452,7 +466,7 @@ const DisableWrapper = styled('div')`
   align-self: center;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
 `;
 
 const CreatedContainer = styled('div')`
@@ -463,49 +477,4 @@ const CreatedContainer = styled('div')`
   font-size: 12px;
 `;
 
-const EmptyConfigurationContainer = styled('div')`
-  height: 200px;
-  background: #ffffff;
-  border: 1px solid #c6becf;
-  box-sizing: border-box;
-  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-`;
-
-const EmptyConfigurationTitle = styled('div')`
-  font-size: 22px;
-  line-height: 31px;
-  padding-bottom: ${space(2)};
-`;
-
-const EmptyConfigurationBody = styled('div')`
-  font-size: 16px;
-  line-height: 28px;
-  color: ${p => p.theme.gray2};
-  padding-bottom: ${space(2)};
-`;
-
-const StyledIconCode = () => (
-  <span className="icon-code2" style={{fontWeight: 'bold', marginRight: space(1)}} />
-);
-
-const StyledIconGithub = styled(IconGithub)`
-  margin-right: ${space(1)};
-`;
-
-const StyledIconGeneric = styled(IconGeneric)`
-  margin-right: ${space(1)};
-`;
-const StyledIconDocs = styled(IconDocs)`
-  margin-right: ${space(1)};
-`;
-
-const ExternalLinkContainer = styled('div')`
-  margin-bottom: ${space(2)};
-  display: flex;
-`;
 export default AbstractIntegrationDetailedView;

@@ -111,7 +111,7 @@ class GroupActivity extends React.Component {
   };
 
   render() {
-    const {organization, group} = this.props;
+    const {group} = this.props;
     const me = ConfigStore.get('user');
     const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
@@ -169,11 +169,10 @@ class GroupActivity extends React.Component {
                       date={item.dateCreated}
                       header={
                         <GroupActivityItem
-                          organization={organization}
                           author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                           item={item}
-                          orgId={this.props.params.orgId}
-                          projectId={group.project.slug}
+                          orgSlug={this.props.params.orgId}
+                          projectId={group.project.id}
                         />
                       }
                     />

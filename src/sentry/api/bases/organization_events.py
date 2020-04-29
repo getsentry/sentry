@@ -2,15 +2,25 @@ from __future__ import absolute_import
 
 import six
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ParseError
 
 
+from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_filter, InvalidSearchQuery, get_json_meta_type
+from sentry.api.event_search import (
+    get_filter,
+    InvalidSearchQuery,
+    get_json_meta_type,
+    get_function_alias,
+)
+from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
-from sentry.snuba.discover import ReferenceEvent
+from sentry.snuba import discover
 from sentry.utils.compat import map
+from sentry.utils.dates import get_rollup_from_request
+from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -37,7 +47,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist("field")[:]
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            return ReferenceEvent(organization, reference_event_id, fields, start, end)
+            return discover.ReferenceEvent(organization, reference_event_id, fields, start, end)
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
@@ -105,15 +115,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        issues = {}
         if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row["issue.id"] for row in results)
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
-                )
-            }
+            issue_ids = set(row.get("issue.id") for row in results)
+            issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
@@ -128,3 +132,80 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         del result[key]
 
         return results
+
+    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
+        try:
+            columns = request.GET.getlist("yAxis", ["count()"])
+            query = request.GET.get("query")
+            params = self.get_filter_params(request, organization)
+            rollup = get_rollup_from_request(
+                request,
+                params,
+                "1h",
+                InvalidSearchQuery(
+                    "Your interval and date range would create too many results. "
+                    "Use a larger interval, or a smaller date range."
+                ),
+            )
+            # Backwards compatibility for incidents which uses the old
+            # column aliases as it straddles both versions of events/discover.
+            # We will need these aliases until discover2 flags are enabled for all
+            # users.
+            column_map = {
+                "user_count": "count_unique(user)",
+                "event_count": "count()",
+                "rpm()": "rpm(%d)" % rollup,
+                "rps()": "rps(%d)" % rollup,
+            }
+            query_columns = [column_map.get(column, column) for column in columns]
+            reference_event = self.reference_event(
+                request, organization, params.get("start"), params.get("end")
+            )
+
+            result = get_event_stats(query_columns, query, params, rollup, reference_event)
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
+        serializer = SnubaTSResultSerializer(organization, None, request.user)
+
+        if top_events:
+            results = {}
+            for key, event_result in six.iteritems(result):
+                if len(query_columns) > 1:
+                    results[key] = self.serialize_multiple_axis(
+                        serializer, event_result, columns, query_columns
+                    )
+                else:
+                    # Need to get function alias if count is a field, but not the axis
+                    results[key] = serializer.serialize(
+                        event_result, get_function_alias(query_columns[0])
+                    )
+            return results
+        elif len(query_columns) > 1:
+            return self.serialize_multiple_axis(serializer, result, columns, query_columns)
+        else:
+            return serializer.serialize(result)
+
+    def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
+        # Return with requested yAxis as the key
+        result = {
+            columns[index]: serializer.serialize(
+                event_result, get_function_alias(query_column), order=index
+            )
+            for index, query_column in enumerate(query_columns)
+        }
+        # Set order if multi-axis + top events
+        if "order" in event_result.data:
+            result["order"] = event_result.data["order"]
+        return result
+
+
+class KeyTransactionBase(OrganizationEventsV2EndpointBase):
+    def has_feature(self, request, organization):
+        return features.has("organizations:performance-view", organization, actor=request.user)
+
+    def get_project(self, request, organization):
+        projects = self.get_projects(request, organization)
+
+        if len(projects) != 1:
+            raise ParseError("Only 1 project per Key Transaction")
+        return projects[0]

@@ -21,6 +21,7 @@ from sentry.search.utils import (
     get_latest_release,
     get_numeric_field_value,
     convert_user_tag_to_query,
+    tokenize_query,
     InvalidQuery,
 )
 
@@ -45,6 +46,10 @@ def test_get_numeric_field_value():
         "foo_upper": -3.5,
         "foo_upper_inclusive": True,
     }
+
+
+def test_tokenize_query_only_keyed_fields():
+    assert tokenize_query("foo:bar") == {"foo": ["bar"]}
 
 
 def test_get_numeric_field_value_invalid():
@@ -475,7 +480,7 @@ class ParseQueryTest(TestCase):
         assert result["tags"]["event.type"] == "error"
 
     def test_leading_colon(self):
-        result = self.parse_query('country:canada :unresolved')
+        result = self.parse_query("country:canada :unresolved")
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
 

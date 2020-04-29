@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent} from 'app/styles/organization';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -16,8 +16,9 @@ import {formatVersion} from 'app/utils/formatters';
 import AsyncComponent from 'app/components/asyncComponent';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconInfo} from 'app/icons';
+import {IconInfo, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
+import Alert from 'app/components/alert';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -79,7 +80,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
 
   handleError(e, args) {
     const {router, location} = this.props;
-    const possiblyWrongProject = e.status === 404 || e.status === 403;
+    const possiblyWrongProject = e.status === 403;
 
     if (possiblyWrongProject) {
       // refreshing this page without project ID will bring up a project selector
@@ -95,7 +96,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   renderBody() {
     const {organization, location, selection} = this.props;
     const {release, deploys, reloading} = this.state;
-    const project = release.projects.find(p => p.id === selection.projects[0]);
+    const project = release?.projects.find(p => p.id === selection.projects[0]);
 
     if (!project || !release) {
       if (reloading) {
@@ -106,21 +107,23 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     }
 
     return (
-      <NoProjectMessage organization={organization}>
+      <LightWeightNoProjectMessage organization={organization}>
         <StyledPageContent>
           <ReleaseHeader
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys}
+            deploys={deploys || []}
             project={project}
           />
 
-          <ReleaseContext.Provider value={{release, project}}>
-            {this.props.children}
-          </ReleaseContext.Provider>
+          <ContentBox>
+            <ReleaseContext.Provider value={{release, project}}>
+              {this.props.children}
+            </ReleaseContext.Provider>
+          </ContentBox>
         </StyledPageContent>
-      </NoProjectMessage>
+      </LightWeightNoProjectMessage>
     );
   }
 }
@@ -139,6 +142,23 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
         )}/`,
       ],
     ];
+  }
+
+  renderError(...args) {
+    const has404Errors = Object.values(this.state.errors).find(e => e?.status === 404);
+
+    if (has404Errors) {
+      // This catches a 404 coming from the release endpoint and displays a custom error message.
+      return (
+        <PageContent>
+          <Alert type="error" icon={<IconWarning />}>
+            {t('This release could not be found.')}
+          </Alert>
+        </PageContent>
+      );
+    }
+
+    return super.renderError(...args);
   }
 
   isProjectMissingInUrl() {
@@ -197,6 +217,12 @@ const ProjectsFooterMessage = styled('div')`
   align-items: center;
   grid-template-columns: min-content 1fr;
   grid-gap: ${space(1)};
+`;
+
+const ContentBox = styled('div')`
+  padding: ${space(4)};
+  flex: 1;
+  background-color: white;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};

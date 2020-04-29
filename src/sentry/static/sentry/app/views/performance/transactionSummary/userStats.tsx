@@ -8,7 +8,7 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {assert} from 'app/types/utils';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 type Props = {
   location: Location;
@@ -42,9 +42,9 @@ class UserStats extends React.Component<Props> {
     const eventView = this.generateUserStatsEventView(this.props.eventView);
 
     return (
-      <EventsV2
+      <DiscoverQuery
         eventView={eventView}
-        organization={organization}
+        orgSlug={organization.slug}
         location={location}
         extraQuery={{per_page: 1}}
       >
@@ -78,17 +78,17 @@ class UserStats extends React.Component<Props> {
           return (
             <Container>
               <div>
-                <StatTitle>{t('User Impact')}</StatTitle>
-                <StatNumber>{stats['impact()']}</StatNumber>
-              </div>
-              <div>
                 <StatTitle>{t('Apdex Score')}</StatTitle>
                 <StatNumber>{stats['apdex()']}</StatNumber>
+              </div>
+              <div>
+                <StatTitle>{t('User Impact')}</StatTitle>
+                <StatNumber>{stats['impact()']}</StatNumber>
               </div>
             </Container>
           );
         }}
-      </EventsV2>
+      </DiscoverQuery>
     );
   }
 }
@@ -96,9 +96,6 @@ class UserStats extends React.Component<Props> {
 const Container = styled('div')`
   margin-bottom: ${space(4)};
   display: flex;
-
-  color: ${p => p.theme.gray3};
-
   > * + * {
     margin-left: ${space(4)};
   }
@@ -106,14 +103,12 @@ const Container = styled('div')`
 
 const StatTitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
-
-  margin-bottom: ${space(2)};
+  color: ${p => p.theme.gray3};
+  margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 
 const StatNumber = styled('div')`
-  font-size: 36px;
-  line-height: 50px;
-
+  font-size: 32px;
   color: ${p => p.theme.gray4};
 `;
 

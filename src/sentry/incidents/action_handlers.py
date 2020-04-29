@@ -96,7 +96,7 @@ class EmailActionHandler(ActionHandler):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
         is_active = status == TriggerStatus.ACTIVE
-        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE.value
 
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'

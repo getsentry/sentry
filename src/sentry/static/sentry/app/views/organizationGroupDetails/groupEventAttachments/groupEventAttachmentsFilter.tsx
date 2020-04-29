@@ -20,20 +20,24 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
     types: onlyCrashReportTypes,
   };
 
+  let activeButton = '';
+
+  if (types === undefined) {
+    activeButton = 'all';
+  } else if (xor(onlyCrashReportTypes, types).length === 0) {
+    activeButton = 'onlyCrash';
+  }
+
   return (
     <FilterWrapper>
-      <ButtonBar merged>
-        <Button
-          size="small"
-          to={{pathname, query: allAttachmentsQuery}}
-          priority={types === undefined ? 'primary' : 'default'}
-        >
+      <ButtonBar merged active={activeButton}>
+        <Button barId="all" size="small" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
         <Button
+          barId="onlyCrash"
           size="small"
           to={{pathname, query: onlyCrashReportsQuery}}
-          priority={xor(onlyCrashReportTypes, types).length === 0 ? 'primary' : 'default'}
         >
           {t('Only Crash Reports')}
         </Button>

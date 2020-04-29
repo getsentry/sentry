@@ -96,20 +96,20 @@ class ExportedData(Model):
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
         msg = MessageBuilder(
-            subject="Your Download is Ready!",
+            subject="Your data is ready.",
             context={"url": url, "expiration": self.format_date(self.date_expired)},
             type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
         msg.send_async([self.user.email])
-        metrics.incr("dataexport.end", instance="success")
+        metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
 
         msg = MessageBuilder(
-            subject="Unable to Export Data",
+            subject="We couldn't export your data.",
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
@@ -120,7 +120,7 @@ class ExportedData(Model):
             html_template="sentry/emails/data-export-failure.html",
         )
         msg.send_async([self.user.email])
-        metrics.incr("dataexport.end", instance="failure")
+        metrics.incr("dataexport.end", tags={"success": False}, sample_rate=1.0)
         self.delete()
 
     class Meta:

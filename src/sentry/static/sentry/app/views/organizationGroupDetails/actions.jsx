@@ -144,14 +144,12 @@ const GroupDetailsActions = createReactClass({
     const discoverQuery = {
       id: undefined,
       name: group.title || group.type,
-      fields: ['title', 'url', 'count(id)', 'project', 'last_seen'],
-      widths: [400, 200, -1, 200, -1],
-      orderby: '-count_id',
+      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      orderby: '-timestamp',
       query: `issue.id:${group.id}`,
-      tags: ['environment', 'release', 'event.type', 'user.email'],
       projects: [project.id],
       version: 2,
-      range: '24h',
+      range: '90d',
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -270,7 +268,7 @@ const GroupDetailsActions = createReactClass({
 
     return (
       <div className="group-actions">
-        <GuideAnchor target="resolve" position="bottom">
+        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
@@ -282,26 +280,26 @@ const GroupDetailsActions = createReactClass({
           />
         </GuideAnchor>
 
-        <GuideAnchor target="ignore_delete_discard" position="bottom">
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
           <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
-
-          <div className="btn-group">
-            <div
-              className={bookmarkClassName}
-              title={t('Bookmark')}
-              onClick={this.onToggleBookmark}
-            >
-              <span className="icon-star-solid" />
-            </div>
-          </div>
-
-          <DeleteActions
-            organization={organization}
-            project={project}
-            onDelete={this.onDelete}
-            onDiscard={this.onDiscard}
-          />
         </GuideAnchor>
+
+        <div className="btn-group">
+          <div
+            className={bookmarkClassName}
+            title={t('Bookmark')}
+            onClick={this.onToggleBookmark}
+          >
+            <span className="icon-star-solid" />
+          </div>
+        </div>
+
+        <DeleteActions
+          organization={organization}
+          project={project}
+          onDelete={this.onDelete}
+          onDiscard={this.onDiscard}
+        />
 
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">

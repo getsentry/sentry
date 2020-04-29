@@ -11,9 +11,11 @@ from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 from sentry.signals import alert_rule_created
+from sentry.web.decorators import transaction_start
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
+    @transaction_start("ProjectRulesEndpoint")
     def get(self, request, project):
         """
         List a project's rules
@@ -34,6 +36,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @transaction_start("ProjectRulesEndpoint")
     def post(self, request, project):
         """
         Create a rule

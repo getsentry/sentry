@@ -17,11 +17,12 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, Project
+from sentry.models import Activity, Release, Project, ReleaseProject
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
     get_project_releases_by_stability,
+    get_oldest_health_data_for_releases,
     STATS_PERIODS,
 )
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -107,20 +108,39 @@ def debounce_update_release_health_data(organization, project_ids):
     projects = {p.id: p for p in Project.objects.get_many_from_cache(should_update.keys())}
 
     # This gives us updates for all release-projects which have seen new
-    # health data over the last 24 hours. It will miss releases where the last
-    # date is <24h ago.  We need to aggregate the data for the totals per release
-    # manually here now.  This does not take environments into account.
-    for project_id, version in get_changed_project_release_model_adoptions(should_update.keys()):
-        project = projects.get(project_id)
-        if project is None:
-            # should not happen
-            continue
+    # health data over the last days. It will miss releases where the last
+    # date is longer than what `get_changed_project_release_model_adoptions`
+    # considers recent.
+    project_releases = get_changed_project_release_model_adoptions(should_update.keys())
+
+    # Check which we already have rows for.
+    existing = set(
+        ReleaseProject.objects.filter(
+            project_id__in=[x[0] for x in project_releases],
+            release__version__in=[x[1] for x in project_releases],
+        ).values_list("project_id", "release__version")
+    )
+    to_upsert = []
+    for key in project_releases:
+        if key not in existing:
+            to_upsert.append(key)
+
+    if to_upsert:
+        dates = get_oldest_health_data_for_releases(to_upsert)
+
+        for project_id, version in to_upsert:
+            project = projects.get(project_id)
+            if project is None:
+                # should not happen
+                continue
 
         # We might have never observed the release.  This for instance can
         # happen if the release only had health data so far.  For these cases
         # we want to create the release the first time we observed it on the
         # health side.
-        release = Release.get_or_create(project=project, version=version)
+        release = Release.get_or_create(
+            project=project, version=version, date_added=dates.get((project_id, version))
+        )
 
         # Make sure that the release knows about this project.  Like we had before
         # the project might not have been associated with this release yet.
@@ -148,12 +168,15 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
+        health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
         if health_stats_period and health_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+        if health_stat not in ("sessions", "users"):
+            raise ParseError(detail="invalid healthStat")
 
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
@@ -185,10 +208,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         select_extra = {}
         sort_query = None
 
+        queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
-        else:
-            queryset = queryset.distinct()
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
@@ -238,6 +260,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 x,
                 request.user,
                 with_health_data=with_health,
+                health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
             ),

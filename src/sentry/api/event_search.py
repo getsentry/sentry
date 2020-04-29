@@ -109,18 +109,18 @@ quoted_raw_search    = spaces quoted_value spaces
 basic_filter         = negation? search_key sep search_value
 quoted_basic_filter  = negation? search_key sep quoted_value
 # filter for dates
-time_filter          = search_key sep? operator date_format
+time_filter          = search_key sep? operator (date_format / alt_date_format)
 # filter for relative dates
 rel_time_filter      = search_key sep rel_date_format
 # filter for durations
 duration_filter      = search_key sep operator? duration_format
 # exact time filter for dates
-specific_time_filter = search_key sep date_format
+specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
 aggregate_filter        = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
+aggregate_date_filter   = aggregate_key sep operator? (date_format / alt_date_format / rel_date_format)
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -140,6 +140,7 @@ function_arg         = space? key? comma? space?
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|$)"
+alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|$)"
 duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 
@@ -429,6 +430,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_time_filter(self, node, children):
         (search_key, _, operator, search_value) = children
+        search_value = search_value[0]
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -477,6 +479,8 @@ class SearchVisitor(NodeVisitor):
         # we specify a specific datetime then it means a few minutes interval
         # on either side of that datetime
         (search_key, _, date_value) = children
+        date_value = date_value[0]
+
         if search_key.name not in self.date_keys:
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
@@ -498,6 +502,9 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_date_format(self, node, children):
+        return node.text
+
+    def visit_alt_date_format(self, node, children):
         return node.text
 
     def is_negated(self, node):
@@ -637,32 +644,7 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
-def convert_search_boolean_to_snuba_query(search_boolean):
-    def convert_term(term):
-        if isinstance(term, SearchFilter):
-            return convert_search_filter_to_snuba_query(term)
-        elif isinstance(term, AggregateFilter):
-            return convert_aggregate_filter_to_snuba_query(term, False)
-        elif isinstance(term, SearchBoolean):
-            return convert_search_boolean_to_snuba_query(term)
-        else:
-            raise InvalidSearchQuery(
-                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(
-                    term.__class__.__name__
-                )
-            )
-
-    if not search_boolean:
-        return search_boolean
-
-    left = convert_term(search_boolean.left_term)
-    right = convert_term(search_boolean.right_term)
-    operator = search_boolean.operator.lower()
-
-    return [operator, [left, right]]
-
-
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=None):
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
@@ -817,6 +799,8 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    # Used to avoid doing multiple conditions on project ID
+    project_to_filter = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
@@ -837,6 +821,9 @@ def get_filter(query=None, params=None):
                 term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
+                    if term.operator == "=":
+                        project_to_filter = project.id
+
                     kwargs["conditions"].append(converted_filter)
             elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
@@ -854,22 +841,28 @@ def get_filter(query=None, params=None):
                         )
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
-                kwargs["conditions"].append(
-                    [
-                        convert_search_filter_to_snuba_query(term, key=field)
-                        for field in FIELD_ALIASES[USER_ALIAS]["fields"]
-                    ]
-                )
+                user_conditions = [
+                    convert_search_filter_to_snuba_query(term, key=field)
+                    for field in FIELD_ALIASES[USER_ALIAS]["fields"]
+                ]
+                if term.operator == "!=" and term.value.value != "":
+                    kwargs["conditions"].extend(user_conditions)
+                else:
+                    kwargs["conditions"].append(user_conditions)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
-                converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
+                if "column_alias" in FIELD_ALIASES[name]:
+                    term = SearchFilter(
+                        SearchKey(FIELD_ALIASES[name]["column_alias"]), term.operator, term.value
+                    )
+                converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
                 if converted_filter:
-                    kwargs["having"].append(converted_filter)
+                    kwargs["conditions"].append(converted_filter)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
         elif isinstance(term, AggregateFilter):
-            converted_filter = convert_aggregate_filter_to_snuba_query(term, False, params)
+            converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
             if converted_filter:
                 kwargs["having"].append(converted_filter)
 
@@ -881,7 +874,10 @@ def get_filter(query=None, params=None):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
-            kwargs["project_ids"] = params["project_id"]
+            if project_to_filter:
+                kwargs["project_ids"] = [project_to_filter]
+            else:
+                kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
             term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
@@ -900,7 +896,7 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "project": {"fields": ["project.id"], "column_alias": "project.id"},
     "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
-    "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
+    "user": {"fields": ["user.email", "user.username", "user.ip", "user.id"]},
 }
 
 
@@ -1016,7 +1012,9 @@ class IntervalDefault(NumberRange):
     def has_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without default")
-        elif not isinstance(params["start"], datetime) or not isinstance(params["end"], datetime):
+        elif not isinstance(params.get("start"), datetime) or not isinstance(
+            params.get("end"), datetime
+        ):
             raise InvalidFunctionArgument("function called with invalid default")
 
         interval = (params["end"] - params["start"]).total_seconds()
@@ -1031,6 +1029,12 @@ FUNCTIONS = {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
         "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "result_type": "duration",
+    },
+    "p50": {
+        "name": "p50",
+        "args": [],
+        "aggregate": [u"quantile(0.5)", "transaction.duration", None],
         "result_type": "duration",
     },
     "p75": {
@@ -1049,6 +1053,12 @@ FUNCTIONS = {
         "name": "p99",
         "args": [],
         "aggregate": [u"quantile(0.99)", "transaction.duration", None],
+        "result_type": "duration",
+    },
+    "p100": {
+        "name": "p100",
+        "args": [],
+        "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
     "rps": {
@@ -1095,19 +1105,26 @@ FUNCTIONS = {
     "error_rate": {
         "name": "error_rate",
         "args": [],
-        "transform": "divide(countIf(notEquals(transaction_status, 0)), count())",
-        "result_type": "number",
+        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
+        "result_type": "percentage",
     },
+    # The user facing signature for this function is histogram(<column>, <num_buckets>)
+    # Internally, snuba.discover.query() expands the user request into this value by
+    # calculating the bucket size and start_offset.
     "histogram": {
         "name": "histogram",
         "args": [
             DurationColumnNoLookup("column"),
             NumberRange("num_buckets", 1, 500),
-            NumberRange("bucket", 0, None),
+            NumberRange("bucket_size", 0, None),
+            NumberRange("start_offset", 0, None),
         ],
         "column": [
             "multiply",
-            [["floor", [["divide", [u"{column}", ArgValue("bucket")]]]], ArgValue("bucket")],
+            [
+                ["floor", [["divide", [u"{column}", ArgValue("bucket_size")]]]],
+                ArgValue("bucket_size"),
+            ],
             None,
         ],
         "result_type": "number",
@@ -1131,13 +1148,11 @@ FUNCTIONS = {
         "name": "min",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["min", u"{column}", None],
-        "result_type": "number",
     },
     "max": {
         "name": "max",
         "args": [NumericColumnNoLookup("column")],
         "aggregate": ["max", u"{column}", None],
-        "result_type": "number",
     },
     "avg": {
         "name": "avg",
@@ -1167,6 +1182,8 @@ def is_function(field):
 
 def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
+    if match is None:
+        return field
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
     return get_function_alias_with_columns(match.group("function"), columns)
 
@@ -1334,7 +1351,7 @@ def resolve_field(field, params=None):
     return ([field], None)
 
 
-def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
+def resolve_field_list(fields, snuba_filter, auto_fields=True):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -1362,14 +1379,16 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             fields.append("project.id")
 
     for field in fields:
-        column_additions, agg_additions = resolve_field(field, params)
+        if isinstance(field, six.string_types) and field.strip() == "":
+            continue
+        column_additions, agg_additions = resolve_field(field, snuba_filter.date_params)
         if column_additions:
-            columns.extend(column_additions)
+            columns.extend([column for column in column_additions if column not in columns])
 
         if agg_additions:
             aggregations.extend(agg_additions)
 
-    rollup = snuba_args.get("rollup")
+    rollup = snuba_filter.rollup
     if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
@@ -1392,7 +1411,14 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
-        project_ids = snuba_args.get("filter_keys", {}).get("project_id", [])
+        # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
+        filtered_project_ids = None
+        if snuba_filter.conditions:
+            for cond in snuba_filter.conditions:
+                if cond[0] == "project_id":
+                    filtered_project_ids = [cond[2]] if cond[1] == "=" else cond[2]
+
+        project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [
@@ -1411,7 +1437,7 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     if rollup and columns and not aggregations:
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
-    orderby = snuba_args.get("orderby")
+    orderby = snuba_filter.orderby
     if orderby:
         orderby = resolve_orderby(orderby, columns, aggregations)
 

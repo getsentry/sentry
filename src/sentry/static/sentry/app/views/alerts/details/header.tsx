@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
@@ -7,11 +6,9 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
 import Count from 'app/components/count';
 import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
@@ -20,6 +17,9 @@ import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import {IconCheckmark} from 'app/icons';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
@@ -28,7 +28,6 @@ import Status from '../status';
 type Props = {
   className?: string;
   hasIncidentDetailsError: boolean;
-  // Can be undefined when loading
   incident?: Incident;
   stats?: IncidentStats;
   onSubscriptionChange: (event: React.MouseEvent) => void;
@@ -43,26 +42,21 @@ export default class DetailsHeader extends React.Component<Props> {
     const isIncidentOpen = incident && isOpen(incident);
     const statusLabel = incident ? <Status incident={incident} /> : null;
 
-    return (
-      <Access access={['org:write']}>
-        {({hasAccess}) =>
-          hasAccess && isIncidentOpen ? (
-            <DropdownControl
-              data-test-id="status-dropdown"
-              label={statusLabel}
-              menuWidth="180px"
-              alignRight
-              buttonProps={{size: 'small', disabled: !incident}}
-            >
-              <StyledMenuItem onSelect={onStatusChange}>
-                <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
-              </StyledMenuItem>
-            </DropdownControl>
-          ) : (
-            statusLabel
-          )
-        }
-      </Access>
+    return isIncidentOpen ? (
+      <DropdownControl
+        data-test-id="status-dropdown"
+        label={statusLabel}
+        menuWidth="200px"
+        alignRight
+        buttonProps={{size: 'small', disabled: !incident}}
+      >
+        <StatusMenuItem onSelect={onStatusChange}>
+          <IconCheckmark circle color={theme.greenLight} />
+          {t('Resolve this incident')}
+        </StatusMenuItem>
+      </DropdownControl>
+    ) : (
+      statusLabel
     );
   }
 
@@ -89,17 +83,12 @@ export default class DetailsHeader extends React.Component<Props> {
     return (
       <Header>
         <PageHeading>
-          <Breadcrumb>
-            <IncidentsLink to={`/organizations/${params.orgId}/alerts/`}>
-              {t('Alerts')}
-            </IncidentsLink>
-            {dateStarted && (
-              <React.Fragment>
-                <Chevron src="icon-chevron-right" size={space(2)} />
-                <IncidentDate>{dateStarted}</IncidentDate>
-              </React.Fragment>
-            )}
-          </Breadcrumb>
+          <AlertBreadcrumbs
+            crumbs={[
+              {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
+              {label: dateStarted ?? t('Alert details')},
+            ]}
+          />
           <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
             {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
           </IncidentTitle>
@@ -120,7 +109,10 @@ export default class DetailsHeader extends React.Component<Props> {
               {project && (
                 <Projects slugs={[project]} orgId={params.orgId}>
                   {({projects}) => (
-                    <ProjectBadge project={projects && projects.length && projects[0]} />
+                    <ProjectBadge
+                      avatarSize={18}
+                      project={projects && projects.length && projects[0]}
+                    />
                   )}
                 </Projects>
               )}
@@ -183,8 +175,7 @@ const StyledLoadingError = styled(LoadingError)`
 const GroupedHeaderItems = styled('div')`
   display: grid;
   grid-template-columns: repeat(6, max-content);
-  grid-column-gap: ${space(3)};
-  grid-row-gap: ${space(1)};
+  grid-gap: ${space(1)} ${space(4)};
   text-align: right;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
@@ -207,11 +198,10 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const Breadcrumb = styled('div')`
-  display: flex;
-  align-items: center;
+const AlertBreadcrumbs = styled(Breadcrumbs)`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.5)};
+  padding: 0;
+  margin-bottom: ${space(1)};
 `;
 
 const IncidentTitle = styled('div', {
@@ -220,28 +210,13 @@ const IncidentTitle = styled('div', {
   ${p => p.loading && 'opacity: 0'};
 `;
 
-const IncidentDate = styled('div')`
-  font-size: 0.8em;
-  color: ${p => p.theme.gray2};
-`;
-
-const IncidentsLink = styled(Link)`
-  color: inherit;
-`;
-
-const Chevron = styled(InlineSvg)`
-  color: ${p => p.theme.gray1};
-  margin: 0 ${space(0.5)};
-`;
-
-const StyledMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: left;
-  padding: ${space(1)} 12px; /* To match dropdown */
-  white-space: nowrap;
-`;
-
-const ResolveIcon = styled(InlineSvg)`
-  color: ${p => p.theme.greenLight};
-  margin-right: ${space(0.5)};
+const StatusMenuItem = styled(MenuItem)`
+  > span {
+    font-size: ${p => p.theme.fontSizeMedium};
+    text-align: left;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    grid-gap: ${space(1)};
+    align-items: center;
+  }
 `;

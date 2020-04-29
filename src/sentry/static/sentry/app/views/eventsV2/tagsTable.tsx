@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -12,7 +13,6 @@ import Version from 'app/components/version';
 import EventView from 'app/utils/discover/eventView';
 
 import {getExpandedResults} from './utils';
-import {SectionHeading} from './styles';
 
 type Props = {
   organization: OrganizationSummary;
@@ -22,6 +22,15 @@ type Props = {
 
 const TagsTable = (props: Props) => {
   const {organization, event, eventView} = props;
+
+  // create a clone of the event object, and delete the its id.
+  // we do this so that the id will not be added to the search conditions
+  // when the tag is clicked
+  const eventReference = {...event};
+  if (eventReference.id) {
+    delete eventReference.id;
+  }
+
   const tags = event.tags;
   return (
     <StyledTagsTable>
@@ -43,7 +52,7 @@ const TagsTable = (props: Props) => {
               const nextView = getExpandedResults(
                 eventView,
                 {[tag.key]: tag.value},
-                event
+                eventReference
               );
               target = nextView.getResultsViewUrlTarget(organization.slug);
             }
@@ -57,7 +66,7 @@ const TagsTable = (props: Props) => {
                       <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{renderTagValue()}</Link>
+                    <Link to={target || ''}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>

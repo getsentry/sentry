@@ -2,7 +2,6 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
 import omit from 'lodash/omit';
-import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -15,7 +14,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconDelete} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -49,7 +48,7 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
     const allChoices = Object.values(permObj.choices);
 
     const allScopes = allChoices.reduce(
-      (_allScopes: string[], choice) => _allScopes.concat(get(choice, 'scopes', [])),
+      (_allScopes: string[], choice) => _allScopes.concat(choice?.scopes ?? []),
       []
     );
 
@@ -171,7 +170,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
-      errorMessage = get(err, 'responseJSON.detail', errorMessage);
+      errorMessage = err?.responseJSON.detail ?? errorMessage;
     }
     addErrorMessage(errorMessage);
 
@@ -262,7 +261,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           <Button
             onClick={this.onRemoveToken.bind(this, token)}
             size="small"
-            icon="icon-trash"
+            icon={<IconDelete />}
             data-test-id="token-delete"
             type="button"
           >
@@ -367,7 +366,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
                 {app.status !== 'internal' && (
-                  <FormField name="clientId" label="Client ID" overflow>
+                  <FormField name="clientId" label="Client ID">
                     {({value}) => (
                       <TextCopyInput>
                         {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
@@ -375,7 +374,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                     )}
                   </FormField>
                 )}
-                <FormField overflow name="clientSecret" label="Client Secret">
+                <FormField name="clientSecret" label="Client Secret">
                   {({value}) =>
                     value ? (
                       <Tooltip

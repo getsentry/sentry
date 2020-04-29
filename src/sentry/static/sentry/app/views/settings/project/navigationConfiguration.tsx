@@ -9,7 +9,10 @@ type ConfigParams = {
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 
-export default function getConfiguration({project}: ConfigParams): NavigationSection[] {
+export default function getConfiguration({
+  project,
+  organization,
+}: ConfigParams): NavigationSection[] {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
     {
@@ -47,20 +50,26 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
           description: t('Manage issue ownership rules for a project'),
         },
         {
-          path: `${pathPrefix}/data-privacy/`,
-          title: t('Data Privacy'),
-          description: t('Configure Datascrubbers for a project'),
-          show: ({features}) => features!.has('datascrubbers-v2'),
-          badge: () => 'new',
-        },
-        {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
         },
+      ],
+    },
+    {
+      name: t('Processing'),
+      items: [
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
         },
+        {
+          path: `${pathPrefix}/data-privacy/`,
+          title: t('Data Privacy'),
+          description: t('Configure Datascrubbers for a project'),
+          show: () => organization.features?.includes('datascrubbers-v2'),
+          badge: () => 'new',
+        },
+
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
@@ -124,7 +133,7 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
-          show: ({access}) => access.has('project:write'),
+          show: opts => opts?.access?.has('project:write'),
           id: 'plugin_details',
           recordAnalytics: true,
         })),

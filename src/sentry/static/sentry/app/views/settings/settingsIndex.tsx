@@ -1,8 +1,10 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import omit from 'lodash/omit';
 
 import {t} from 'app/locale';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
@@ -43,7 +45,7 @@ const flexCenter = css`
 
 type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<{}, {}>;
 
 class SettingsIndex extends React.Component<Props> {
   static propTypes = {
@@ -324,11 +326,8 @@ const HomeLinkIcon = styled(HomeLink)`
 `;
 
 const ExternalHomeLink = styled(
-  ({
-    isCentered,
-    ...props
-  }: CenterableProps & React.ComponentProps<typeof ExternalLink>) => (
-    <ExternalLink {...props} />
+  (props: CenterableProps & React.ComponentPropsWithRef<typeof ExternalLink>) => (
+    <ExternalLink {...omit(props, 'isCentered')} />
   )
 )<CenterableProps>`
   color: ${p => p.theme.purple};
@@ -340,23 +339,20 @@ const ExternalHomeLink = styled(
   ${p => p.isCentered && flexCenter};
 `;
 
-type SupportLinkProps = {
-  isOnPremise: boolean;
+type SupportLinkProps<T extends boolean> = {
+  isOnPremise: T;
   href: string;
   to: string;
   isCentered?: boolean;
-} & (
-  | ({isOnPremise: true} & React.ComponentProps<typeof ExternalLink>)
-  | ({isOnPremise: false} & React.ComponentProps<typeof HomeLink>)
-);
+} & React.ComponentPropsWithRef<T extends true ? typeof ExternalLink : typeof HomeLink>;
 
-const SupportLinkComponent = ({
+const SupportLinkComponent = <T extends boolean>({
   isCentered,
   isOnPremise,
   href,
   to,
   ...props
-}: SupportLinkProps) => {
+}: SupportLinkProps<T>) => {
   if (isOnPremise) {
     return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
   }

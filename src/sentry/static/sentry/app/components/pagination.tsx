@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import {Query} from 'history';
 
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
@@ -48,39 +50,32 @@ class Pagination extends React.Component<Props> {
     const location = this.context.location;
     const path = this.props.to || location.pathname;
     const query = location.query;
-
     const links = parseLinkHeader(pageLinks);
-
-    let previousPageClassName = 'btn btn-default btn-lg prev';
-    if (links.previous.results === false) {
-      previousPageClassName += ' disabled';
-    }
-
-    let nextPageClassName = 'btn btn-default btn-lg next';
-    if (links.next.results === false) {
-      nextPageClassName += ' disabled';
-    }
+    const previousDisabled = links.previous.results === false;
+    const nextDisabled = links.next.results === false;
 
     return (
       <div className={className}>
-        <div className="btn-group">
-          <a
+        <ButtonBar merged>
+          <Button
+            aria-label={t('Previous')}
+            disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
             }}
-            className={previousPageClassName}
           >
-            <span title={t('Previous')} className="icon-arrow-left" />
-          </a>
-          <a
+            <IconSpan className="icon-arrow-left" disabled={previousDisabled} />
+          </Button>
+          <Button
+            aria-label={t('Next')}
+            disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
             }}
-            className={nextPageClassName}
           >
-            <span title={t('Next')} className="icon-arrow-right" />
-          </a>
-        </div>
+            <IconSpan className="icon-arrow-right" disabled={nextDisabled} />
+          </Button>
+        </ButtonBar>
       </div>
     );
   }
@@ -96,4 +91,10 @@ export default styled(Pagination)`
   .icon-arrow-left {
     font-size: 20px !important;
   }
+`;
+
+// TODO this component and the icons should be replaced with IconChevron but
+// that icon has rendering issues on percy.
+const IconSpan = styled('span')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.foreground)};
 `;

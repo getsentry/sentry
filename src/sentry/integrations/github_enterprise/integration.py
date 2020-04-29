@@ -37,19 +37,19 @@ Sentry.
 FEATURES = [
     FeatureDescription(
         """
-        Create and link Sentry issue groups directly to a GitHub issue or pull
-        request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
-        """,
-        IntegrationFeatures.ISSUE_BASIC,
-    ),
-    FeatureDescription(
-        """
         Authorize repositories to be added to your Sentry organization to augment
         sentry issues with commit data with [deployment
         tracking](https://docs.sentry.io/learn/releases/).
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
     ),
 ]
 
@@ -153,14 +153,14 @@ class InstallationForm(forms.Form):
         help_text=_(
             'The "base URL" for your GitHub enterprise instance, ' "includes the host and protocol."
         ),
-        widget=forms.TextInput(attrs={"placeholder": _("https://github.example.com")}),
+        widget=forms.TextInput(attrs={"placeholder": "https://github.example.com"}),
     )
     id = forms.CharField(
         label="GitHub App ID",
         help_text=_(
             "The App ID of your Sentry app. This can be " "found on your apps configuration page."
         ),
-        widget=forms.TextInput(attrs={"placeholder": _("1")}),
+        widget=forms.TextInput(attrs={"placeholder": "1"}),
     )
     name = forms.CharField(
         label="GitHub App Name",
@@ -169,7 +169,7 @@ class InstallationForm(forms.Form):
             "This can be found on the apps configuration "
             "page."
         ),
-        widget=forms.TextInput(attrs={"placeholder": _("our-sentry-app")}),
+        widget=forms.TextInput(attrs={"placeholder": "our-sentry-app"}),
     )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
@@ -190,7 +190,7 @@ class InstallationForm(forms.Form):
             "should match your GitHub app "
             "configuration."
         ),
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
     )
     private_key = forms.CharField(
         label="GitHub App Private Key",
@@ -198,23 +198,16 @@ class InstallationForm(forms.Form):
         widget=forms.Textarea(
             attrs={
                 "rows": "60",
-                "placeholder": _(
-                    "-----BEGIN RSA PRIVATE KEY-----\n"
-                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                    "XXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
-                    "-----END RSA PRIVATE KEY-----"
-                ),
+                "placeholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
             }
         ),
     )
     client_id = forms.CharField(
-        label="GitHub App OAuth Client ID", widget=forms.TextInput(attrs={"placeholder": _("1")})
+        label="GitHub App OAuth Client ID", widget=forms.TextInput(attrs={"placeholder": "1"})
     )
     client_secret = forms.CharField(
         label="GitHub App OAuth Client Secret",
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.TextInput(attrs={"placeholder": "XXXXXXXXXXXXXXXXXXXXXXXXXXX"}),
     )
 
     def __init__(self, *args, **kwargs):

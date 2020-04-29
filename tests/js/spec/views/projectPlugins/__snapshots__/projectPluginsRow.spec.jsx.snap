@@ -40,6 +40,7 @@ exports[`ProjectPluginRow renders 1`] = `
         "access": Array [
           "project:write",
         ],
+        "experiments": Object {},
         "features": Array [],
         "id": "3",
         "name": "Organization Name",
@@ -78,6 +79,7 @@ exports[`ProjectPluginRow renders 1`] = `
           "access": Array [
             "project:write",
           ],
+          "experiments": Object {},
           "features": Array [],
           "id": "3",
           "name": "Organization Name",
@@ -126,6 +128,7 @@ exports[`ProjectPluginRow renders 1`] = `
               "access": Array [
                 "project:write",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
@@ -174,6 +177,7 @@ exports[`ProjectPluginRow renders 1`] = `
                 "access": Array [
                   "project:write",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -191,43 +195,38 @@ exports[`ProjectPluginRow renders 1`] = `
             renderNoAccessMessage={false}
             requireAll={true}
           >
-            <Styled(div)
-              alignItems="center"
+            <PluginItem
               className="amazon-sqs"
-              flex="1"
               key="amazon-sqs"
             >
               <div
-                className="amazon-sqs css-1j7oo6s"
+                className="amazon-sqs css-efgwqc-PluginItem e1y7j6vq0"
               >
                 <PluginInfo>
                   <div
-                    className="css-1jrzgda-PluginInfo e1y7j6vq0"
+                    className="css-1jrzgda-PluginInfo e1y7j6vq2"
                   >
                     <StyledPluginIcon
                       pluginId="amazon-sqs"
                       size={48}
                     >
                       <div
-                        className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq2"
+                        className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
                         size={48}
                       />
                     </StyledPluginIcon>
-                    <Styled(div)
-                      flexDirection="column"
-                      justifyContent="center"
-                    >
+                    <PluginDescription>
                       <div
-                        className="css-bq2mgp"
+                        className="css-1rlsayk-PluginDescription e1y7j6vq1"
                       >
                         <PluginName>
                           <div
-                            className="css-1rrljgj-PluginName e1y7j6vq1"
+                            className="css-1rrljgj-PluginName e1y7j6vq3"
                           >
                             Amazon SQS 
                             <Version>
                               <span
-                                className="css-1czymow-Version e1y7j6vq3"
+                                className="css-1czymow-Version e1y7j6vq5"
                               >
                                 v8.23.0.dev0
                               </span>
@@ -239,6 +238,9 @@ exports[`ProjectPluginRow renders 1`] = `
                             __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "propTypes": Object {
+                                  "openInNewTab": [Function],
+                                },
                                 "render": [Function],
                               }
                             }
@@ -250,7 +252,7 @@ exports[`ProjectPluginRow renders 1`] = `
                             }
                             href="https://github.com/getsentry/sentry"
                           >
-                            <ForwardRef
+                            <ForwardRef(ExternalLink)
                               className="css-1nx57m5-grayText"
                               href="https://github.com/getsentry/sentry"
                             >
@@ -262,7 +264,7 @@ exports[`ProjectPluginRow renders 1`] = `
                               >
                                 Sentry Team
                               </a>
-                            </ForwardRef>
+                            </ForwardRef(ExternalLink)>
                           </EmotionCssPropInternal>
                           <span>
                              
@@ -296,7 +298,7 @@ exports[`ProjectPluginRow renders 1`] = `
                           </span>
                         </div>
                       </div>
-                    </Styled(div)>
+                    </PluginDescription>
                   </div>
                 </PluginInfo>
                 <ForwardRef
@@ -346,7 +348,7 @@ exports[`ProjectPluginRow renders 1`] = `
                   </Switch>
                 </ForwardRef>
               </div>
-            </Styled(div)>
+            </PluginItem>
           </Access>
         </withConfig(Access)>
       </WithOrganizationMockWrapper>

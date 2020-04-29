@@ -11,4 +11,3 @@ Create OAuth consumer key and secret and then put
 
 
 into ``sentry.conf.py``
-

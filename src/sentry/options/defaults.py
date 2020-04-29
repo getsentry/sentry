@@ -121,6 +121,12 @@ register("cloudflare.secret-key", default="")
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
+register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
+
+# Slack V2 Integration
+register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -225,3 +231,10 @@ register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
+
+# Killswitch for sending internal errors to the internal project or
+# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
+# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
+#
+# Note: A value that is neither 0 nor 1 is regarded as 0
+register("store.use-relay-dsn-sample-rate", default=1)

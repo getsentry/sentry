@@ -450,6 +450,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 <a
                                   className="btn btn-sm btn-default disabled"
                                   disabled={true}
+                                  href="#"
                                   onClick={[Function]}
                                   title="Merging 0 issues"
                                 >
@@ -834,7 +835,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               size="normal"
                             >
                               <div
-                                className="event-issue-header"
+                                data-test-id="event-issue-header"
                               >
                                 <Title
                                   size="normal"
@@ -1056,9 +1057,15 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 }
                                               }
                                             >
-                                              <span>
-                                                TypeError
-                                              </span>
+                                              <GuideAnchor
+                                                disabled={true}
+                                                position="bottom"
+                                                target="issue_title"
+                                              >
+                                                <span>
+                                                  TypeError
+                                                </span>
+                                              </GuideAnchor>
                                               <Spacer>
                                                 <span
                                                   style={

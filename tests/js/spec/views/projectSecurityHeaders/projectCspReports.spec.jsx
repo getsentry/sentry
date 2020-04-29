@@ -30,7 +30,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -46,7 +45,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -83,7 +81,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),

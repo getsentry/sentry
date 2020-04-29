@@ -330,7 +330,6 @@ INSTALLED_APPS = (
     "sentry.lang.javascript.apps.Config",
     "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
-    "sentry.plugins.sentry_mail.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
@@ -555,6 +554,10 @@ CELERY_QUEUES = [
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
+    ),
+    Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
+    Queue(
+        "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.reprocessing.process_event", routing_key="events.reprocessing.process_event"),
@@ -839,15 +842,20 @@ SENTRY_FEATURES = {
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": False,
+    # Enable data forwarding functionality for organizations.
+    "organizations:data-forwarding": True,
+    # Enable experimental performance improvements.
+    "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
-    # Enable selection of members, teams or code owners as email targets for issue alerts.
-    "organizations:issue-alerts-targeting": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
+    # Prefix host with organization ID when giving users DSNs (can be
+    # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
+    "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
     # Enable usage of external relays, for use with Relay. See
@@ -870,6 +878,8 @@ SENTRY_FEATURES = {
     "projects:discard-groups": False,
     # DEPRECATED: pending removal
     "projects:dsym": False,
+    # Enable selection of members, teams or code owners as email targets for issue alerts.
+    "projects:issue-alerts-targeting": True,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -1103,6 +1113,10 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
 SENTRY_PUBLIC_ENDPOINT = None
+
+# Hostname prefix to add for organizations that are opted into the
+# `organizations:org-subdomains` feature.
+SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters
@@ -1343,11 +1357,41 @@ SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
+
+# SENTRY_DEVSERVICES = {
+#     "service-name": {
+#         "image": "image-name:version",
+#         # optional ports to expose
+#         "ports": {"internal-port/tcp": external-port},
+#         # optional command
+#         "command": ["exit 1"],
+#         optional mapping of volumes
+#         "volumes": {"volume-name": {"bind": "/path/in/container"}},
+#         # optional statement to test if service should run
+#         "only_if": lambda settings, options: True,
+#         # optional environment variables
+#         "environment": {
+#             "ENV_VAR": "1",
+#         }
+#     }
+# }
+
 SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
         "ports": {"6379/tcp": 6379},
-        "command": ["redis-server", "--appendonly", "yes"],
+        "command": [
+            "redis-server",
+            "--appendonly",
+            "yes",
+            "--save",
+            "60",
+            "20",
+            "--auto-aof-rewrite-percentage",
+            "100",
+            "--auto-aof-rewrite-min-size",
+            "64mb",
+        ],
         "volumes": {"redis": {"bind": "/data"}},
     },
     "postgres": {
@@ -1360,6 +1404,9 @@ SENTRY_DEVSERVICES = {
         "image": "confluentinc/cp-zookeeper:5.1.2",
         "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
         "volumes": {"zookeeper": {"bind": "/var/lib/zookeeper"}},
+        "only_if": lambda settings, options: (
+            "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY
+        ),
     },
     "kafka": {
         "image": "confluentinc/cp-kafka:5.1.2",
@@ -1374,12 +1421,18 @@ SENTRY_DEVSERVICES = {
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
+        "only_if": lambda settings, options: (
+            "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY
+        ),
     },
     "clickhouse": {
         "image": "yandex/clickhouse-server:19.11",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
+        "only_if": lambda settings, options: (
+            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
+        ),
     },
     "snuba": {
         "image": "getsentry/snuba:latest",
@@ -1398,19 +1451,37 @@ SENTRY_DEVSERVICES = {
             "REDIS_PORT": "6379",
             "REDIS_DB": "1",
         },
+        "only_if": lambda settings, options: (
+            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
+        ),
     },
-    "bigtable": {"image": "mattrobenolt/cbtemulator:0.51.0", "ports": {"8086/tcp": 8086}},
-    "memcached": {"image": "memcached:1.5-alpine", "ports": {"11211/tcp": 11211}},
+    "bigtable": {
+        "image": "mattrobenolt/cbtemulator:0.51.0",
+        "ports": {"8086/tcp": 8086},
+        "only_if": lambda settings, options: "bigtable" in settings.SENTRY_NODESTORE,
+    },
+    "memcached": {
+        "image": "memcached:1.5-alpine",
+        "ports": {"11211/tcp": 11211},
+        "only_if": lambda settings, options: "memcached"
+        in settings.CACHES.get("default", {}).get("BACKEND"),
+    },
     "symbolicator": {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
         "pull": True,
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
+        "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
     "reverse_proxy": {
         "image": "nginx:1.16.1",
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
+        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        # This directive tells `devservices up` that the reverse_proxy is not to be
+        # started up, only pulled and made available for `devserver` which will start
+        # it with `devservices attach --is-devserver reverse_proxy`.
+        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
@@ -1418,6 +1489,8 @@ SENTRY_DEVSERVICES = {
         "ports": {"3000/tcp": SENTRY_RELAY_PORT},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
+        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
+        "with_devserver": True,
     },
 }
 
@@ -1792,3 +1865,4 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
 )
+SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"

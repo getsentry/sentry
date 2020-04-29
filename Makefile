@@ -52,10 +52,13 @@ ensure-venv:
 ensure-pinned-pip: ensure-venv
 	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
-setup-git: ensure-venv
+setup-git-config:
+	@git config --local branch.autosetuprebase always
+	@git config --local core.ignorecase false
+	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
+
+setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
-	git config branch.autosetuprebase always
-	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
 	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
@@ -130,10 +133,19 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-test-js: node-version-check
+test-js-build: node-version-check
+	@echo "--> Running type check"
+	@$(YARN) run tsc
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
+
+test-js: node-version-check
 	@echo "--> Running JavaScript tests"
+	@$(YARN) run test
+	@echo ""
+
+test-js-ci: node-version-check
+	@echo "--> Running CI JavaScript tests"
 	@$(YARN) run test-ci
 	@echo ""
 
@@ -144,9 +156,13 @@ test-styleguide:
 	@echo ""
 
 test-python:
+	@echo "--> Running Python tests"
+	py.test tests/integration tests/sentry
+
+test-python-ci:
 	sentry init
 	make build-platform-assets
-	@echo "--> Running Python tests"
+	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
 	py.test tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 else
@@ -189,14 +205,6 @@ test-relay-integration:
 	pytest tests/relay_integration -vv
 	@echo ""
 
-lint: lint-python lint-js
-
-# configuration for flake8 can be found in setup.cfg
-lint-python:
-	@echo "--> Linting python"
-	bash -eo pipefail -c "flake8 | tee .artifacts/flake8.pycodestyle.log"
-	@echo ""
-
 review-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta review --workspace-root `pwd` -e pysnap
@@ -215,7 +223,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
@@ -226,34 +234,17 @@ lint-js:
 travis-noop:
 	@echo "nothing to do here."
 
-.PHONY: travis-test-lint
-travis-test-lint: lint-python lint-js
+.PHONY: travis-test-lint-js
+travis-test-lint-js: lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
 .PHONY: travis-test-cli travis-test-relay-integration
-travis-test-postgres: test-python
+travis-test-postgres: test-python-ci
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
 travis-test-symbolicator: test-symbolicator
-travis-test-js: test-js
+travis-test-js: test-js-ci
+travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
 travis-test-relay-integration: test-relay-integration
-
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator
-.PHONY: travis-scan-js travis-scan-cli travis-scan-lint travis-scan-relay-integration
-scan-python:
-	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety
-	bin/scan
-	@echo ""
-
-travis-scan-postgres: travis-noop
-travis-scan-acceptance: travis-noop
-travis-scan-snuba: travis-noop
-travis-scan-symbolicator: travis-noop
-travis-scan-js: travis-noop
-travis-scan-cli: travis-noop
-travis-scan-lint: scan-python
-travis-scan-plugins: travis-noop
-travis-scan-relay-integration: travis-noop

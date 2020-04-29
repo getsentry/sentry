@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-
 import json
+import pytest
 from uuid import uuid4
 import responses
 from datetime import timedelta
@@ -8,6 +8,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 
 import six
+from django.conf import settings
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -28,6 +29,7 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_event_stat_snapshot,
+    calculate_incident_time_range,
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
@@ -35,6 +37,7 @@ from sentry.incidents.logic import (
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
     DEFAULT_ALERT_RULE_RESOLUTION,
+    WINDOWED_STATS_DATA_POINTS,
     get_actions_for_trigger,
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
@@ -48,7 +51,6 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
-    calculate_incident_prewindow,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -64,14 +66,16 @@ from sentry.incidents.models import (
     IncidentProject,
     IncidentSnapshot,
     IncidentStatus,
+    IncidentStatusMethod,
     IncidentSubscription,
     IncidentType,
 )
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import zip
+from sentry.utils.samples import load_data
 
 
 class CreateIncidentTest(TestCase):
@@ -153,13 +157,21 @@ class UpdateIncidentStatus(TestCase):
 
     def test_status_already_set(self):
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        update_incident_status(incident, IncidentStatus.WARNING)
+        update_incident_status(
+            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
         assert incident.status == IncidentStatus.WARNING.value
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
         self.record_event.reset_mock()
-        update_incident_status(incident, status, user=user, comment=comment)
+        update_incident_status(
+            incident,
+            status,
+            user=user,
+            comment=comment,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
         assert incident.date_closed == expected_date_closed
@@ -217,6 +229,7 @@ class BaseIncidentsTest(SnubaTestCase):
             "event_id": event_id,
             "fingerprint": [fingerprint],
             "timestamp": iso_format(timestamp),
+            "type": "error",
         }
         if user:
             data["user"] = user
@@ -250,77 +263,96 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
             groups=[event.group],
         )
 
+    def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
+        # Duration of 300s, but no alert rule
+        time_window = incident.alert_rule.time_window if incident.alert_rule else 1
+        assert result.rollup == time_window * 60
+        expected_start = start if start else incident.date_started - timedelta(minutes=1)
+        expected_end = end if end else incident.current_end_date
 
+        if windowed_stats:
+            now = timezone.now()
+            expected_end = expected_start + timedelta(
+                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+            )
+            expected_start = expected_start - timedelta(
+                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+            )
+            if expected_end > now:
+                expected_end = now
+                expected_start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+
+        assert result.start == expected_start
+        assert result.end == expected_end
+        assert [r["count"] for r in result.data["data"]] == expected_results
+
+
+@freeze_time()
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(self, incident, expected_results, start=None, end=None):
+    def run_test(self, incident, expected_results, start=None, end=None, windowed_stats=False):
         kwargs = {}
         if start is not None:
             kwargs["start"] = start
         if end is not None:
             kwargs["end"] = end
 
-        result = get_incident_event_stats(incident, data_points=20, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        expected_start = start if start else incident.date_started
-        expected_end = end if end else incident.current_end_date
-        assert result.start == expected_start
-        assert result.end == expected_end
-        assert [r["count"] for r in result.data["data"]] == expected_results
-
-        # A prewindow version of the same test:
-        result = get_incident_event_stats(incident, data_points=20, prewindow=True, **kwargs)
-        # Duration of 300s / 20 data points
-        assert result.rollup == 15
-        expected_start = start if start else incident.date_started
-        expected_end = end if end else incident.current_end_date
-        expected_start = expected_start - calculate_incident_prewindow(
-            expected_start, expected_end, incident
-        )
-        assert result.start == expected_start
-        assert result.end == expected_end
-        assert [r["count"] for r in result.data["data"]] == expected_results
+        result = get_incident_event_stats(incident, windowed_stats=windowed_stats, **kwargs)
+        self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
         self.run_test(self.project_incident, [2, 1])
         self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
         self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
 
+        self.run_test(self.project_incident, [2, 1], windowed_stats=True)
+        self.run_test(
+            self.project_incident,
+            [2, 1],
+            start=self.now - timedelta(minutes=1),
+            windowed_stats=True,
+        )
+        self.run_test(
+            self.project_incident,
+            [2, 1],
+            end=self.now - timedelta(minutes=1, seconds=59),
+            windowed_stats=True,
+        )
+
     def test_groups(self):
         self.run_test(self.group_incident, [1, 1])
+        self.run_test(self.group_incident, [1, 1], windowed_stats=True)
+
+    def test_with_transactions(self):
+        incident = self.project_incident
+        alert_rule = self.create_alert_rule(
+            self.organization, [self.project], query="", time_window=1
+        )
+        incident.update(alert_rule=alert_rule)
+
+        event_data = load_data("transaction")
+        event_data.update(
+            {
+                "start_timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": iso_format(before_now(minutes=2)),
+            }
+        )
+        event_data["transaction"] = "/foo_transaction/"
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        self.run_test(incident, [2, 1])
 
 
+@freeze_time()
 class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(self, incidents, expected_results_list, start=None, end=None):
+    def run_test(
+        self, incidents, expected_results_list, start=None, end=None, windowed_stats=False
+    ):
         query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, prewindow=False
+            incidents, start=start, end=end, windowed_stats=windowed_stats
         )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        results = bulk_get_incident_event_stats(incidents, query_params_list)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
-            expected_start = start if start else incident.date_started
-            expected_end = end if end else incident.current_end_date
-            assert result.start == expected_start
-            assert result.end == expected_end
-            assert [r["count"] for r in result.data["data"]] == expected_results
-
-        # A prewindow version of the same test:
-        query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, prewindow=True
-        )
-        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
-        for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            # Duration of 300s / 20 data points
-            assert result.rollup == 15
-            expected_start = start if start else incident.date_started
-            expected_end = end if end else incident.current_end_date
-            expected_start = expected_start - calculate_incident_prewindow(
-                expected_start, expected_end, incident
-            )
-            assert result.start == expected_start
-            assert result.end == expected_end
-            assert [r["count"] for r in result.data["data"]] == expected_results
+            self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
         other_project = self.create_project(fire_project_created=True)
@@ -333,6 +365,10 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         incidents = [self.project_incident, other_incident]
         self.run_test(incidents, [[2, 1], []])
         self.run_test(incidents, [[1], []], start=self.now - timedelta(minutes=1))
+        self.run_test(
+            incidents, [[2, 1], []], start=self.now - timedelta(minutes=1), windowed_stats=True
+        )
+        self.run_test(incidents, [[2, 1], []], windowed_stats=True)
         self.run_test(incidents, [[2], []], end=self.now - timedelta(minutes=1, seconds=59))
 
     def test_groups(self):
@@ -345,6 +381,7 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         )
 
         self.run_test([self.group_incident, other_incident], [[1, 1], []])
+        self.run_test([self.group_incident, other_incident], [[1, 1], []], windowed_stats=True)
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -422,20 +459,15 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
-        snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, False
-        )
-        assert snapshot.start == incident.date_started
+        snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
+        assert snapshot.start == incident.date_started - timedelta(minutes=1)
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
-        snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date, True
-        )
-        assert snapshot.start == incident.date_started - calculate_incident_prewindow(
-            incident.date_started, incident.current_end_date, incident
-        )
-        assert snapshot.end == incident.current_end_date
+        snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
+        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert snapshot.start == expected_start
+        assert snapshot.end == expected_end
         assert [row[1] for row in snapshot.values] == [2, 1]
 
 
@@ -553,10 +585,23 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
     def test(self):
         incident = self.create_incident(self.organization)
         incident.update(status=IncidentStatus.CLOSED.value)
-        snapshot = create_incident_snapshot(incident)
-        expected_snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.date_closed, prewindow=True
-        )
+        snapshot = create_incident_snapshot(incident, windowed_stats=False)
+        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
+
+        assert snapshot.event_stats_snapshot.start == expected_snapshot.start
+        assert snapshot.event_stats_snapshot.end == expected_snapshot.end
+        assert snapshot.event_stats_snapshot.values == expected_snapshot.values
+        assert snapshot.event_stats_snapshot.period == expected_snapshot.period
+        assert snapshot.event_stats_snapshot.date_added == expected_snapshot.date_added
+        aggregates = get_incident_aggregates(incident)
+        assert snapshot.unique_users == aggregates["unique_users"]
+        assert snapshot.total_events == aggregates["count"]
+
+    def test_windowed(self):
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value)
+        snapshot = create_incident_snapshot(incident, windowed_stats=True)
+        expected_snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
 
         assert snapshot.event_stats_snapshot.start == expected_snapshot.start
         assert snapshot.event_stats_snapshot.end == expected_snapshot.end
@@ -569,7 +614,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
 
 @freeze_time()
-class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
+class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
     def test(self):
         closed_incident = create_incident(
             self.organization,
@@ -580,7 +625,11 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
-        update_incident_status(closed_incident, IncidentStatus.CLOSED)
+        update_incident_status(
+            closed_incident,
+            IncidentStatus.CLOSED,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
         open_incident = create_incident(
             self.organization,
             IncidentType.ALERT_TRIGGERED,
@@ -591,14 +640,15 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-        # Note: Closing an incident above uses a prewindow in the snapshot by default, so without prewindows this test fails.
+
         for incident, incident_stats in zip(
-            incidents, bulk_get_incident_stats(incidents, prewindow=True)
+            incidents, bulk_get_incident_stats(incidents, windowed_stats=True)
         ):
-            event_stats = get_incident_event_stats(incident, prewindow=True)
+            event_stats = get_incident_event_stats(incident, windowed_stats=True)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            expected_start = incident_stats["event_stats"].start
-            expected_end = incident_stats["event_stats"].end
+            expected_start, expected_end = calculate_incident_time_range(
+                incident, windowed_stats=True
+            )
             assert event_stats.start == expected_start
             assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup
@@ -671,6 +721,41 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 1,
             )
 
+    def test_existing_name_allowed_when_archived(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
+        assert alert_rule_2.status == AlertRuleStatus.PENDING.value
+
+    # This test will fail unless real migrations are run. Refer to migration 0061.
+    @pytest.mark.skipif(
+        not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
+    )
+    def test_two_archived_with_same_name(self):
+        name = "allowed"
+        alert_rule_1 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        alert_rule_2 = create_alert_rule(
+            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+        )
+        alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
+
+        assert alert_rule_1.name == alert_rule_2.name
+        assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
+        assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
+
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -694,7 +779,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
 
-        update_alert_rule(
+        updated_rule = update_alert_rule(
             self.alert_rule,
             projects=updated_projects,
             name=name,
@@ -703,6 +788,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=time_window,
             threshold_period=threshold_period,
         )
+        assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
         updated_subscriptions = self.alert_rule.query_subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
@@ -837,6 +923,87 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
         ] == [new_project]
 
+    def test_with_attached_incident(self):
+        # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
+        with self.tasks():
+            incident = self.create_incident()
+            incident.update(alert_rule=self.alert_rule)
+            incident_2 = self.create_incident()
+            incident_2.update(alert_rule=self.alert_rule)
+
+            # Give the rule some actions and triggers so we can verify they've been snapshotted correctly.
+            trigger = create_alert_rule_trigger(
+                self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
+            )
+            action = create_alert_rule_trigger_action(
+                trigger,
+                AlertRuleTriggerAction.Type.EMAIL,
+                AlertRuleTriggerAction.TargetType.USER,
+                target_identifier=six.text_type(self.user.id),
+            )
+            trigger_count = AlertRuleTrigger.objects.all().count()
+            action_count = AlertRuleTriggerAction.objects.all().count()
+
+            updated_projects = [self.project, self.create_project(fire_project_created=True)]
+
+            updated_rule = update_alert_rule(
+                self.alert_rule,
+                projects=updated_projects,
+                query="level:warning",
+                aggregation=QueryAggregations.UNIQUE_USERS,
+                time_window=50,
+                threshold_period=2,
+            )
+
+            incident.refresh_from_db()
+            incident_2.refresh_from_db()
+            rule_snapshot = AlertRule.objects_with_snapshots.filter(
+                name=self.alert_rule.name
+            ).exclude(id=updated_rule.id)
+            assert rule_snapshot.count() == 1
+            rule_snapshot = rule_snapshot.first()
+            assert rule_snapshot.status == AlertRuleStatus.SNAPSHOT.value
+
+            # Rule snapshot should have properties of the rule before it was updated.
+            assert rule_snapshot.id != updated_rule.id
+            assert rule_snapshot.name == updated_rule.name
+            assert rule_snapshot.query == "level:error"
+            assert rule_snapshot.time_window == 10
+            assert rule_snapshot.aggregation == QueryAggregations.TOTAL.value
+            assert rule_snapshot.threshold_period == 1
+
+            for incident in (incident, incident_2):
+                # Incidents should now be pointing to the rule snapshot.
+                assert incident.alert_rule.id == rule_snapshot.id
+                assert incident.alert_rule.name == updated_rule.name
+                # Incidents should be resolved
+                assert incident.status == IncidentStatus.CLOSED.value
+
+            # Action and trigger counts should double (from 1 to 2)
+            assert AlertRuleTrigger.objects.all().count() == trigger_count * 2
+            assert AlertRuleTriggerAction.objects.all().count() == action_count * 2
+
+            # Verify actions and triggers have the same properties...and are not the same actions & triggers as the original rule.
+            assert AlertRuleTrigger.objects.filter(alert_rule=rule_snapshot).exists()
+            trigger_snapshot = AlertRuleTrigger.objects.get(alert_rule=rule_snapshot)
+            assert trigger_snapshot.id != trigger.id
+            assert trigger_snapshot.label == trigger.label
+            assert trigger_snapshot.threshold_type == trigger.threshold_type
+            assert trigger_snapshot.alert_threshold == trigger.alert_threshold
+            assert trigger_snapshot.resolve_threshold == trigger.resolve_threshold
+
+            assert AlertRuleTriggerAction.objects.filter(
+                alert_rule_trigger=trigger_snapshot
+            ).exists()
+            action_snapshot = AlertRuleTriggerAction.objects.get(
+                alert_rule_trigger=trigger_snapshot
+            )
+            assert action_snapshot.id != action.id
+            assert action_snapshot.type == action.type
+            assert action_snapshot.target_type == action.target_type
+            assert action_snapshot.target_identifier == action.target_identifier
+            assert action_snapshot.target_display == action.target_display
+
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
@@ -856,7 +1023,8 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
 
     def test_with_incident(self):
         incident = self.create_incident()
@@ -865,9 +1033,10 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             delete_alert_rule(self.alert_rule)
 
-        assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
-        assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
+        assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):

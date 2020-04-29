@@ -33,12 +33,7 @@ class BaseJiraWidgetView(View):
 
     def get_context(self):
         return {
-            "ac_js_src": "%s%s%s"
-            % (
-                self.request.GET["xdm_e"],
-                self.request.GET.get("cp", ""),
-                "/atlassian-connect/all.js",
-            ),
+            "ac_js_src": "https://connect-cdn.atl-paas.net/all.js",
             "login_url": absolute_uri(reverse("sentry-login")),
             "body_class": "",
         }

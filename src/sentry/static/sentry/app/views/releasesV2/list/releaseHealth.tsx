@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -12,9 +11,17 @@ import Count from 'app/components/count';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 import ScoreBar, {Bar} from 'app/components/scoreBar';
+import Tooltip from 'app/components/tooltip';
 
-import UsersChart from './usersChart';
-import {displayCrashFreePercent, convertAdoptionToProgress} from '../utils';
+import HealthStatsChart from './healthStatsChart';
+import {
+  displayCrashFreePercent,
+  convertAdoptionToProgress,
+  getCrashFreePercentColor,
+} from '../utils';
+import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
+import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
+import AdoptionTooltip from './adoptionTooltip';
 
 type Props = {
   release: ProjectRelease;
@@ -22,8 +29,9 @@ type Props = {
 };
 
 const ReleaseHealth = ({release, location}: Props) => {
-  const {pathname, query} = location;
-  const activeHealthStatsPeriod = (query.healthStatsPeriod || '24h') as '24h' | '14d';
+  const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
+  const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
+
   const {
     adoption,
     stats,
@@ -31,39 +39,18 @@ const ReleaseHealth = ({release, location}: Props) => {
     crashFreeSessions,
     sessionsCrashed,
     totalUsers,
+    totalUsers24h,
+    totalSessions,
+    totalSessions24h,
   } = release.healthData!;
-
-  const healthStatsPeriods = [
-    {
-      key: '24h',
-      label: t('24h'),
-    },
-    {
-      key: '14d',
-      label: t('14d'),
-    },
-  ];
 
   return (
     <React.Fragment>
       <StyledPanelHeader>
         <HeaderLayout>
           <DailyUsersColumn>
-            {t('Daily Sessions')}:
-            <StatsPeriodChanger>
-              {healthStatsPeriods.map(healthStatsPeriod => (
-                <StatsPeriod
-                  key={healthStatsPeriod.key}
-                  to={{
-                    pathname,
-                    query: {...query, healthStatsPeriod: healthStatsPeriod.key},
-                  }}
-                  selected={activeHealthStatsPeriod === healthStatsPeriod.key}
-                >
-                  {healthStatsPeriod.label}
-                </StatsPeriod>
-              ))}
-            </StatsPeriodChanger>
+            <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
+            <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
           </DailyUsersColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
@@ -78,19 +65,29 @@ const ReleaseHealth = ({release, location}: Props) => {
           <Layout>
             <DailyUsersColumn>
               <ChartWrapper>
-                <UsersChart
+                <HealthStatsChart
                   data={stats}
                   height={20}
-                  statsPeriod={activeHealthStatsPeriod}
+                  period={activeStatsPeriod}
+                  subject={activeStatsSubject}
                 />
               </ChartWrapper>
             </DailyUsersColumn>
 
             <AdoptionColumn>
               <AdoptionWrapper>
-                {defined(adoption) && (
+                <Tooltip
+                  title={
+                    <AdoptionTooltip
+                      totalUsers={totalUsers}
+                      totalSessions={totalSessions}
+                      totalUsers24h={totalUsers24h}
+                      totalSessions24h={totalSessions24h}
+                    />
+                  }
+                >
                   <StyledScoreBar
-                    score={convertAdoptionToProgress(adoption)}
+                    score={convertAdoptionToProgress(adoption ?? 0)}
                     size={14}
                     thickness={14}
                     palette={[
@@ -101,10 +98,10 @@ const ReleaseHealth = ({release, location}: Props) => {
                       theme.green,
                     ]}
                   />
-                )}
+                </Tooltip>
                 <div>
-                  <Count value={totalUsers} /> &nbsp;
-                  {tn('user', 'users', totalUsers)}
+                  <Count value={totalUsers24h ?? 0} />{' '}
+                  {tn('user', 'users', totalUsers24h)}
                 </div>
               </AdoptionWrapper>
             </AdoptionColumn>
@@ -112,7 +109,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeUsersColumn>
               {defined(crashFreeUsers) ? (
                 <React.Fragment>
-                  <StyledProgressRing value={crashFreeUsers} />
+                  <StyledProgressRing
+                    progressColor={getCrashFreePercentColor}
+                    value={crashFreeUsers}
+                  />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeUsers)}
                   </ProgressRingCaption>
@@ -125,7 +125,10 @@ const ReleaseHealth = ({release, location}: Props) => {
             <CrashFreeSessionsColumn>
               {defined(crashFreeSessions) ? (
                 <React.Fragment>
-                  <StyledProgressRing value={crashFreeSessions} />
+                  <StyledProgressRing
+                    progressColor={getCrashFreePercentColor}
+                    value={crashFreeSessions}
+                  />
                   <ProgressRingCaption>
                     {displayCrashFreePercent(crashFreeSessions)}
                   </ProgressRingCaption>
@@ -263,25 +266,6 @@ const ChartWrapper = styled('div')`
     /* TODO(releasesV2): figure out with design these colors */
     background: #c6becf;
     fill: #c6becf;
-  }
-`;
-
-const StatsPeriodChanger = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-column-gap: ${space(0.75)};
-  flex: 1;
-  justify-content: flex-end;
-  text-align: right;
-  margin-right: ${space(2)};
-  margin-left: ${space(0.5)};
-`;
-
-const StatsPeriod = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
-
-  &:hover {
-    color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
   }
 `;
 

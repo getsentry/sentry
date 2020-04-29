@@ -226,8 +226,8 @@ describe('EventsV2 > Results', function() {
       />,
       initialData.routerContext
     );
-    const selector = wrapper.find('YAxisSelector');
-    expect(selector).toHaveLength(1);
+    // y-axis selector is last.
+    const selector = wrapper.find('OptionSelector').last();
 
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
@@ -241,5 +241,44 @@ describe('EventsV2 > Results', function() {
 
     const eventsRequest = wrapper.find('EventsChart');
     expect(eventsRequest.props().yAxis).toEqual('count()');
+  });
+
+  it('renders a display selector', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'previoux'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // display selector is first.
+    const selector = wrapper.find('OptionSelector').first();
+
+    // Open the selector
+    selector.find('StyledDropdownButton button').simulate('click');
+
+    // Click the 'none' option.
+    selector
+      .find('DropdownMenu MenuItem span')
+      .first()
+      .simulate('click');
+    wrapper.update();
+
+    const eventsRequest = wrapper.find('EventsChart').props();
+    expect(eventsRequest.disableReleases).toEqual(true);
+    expect(eventsRequest.disablePrevious).toEqual(true);
   });
 });

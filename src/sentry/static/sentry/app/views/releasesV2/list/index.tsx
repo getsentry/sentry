@@ -2,6 +2,8 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import {forceCheck} from 'react-lazyload';
+import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -14,17 +16,19 @@ import Pagination from 'app/components/pagination';
 import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import Projects from 'app/utils/projects';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleasePromo from './releasePromo';
+import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
   orgId: string;
@@ -37,8 +41,10 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
+  shouldReload = true;
+
   getTitle() {
-    return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
@@ -58,6 +64,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
+        'healthStat',
       ]),
       summaryStatsPeriod: location.query.statsPeriod,
       per_page: 50,
@@ -66,6 +73,23 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    super.componentDidUpdate(prevProps, prevState);
+
+    if (prevState.releases !== this.state.releases) {
+      /**
+       * Manually trigger checking for elements in viewport.
+       * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+       * https://github.com/twobin/react-lazyload#forcecheck
+       *
+       * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+       * This is how we re-check them without scrolling once releases change as this view
+       * uses shouldReload=true and there is no reloading happening.
+       */
+      forceCheck();
+    }
   }
 
   getQuery() {
@@ -99,33 +123,22 @@ class ReleasesList extends AsyncView<Props, State> {
   };
 
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release =>
+    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
+    return flatMap(releases, release =>
       release.projects.map(project => {
-        const {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-        } = release;
-        const {slug, id, healthData} = project;
         return {
-          version,
-          dateCreated,
-          dateReleased,
-          commitCount,
-          authors,
-          lastEvent,
-          newGroups,
-          healthData: healthData!,
-          projectSlug: slug,
-          projectId: id,
-          // TODO(releasesv2): make api send also project platform
+          ...release,
+          healthData: project.healthData,
+          project,
         };
       })
     );
+  }
+
+  shouldShowLoadingIndicator() {
+    const {loading, releases, reloading} = this.state;
+
+    return (loading && !reloading) || (loading && !releases?.length);
   }
 
   renderLoading() {
@@ -133,7 +146,8 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
 
     if (searchQuery && searchQuery.length) {
@@ -146,7 +160,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     if (this.getSort() !== 'date') {
       const relativePeriod = getRelativeSummary(
-        location.query.statsPeriod || DEFAULT_STATS_PERIOD
+        statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
 
       return (
@@ -156,14 +170,18 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    return t('There are no releases.');
+    if (defined(statsPeriod) && statsPeriod !== '14d') {
+      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
+    }
+
+    return <ReleasePromo orgSlug={organization.slug} />;
   }
 
   renderInnerBody() {
-    const {organization, location} = this.props;
-    const {loading, releases} = this.state;
+    const {location} = this.props;
+    const {releases, reloading} = this.state;
 
-    if (loading) {
+    if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
     }
 
@@ -173,20 +191,15 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const projectReleases = this.transformToProjectRelease(releases);
 
-    return (
-      <Projects orgId={organization.slug} slugs={projectReleases.map(r => r.projectSlug)}>
-        {({projects}) =>
-          projectReleases.map((release: ProjectRelease) => (
-            <ReleaseCard
-              key={`${release.version}-${release.projectSlug}`}
-              release={release}
-              project={projects.find(p => p.slug === release.projectSlug)}
-              location={location}
-            />
-          ))
-        }
-      </Projects>
-    );
+    return projectReleases.map((release: ProjectRelease) => (
+      <ReleaseCard
+        key={`${release.version}-${release.project.slug}`}
+        release={release}
+        project={release.project}
+        location={location}
+        reloading={reloading}
+      />
+    ));
   }
 
   renderBody() {
@@ -202,11 +215,11 @@ class ReleasesList extends AsyncView<Props, State> {
           )}
         />
 
-        <NoProjectMessage organization={organization}>
-          <PageContent>
+        <PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases v2')} <BetaTag />
+                {t('Releases')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
@@ -216,7 +229,7 @@ class ReleasesList extends AsyncView<Props, State> {
                 <SearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
-                  defaultQuery={this.getQuery()}
+                  query={this.getQuery()}
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>
@@ -226,8 +239,12 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderInnerBody()}
 
             <Pagination pageLinks={this.state.releasesPageLinks} />
-          </PageContent>
-        </NoProjectMessage>
+
+            {!this.shouldShowLoadingIndicator() && (
+              <SwitchReleasesButton version="1" orgId={organization.id} />
+            )}
+          </LightWeightNoProjectMessage>
+        </PageContent>
       </React.Fragment>
     );
   }
@@ -242,14 +259,14 @@ const StyledPageHeader = styled(PageHeader)`
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
-  /* TODO(releasesV2): this could use some responsive love, but not yet sure if we are keeping it */
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     grid-template-columns: none;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    margin-bottom: ${space(4)};
   }
 `;
 

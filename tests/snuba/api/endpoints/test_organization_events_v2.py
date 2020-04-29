@@ -4,6 +4,7 @@ import six
 import pytest
 import random
 from datetime import timedelta
+from math import ceil
 
 from django.core.urlresolvers import reverse
 
@@ -15,7 +16,6 @@ from sentry.utils.samples import load_data
 from sentry.utils.compat.mock import patch
 from sentry.utils.snuba import (
     RateLimitExceeded,
-    QueryOutsideRetentionError,
     QueryIllegalTypeOfArgument,
     QueryExecutionError,
 )
@@ -129,13 +129,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
 
-        mock_query.side_effect = QueryOutsideRetentionError("test")
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
-                format="json",
-            )
+    def test_out_of_retention(self):
+        self.login_as(user=self.user)
+        self.create_project()
+        with self.options({"system.event-retention-days": 10}):
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "field": ["id", "timestamp"],
+                        "orderby": ["-timestamp", "-id"],
+                        "start": iso_format(before_now(days=20)),
+                        "end": iso_format(before_now(days=15)),
+                    },
+                    format="json",
+                )
 
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range. Please try a more recent date range."
@@ -300,6 +308,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
+    def test_project_condition_used_for_automatic_filters(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": 'project:"%s"' % project.slug,
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project"] == project.slug
+        assert "project.id" not in response.data["data"][0]
+
     def test_user_search(self):
         self.login_as(user=self.user)
 
@@ -331,10 +363,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
-                assert response.data["data"][0]["user.email"] == data["user"]["email"]
-                assert response.data["data"][0]["user.id"] == data["user"]["id"]
-                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
-                assert response.data["data"][0]["user.username"] == data["user"]["username"]
+                assert response.data["data"][0]["project"] == project.slug
+                assert response.data["data"][0]["user"] == data["user"]["email"]
 
     def test_has_user(self):
         self.login_as(user=self.user)
@@ -357,7 +387,89 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
-                assert response.data["data"][0]["user.ip"] == data["user"]["ip_address"]
+                assert response.data["data"][0]["user"] == data["user"]["ip_address"]
+
+    def test_has_issue(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
+
+    def test_negative_user_search(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
+
+        # Load events with data that shouldn't match
+        for key in user_data:
+            data = load_data("transaction")
+            data["transaction"] = "/transactions/{}".format(key)
+            data["timestamp"] = iso_format(before_now(minutes=1))
+            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+            event_data = user_data.copy()
+            event_data[key] = "undefined"
+            data["user"] = event_data
+            self.store_event(data, project_id=project.id)
+
+        # Load a matching event
+        data = load_data("transaction")
+        data["transaction"] = "/transactions/matching"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["user"] = user_data
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "user"],
+                    "query": "!user:undefined",
+                    "statsPeriod": "14d",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            assert response.data["data"][0]["user"] == user_data["email"]
+            assert "user.email" not in response.data["data"][0]
 
     def test_not_project_in_query(self):
         self.login_as(user=self.user)
@@ -560,7 +672,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["issue.id", "issue_title", "count(id)", "count_unique(user)"],
+                    "field": ["issue.id", "count(id)", "count_unique(user)"],
                     "orderby": "issue.id",
                 },
             )
@@ -638,43 +750,36 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/error_rate/success"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        event = self.store_event(data, project_id=project.id)
-
-        data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/error_rate/unknown"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
+        data["contexts"]["trace"]["status"] = "unknown_error"
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        for i in range(6):
+            data = load_data("transaction")
+            data["transaction"] = "/error_rate/{}".format(i)
+            data["timestamp"] = iso_format(before_now(minutes=1))
+            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"field": ["transaction", "error_rate()"], "query": "event.type:transaction"},
+                data={"field": ["error_rate()"], "query": "event.type:transaction"},
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["transaction"] == event.transaction
         assert data[0]["error_rate"] == 0.75
 
     def test_aggregation(self):
@@ -831,38 +936,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["transaction", "p95"],
-                    "query": "event.type:transaction p95:<4000",
-                    "orderby": ["transaction"],
-                },
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0]["transaction"] == event.transaction
-        assert data[0]["p95"] == 3000
-
-    def test_aggregation_alias_comparison_with_brackets(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        data = load_data("transaction")
-        data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
-        self.store_event(data, project_id=project.id)
-
-        data = load_data("transaction")
-        data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
-        event = self.store_event(data, project_id=project.id)
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
                     "field": ["transaction", "p95()"],
                     "query": "event.type:transaction p95():<4000",
                     "orderby": ["transaction"],
@@ -994,6 +1067,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
+        response.data["meta"]["max_timestamp"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
@@ -1642,11 +1716,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "field": [
                         "event.type",
-                        "p75",
+                        "p50()",
+                        "p75()",
                         "p95()",
+                        "p99()",
+                        "p100()",
                         "percentile(transaction.duration, 0.99)",
                         "apdex(300)",
-                        "impact()",
+                        "impact(300)",
                         "error_rate()",
                     ],
                     "query": "event.type:transaction",
@@ -1655,19 +1732,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 200, response.content
             meta = response.data["meta"]
+            assert meta["p50"] == "duration"
             assert meta["p75"] == "duration"
             assert meta["p95"] == "duration"
+            assert meta["p99"] == "duration"
+            assert meta["p100"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
-            assert meta["impact"] == "number"
+            assert meta["error_rate"] == "percentage"
+            assert meta["impact_300"] == "number"
 
             data = response.data["data"]
             assert len(data) == 1
+            assert data[0]["p50"] == 5000
             assert data[0]["p75"] == 5000
             assert data[0]["p95"] == 5000
+            assert data[0]["p99"] == 5000
+            assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
-            assert data[0]["impact"] == 1.0
+            assert data[0]["impact_300"] == 1.0
             assert data[0]["error_rate"] == 0.5
 
         with self.feature(
@@ -1747,19 +1831,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 data={
                     "field": [
                         "event.type",
-                        "p75",
+                        "p50()",
+                        "p75()",
                         "p95()",
                         "percentile(transaction.duration, 0.99)",
+                        "p100()",
                     ],
-                    "query": "event.type:transaction p75:>1000 p95():>1000 percentile(transaction.duration, 0.99):>1000",
+                    "query": "event.type:transaction p50():>100 p75():>1000 p95():>1000 p100():>1000 percentile(transaction.duration, 0.99):>1000",
                 },
             )
 
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
+            assert data[0]["p50"] == 5000
             assert data[0]["p75"] == 5000
             assert data[0]["p95"] == 5000
+            assert data[0]["p100"] == 5000
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
 
         with self.feature(
@@ -1769,7 +1857,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex", "impact()", "error_rate()"],
+                    "field": ["event.type", "apdex()", "impact()", "error_rate()"],
                     "query": "event.type:transaction apdex:>-1.0 impact():>0.5 error_rate():>0.25",
                 },
             )
@@ -1903,8 +1991,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex()"],
-                    "sort": "-apdex",
+                    "field": ["event.type", "apdex(300)"],
+                    "sort": "-apdex(300)",
                     "query": "event.type:transaction",
                 },
             )
@@ -1912,7 +2000,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["apdex"] == 0.0
+            assert data[0]["apdex_300"] == 0.0
 
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -2160,15 +2248,18 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
-            (1, 999, 5),
-            (1000, 1999, 4),
-            (3000, 3999, 3),
-            (6000, 6999, 2),
+            (1, 500, 5),
+            (1000, 1500, 4),
+            (3000, 3500, 3),
+            (6000, 6500, 2),
             (10000, 10000, 1),  # just to make the math easy
         ]
+        values = []
         for bucket in latencies:
             for i in range(bucket[2]):
+                # Don't generate a wide range of variance as the buckets can mis-align.
                 milliseconds = random.randint(bucket[0], bucket[1])
+                values.append(milliseconds)
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
@@ -2187,22 +2278,22 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sort": "histogram_transaction_duration_10",
                 },
             )
-
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 11
+        bucket_size = ceil((max(values) - min(values)) / 10.0)
         expected = [
             (0, 5),
-            (1000, 4),
-            (2000, 0),
-            (3000, 3),
-            (4000, 0),
-            (5000, 0),
-            (6000, 2),
-            (7000, 0),
-            (8000, 0),
-            (9000, 0),
-            (10000, 1),
+            (bucket_size, 4),
+            (bucket_size * 2, 0),
+            (bucket_size * 3, 3),
+            (bucket_size * 4, 0),
+            (bucket_size * 5, 0),
+            (bucket_size * 6, 2),
+            (bucket_size * 7, 0),
+            (bucket_size * 8, 0),
+            (bucket_size * 9, 0),
+            (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
@@ -2213,15 +2304,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
-            (1, 999, 5),
-            (1000, 1999, 4),
-            (3000, 3999, 3),
-            (6000, 6999, 2),
+            (1, 500, 5),
+            (1000, 1500, 4),
+            (3000, 3500, 3),
+            (6000, 6500, 2),
             (10000, 10000, 1),  # just to make the math easy
         ]
+        values = []
         for bucket in latencies:
             for i in range(bucket[2]):
                 milliseconds = random.randint(bucket[0], bucket[1])
+                values.append(milliseconds)
                 data = load_data("transaction")
                 data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
@@ -2252,18 +2345,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 11
+        bucket_size = ceil((max(values) - min(values)) / 10.0)
         expected = [
             (0, 5),
-            (1000, 4),
-            (2000, 0),
-            (3000, 3),
-            (4000, 0),
-            (5000, 0),
-            (6000, 2),
-            (7000, 0),
-            (8000, 0),
-            (9000, 0),
-            (10000, 1),
+            (bucket_size, 4),
+            (bucket_size * 2, 0),
+            (bucket_size * 3, 3),
+            (bucket_size * 4, 0),
+            (bucket_size * 5, 0),
+            (bucket_size * 6, 2),
+            (bucket_size * 7, 0),
+            (bucket_size * 8, 0),
+            (bucket_size * 9, 0),
+            (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]

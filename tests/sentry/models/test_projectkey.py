@@ -14,6 +14,7 @@ class ProjectKeyTest(TestCase):
         key = self.model.objects.create(project_id=1, public_key="abc", secret_key="xyz")
 
         assert self.model.from_dsn("http://abc@testserver/1") == key
+        assert self.model.from_dsn("http://abc@o1.ingest.testserver/1") == key
 
         with self.assertRaises(self.model.DoesNotExist):
             self.model.from_dsn("http://xxx@testserver/1")
@@ -41,3 +42,14 @@ class ProjectKeyTest(TestCase):
         assert key.csp_endpoint == "http://testserver/api/1/csp-report/?sentry_key=abc"
         assert key.minidump_endpoint == "http://testserver/api/1/minidump/?sentry_key=abc"
         assert key.unreal_endpoint == "http://testserver/api/1/unreal/abc/"
+
+    def test_get_dsn_org_subdomain(self):
+        with self.feature("organizations:org-subdomains"):
+            key = self.model(project_id=1, public_key="abc", secret_key="xyz")
+            host = "o{}.ingest.testserver".format(key.project.organization_id)
+
+            assert key.dsn_private == "http://abc:xyz@{}/1".format(host)
+            assert key.dsn_public == "http://abc@{}/1".format(host)
+            assert key.csp_endpoint == "http://{}/api/1/csp-report/?sentry_key=abc".format(host)
+            assert key.minidump_endpoint == "http://{}/api/1/minidump/?sentry_key=abc".format(host)
+            assert key.unreal_endpoint == "http://{}/api/1/unreal/abc/".format(host)

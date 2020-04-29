@@ -1,4 +1,4 @@
-import {logExperiment, trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import GuideStore from 'app/stores/guideStore';
 
@@ -14,7 +14,6 @@ describe('GuideStore', function() {
 
   beforeEach(function() {
     trackAnalyticsEvent.mockClear();
-    logExperiment.mockClear();
     ConfigStore.config = {
       user,
     };
@@ -87,13 +86,6 @@ describe('GuideStore', function() {
     GuideStore.onNextStep();
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
-
-    expect(logExperiment).toHaveBeenCalledWith({
-      key: 'AssistantGuideExperiment',
-      unitName: 'user_id',
-      unitId: parseInt(user.id, 10),
-      param: 'exposed',
-    });
   });
 
   it('only shows guides with server data and content', function() {

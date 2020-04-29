@@ -14,8 +14,9 @@ type Props = {
   align: Alignments;
   field: Field;
   eventView: EventView;
-  tableDataMeta?: MetaType; // Will not be defined if data is not loaded
   generateSortLink: () => LocationDescriptorObject | undefined;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  tableDataMeta?: MetaType; // Will not be defined if data is not loaded
 };
 
 class SortLink extends React.Component<Props> {
@@ -42,7 +43,7 @@ class SortLink extends React.Component<Props> {
   }
 
   render() {
-    const {align, field, tableDataMeta, generateSortLink} = this.props;
+    const {align, field, tableDataMeta, generateSortLink, onClick} = this.props;
 
     const target = generateSortLink();
 
@@ -51,14 +52,15 @@ class SortLink extends React.Component<Props> {
     }
 
     return (
-      <StyledLink align={align} to={target}>
+      <StyledLink align={align} to={target} onClick={onClick}>
         {field.field} {this.renderArrow()}
       </StyledLink>
     );
   }
 }
 
-type StyledLinkProps = Link['props'] & {align: Alignments};
+type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
+type StyledLinkProps = LinkProps & {align: Alignments};
 
 const StyledLink = styled((props: StyledLinkProps) => {
   const forwardProps = omit(props, ['align']);

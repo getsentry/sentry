@@ -15,6 +15,18 @@ from sentry.utils import metrics
 from sentry.utils.snuba import _snuba_pool, SnubaError
 
 
+# TODO: If we want to support security events here we'll need a way to
+# differentiate within the dataset. For now we can just assume all subscriptions
+# created within this dataset are just for errors.
+DATASET_CONDITIONS = {QueryDatasets.EVENTS: [["type", "=", "error"]]}
+
+
+def apply_dataset_conditions(dataset, conditions):
+    if dataset in DATASET_CONDITIONS:
+        conditions = conditions + DATASET_CONDITIONS[dataset]
+    return conditions
+
+
 @instrumented_task(
     name="sentry.snuba.tasks.create_subscription_in_snuba",
     queue="subscriptions",
@@ -103,12 +115,11 @@ def delete_subscription_from_snuba(query_subscription_id):
 
 
 def _create_in_snuba(subscription):
-    conditions = resolve_discover_aliases(
-        {"conditions": get_filter(subscription.query).conditions}
-    )[0]["conditions"]
+    conditions = resolve_discover_aliases(get_filter(subscription.query))[0].conditions
     environments = list(subscription.environments.all())
     if environments:
         conditions.append(["environment", "IN", [env.name for env in environments]])
+    conditions = apply_dataset_conditions(QueryDatasets(subscription.dataset), conditions)
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (subscription.dataset,),
