@@ -141,12 +141,12 @@ class DurationChart extends React.Component<Props> {
                       .map((values, i: number) => {
                         return {
                           ...values,
-                          color: AREA_COLORS[i].line,
+                          color: AREA_COLORS[i],
                           lineStyle: {
                             opacity: 0,
                           },
                           areaStyle: {
-                            color: AREA_COLORS[i].area,
+                            color: AREA_COLORS[i],
                             opacity: 1.0,
                           },
                         };

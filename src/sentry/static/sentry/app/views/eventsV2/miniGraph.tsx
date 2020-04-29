@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
-import {getInterval} from 'app/components/charts/utils';
+import {AREA_SINGLE_COLOR, getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
@@ -103,7 +103,8 @@ class MiniGraph extends React.Component<Props> {
           const data = (timeseriesData || []).map(series => ({
             ...series,
             areaStyle: {
-              opacity: 0.4,
+              color: AREA_SINGLE_COLOR,
+              opacity: 0.5,
             },
             lineStyle: {
               opacity: 0,
@@ -137,7 +138,6 @@ class MiniGraph extends React.Component<Props> {
                 bottom: 0,
                 containLabel: false,
               }}
-              colors={['#6d5fc7']}
               options={{
                 hoverAnimation: false,
               }}

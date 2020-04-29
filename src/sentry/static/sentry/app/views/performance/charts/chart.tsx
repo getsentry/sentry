@@ -3,7 +3,7 @@ import * as ReactRouter from 'react-router';
 
 import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
-import {AREA_COLORS} from 'app/components/charts/utils';
+import {AREA_SINGLE_COLOR} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 
 type Props = {
@@ -60,6 +60,7 @@ class Chart extends React.Component<Props> {
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      colors: [AREA_SINGLE_COLOR, AREA_SINGLE_COLOR],
     };
 
     if (loading) {
@@ -69,11 +70,6 @@ class Chart extends React.Component<Props> {
       ...values,
       yAxisIndex: i,
       xAxisIndex: i,
-      color: AREA_COLORS[0].line,
-      areaStyle: {
-        color: AREA_COLORS[0].area,
-        opacity: 1.0,
-      },
     }));
 
     return (
