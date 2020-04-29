@@ -124,7 +124,7 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
             name="eventId"
             disabled={disabled}
             value={value}
-            placeholder={t('Paste event ID')}
+            placeholder={t('XXXXXXXXXXXXXX')}
             onChange={this.handleChange}
             onKeyDown={this.handleKeyDown}
             onBlur={this.handleBlur}
