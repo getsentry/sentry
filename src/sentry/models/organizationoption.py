@@ -50,9 +50,10 @@ class OrganizationOptionManager(OptionManager):
         return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, organization_id, update_reason):
-        schedule_update_config_cache(
-            organization_id=organization_id, generate=False, update_reason=update_reason
-        )
+        if update_reason != "organizationoption.get_all_values":
+            schedule_update_config_cache(
+                organization_id=organization_id, generate=False, update_reason=update_reason
+            )
 
         cache_key = self._make_key(organization_id)
         result = dict((i.key, i.value) for i in self.filter(organization=organization_id))
