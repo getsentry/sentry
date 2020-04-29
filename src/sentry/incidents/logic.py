@@ -160,6 +160,7 @@ def update_incident_status(
             # Remove the snapshot since it's only used after the incident is
             # closed.
             IncidentSnapshot.objects.filter(incident=incident).delete()
+            PendingIncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
 
