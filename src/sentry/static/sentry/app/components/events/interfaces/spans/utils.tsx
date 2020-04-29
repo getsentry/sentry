@@ -263,10 +263,10 @@ export const spanColors = {
 };
 
 export const pickSpanBarColour = (input: string | undefined): string => {
-  // We pick the color for span bars using the first two letters of the op name.
+  // We pick the color for span bars using the first three letters of the op name.
   // That way colors stay consistent between transactions.
 
-  if (!input || input.length < 2) {
+  if (!input || input.length < 3) {
     return CHART_PALETTE[17][4];
   }
 
@@ -276,8 +276,11 @@ export const pickSpanBarColour = (input: string | undefined): string => {
 
   const letterIndex1 = getLetterIndex(input.slice(0, 1));
   const letterIndex2 = getLetterIndex(input.slice(1, 2));
+  const letterIndex3 = getLetterIndex(input.slice(2, 3));
 
-  return colorsAsArray[(letterIndex1 + letterIndex2) % colorsAsArray.length];
+  return colorsAsArray[
+    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
+  ];
 };
 
 export type UserSelectValues = {
