@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
 import six
+import pytest
+
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 from sentry.utils.compat.mock import Mock, patch
@@ -19,12 +23,15 @@ from sentry.incidents.models import (
     IncidentStatus,
     INCIDENT_STATUS,
     IncidentSubscription,
+    PendingIncidentSnapshot,
+    IncidentSnapshot,
 )
 from sentry.incidents.tasks import (
     build_activity_context,
     generate_incident_activity_email,
     handle_trigger_action,
     send_subscriber_notifications,
+    process_pending_incident_snapshots,
 )
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
@@ -190,3 +197,86 @@ class HandleTriggerActionTest(TestCase):
                 handle_trigger_action.delay(self.action.id, incident.id, self.project.id, "fire")
             mock_handler.assert_called_once_with(self.action, incident, self.project)
             mock_handler.return_value.fire.assert_called_once_with()
+
+
+class ProcessPendingIncidentSnapshots(TestCase):
+    @pytest.mark.pending
+    def test_simple(self):
+        incident = self.create_incident(title="incident", status=IncidentStatus.CLOSED.value)
+        pending = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+
+        assert IncidentSnapshot.objects.all().count() == 0
+
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).exists()
+
+    @pytest.mark.pending
+    def test_skip_open_incident(self):
+        incident = self.create_incident(title="incident", status=IncidentStatus.OPEN.value)
+        pending = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+        assert IncidentSnapshot.objects.all().count() == 0
+
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        # The PendingSnapshot should be deleted, and a Snapshot should not be created because the incident is open.
+        assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
+        assert not IncidentSnapshot.objects.filter(incident=incident).exists()
+
+    @pytest.mark.pending
+    def test_skip_future_run_date(self):
+        incident_1 = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
+        incident_2 = self.create_incident(title="incident2", status=IncidentStatus.CLOSED.value)
+        pending_1 = PendingIncidentSnapshot.objects.create(
+            incident=incident_1, target_run_date=timezone.now()
+        )
+        pending_2 = PendingIncidentSnapshot.objects.create(
+            incident=incident_2, target_run_date=timezone.now() + timedelta(minutes=5)
+        )
+
+        assert IncidentSnapshot.objects.all().count() == 0
+
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        # Should only process the one with target_run_date <= timezone.now()
+        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
+        assert PendingIncidentSnapshot.objects.filter(id=pending_2.id).exists()
+
+        assert IncidentSnapshot.objects.filter(incident=incident_1).exists()
+        assert not IncidentSnapshot.objects.filter(incident=incident_2).exists()
+
+    @pytest.mark.pending
+    def test_skip_because_existing_snapshot(self):
+        incident = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
+        pending_1 = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+
+        assert IncidentSnapshot.objects.all().count() == 0
+
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        assert not PendingIncidentSnapshot.objects.filter(id=pending_1.id).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).exists()
+        assert IncidentSnapshot.objects.all().count() == 1
+
+        # Have to create it here otherwise the unique constraint will cause this to fail:
+        pending_2 = PendingIncidentSnapshot.objects.create(
+            incident=incident, target_run_date=timezone.now()
+        )
+        with self.tasks():
+            process_pending_incident_snapshots()
+
+        assert not PendingIncidentSnapshot.objects.filter(id=pending_2.id).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).exists()
+        assert IncidentSnapshot.objects.filter(incident=incident).count() == 1
+        assert IncidentSnapshot.objects.all().count() == 1

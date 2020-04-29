@@ -273,6 +273,7 @@ def delete_comment(activity):
 
 def create_pending_incident_snapshot(incident):
     assert incident.status == IncidentStatus.CLOSED.value
+    assert not PendingIncidentSnapshot.objects.filter(incident=incident).exists()
 
     time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
     target_run_date = incident.current_end_date + min(
