@@ -212,5 +212,7 @@ def process_pending_incident_snapshots():
             process_pending_incident_snapshots.apply_async(countdown=1)
             break
         else:
-            create_incident_snapshot(incident, windowed_stats=True)
+            snapshot = create_incident_snapshot(incident, windowed_stats=True)
+            assert snapshot.id
+            pending_snapshot.delete()
             processed += 1
