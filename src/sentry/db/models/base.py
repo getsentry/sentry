@@ -8,12 +8,13 @@ from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals
 from django.db.models.query_utils import DeferredAttribute
+from django.utils import timezone
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
-__all__ = ("BaseModel", "Model", "sane_repr")
+__all__ = ("BaseModel", "Model", "ModelPlus", "sane_repr")
 
 UNSAVED = object()
 
@@ -127,9 +128,21 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
+class ModelPlus(BaseModel):
+    id = BoundedBigAutoField(primary_key=True)
+    date_updated = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        abstract = True
+
+    __repr__ = sane_repr("id")
+
+
 def __model_post_save(instance, **kwargs):
     if not isinstance(instance, BaseModel):
         return
+    if isinstance(instance, ModelPlus):
+        instance.date_updated = timezone.now()
     instance._update_tracked_data()
 
 

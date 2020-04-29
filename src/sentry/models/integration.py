@@ -11,6 +11,7 @@ from sentry.db.models import (
     EncryptedJsonField,
     FlexibleForeignKey,
     Model,
+    ModelPlus,
 )
 from sentry.signals import integration_added
 
@@ -47,7 +48,7 @@ class IntegrationExternalProject(Model):
         unique_together = (("organization_integration_id", "external_id"),)
 
 
-class OrganizationIntegration(Model):
+class OrganizationIntegration(ModelPlus):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
