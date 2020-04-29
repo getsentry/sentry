@@ -9,12 +9,12 @@ import Alert from 'app/components/alert';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 
-import DataPrivacyRulesPanelFormField from './dataPrivacyRulesPanelFormField';
-import {EVENT_ID_FIELD_STATUS} from '../utils';
+import DataPrivacyRulesPanelFormField from './dataPrivacyRulesFormField';
+import {EventIdStatus} from './types';
 
 type EventId = {
   value: string;
-  status?: EVENT_ID_FIELD_STATUS;
+  status?: EventIdStatus;
 };
 
 type Props = {
@@ -23,18 +23,18 @@ type Props = {
   disabled?: boolean;
 };
 
-const loadEventIdStatus = (status?: EVENT_ID_FIELD_STATUS) => {
+const loadEventIdStatus = (status?: EventIdStatus) => {
   switch (status) {
-    case EVENT_ID_FIELD_STATUS.INVALID:
+    case EventIdStatus.INVALID:
       addErrorMessage(t("That's not a valid event ID"));
       break;
-    case EVENT_ID_FIELD_STATUS.ERROR:
+    case EventIdStatus.ERROR:
       addErrorMessage(t('Something went wrong while fetching the suggestions'));
       break;
-    case EVENT_ID_FIELD_STATUS.NOT_FOUND:
+    case EventIdStatus.NOT_FOUND:
       addErrorMessage(t('Event ID not found in projects you have access to'));
       break;
-    case EVENT_ID_FIELD_STATUS.LOADED:
+    case EventIdStatus.LOADED:
       addSuccessMessage(t('Successfully loaded event for autocompletion'));
       break;
     default:
@@ -43,10 +43,10 @@ const loadEventIdStatus = (status?: EVENT_ID_FIELD_STATUS) => {
 
 type State = {
   value: string;
-  status?: EVENT_ID_FIELD_STATUS;
+  status?: EventIdStatus;
 };
 
-class DataPrivacyRulesPanelFormEventId extends React.Component<Props, State> {
+class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
   state = {
     value: this.props.eventId.value,
     status: this.props.eventId.status,
@@ -63,9 +63,7 @@ class DataPrivacyRulesPanelFormEventId extends React.Component<Props, State> {
       {
         ...this.props.eventId,
       },
-      () => {
-        this.loadStatus();
-      }
+      this.loadStatus
     );
   };
 
@@ -88,7 +86,7 @@ class DataPrivacyRulesPanelFormEventId extends React.Component<Props, State> {
     const {value} = this.state;
 
     if (value && value.length !== 32) {
-      this.setState({status: EVENT_ID_FIELD_STATUS.INVALID}, this.loadStatus);
+      this.setState({status: EventIdStatus.INVALID}, this.loadStatus);
       return false;
     }
 
@@ -134,13 +132,13 @@ class DataPrivacyRulesPanelFormEventId extends React.Component<Props, State> {
               onChange={this.handleChange}
               onKeyDown={this.handleKeyDown}
               onBlur={this.handleBlur}
-              showStatus={status !== EVENT_ID_FIELD_STATUS.LOADED}
+              showStatus={status !== EventIdStatus.LOADED}
             />
             <Status>
-              {status === EVENT_ID_FIELD_STATUS.LOADING && <ControlState isSaving />}
-              {status === EVENT_ID_FIELD_STATUS.INVALID && <ControlState error />}
-              {status === EVENT_ID_FIELD_STATUS.ERROR && <ControlState error />}
-              {status === EVENT_ID_FIELD_STATUS.NOT_FOUND && <ControlState error />}
+              {status === EventIdStatus.LOADING && <ControlState isSaving />}
+              {status === EventIdStatus.INVALID && <ControlState error />}
+              {status === EventIdStatus.ERROR && <ControlState error />}
+              {status === EventIdStatus.NOT_FOUND && <ControlState error />}
             </Status>
           </EventIdFieldWrapper>
         </DataPrivacyRulesPanelFormField>
@@ -148,7 +146,7 @@ class DataPrivacyRulesPanelFormEventId extends React.Component<Props, State> {
     );
   }
 }
-export default DataPrivacyRulesPanelFormEventId;
+export default DataPrivacyRulesFormEventId;
 
 const StyledTextField = styled(TextField)<{showStatus: boolean}>`
   flex: 1;

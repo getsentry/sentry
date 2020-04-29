@@ -1,21 +1,21 @@
 import React from 'react';
 
-import DataPrivacyRulesPanelSelectorField from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorField';
+import DataPrivacyRulesFormSource from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/dataPrivacyRulesFormSource';
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
   defaultSuggestions,
-} from 'app/views/settings/components/dataPrivacyRulesPanel/dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorFieldSuggestions';
+} from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/dataPrivacyRulesFormSourceSuggestions';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 function renderComponent({
   value = '$string',
   onChange = jest.fn(),
   ...props
-}: Partial<DataPrivacyRulesPanelSelectorField['props']>) {
+}: Partial<DataPrivacyRulesFormSource['props']>) {
   return mountWithTheme(
-    <DataPrivacyRulesPanelSelectorField
-      selectorSuggestions={defaultSuggestions}
+    <DataPrivacyRulesFormSource
+      suggestions={defaultSuggestions}
       onChange={onChange}
       value={value}
       {...props}
@@ -34,7 +34,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: ''});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -46,7 +46,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: '   '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -58,7 +58,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: 'foo '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -74,7 +74,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: 'foo && '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -88,7 +88,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: 'foo && $string '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -104,7 +104,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: 'foo && !$string '});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -120,7 +120,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     const wrapper = renderComponent({value: 'foo && !'});
     wrapper.find('input').simulate('focus');
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -141,7 +141,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     wrapper.find('input').simulate('focus');
 
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 
@@ -159,7 +159,7 @@ describe('DataPrivacyRulesPanelSelectorField', () => {
     input.simulate('focus');
 
     const suggestions = wrapper
-      .find('[data-test-id="panelSelectorField-suggestions"]')
+      .find('[data-test-id="source-suggestions"]')
       .hostNodes()
       .children();
 

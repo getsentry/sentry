@@ -8,38 +8,35 @@ import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-import DataPrivacyRulesPanelForm from './dataPrivacyRulesPanelForm/dataPrivacyRulesPanelForm';
-import {RULE_TYPE, METHOD_TYPE} from './utils';
+import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
+import {RuleType, MethodType} from './types';
 
-const DEFAULT_RULE_FROM_VALUE = '';
+const DEFAULT_RULE_SOURCE_VALUE = '';
 
-type DataPrivacyRulesPanelFormProps = React.ComponentProps<
-  typeof DataPrivacyRulesPanelForm
->;
-
-type Rule = DataPrivacyRulesPanelFormProps['rule'];
+type FormProps = React.ComponentProps<typeof DataPrivacyRulesPanelForm>;
+type Rule = FormProps['rule'];
 
 type Props = Pick<
-  DataPrivacyRulesPanelFormProps,
-  'selectorSuggestions' | 'onUpdateEventId' | 'disabled' | 'eventId'
-> &
-  Partial<Pick<DataPrivacyRulesPanelFormProps, 'rule'>> & {
-    onSaveRule: (rule: Rule) => void;
-    onClose: () => void;
-  };
+  FormProps,
+  'sourceSuggestions' | 'disabled' | 'eventId' | 'onUpdateEventId'
+> & {
+  rule?: Rule;
+  onSaveRule: (rule: Rule) => void;
+  onClose: () => void;
+};
 
 type State = {
   rule: Rule;
   isFormValid: boolean;
 };
 
-class DataPrivacyRulesPanelRuleModal extends React.Component<Props, State> {
+class DataPrivacyRulesModal extends React.Component<Props, State> {
   state = {
     rule: {
       id: defined(this.props.rule?.id) ? this.props.rule?.id! : -1,
-      type: this.props.rule?.type || RULE_TYPE.CREDITCARD,
-      method: this.props.rule?.method || METHOD_TYPE.MASK,
-      from: this.props.rule?.from || DEFAULT_RULE_FROM_VALUE,
+      type: this.props.rule?.type || RuleType.CREDITCARD,
+      method: this.props.rule?.method || MethodType.MASK,
+      source: this.props.rule?.source || DEFAULT_RULE_SOURCE_VALUE,
       customRegularExpression: this.props.rule?.customRegularExpression,
     },
     isFormValid: false,
@@ -74,7 +71,7 @@ class DataPrivacyRulesPanelRuleModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {onClose, disabled, selectorSuggestions, onUpdateEventId, eventId} = this.props;
+    const {onClose, disabled, sourceSuggestions, onUpdateEventId, eventId} = this.props;
     const {rule, isFormValid} = this.state;
 
     return (
@@ -85,7 +82,7 @@ class DataPrivacyRulesPanelRuleModal extends React.Component<Props, State> {
         <Modal.Body>
           <DataPrivacyRulesPanelForm
             onChange={this.handleChange}
-            selectorSuggestions={selectorSuggestions}
+            sourceSuggestions={sourceSuggestions}
             rule={rule}
             disabled={disabled}
             onUpdateEventId={onUpdateEventId}
@@ -112,7 +109,7 @@ class DataPrivacyRulesPanelRuleModal extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesPanelRuleModal;
+export default DataPrivacyRulesModal;
 
 const StyledModal = styled(Modal)`
   .modal-dialog {

@@ -2,8 +2,10 @@ import React from 'react';
 
 import SelectControl from 'app/components/forms/selectControl';
 
+type SelectControlProps = React.ComponentProps<typeof SelectControl>;
+
 type Props = Pick<
-  React.ComponentProps<typeof SelectControl>,
+  SelectControlProps,
   'value' | 'placeholder' | 'name' | 'onChange' | 'options' | 'isDisabled'
 >;
 

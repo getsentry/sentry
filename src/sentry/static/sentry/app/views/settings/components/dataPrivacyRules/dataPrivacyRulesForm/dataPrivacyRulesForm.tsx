@@ -6,39 +6,30 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 
-import {
-  RULE_TYPE,
-  METHOD_TYPE,
-  getRuleTypeSelectorFieldLabel,
-  getMethodTypeSelectorFieldLabel,
-} from '../utils';
-import DataPrivacyRulesPanelSelectorField from './dataPrivacyRulesPanelFormSelectorField';
-import DataPrivacyRulesPanelFormField from './dataPrivacyRulesPanelFormField';
-import DataPrivacyRulesPanelFormSelectControl from './dataPrivacyRulesPanelFormSelectControl';
-import DataPrivacyRulesPanelFormEventId from './dataPrivacyRulesPanelFormEventId';
+import {getRuleTypeLabel, getMethodTypeLabel} from './utils';
+import {RuleType, MethodType} from './types';
+import DataPrivacyRulesFormSource from './dataPrivacyRulesFormSource';
+import DataPrivacyRulesFormField from './dataPrivacyRulesFormField';
+import DataPrivacyRulesFormSelectControl from './dataPrivacyRulesFormSelectControl';
+import DataPrivacyRulesFormEventId from './dataPrivacyRulesFormEventId';
 
 type Rule = {
   id: number;
-  type: RULE_TYPE;
-  method: METHOD_TYPE;
-  from: string;
+  type: RuleType;
+  method: MethodType;
+  source: string;
   customRegularExpression?: string;
 };
 
-type DataPrivacyRulesPanelFormEventIdProps = React.ComponentProps<
-  typeof DataPrivacyRulesPanelFormEventId
->;
+type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
+type SourceProps = React.ComponentProps<typeof DataPrivacyRulesFormSource>;
 
-type DataPrivacyRulesPanelSelectorFieldProps = React.ComponentProps<
-  typeof DataPrivacyRulesPanelSelectorField
->;
-
-type Props = DataPrivacyRulesPanelFormEventIdProps &
-  Pick<DataPrivacyRulesPanelSelectorFieldProps, 'disabled' | 'selectorSuggestions'> & {
-    rule: Rule;
-    onChange: (rule: Rule) => void;
-    onUpdateEventId: (eventId: string) => void;
-  };
+type Props = EventIdProps & {
+  rule: Rule;
+  sourceSuggestions: SourceProps['suggestions'];
+  onChange: (rule: Rule) => void;
+  onUpdateEventId: (eventId: string) => void;
+};
 
 type State = {
   errors: {
@@ -51,8 +42,8 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.rule.from !== this.props.rule.from) {
-      this.handleValidation('from')();
+    if (prevProps.rule.source !== this.props.rule.source) {
+      this.handleValidation('source')();
     }
   }
 
@@ -62,7 +53,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
       [stateProperty]: value,
     };
 
-    if (rule.type !== RULE_TYPE.PATTERN) {
+    if (rule.type !== RuleType.PATTERN) {
       delete rule.customRegularExpression;
     }
 
@@ -94,50 +85,47 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {rule, disabled, selectorSuggestions, onUpdateEventId, eventId} = this.props;
-    const {from, customRegularExpression, type, method} = rule;
+    const {rule, disabled, sourceSuggestions, onUpdateEventId, eventId} = this.props;
+    const {source, customRegularExpression, type, method} = rule;
     const {errors} = this.state;
 
     return (
       <Wrapper>
         <WrapperSelectFields>
-          <DataPrivacyRulesPanelFormField
-            label={t('Method')}
-            tooltipInfo={t('What to do')}
-          >
-            <DataPrivacyRulesPanelFormSelectControl
+          <DataPrivacyRulesFormField label={t('Method')} tooltipInfo={t('What to do')}>
+            <DataPrivacyRulesFormSelectControl
               placeholder={t('Select method')}
               name="method"
-              options={sortBy(Object.values(METHOD_TYPE)).map(value => ({
-                label: getMethodTypeSelectorFieldLabel(value),
+              options={sortBy(Object.values(MethodType)).map(value => ({
+                label: getMethodTypeLabel(value),
                 value,
               }))}
               value={method}
               onChange={({value}) => this.handleChange('method', value)}
               isDisabled={disabled}
             />
-          </DataPrivacyRulesPanelFormField>
-          <DataPrivacyRulesPanelFormField
+          </DataPrivacyRulesFormField>
+          <DataPrivacyRulesFormField
             label={t('Data Type')}
             tooltipInfo={t(
               'What to look for. Use an existing pattern or define your own using regular expressions.'
             )}
           >
-            <DataPrivacyRulesPanelFormSelectControl
+            <DataPrivacyRulesFormSelectControl
               placeholder={t('Select type')}
               name="type"
-              options={sortBy(Object.values(RULE_TYPE)).map(value => ({
-                label: getRuleTypeSelectorFieldLabel(value),
+              options={sortBy(Object.values(RuleType)).map(value => ({
+                label: getRuleTypeLabel(value),
                 value,
               }))}
               value={type}
               onChange={({value}) => this.handleChange('type', value)}
               isDisabled={disabled}
             />
-          </DataPrivacyRulesPanelFormField>
+          </DataPrivacyRulesFormField>
         </WrapperSelectFields>
-        {type === RULE_TYPE.PATTERN && (
-          <DataPrivacyRulesPanelFormField
+        {type === RuleType.PATTERN && (
+          <DataPrivacyRulesFormField
             label={t('Regex matches')}
             tooltipInfo={t('Custom Perl-style regex (PCRE)')}
             isFullWidth
@@ -153,29 +141,29 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
               error={errors.customRegularExpression}
               disabled={disabled}
             />
-          </DataPrivacyRulesPanelFormField>
+          </DataPrivacyRulesFormField>
         )}
-        <DataPrivacyRulesPanelFormEventId
+        <DataPrivacyRulesFormEventId
           onUpdateEventId={onUpdateEventId}
           eventId={eventId}
         />
-        <DataPrivacyRulesPanelFormField
+        <DataPrivacyRulesFormField
           label={t('Source')}
           tooltipInfo={t(
             'Where to look. In the simplest case this can be an attribute name.'
           )}
         >
-          <DataPrivacyRulesPanelSelectorField
+          <DataPrivacyRulesFormSource
             onChange={(value: string) => {
-              this.handleChange('from', value);
+              this.handleChange('source', value);
             }}
-            value={from}
-            onBlur={this.handleValidation('from')}
-            selectorSuggestions={selectorSuggestions}
+            value={source}
+            onBlur={this.handleValidation('source')}
+            suggestions={sourceSuggestions}
             error={errors.from}
             disabled={disabled}
           />
-        </DataPrivacyRulesPanelFormField>
+        </DataPrivacyRulesFormField>
       </Wrapper>
     );
   }

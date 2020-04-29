@@ -10,29 +10,23 @@ import ExternalLink from 'app/components/links/externalLink';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 
-import {defaultSuggestions} from './dataPrivacyRulesPanelForm/dataPrivacyRulesPanelFormSelectorFieldSuggestions';
-import DataPrivacyRulesPanelRuleModal from './dataPrivacyRulesPanelRuleModal';
-import DataPrivacyRulesPanelContent from './dataPrivacyRulesPanelContent';
-import {RULE_TYPE, METHOD_TYPE, EVENT_ID_FIELD_STATUS} from './utils';
+import {defaultSuggestions as sourceDefaultSuggestions} from './dataPrivacyRulesForm/dataPrivacyRulesFormSourceSuggestions';
+import DataPrivacyRulesModal from './dataPrivacyRulesModal';
+import DataPrivacyRulesPanelContent from './dataPrivacyRulesContent';
+import {RuleType, MethodType, EventIdStatus} from './dataPrivacyRulesForm/types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
-type Rule = NonNullable<
-  React.ComponentProps<typeof DataPrivacyRulesPanelRuleModal>['rule']
->;
-
-type EventId = React.ComponentProps<typeof DataPrivacyRulesPanelRuleModal>['eventId'];
-
-type Suggestions = React.ComponentProps<
-  typeof DataPrivacyRulesPanelRuleModal
->['selectorSuggestions'];
+type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
+type Rule = NonNullable<ModalProps['rule']>;
+type SourceSuggestions = ModalProps['sourceSuggestions'];
 
 type PiiConfig = {
-  type: RULE_TYPE;
+  type: RuleType;
   pattern: string;
   redaction?: {
-    method?: METHOD_TYPE;
+    method?: MethodType;
   };
 };
 
@@ -53,12 +47,12 @@ type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
-  selectorSuggestions: Suggestions;
-  eventId: EventId;
+  sourceSuggestions: SourceSuggestions;
+  eventId: ModalProps['eventId'];
   showAddRuleModal?: boolean;
 };
 
-class DataPrivacyRulesPanel extends React.Component<Props, State> {
+class DataPrivacyRules extends React.Component<Props, State> {
   static contextTypes = {
     organization: SentryTypes.Organization,
     project: SentryTypes.Project,
@@ -68,7 +62,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     rules: [],
     savedRules: [],
     relayPiiConfig: this.props.relayPiiConfig,
-    selectorSuggestions: [],
+    sourceSuggestions: [],
     eventId: {
       value: '',
     },
@@ -76,7 +70,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
   componentDidMount() {
     this.loadRules();
-    this.loadSelectorSuggestions();
+    this.loadSourceSuggestions();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -106,23 +100,23 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               const [type, method] = rule.slice(1).split(':');
               convertedRules.push({
                 id: convertedRules.length,
-                type: type as RULE_TYPE,
-                method: method as METHOD_TYPE,
-                from: application,
+                type: type as RuleType,
+                method: method as MethodType,
+                source: application,
               });
             }
             continue;
           }
 
           const resolvedRule = rules[rule];
-          if (resolvedRule.type === RULE_TYPE.PATTERN && resolvedRule.pattern) {
+          if (resolvedRule.type === RuleType.PATTERN && resolvedRule.pattern) {
             const method = resolvedRule?.redaction?.method;
 
             convertedRules.push({
               id: convertedRules.length,
-              type: RULE_TYPE.PATTERN,
-              method: method as METHOD_TYPE,
-              from: application,
+              type: RuleType.PATTERN,
+              method: method as MethodType,
+              source: application,
               customRegularExpression: resolvedRule.pattern,
             });
           }
@@ -138,13 +132,13 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     }
   }
 
-  loadSelectorSuggestions = async () => {
+  loadSourceSuggestions = async () => {
     const {organization, project} = this.context;
     const {eventId} = this.state;
 
     if (!eventId.value) {
       this.setState(prevState => ({
-        selectorSuggestions: defaultSuggestions,
+        sourceSuggestions: sourceDefaultSuggestions,
         eventId: {
           ...prevState.eventId,
           status: undefined,
@@ -154,10 +148,10 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
     }
 
     this.setState(prevState => ({
-      selectorSuggestions: defaultSuggestions,
+      sourceSuggestions: sourceDefaultSuggestions,
       eventId: {
         ...prevState.eventId,
-        status: EVENT_ID_FIELD_STATUS.LOADING,
+        status: EventIdStatus.LOADING,
       },
     }));
 
@@ -170,31 +164,31 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
         {method: 'GET', query}
       );
-      const selectorSuggestions: Suggestions = rawSuggestions.suggestions;
+      const sourceSuggestions: SourceSuggestions = rawSuggestions.suggestions;
 
-      if (selectorSuggestions && selectorSuggestions.length > 0) {
+      if (sourceSuggestions && sourceSuggestions.length > 0) {
         this.setState(prevState => ({
-          selectorSuggestions,
+          sourceSuggestions,
           eventId: {
             ...prevState.eventId,
-            status: EVENT_ID_FIELD_STATUS.LOADED,
+            status: EventIdStatus.LOADED,
           },
         }));
         return;
       }
 
       this.setState(prevState => ({
-        selectorSuggestions: defaultSuggestions,
+        sourceSuggestions: sourceDefaultSuggestions,
         eventId: {
           ...prevState.eventId,
-          status: EVENT_ID_FIELD_STATUS.LOADED,
+          status: EventIdStatus.LOADED,
         },
       }));
     } catch {
       this.setState(prevState => ({
         eventId: {
           ...prevState.eventId,
-          status: EVENT_ID_FIELD_STATUS.ERROR,
+          status: EventIdStatus.ERROR,
         },
       }));
     }
@@ -210,13 +204,13 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
 
     for (const rule of rules) {
       let ruleName = `@${rule.type}:${rule.method}`;
-      if (rule.type === RULE_TYPE.PATTERN && rule.customRegularExpression) {
+      if (rule.type === RuleType.PATTERN && rule.customRegularExpression) {
         ruleName = `customRule${customRulesCounter}`;
 
         customRulesCounter += 1;
 
         customRules[ruleName] = {
-          type: RULE_TYPE.PATTERN,
+          type: RuleType.PATTERN,
           pattern: rule.customRegularExpression,
           redaction: {
             method: rule.method,
@@ -224,12 +218,12 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
         };
       }
 
-      if (!applications[rule.from]) {
-        applications[rule.from] = [];
+      if (!applications[rule.source]) {
+        applications[rule.source] = [];
       }
 
-      if (!applications[rule.from].includes(ruleName)) {
-        applications[rule.from].push(ruleName);
+      if (!applications[rule.source].includes(ruleName)) {
+        applications[rule.source].push(ruleName);
       }
     }
 
@@ -298,9 +292,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           },
         ],
       }),
-      () => {
-        this.handleSubmit();
-      }
+      this.handleSubmit
     );
   };
 
@@ -309,9 +301,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
       prevState => ({
         rules: prevState.rules.filter(rule => !rulesToBeDeleted.includes(rule.id)),
       }),
-      () => {
-        this.handleSubmit();
-      }
+      this.handleSubmit
     );
   };
 
@@ -325,9 +315,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           return rule;
         }),
       }),
-      () => {
-        this.handleSubmit();
-      }
+      this.handleSubmit
     );
   };
 
@@ -344,15 +332,13 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           value: eventId,
         },
       },
-      () => {
-        this.loadSelectorSuggestions();
-      }
+      this.loadSourceSuggestions
     );
   };
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, selectorSuggestions, showAddRuleModal, eventId} = this.state;
+    const {rules, sourceSuggestions, showAddRuleModal, eventId} = this.state;
 
     return (
       <React.Fragment>
@@ -378,7 +364,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
               onUpdateRule={this.handleUpdateRule}
               onUpdateEventId={this.handleUpdateEventId}
               eventId={eventId}
-              selectorSuggestions={selectorSuggestions}
+              sourceSuggestions={sourceSuggestions}
             />
             <PanelAction>
               <Button
@@ -401,8 +387,8 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
           </PanelBody>
         </Panel>
         {showAddRuleModal && (
-          <DataPrivacyRulesPanelRuleModal
-            selectorSuggestions={selectorSuggestions}
+          <DataPrivacyRulesModal
+            sourceSuggestions={sourceSuggestions}
             onSaveRule={this.handleAddRule}
             onClose={this.handleToggleAddRuleModal(false)}
             onUpdateEventId={this.handleUpdateEventId}
@@ -414,7 +400,7 @@ class DataPrivacyRulesPanel extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesPanel;
+export default DataPrivacyRules;
 
 const PanelAction = styled('div')`
   padding: ${space(1)} ${space(2)};

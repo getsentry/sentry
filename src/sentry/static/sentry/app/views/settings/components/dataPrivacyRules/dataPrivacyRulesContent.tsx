@@ -7,30 +7,24 @@ import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconDelete, IconWarning} from 'app/icons';
 
-import DataPrivacyRulesPanelRuleModal from './dataPrivacyRulesPanelRuleModal';
-import {getRuleTypeSelectorFieldLabel, getMethodTypeSelectorFieldLabel} from './utils';
+import DataPrivacyRulesModal from './dataPrivacyRulesModal';
+import {getRuleTypeLabel, getMethodTypeLabel} from './utils';
 
-type DataPrivacyRulesPanelRuleModalProps = React.ComponentProps<
-  typeof DataPrivacyRulesPanelRuleModal
->;
-
-type Rule = NonNullable<DataPrivacyRulesPanelRuleModalProps['rule']>;
+type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
+type Rule = NonNullable<ModalProps['rule']>;
 
 type Props = {
   rules: Array<Rule>;
   onUpdateRule: (updatedRule: Rule) => void;
   onDeleteRule: (rulesToBeDeleted: Array<Rule['id']>) => void;
-} & Pick<
-  DataPrivacyRulesPanelRuleModalProps,
-  'disabled' | 'eventId' | 'onUpdateEventId' | 'selectorSuggestions'
->;
+} & Pick<ModalProps, 'disabled' | 'eventId' | 'onUpdateEventId' | 'sourceSuggestions'>;
 
 type State = {
   selectedRules: Array<Rule['id']>;
   editRule?: Rule['id'];
 };
 
-class DataPrivacyRulesPanelContent extends React.Component<Props, State> {
+class DataPrivacyRulesContent extends React.Component<Props, State> {
   state: State = {
     selectedRules: [],
   };
@@ -122,7 +116,7 @@ class DataPrivacyRulesPanelContent extends React.Component<Props, State> {
 
   render() {
     const {selectedRules, editRule} = this.state;
-    const {rules, selectorSuggestions, onUpdateEventId, eventId} = this.props;
+    const {rules, sourceSuggestions, onUpdateEventId, eventId} = this.props;
 
     if (rules.length === 0) {
       return (
@@ -136,26 +130,28 @@ class DataPrivacyRulesPanelContent extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <List>
-          {rules.map(({id, method, type, from}) => {
+          {rules.map(({id, method, type, source}) => {
             const isChecked = selectedRules.includes(id);
-            const methodLabel = getMethodTypeSelectorFieldLabel(method);
-            const typelabel = getRuleTypeSelectorFieldLabel(type);
+            const methodLabel = getMethodTypeLabel(method);
+            const typelabel = getRuleTypeLabel(type);
             return (
               <ListItem
                 key={id}
                 isChecked={isChecked}
                 onClick={this.handleShowEditRuleModal(id)}
               >
-                <span>{`[${methodLabel}] [${typelabel}] ${t('from')} [${from}]`}</span>
+                <ListItemDescription>
+                  {`[${methodLabel}] [${typelabel}] ${t('from')} [${source}]`}
+                </ListItemDescription>
                 <StyledIconDelete onClick={this.handleDeleteRule(id)} />
               </ListItem>
             );
           })}
         </List>
         {defined(editRule) && (
-          <DataPrivacyRulesPanelRuleModal
+          <DataPrivacyRulesModal
             rule={rules[editRule]}
-            selectorSuggestions={selectorSuggestions}
+            sourceSuggestions={sourceSuggestions}
             onClose={this.handleCloseEditRuleModal}
             onUpdateEventId={onUpdateEventId}
             onSaveRule={this.handleSave}
@@ -167,7 +163,7 @@ class DataPrivacyRulesPanelContent extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesPanelContent;
+export default DataPrivacyRulesContent;
 
 const List = styled('ul')`
   list-style: none;
@@ -178,6 +174,13 @@ const List = styled('ul')`
 
 const StyledIconDelete = styled(IconDelete)`
   opacity: 0.3;
+`;
+
+const ListItemDescription = styled('span')`
+  &:hover {
+    color: ${p => p.theme.blue};
+    text-decoration: underline;
+  }
 `;
 
 const ListItem = styled('li')<{isChecked?: boolean}>`
@@ -193,10 +196,6 @@ const ListItem = styled('li')<{isChecked?: boolean}>`
       opacity: 1;
     }
     background-color: ${p => p.theme.offWhite};
-    span {
-      color: ${p => p.theme.blue};
-      text-decoration: underline;
-    }
   }
 
   &:last-child {
