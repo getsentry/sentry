@@ -52,19 +52,13 @@ class OpsBreakdown extends React.Component<Props> {
     const event = this.getTransactionEvent();
 
     if (!event) {
-      return {
-        topN: [],
-        other: undefined,
-      };
+      return [];
     }
 
     const traceContext: TraceContextType | undefined = event?.contexts?.trace;
 
     if (!traceContext) {
-      return {
-        topN: [],
-        other: undefined,
-      };
+      return [];
     }
 
     const spanEntry: SpanEntry | undefined = event.entries.find(
