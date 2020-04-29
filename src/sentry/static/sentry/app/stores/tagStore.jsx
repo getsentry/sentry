@@ -18,12 +18,63 @@ const getUsername = ({isManaged, username, email}) => {
 
 const getMemberListStoreUsernames = () => MemberListStore.getAll().map(getUsername);
 
+// This list is not the same as the list of
+// fields in app/utils/discover/fields.tsx@FIELDS
+// The differences are because discover1 and issue
+// search expose a subset of all event attributes.
+const BUILTIN_TAGS = [
+  'event.type',
+  'platform',
+  'message',
+  'title',
+  'location',
+  'timestamp',
+  'release',
+  'user.id',
+  'user.username',
+  'user.email',
+  'user.ip',
+  'sdk.name',
+  'sdk.version',
+  'contexts.key',
+  'contexts.value',
+  'http.method',
+  'http.url',
+  'os.build',
+  'os.kernel_version',
+  'device.brand',
+  'device.locale',
+  'device.uuid',
+  'device.model_id',
+  'device.arch',
+  'device.orientation',
+  'geo.country_code',
+  'geo.region',
+  'geo.city',
+  'error.type',
+  'error.value',
+  'error.mechanism',
+  'error.handled',
+  'stack.abs_path',
+  'stack.filename',
+  'stack.package',
+  'stack.module',
+  'stack.function',
+  'stack.stack_level',
+].map(tag => ({
+  key: tag,
+}));
+
 const TagStore = Reflux.createStore({
   listenables: TagActions,
 
   init() {
     this.listenTo(MemberListStore, this.onMemberListStoreChange);
     this.reset();
+  },
+
+  getBuiltInTags() {
+    return [...BUILTIN_TAGS];
   },
 
   getIssueAttributes() {
@@ -102,20 +153,8 @@ const TagStore = Reflux.createStore({
     this.trigger(this.tags);
   },
 
-  getTag(tagName) {
-    return this.tags[tagName];
-  },
-
   getAllTags() {
     return this.tags;
-  },
-
-  getTagKeys() {
-    return Object.keys(this.tags);
-  },
-
-  getTagValues(tagKey) {
-    return this.tags[tagKey].values || [];
   },
 
   onLoadTagsSuccess(data) {

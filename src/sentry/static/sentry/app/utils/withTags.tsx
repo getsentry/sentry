@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import omit from 'lodash/omit';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
@@ -16,33 +17,46 @@ type State = {
   tags: TagCollection;
 };
 
+/**
+ * TODO(mark) Remove these options and have TagStore only contain tags.
+ * Add new HOCs that layer in the event + issue attributes as needed.
+ */
 type Options = {
   /**
-   * Set to true if you want to include issue attributes in the tag listt
+   * Set to true if you want to include issue attributes in the tag list
    * that is forwarded to the wrapped component.
    */
   includeIssueAttributes?: boolean;
+  /**
+   * Set to true if you want to include event properties
+   */
+  includeEventAttributes?: boolean;
 };
 
 const ISSUE_TAGS: TagCollection = TagStore.getIssueAttributes();
 
-function filterTags(tags: TagCollection, includeIssueAttributes: boolean): TagCollection {
-  if (includeIssueAttributes) {
-    return tags;
+function filterTags(tags: TagCollection, options: Options): TagCollection {
+  const out: TagCollection = {...tags};
+  if (options.includeEventAttributes) {
+    TagStore.getBuiltInTags().forEach((tag: Tag) => (out[tag.key] = tag));
   }
-  const out = Object.keys(tags).reduce((acc, name) => {
-    if (!ISSUE_TAGS.hasOwnProperty(name)) {
-      acc[name] = tags[name];
-    }
 
-    return acc;
-  }, {});
+  if (options.includeIssueAttributes) {
+    // timestamp is replaced by event.timestamp
+    // environment is in the globalSelectionHeader.
+    return omit(out, ['environment', 'timestamp']);
+  }
+
+  // Remove issue attributes as they are include by default by TagStore
+  // for now.
+  Object.keys(ISSUE_TAGS).forEach(key => delete out[key]);
+
   return out;
 }
 
 const withTags = <P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>,
-  {includeIssueAttributes = false}: Options = {}
+  {includeIssueAttributes = false, includeEventAttributes = true}: Options = {}
 ) =>
   createReactClass<Omit<P, keyof InjectedTagsProps>, State>({
     displayName: `withTags(${getDisplayName(WrappedComponent)})`,
@@ -50,12 +64,17 @@ const withTags = <P extends InjectedTagsProps>(
 
     getInitialState() {
       return {
-        tags: filterTags(TagStore.getAllTags(), includeIssueAttributes),
+        tags: filterTags(TagStore.getAllTags(), {
+          includeIssueAttributes,
+          includeEventAttributes,
+        }),
       };
     },
 
     onTagsUpdate(tags: TagCollection) {
-      this.setState({tags: filterTags(tags, includeIssueAttributes)});
+      this.setState({
+        tags: filterTags(tags, {includeIssueAttributes, includeEventAttributes}),
+      });
     },
 
     render() {

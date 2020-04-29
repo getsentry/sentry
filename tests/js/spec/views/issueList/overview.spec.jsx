@@ -22,7 +22,7 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('IssueList,', function() {
+describe('IssueList', function() {
   let wrapper;
   let props;
 
@@ -90,10 +90,11 @@ describe('IssueList,', function() {
         },
       ],
     });
+    const tags = TestStubs.Tags();
     fetchTagsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: tags,
     });
     fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -123,6 +124,11 @@ describe('IssueList,', function() {
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: organization.slug},
       organization,
+      tags: tags.reduce((acc, tag) => {
+        acc[tag.key] = tag;
+
+        return acc;
+      }),
     };
   });
 
@@ -1202,7 +1208,6 @@ describe('IssueList,', function() {
       await instance.componentDidMount();
 
       expect(fetchTagsRequest).toHaveBeenCalled();
-      expect(instance.state.tags.assigned).toBeTruthy();
       expect(instance.state.tagsLoading).toBeFalsy();
     });
 
