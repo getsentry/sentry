@@ -3,7 +3,7 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {t} from 'app/locale';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, AREA_SINGLE_COLOR, AREA_COLORS} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -82,6 +82,11 @@ class EventsAreaChart extends React.Component {
       data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
+    const colors =
+      timeseriesData.length === 1
+        ? [AREA_SINGLE_COLOR]
+        : AREA_COLORS.slice(0, timeseriesData.length);
+
     return (
       <AreaChart
         {...props}
@@ -92,6 +97,7 @@ class EventsAreaChart extends React.Component {
           showSymbol: false,
         }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
+        colors={colors}
         grid={{
           left: '24px',
           right: '24px',
