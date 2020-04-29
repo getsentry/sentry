@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import search
 from sentry.api.base import EnvironmentMixin
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.event_search import parse_search_query
 from sentry.api.serializers import serialize
@@ -21,8 +21,6 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response({"count": 0})
 
@@ -46,8 +44,6 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
     def get(self, request, organization):
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response([])
 
