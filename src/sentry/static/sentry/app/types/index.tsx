@@ -1190,8 +1190,8 @@ export type Activity = {
 
 export type PlatformIntegration = {
   id: string;
-  type: 'framework' | 'language';
+  type: string;
   language: string;
-  link: string;
+  link: string | null;
   name: string;
 };

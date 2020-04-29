@@ -16,9 +16,9 @@ const otherPlatform = {
   name: t('Other'),
 };
 
-export default [].concat(
+export default ([] as PlatformIntegration[]).concat(
   [],
   ...[...platforms, otherPlatform].map(platform =>
     platform.integrations.map(i => ({...i, language: platform.id}))
   )
-) as PlatformIntegration[];
+);
