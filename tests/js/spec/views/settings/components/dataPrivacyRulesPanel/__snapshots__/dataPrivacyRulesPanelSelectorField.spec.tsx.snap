@@ -76,7 +76,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         onChange={[Function]}
         onFocus={[Function]}
         onKeyDown={[Function]}
-        placeholder="Enter custom attribute, variable or a header name"
+        placeholder="Enter a custom attribute, variable or header name"
         required={false}
         value="$string"
       >
@@ -89,7 +89,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
           onChange={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          placeholder="Enter custom attribute, variable or a header name"
+          placeholder="Enter a custom attribute, variable or header name"
           required={false}
           value="$string"
         >
@@ -108,7 +108,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
                 onChange={[Function]}
                 onFocus={[Function]}
                 onKeyDown={[Function]}
-                placeholder="Enter custom attribute, variable or a header name"
+                placeholder="Enter a custom attribute, variable or header name"
                 required={false}
                 type="text"
                 value="$string"

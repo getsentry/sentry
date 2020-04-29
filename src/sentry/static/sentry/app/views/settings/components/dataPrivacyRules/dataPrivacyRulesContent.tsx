@@ -8,7 +8,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconDelete, IconWarning} from 'app/icons';
 
 import DataPrivacyRulesModal from './dataPrivacyRulesModal';
-import {getRuleTypeLabel, getMethodTypeLabel} from './utils';
+import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
 
 type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
 type Rule = NonNullable<ModalProps['rule']>;

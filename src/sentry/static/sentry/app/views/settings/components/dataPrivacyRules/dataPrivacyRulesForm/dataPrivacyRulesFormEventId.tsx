@@ -118,7 +118,7 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
     return (
       <StyledAlert type="warning">
         <DataPrivacyRulesPanelFormField
-          label={t('Use event for assistance')}
+          label={t('Use an event for assistance')}
           tooltipInfo={t(
             'In case you have already seen sensitive data in your events, paste an event ID here to get better autocompletion features.'
           )}

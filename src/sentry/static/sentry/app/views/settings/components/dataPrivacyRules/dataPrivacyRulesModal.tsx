@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
-import {RuleType, MethodType} from './types';
+import {RuleType, MethodType} from './dataPrivacyRulesForm/types';
 
 const DEFAULT_RULE_SOURCE_VALUE = '';
 
@@ -77,7 +77,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
     return (
       <StyledModal show animation={false} onHide={onClose}>
         <Modal.Header closeButton>
-          {t(`${rule?.id !== -1 ? 'Edit' : 'Add'} a data privacy rule`)}
+          {rule?.id !== -1 ? t('Edit a data privacy rule') : t('Add a data privacy rule')}
         </Modal.Header>
         <Modal.Body>
           <DataPrivacyRulesPanelForm

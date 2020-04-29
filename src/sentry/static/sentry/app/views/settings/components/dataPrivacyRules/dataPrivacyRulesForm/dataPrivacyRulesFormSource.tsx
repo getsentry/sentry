@@ -362,7 +362,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
       <Wrapper ref={this.selectorField}>
         <StyledTextField
           name="from"
-          placeholder={t('Enter custom attribute, variable or a header name')}
+          placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
           autoComplete="off"
           value={value}
