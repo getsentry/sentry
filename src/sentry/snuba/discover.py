@@ -26,13 +26,16 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
+    SnubaQueryParams,
     DISCOVER_COLUMN_MAP,
     QUOTED_LITERAL_RE,
+    bulk_raw_query,
     raw_query,
     to_naive_timestamp,
     naiveify_datetime,
     resolve_condition,
 )
+from sentry.utils.compat import zip
 
 __all__ = (
     "ReferenceEvent",
@@ -1060,7 +1063,7 @@ def get_facets(query, params, limit=10, referrer=None):
         aggregations=[["count", None, "count"]],
         start=snuba_filter.start,
         end=snuba_filter.end,
-        conditions=snuba_filter.conditions,
+        conditions=snuba_filter.conditions[:],
         filter_keys=snuba_filter.filter_keys,
         orderby=["-count", "tags_key"],
         groupby="tags_key",
@@ -1094,7 +1097,7 @@ def get_facets(query, params, limit=10, referrer=None):
             aggregations=[["count", None, "count"]],
             start=snuba_filter.start,
             end=snuba_filter.end,
-            conditions=snuba_filter.conditions,
+            conditions=snuba_filter.conditions[:],
             filter_keys=snuba_filter.filter_keys,
             groupby="project_id",
             orderby="-count",
@@ -1126,53 +1129,64 @@ def get_facets(query, params, limit=10, referrer=None):
         else:
             individual_tags.append(tag)
 
+    tag_params = []
     for tag_name in individual_tags:
         tag = u"tags[{}]".format(tag_name)
-        tag_values = raw_query(
-            aggregations=[["count", None, "count"]],
-            conditions=snuba_filter.conditions,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=["-count"],
-            groupby=[tag],
-            limit=TOP_VALUES_DEFAULT_LIMIT,
-            dataset=Dataset.Discover,
-            referrer=referrer,
-            sample=sample_rate,
-            # Ensures Snuba will not apply FINAL
-            turbo=sample_rate is not None,
+        tag_params.append(
+            SnubaQueryParams(
+                aggregations=[["count", None, "count"]],
+                conditions=snuba_filter.conditions[:],
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=["-count"],
+                groupby=[tag],
+                limit=TOP_VALUES_DEFAULT_LIMIT,
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                # Ensures Snuba will not apply FINAL
+                turbo=sample_rate is not None,
+            )
         )
-        results.extend(
-            [
-                FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
-                for r in tag_values["data"]
-            ]
-        )
-
     if aggregate_tags:
-        conditions = snuba_filter.conditions
-        conditions.append(["tags_key", "IN", aggregate_tags])
-        tag_values = raw_query(
-            aggregations=[["count", None, "count"]],
-            conditions=conditions,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=["tags_key", "-count"],
-            groupby=["tags_key", "tags_value"],
-            dataset=Dataset.Discover,
-            referrer=referrer,
-            sample=sample_rate,
-            # Ensures Snuba will not apply FINAL
-            turbo=sample_rate is not None,
-            limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
-        )
-        results.extend(
-            [
-                FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
-                for r in tag_values["data"]
-            ]
-        )
+        aggregate_param = [
+            SnubaQueryParams(
+                aggregations=[["count", None, "count"]],
+                conditions=snuba_filter.conditions + [["tags_key", "IN", aggregate_tags]],
+                start=snuba_filter.start,
+                end=snuba_filter.end,
+                filter_keys=snuba_filter.filter_keys,
+                orderby=["tags_key", "-count"],
+                groupby=["tags_key", "tags_value"],
+                dataset=Dataset.Discover,
+                referrer=referrer,
+                sample=sample_rate,
+                # Ensures Snuba will not apply FINAL
+                turbo=sample_rate is not None,
+                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+            )
+        ]
+
+    if tag_params or aggregate_param:
+        bulk_tag_result = bulk_raw_query(tag_params + aggregate_param, referrer)
+
+        # zip will make sure we only get the tag results from bulk_tag_result here
+        for tag_name, tag_values in zip(individual_tags, bulk_tag_result):
+            tag = u"tags[{}]".format(tag_name)
+            results.extend(
+                [
+                    FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                    for r in tag_values["data"]
+                ]
+            )
+
+        if aggregate_tags:
+            results.extend(
+                [
+                    FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
+                    for r in bulk_tag_result[-1]["data"]
+                ]
+            )
 
     return results
