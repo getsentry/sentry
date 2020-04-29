@@ -220,7 +220,9 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
   };
 
   getChartPixelForThreshold = (threshold: number | '' | null) =>
-    this.chartRef && this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
+    threshold !== '' &&
+    this.chartRef &&
+    this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
 
   render() {
     const {data, triggers, period} = this.props;

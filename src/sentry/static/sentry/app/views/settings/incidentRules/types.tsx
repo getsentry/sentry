@@ -14,11 +14,12 @@ export enum AlertRuleAggregations {
 }
 
 export type UnsavedTrigger = {
-  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an id yet
+  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
+  // id yet
   alertRuleId?: string;
   label: string;
   thresholdType: AlertRuleThresholdType;
-  alertThreshold: number;
+  alertThreshold: number | '' | null;
   resolveThreshold: number | '' | null;
   actions: Action[];
 };
