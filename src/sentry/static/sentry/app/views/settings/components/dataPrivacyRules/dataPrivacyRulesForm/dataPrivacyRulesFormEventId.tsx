@@ -116,7 +116,7 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
       <DataPrivacyRulesPanelFormField
         label={t('Event ID (Optional)')}
         tooltipInfo={t(
-          'In case you have already seen sensitive data in your events, paste an event ID here to get better autocompletion features.'
+          'Providing an event ID will automatically provide you a list of suggested sources'
         )}
       >
         <EventIdFieldWrapper>

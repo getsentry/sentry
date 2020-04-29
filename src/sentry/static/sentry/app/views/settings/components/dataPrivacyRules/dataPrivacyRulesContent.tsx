@@ -5,7 +5,9 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconDelete, IconWarning} from 'app/icons';
+import {IconDelete, IconWarning, IconEdit} from 'app/icons';
+import TextOverflow from 'app/components/textOverflow';
+import Button from 'app/components/button';
 
 import DataPrivacyRulesModal from './dataPrivacyRulesModal';
 import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
@@ -20,73 +22,17 @@ type Props = {
 } & Pick<ModalProps, 'disabled' | 'eventId' | 'onUpdateEventId' | 'sourceSuggestions'>;
 
 type State = {
-  selectedRules: Array<Rule['id']>;
   editRule?: Rule['id'];
 };
 
 class DataPrivacyRulesContent extends React.Component<Props, State> {
   state: State = {
-    selectedRules: [],
+    editRule: undefined,
   };
 
-  handleSelectRule = (ruleId: number, isChecked: boolean) => (
-    event: React.MouseEvent<HTMLDivElement>
-  ) => {
-    event.stopPropagation();
-
-    const {selectedRules} = this.state;
-
-    if (isChecked) {
-      this.setState({
-        selectedRules: selectedRules.filter(selectedRule => selectedRule !== ruleId),
-      });
-      return;
-    }
-
-    this.setState({
-      selectedRules: [...selectedRules, ruleId],
-    });
-  };
-
-  handleDeleteRule = (ruleId: Rule['id']) => (
-    event?: React.MouseEvent<SVGAElement | SVGElement>
-  ) => {
-    event?.stopPropagation();
-
+  handleDeleteRule = (ruleId: Rule['id']) => () => {
     const {onDeleteRule} = this.props;
-
     onDeleteRule([ruleId]);
-  };
-
-  handleSelectAll = (selectAll: boolean) => {
-    if (selectAll) {
-      const {rules} = this.props;
-
-      this.setState({
-        selectedRules: rules.map(rule => rule.id),
-      });
-      return;
-    }
-
-    this.setState({
-      selectedRules: [],
-    });
-  };
-
-  handleDeleteAllSelected = (event: React.MouseEvent<SVGAElement>) => {
-    event.stopPropagation();
-
-    const {onDeleteRule} = this.props;
-    const {selectedRules} = this.state;
-
-    this.setState(
-      {
-        selectedRules: [],
-      },
-      () => {
-        onDeleteRule(selectedRules);
-      }
-    );
   };
 
   handleShowEditRuleModal = (ruleId: Rule['id']) => () => {
@@ -115,7 +61,7 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
   };
 
   render() {
-    const {selectedRules, editRule} = this.state;
+    const {editRule} = this.state;
     const {rules, sourceSuggestions, onUpdateEventId, eventId} = this.props;
 
     if (rules.length === 0) {
@@ -131,19 +77,23 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
       <React.Fragment>
         <List>
           {rules.map(({id, method, type, source}) => {
-            const isChecked = selectedRules.includes(id);
             const methodLabel = getMethodTypeLabel(method);
             const typelabel = getRuleTypeLabel(type);
             return (
-              <ListItem
-                key={id}
-                isChecked={isChecked}
-                onClick={this.handleShowEditRuleModal(id)}
-              >
-                <ListItemDescription>
+              <ListItem key={id}>
+                <TextOverflow>
                   {`[${methodLabel}] [${typelabel}] ${t('from')} [${source}]`}
-                </ListItemDescription>
-                <StyledIconDelete onClick={this.handleDeleteRule(id)} />
+                </TextOverflow>
+                <Button
+                  size="small"
+                  onClick={this.handleShowEditRuleModal(id)}
+                  icon={<IconEdit />}
+                />
+                <Button
+                  size="small"
+                  onClick={this.handleDeleteRule(id)}
+                  icon={<IconDelete />}
+                />
               </ListItem>
             );
           })}
@@ -172,32 +122,16 @@ const List = styled('ul')`
   margin-bottom: 0 !important;
 `;
 
-const StyledIconDelete = styled(IconDelete)`
-  opacity: 0.3;
-`;
-
-const ListItemDescription = styled('span')`
-  &:hover {
-    color: ${p => p.theme.blue};
-    text-decoration: underline;
-  }
-`;
-
-const ListItem = styled('li')<{isChecked?: boolean}>`
+const ListItem = styled('li')`
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto max-content max-content;
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  cursor: pointer;
   &:hover {
-    ${StyledIconDelete} {
-      opacity: 1;
-    }
     background-color: ${p => p.theme.offWhite};
   }
-
   &:last-child {
     border-bottom: 0;
   }

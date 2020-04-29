@@ -370,18 +370,18 @@ class DataPrivacyRules extends React.Component<Props, State> {
             />
             <PanelAction>
               <Button
+                href={ADVANCED_DATASCRUBBING_LINK}
+                target="_blank"
+                disabled={disabled}
+              >
+                {t('Read the docs')}
+              </Button>
+              <Button
                 disabled={disabled}
                 onClick={this.handleToggleAddRuleModal(true)}
                 priority="primary"
               >
                 {t('Add Rule')}
-              </Button>
-              <Button
-                href={ADVANCED_DATASCRUBBING_LINK}
-                target="_blank"
-                disabled={disabled}
-              >
-                {t('Learn More')}
               </Button>
             </PanelAction>
           </PanelBody>
