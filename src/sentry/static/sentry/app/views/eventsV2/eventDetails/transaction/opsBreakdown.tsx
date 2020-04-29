@@ -13,16 +13,25 @@ import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-type OpStats = {percentage: number; totalDuration: number};
+type StartTimestamp = number;
+type EndTimestamp = number;
+type Duration = number;
+
+type TimeWindowSpan = [StartTimestamp, EndTimestamp];
+
+type OperationName = string;
+
+// mapping an operation name to a disjoint set of time intervals (start/end timestamp).
+// this is an intermediary data structure to help calculate the coverage of an operation name
+// with respect to the root transaction span's operation lifetime
+type OperationNameIntervals = Record<OperationName, Array<TimeWindowSpan>>;
+type OperationNameCoverage = Record<OperationName, Duration>;
+
+type OpStats = {name: string; percentage: number; totalInterval: number};
 
 const TOP_N_SPANS = 4;
 
-type OpBreakdownType = {
-  // top TOP_N_SPANS spans
-  ops: ({name: string} & OpStats)[];
-  // the rest of the spans
-  other: OpStats | undefined;
-};
+type OpBreakdownType = OpStats[];
 
 type Props = {
   event: Event;
@@ -44,7 +53,7 @@ class OpsBreakdown extends React.Component<Props> {
 
     if (!event) {
       return {
-        ops: [],
+        topN: [],
         other: undefined,
       };
     }
@@ -53,7 +62,7 @@ class OpsBreakdown extends React.Component<Props> {
 
     if (!traceContext) {
       return {
-        ops: [],
+        topN: [],
         other: undefined,
       };
     }
@@ -79,82 +88,120 @@ class OpsBreakdown extends React.Component<Props> {
             },
           ];
 
-    type AggregateType = {
-      [opname: string]: {
-        totalDuration: number; // num of seconds
-      };
-    };
+    const operationNameIntervals = spans.reduce(
+      (intervals: OperationNameIntervals, span: RawSpanType) => {
+        let startTimestamp = span.start_timestamp;
+        let endTimestamp = span.timestamp;
 
-    let cumulativeDuration = 0;
+        if (endTimestamp < startTimestamp) {
+          // reverse timestamps
+          startTimestamp = span.timestamp;
+          endTimestamp = span.start_timestamp;
+        }
 
-    const aggregateByOp: AggregateType = spans.reduce(
-      (aggregate: AggregateType, span: RawSpanType) => {
-        let op = span.op;
+        // invariant: startTimestamp <= endTimestamp
 
-        const duration = Math.abs(span.timestamp - span.start_timestamp);
-        cumulativeDuration += duration;
+        let operationName = span.op;
 
-        if (typeof op !== 'string') {
+        if (typeof operationName !== 'string') {
           // a span with no operation name is considered an 'unknown' op
-          op = 'unknown';
-        }
-        const opStats = aggregate[op];
-
-        if (!opStats) {
-          aggregate[op] = {
-            totalDuration: duration,
-          };
-          return aggregate;
+          operationName = 'unknown';
         }
 
-        aggregate[op].totalDuration += duration;
+        const cover: TimeWindowSpan = [startTimestamp, endTimestamp];
 
-        return aggregate;
+        const operationNameInterval = intervals[operationName] ?? [];
+
+        if (operationNameInterval.length <= 0) {
+          intervals[operationName] = [cover];
+
+          return intervals;
+        }
+
+        operationNameInterval.push(cover);
+
+        intervals[operationName] = mergeInterval(operationNameInterval);
+
+        return intervals;
       },
       {}
     );
 
-    const ops = Object.keys(aggregateByOp).map(opName => ({
-      name: opName,
-      percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
-      totalDuration: aggregateByOp[opName].totalDuration,
-    }));
+    const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
+      (
+        acc: OperationNameCoverage,
+        [operationName, intervals]: [OperationName, TimeWindowSpan[]]
+      ) => {
+        const duration = intervals.reduce((sum: number, [start, end]) => {
+          return sum + Math.abs(end - start);
+        }, 0);
 
-    ops.sort((firstOp, secondOp) => {
-      // sort in descending order based on total duration
+        acc[operationName] = duration;
 
-      if (firstOp.percentage === secondOp.percentage) {
-        return 0;
-      }
+        return acc;
+      },
+      {}
+    );
 
-      if (firstOp.percentage > secondOp.percentage) {
-        return -1;
-      }
+    const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
+      (first: [OperationName, Duration], second: [OperationName, Duration]) => {
+        const firstDuration = first[1];
+        const secondDuration = second[1];
 
-      return 1;
-    });
-
-    const other = ops
-      .slice(TOP_N_SPANS)
-      .reduce((accOther: OpStats | undefined, currentOp) => {
-        if (!accOther) {
-          return {
-            percentage: currentOp.totalDuration / cumulativeDuration,
-            totalDuration: currentOp.totalDuration,
-          };
+        if (firstDuration === secondDuration) {
+          return 0;
         }
 
-        accOther.totalDuration += currentOp.totalDuration;
-        accOther.percentage = accOther.totalDuration / cumulativeDuration;
+        if (firstDuration < secondDuration) {
+          // sort second before first
+          return 1;
+        }
 
-        return accOther;
-      }, undefined);
+        // otherwise, sort first before second
+        return -1;
+      }
+    );
 
-    return {
-      // use the first TOP_N_SPANS ops with the top total duration
-      ops: ops.slice(0, TOP_N_SPANS),
-      other,
-    };
+    const rootTransactionInterval = Math.abs(event.endTimestamp - event.startTimestamp);
+
+    const breakdown = sortedOpsBreakdown
+      .slice(0, TOP_N_SPANS)
+      .map(([operationName, duration]: [OperationName, Duration]) => {
+        return {
+          name: operationName,
+          percentage: duration / rootTransactionInterval,
+          totalInterval: duration,
+        };
+      });
+
+    const other = sortedOpsBreakdown
+      .slice(TOP_N_SPANS)
+      .reduce(
+        (
+          accOther: OpStats | undefined,
+          [_operationName, duration]: [OperationName, Duration]
+        ) => {
+          if (!accOther) {
+            return {
+              name: t('Other'),
+              percentage: duration / rootTransactionInterval,
+              totalInterval: duration,
+            };
+          }
+
+          accOther.totalInterval += duration;
+          accOther.percentage = accOther.totalInterval / rootTransactionInterval;
+
+          return accOther;
+        },
+        undefined
+      );
+
+    if (other) {
+      breakdown.push(other);
+    }
+
+    return breakdown;
   }
 
   render() {
@@ -164,23 +211,23 @@ class OpsBreakdown extends React.Component<Props> {
       return null;
     }
 
-    const results = this.generateStats();
+    const breakdown = this.generateStats();
 
     return (
       <StyledBreakdown>
         <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
-        {results.ops.map(currOp => {
-          const {name, percentage, totalDuration} = currOp;
-          const durLabel = Math.round(totalDuration * 1000 * 100) / 100;
+        {breakdown.map(currOp => {
+          const {name, percentage, totalInterval} = currOp;
+          const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
           const opsColor: string = pickSpanBarColour(name);
 
           return (
             <OpsLine key={name}>
-              <OpsContent>
+              <OpsNameContainer>
                 <OpsDot style={{backgroundColor: opsColor}} />
-                <div>{name}</div>
-              </OpsContent>
+                <OpsName>{name}</OpsName>
+              </OpsNameContainer>
               <OpsContent>
                 <Dur>{durLabel}ms</Dur>
                 <Pct>{pctLabel}%</Pct>
@@ -203,12 +250,17 @@ const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
+
+  * + * {
+    margin-left: ${space(0.5)};
+  }
 `;
 
 const OpsDot = styled('div')`
   content: '';
   display: block;
   width: 8px;
+  min-width: 8px;
   height: 8px;
   margin-right: ${space(1)};
   border-radius: 100%;
@@ -219,6 +271,16 @@ const OpsContent = styled('div')`
   align-items: center;
 `;
 
+const OpsNameContainer = styled(OpsContent)`
+  overflow: hidden;
+`;
+
+const OpsName = styled('div')`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const Dur = styled('div')`
   color: ${p => p.theme.gray2};
 `;
@@ -227,5 +289,52 @@ const Pct = styled('div')`
   min-width: 40px;
   text-align: right;
 `;
+
+function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
+  // sort intervals by start timestamps
+  intervals.sort((first: TimeWindowSpan, second: TimeWindowSpan) => {
+    if (first[0] < second[0]) {
+      // sort first before second
+      return -1;
+    }
+
+    if (second[0] < first[0]) {
+      // sort second before first
+      return 1;
+    }
+
+    return 0;
+  });
+
+  // array of disjoint intervals
+  const merged: TimeWindowSpan[] = [];
+
+  for (const currentInterval of intervals) {
+    if (merged.length === 0) {
+      merged.push(currentInterval);
+      continue;
+    }
+
+    const lastInterval = merged[merged.length - 1];
+    const lastIntervalEnd = lastInterval[1];
+
+    const [currentIntervalStart, currentIntervalEnd] = currentInterval;
+
+    if (lastIntervalEnd < currentIntervalStart) {
+      // if currentInterval does not overlap with lastInterval,
+      // then add currentInterval
+      merged.push(currentInterval);
+      continue;
+    }
+
+    // currentInterval and lastInterval overlaps; so we merge these intervals
+
+    // invariant: lastIntervalStart <= currentIntervalStart
+
+    lastInterval[1] = Math.max(lastIntervalEnd, currentIntervalEnd);
+  }
+
+  return merged;
+}
 
 export default OpsBreakdown;
