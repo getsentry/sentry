@@ -153,7 +153,9 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi(withTags(Table));
+export default withApi(
+  withTags(Table, {includeEventAttributes: false, includeIssueAttributes: false})
+);
 
 const Container = styled('div')`
   min-width: 0;
