@@ -21,7 +21,7 @@ import {TableDataRow} from 'app/views/eventsV2/table/types';
 import Link from 'app/components/links/link';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
-import {isGapSpan, getTraceDateTimeRange} from './utils';
+import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
   'project.name': string;
@@ -209,6 +209,32 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderOrphanSpanMessage() {
+    const {span} = this.props;
+
+    if (!isOrphanSpan(span)) {
+      return null;
+    }
+
+    return (
+      <AlertMessage
+        alert={{
+          id: `orphan-span-${span.span_id}`,
+          message: (
+            <span>
+              {t(
+                'This is a span that has no parent span that exists within this transaction, and is attached to the transaction root span by default.'
+              )}
+            </span>
+          ),
+          type: 'info',
+        }}
+        system
+        hideCloseButton
+      />
+    );
+  }
+
   renderSpanErrorMessage() {
     const {orgId, spanErrors, totalNumberOfErrors, span, trace, eventView} = this.props;
 
@@ -310,6 +336,7 @@ class SpanDetail extends React.Component<Props, State> {
           event.stopPropagation();
         }}
       >
+        {this.renderOrphanSpanMessage()}
         {this.renderSpanErrorMessage()}
         <SpanDetails>
           <table className="table key-value">
