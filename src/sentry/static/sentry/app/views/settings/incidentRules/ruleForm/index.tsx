@@ -392,6 +392,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       ? `${query} ${this.getEventType()}`.trim()
       : query;
 
+    const chart = (
+      <TriggersChart
+        api={this.api}
+        organization={organization}
+        projects={this.state.projects}
+        triggers={triggers}
+        query={queryAndAlwaysErrorEvents}
+        aggregation={aggregation}
+        timeWindow={timeWindow}
+      />
+    );
+
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
@@ -431,22 +443,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <TriggersChart
-              api={this.api}
-              organization={organization}
-              projects={this.state.projects}
-              triggers={triggers}
-              query={queryAndAlwaysErrorEvents}
-              aggregation={aggregation}
-              timeWindow={timeWindow}
-            />
-
             <RuleConditionsForm
               api={this.api}
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
               onFilterUpdate={this.handleFilterUpdate}
+              thresholdChart={chart}
             />
 
             <Triggers

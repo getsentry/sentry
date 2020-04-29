@@ -6,7 +6,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -33,6 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
+  thresholdChart: React.ReactNode;
   onFilterUpdate: (query: string) => void;
 };
 
@@ -74,6 +75,28 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
+          {this.props.thresholdChart}
+          <FormField name="query" inline={false}>
+            {({onChange, onBlur, onKeyDown, initialData}) => (
+              <SearchBar
+                defaultQuery={initialData?.query ?? ''}
+                help={t('Choose which metric to trigger on')}
+                disabled={disabled}
+                useFormWrapper={false}
+                organization={organization}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                onBlur={query => {
+                  onFilterUpdate(query);
+                  onBlur(query);
+                }}
+                onSearch={query => {
+                  onFilterUpdate(query);
+                  onChange(query, {});
+                }}
+              />
+            )}
+          </FormField>
           <SelectField
             name="aggregation"
             label={t('Metric')}
@@ -92,50 +115,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isDisabled={disabled}
           />
           <SelectField
-            name="environment"
-            label={t('Environment')}
-            help={t('Choose which environment events must match')}
-            placeholder={t('All environments')}
-            choices={
-              defined(this.state.environments)
-                ? this.state.environments.map((env: Environment) => [
-                    env.name,
-                    getDisplayName(env),
-                  ])
-                : []
-            }
-            isDisabled={disabled || this.state.environments === null}
-            multiple
-            isClearable
-          />
-          <FormField
-            name="query"
-            label={t('Filter')}
-            placeholder="error.type:TypeError"
-            help={tct(`By default a filter of [filter] is automatically applied`, {
-              filter: <code>event.type:error</code>,
-            })}
-          >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchBar
-                defaultQuery={initialData?.query ?? ''}
-                disabled={disabled}
-                useFormWrapper={false}
-                organization={organization}
-                onChange={onChange}
-                onKeyDown={onKeyDown}
-                onBlur={query => {
-                  onFilterUpdate(query);
-                  onBlur(query);
-                }}
-                onSearch={query => {
-                  onFilterUpdate(query);
-                  onChange(query, {});
-                }}
-              />
-            )}
-          </FormField>
-          <SelectField
             name="timeWindow"
             label={t('Time Window')}
             help={
@@ -153,6 +132,23 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isDisabled={disabled}
             getValue={value => Number(value)}
             setValue={value => `${value}`}
+          />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            help={t('Choose which environment events must match')}
+            placeholder={t('All environments')}
+            choices={
+              defined(this.state.environments)
+                ? this.state.environments.map((env: Environment) => [
+                    env.name,
+                    getDisplayName(env),
+                  ])
+                : []
+            }
+            isDisabled={disabled || this.state.environments === null}
+            multiple
+            isClearable
           />
         </PanelBody>
       </Panel>
