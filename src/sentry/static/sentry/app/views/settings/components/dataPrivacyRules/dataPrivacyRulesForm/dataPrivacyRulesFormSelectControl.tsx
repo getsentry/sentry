@@ -16,8 +16,8 @@ const DataPrivacyRulesPanelFormSelectControl = ({...props}: Props) => (
     styles={{
       control: (provided: {[x: string]: string | number | boolean}) => ({
         ...provided,
-        minHeight: '34px',
-        height: '34px',
+        minHeight: '40px',
+        height: '40px',
       }),
     }}
     openOnFocus

@@ -91,13 +91,12 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
         </Modal.Body>
         <Modal.Footer>
           <ButtonBar gap={1.5}>
-            <Button disabled={disabled} onClick={onClose} size="small">
+            <Button disabled={disabled} onClick={onClose}>
               {t('Cancel')}
             </Button>
             <Button
               disabled={disabled || !isFormValid}
               onClick={this.handleSave}
-              size="small"
               priority="primary"
             >
               {t('Save Rule')}

@@ -160,7 +160,7 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
             value={source}
             onBlur={this.handleValidation('source')}
             suggestions={sourceSuggestions}
-            error={errors.from}
+            error={errors.source}
             disabled={disabled}
           />
         </DataPrivacyRulesFormField>
@@ -187,9 +187,9 @@ const WrapperSelectFields = styled('div')`
 
 const CustomRegularExpression = styled(TextField)`
   font-size: ${p => p.theme.fontSizeSmall};
-  height: 34px;
+  height: 40px;
   input {
-    height: 34px;
+    height: 40px;
     font-family: ${p => p.theme.text.familyMono};
   }
 `;

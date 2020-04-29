@@ -347,7 +347,9 @@ class DataPrivacyRules extends React.Component<Props, State> {
             <div>{t('Data Privacy Rules')}</div>
           </PanelHeader>
           <PanelAlert type="info">
-            {additionalContext}{' '}
+            {`${additionalContext} ${t(
+              'The new rules will only apply to upcoming events. '
+            )}`}{' '}
             {tct('For more details, see [linkToDocs].', {
               linkToDocs: (
                 <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
@@ -368,7 +370,6 @@ class DataPrivacyRules extends React.Component<Props, State> {
             />
             <PanelAction>
               <Button
-                size="small"
                 disabled={disabled}
                 onClick={this.handleToggleAddRuleModal(true)}
                 priority="primary"
@@ -376,7 +377,6 @@ class DataPrivacyRules extends React.Component<Props, State> {
                 {t('Add Rule')}
               </Button>
               <Button
-                size="small"
                 href={ADVANCED_DATASCRUBBING_LINK}
                 target="_blank"
                 disabled={disabled}
@@ -408,6 +408,6 @@ const PanelAction = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
   grid-template-columns: auto auto;
-  justify-content: flex-start;
+  justify-content: flex-end;
   border-top: 1px solid ${p => p.theme.borderDark};
 `;

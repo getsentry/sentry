@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import TextField from 'app/components/forms/textField';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Alert from 'app/components/alert';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 
@@ -102,8 +101,6 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    event.persist();
-
     const {keyCode} = event;
 
     if (keyCode === 13 && this.isEventIdValid()) {
@@ -116,33 +113,31 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
     const {value, status} = this.state;
 
     return (
-      <StyledAlert type="warning">
-        <DataPrivacyRulesPanelFormField
-          label={t('Use an event for assistance')}
-          tooltipInfo={t(
-            'In case you have already seen sensitive data in your events, paste an event ID here to get better autocompletion features.'
-          )}
-        >
-          <EventIdFieldWrapper>
-            <StyledTextField
-              name="eventId"
-              disabled={disabled}
-              value={value}
-              placeholder={t('Paste event ID')}
-              onChange={this.handleChange}
-              onKeyDown={this.handleKeyDown}
-              onBlur={this.handleBlur}
-              showStatus={status !== EventIdStatus.LOADED}
-            />
-            <Status>
-              {status === EventIdStatus.LOADING && <ControlState isSaving />}
-              {status === EventIdStatus.INVALID && <ControlState error />}
-              {status === EventIdStatus.ERROR && <ControlState error />}
-              {status === EventIdStatus.NOT_FOUND && <ControlState error />}
-            </Status>
-          </EventIdFieldWrapper>
-        </DataPrivacyRulesPanelFormField>
-      </StyledAlert>
+      <DataPrivacyRulesPanelFormField
+        label={t('Event ID (Optional)')}
+        tooltipInfo={t(
+          'In case you have already seen sensitive data in your events, paste an event ID here to get better autocompletion features.'
+        )}
+      >
+        <EventIdFieldWrapper>
+          <StyledTextField
+            name="eventId"
+            disabled={disabled}
+            value={value}
+            placeholder={t('Paste event ID')}
+            onChange={this.handleChange}
+            onKeyDown={this.handleKeyDown}
+            onBlur={this.handleBlur}
+            showStatus={status !== EventIdStatus.LOADED}
+          />
+          <Status>
+            {status === EventIdStatus.LOADING && <ControlState isSaving />}
+            {status === EventIdStatus.INVALID && <ControlState error />}
+            {status === EventIdStatus.ERROR && <ControlState error />}
+            {status === EventIdStatus.NOT_FOUND && <ControlState error />}
+          </Status>
+        </EventIdFieldWrapper>
+      </DataPrivacyRulesPanelFormField>
     );
   }
 }
@@ -152,9 +147,10 @@ const StyledTextField = styled(TextField)<{showStatus: boolean}>`
   flex: 1;
   font-weight: 400;
   input {
-    height: 34px;
+    height: 40px;
     padding-right: ${p => (p.showStatus ? space(4) : space(1.5))};
   }
+  margin-bottom: 0;
 `;
 
 const Status = styled('div')`
@@ -166,8 +162,4 @@ const EventIdFieldWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
