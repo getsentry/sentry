@@ -235,6 +235,7 @@ def get_event_file_committers(project, event, frame_limit=25):
         "relevant_commits",
         extra={
             "relevant_commits": relevant_commits,
+            "project": project.id,
             "commit_path_matches": commit_path_matches,
         },
     )
