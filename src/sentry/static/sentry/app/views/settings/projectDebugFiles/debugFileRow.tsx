@@ -63,7 +63,7 @@ const DebugFileRow = ({debugFile, showDetails, downloadUrl, onDelete}: Props) =>
         <Description>
           {symbolType === 'proguard' && cpuName === 'any'
             ? t('proguard mapping')
-            : `${cpuName} (${symbolType}${fileType && ` ${fileType}`})`}
+            : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
 
           {features &&
             features.map(feature => (
