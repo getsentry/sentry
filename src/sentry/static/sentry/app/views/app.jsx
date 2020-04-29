@@ -1,5 +1,4 @@
 import $ from 'jquery';
-import {Global, css} from '@emotion/core';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
@@ -28,6 +27,7 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import GlobalStyles from 'app/styles/global';
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
 const ALLOWED_ANON_PAGES = [
@@ -256,15 +256,7 @@ class App extends React.Component {
 
     return (
       <ThemeProvider theme={theme}>
-        <Global
-          styles={css`
-            body {
-              .sentry-error-embed-wrapper {
-                z-index: ${theme.zIndex.sentryErrorEmbed};
-              }
-            }
-          `}
-        />
+        <GlobalStyles theme={theme} />
         <div
           className="main-container"
           tabIndex="-1"
