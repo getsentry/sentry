@@ -75,7 +75,8 @@ class QuotaConfig(object):
             assert reason_code, "reason code required for fallible quotas"
 
         if limit == 0:
-            assert window is None, "zero-sized quotas cannot have a window"
+            assert id is None, "reject-all quotas cannot be tracked"
+            assert window is None, "tracked quotas must specify a window"
         else:
             assert id, "measured quotas require an identifier"
             assert window and window > 0, "window cannot be zero"
@@ -100,7 +101,7 @@ class QuotaConfig(object):
         Whether the quotas service should track this quota.
         """
 
-        return self.id is not None
+        return self.id is not None and self.window is not None
 
     def to_json_legacy(self):
         data = {
