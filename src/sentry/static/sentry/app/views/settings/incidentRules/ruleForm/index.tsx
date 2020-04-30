@@ -137,10 +137,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // If this is alert threshold and inverted, it can't be above resolve
     // If this is resolve threshold and not inverted, it can't be above resolve
     // If this is resolve threshold and inverted, it can't be below resolve
+    // Since we're comparing non-inclusive thresholds here (>, <), we need
+    // to modify the values when we compare. An example of why:
+    // Alert > 0, resolve < 1. This means that we want to alert on values
+    // of 1 or more, and resolve on values of 0 or less. This is valid, but
+    // without modifying the values, this boundary case will fail.
     const isValid =
       trigger.thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold <= resolveThreshold
-        : alertThreshold >= resolveThreshold;
+        ? alertThreshold - 1 <= resolveThreshold + 1
+        : alertThreshold + 1 >= resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
     const isResolveChanged = changeObj?.hasOwnProperty('resolveThreshold');
