@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
+import sentry_sdk
 import six
 
+from collections import defaultdict
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
@@ -14,46 +15,51 @@ from sentry import features, tagstore
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
-            return Response(status=404)
-        try:
-            params = self.get_filter_params(request, organization)
-        except NoProjects:
-            raise ParseError(detail="A valid project must be included.")
-        self._validate_project_ids(request, organization, params)
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+            span.set_data("organization", organization)
+            if not features.has("organizations:discover-basic", organization, actor=request.user):
+                return Response(status=404)
+            try:
+                params = self.get_filter_params(request, organization)
+            except NoProjects:
+                raise ParseError(detail="A valid project must be included.")
+            self._validate_project_ids(request, organization, params)
 
-        try:
-            facets = discover.get_facets(
-                query=request.GET.get("query"),
-                params=params,
-                referrer="api.organization-events-facets.top-tags",
-            )
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
+        with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
+            try:
+                facets = discover.get_facets(
+                    query=request.GET.get("query"),
+                    params=params,
+                    referrer="api.organization-events-facets.top-tags",
+                )
+            except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+                raise ParseError(detail=six.text_type(error))
 
-        resp = defaultdict(lambda: {"key": "", "topValues": []})
-        for row in facets:
-            values = resp[row.key]
-            values["key"] = tagstore.get_standardized_key(row.key)
-            values["topValues"].append(
-                {
-                    "name": tagstore.get_tag_value_label(row.key, row.value),
-                    "value": row.value,
-                    "count": row.count,
-                }
-            )
-        if "project" in resp:
-            # Replace project ids with slugs as that is what we generally expose to users
-            # and filter out projects that the user doesn't have access too.
-            projects = {p.id: p.slug for p in self.get_projects(request, organization)}
-            filtered_values = []
-            for v in resp["project"]["topValues"]:
-                if v["value"] in projects:
-                    name = projects[v["value"]]
-                    v.update({"name": name})
-                    filtered_values.append(v)
+        with sentry_sdk.start_span(op="discover.endpoint", description="populate_results") as span:
+            span.set_data("facet_count", len(facets or []))
+            resp = defaultdict(lambda: {"key": "", "topValues": []})
+            for row in facets:
+                values = resp[row.key]
+                values["key"] = tagstore.get_standardized_key(row.key)
+                values["topValues"].append(
+                    {
+                        "name": tagstore.get_tag_value_label(row.key, row.value),
+                        "value": row.value,
+                        "count": row.count,
+                    }
+                )
+            if "project" in resp:
+                # Replace project ids with slugs as that is what we generally expose to users
+                # and filter out projects that the user doesn't have access too.
+                projects = {p.id: p.slug for p in self.get_projects(request, organization)}
+                filtered_values = []
+                for v in resp["project"]["topValues"]:
+                    if v["value"] in projects:
+                        name = projects[v["value"]]
+                        v.update({"name": name})
+                        filtered_values.append(v)
 
-            resp["project"]["topValues"] = filtered_values
+                resp["project"]["topValues"] = filtered_values
 
         return Response(resp.values())
 
