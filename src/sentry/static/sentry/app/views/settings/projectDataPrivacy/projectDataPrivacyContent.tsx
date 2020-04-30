@@ -11,7 +11,7 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 
-import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
+import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
 class ProjectDataPrivacyContent extends AsyncView<{}> {
   static contextTypes = {
@@ -66,7 +66,7 @@ class ProjectDataPrivacyContent extends AsyncView<{}> {
             ]}
           />
         </Form>
-        <DataPrivacyRulesPanel
+        <DataPrivacyRules
           additionalContext={
             <span>
               {tct(

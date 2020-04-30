@@ -7,7 +7,7 @@ export const IconQuestion = React.forwardRef(function IconQuestion(
   {color: providedColor = 'currentColor', size: providedSize = 'sm', ...props}: IconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
-  const color = providedColor;
+  const color = theme[providedColor] ?? providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   return (

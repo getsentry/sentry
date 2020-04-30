@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
-<DataPrivacyRulesPanelSelectorField
+<DataPrivacyRulesFormSource
   onChange={[MockFunction]}
-  selectorSuggestions={
+  suggestions={
     Array [
       Object {
         "description": "everywhere",
@@ -51,7 +51,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         "value": "$frame.vars.foo",
       },
       Object {
-        "description": "The timezone in the device context",
+        "description": "the timezone in the device context",
         "type": "value",
         "value": "contexts.device.timezone",
       },
@@ -66,7 +66,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
 >
   <Wrapper>
     <div
-      className="css-8p5quz-Wrapper e1e07je00"
+      className="css-8p5quz-Wrapper e5vbseb0"
     >
       <StyledTextField
         autoComplete="off"
@@ -76,25 +76,25 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         onChange={[Function]}
         onFocus={[Function]}
         onKeyDown={[Function]}
-        placeholder="an attribute, variable, or header name"
+        placeholder="Enter a custom attribute, variable or header name"
         required={false}
         value="$string"
       >
         <TextField
           autoComplete="off"
-          className="css-lml2jl-StyledTextField e1e07je01"
+          className="css-a4jb6d-StyledTextField e5vbseb1"
           disabled={false}
           hideErrorMessage={false}
           name="from"
           onChange={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          placeholder="an attribute, variable, or header name"
+          placeholder="Enter a custom attribute, variable or header name"
           required={false}
           value="$string"
         >
           <div
-            className="css-lml2jl-StyledTextField e1e07je01 control-group"
+            className="css-a4jb6d-StyledTextField e5vbseb1 control-group"
           >
             <div
               className="controls"
@@ -108,7 +108,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
                 onChange={[Function]}
                 onFocus={[Function]}
                 onKeyDown={[Function]}
-                placeholder="an attribute, variable, or header name"
+                placeholder="Enter a custom attribute, variable or header name"
                 required={false}
                 type="text"
                 value="$string"
@@ -119,5 +119,5 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
       </StyledTextField>
     </div>
   </Wrapper>
-</DataPrivacyRulesPanelSelectorField>
+</DataPrivacyRulesFormSource>
 `;

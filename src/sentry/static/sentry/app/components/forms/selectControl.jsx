@@ -72,6 +72,9 @@ const defaultStyles = {
       color: theme.gray2,
       cursor: 'not-allowed',
     }),
+    ...(!state.isSearchable && {
+      cursor: 'pointer',
+    }),
   }),
 
   menu: provided => ({
@@ -88,6 +91,7 @@ const defaultStyles = {
     ...provided,
     lineHeight: '1.5',
     fontSize: theme.fontSizeMedium,
+    cursor: 'pointer',
     color: state.isFocused
       ? theme.textColor
       : state.isSelected

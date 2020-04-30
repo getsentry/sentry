@@ -13,7 +13,7 @@ import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
 import SentryTypes from 'app/sentryTypes';
 
-import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
+import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
 type Props = {
   organization: Organization;
@@ -76,7 +76,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
             disabled={!access.has('org:write')}
           />
         </Form>
-        <DataPrivacyRulesPanel
+        <DataPrivacyRules
           additionalContext={t('These rules can be configured for each project.')}
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
