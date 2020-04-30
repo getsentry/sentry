@@ -31,7 +31,7 @@ const loadEventIdStatus = (status?: EventIdStatus) => {
       addErrorMessage(t('Something went wrong while fetching the suggestions'));
       break;
     case EventIdStatus.NOT_FOUND:
-      addErrorMessage(t('Event ID not found in projects you have access to'));
+      addErrorMessage(t('The chosen event was not found in projects you have access to'));
       break;
     case EventIdStatus.LOADED:
       addSuccessMessage(t('Successfully loaded event for autocompletion'));
