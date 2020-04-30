@@ -402,8 +402,6 @@ model_unpickle = django.db.models.base.model_unpickle
 
 
 def __model_unpickle_compat(model_id, attrs=None, factory=None):
-    from django import VERSION
-
     if attrs is not None or factory is not None:
         metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
         logger.error(
@@ -411,11 +409,7 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
             extra={"model_id": model_id, "attrs": attrs, "factory": factory},
             exc_info=True,
         )
-
-    if VERSION[:2] in [(1, 10), (1, 11)]:
-        return model_unpickle(model_id)
-    else:
-        raise NotImplementedError
+    return model_unpickle(model_id)
 
 
 def __simple_class_factory_compat(model, attrs):
