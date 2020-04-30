@@ -35,10 +35,7 @@ class JiraConfigForm(forms.Form):
 
 class JiraConfigureView(View):
     def get_response(self, context):
-        context["ac_js_src"] = "%(base_url)s%(context_path)s/atlassian-connect/all.js" % {
-            "base_url": self.request.GET["xdm_e"],
-            "context_path": self.request.GET.get("cp", ""),
-        }
+        context["ac_js_src"] = "https://connect-cdn.atl-paas.net/all.js"
         res = render_to_response("sentry/integrations/jira-config.html", context, self.request)
         res["X-Frame-Options"] = "ALLOW-FROM %s" % self.request.GET["xdm_e"]
         return res

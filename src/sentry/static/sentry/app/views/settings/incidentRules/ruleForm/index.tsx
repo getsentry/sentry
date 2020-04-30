@@ -241,10 +241,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const criticalTrigger = triggers[criticalTriggerIndex];
       const warningTrigger = triggers[warningTriggerIndex];
 
+      const warningThreshold = warningTrigger.alertThreshold ?? 0;
+      const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
+
       const hasError =
         criticalTrigger.thresholdType === AlertRuleThresholdType.ABOVE
-          ? warningTrigger.alertThreshold > criticalTrigger.alertThreshold
-          : warningTrigger.alertThreshold < criticalTrigger.alertThreshold;
+          ? warningThreshold > criticalThreshold
+          : warningThreshold < criticalThreshold;
 
       if (hasError) {
         [criticalTriggerIndex, warningTriggerIndex].forEach(index => {

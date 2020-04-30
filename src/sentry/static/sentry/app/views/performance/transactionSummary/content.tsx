@@ -13,7 +13,7 @@ import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
-import LatencyChart from './latencyChart';
+import TransactionSummaryCharts from './charts';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -59,15 +59,10 @@ class SummaryContent extends React.Component<Props> {
         </HeaderBox>
         <ContentBox>
           <div>
-            <LatencyChart
+            <TransactionSummaryCharts
               organization={organization}
               location={location}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
+              eventView={eventView}
               totalValues={totalValues}
             />
             <DiscoverQuery

@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features, eventstore
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.api.bases import OrganizationEventsV2EndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
@@ -67,7 +67,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get_v1_results(self, request, organization):
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except (OrganizationEventsError, InvalidSearchQuery) as exc:
+        except InvalidSearchQuery as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response({"data": []})

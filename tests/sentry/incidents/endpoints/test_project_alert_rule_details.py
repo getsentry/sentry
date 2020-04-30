@@ -47,6 +47,20 @@ class AlertRuleDetailsBase(object):
             ],
         }
 
+    def get_serialized_alert_rule(self):
+        # Only call after calling self.alert_rule to create it.
+        original_endpoint = self.endpoint
+        original_method = self.method
+        self.endpoint = "sentry-api-0-organization-alert-rules"
+        self.method = "get"
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug)
+            assert len(resp.data) >= 1
+            serialized_alert_rule = resp.data[0]
+        self.endpoint = original_endpoint
+        self.method = original_method
+        return serialized_alert_rule
+
     @fixture
     def organization(self):
         return self.create_organization()
@@ -153,6 +167,28 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # it hasn't changed explicitly
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
+
+    def test_update_snapshot(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Archive the rule so that the endpoint 404s:
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug,
+                self.project.slug,
+                alert_rule.id,
+                status_code=404,
+                **serialized_alert_rule
+            )
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):

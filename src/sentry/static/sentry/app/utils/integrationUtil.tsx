@@ -13,12 +13,13 @@ import {
   SentryApp,
   PluginWithProjectList,
   DocumentIntegration,
+  Integration,
+  IntegrationProvider,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -32,15 +33,6 @@ export const clearAnalyticsSession = () => {
 
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-
-export const getCategorySelectActive = (organization?: Organization) => {
-  const variant = organization?.experiments?.IntegrationDirectoryCategoryExperiment;
-  const localStore = localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT);
-  if (localStore !== null) {
-    return localStore === '1';
-  }
-  return variant === '1';
-};
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -274,4 +266,13 @@ export function isDocumentIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocumentIntegration {
   return integration.hasOwnProperty('docUrl');
+}
+
+export function isSlackWorkspaceApp(integration: Integration) {
+  return integration.configData.installationType === 'workspace_app';
+}
+
+//returns the text in the alert asking the user to re-authenticate a first-party integration
+export function getReauthAlertText(provider: IntegrationProvider) {
+  return provider.metadata.aspects?.reauthentication_alert?.alertText;
 }

@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
+from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
@@ -18,7 +18,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.compat import map, zip
+from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils import snuba
 
@@ -31,7 +31,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -60,7 +60,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             try:
                 group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
-                raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
+                raise ParseError(detail="Invalid group parameter. Values must be numbers")
 
             projects = Project.objects.filter(
                 organization=organization, group__id__in=group_ids
@@ -74,7 +74,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -187,10 +187,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
         # Return with requested yAxis as the key
-        return {
-            column: serializer.serialize(event_result, get_function_alias(query_column))
-            for column, query_column in zip(columns, query_columns)
+        result = {
+            columns[index]: serializer.serialize(
+                event_result, get_function_alias(query_column), order=index
+            )
+            for index, query_column in enumerate(query_columns)
         }
+        # Set order if multi-axis + top events
+        if "order" in event_result.data:
+            result["order"] = event_result.data["order"]
+        return result
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):

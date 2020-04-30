@@ -308,6 +308,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
+    def test_project_condition_used_for_automatic_filters(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": 'project:"%s"' % project.slug,
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project"] == project.slug
+        assert "project.id" not in response.data["data"][0]
+
     def test_user_search(self):
         self.login_as(user=self.user)
 
@@ -364,6 +388,45 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 assert response.status_code == 200, response.content
                 assert len(response.data["data"]) == 1
                 assert response.data["data"][0]["user"] == data["user"]["ip_address"]
+
+    def test_has_issue(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
 
     def test_negative_user_search(self):
         self.login_as(user=self.user)

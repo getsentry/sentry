@@ -78,12 +78,12 @@ class UserStats extends React.Component<Props> {
           return (
             <Container>
               <div>
-                <StatTitle>{t('User Impact')}</StatTitle>
-                <StatNumber>{stats['impact()']}</StatNumber>
-              </div>
-              <div>
                 <StatTitle>{t('Apdex Score')}</StatTitle>
                 <StatNumber>{stats['apdex()']}</StatNumber>
+              </div>
+              <div>
+                <StatTitle>{t('User Impact')}</StatTitle>
+                <StatNumber>{stats['impact()']}</StatNumber>
               </div>
             </Container>
           );
@@ -94,11 +94,8 @@ class UserStats extends React.Component<Props> {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
   display: flex;
-
-  color: ${p => p.theme.gray3};
-
   > * + * {
     margin-left: ${space(4)};
   }
@@ -106,13 +103,12 @@ const Container = styled('div')`
 
 const StatTitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  color: ${p => p.theme.gray3};
+  margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  line-height: 40px;
   color: ${p => p.theme.gray4};
 `;
 

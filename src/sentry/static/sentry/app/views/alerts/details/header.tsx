@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
@@ -7,7 +6,6 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
 import Count from 'app/components/count';
 import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
@@ -20,7 +18,8 @@ import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {IconCheckmark, IconChevron} from 'app/icons';
+import {IconCheckmark} from 'app/icons';
+import Breadcrumbs from 'app/components/breadcrumbs';
 
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
@@ -43,27 +42,21 @@ export default class DetailsHeader extends React.Component<Props> {
     const isIncidentOpen = incident && isOpen(incident);
     const statusLabel = incident ? <Status incident={incident} /> : null;
 
-    return (
-      <Access access={['org:write']}>
-        {({hasAccess}) =>
-          hasAccess && isIncidentOpen ? (
-            <DropdownControl
-              data-test-id="status-dropdown"
-              label={statusLabel}
-              menuWidth="200px"
-              alignRight
-              buttonProps={{size: 'small', disabled: !incident}}
-            >
-              <StatusMenuItem onSelect={onStatusChange}>
-                <IconCheckmark circle color={theme.greenLight} />
-                {t('Resolve this incident')}
-              </StatusMenuItem>
-            </DropdownControl>
-          ) : (
-            statusLabel
-          )
-        }
-      </Access>
+    return isIncidentOpen ? (
+      <DropdownControl
+        data-test-id="status-dropdown"
+        label={statusLabel}
+        menuWidth="200px"
+        alignRight
+        buttonProps={{size: 'small', disabled: !incident}}
+      >
+        <StatusMenuItem onSelect={onStatusChange}>
+          <IconCheckmark circle color={theme.greenLight} />
+          {t('Resolve this incident')}
+        </StatusMenuItem>
+      </DropdownControl>
+    ) : (
+      statusLabel
     );
   }
 
@@ -90,17 +83,12 @@ export default class DetailsHeader extends React.Component<Props> {
     return (
       <Header>
         <PageHeading>
-          <Breadcrumb>
-            <IncidentsLink to={`/organizations/${params.orgId}/alerts/`}>
-              {t('Alerts')}
-            </IncidentsLink>
-            {dateStarted && (
-              <React.Fragment>
-                <IconChevron direction="right" color={theme.gray1} size={space(1.5)} />
-                <IncidentDate>{dateStarted}</IncidentDate>
-              </React.Fragment>
-            )}
-          </Breadcrumb>
+          <AlertBreadcrumbs
+            crumbs={[
+              {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
+              {label: dateStarted ?? t('Alert details')},
+            ]}
+          />
           <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
             {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
           </IncidentTitle>
@@ -210,12 +198,9 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const Breadcrumb = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-  align-items: center;
+const AlertBreadcrumbs = styled(Breadcrumbs)`
   font-size: ${p => p.theme.fontSizeLarge};
+  padding: 0;
   margin-bottom: ${space(1)};
 `;
 
@@ -223,15 +208,6 @@ const IncidentTitle = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
-`;
-
-const IncidentDate = styled('div')`
-  font-size: 0.8em;
-  color: ${p => p.theme.gray2};
-`;
-
-const IncidentsLink = styled(Link)`
-  color: inherit;
 `;
 
 const StatusMenuItem = styled(MenuItem)`

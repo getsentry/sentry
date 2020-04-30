@@ -49,24 +49,41 @@ class BaseChart extends React.Component {
     yAxis: SentryTypes.EChartsYAxis,
 
     // Pass `true` to have 2 y-axes with default properties
-    // Can pass an array of 2 objects to customize yAxis properties
+    // Can pass an array of objects to customize yAxis properties
     yAxes: PropTypes.oneOfType([
       PropTypes.bool,
       PropTypes.arrayOf(SentryTypes.EChartsYAxis),
+    ]),
+
+    // Pass `true` to have 2 x-axes with default properties
+    // Can pass an array of multiple objects to customize xAxis properties
+    xAxes: PropTypes.oneOfType([
+      PropTypes.bool,
+      PropTypes.arrayOf(SentryTypes.EChartsXAxis),
     ]),
 
     // Tooltip options
     tooltip: SentryTypes.EChartsTooltip,
 
     // DataZoom (allows for zooming of chart)
-    dataZoom: SentryTypes.EChartsDataZoom,
+    dataZoom: PropTypes.oneOfType([
+      SentryTypes.EChartsDataZoom,
+      PropTypes.arrayOf(SentryTypes.EChartsDataZoom),
+    ]),
+
+    // Axis pointer options
+    axisPointer: SentryTypes.EChartsAxisPointer,
 
     toolBox: SentryTypes.EChartsToolBox,
 
     graphic: SentryTypes.EchartsGraphic,
 
     // ECharts Grid options
-    grid: SentryTypes.EChartsGrid,
+    // multiple grids allow multiple sub-graphs.
+    grid: PropTypes.oneOfType([
+      SentryTypes.EChartsGrid,
+      PropTypes.arrayOf(SentryTypes.EChartsGrid),
+    ]),
 
     // Chart legend
     legend: SentryTypes.EChartsLegend,
@@ -208,6 +225,7 @@ class BaseChart extends React.Component {
       dataZoom,
       toolBox,
       graphic,
+      axisPointer,
 
       isGroupedByDate,
       showTimeInTooltip,
@@ -218,6 +236,7 @@ class BaseChart extends React.Component {
       period,
       utc,
       yAxes,
+      xAxes,
 
       devicePixelRatio,
       height,
@@ -235,8 +254,25 @@ class BaseChart extends React.Component {
         ? YAxis(yAxis)
         : null
       : Array.isArray(yAxes)
-      ? yAxes.slice(0, 2).map(YAxis)
+      ? yAxes.map(YAxis)
       : [YAxis(), YAxis()];
+    const xAxisOrCustom = !xAxes
+      ? xAxis !== null
+        ? XAxis({
+            ...xAxis,
+            useShortDate,
+            start,
+            end,
+            period,
+            isGroupedByDate,
+            utc,
+          })
+        : null
+      : Array.isArray(xAxes)
+      ? xAxes.map(axis =>
+          XAxis({...axis, useShortDate, start, end, period, isGroupedByDate, utc})
+        )
+      : [XAxis(), XAxis()];
 
     return (
       <ChartContainer>
@@ -264,25 +300,14 @@ class BaseChart extends React.Component {
             ...options,
             useUTC: utc,
             color: colors || this.getColorPalette(),
-            grid: Grid(grid),
+            grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
             tooltip:
               tooltip !== null
                 ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
                 : null,
             legend: legend ? Legend({...legend}) : null,
             yAxis: yAxisOrCustom,
-            xAxis:
-              xAxis !== null
-                ? XAxis({
-                    ...xAxis,
-                    useShortDate,
-                    start,
-                    end,
-                    period,
-                    isGroupedByDate,
-                    utc,
-                  })
-                : null,
+            xAxis: xAxisOrCustom,
             series: !previousPeriod
               ? series
               : [
@@ -301,6 +326,7 @@ class BaseChart extends React.Component {
                     })
                   ),
                 ],
+            axisPointer,
             dataZoom,
             toolbox: toolBox,
             graphic,

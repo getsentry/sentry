@@ -4,17 +4,11 @@ import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {
-  ChartControls,
-  InlineContainer,
-  SectionHeading,
-  SectionValue,
-} from 'app/components/charts/styles';
+import {AREA_COLORS} from 'app/components/charts/utils';
 import AsyncComponent from 'app/components/asyncComponent';
 import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
@@ -24,7 +18,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, ChartsContainer, StyledIconQuestion} from '../styles';
+import {HeaderTitle, StyledIconQuestion} from '../styles';
 
 const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
@@ -55,9 +49,14 @@ type State = AsyncComponent['state'] & {
 };
 
 /**
- * Fetch the chart data and then render the graph.
+ * Fetch and render a bar chart that shows event volume
+ * for each duration bucket. We always render 15 buckets of
+ * equal widths based on the endpoints min + max durations.
+ *
+ * This graph visualizes how many transactions were recorded
+ * at each duration bucket, showing the modality of the transaction.
  */
-class LatencyHistogram extends AsyncComponent<Props, State> {
+class LatencyChart extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
       organization,
@@ -222,39 +221,22 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     };
 
     return (
-      <React.Fragment>
-        <BarChart
-          grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
-          xAxis={xAxis}
-          yAxis={{type: 'value'}}
-          series={transformData(chartData.data, this.bucketWidth)}
-          tooltip={tooltip}
-          colors={['rgba(140, 79, 189, 0.3)']}
-          onClick={this.handleClick}
-          onMouseOver={this.handleMouseOver}
-        />
-      </React.Fragment>
+      <BarChart
+        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
+        xAxis={xAxis}
+        yAxis={{type: 'value'}}
+        series={transformData(chartData.data, this.bucketWidth)}
+        tooltip={tooltip}
+        colors={[AREA_COLORS[2]]}
+        onClick={this.handleClick}
+        onMouseOver={this.handleMouseOver}
+      />
     );
   }
-}
 
-function calculateTotal(total: number | null) {
-  if (total === null) {
-    return '\u2014';
-  }
-  return total.toLocaleString();
-}
-
-type WrapperProps = ViewProps & {
-  organization: OrganizationSummary;
-  location: Location;
-  totalValues: number | null;
-};
-
-function LatencyChart({totalValues, ...props}: WrapperProps) {
-  return (
-    <Panel>
-      <ChartsContainer>
+  render() {
+    return (
+      <React.Fragment>
         <HeaderTitle>
           {t('Latency Distribution')}
           <Tooltip
@@ -266,16 +248,10 @@ function LatencyChart({totalValues, ...props}: WrapperProps) {
             <StyledIconQuestion />
           </Tooltip>
         </HeaderTitle>
-        <LatencyHistogram {...props} />
-      </ChartsContainer>
-      <ChartControls>
-        <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-          <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
-        </InlineContainer>
-      </ChartControls>
-    </Panel>
-  );
+        {this.renderComponent()}
+      </React.Fragment>
+    );
+  }
 }
 
 /**
