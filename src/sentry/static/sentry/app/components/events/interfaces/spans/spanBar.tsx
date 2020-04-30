@@ -918,7 +918,7 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => p.orphanBranch ? 'dashed' : 'solid'} ${p => p.theme.gray1};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
   position: absolute;
   top: 0;
 
@@ -953,7 +953,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
 const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => p.orphanBranch ? 'dashed' : 'solid'} ${p => p.theme.gray1};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
   top: -5px;
   position: absolute;
 `;
