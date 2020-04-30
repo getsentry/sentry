@@ -22,7 +22,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 );
 
 const FIELD_TAGS = Object.fromEntries(
-Object.keys(FIELDS).map(item => [item, {key: item, name: item}])
+  Object.keys(FIELDS).map(item => [item, {key: item, name: item}])
 );
 
 class SearchBar extends React.PureComponent {
@@ -82,12 +82,13 @@ class SearchBar extends React.PureComponent {
       ? FIELD_TAGS
       : omit(FIELD_TAGS, TRACING_FIELDS);
     const combined = assign({}, tags, fields, {
-    has: {
-      key: 'has',
-      name: 'Has property',
-      values: Object.keys(combined),
-      predefined: true,
-    }});
+      has: {
+        key: 'has',
+        name: 'Has property',
+        values: Object.keys(combined),
+        predefined: true,
+      },
+    });
 
     return combined;
   }
