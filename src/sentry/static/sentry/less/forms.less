@@ -154,7 +154,14 @@ label {
 }
 
 .has-error .form-control {
-  border-color: @red-dark;
+  border-color: #c9c0d1;
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.has-error .form-control:focus {
+  border-color: #a598b2;
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
+  outline: none;
 }
 
 .error,
@@ -168,7 +175,7 @@ label {
 .has-error.checkbox label,
 .has-error.radio-inline label,
 .has-error.checkbox-inline label {
-  color: @red-dark;
+  color: @red;
 }
 
 input.form-control[disabled],
