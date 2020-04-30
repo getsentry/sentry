@@ -223,7 +223,7 @@ class SpanDetail extends React.Component<Props, State> {
           message: (
             <span>
               {t(
-                'This is a span that has no parent span that exists within this transaction, and is attached to the transaction root span by default.'
+                'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
               )}
             </span>
           ),
