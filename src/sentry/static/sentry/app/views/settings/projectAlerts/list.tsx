@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
+import Pagination from 'app/components/pagination';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -77,7 +78,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   renderBody() {
     const {canEditRule, location, organization, params} = this.props;
     const {orgId, projectId} = params;
-    const {loading, rules} = this.state;
+    const {loading, rules, rulesPageLinks} = this.state;
 
     const basePath = `/settings/${orgId}/projects/${projectId}/alerts/`;
 
@@ -126,6 +127,8 @@ class ProjectAlertRules extends AsyncView<Props, State> {
             {() => this.renderResults()}
           </StyledPanelTable>
         </ScrollWrapper>
+
+        <Pagination pageLinks={rulesPageLinks} />
       </React.Fragment>
     );
   }
