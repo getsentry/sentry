@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
-import HeroIcon from 'app/components/heroIcon';
 import Well from 'app/components/well';
+import {IconCommit} from 'app/icons/iconCommit';
 
 type Props = {
   orgId: string;
@@ -13,7 +13,7 @@ type Props = {
 
 const ReleaseNoCommitData = ({orgId}: Props) => (
   <StyledWell centered>
-    <HeroIcon src="icon-commit" />
+    <IconCommit size="xl" />
     <h5>{t('Releases are better with commit data!')}</h5>
     <p>
       {t(
@@ -27,8 +27,7 @@ const ReleaseNoCommitData = ({orgId}: Props) => (
 );
 
 const StyledWell = styled(Well)`
-  margin: ${space(4)};
-
+  background-color: ${p => p.theme.white};
   padding-top: ${space(2)};
   padding-bottom: ${space(4)};
 `;

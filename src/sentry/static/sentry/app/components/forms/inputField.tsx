@@ -13,7 +13,7 @@ type InputFieldProps = FormField['props'] & {
   autoComplete?: string;
 };
 
-export default class InputField<
+class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state']
 > extends FormField<Props, State> {
@@ -25,7 +25,7 @@ export default class InputField<
   getField() {
     return (
       <input
-        id={this.getId()}
+        id={this.getId()} //TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
         type={this.getType()}
         className="form-control"
         autoComplete={this.props.autoComplete}
@@ -52,3 +52,5 @@ export default class InputField<
     throw new Error('Must be implemented by child.');
   }
 }
+
+export default InputField;

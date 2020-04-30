@@ -30,7 +30,7 @@ def test_defaults(default_project):
 
     with latest_epoch(42):
         default_manager.freeze_option_epoch(default_project, force=True)
-        ProjectOption.objects.reload_cache(default_project.id)
+        ProjectOption.objects.reload_cache(default_project.id, "")
 
     assert default_project.get_option("__sentry_test:test-option") == "latest-value"
 

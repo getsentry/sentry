@@ -31,7 +31,7 @@ describe('OrganizationUserFeedback', function() {
   it('renders', function() {
     const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
 
-    expect(wrapper.find('[data-test-id="activity-item"]')).toHaveLength(2);
+    expect(wrapper.find('ActivityItem')).toHaveLength(2);
   });
 
   it('renders empty', function() {
@@ -41,7 +41,7 @@ describe('OrganizationUserFeedback', function() {
     });
     const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
 
-    expect(wrapper.find('[data-test-id="activity-item"]')).toHaveLength(0);
+    expect(wrapper.find('ActivityItem')).toHaveLength(0);
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 });

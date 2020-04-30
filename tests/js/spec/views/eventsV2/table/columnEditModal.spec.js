@@ -102,18 +102,49 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
     it('renders unknown fields in field and field parameter controls', function() {
       const funcRow = wrapper.find('ColumnEditRow').first();
-      expect(funcRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'count_unique(\u2026)'
-      );
+      expect(
+        funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
+      ).toBe('count_unique(\u2026)');
       expect(funcRow.find('SelectControl[name="parameter"] SingleValue').text()).toBe(
         'user-defined'
       );
 
       const fieldRow = wrapper.find('ColumnEditRow').last();
-      expect(fieldRow.find('SelectControl[name="field"] SingleValue').text()).toBe(
-        'user-def'
-      );
+      expect(
+        fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('user-def');
+      expect(fieldRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
       expect(fieldRow.find('StyledInput[disabled]')).toHaveLength(1);
+    });
+  });
+
+  describe('rendering tags that overlap fields & functions', function() {
+    const wrapper = mountModal(
+      {
+        columns: [
+          {kind: 'field', field: 'tags[project]'},
+          {kind: 'field', field: 'tags[count]'},
+        ],
+        onApply: () => void 0,
+        tagKeys: ['project', 'count'],
+      },
+      initialData
+    );
+
+    it('selects tag expressions that overlap fields', function() {
+      const funcRow = wrapper.find('ColumnEditRow').first();
+      expect(
+        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('project');
+      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
+    });
+
+    it('selects tag expressions that overlap functions', function() {
+      const funcRow = wrapper.find('ColumnEditRow').last();
+      expect(
+        funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
+      ).toBe('count');
+      expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
     });
   });
 
@@ -146,14 +177,18 @@ describe('EventsV2 -> ColumnEditModal', function() {
   });
 
   describe('function & column selection', function() {
-    const wrapper = mountModal(
-      {
-        columns: [columns[0]],
-        onApply: () => void 0,
-        tagKeys,
-      },
-      initialData
-    );
+    let onApply, wrapper;
+    beforeEach(function() {
+      onApply = jest.fn();
+      wrapper = mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+          tagKeys,
+        },
+        initialData
+      );
+    });
 
     it('restricts column choices', function() {
       selectByLabel(wrapper, 'avg(\u2026)', {name: 'field', at: 0, control: true});
@@ -184,6 +219,47 @@ describe('EventsV2 -> ColumnEditModal', function() {
       // Input should show and have default value.
       const refinement = wrapper.find('ColumnEditRow input[inputMode="numeric"]');
       expect(refinement.props().value).toBe('0.5');
+    });
+
+    it('handles scalar field parameters', function() {
+      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+
+      // Parameter select should display and use the default value.
+      const field = wrapper.find('ColumnEditRow input[name="refinement"]');
+      expect(field.props().value).toBe('300');
+
+      // Trigger a blur and make sure the column is not wrong.
+      field.simulate('blur');
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['apdex', '300', undefined]},
+      ]);
+    });
+
+    it('clears unused parameters', function() {
+      // Choose percentile, then apdex which has fewer parameters and different types.
+      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['apdex', '300', undefined]},
+      ]);
+    });
+
+    it('clears all unused parameters', function() {
+      // Choose percentile, then error_rate which has no parameters.
+      selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'error_rate()', {name: 'field', at: 0, control: true});
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['error_rate', '', undefined]},
+      ]);
     });
   });
 

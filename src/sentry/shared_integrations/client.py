@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import json
 import requests
+import sentry_sdk
 import six
 
 from collections import OrderedDict
@@ -61,14 +62,14 @@ class BaseApiResponse(object):
 
         # Some APIs will return JSON with an invalid content-type, so we try
         # to decode it anyways
-        if "application/json" not in response.headers["Content-Type"]:
+        if "application/json" not in response.headers.get("Content-Type", ""):
             try:
                 data = json.loads(response.text, object_pairs_hook=OrderedDict)
             except (TypeError, ValueError):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
                 raise UnsupportedResponseType(
-                    response.headers["Content-Type"], response.status_code
+                    response.headers.get("Content-Type", ""), response.status_code
                 )
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
@@ -147,12 +148,15 @@ class BaseApiClient(object):
     def get_cache_prefix(self):
         return u"%s.%s.client:" % (self.integration_type, self.name)
 
-    def track_response_data(self, code, error=None):
+    def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
             u"%s.http_response" % (self.datadog_prefix),
             sample_rate=1.0,
             tags={self.integration_type: self.name, "status": code},
         )
+
+        span.set_http_status(code)
+        span.set_tag(self.integration_type, self.name)
 
         extra = {
             self.integration_type: self.name,
@@ -203,42 +207,47 @@ class BaseApiClient(object):
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )
-        try:
-            resp = getattr(session, method.lower())(
-                url=full_url,
-                headers=headers,
-                json=data if json else None,
-                data=data if not json else None,
-                params=params,
-                auth=auth,
-                verify=self.verify_ssl,
-                allow_redirects=allow_redirects,
-                timeout=timeout,
-            )
-            resp.raise_for_status()
-        except ConnectionError as e:
-            self.track_response_data("connection_error", e)
-            raise ApiHostError.from_exception(e)
-        except Timeout as e:
-            self.track_response_data("timeout", e)
-            raise ApiTimeoutError.from_exception(e)
-        except HTTPError as e:
-            resp = e.response
-            if resp is None:
-                self.track_response_data("unknown", e)
-                self.logger.exception(
-                    "request.error", extra={self.integration_type: self.name, "url": full_url}
+
+        with sentry_sdk.start_span(
+            op=u"{}.http".format(self.integration_type),
+            transaction=u"{}.http_response.{}".format(self.integration_type, self.name),
+        ) as span:
+            try:
+                resp = getattr(session, method.lower())(
+                    url=full_url,
+                    headers=headers,
+                    json=data if json else None,
+                    data=data if not json else None,
+                    params=params,
+                    auth=auth,
+                    verify=self.verify_ssl,
+                    allow_redirects=allow_redirects,
+                    timeout=timeout,
                 )
-                raise ApiError("Internal Error")
-            self.track_response_data(resp.status_code, e)
-            raise ApiError.from_response(resp)
+                resp.raise_for_status()
+            except ConnectionError as e:
+                self.track_response_data("connection_error", span, e)
+                raise ApiHostError.from_exception(e)
+            except Timeout as e:
+                self.track_response_data("timeout", span, e)
+                raise ApiTimeoutError.from_exception(e)
+            except HTTPError as e:
+                resp = e.response
+                if resp is None:
+                    self.track_response_data("unknown", span, e)
+                    self.logger.exception(
+                        "request.error", extra={self.integration_type: self.name, "url": full_url}
+                    )
+                    raise ApiError("Internal Error")
+                self.track_response_data(resp.status_code, span, e)
+                raise ApiError.from_response(resp)
 
-        self.track_response_data(resp.status_code)
+            self.track_response_data(resp.status_code, span, None, resp)
 
-        if resp.status_code == 204:
-            return {}
+            if resp.status_code == 204:
+                return {}
 
-        return BaseApiResponse.from_response(resp, allow_text=allow_text)
+            return BaseApiResponse.from_response(resp, allow_text=allow_text)
 
     # subclasses should override ``request``
     def request(self, *args, **kwargs):

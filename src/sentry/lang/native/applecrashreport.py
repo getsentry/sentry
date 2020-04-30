@@ -154,8 +154,8 @@ class AppleCrashReport(object):
     def _get_slide_value(self, image_addr):
         if self.debug_images:
             for debug_image in self.debug_images:
-                if parse_addr(debug_image["image_addr"]) == parse_addr(image_addr):
-                    return parse_addr(debug_image["image_vmaddr"])
+                if parse_addr(debug_image.get("image_addr")) == parse_addr(image_addr):
+                    return parse_addr(debug_image.get("image_vmaddr", 0))
         return 0
 
     def get_binary_images_apple_string(self):
@@ -169,7 +169,7 @@ class AppleCrashReport(object):
         return "Binary Images:\n" + "\n".join(binary_images)
 
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
-        slide_value = parse_addr(debug_image["image_vmaddr"])
+        slide_value = parse_addr(debug_image.get("image_vmaddr", 0))
         image_addr = parse_addr(debug_image["image_addr"]) + slide_value
         return "%s - %s %s %s  <%s> %s" % (
             hex(image_addr),

@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
@@ -21,12 +22,12 @@ export const IconChevron = React.forwardRef(function IconChevron(
       : providedDirection;
 
   return (
-    <svg
+    <StyledSvg
       viewBox="0 0 16 16"
       fill={color}
       height={size}
       width={size}
-      transform={`rotate(${direction})`}
+      direction={direction}
       {...props}
       ref={ref}
     >
@@ -40,6 +41,10 @@ export const IconChevron = React.forwardRef(function IconChevron(
           <path d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z" />
         </g>
       )}
-    </svg>
+    </StyledSvg>
   );
 });
+
+const StyledSvg = styled('svg')<{direction: string}>`
+  transform: rotate(${p => p.direction}deg);
+`;

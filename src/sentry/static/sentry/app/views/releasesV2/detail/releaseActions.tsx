@@ -12,6 +12,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import Tooltip from 'app/components/tooltip';
 
 import {deleteRelease} from './utils';
 
@@ -22,17 +23,17 @@ type Props = {
 
 const ReleaseActions = ({orgId, version}: Props) => {
   const handleDelete = async () => {
-    const redirectPath = `/organizations/${orgId}/releases-v2/`;
+    const redirectPath = `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
 
     try {
       await deleteRelease(orgId, version);
       addSuccessMessage(t('Release was successfully removed.'));
       browserHistory.push(redirectPath);
-    } catch {
-      addErrorMessage(
-        t('This release is referenced by active issues and cannot be removed.')
-      );
+    } catch (error) {
+      const errorMessage =
+        error.responseJSON?.detail ?? t('Release could not be be removed.');
+      addErrorMessage(errorMessage);
     }
   };
 
@@ -44,9 +45,15 @@ const ReleaseActions = ({orgId, version}: Props) => {
           'Deleting this release is permanent and will affect other projects associated with it. Are you sure you wish to continue?'
         )}
       >
-        <Button>
-          <IconDelete size="xs" />
-        </Button>
+        <div>
+          <Tooltip
+            title={t(
+              'You can only delete releases if they have no issues or health data.'
+            )}
+          >
+            <Button icon={<IconDelete />} />
+          </Tooltip>
+        </div>
       </Confirm>
     </Wrapper>
   );
@@ -57,6 +64,11 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: min-content;
   grid-gap: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: 100%;
+    margin: ${space(1)} 0 ${space(2)} 0;
+  }
 `;
 
 export default ReleaseActions;

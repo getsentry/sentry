@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-type Props = {
+/**
+ * Using Parameters<typeof FieldWrapper> in the Field component somehow
+ * causes an infinite recursive depth so exporting the props is best workaround
+ */
+export type Props = {
   stacked?: boolean;
   inline?: boolean;
   hasControlState?: boolean;

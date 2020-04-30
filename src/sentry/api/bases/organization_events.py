@@ -7,7 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
+from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
@@ -17,9 +17,10 @@ from sentry.api.event_search import (
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
-from sentry.snuba.discover import ReferenceEvent
-from sentry.utils.compat import map, zip
+from sentry.snuba import discover
+from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
+from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -30,7 +31,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -46,7 +47,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         fields = request.GET.getlist("field")[:]
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            return ReferenceEvent(organization, reference_event_id, fields, start, end)
+            return discover.ReferenceEvent(organization, reference_event_id, fields, start, end)
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
@@ -59,7 +60,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             try:
                 group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
-                raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
+                raise ParseError(detail="Invalid group parameter. Values must be numbers")
 
             projects = Project.objects.filter(
                 organization=organization, group__id__in=group_ids
@@ -73,7 +74,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -114,15 +115,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
-        issues = {}
         if "issue" in fields:  # Look up the short ID and return that in the results
-            issue_ids = set(row["issue.id"] for row in results)
-            issues = {
-                i.id: i.qualified_short_id
-                for i in Group.objects.filter(
-                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
-                )
-            }
+            issue_ids = set(row.get("issue.id") for row in results)
+            issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
@@ -138,7 +133,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def get_event_stats_data(self, request, organization, get_event_stats):
+    def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
             query = request.GET.get("query")
@@ -168,17 +163,40 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
 
             result = get_event_stats(query_columns, query, params, rollup, reference_event)
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+            raise ParseError(detail=six.text_type(error))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
-        if len(columns) > 1:
-            # Return with requested yAxis as the key
-            return {
-                column: serializer.serialize(result, get_function_alias(query_column))
-                for column, query_column in zip(columns, query_columns)
-            }
+
+        if top_events:
+            results = {}
+            for key, event_result in six.iteritems(result):
+                if len(query_columns) > 1:
+                    results[key] = self.serialize_multiple_axis(
+                        serializer, event_result, columns, query_columns
+                    )
+                else:
+                    # Need to get function alias if count is a field, but not the axis
+                    results[key] = serializer.serialize(
+                        event_result, get_function_alias(query_columns[0])
+                    )
+            return results
+        elif len(query_columns) > 1:
+            return self.serialize_multiple_axis(serializer, result, columns, query_columns)
         else:
             return serializer.serialize(result)
+
+    def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
+        # Return with requested yAxis as the key
+        result = {
+            columns[index]: serializer.serialize(
+                event_result, get_function_alias(query_column), order=index
+            )
+            for index, query_column in enumerate(query_columns)
+        }
+        # Set order if multi-axis + top events
+        if "order" in event_result.data:
+            result["order"] = event_result.data["order"]
+        return result
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):

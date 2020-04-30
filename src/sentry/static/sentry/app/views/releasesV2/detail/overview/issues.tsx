@@ -13,10 +13,11 @@ import EventView from 'app/utils/discover/eventView';
 import {formatVersion} from 'app/utils/formatters';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {GlobalSelection} from 'app/types';
 import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {getUtcDateString} from 'app/utils/dates';
+import DropdownButton from 'app/components/dropdownButton';
 
 enum IssuesType {
   NEW = 'new',
@@ -34,7 +35,6 @@ type Props = {
   orgId: string;
   version: string;
   selection: GlobalSelection;
-  projectId: number;
   location: Location;
 };
 
@@ -43,13 +43,14 @@ type State = {
 };
 
 class Issues extends React.Component<Props, State> {
-  // TODO(releasesV2): we may want to put this in the URL, for now it stays just in state (issues stream is still subject to change)
   state: State = {
     issuesType: IssuesType.NEW,
   };
 
   getDiscoverUrl() {
-    const {version, orgId, projectId} = this.props;
+    const {version, orgId, selection} = this.props;
+    const {projects, environments, datetime} = selection;
+    const {start, end, period} = datetime;
 
     const discoverQuery = {
       id: undefined,
@@ -58,7 +59,11 @@ class Issues extends React.Component<Props, State> {
       fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
       query: `release:${version} !event.type:transaction`,
       orderby: '-last_seen',
-      projects: [projectId],
+      range: period,
+      environment: environments,
+      projects,
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
     } as const;
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -150,8 +155,12 @@ class Issues extends React.Component<Props, State> {
       <React.Fragment>
         <ControlsWrapper>
           <DropdownControl
-            label={this.renderFilterLabel(
-              issuesTypes.find(i => i.value === issuesType)?.label
+            button={({getActorProps}) => (
+              <FilterButton {...getActorProps()} isOpen={false}>
+                {this.renderFilterLabel(
+                  issuesTypes.find(i => i.value === issuesType)?.label
+                )}
+              </FilterButton>
             )}
           >
             {issuesTypes.map(({value, label}) => (
@@ -167,7 +176,9 @@ class Issues extends React.Component<Props, State> {
           </DropdownControl>
 
           <Feature features={['discover-basic']}>
-            <Button to={this.getDiscoverUrl()}>{t('Open in Discover')}</Button>
+            <DiscoverButton to={this.getDiscoverUrl()}>
+              {t('Open in Discover')}
+            </DiscoverButton>
           </Feature>
         </ControlsWrapper>
 
@@ -187,15 +198,23 @@ class Issues extends React.Component<Props, State> {
   }
 }
 
+const FilterButton = styled(DropdownButton)``;
+const DiscoverButton = styled(Button)``;
+
 const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    ${FilterButton}, ${DiscoverButton} {
+      font-size: ${p => p.theme.fontSizeSmall};
+    }
+  }
 `;
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
   ${Panel} {
     /* smaller space between table and pagination */
     margin-bottom: -${space(1)};
@@ -207,4 +226,4 @@ const LabelText = styled('em')`
   color: ${p => p.theme.gray2};
 `;
 
-export default withGlobalSelection(Issues);
+export default Issues;

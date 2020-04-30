@@ -13,12 +13,13 @@ export type Field = {
 };
 
 export type ColumnType =
-  | 'string'
+  | 'boolean'
+  | 'date'
+  | 'duration'
   | 'integer'
   | 'number'
-  | 'duration'
-  | 'date'
-  | 'boolean';
+  | 'percentage'
+  | 'string';
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
@@ -121,6 +122,11 @@ export const AGGREGATIONS = {
   },
 
   // Tracing functions.
+  p50: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
   p75: {
     parameters: [],
     outputType: 'duration',
@@ -133,6 +139,11 @@ export const AGGREGATIONS = {
     isSortable: true,
   },
   p99: {
+    parameters: [],
+    outputType: 'duration',
+    isSortable: true,
+  },
+  p100: {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
@@ -157,7 +168,7 @@ export const AGGREGATIONS = {
   },
   error_rate: {
     parameters: [],
-    outputType: 'number',
+    outputType: 'percentage',
     isSortable: true,
   },
   apdex: {
@@ -169,7 +180,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'number',
+    outputType: 'percentage',
     isSortable: true,
   },
   impact: {
@@ -296,9 +307,11 @@ export const TRACING_FIELDS = [
   'transaction.duration',
   'transaction.op',
   'transaction.status',
+  'p50',
   'p75',
   'p95',
   'p99',
+  'p100',
   'percentile',
   'error_rate',
   'apdex',

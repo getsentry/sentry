@@ -72,12 +72,15 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
-        assert snuba.query(
-            start=now - timedelta(days=1),
-            end=now + timedelta(days=1),
-            groupby=["project_id"],
-            filter_keys={"project_id": [self.project.id]},
-        ).get(self.project.id, 0) == 1
+        assert (
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                groupby=["project_id"],
+                filter_keys={"project_id": [self.project.id]},
+            ).get(self.project.id, 0)
+            == 1
+        )
 
     @patch("sentry.eventstream.insert")
     def test_issueless(self, mock_eventstream_insert):

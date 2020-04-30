@@ -2,7 +2,14 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.api.event_search import InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+from sentry.api.event_search import (
+    InvalidSearchQuery,
+    AggregateFilter,
+    AggregateKey,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.api.issue_search import (
     convert_actor_value,
     convert_query_values,
@@ -147,6 +154,13 @@ class ConvertStatusValueTest(TestCase):
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("status"), "=", SearchValue("wrong"))]
         with self.assertRaises(InvalidSearchQuery, expected_regex="invalid status value"):
+            convert_query_values(filters, [self.project], self.user, None)
+
+        filters = [AggregateFilter(AggregateKey("count_unique(user)"), ">", SearchValue("1"))]
+        with self.assertRaises(
+            InvalidSearchQuery,
+            expected_regex="Aggregate filters (count_unique(user)) are not supported in issue searches.",
+        ):
             convert_query_values(filters, [self.project], self.user, None)
 
 

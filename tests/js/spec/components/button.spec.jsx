@@ -7,11 +7,7 @@ describe('Button', function() {
   const routerContext = TestStubs.routerContext();
 
   it('renders', function() {
-    const component = mountWithTheme(
-      <Button priority="primary" size="large">
-        Button
-      </Button>
-    );
+    const component = mountWithTheme(<Button priority="primary">Button</Button>);
     expect(component).toMatchSnapshot();
   });
 

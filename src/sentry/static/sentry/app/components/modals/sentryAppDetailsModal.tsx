@@ -1,4 +1,3 @@
-import {Box, Flex} from 'reflexbox';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -158,19 +157,14 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
     return (
       <React.Fragment>
-        <Flex alignItems="center" mb={2}>
+        <Heading>
           <PluginIcon pluginId={sentryApp.slug} size={50} />
 
-          <Flex
-            pl={1}
-            alignItems="flex-start"
-            flexDirection="column"
-            justifyContent="center"
-          >
+          <HeadingInfo>
             <Name>{sentryApp.name}</Name>
-            <Flex>{features.length && this.featureTags(features)}</Flex>
-          </Flex>
-        </Flex>
+            <div>{features.length && this.featureTags(features)}</div>
+          </HeadingInfo>
+        </Heading>
 
         <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
@@ -213,10 +207,24 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 }
 
-const Name = styled(Box)`
+const Heading = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
+  margin-bottom: ${space(2)};
+`;
+
+const HeadingInfo = styled('div')`
+  display: grid;
+  grid-template-rows: max-content max-content;
+  grid-gap: ${space(0.5)};
+  align-items: start;
+`;
+
+const Name = styled('div')`
   font-weight: bold;
   font-size: 1.4em;
-  margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -229,16 +237,20 @@ const Description = styled('div')`
   }
 `;
 
-const Author = styled(Box)`
+const Author = styled('div')`
   color: ${p => p.theme.gray2};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <Flex alignItems="center" flex={1} {...p}>
+  <div {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <Box ml={1}>{reason}</Box>
-  </Flex>
+    {reason}
+  </div>
 ))`
+  display: grid;
+  align-items: center;
+  flex: 1;
+  grid-template-columns: max-content 1fr;
   color: ${p => p.theme.red};
   font-size: 0.9em;
 `;

@@ -48,6 +48,29 @@ class IncidentListEndpointTest(APITestCase):
         assert resp_closed.data == serialize([closed_incident])
         assert resp_open.data == serialize([incident])
 
+    def test_filter_env(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        env = self.create_environment(self.project)
+        rule = self.create_alert_rule(projects=[self.project], environment=[env])
+
+        incident = self.create_incident(alert_rule=rule)
+        self.create_incident()
+
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"):
+            resp_filter_env = self.get_valid_response(
+                self.organization.slug, environment=[env.name]
+            )
+            resp_no_env_filter = self.get_valid_response(self.organization.slug)
+
+        # The alert without an environment assigned should not be selected
+        assert len(resp_filter_env.data) == 1
+        assert resp_filter_env.data == serialize([incident])
+
+        # No filter returns both incidents
+        assert len(resp_no_env_filter.data) == 2
+
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)

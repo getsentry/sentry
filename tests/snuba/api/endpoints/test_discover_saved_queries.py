@@ -42,6 +42,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["conditions"] == []
         assert response.data[0]["limit"] == 10
         assert response.data[0]["version"] == 1
+        assert "createdBy" in response.data[0]
+        assert response.data[0]["createdBy"]["username"] == self.user.username
 
     def test_get_version_filter(self):
         url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
@@ -267,6 +269,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
                     "yAxis": "count(id)",
+                    "display": "releases",
                     "version": 2,
                 },
             )
@@ -277,6 +280,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
         assert data["yAxis"] == "count(id)"
+        assert data["display"] == "releases"
         assert data["version"] == 2
 
     def test_post_all_projects(self):

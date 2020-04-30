@@ -26,12 +26,12 @@ export type FieldValue = any;
 
 type ConfirmKeyType = 'true' | 'false';
 
-// TODO(ts): A lot of these attribuets are missing correct types. We'll likely
+// TODO(ts): A lot of these attributes are missing correct types. We'll likely
 // need to introduce some generics in here to get rid of some of these anys.
 
 type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
-  name?: string;
+  name: string;
   help?: React.ReactNode | ((props: any) => React.ReactNode);
   required?: boolean;
   placeholder?: string | (() => string);
@@ -108,6 +108,24 @@ type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
     value?: Pick<RangeSlider['props'], 'value'>;
   };
 
+export type TableType = {
+  type: 'table';
+  /**
+   * An object with of column labels (headers) for the table.
+   */
+  columnLabels?: object;
+  /**
+   * A list of column keys for the table, in the order that you want
+   * the columns to appear - order doesn't matter in columnLabels
+   */
+  columnKeys?: string[];
+  /**
+   * The confirmation message before a a row is deleted
+   */
+  confirmDeleteMessage?: string;
+  //TODO(TS): Should we have addButtonText and allowEmpty here as well?
+};
+
 export type Field = (
   | CustomType
   | SelectControlType
@@ -115,12 +133,13 @@ export type Field = (
   | TextareaType
   | RangeType
   | {type: typeof FieldType[number]}
+  | TableType
 ) &
   BaseField;
 
 export type FieldObject = Field | Function;
 
 export type JsonFormObject = {
-  title?: string;
+  title?: React.ReactNode;
   fields: FieldObject[];
 };

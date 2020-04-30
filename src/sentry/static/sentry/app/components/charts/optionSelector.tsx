@@ -2,27 +2,33 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import {SelectValue} from 'app/types';
 import DropdownButton from 'app/components/dropdownButton';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import space from 'app/styles/space';
 
+type Option = {
+  label: string;
+  value: string;
+  disabled?: boolean;
+};
+
 type Props = {
-  options: SelectValue<string>[];
+  options: Option[];
   selected: string;
   onChange: (value: string) => void;
   title: string;
+  menuWidth?: string;
 };
 
-function OptionSelector({options, onChange, selected, title}: Props) {
+function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}: Props) {
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
     <InlineContainer>
       <SectionHeading>{title}</SectionHeading>
       <DropdownControl
-        menuWidth="auto"
+        menuWidth={menuWidth}
         alignRight
         button={({getActorProps}) => (
           <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
@@ -35,6 +41,7 @@ function OptionSelector({options, onChange, selected, title}: Props) {
             key={opt.value}
             onSelect={onChange}
             eventKey={opt.value}
+            disabled={opt.disabled}
             isActive={selected === opt.value}
           >
             {opt.label}

@@ -107,6 +107,8 @@ class BigtableNodeStorage(NodeStorage):
         return data
 
     def get_multi(self, id_list):
+        id_list = list(set(id_list))
+
         if len(id_list) == 1:
             return {id_list[0]: self.get(id_list[0])}
 
@@ -277,4 +279,8 @@ class BigtableNodeStorage(NodeStorage):
         else:
             gc_rule = None
 
-        table.create(column_families={self.column_family: gc_rule})
+        from google.api_core import exceptions
+        from google.api_core import retry
+
+        retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
+        retry_504(table.create)(column_families={self.column_family: gc_rule})

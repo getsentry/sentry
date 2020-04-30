@@ -43,10 +43,13 @@ def test_get_json_meta_type():
     assert get_json_meta_type("other", "") == "string"
     assert get_json_meta_type("avg_duration", "number") == "duration"
     assert get_json_meta_type("duration", "number") == "duration"
+    assert get_json_meta_type("p50", "number") == "duration"
     assert get_json_meta_type("p75", "number") == "duration"
     assert get_json_meta_type("p95", "number") == "duration"
     assert get_json_meta_type("p99", "number") == "duration"
+    assert get_json_meta_type("p100", "number") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
+    assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
@@ -232,6 +235,16 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+        assert parse_search_query("first_seen:>2018-01-01T05:06:07+00:00") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 6, 7, tzinfo=timezone.utc)
+                ),
+            )
+        ]
+
         assert parse_search_query("random:>2015-05-18") == [
             SearchFilter(
                 key=SearchKey(name="random"), operator="=", value=SearchValue(">2015-05-18")
@@ -279,7 +292,24 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
-        assert parse_search_query("first_seen:2018-01-01T05:06:07") == [
+        assert parse_search_query("first_seen:2018-01-01T05:06:07Z") == [
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator=">=",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                ),
+            ),
+            SearchFilter(
+                key=SearchKey(name="first_seen"),
+                operator="<",
+                value=SearchValue(
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                ),
+            ),
+        ]
+
+        assert parse_search_query("first_seen:2018-01-01T05:06:07+00:00") == [
             SearchFilter(
                 key=SearchKey(name="first_seen"),
                 operator=">=",
@@ -1168,8 +1198,8 @@ class GetSnubaQueryArgsTest(TestCase):
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("project.name:{}".format(p1.slug), params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
-        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert _filter.project_ids == [p1.id, p2.id]
+        assert _filter.filter_keys == {"project_id": [p1.id]}
+        assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("!project.name:{}".format(p1.slug), params)
@@ -1216,13 +1246,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_general_negative_user_field(self):
         conditions = get_filter("!user:123").conditions
         assert len(conditions) == 4
-        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[0]
+        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[0]
         assert [
             [["isNull", ["user.username"]], "=", 1],
             ["user.username", "!=", "123"],
         ] == conditions[1]
-        assert [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "123"]] == conditions[2]
-        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[3]
+        assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
+        assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
@@ -1244,6 +1274,10 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
 
+    def test_function_with_date_arguments(self):
+        result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "=", 1585769692000]]
+
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
@@ -1256,6 +1290,11 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
+
+    def test_blank_field_ignored(self):
+        fields = ["", "title", "   "]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == ["title", "id", "project.id"]
 
     def test_automatic_fields_no_aggregates(self):
         fields = ["event.type", "message"]
@@ -1304,10 +1343,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
@@ -1319,10 +1358,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "issue.id",
-            "user.id",
-            "user.username",
             "user.email",
+            "user.username",
             "user.ip",
+            "user.id",
             "message",
             "project.id",
         ]
@@ -1502,13 +1541,13 @@ class ResolveFieldListTest(unittest.TestCase):
         )
 
     def test_histogram_function(self):
-        fields = ["histogram(transaction.duration, 10, 1000)", "count()"]
+        fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             [
                 "multiply",
                 [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
-                "histogram_transaction_duration_10_1000",
+                "histogram_transaction_duration_10_1000_0",
             ]
         ]
         assert result["aggregations"] == [
@@ -1517,26 +1556,26 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
-        assert result["groupby"] == ["histogram_transaction_duration_10_1000"]
+        assert result["groupby"] == ["histogram_transaction_duration_10_1000_0"]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(stack.colno, 10, 1000)"]
+            fields = ["histogram(stack.colno, 10, 1000, 0)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(stack.colno, 10, 1000): column argument invalid: stack.colno is not a duration column"
+            "histogram(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["histogram(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 3 arguments" in six.text_type(err)
+        assert "histogram(transaction.duration, 10): expected 4 arguments" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 1000, 1000)"]
+            fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(transaction.duration, 1000, 1000): num_buckets argument invalid: 1000 must be less than 500"
+            "histogram(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
             in six.text_type(err)
         )
 

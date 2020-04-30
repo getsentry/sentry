@@ -7,7 +7,7 @@ from sentry.utils.compat import mock
 
 from datetime import datetime
 from django.utils import timezone
-from sentry.buffer.redis import RedisBuffer, batch_buffers_incr
+from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.testutils import TestCase
 
@@ -122,34 +122,6 @@ class RedisBufferTest(TestCase):
         assert pending == ["foo"]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr", mock.Mock())
-    def test_batching_incr_saves_to_redis(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        client = self.buf.cluster.get_routing_client()
-        model = mock.Mock()
-        model.__name__ = "Mock"
-        columns = {"times_seen": 1}
-        filters = {"pk": 1, "datetime": now}
-        with mock.patch("sentry.app.buffer", self.buf):
-            with batch_buffers_incr():
-                self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
-
-                # changes should only be visible on batching_buffers_incr() exit
-                assert not client.hgetall("foo")
-
-                self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
-
-        result = client.hgetall("foo")
-        f = result.pop("f")
-        assert pickle.loads(f) == {"pk": 1, "datetime": now}
-        assert pickle.loads(result.pop("e+datetime")) == now
-        assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": "2", "m": "mock.mock.Mock"}
-
-        pending = client.zrange("b:p", 0, -1)
-        assert pending == ["foo"]
-
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
     @mock.patch("sentry.buffer.redis.process_pending")
     def test_process_pending_partitions_none(self, process_pending, process_incr):
@@ -231,24 +203,3 @@ class RedisBufferTest(TestCase):
             "s": "1"
         }
     """
-
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis._local_buffers", dict())
-    def test_signal_only_saved_local_buffs(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-        model = mock.Mock()
-        model.__name__ = "Mock"
-        columns = {"times_seen": 1}
-        filters = {"pk": 1, "datetime": now}
-
-        self.buf.incr(
-            model, columns, filters, extra={"foo": "bar", "datetime": now}, signal_only=True
-        )
-
-        from sentry.buffer.redis import _local_buffers
-
-        frozen_filters = tuple(sorted(filters.items()))
-        key = (frozen_filters, model)
-        values = _local_buffers[key]
-
-        assert values[-1]  # signal_only stored last

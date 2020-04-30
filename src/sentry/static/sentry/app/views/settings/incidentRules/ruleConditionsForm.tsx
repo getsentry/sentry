@@ -6,7 +6,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -94,7 +94,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <SelectField
             name="environment"
             label={t('Environment')}
-            help={t('Select an environment')}
+            help={t('Choose which environment events must match')}
             placeholder={t('All environments')}
             choices={
               defined(this.state.environments)
@@ -112,9 +112,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             name="query"
             label={t('Filter')}
             placeholder="error.type:TypeError"
-            help={t(
-              'You can apply standard Sentry filter syntax to filter by status, user, etc.'
-            )}
+            help={tct(`By default a filter of [filter] is automatically applied`, {
+              filter: <code>event.type:error</code>,
+            })}
           >
             {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar

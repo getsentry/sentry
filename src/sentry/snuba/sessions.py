@@ -4,8 +4,11 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.utils.snuba import raw_query, parse_snuba_datetime
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.snuba.dataset import Dataset
+
+
+DATASET_BUCKET = 3600
 
 
 def _convert_duration(val):
@@ -90,8 +93,8 @@ def get_project_releases_by_stability(
     orderby = {
         "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
         "crash_free_users": [["divide", ["users_crashed", "users"]]],
-        "sessions": ["sessions"],
-        "users": ["users"],
+        "sessions": ["-sessions"],
+        "users": ["-users"],
     }[scope]
 
     conditions = []
@@ -356,6 +359,11 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
 
 def get_project_release_stats(project_id, release, stat, rollup, start, end, environments=None):
     assert stat in ("users", "sessions")
+
+    # since snuba end queries are exclusive of the time and we're bucketing to
+    # a full hour, we need to round to the next hour since snuba is exclusive
+    # on the end.
+    end = to_datetime((to_timestamp(end) // DATASET_BUCKET + 1) * DATASET_BUCKET)
 
     filter_keys = {"project_id": [project_id]}
     conditions = [["release", "=", release]]

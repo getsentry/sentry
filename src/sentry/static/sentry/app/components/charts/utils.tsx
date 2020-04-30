@@ -1,7 +1,9 @@
 import moment from 'moment';
 
+import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {parsePeriodToHours} from 'app/utils/dates';
+import {escape} from 'app/utils';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -9,21 +11,21 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 const TWENTY_FOUR_HOURS = 1440;
 const ONE_HOUR = 60;
 
-export type DateTimeObject = {
-  start: Date | null;
-  end: Date | null;
-  period?: string;
-};
+export const AREA_COLORS = ['#FFE3FD', '#E8B0F2', '#BD81E6', '#5246A3', '#422C6F'];
+
+export const AREA_SINGLE_COLOR = AREA_COLORS[3];
+
+export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
 export function truncationFormatter(value: string, truncate: number): string {
   if (!truncate) {
-    return value;
+    return escape(value);
   }
   const truncationLength =
     truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  return value.length > truncationLength
-    ? value.substring(0, truncationLength) + '…'
-    : value;
+  const truncated =
+    value.length > truncationLength ? value.substring(0, truncationLength) + '…' : value;
+  return escape(truncated);
 }
 
 /**

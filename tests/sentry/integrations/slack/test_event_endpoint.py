@@ -143,3 +143,42 @@ class LinkSharedEventTest(BaseEventTest):
             issue_url: build_group_attachment(group1),
             incident_url: build_incident_attachment(incident),
         }
+        assert data["token"] == "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+
+    @responses.activate
+    def test_user_access_token(self):
+        # this test is needed to make sure that classic bots installed by on-prem users
+        # still work since they needed to use a user_access_token for unfurl
+        self.integration.metadata.update(
+            {
+                "user_access_token": "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "access_token": "xoxm-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            }
+        )
+        self.integration.save()
+        responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
+        org2 = self.create_organization(name="biz")
+        project1 = self.create_project(organization=self.org)
+        project2 = self.create_project(organization=org2)
+        group1 = self.create_group(project=project1)
+        group2 = self.create_group(project=project2)
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
+        )
+        incident.update(identifier=123)
+        resp = self.post_webhook(
+            event_data=json.loads(
+                LINK_SHARED_EVENT
+                % {
+                    "group1": group1.id,
+                    "group2": group2.id,
+                    "incident": incident.identifier,
+                    "org1": self.org.slug,
+                    "org2": org2.slug,
+                }
+            )
+        )
+        assert resp.status_code == 200, resp.content
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert data["token"] == "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"

@@ -328,17 +328,17 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
                         noMargin={true}
                       >
                         <div
-                          className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
                         >
                           You don't have any environments yet.
                         </div>
@@ -684,17 +684,17 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
                         noMargin={true}
                       >
                         <div
-                          className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
                         >
                           You don't have any hidden environments.
                         </div>
@@ -1221,7 +1221,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              className="css-1dw46ju-ButtonLabel edwq9my1"
                                             >
                                               Show
                                             </span>

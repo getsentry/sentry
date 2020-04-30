@@ -1,5 +1,8 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
+
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type DefaultProps = {
   query: string;
@@ -10,6 +13,8 @@ type DefaultProps = {
 type Props = DefaultProps & {
   placeholder?: string;
   className?: string;
+  onChange?: (query: string) => void;
+  width?: string;
 };
 
 type State = {
@@ -52,9 +57,10 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   clearSearch = () => {
-    this.setState({query: this.props.defaultQuery}, () =>
-      this.props.onSearch(this.state.query)
-    );
+    this.setState({query: this.props.defaultQuery}, () => {
+      this.props.onSearch(this.state.query);
+      callIfFunction(this.props.onChange, this.state.query);
+    });
   };
 
   onQueryFocus = () => {
@@ -68,17 +74,20 @@ class SearchBar extends React.PureComponent<Props, State> {
   };
 
   onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({query: evt.target.value});
+    const {value} = evt.target;
+
+    this.setState({query: value});
+    callIfFunction(this.props.onChange, value);
   };
 
   render() {
-    const {className} = this.props;
+    const {className, width} = this.props;
 
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
-            <input
+            <Input
               type="text"
               className="search-input form-control"
               placeholder={this.props.placeholder}
@@ -88,6 +97,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               value={this.state.query}
               onBlur={this.onQueryBlur}
               onChange={this.onQueryChange}
+              width={width}
             />
             <span className="icon-search" />
             {this.state.query !== this.props.defaultQuery && (
@@ -103,5 +113,9 @@ class SearchBar extends React.PureComponent<Props, State> {
     );
   }
 }
+
+const Input = styled('input')`
+  width: ${p => (p.width ? p.width : undefined)};
+`;
 
 export default SearchBar;

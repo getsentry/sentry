@@ -1,5 +1,4 @@
 import Papa from 'papaparse';
-import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
@@ -119,21 +118,6 @@ export function getPrebuiltQueries(organization: Organization) {
   }
 
   return views;
-}
-
-export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const unwrapped =
-    Array.isArray(value) && value.length > 0
-      ? value[0]
-      : isString(value)
-      ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
@@ -310,8 +294,9 @@ function generateAdditionalConditions(
     // Or is a simple key in the event. More complex deeply nested fields are
     // more challenging to get at as their location in the structure does not
     // match their name.
-    if (dataRow[dataKey]) {
-      const nextValue = String(dataRow[dataKey]).trim();
+    if (dataRow.hasOwnProperty(dataKey)) {
+      const value = dataRow[dataKey];
+      const nextValue = value === null || value === undefined ? '' : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':

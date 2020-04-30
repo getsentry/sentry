@@ -266,6 +266,18 @@ describe('getExpandedResults()', function() {
     // appends to existing conditions
     result = getExpandedResults(view, {'event.type': 'csp'}, {});
     expect(result.query).toEqual('event.type:csp');
+
+    // Includes empty strings
+    result = getExpandedResults(view, {}, {custom_tag: ''});
+    expect(result.query).toEqual('event.type:error custom_tag:""');
+
+    // Includes 0
+    result = getExpandedResults(view, {}, {custom_tag: 0});
+    expect(result.query).toEqual('event.type:error custom_tag:0');
+
+    // Includes null
+    result = getExpandedResults(view, {}, {custom_tag: null});
+    expect(result.query).toEqual('event.type:error custom_tag:""');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {

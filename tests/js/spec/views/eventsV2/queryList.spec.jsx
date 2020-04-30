@@ -80,7 +80,7 @@ describe('EventsV2 > QueryList', function() {
       TestStubs.routerContext()
     );
     let card = wrapper.find('QueryCard').last();
-    expect(card.find('CardHeading').text()).toEqual(savedQueries[1].name);
+    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
     openContextMenu(card);
     wrapper.update();
@@ -108,7 +108,7 @@ describe('EventsV2 > QueryList', function() {
       TestStubs.routerContext()
     );
     let card = wrapper.find('QueryCard').last();
-    expect(card.find('CardHeading').text()).toEqual(savedQueries[1].name);
+    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
     openContextMenu(card);
     wrapper.update();
@@ -135,7 +135,7 @@ describe('EventsV2 > QueryList', function() {
       TestStubs.routerContext()
     );
     let card = wrapper.find('QueryCard').last();
-    expect(card.find('CardHeading').text()).toEqual(savedQueries[1].name);
+    expect(card.find('QueryCardContent').text()).toEqual(savedQueries[1].name);
 
     // Open the context menu
     openContextMenu(card);

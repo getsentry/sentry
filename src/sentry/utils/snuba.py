@@ -329,6 +329,11 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
                 for k in query_params.filter_keys
             ]
             project_ids = list(set.union(*map(set, ids)))
+    elif query_params.conditions:
+        project_ids = []
+        for cond in query_params.conditions:
+            if cond[0] == "project_id":
+                project_ids = [cond[2]] if cond[1] == "=" else cond[2]
     else:
         project_ids = []
 
@@ -411,7 +416,9 @@ def _prepare_query_params(query_params):
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise QueryOutsideRetentionError
+            raise QueryOutsideRetentionError(
+                "Invalid date range. Please try a more recent date range."
+            )
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -490,6 +497,10 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
+        # Snuba has end exclusive but our UI wants it generally to be inclusive.
+        # This shows up in unittests: https://github.com/getsentry/sentry/pull/15939
+        # We generally however require that the API user is aware of the exclusive
+        # end.
         self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []

@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry.api.bases import NoProjects, OrganizationEventsError
+from sentry.api.bases import NoProjects
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
@@ -185,8 +185,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return Response([])
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
 
         # This should get us all the projects into postgres that have received
         # health data in the last 24 hours.  If health data is not requested
@@ -208,10 +206,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         select_extra = {}
         sort_query = None
 
+        queryset = queryset.distinct()
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
-        else:
-            queryset = queryset.distinct()
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"

@@ -1,31 +1,26 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Panel} from 'app/components/panels';
-import {IconQuestion, IconWarning} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {
-  ChartControls,
-  InlineContainer,
-  SectionHeading,
-  SectionValue,
-  SubHeading,
-} from 'app/components/charts/styles';
-import Tooltip from 'app/components/tooltip';
+import {AREA_COLORS} from 'app/components/charts/utils';
 import AsyncComponent from 'app/components/asyncComponent';
+import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
-import space from 'app/styles/space';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
+import {HeaderTitle, StyledIconQuestion} from '../styles';
+
+const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
   'environment',
   'project',
@@ -50,12 +45,18 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   chartData: {data: ApiResult[]} | null;
+  zoomError?: boolean;
 };
 
 /**
- * Fetch the chart data and then render the graph.
+ * Fetch and render a bar chart that shows event volume
+ * for each duration bucket. We always render 15 buckets of
+ * equal widths based on the endpoints min + max durations.
+ *
+ * This graph visualizes how many transactions were recorded
+ * at each duration bucket, showing the modality of the transaction.
  */
-class LatencyHistogram extends AsyncComponent<Props, State> {
+class LatencyChart extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {
       organization,
@@ -71,7 +72,7 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       id: '',
       name: '',
       version: 2,
-      fields: ['histogram(transaction.duration,15)', 'count()'],
+      fields: [`histogram(transaction.duration,${NUM_BUCKETS})`, 'count()'],
       orderby: 'histogram_transaction_duration_15',
       projects: project,
       range: statsPeriod,
@@ -101,24 +102,37 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
     return !isEqual(pick(prevProps, QUERY_KEYS), pick(this.props, QUERY_KEYS));
   }
 
+  handleMouseOver = () => {
+    // Hide the zoom error tooltip on the next hover.
+    if (this.state.zoomError) {
+      this.setState({zoomError: false});
+    }
+  };
+
   handleClick = value => {
     const {chartData} = this.state;
     if (chartData === null) {
       return;
     }
-    const {location} = this.props;
-
-    // Only bars that are 'active' will have itemStyle set.
-    // See transformData()
-    const isActive = value.data.hasOwnProperty('itemStyle');
+    const {location, organization} = this.props;
     const valueIndex = value.dataIndex;
 
     // If the active bar is clicked again we need to remove the constraints.
-    const startDuration = isActive
-      ? undefined
-      : chartData.data[valueIndex].histogram_transaction_duration_15;
-    const endDuration =
-      typeof startDuration === 'number' ? startDuration + this.bucketWidth : undefined;
+    const startDuration = chartData.data[valueIndex].histogram_transaction_duration_15;
+    const endDuration = startDuration + this.bucketWidth;
+    // Re-render showing a zoom error above the current bar.
+    if ((endDuration - startDuration) / NUM_BUCKETS < 0.6) {
+      this.setState({
+        zoomError: true,
+      });
+      return;
+    }
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.latency_chart.zoom',
+      eventName: 'Performance Views: Transaction Summary Latency Chart Zoom',
+      organization_id: parseInt(organization.id, 10),
+    });
 
     const target = {
       pathname: location.pathname,
@@ -159,11 +173,10 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {chartData} = this.state;
+    const {chartData, zoomError} = this.state;
     if (chartData === null) {
       return null;
     }
-    const {location} = this.props;
     const xAxis = {
       type: 'category',
       truncate: true,
@@ -176,80 +189,82 @@ class LatencyHistogram extends AsyncComponent<Props, State> {
       },
     };
 
+    // Use a custom tooltip formatter as we need to replace
+    // the tooltip content entirely when zooming is no longer available.
+    const tooltip = {
+      formatter(series) {
+        const seriesData = Array.isArray(series) ? series : [series];
+        let contents: string[] = [];
+        if (!zoomError) {
+          // Replicate the necessary logic from app/components/charts/components/tooltip.jsx
+          contents = seriesData.map(item => {
+            const label = item.seriesName;
+            const value = item.value[1].toLocaleString();
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
+              '</div>',
+            ].join('');
+          });
+          const seriesLabel = seriesData[0].value[0];
+          contents.push(`<div class="tooltip-date">${seriesLabel}</div>`);
+        } else {
+          contents = [
+            '<div class="tooltip-series tooltip-series-solo">',
+            t('You cannot zoom in any further'),
+            '</div>',
+          ];
+        }
+        contents.push('<div class="tooltip-arrow"></div>');
+        return contents.join('');
+      },
+    };
+
     return (
       <BarChart
-        grid={{left: '24px', right: '24px', top: '32px', bottom: '16px'}}
+        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
-        series={transformData(chartData.data, location, this.bucketWidth)}
-        colors={['rgba(140, 79, 189, 0.3)']}
+        series={transformData(chartData.data, this.bucketWidth)}
+        tooltip={tooltip}
+        colors={[AREA_COLORS[2]]}
         onClick={this.handleClick}
+        onMouseOver={this.handleMouseOver}
       />
     );
   }
-}
 
-function calculateTotal(total: number | null) {
-  if (total === null) {
-    return '\u2015';
+  render() {
+    return (
+      <React.Fragment>
+        <HeaderTitle>
+          {t('Latency Distribution')}
+          <Tooltip
+            position="top"
+            title={t(
+              `Latency Distribution reflects the volume of transactions per median duration.`
+            )}
+          >
+            <StyledIconQuestion />
+          </Tooltip>
+        </HeaderTitle>
+        {this.renderComponent()}
+      </React.Fragment>
+    );
   }
-  return total.toLocaleString();
-}
-
-type WrapperProps = ViewProps & {
-  organization: OrganizationSummary;
-  location: Location;
-  totalValues: number | null;
-};
-
-function LatencyChart({totalValues, ...props}: WrapperProps) {
-  return (
-    <Panel>
-      <PaddedSubHeading>
-        <span>{t('Latency Distribution')}</span>
-        <Tooltip
-          position="top"
-          title={t(
-            `This graph shows the volume of transactions that completed within each duration bucket.
-               X-axis values represent the median value of each bucket.
-               `
-          )}
-        >
-          <IconQuestion size="sm" color={theme.gray6} />
-        </Tooltip>
-      </PaddedSubHeading>
-      <LatencyHistogram {...props} />
-      <ChartControls>
-        <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Events')}</SectionHeading>
-          <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
-        </InlineContainer>
-      </ChartControls>
-    </Panel>
-  );
 }
 
 /**
  * Convert a discover response into a barchart compatible series
  */
-function transformData(data: ApiResult[], location: Location, bucketWidth: number) {
+function transformData(data: ApiResult[], bucketWidth: number) {
   const seriesData = data.map(item => {
     const bucket = item.histogram_transaction_duration_15;
-    const midPoint = Math.ceil(bucket + bucketWidth / 2);
-    const value: any = {
+    const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
+    return {
       value: item.count,
       name: getDuration(midPoint / 1000, 2, true),
     };
-    if (
-      location.query.startDuration &&
-      typeof location.query.startDuration === 'string'
-    ) {
-      const start = parseInt(location.query.startDuration, 10);
-      if (bucket >= start && bucket < start + bucketWidth) {
-        value.itemStyle = {color: theme.purpleLight};
-      }
-    }
-    return value;
   });
 
   return [
@@ -259,15 +274,5 @@ function transformData(data: ApiResult[], location: Location, bucketWidth: numbe
     },
   ];
 }
-
-const PaddedSubHeading = styled(SubHeading)`
-  display: flex;
-  align-items: flex-start;
-  margin: ${space(2)} 0 ${space(1)} ${space(3)};
-
-  & > span {
-    margin-right: ${space(1)};
-  }
-`;
 
 export default LatencyChart;

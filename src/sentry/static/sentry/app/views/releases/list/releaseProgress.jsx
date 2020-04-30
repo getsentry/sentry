@@ -192,7 +192,6 @@ class ReleaseProgress extends AsyncComponent {
             <StyledButton
               className="text-light"
               onClick={() => this.handleClick('dismissed')}
-              size="large"
               data-test-id="dismissed"
             >
               {t('Dismiss')}
@@ -200,7 +199,6 @@ class ReleaseProgress extends AsyncComponent {
             <StyledButton
               className="text-light"
               onClick={() => this.handleClick('snoozed')}
-              size="large"
               data-test-id="snoozed"
             >
               {t('Remind Me Later')}

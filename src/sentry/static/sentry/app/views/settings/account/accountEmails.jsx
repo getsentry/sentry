@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons/iconDelete';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -69,7 +70,7 @@ class EmailRow extends React.Component {
               data-test-id="remove"
               priority="danger"
               size="small"
-              icon="icon-trash"
+              icon={<IconDelete />}
               onClick={this.handleRemove}
             />
           )}

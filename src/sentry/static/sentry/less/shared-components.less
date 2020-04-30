@@ -694,7 +694,7 @@ table.table.key-value {
   .search-input {
     // Match the height of buttons adjacent to the search input.
     height: 40px;
-    padding: 8px 24px 8px 37px;
+    padding: 8px 34px 8px 37px;
     font-size: 14px;
     background: #fff;
     .transition(none);
@@ -732,7 +732,7 @@ table.table.key-value {
 
 .search-clear-form {
   position: absolute;
-  top: 8px;
+  top: 11px;
   right: 10px;
   color: lighten(@gray, 30);
 
@@ -1319,27 +1319,10 @@ header + .alert {
     }
   }
 
-  li a,
-  li span.menu-target {
-    .transition(none);
-    color: @gray-dark;
-    cursor: pointer;
-
-    &:hover,
-    &.hover {
-      background: #f7f8f9;
-      color: darken(@gray-dark, 10);
-    }
-  }
-
   li.active a,
   li.active a:hover {
     background: @purple;
     color: #fff !important;
-  }
-
-  .divider {
-    margin: 4px 0;
   }
 
   .disabled {

@@ -140,6 +140,12 @@ class IncidentStatus(Enum):
     CRITICAL = 20
 
 
+class IncidentStatusMethod(Enum):
+    MANUAL = 1
+    RULE_UPDATED = 2
+    RULE_TRIGGERED = 3
+
+
 INCIDENT_STATUS = {
     IncidentStatus.OPEN: "Open",
     IncidentStatus.CLOSED: "Resolved",
@@ -164,6 +170,9 @@ class Incident(Model):
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
+    status_method = models.PositiveSmallIntegerField(
+        default=IncidentStatusMethod.RULE_TRIGGERED.value
+    )
     type = models.PositiveSmallIntegerField()
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
@@ -193,6 +202,18 @@ class Incident(Model):
     @property
     def duration(self):
         return self.current_end_date - self.date_started
+
+
+class PendingIncidentSnapshot(Model):
+    __core__ = True
+
+    incident = OneToOneCascadeDeletes("sentry.Incident")
+    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pendingincidentsnapshot"
 
 
 class IncidentSnapshot(Model):
@@ -271,9 +292,7 @@ class IncidentSubscription(Model):
 
 class AlertRuleStatus(Enum):
     PENDING = 0
-    TRIGGERED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
+    SNAPSHOT = 4
 
 
 class AlertRuleThresholdType(Enum):
@@ -283,7 +302,7 @@ class AlertRuleThresholdType(Enum):
 
 class AlertRuleManager(BaseManager):
     """
-    A manager that excludes all rows that are pending deletion.
+    A manager that excludes all rows that are snapshots.
     """
 
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
@@ -292,12 +311,7 @@ class AlertRuleManager(BaseManager):
         return (
             super(AlertRuleManager, self)
             .get_queryset()
-            .exclude(
-                status__in=(
-                    AlertRuleStatus.PENDING_DELETION.value,
-                    AlertRuleStatus.DELETION_IN_PROGRESS.value,
-                )
-            )
+            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
     def fetch_for_organization(self, organization):
@@ -378,9 +392,9 @@ class AlertRule(Model):
     __core__ = True
 
     objects = AlertRuleManager()
-    objects_with_deleted = BaseManager()
+    objects_with_snapshots = BaseManager()
 
-    organization = FlexibleForeignKey("sentry.Organization", db_index=False, null=True)
+    organization = FlexibleForeignKey("sentry.Organization", null=True)
     query_subscriptions = models.ManyToManyField(
         "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
     )
@@ -408,7 +422,14 @@ class AlertRule(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_alertrule"
-        unique_together = (("organization", "name"),)
+        base_manager_name = "objects_with_snapshots"
+        default_manager_name = "objects_with_snapshots"
+        # This constraint does not match what is in migration 0061, since there is no
+        # way to declare an index on an expression. Therefore, tests would break depending
+        # on whether we run migrations - to work around this, we skip some tests if
+        # migrations have not been run. In migration 0061, this index is set to
+        # a partial index where status=0
+        unique_together = (("organization", "name", "status"),)
 
 
 class TriggerStatus(Enum):

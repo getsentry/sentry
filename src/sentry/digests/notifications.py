@@ -19,14 +19,19 @@ Notification = namedtuple("Notification", "event rules")
 
 
 def split_key(key):
-    from sentry.plugins.base import plugins
+    from sentry.mail.adapter import ActionTargetType
 
-    plugin_slug, _, project_id = key.split(":", 2)
-    return plugins.get(plugin_slug), Project.objects.get(pk=project_id)
+    key_parts = key.split(":", 4)
+    project_id = key_parts[2]
+    target_type = ActionTargetType(key_parts[3])
+    target_identifier = key_parts[4] if key_parts[4] else None
+    return Project.objects.get(pk=project_id), target_type, target_identifier
 
 
-def unsplit_key(plugin, project):
-    return u"{plugin.slug}:p:{project.id}".format(plugin=plugin, project=project)
+def unsplit_key(project, target_type, target_identifier):
+    return u"mail:p:{}:{}:{}".format(
+        project.id, target_type.value, target_identifier if target_identifier is not None else ""
+    )
 
 
 def event_to_record(event, rules):

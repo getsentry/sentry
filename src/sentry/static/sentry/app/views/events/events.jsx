@@ -121,22 +121,31 @@ class Events extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
-  onRequestSuccess({data, jqXHR}) {
-    const {organization} = this.props;
-
-    // TODO: This is actually not optimal because `AsyncComponent.handleRequestSuccess`
-    // still gets called and updates state when the response may not be what the component
-    // expects.
-    //
-    // Ideally when a direct hit is found, we should not update state in `handleRequestSuccess`
+  async handleRequestSuccess({stateKey, data, jqXHR}, ...args) {
+    // When a direct hit is found, do not update state in `handleRequestSuccess`
     if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+      const {organization} = this.props;
       const event = data[0];
-      const project = organization.projects.find(p => p.id === event.projectID);
 
-      browserHistory.replace(
-        `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
+      const resp = await this.api.requestPromise(
+        `/organizations/${organization.slug}/projects/`,
+        {
+          query: {
+            query: `id:${event.projectID}`,
+          },
+        }
       );
+
+      if (resp && resp.length > 0) {
+        const project = resp[0];
+        browserHistory.replace(
+          `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
+        );
+        return;
+      }
     }
+
+    super.handleRequestSuccess({stateKey, data, jqXHR}, ...args);
   }
 
   onRequestError(resp) {

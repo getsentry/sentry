@@ -4,7 +4,7 @@ import six
 from datetime import timedelta
 from enum import Enum
 
-SNUBA_MAX_RESULTS = 1000
+SNUBA_MAX_RESULTS = 10000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 

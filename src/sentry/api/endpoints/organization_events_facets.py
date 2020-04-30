@@ -6,8 +6,9 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba import discover
+from sentry.utils import snuba
 from sentry import features, tagstore
 
 
@@ -17,14 +18,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as error:
-            raise ParseError(detail=six.text_type(error))
         except NoProjects:
-            return Response({"detail": "A valid project must be included."}, status=400)
-        try:
-            self._validate_project_ids(request, organization, params)
-        except OrganizationEventsError as error:
-            return Response({"detail": six.text_type(error)}, status=400)
+            raise ParseError(detail="A valid project must be included.")
+        self._validate_project_ids(request, organization, params)
 
         try:
             facets = discover.get_facets(
@@ -32,7 +28,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 params=params,
                 referrer="api.organization-events-facets.top-tags",
             )
-        except discover.InvalidSearchQuery as error:
+        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
             raise ParseError(detail=six.text_type(error))
 
         resp = defaultdict(lambda: {"key": "", "topValues": []})
@@ -69,6 +65,6 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         )
 
         if not has_global_views and len(project_ids) > 1:
-            raise OrganizationEventsError("You cannot view events from multiple projects.")
+            raise ParseError(detail="You cannot view events from multiple projects.")
 
         return project_ids

@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
+import six
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import http
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.shared_integrations.exceptions import ApiError
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name, track_response_code
+from .client import SlackClient
+from .utils import build_group_attachment, get_channel_id, strip_channel_name
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -72,6 +75,7 @@ class SlackNotifyServiceForm(forms.Form):
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
     label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    prompt = "Send a Slack notification"
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -88,9 +92,6 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if not event.group.is_unresolved():
-            return
-
         integration_id = self.get_option("workspace")
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -114,19 +115,17 @@ class SlackNotifyServiceAction(EventAction):
                 "attachments": json.dumps([attachment]),
             }
 
-            session = http.build_session()
-            resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
-            status_code = resp.status_code
-            response = resp.json()
-            track_response_code(status_code, response.get("ok"))
-            resp.raise_for_status()
-            if not response.get("ok"):
+            client = SlackClient()
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except ApiError as e:
                 self.logger.info(
                     "rule.fail.slack_post",
                     extra={
-                        "error": response.get("error"),
+                        "error": six.text_type(e),
                         "project_id": event.project_id,
                         "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
                     },
                 )
 

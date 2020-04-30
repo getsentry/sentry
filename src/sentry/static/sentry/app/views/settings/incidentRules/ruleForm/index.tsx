@@ -100,6 +100,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     ];
   }
 
+  getEventType() {
+    // XXX: This is hardcoded for now, this will need to change when we add
+    // metric types that require different `event.type` (e.g. transactions)
+    return 'event.type:error';
+  }
+
   goBack() {
     const {router, routes, params, location} = this.props;
 
@@ -235,10 +241,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const criticalTrigger = triggers[criticalTriggerIndex];
       const warningTrigger = triggers[warningTriggerIndex];
 
+      const warningThreshold = warningTrigger.alertThreshold ?? 0;
+      const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
+
       const hasError =
         criticalTrigger.thresholdType === AlertRuleThresholdType.ABOVE
-          ? warningTrigger.alertThreshold > criticalTrigger.alertThreshold
-          : warningTrigger.alertThreshold < criticalTrigger.alertThreshold;
+          ? warningThreshold > criticalThreshold
+          : warningThreshold < criticalThreshold;
 
       if (hasError) {
         [criticalTriggerIndex, warningTriggerIndex].forEach(index => {
@@ -382,6 +391,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
     const {query, aggregation, timeWindow, triggers} = this.state;
 
+    const queryAndAlwaysErrorEvents = !query.includes('event.type')
+      ? `${query} ${this.getEventType()}`.trim()
+      : query;
+
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
@@ -426,7 +439,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               organization={organization}
               projects={this.state.projects}
               triggers={triggers}
-              query={query}
+              query={queryAndAlwaysErrorEvents}
               aggregation={aggregation}
               timeWindow={timeWindow}
             />

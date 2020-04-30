@@ -12,14 +12,14 @@ import {
   AppOrProviderOrPlugin,
   SentryApp,
   PluginWithProjectList,
+  DocumentIntegration,
+  Integration,
+  IntegrationProvider,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
-import {ExperimentAssignment} from 'app/types/experiments';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-const SORT_INTEGRATIONS_BY_WEIGHT = 'SORT_INTEGRATIONS_BY_WEIGHT' as const;
-const SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT = 'SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT' as const;
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -33,22 +33,6 @@ export const clearAnalyticsSession = () => {
 
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-
-export const getSortIntegrationsByWeightActive = (
-  experimentAssignment: ExperimentAssignment['IntegrationDirectorySortWeightExperiment']
-) => {
-  switch (localStorage.getItem(SORT_INTEGRATIONS_BY_WEIGHT)) {
-    case '1':
-      return true;
-    case '0':
-      return false;
-    default:
-      return experimentAssignment === '1';
-  }
-};
-
-export const getCategorySelectActive = () =>
-  localStorage.getItem(SHOW_INTEGRATION_DIRECTORY_CATEGORY_SELECT) === '1';
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -107,10 +91,17 @@ type IntegrationSearchEvent = {
   num_results: number;
 };
 
+type IntegrationCategorySelectEvent = {
+  eventKey: 'integrations.directory_category_selected';
+  eventName: 'Integrations: Directory Category Selected';
+  category: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
+  | IntegrationCategorySelectEvent
 ) & {
   view?:
     | 'external_install'
@@ -253,6 +244,9 @@ export const getCategoriesForIntegration = (
   if (isPlugin(integration)) {
     return getCategories(integration.featureDescriptions);
   }
+  if (isDocumentIntegration(integration)) {
+    return getCategories(integration.features);
+  }
   return getCategories(integration.metadata.features);
 };
 
@@ -266,4 +260,19 @@ export function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
+}
+
+export function isDocumentIntegration(
+  integration: AppOrProviderOrPlugin
+): integration is DocumentIntegration {
+  return integration.hasOwnProperty('docUrl');
+}
+
+export function isSlackWorkspaceApp(integration: Integration) {
+  return integration.configData.installationType === 'workspace_app';
+}
+
+//returns the text in the alert asking the user to re-authenticate a first-party integration
+export function getReauthAlertText(provider: IntegrationProvider) {
+  return provider.metadata.aspects?.reauthentication_alert?.alertText;
 }

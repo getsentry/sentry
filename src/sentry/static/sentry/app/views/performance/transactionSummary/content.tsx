@@ -5,13 +5,15 @@ import styled from '@emotion/styled';
 import {Organization} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox} from 'app/views/eventsV2/styles';
 import Tags from 'app/views/eventsV2/tags';
-import EventsV2 from 'app/utils/discover/eventsv2';
+import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 import SummaryContentTable from './table';
 import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
+import KeyTransactionButton from './keyTransactionButton';
+import TransactionSummaryCharts from './charts';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -24,6 +26,18 @@ type Props = {
 };
 
 class SummaryContent extends React.Component<Props> {
+  renderKeyTransactionButton() {
+    const {eventView, organization, transactionName} = this.props;
+
+    return (
+      <KeyTransactionButton
+        transactionName={transactionName}
+        eventView={eventView}
+        organization={organization}
+      />
+    );
+  }
+
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
 
@@ -38,28 +52,38 @@ class SummaryContent extends React.Component<Props> {
               transactionName={transactionName}
             />
           </div>
+          <KeyTransactionContainer>
+            {this.renderKeyTransactionButton()}
+          </KeyTransactionContainer>
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
-          <EventsV2
-            location={location}
-            eventView={eventView}
-            organization={organization}
-            extraQuery={{
-              per_page: TOP_SLOWEST_TRANSACTIONS,
-            }}
-          >
-            {({isLoading, tableData}) => (
-              <SummaryContentTable
-                organization={organization}
-                location={location}
-                eventView={eventView}
-                tableData={tableData}
-                isLoading={isLoading}
-                totalValues={totalValues}
-              />
-            )}
-          </EventsV2>
+          <div>
+            <TransactionSummaryCharts
+              organization={organization}
+              location={location}
+              eventView={eventView}
+              totalValues={totalValues}
+            />
+            <DiscoverQuery
+              location={location}
+              eventView={eventView}
+              orgSlug={organization.slug}
+              extraQuery={{
+                per_page: TOP_SLOWEST_TRANSACTIONS,
+              }}
+            >
+              {({isLoading, tableData}) => (
+                <SummaryContentTable
+                  organization={organization}
+                  location={location}
+                  eventView={eventView}
+                  tableData={tableData}
+                  isLoading={isLoading}
+                />
+              )}
+            </DiscoverQuery>
+          </div>
           <Side>
             <UserStats
               organization={organization}
@@ -90,6 +114,11 @@ const StyledTitleHeader = styled('span')`
 
 const Side = styled('div')`
   grid-column: 2/3;
+`;
+
+const KeyTransactionContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export default SummaryContent;

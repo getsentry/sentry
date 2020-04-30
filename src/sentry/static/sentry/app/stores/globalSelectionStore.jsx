@@ -84,16 +84,7 @@ const GlobalSelectionStore = Reflux.createStore({
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
    */
-  loadInitialData(
-    organization,
-    queryParams,
-    {api, forceUrlSync, onlyIfNeverLoaded} = {}
-  ) {
-    // If this option is true, only load if it has never been loaded before
-    if (onlyIfNeverLoaded && this._hasLoaded) {
-      return;
-    }
-
+  loadInitialData(organization, queryParams, {api, skipLastUsed} = {}) {
     this._hasLoaded = true;
     this.organization = organization;
     const query = pick(queryParams, Object.values(URL_PARAM));
@@ -113,7 +104,7 @@ const GlobalSelectionStore = Reflux.createStore({
           [DATE_TIME.UTC]: parsed.utc || null,
         },
       };
-    } else {
+    } else if (!skipLastUsed) {
       try {
         const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
 
@@ -129,15 +120,12 @@ const GlobalSelectionStore = Reflux.createStore({
         // use default if invalid
       }
     }
-    this.loadSelectionIfValid(globalSelection, organization, forceUrlSync, api);
+    this.loadSelectionIfValid(globalSelection, organization, api);
   },
 
-  async loadSelectionIfValid(globalSelection, organization, forceUrlSync, api) {
+  async loadSelectionIfValid(globalSelection, organization, api) {
     if (await isValidSelection(globalSelection, organization, api)) {
-      this.selection = {
-        ...globalSelection,
-        ...(forceUrlSync ? {forceUrlSync: true} : {}),
-      };
+      this.selection = globalSelection;
       this.trigger(this.selection);
     }
   },

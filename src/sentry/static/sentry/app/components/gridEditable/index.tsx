@@ -1,13 +1,14 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
+import {ExportQueryType} from 'app/components/dataExport';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconEdit, IconWarning} from 'app/icons';
+import {IconDownload, IconEdit, IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {
@@ -22,6 +23,7 @@ import {
   HeaderTitle,
   HeaderButton,
   HeaderButtonContainer,
+  HeaderDownloadButton,
   Body,
   Grid,
   GridRow,
@@ -43,7 +45,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    */
   editFeatures: string[];
   noEditMessage?: string;
-
+  location: Location;
   isLoading?: boolean;
   error?: React.ReactNode | null;
 
@@ -301,7 +303,6 @@ class GridEditable<
         {p.children(p)}
       </Hovercard>
     );
-
     return (
       <Feature
         hookName="feature-disabled:grid-editable-actions"
@@ -310,7 +311,7 @@ class GridEditable<
       >
         {({hasFeature}) => (
           <React.Fragment>
-            {this.renderDownloadCsvButton(hasFeature)}
+            {this.renderDownloadButton(hasFeature)}
             {this.renderEditButton(hasFeature)}
           </React.Fragment>
         )}
@@ -318,7 +319,23 @@ class GridEditable<
     );
   }
 
-  renderDownloadCsvButton(canEdit: boolean) {
+  renderDownloadButton(canEdit: boolean) {
+    const {data} = this.props;
+    if (data.length < 50) {
+      return this.renderBrowserExportButton(canEdit);
+    } else {
+      return (
+        <Feature
+          features={['organizations:data-export']}
+          renderDisabled={() => this.renderBrowserExportButton(canEdit)}
+        >
+          {this.renderAsyncExportButton(canEdit)}
+        </Feature>
+      );
+    }
+  }
+
+  renderBrowserExportButton(canEdit: boolean) {
     const disabled = this.props.isLoading || canEdit === false;
     const onClick = disabled ? undefined : this.props.actions.downloadAsCsv;
 
@@ -328,9 +345,26 @@ class GridEditable<
         onClick={onClick}
         data-test-id="grid-download-csv"
       >
-        <InlineSvg src="icon-download" />
-        {t('Download CSV')}
+        <IconDownload size="xs" />
+        {t('Export Page')}
       </HeaderButton>
+    );
+  }
+
+  renderAsyncExportButton(canEdit: boolean) {
+    const {isLoading, location} = this.props;
+    const disabled = isLoading || canEdit === false;
+    return (
+      <HeaderDownloadButton
+        payload={{
+          queryType: ExportQueryType.Discover,
+          queryInfo: location.query,
+        }}
+        disabled={disabled}
+      >
+        <IconDownload size="xs" />
+        {t('Export All')}
+      </HeaderDownloadButton>
     );
   }
 
@@ -458,7 +492,7 @@ class GridEditable<
         </Header>
 
         <Body>
-          <Grid ref={this.refGrid}>
+          <Grid data-test-id="grid-editable" ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>
             <GridBody>{this.renderGridBody()}</GridBody>
           </Grid>

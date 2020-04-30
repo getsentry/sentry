@@ -5,6 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 
 describe('Incident Rules Create', function() {
+  let eventStatsMock;
+
   beforeEach(function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -19,7 +21,7 @@ describe('Incident Rules Create', function() {
       url: '/projects/org-slug/project-slug/environments/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
     });
@@ -45,6 +47,19 @@ describe('Incident Rules Create', function() {
         project={project}
       />,
       routerContext
+    );
+
+    expect(eventStatsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          interval: '1m',
+          project: [2],
+          query: 'event.type:error',
+          statsPeriod: '12h',
+          yAxis: 'event_count',
+        },
+      })
     );
   });
 });
