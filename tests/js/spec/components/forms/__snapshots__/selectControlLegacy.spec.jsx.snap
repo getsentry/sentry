@@ -72,7 +72,6 @@ exports[`SelectField deprecatedSelectControl renders without form context 1`] = 
   clearable={true}
   deprecatedSelectControl={true}
   disabled={false}
-  height="auto"
   hideErrorMessage={false}
   multiple={false}
   name="fieldName"

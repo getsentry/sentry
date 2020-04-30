@@ -128,7 +128,6 @@ class DataPrivacyRulesFormEventId extends React.Component<Props, State> {
             onBlur={this.handleBlur}
             showStatus={status !== EventIdStatus.LOADED}
             error={this.getErrorMessage()}
-            height="40px"
           />
           <Status>
             <DataPrivacyRulesFormEventIdStatusIcon
@@ -147,6 +146,7 @@ const StyledTextField = styled(TextField)<{showStatus: boolean}>`
   flex: 1;
   font-weight: 400;
   input {
+    height: 40px;
     padding-right: ${p => (p.showStatus ? space(4) : space(1.5))};
   }
   margin-bottom: 0;

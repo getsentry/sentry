@@ -15,11 +15,6 @@ exports[`NumberField render() renders 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="number"
       value=""
     />
@@ -42,11 +37,6 @@ exports[`NumberField render() renders with form context 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="number"
       value={5}
     />
@@ -69,11 +59,6 @@ exports[`NumberField render() renders with optional attributes 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="number"
       value=""
     />
@@ -96,11 +81,6 @@ exports[`NumberField render() renders with value 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="number"
       value={5}
     />

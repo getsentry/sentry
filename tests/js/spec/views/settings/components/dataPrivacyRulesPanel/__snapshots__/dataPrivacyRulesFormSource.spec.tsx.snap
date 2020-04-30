@@ -71,7 +71,6 @@ exports[`DataPrivacyRulesFormSource default render 1`] = `
       <StyledTextField
         autoComplete="off"
         disabled={false}
-        height="40px"
         hideErrorMessage={false}
         name="from"
         onChange={[Function]}
@@ -83,9 +82,8 @@ exports[`DataPrivacyRulesFormSource default render 1`] = `
       >
         <TextField
           autoComplete="off"
-          className="css-13vk5l6-StyledTextField e5vbseb1"
+          className="css-jvghga-StyledTextField e5vbseb1"
           disabled={false}
-          height="40px"
           hideErrorMessage={false}
           name="from"
           onChange={[Function]}
@@ -96,7 +94,7 @@ exports[`DataPrivacyRulesFormSource default render 1`] = `
           value="$string"
         >
           <div
-            className="css-13vk5l6-StyledTextField e5vbseb1 control-group"
+            className="css-jvghga-StyledTextField e5vbseb1 control-group"
           >
             <div
               className="controls"
@@ -113,11 +111,6 @@ exports[`DataPrivacyRulesFormSource default render 1`] = `
                 onKeyDown={[Function]}
                 placeholder="Enter a custom attribute, variable or header name"
                 required={false}
-                style={
-                  Object {
-                    "height": "40px",
-                  }
-                }
                 type="text"
                 value="$string"
               />

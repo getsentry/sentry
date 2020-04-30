@@ -25,7 +25,6 @@ const BreadCrumbsSearch = ({
       autoComplete="off"
       value={searchTerm}
       onChange={onChangeSearchTerm}
-      height="28px"
     />
     <StyledIconSearch />
     <StyledIconClose show={!!searchTerm} onClick={onClearSearchTerm} circle />
@@ -43,6 +42,7 @@ const Wrapper = styled('div')`
 const StyledTextField = styled(TextField)<TextField['props']>`
   margin-bottom: 0;
   input {
+    height: 28px;
     padding-left: ${space(4)};
     padding-right: ${space(4)};
   }

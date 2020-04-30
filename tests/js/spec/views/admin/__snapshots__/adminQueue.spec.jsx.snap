@@ -235,7 +235,6 @@ exports[`AdminQueue render() renders 1`] = `
           clearable={true}
           deprecatedSelectControl={true}
           disabled={false}
-          height="auto"
           hideErrorMessage={false}
           multiple={false}
           name="task"

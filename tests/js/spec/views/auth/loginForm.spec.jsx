@@ -6,14 +6,8 @@ import ConfigStore from 'app/stores/configStore';
 import LoginForm from 'app/views/auth/loginForm';
 
 function doLogin(wrapper, apiRequest) {
-  wrapper
-    .find('#id-username')
-    .hostNodes()
-    .simulate('change', {target: {value: 'test@test.com'}});
-  wrapper
-    .find('#id-password')
-    .hostNodes()
-    .simulate('change', {target: {value: '12345pass'}});
+  wrapper.find('#id-username').simulate('change', {target: {value: 'test@test.com'}});
+  wrapper.find('#id-password').simulate('change', {target: {value: '12345pass'}});
 
   wrapper.find('form').simulate('submit');
 

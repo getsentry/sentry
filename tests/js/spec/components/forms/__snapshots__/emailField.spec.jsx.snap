@@ -15,11 +15,6 @@ exports[`EmailField render() renders 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="email"
       value=""
     />
@@ -42,11 +37,6 @@ exports[`EmailField render() renders with form context 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="email"
       value="foo@example.com"
     />
@@ -69,11 +59,6 @@ exports[`EmailField render() renders with value 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="email"
       value="foo@example.com"
     />

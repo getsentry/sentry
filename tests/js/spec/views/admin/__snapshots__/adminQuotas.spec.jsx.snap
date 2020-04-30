@@ -23,7 +23,6 @@ exports[`AdminQuotas render() renders 1`] = `
       >
         <TextField
           disabled={true}
-          height="auto"
           hideErrorMessage={false}
           label="Backend"
           required={false}
@@ -31,7 +30,6 @@ exports[`AdminQuotas render() renders 1`] = `
         />
         <TextField
           disabled={true}
-          height="auto"
           hideErrorMessage={false}
           label="Rate Limit"
           required={false}

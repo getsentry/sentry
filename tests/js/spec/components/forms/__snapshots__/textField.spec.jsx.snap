@@ -15,11 +15,6 @@ exports[`TextField render() renders with form context 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="text"
       value="fieldValue"
     />
@@ -42,11 +37,6 @@ exports[`TextField render() renders without form context 1`] = `
       name="fieldName"
       onChange={[Function]}
       required={false}
-      style={
-        Object {
-          "height": "auto",
-        }
-      }
       type="text"
       value=""
     />

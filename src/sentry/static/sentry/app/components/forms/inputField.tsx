@@ -36,10 +36,7 @@ class InputField<
         name={this.props.name}
         required={this.props.required}
         value={this.state.value as string | number} //can't pass in boolean here
-        style={{
-          height: this.props.height,
-          ...this.props.inputStyle,
-        }}
+        style={this.props.inputStyle}
         onBlur={this.props.onBlur}
         onFocus={this.props.onFocus}
         onKeyPress={this.props.onKeyPress}
