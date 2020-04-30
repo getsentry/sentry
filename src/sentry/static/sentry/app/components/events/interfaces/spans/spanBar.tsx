@@ -918,14 +918,7 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: ${p => {
-    if (p.orphanBranch) {
-      return `1px dashed ${p.theme.gray1}`;
-    }
-
-    return `1px solid ${p.theme.gray1}`;
-  }};
-
+  border-left: 1px ${p => p.orphanBranch ? 'dashed' : 'solid'} ${p => p.theme.gray1};
   position: absolute;
   top: 0;
 
