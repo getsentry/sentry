@@ -67,7 +67,7 @@ model_backends = {
 }
 
 
-def selector_func(method, callargs, switchover_timestamp):
+def selector_func(method, callargs, switchover_timestamp=None):
     spec = method_specifications.get(method)
     if spec is None:
         return "redis"  # default backend (possibly invoke base directly instead?)
