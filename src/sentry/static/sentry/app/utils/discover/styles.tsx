@@ -75,21 +75,22 @@ export const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
 `;
 
-const StyledIconCopy = styled(IconCopy)`
+const IconWrapper = styled('span')`
   cursor: pointer;
-  margin-right: ${space(0.5)};
+  margin-left: ${space(1)};
+  color: ${p => p.theme.gray2};
 `;
 
 export const EventId = ({value}: {value: string}) => {
   const shortId = value.substring(0, 8);
   return (
     <React.Fragment>
-      <Clipboard value={value}>
-        <span>
-          <StyledIconCopy size="xs" />
-        </span>
-      </Clipboard>
       {shortId}
+      <Clipboard value={value}>
+        <IconWrapper>
+          <IconCopy size="xs" />
+        </IconWrapper>
+      </Clipboard>
     </React.Fragment>
   );
 };
