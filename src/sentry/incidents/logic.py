@@ -27,6 +27,7 @@ from sentry.incidents.models import (
     IncidentGroup,
     IncidentProject,
     IncidentSnapshot,
+    PendingIncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
@@ -159,11 +160,12 @@ def update_incident_status(
             # Remove the snapshot since it's only used after the incident is
             # closed.
             IncidentSnapshot.objects.filter(incident=incident).delete()
+            PendingIncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
 
         if status == IncidentStatus.CLOSED:
-            create_incident_snapshot(incident, windowed_stats=True)
+            create_pending_incident_snapshot(incident)
 
         analytics.record(
             "incident.status_change",
@@ -269,16 +271,29 @@ def delete_comment(activity):
     return activity.delete()
 
 
+def create_pending_incident_snapshot(incident):
+    if PendingIncidentSnapshot.objects.filter(incident=incident).exists():
+        PendingIncidentSnapshot.objects.filter(incident=incident).delete()
+
+    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
+    target_run_date = incident.current_end_date + min(
+        timedelta(minutes=time_window * 10), timedelta(days=10)
+    )
+    return PendingIncidentSnapshot.objects.create(
+        incident=incident, target_run_date=target_run_date,
+    )
+
+
 def create_incident_snapshot(incident, windowed_stats=False):
     """
     Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
-
     assert incident.status == IncidentStatus.CLOSED.value
 
     event_stats_snapshot = create_event_stat_snapshot(incident, windowed_stats=windowed_stats)
     aggregates = get_incident_aggregates(incident)
+
     return IncidentSnapshot.objects.create(
         incident=incident,
         event_stats_snapshot=event_stats_snapshot,
@@ -360,14 +375,25 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
     time_window_delta = timedelta(minutes=time_window)
     start = incident.date_started - time_window_delta if start is None else start
-    end = incident.current_end_date if end is None else end
+    end = incident.current_end_date + time_window_delta if end is None else end
     if windowed_stats:
         now = timezone.now()
         end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
             end = now
-            start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+
+            # If the incident ended already, 'now' could be greater than we'd like
+            # which would result in showing too many data points after an incident ended.
+            # This depends on when the task to process snapshots runs.
+            # To resolve that, we ensure that the end is never greater than the date
+            # an incident ended + the smaller of time_window*10 or 10 days.
+            latest_end_date = incident.current_end_date + min(
+                timedelta(minutes=time_window * 10), timedelta(days=10)
+            )
+            end = min(end, latest_end_date)
+
+            start = end - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
 
