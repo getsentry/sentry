@@ -431,6 +431,8 @@ class AlertRule(Model):
         # a partial index where status=0
         unique_together = (("organization", "name", "status"),)
 
+    __repr__ = sane_repr("name", "date_added")
+
 
 class TriggerStatus(Enum):
     ACTIVE = 0
