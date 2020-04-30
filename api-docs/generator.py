@@ -21,7 +21,7 @@ namespace = "apidocs"
 network = get_or_create(client, "network", namespace)
 
 # Define our set of containers we want to run
-APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba"]
+APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba", "relay", "reverse_proxy"]
 devservices_settings = {
     container_name: SENTRY_DEVSERVICES[container_name] for container_name in APIDOC_CONTAINERS
 }
@@ -46,6 +46,8 @@ apidoc_containers_overrides = {
         "volumes": None,
         "only_if": None,
     },
+    "relay": {"pull": None, "volumes": None, "only_if": None, "with_devserver": None},
+    "reverse_proxy": {"volumes": None, "only_if": None, "with_devserver": None},
 }
 
 
