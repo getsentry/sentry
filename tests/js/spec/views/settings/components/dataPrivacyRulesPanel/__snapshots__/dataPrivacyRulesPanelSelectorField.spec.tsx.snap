@@ -51,7 +51,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
         "value": "$frame.vars.foo",
       },
       Object {
-        "description": "The timezone in the device context",
+        "description": "the timezone in the device context",
         "type": "value",
         "value": "contexts.device.timezone",
       },
