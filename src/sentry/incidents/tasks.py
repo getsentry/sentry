@@ -218,6 +218,5 @@ def process_pending_incident_snapshots():
                     incident.status == IncidentStatus.CLOSED.value
                     and not IncidentSnapshot.objects.filter(incident=incident).exists()
                 ):
-                    snapshot = create_incident_snapshot(incident, windowed_stats=True)
-                    assert snapshot.id
+                    create_incident_snapshot(incident, windowed_stats=True)
                 pending_snapshot.delete()
