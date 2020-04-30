@@ -165,7 +165,9 @@ class ProjectSerializer(Serializer):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
-        with sentry_sdk.start_span(op="project_feature_list") as span:
+        with sentry_sdk.start_span(
+            op="project_feature_list", description=getattr(obj, "name")
+        ) as span:
             # Retrieve all registered organization features
             project_features = features.all(feature_type=ProjectFeature).keys()
             feature_list = set()

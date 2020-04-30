@@ -289,7 +289,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with sentry_sdk.start_span(
+            op="check_object_permissions_on_organization", description=organization_slug
+        ):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)
