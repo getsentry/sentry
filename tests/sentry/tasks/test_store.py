@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.utils.compat import mock
-from sentry import options
 from time import time
 
 from sentry import quotas
@@ -121,33 +120,10 @@ def test_move_to_symbolicate_event(
         "extra": {"foo": "bar"},
     }
 
-    options.set("sentry:preprocess-use-new-behavior", True)
     preprocess_event(data=data)
 
     assert mock_symbolicate_event.delay.call_count == 1
     assert mock_process_event.delay.call_count == 0
-    assert mock_save_event.delay.call_count == 0
-
-
-@pytest.mark.django_db
-def test_move_to_symbolicate_event_old(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
-):
-    # Temporarily test old behavior
-    register_plugin(BasicPreprocessorPlugin)
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-
-    options.set("sentry:preprocess-use-new-behavior", False)
-    preprocess_event(data=data)
-
-    assert mock_symbolicate_event.delay.call_count == 0
-    assert mock_process_event.delay.call_count == 1
     assert mock_save_event.delay.call_count == 0
 
 
@@ -192,7 +168,6 @@ def test_symbolicate_event_call_process_inline(
         process_task=mock_process_event,
         data=symbolicated_data,
         data_has_changed=True,
-        new_process_behavior=True,
         from_symbolicate=True,
     )
 
