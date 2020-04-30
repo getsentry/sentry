@@ -20,6 +20,13 @@ describe('IssueListSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
+    // Add a tag that is preseeded with values.
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+      values: ['assigned', 'unresolved', 'ignored'],
+      predefined: true,
+    };
 
     tagValuePromise = Promise.resolve([]);
 

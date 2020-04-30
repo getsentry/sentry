@@ -43,6 +43,10 @@ describe('SmartSearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = TagStore.getAllTags();
+    supportedTags.firstRelease = {
+      key: 'firstRelease',
+      name: 'firstRelease',
+    };
     organization = TestStubs.Organization({id: '123'});
 
     const location = {
