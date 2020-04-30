@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
-import {Panel} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
@@ -64,21 +63,19 @@ class TriggersChart extends React.PureComponent<Props> {
 
           return (
             <StickyWrapper>
-              <PanelNoMargin>
-                {loading ? (
-                  <Placeholder height="200px" />
-                ) : (
-                  <React.Fragment>
-                    <TransparentLoadingMask visible={reloading} />
-                    <ThresholdsChart
-                      period={period}
-                      maxValue={maxValue ? maxValue.value : maxValue}
-                      data={timeseriesData}
-                      triggers={triggers}
-                    />
-                  </React.Fragment>
-                )}
-              </PanelNoMargin>
+              {loading ? (
+                <ChartPlaceholder />
+              ) : (
+                <React.Fragment>
+                  <TransparentLoadingMask visible={reloading} />
+                  <ThresholdsChart
+                    period={period}
+                    maxValue={maxValue ? maxValue.value : maxValue}
+                    data={timeseriesData}
+                    triggers={triggers}
+                  />
+                </React.Fragment>
+              )}
             </StickyWrapper>
           );
         }}
@@ -89,9 +86,7 @@ class TriggersChart extends React.PureComponent<Props> {
 
 export default TriggersChart;
 
-type TimeWindowMapType = {[key in TimeWindow]: string};
-
-const TIME_WINDOW_TO_PERIOD: TimeWindowMapType = {
+const TIME_WINDOW_TO_PERIOD: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: '12h',
   [TimeWindow.FIVE_MINUTES]: '12h',
   [TimeWindow.TEN_MINUTES]: '1d',
@@ -119,18 +114,16 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
   z-index: 1;
 `;
 
-const PanelNoMargin = styled(Panel)`
-  margin: 0;
+const ChartPlaceholder = styled(Placeholder)`
+  margin: ${space(2)} 0;
+  height: 168px;
 `;
 
-/**
- * We wrap Panel with this (instead of applying styles to Panel) so that we can get the extra padding
- * at the bottom so sticky chart does not bleed into other content.
- */
 const StickyWrapper = styled('div')`
   position: sticky;
-  top: 69px; /* Height of settings breadcrumb */
-  z-index: ${p => p.theme.zIndex.dropdown + 1};
-  padding-bottom: ${space(2)};
-  background-color: rgba(251, 251, 252, 0.9); /* p.theme.whiteDark */
+  top: 69px; /* Height of settings breadcrumb 69px */
+  z-index: ${p => p.theme.zIndex.dropdown - 1};
+  padding: 0 ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background: rgba(255, 255, 255, 0.9);
 `;
