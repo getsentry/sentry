@@ -50,7 +50,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
       ? Array.isArray(location.query.display)
         ? location.query.display[0]
         : location.query.display
-      : DisplayModes.LATENCY;
+      : DisplayModes.DURATION;
 
     return (
       <Panel>

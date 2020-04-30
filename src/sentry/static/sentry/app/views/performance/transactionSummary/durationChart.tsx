@@ -168,8 +168,8 @@ class DurationChart extends React.Component<Props> {
                           }}
                           tooltip={tooltip}
                           grid={{
-                            left: '24px',
-                            right: '24px',
+                            left: '12px',
+                            right: '16px',
                             top: '32px',
                             bottom: '12px',
                           }}
