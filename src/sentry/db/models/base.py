@@ -141,6 +141,7 @@ def __model_post_save(instance, **kwargs):
         return
     if isinstance(instance, DefaultFieldsModel):
         instance.date_updated = timezone.now()
+        instance.save()
     instance._update_tracked_data()
 
 
