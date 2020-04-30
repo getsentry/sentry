@@ -130,7 +130,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             message = API_ERRORS.get(exc.code)
             if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
                 message += (
-                    "\nPlease also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+                    " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
                     % exc.url
                 )
 
