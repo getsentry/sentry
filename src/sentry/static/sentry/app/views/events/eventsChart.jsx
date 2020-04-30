@@ -82,7 +82,7 @@ class EventsAreaChart extends React.Component {
       data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
-    const colors = theme.charts.getColorPalette(timeseriesData.length);
+    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
 
     return (
       <AreaChart
