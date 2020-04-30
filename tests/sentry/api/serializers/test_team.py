@@ -6,6 +6,7 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.api.serializers.models.project import ProjectSerializer
 from sentry.models import InviteStatus
 from sentry.testutils import TestCase
 
@@ -169,7 +170,7 @@ class TeamSerializerTest(TestCase):
 
 
 class TeamWithProjectsSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self, project_serializer=None):
         user = self.create_user(username="foo")
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization)
@@ -177,7 +178,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         project2 = self.create_project(teams=[team], organization=organization, name="bar")
 
         result = serialize(team, user, TeamWithProjectsSerializer())
-        serialized_projects = serialize([project2, project], user)
+        serialized_projects = serialize([project2, project], user, project_serializer)
 
         assert result == {
             "slug": team.slug,
@@ -191,3 +192,7 @@ class TeamWithProjectsSerializerTest(TestCase):
             "memberCount": 0,
             "dateCreated": team.date_added,
         }
+
+    def test_with_performance_flag(self):
+        with self.feature("organizations:enterprise-perf"):
+            self.test_simple(ProjectSerializer(include_features=False))

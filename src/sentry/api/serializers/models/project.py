@@ -58,12 +58,13 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, environment_id=None, stats_period=None):
+    def __init__(self, environment_id=None, stats_period=None, include_features=True):
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
+        self.include_features = include_features
 
     def get_access_by_project(self, item_list, user):
         request = env.request
@@ -164,6 +165,9 @@ class ProjectSerializer(Serializer):
     def get_feature_list(self, obj, user):
         from sentry import features
         from sentry.features.base import ProjectFeature
+
+        if not self.include_features:
+            return None
 
         with sentry_sdk.start_span(
             op="project_feature_list", description=getattr(obj, "name")
