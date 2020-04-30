@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from six.moves.urllib.parse import urlencode
@@ -206,18 +207,17 @@ def process_pending_incident_snapshots():
     if not pending_snapshots:
         return
 
-    processed = 0
-    for pending_snapshot in pending_snapshots:
+    for processed, pending_snapshot in enumerate(pending_snapshots):
         incident = pending_snapshot.incident
         if processed > batch_size:
             process_pending_incident_snapshots.apply_async(countdown=1)
             break
         else:
-            if (
-                incident.status == IncidentStatus.CLOSED.value
-                and not IncidentSnapshot.objects.filter(incident=incident).exists()
-            ):
-                snapshot = create_incident_snapshot(incident, windowed_stats=True)
-                assert snapshot.id
-            pending_snapshot.delete()
-            processed += 1
+            with transaction.atomic():
+                if (
+                    incident.status == IncidentStatus.CLOSED.value
+                    and not IncidentSnapshot.objects.filter(incident=incident).exists()
+                ):
+                    snapshot = create_incident_snapshot(incident, windowed_stats=True)
+                    assert snapshot.id
+                pending_snapshot.delete()

@@ -272,8 +272,8 @@ def delete_comment(activity):
 
 
 def create_pending_incident_snapshot(incident):
-    assert incident.status == IncidentStatus.CLOSED.value
-    assert not PendingIncidentSnapshot.objects.filter(incident=incident).exists()
+    if PendingIncidentSnapshot.objects.filter(incident=incident).exists():
+        PendingIncidentSnapshot.objects.filter(incident=incident).delete()
 
     time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
     target_run_date = incident.current_end_date + min(
@@ -391,10 +391,9 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             latest_end_date = incident.current_end_date + min(
                 timedelta(minutes=time_window * 10), timedelta(days=10)
             )
-            if end > latest_end_date:
-                end = latest_end_date
+            end = min(end, latest_end_date)
 
-            start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+            start = end - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
 

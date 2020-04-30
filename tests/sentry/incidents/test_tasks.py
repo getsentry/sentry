@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -200,7 +199,6 @@ class HandleTriggerActionTest(TestCase):
 
 
 class ProcessPendingIncidentSnapshots(TestCase):
-    @pytest.mark.pending
     def test_simple(self):
         incident = self.create_incident(title="incident", status=IncidentStatus.CLOSED.value)
         pending = PendingIncidentSnapshot.objects.create(
@@ -215,7 +213,6 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
         assert IncidentSnapshot.objects.filter(incident=incident).exists()
 
-    @pytest.mark.pending
     def test_skip_open_incident(self):
         incident = self.create_incident(title="incident", status=IncidentStatus.OPEN.value)
         pending = PendingIncidentSnapshot.objects.create(
@@ -230,7 +227,6 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert not PendingIncidentSnapshot.objects.filter(id=pending.id).exists()
         assert not IncidentSnapshot.objects.filter(incident=incident).exists()
 
-    @pytest.mark.pending
     def test_skip_future_run_date(self):
         incident_1 = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
         incident_2 = self.create_incident(title="incident2", status=IncidentStatus.CLOSED.value)
@@ -253,7 +249,6 @@ class ProcessPendingIncidentSnapshots(TestCase):
         assert IncidentSnapshot.objects.filter(incident=incident_1).exists()
         assert not IncidentSnapshot.objects.filter(incident=incident_2).exists()
 
-    @pytest.mark.pending
     def test_skip_because_existing_snapshot(self):
         incident = self.create_incident(title="incident1", status=IncidentStatus.CLOSED.value)
         pending_1 = PendingIncidentSnapshot.objects.create(
