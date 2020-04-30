@@ -14,7 +14,8 @@ from sentry.api.paginator import (
     CombinedQuerysetPaginator,
     reverse_bisect_left,
 )
-from sentry.models import User
+from sentry.models import User, Rule
+from sentry.incidents.models import AlertRule
 from sentry.testutils import TestCase, APITestCase
 from sentry.utils.cursors import Cursor
 
@@ -534,24 +535,19 @@ class GenericOffsetPaginatorTest(TestCase):
 
 
 class CombinedQuerysetPaginatorTest(APITestCase):
-    # from sentry.incidents.logic import create_alert_rule
-    from sentry.models import Rule, Project
-    from sentry.incidents.models import AlertRule
-
     def test_simple(self):
-        self.Rule.objects.all().delete()
+        Rule.objects.all().delete()
 
         alert_rule0 = self.create_alert_rule(name="alertrule0")
         alert_rule1 = self.create_alert_rule(name="alertrule1")
-        rule1 = self.Rule.objects.create(label="rule1", project=self.project)
+        rule1 = Rule.objects.create(label="rule1", project=self.project)
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = self.Rule.objects.create(label="rule2", project=self.project)
-        rule3 = self.Rule.objects.create(label="rule3", project=self.project)
+        rule2 = Rule.objects.create(label="rule2", project=self.project)
+        rule3 = Rule.objects.create(label="rule3", project=self.project)
 
         paginator = CombinedQuerysetPaginator(
-            querysets=[self.AlertRule.objects.all(), self.Rule.objects.all()],
-            order_by="-date_added",
+            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="-date_added",
         )
 
         result = paginator.get_result(limit=3, cursor=None)
@@ -582,12 +578,12 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 
         # Test reverse sorting:
         paginator = CombinedQuerysetPaginator(
-            querysets=[self.AlertRule.objects.all(), self.Rule.objects.all()], order_by="date_added"
+            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="date_added"
         )
         result = paginator.get_result(limit=3, cursor=None)
         assert len(result) == 3
         page1_results = list(result)
-        assert page1_results[0].id == self.Rule.objects.all().first().id
+        assert page1_results[0].id == Rule.objects.all().first().id
         assert page1_results[1].id == alert_rule0.id
         assert page1_results[2].id == alert_rule1.id
 

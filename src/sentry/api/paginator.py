@@ -528,10 +528,10 @@ class CombinedQuerysetPaginator(object):
         combined_querysets = list()
         for queryset in self.querysets:
             queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
-            combined_querysets = combined_querysets + list(queryset)
+            combined_querysets += list(queryset)
 
         combined_querysets.sort(
-            key=lambda item: (getattr(item, self.key), type(item)), reverse=not asc
+            key=lambda item: (getattr(item, self.key), type(item).__name__), reverse=not asc
         )
         return combined_querysets
 
