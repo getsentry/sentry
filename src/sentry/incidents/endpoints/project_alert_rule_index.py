@@ -20,14 +20,11 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
-        if not features.has("organizations:incidents", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
-            default_per_page=2,
+            default_per_page=25,
             order_by="-date_added",
             querysets=[
                 AlertRule.objects.fetch_for_project(project),

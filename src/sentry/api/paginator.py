@@ -473,7 +473,7 @@ class GenericOffsetPaginator(object):
 
 
 class CombinedQuerysetPaginator(object):
-    multiplier = 1000000  # Use microseconds.
+    multiplier = 1000000  # Use microseconds for date keys.
 
     def __init__(self, order_by, querysets, on_results=None):
         if order_by:
@@ -487,9 +487,10 @@ class CombinedQuerysetPaginator(object):
 
         self.querysets = querysets
         self.on_results = on_results
-        # TODO Ensure each model in the querysets has attribute of self.key
+        # IMPROVEMENT: Ensure each model in the querysets has attribute of self.key
         # ... or accept a function that can map to the proper key based on model instance
         # use case could be sorting by name/label for AlertRule / Rule
+        # For now...just be diligent in your usage.
 
     def get_item_key(self, item, for_prev=False):
         if self.key == "date_added":  # Could generalize this more
