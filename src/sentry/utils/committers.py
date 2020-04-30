@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import operator
 import six
 
+import sentry_sdk
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
@@ -228,6 +229,12 @@ def get_event_file_committers(project, event, frame_limit=25):
     relevant_commits = list(
         {match for match in commit_path_matches for match in commit_path_matches[match]}
     )
+
+    with sentry_sdk.start_span(op="get_event_file_committers") as span:
+        span.set_data("project_id", project.id)
+        span.set_data("group_id", event.group_id)
+        span.set_data("commit_path_matches", commit_path_matches)
+        span.set_data("relevant_commits", relevant_commits)
 
     return _get_committers(annotated_frames, relevant_commits)
 
