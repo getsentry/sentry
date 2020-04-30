@@ -65,7 +65,7 @@ const defaultSuggestions: Array<SourceSuggestion> = [
   {
     type: SourceSuggestionType.VALUE,
     value: 'contexts.device.timezone',
-    description: t('The timezone in the device context'),
+    description: t('the timezone in the device context'),
   },
   {
     type: SourceSuggestionType.VALUE,
