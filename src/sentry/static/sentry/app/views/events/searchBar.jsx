@@ -81,14 +81,13 @@ class SearchBar extends React.PureComponent {
     const fields = organization.features.includes('transaction-events')
       ? FIELD_TAGS
       : omit(FIELD_TAGS, TRACING_FIELDS);
-    const combined = assign({}, tags, fields, {
-      has: {
-        key: 'has',
-        name: 'Has property',
-        values: Object.keys(combined),
-        predefined: true,
-      },
-    });
+    const combined = assign({}, tags, fields);
+    combined.has = {
+      key: 'has',
+      name: 'Has property',
+      values: Object.keys(combined),
+      predefined: true,
+    };
 
     return combined;
   }
