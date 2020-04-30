@@ -96,12 +96,12 @@ event_search_grammar = Grammar(
     r"""
 search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
-paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
+paren_term           = spaces open_paren space? (paren_term / boolean_term)+ space? closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
-                       space?
+                       spaces
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
@@ -310,7 +310,7 @@ class SearchVisitor(NodeVisitor):
 
     def remove_space(self, children):
         def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " ")
+            return not (isinstance(child, Node) and child.text == " " * len(child.text))
 
         return filter(is_not_space, children)
 
@@ -370,7 +370,6 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-
         return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
@@ -568,7 +567,12 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-        (function_name, open_paren, args, close_paren) = children
+        if len(children) == 3:
+            (function_name, open_paren, close_paren) = children
+            args = ""
+        else:
+            (function_name, open_paren, args, close_paren) = children
+
         if isinstance(args, Node):
             args = ""
         elif isinstance(args, list):

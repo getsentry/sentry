@@ -168,6 +168,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_empty_spaces_stripped_correctly(self):
+        assert parse_search_query(
+            "event.type:transaction   transaction:/organizations/:orgId/discover/results/"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="event.type"),
+                operator="=",
+                value=SearchValue(raw_value="transaction"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="transaction"),
+                operator="=",
+                value=SearchValue(raw_value="/organizations/:orgId/discover/results/"),
+            ),
+        ]
+
     def test_timestamp(self):
         # test date format
         assert parse_search_query("timestamp>2015-05-18") == [
