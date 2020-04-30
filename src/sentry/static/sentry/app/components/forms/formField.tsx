@@ -199,9 +199,14 @@ export default class FormField<
           {this.getField()}
           {this.renderDisabledReason()}
           {defined(help) && <p className="help-block">{help}</p>}
-          {shouldShowErrorMessage && <p className="error">{error}</p>}
+          {shouldShowErrorMessage && <Error>{error}</Error>}
         </div>
       </div>
     );
   }
 }
+
+const Error = styled('p')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.red};
+`;

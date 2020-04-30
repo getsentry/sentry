@@ -403,9 +403,8 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const StyledTextField = styled(TextField)<{error?: string}>`
+const StyledTextField = styled(TextField)`
   width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
   height: 40px;
   input {
     height: 40px;

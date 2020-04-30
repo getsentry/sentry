@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
+exports[`DataPrivacyRulesFormSource default render 1`] = `
 <DataPrivacyRulesFormSource
   onChange={[MockFunction]}
   suggestions={
@@ -82,7 +82,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
       >
         <TextField
           autoComplete="off"
-          className="css-a4jb6d-StyledTextField e5vbseb1"
+          className="css-jvghga-StyledTextField e5vbseb1"
           disabled={false}
           hideErrorMessage={false}
           name="from"
@@ -94,7 +94,7 @@ exports[`DataPrivacyRulesPanelSelectorField default render 1`] = `
           value="$string"
         >
           <div
-            className="css-a4jb6d-StyledTextField e5vbseb1 control-group"
+            className="css-jvghga-StyledTextField e5vbseb1 control-group"
           >
             <div
               className="controls"

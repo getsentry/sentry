@@ -23,7 +23,7 @@ function renderComponent({
   );
 }
 
-describe('DataPrivacyRulesPanelSelectorField', () => {
+describe('DataPrivacyRulesFormSource', () => {
   it('default render', () => {
     const wrapper = renderComponent({});
     expect(wrapper.find('input').prop('value')).toBe('$string');
