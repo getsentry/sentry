@@ -72,7 +72,7 @@ def selector_func(method, callargs, switchover_timestamp):
     if spec is None:
         return "redis"  # default backend (possibly invoke base directly instead?)
 
-    if switchover_timestamp and time.time() < switchover_timestamp:
+    if switchover_timestamp is not None and time.time() < switchover_timestamp:
         return "redis"  # snuba does not yet have all data
 
     operation_type, model_extractor = spec
