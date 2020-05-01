@@ -89,7 +89,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             return direct_hit_resp
 
         if environments:
-            params["environment"] = [env.name for env in environments]
+            params["environment"] = environments
 
         full = request.GET.get("full", False)
         try:

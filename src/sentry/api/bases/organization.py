@@ -276,8 +276,13 @@ class OrganizationEndpoint(Endpoint):
         if not projects:
             raise NoProjects
 
-        environments = [env.name for env in self.get_environments(request, organization)]
-        params = {"start": start, "end": end, "project_id": [p.id for p in projects]}
+        environments = self.get_environments(request, organization)
+        params = {
+            "start": start,
+            "end": end,
+            "project_id": [p.id for p in projects],
+            "organization_id": organization.id,
+        }
         if environments:
             params["environment"] = environments
 

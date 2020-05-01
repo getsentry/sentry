@@ -21,6 +21,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_release,
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
@@ -180,6 +181,7 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 USER_ALIAS = "user"
+RELEASE_ALIAS = "release"
 
 
 class InvalidSearchQuery(Exception):
@@ -853,6 +855,23 @@ def get_filter(query=None, params=None):
                     kwargs["conditions"].extend(user_conditions)
                 else:
                     kwargs["conditions"].append(user_conditions)
+            elif name == RELEASE_ALIAS:
+                converted_filter = convert_search_filter_to_snuba_query(
+                    SearchFilter(
+                        term.key,
+                        term.operator,
+                        SearchValue(
+                            parse_release(
+                                term.value.value,
+                                params["project_id"],
+                                params.get("environment"),
+                                params["organization_id"],
+                            )
+                        ),
+                    )
+                )
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 if "column_alias" in FIELD_ALIASES[name]:
                     term = SearchFilter(
@@ -883,7 +902,11 @@ def get_filter(query=None, params=None):
             else:
                 kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
-            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
+            term = SearchFilter(
+                SearchKey("environment"),
+                "=",
+                SearchValue([env.name for env in params["environment"]]),
+            )
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])
