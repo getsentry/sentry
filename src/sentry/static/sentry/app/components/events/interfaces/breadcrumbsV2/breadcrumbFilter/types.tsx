@@ -19,7 +19,7 @@ type FilterGroupTypeType = {
 } & FilterGroupBase;
 
 type FilterGroupTypeLevel = {
-  groupType: FilterGroupType.LEVEl;
+  groupType: FilterGroupType.LEVEL;
   type: BreadcrumbLevel;
 } & FilterGroupBase;
 
