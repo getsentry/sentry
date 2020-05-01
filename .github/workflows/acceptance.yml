@@ -177,13 +177,18 @@ jobs:
 
         - name: Build platform assets
           run: |
+            sentry init
             make build-platform-assets
+
+        - name: webpack
+          run: |
+            yarn webpack --display errors-only
 
         - name: Acceptance tests (#${{ matrix.instance }})
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
-            command: "make test-acceptance"
+            command: "make run-acceptance"
           env:
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
