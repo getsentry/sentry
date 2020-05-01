@@ -31,7 +31,7 @@ const Radio = styled('input')`
   background: none;
   appearance: none;
 
-  /* Our bootstrap CSS adds this, we can remove when we remove that */
+  /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
   margin: 0 !important;
 
   &:focus,
