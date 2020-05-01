@@ -2,7 +2,7 @@ import {Color} from 'app/utils/theme';
 import {IconProps} from 'app/types/iconProps';
 
 export enum BreadcrumbLevel {
-  FATAl = 'fatal',
+  FATAL = 'fatal',
   ERROR = 'error',
   WARNING = 'warning',
   INFO = 'info',
