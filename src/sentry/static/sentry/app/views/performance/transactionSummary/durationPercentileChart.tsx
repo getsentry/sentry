@@ -146,7 +146,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
 
     return (
       <LineChart
-        grid={{left: '16px', right: '16px', top: '16px', bottom: '0px'}}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data)}
