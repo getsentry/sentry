@@ -23,7 +23,7 @@ jobs:
       runs-on: ubuntu-latest
       strategy:
         matrix:
-          instance: [0, 1, 2, 3]
+          instance: [0, 1, 2]
 
       env:
         PIP_DISABLE_PIP_VERSION_CHECK: on
