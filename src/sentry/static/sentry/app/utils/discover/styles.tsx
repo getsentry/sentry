@@ -1,11 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'app/components/clipboard';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
 import ShortId from 'app/components/shortId';
-import {IconCopy} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -75,21 +73,7 @@ export const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
 `;
 
-const StyledIconCopy = styled(IconCopy)`
-  cursor: pointer;
-  margin-right: ${space(0.5)};
-`;
-
 export const EventId = ({value}: {value: string}) => {
   const shortId = value.substring(0, 8);
-  return (
-    <React.Fragment>
-      <Clipboard value={value}>
-        <span>
-          <StyledIconCopy size="xs" />
-        </span>
-      </Clipboard>
-      {shortId}
-    </React.Fragment>
-  );
+  return <React.Fragment>{shortId}</React.Fragment>;
 };

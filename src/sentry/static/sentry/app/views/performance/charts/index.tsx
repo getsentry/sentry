@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 
@@ -17,9 +16,8 @@ import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderContainer, HeaderTitle, StyledIconQuestion, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
@@ -140,26 +138,5 @@ class Container extends React.Component<Props> {
     );
   }
 }
-
-const ErrorPanel = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  flex: 1;
-  flex-shrink: 0;
-  overflow: hidden;
-  height: 200px;
-  position: relative;
-  border-color: transparent;
-  margin-bottom: 0;
-`;
-
-const HeaderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(2)};
-  padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(1.5)};
-`;
 
 export default withApi(Container);

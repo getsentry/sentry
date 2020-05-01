@@ -21,7 +21,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -66,7 +66,7 @@ class DurationChart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const legend = {
-      right: 16,
+      right: 10,
       top: 0,
       icon: 'circle',
       itemHeight: 8,
@@ -94,17 +94,17 @@ class DurationChart extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Duration Breakdown')}
           <Tooltip
             position="top"
             title={t(
-              `This graph shows a breakdown of transaction durations by percentile over time.`
+              `Duration Breakdown reflects transaction durations by percentile over time.`
             )}
           >
             <StyledIconQuestion size="sm" />
           </Tooltip>
-        </HeaderTitle>
+        </HeaderTitleLegend>
         <ChartZoom
           router={router}
           period={statsPeriod}
@@ -171,10 +171,10 @@ class DurationChart extends React.Component<Props> {
                           }}
                           tooltip={tooltip}
                           grid={{
-                            left: '12px',
-                            right: '16px',
-                            top: '32px',
-                            bottom: '12px',
+                            left: '10px',
+                            right: '10px',
+                            top: '40px',
+                            bottom: '0px',
                           }}
                         />
                       </TransitionChart>

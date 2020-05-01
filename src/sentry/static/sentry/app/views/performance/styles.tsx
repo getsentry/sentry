@@ -23,6 +23,12 @@ export const SummaryGridRow = styled('tr')`
   grid-template-columns: auto minmax(70px, 170px) minmax(70px, 230px);
 `;
 
+export const HeaderContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: ${space(2)} ${space(1.5)};
+`;
+
 export const HeaderTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray4};
@@ -33,7 +39,13 @@ export const HeaderTitle = styled('div')`
   }
 `;
 
-export const ChartsContainer = styled('div')`
+export const HeaderTitleLegend = styled(HeaderTitle)`
+  background-color: ${p => p.theme.white};
+  position: absolute;
+  z-index: 1;
+`;
+
+export const ChartContainer = styled('div')`
   padding: ${space(2)} ${space(1.5)};
 `;
 
@@ -43,11 +55,21 @@ export const ChartsGrid = styled('div')`
   grid-column-gap: ${space(1)};
 `;
 
-export const ChartContainer = styled('div')`
-  flex-grow: 1;
-`;
-
 export const StyledIconQuestion = styled(IconQuestion)`
   color: ${p => p.theme.gray1};
-  margin-left: ${space(0.5)};
+  margin-left: ${space(1)};
+`;
+
+export const ErrorPanel = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 200px;
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
 `;
