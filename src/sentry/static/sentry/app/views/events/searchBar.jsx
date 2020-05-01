@@ -7,11 +7,11 @@ import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {NEGATION_OPERATOR, SEARCH_TYPES, SEARCH_WILDCARD} from 'app/constants';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
-import SmartSearchBar from 'app/components/smartSearchBar';
+import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
 import {FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
@@ -100,7 +100,7 @@ class SearchBar extends React.PureComponent {
           <SmartSearchBar
             {...this.props}
             hasRecentSearches
-            savedSearchType={SEARCH_TYPES.EVENT}
+            savedSearchType={SearchType.EVENT}
             onGetTagValues={this.getEventFieldValues}
             supportedTags={tags}
             prepareQuery={this.prepareQuery}
