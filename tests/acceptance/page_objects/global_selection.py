@@ -14,6 +14,9 @@ class GlobalSelectionPage(BasePage):
     def get_selected_environment(self):
         return self.browser.element('[data-test-id="global-header-environment-selector"]').text
 
+    def get_selected_date(self):
+        return self.browser.element('[data-test-id="global-header-timerange-selector"]').text
+
     def go_back_to_issues(self):
         self.browser.click('[data-test-id="back-to-issues"]')
 
@@ -45,6 +48,6 @@ class GlobalSelectionPage(BasePage):
     def select_date(self, date):
         date_path = u'//*[text()="{}"]'.format(date)
 
-        self.open_project_selector()
+        self.open_date_selector()
         self.browser.wait_until(xpath=date_path)
         self.browser.click(xpath=date_path)
