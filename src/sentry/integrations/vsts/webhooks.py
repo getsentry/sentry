@@ -93,6 +93,7 @@ class WorkItemWebhook(Endpoint):
         assert constant_time_compare(integration_secret, webhook_payload_secret)
 
     def handle_updated_workitem(self, data, integration):
+        project = None
         try:
             external_issue_key = data["resource"]["workItemId"]
             project = data["resourceContainers"]["project"]["id"]
@@ -112,9 +113,18 @@ class WorkItemWebhook(Endpoint):
                     "error": six.text_type(e),
                     "workItemId": data["resource"]["workItemId"],
                     "integration_id": integration.id,
+                    "azure_project_id": project,
                 },
             )
             return  # In the case that there are no fields sent, no syncing can be done
+        logger.info(
+            "vsts.updated-workitem-fields-correct",
+            extra={
+                "workItemId": data["resource"]["workItemId"],
+                "integration_id": integration.id,
+                "azure_project_id": project,
+            },
+        )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(integration, external_issue_key, status_change, project)
 
