@@ -521,6 +521,9 @@ class SmartSearchBar extends React.Component {
         ) {
           const values = await this.props.onGetTagValues(tag, query, endpointParams);
           this.setState({loading: false});
+          if (tag.key === 'release' && !values.includes('latest')) {
+            values.push('latest');
+          }
           const noValueQuery =
             values.length === 0 && query.length > 0 ? query : undefined;
           this.setState({noValueQuery});
