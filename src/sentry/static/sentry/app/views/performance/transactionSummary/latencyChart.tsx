@@ -17,7 +17,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
 
 const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
@@ -222,7 +222,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
 
     return (
       <BarChart
-        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data, this.bucketWidth)}
@@ -237,7 +237,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Latency Distribution')}
           <Tooltip
             position="top"
@@ -247,7 +247,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
           >
             <StyledIconQuestion />
           </Tooltip>
-        </HeaderTitle>
+        </HeaderTitleLegend>
         {this.renderComponent()}
       </React.Fragment>
     );

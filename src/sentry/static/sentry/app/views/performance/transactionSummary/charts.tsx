@@ -14,7 +14,7 @@ import {
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
 
-import {ChartsContainer} from '../styles';
+import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
 import DurationPercentileChart from './durationPercentileChart';
@@ -57,7 +57,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
 
     return (
       <Panel>
-        <ChartsContainer>
+        <ChartContainer>
           {display === DisplayModes.LATENCY && (
             <LatencyChart
               organization={organization}
@@ -93,7 +93,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               statsPeriod={eventView.statsPeriod}
             />
           )}
-        </ChartsContainer>
+        </ChartContainer>
 
         <ChartControls>
           <InlineContainer>
