@@ -75,7 +75,7 @@ export const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
 `;
 
-const IconWrapper = styled('span')`
+const StyledIconCopy = styled(IconCopy)`
   cursor: pointer;
   margin-left: ${space(1)};
   color: ${p => p.theme.gray2};
@@ -87,9 +87,9 @@ export const EventId = ({value}: {value: string}) => {
     <React.Fragment>
       {shortId}
       <Clipboard value={value}>
-        <IconWrapper>
-          <IconCopy size="xs" />
-        </IconWrapper>
+        <span>
+          <StyledIconCopy size="xs" />
+        </span>
       </Clipboard>
     </React.Fragment>
   );
