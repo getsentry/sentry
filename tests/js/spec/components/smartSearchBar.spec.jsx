@@ -2,7 +2,8 @@ import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
-import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
+import {SmartSearchBar} from 'app/components/smartSearchBar';
+import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
 import TagStore from 'app/stores/tagStore';
 
 describe('addSpace()', function() {
@@ -423,7 +424,7 @@ describe('SmartSearchBar', function() {
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
-      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.searchGroups).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -440,7 +441,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -459,7 +460,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -481,7 +482,7 @@ describe('SmartSearchBar', function() {
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       // 1 items because of headers ("Tags")
-      expect(searchBar.state.searchItems).toHaveLength(1);
+      expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
