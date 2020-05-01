@@ -133,7 +133,7 @@ class BreadcrumbFilter extends React.Component<Props, State> {
                 groupHeaderTitle={t('Level')}
                 onClick={this.handleClickItem}
                 data={filterGroups.filter(
-                  filterGroup => filterGroup.groupType === FilterGroupType.LEVEl
+                  filterGroup => filterGroup.groupType === FilterGroupType.LEVEL
                 )}
               />
             )}
