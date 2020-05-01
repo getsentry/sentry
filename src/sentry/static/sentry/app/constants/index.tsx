@@ -209,10 +209,6 @@ export const ALGOLIA_DOCS_INDEX = 'sentry-docs';
 export const ALGOLIA_ZENDESK_INDEX = 'zendesk_sentry_articles';
 
 // SmartSearchBar settings
-export const SEARCH_TYPES = {
-  ISSUE: 0,
-  EVENT: 1,
-};
 export const MAX_AUTOCOMPLETE_RECENT_SEARCHES = 3;
 export const MAX_AUTOCOMPLETE_RELEASES = 5;
 
