@@ -12,7 +12,6 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
-import {IconAdd} from 'app/icons/iconAdd';
 
 import {MetricActionTemplate, Trigger} from '../types';
 
@@ -146,29 +145,23 @@ class Triggers extends React.Component<Props> {
         })}
 
         {triggers.length < 2 && (
-          <BorderlessPanel>
-            <FullWidthButton
-              disabled={disabled}
-              type="button"
-              size="small"
-              icon={<IconAdd size="xs" circle />}
-              onClick={onAdd}
-            >
-              {t('Add Warning Trigger')}
-            </FullWidthButton>
-          </BorderlessPanel>
+          <AddWarningButton
+            disabled={disabled}
+            type="button"
+            size="small"
+            icon={<WarningIndicator size={12} />}
+            onClick={onAdd}
+          >
+            {t('Add Warning Trigger')}
+          </AddWarningButton>
         )}
       </React.Fragment>
     );
   }
 }
 
-const BorderlessPanel = styled(Panel)`
-  border: none;
-`;
-
-const FullWidthButton = styled(Button)`
-  width: 100%;
+const AddWarningButton = styled(Button)`
+  margin-bottom: ${space(3)};
 `;
 
 const Title = styled('div')`
