@@ -64,10 +64,8 @@ export const POPULARITY_WEIGHT: {
   rocketchat: 8,
 } as const;
 
-export const documentIntegrations: {
-  [key: string]: DocumentIntegration;
-} = {
-  fullstory: {
+export const documentIntegrationList: DocumentIntegration[] = [
+  {
     slug: 'fullstory',
     name: 'FullStory',
     author: 'Sentry',
@@ -93,7 +91,7 @@ export const documentIntegrations: {
       },
     ],
   },
-  datadog: {
+  {
     slug: 'datadog',
     name: 'Datadog',
     author: 'Datadog',
@@ -116,7 +114,7 @@ export const documentIntegrations: {
       {title: 'Documentation', url: 'https://docs.datadoghq.com/integrations/sentry/'},
     ],
   },
-  msteams: {
+  {
     slug: 'msteams',
     name: 'Microsoft Teams',
     author: 'Microsoft',
@@ -143,7 +141,7 @@ export const documentIntegrations: {
       },
     ],
   },
-  asayer: {
+  {
     slug: 'asayer',
     name: 'Asayer',
     author: 'Sentry',
@@ -161,7 +159,7 @@ export const documentIntegrations: {
       {title: 'Documentation', url: 'https://docs.asayer.io/integrations/sentry'},
     ],
   },
-  rocketchat: {
+  {
     slug: 'rocketchat',
     name: 'Rocket.Chat',
     author: 'Rocket.Chat',
@@ -186,4 +184,11 @@ export const documentIntegrations: {
       },
     ],
   },
-};
+];
+
+export const documentIntegrations: {
+  [key: string]: DocumentIntegration;
+} = documentIntegrationList.reduce((accum, integration) => {
+  accum[integration.slug] = integration;
+  return accum;
+}, {});
