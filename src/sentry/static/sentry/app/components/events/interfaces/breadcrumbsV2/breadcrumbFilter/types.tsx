@@ -5,7 +5,7 @@ import {
 } from '../../breadcrumbs/types';
 
 export enum FilterGroupType {
-  LEVEl = 'level',
+  LEVEL = 'level',
   TYPE = 'type',
 }
 
