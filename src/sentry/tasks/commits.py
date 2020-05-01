@@ -39,8 +39,8 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     )
 
 
-def generate_fetch_commits_error_email(release, error_message):
-    new_context = {"release": release, "error_message": error_message}
+def generate_fetch_commits_error_email(release, repo, error_message):
+    new_context = {"release": release, "error_message": error_message, "repo": repo}
 
     return MessageBuilder(
         subject="Unable to Fetch Commits",
@@ -149,12 +149,12 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
-                msg = generate_fetch_commits_error_email(release, six.text_type(e))
+                msg = generate_fetch_commits_error_email(release, repo, six.text_type(e))
                 emails = get_emails_for_user_or_org(user, release.organization_id)
                 msg.send_async(to=emails)
             else:
                 msg = generate_fetch_commits_error_email(
-                    release, "An internal system error occurred."
+                    release, repo, "An internal system error occurred."
                 )
                 emails = get_emails_for_user_or_org(user, release.organization_id)
                 msg.send_async(to=emails)

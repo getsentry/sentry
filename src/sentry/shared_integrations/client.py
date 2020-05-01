@@ -238,9 +238,9 @@ class BaseApiClient(object):
                     self.logger.exception(
                         "request.error", extra={self.integration_type: self.name, "url": full_url}
                     )
-                    raise ApiError("Internal Error")
+                    raise ApiError("Internal Error", url=full_url)
                 self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp)
+                raise ApiError.from_response(resp, url=full_url)
 
             self.track_response_data(resp.status_code, span, None, resp)
 

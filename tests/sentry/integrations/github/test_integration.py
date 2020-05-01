@@ -6,8 +6,9 @@ import sentry
 from sentry.utils.compat.mock import MagicMock
 from six.moves.urllib.parse import urlencode, urlparse
 
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import GitHubIntegrationProvider
+from sentry.integrations.github import GitHubIntegrationProvider, API_ERRORS
 from sentry.models import Integration, OrganizationIntegration, Repository, Project
 from sentry.plugins.base import plugins
 from sentry.testutils import IntegrationTestCase
@@ -234,3 +235,23 @@ class GitHubIntegrationTest(IntegrationTestCase):
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
         ]
+
+    @responses.activate
+    def test_get_message_from_error(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        base_error = "Error Communicating with GitHub (HTTP 404): %s" % (API_ERRORS[404])
+        assert (
+            installation.message_from_error(
+                ApiError("Not Found", code=404, url="https://api.github.com/repos/scefali")
+            )
+            == base_error
+        )
+        url = "https://api.github.com/repos/scefali/sentry-integration-example/compare/2adcab794f6f57efa8aa84de68a724e728395792...e208ee2d71e8426522f95efbdae8630fa66499ab"
+        assert (
+            installation.message_from_error(ApiError("Not Found", code=404, url=url))
+            == base_error
+            + " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+            % url
+        )
