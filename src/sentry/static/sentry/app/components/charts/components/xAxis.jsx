@@ -26,7 +26,7 @@ export default function XAxis({
   const axisLabelFormatter = (value, index) => {
     if (isGroupedByDate) {
       const timeFormat = use24Hours() ? 'HH:mm' : 'LT';
-      const dateFormat = useShortDate ? 'MMM Do' : `MMM D {timeFormat}`;
+      const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =
         useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
