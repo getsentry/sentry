@@ -185,7 +185,8 @@ describe('CreateProject', function() {
       wrapper
         .find('SelectControl[data-test-id="metric-select-control"]')
         .closest('RadioLineItem')
-        .simulate('click');
+        .find('Radio')
+        .simulate('change');
       expectSubmitButtonToBeDisabled(true);
 
       wrapper
@@ -219,9 +220,9 @@ describe('CreateProject', function() {
       expectSubmitButtonToBeDisabled(true);
 
       wrapper
-        .find('RadioLineItem')
+        .find('Radio')
         .first()
-        .simulate('click');
+        .simulate('change');
       expectSubmitButtonToBeDisabled(false);
     });
   });

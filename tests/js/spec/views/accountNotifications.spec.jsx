@@ -60,9 +60,9 @@ describe('AccountNotifications', function() {
     });
 
     wrapper
-      .find('Field[id="deployNotifications"] RadioLineItem')
+      .find('Field[id="deployNotifications"] Radio')
       .at(2)
-      .simulate('click');
+      .simulate('change');
 
     expect(mock).toHaveBeenCalledWith(
       url,
