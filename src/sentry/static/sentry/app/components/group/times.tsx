@@ -24,6 +24,8 @@ const Times = ({lastSeen, firstSeen}: Props) => (
     <div
       css={css`
         ${overflowEllipsis}
+        display: flex;
+        align-items: center;
       `}
     >
       {lastSeen && (
