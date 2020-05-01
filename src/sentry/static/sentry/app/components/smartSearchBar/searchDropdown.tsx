@@ -66,6 +66,7 @@ class SearchDropdown extends React.PureComponent<Props> {
       className={item.active ? 'active' : undefined}
       data-test-id="search-autocomplete-item"
       onClick={this.props.onClick.bind(this, item.value, item)}
+      ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
         {item.title && item.title + ' · '}
@@ -170,6 +171,7 @@ const SearchItemsList = styled('ul')`
 `;
 
 const SearchListItem = styled(ListItem)`
+  scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
