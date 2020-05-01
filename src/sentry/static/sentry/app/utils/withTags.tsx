@@ -1,7 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import omit from 'lodash/omit';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
@@ -18,45 +17,10 @@ type State = {
 };
 
 /**
- * TODO(mark) Remove these options and have TagStore only contain tags.
- * Add new HOCs that layer in the event + issue attributes as needed.
+ * HOC for getting *only* tags from the TagStore.
  */
-type Options = {
-  /**
-   * Set to true if you want to include issue attributes in the tag list
-   * that is forwarded to the wrapped component.
-   */
-  includeIssueAttributes?: boolean;
-  /**
-   * Set to true if you want to include event properties
-   */
-  includeEventAttributes?: boolean;
-};
-
-const ISSUE_TAGS: TagCollection = TagStore.getIssueAttributes();
-
-function filterTags(tags: TagCollection, options: Options): TagCollection {
-  const out: TagCollection = {...tags};
-  if (options.includeEventAttributes) {
-    TagStore.getBuiltInTags().forEach((tag: Tag) => (out[tag.key] = tag));
-  }
-
-  if (options.includeIssueAttributes) {
-    // timestamp is replaced by event.timestamp
-    // environment is in the globalSelectionHeader.
-    return omit(out, ['environment', 'timestamp']);
-  }
-
-  // Remove issue attributes as they are include by default by TagStore
-  // for now.
-  Object.keys(ISSUE_TAGS).forEach(key => delete out[key]);
-
-  return out;
-}
-
 const withTags = <P extends InjectedTagsProps>(
-  WrappedComponent: React.ComponentType<P>,
-  {includeIssueAttributes = false, includeEventAttributes = true}: Options = {}
+  WrappedComponent: React.ComponentType<P>
 ) =>
   createReactClass<Omit<P, keyof InjectedTagsProps>, State>({
     displayName: `withTags(${getDisplayName(WrappedComponent)})`,
@@ -64,16 +28,13 @@ const withTags = <P extends InjectedTagsProps>(
 
     getInitialState() {
       return {
-        tags: filterTags(TagStore.getAllTags(), {
-          includeIssueAttributes,
-          includeEventAttributes,
-        }),
+        tags: TagStore.getAllTags(),
       };
     },
 
     onTagsUpdate(tags: TagCollection) {
       this.setState({
-        tags: filterTags(tags, {includeIssueAttributes, includeEventAttributes}),
+        tags,
       });
     },
 

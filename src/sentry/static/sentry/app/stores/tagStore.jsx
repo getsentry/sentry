@@ -2,26 +2,9 @@ import Reflux from 'reflux';
 import reduce from 'lodash/reduce';
 
 import TagActions from 'app/actions/tagActions';
-import MemberListStore from 'app/stores/memberListStore';
 
-const uuidPattern = /[0-9a-f]{32}$/;
-
-const getUsername = ({isManaged, username, email}) => {
-  // Users created via SAML receive unique UUID usernames. Use
-  // their email in these cases, instead.
-  if (username && uuidPattern.test(username)) {
-    return email;
-  } else {
-    return !isManaged && username ? username : email;
-  }
-};
-
-const getMemberListStoreUsernames = () => MemberListStore.getAll().map(getUsername);
-
-// This list is not the same as the list of
-// fields in app/utils/discover/fields.tsx@FIELDS
-// The differences are because discover1 and issue
-// search expose a subset of all event attributes.
+// This list is only used on issues. Events/discover
+// have their own field list that exists elsewhere.
 const BUILTIN_TAGS = [
   'event.type',
   'platform',
@@ -61,20 +44,20 @@ const BUILTIN_TAGS = [
   'stack.module',
   'stack.function',
   'stack.stack_level',
-].map(tag => ({
-  key: tag,
-}));
+].reduce((acc, tag) => {
+  acc[tag] = {key: tag, name: tag};
+  return acc;
+}, {});
 
 const TagStore = Reflux.createStore({
   listenables: TagActions,
 
   init() {
-    this.listenTo(MemberListStore, this.onMemberListStoreChange);
     this.reset();
   },
 
   getBuiltInTags() {
-    return [...BUILTIN_TAGS];
+    return {...BUILTIN_TAGS};
   },
 
   getIssueAttributes() {
@@ -97,19 +80,19 @@ const TagStore = Reflux.createStore({
       has: {
         key: 'has',
         name: 'Has Tag',
-        values: [],
+        values: Object.keys(this.tags),
         predefined: true,
       },
       assigned: {
         key: 'assigned',
         name: 'Assigned To',
-        values: getMemberListStoreUsernames(),
+        values: [],
         predefined: true,
       },
       bookmarks: {
         key: 'bookmarks',
         name: 'Bookmarked By',
-        values: getMemberListStoreUsernames(),
+        values: [],
         predefined: true,
       },
       lastSeen: {
@@ -148,8 +131,7 @@ const TagStore = Reflux.createStore({
   },
 
   reset() {
-    this.tags = this.getIssueAttributes();
-
+    this.tags = {};
     this.trigger(this.tags);
   },
 
@@ -169,28 +151,13 @@ const TagStore = Reflux.createStore({
             },
             tag
           );
-
-          const old = this.tags[tag.key];
-
-          // Don't override predefined filters (e.g. "is")
-          if (!old || !old.predefined) {
-            obj[tag.key] = tag;
-          }
+          obj[tag.key] = tag;
 
           return obj;
         },
         {}
       )
     );
-    this.tags.has.values = data.map(tag => tag.key);
-    this.trigger(this.tags);
-  },
-
-  onMemberListStoreChange() {
-    const assignedTag = this.tags.assigned;
-    assignedTag.values = getMemberListStoreUsernames();
-    assignedTag.values.unshift('me');
-    this.tags.bookmarks.values = assignedTag.values;
     this.trigger(this.tags);
   },
 });

@@ -1,5 +1,4 @@
 import TagStore from 'app/stores/tagStore';
-import MemberListStore from 'app/stores/memberListStore';
 
 describe('TagStore', function() {
   beforeEach(() => {
@@ -7,40 +6,6 @@ describe('TagStore', function() {
   });
 
   afterEach(() => {});
-
-  describe('onMemberListStoreChange()', () => {
-    it('should map each user\'s username to the "assigned" value array', () => {
-      jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => [
-        {
-          username: 'janesmith',
-          email: 'janesmith@example.org',
-        },
-      ]);
-      TagStore.onMemberListStoreChange();
-      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
-    });
-
-    it("should fall back to email when username isn't available", () => {
-      jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => [
-        {
-          email: 'janesmith@example.org',
-        },
-      ]);
-      TagStore.onMemberListStoreChange();
-      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith@example.org']);
-    });
-
-    it('should fall back to email when the username is a UUID', () => {
-      jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => [
-        {
-          username: '8f5c6478172d4389930c12841f45dc18',
-          email: 'janesmith@example.org',
-        },
-      ]);
-      TagStore.onMemberListStoreChange();
-      expect(TagStore.tags.assigned.values).toEqual(['me', 'janesmith@example.org']);
-    });
-  });
 
   describe('onLoadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
@@ -51,19 +16,47 @@ describe('TagStore', function() {
           key: 'mytag',
           name: 'My Custom Tag',
         },
+        {key: 'other', name: 'Other'},
       ]);
 
-      expect(TagStore.tags.mytag).toEqual({
+      const tags = TagStore.getAllTags();
+      expect(tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',
+        values: [],
+      });
+      expect(tags.other).toEqual({
+        key: 'other',
+        name: 'Other',
         values: [],
       });
 
       expect(TagStore.trigger).toHaveBeenCalledTimes(1);
     });
+  });
+
+  describe('getIssueAttributes()', function() {
+    it('should populate the has tag with values', () => {
+      TagStore.onLoadTagsSuccess([
+        {
+          key: 'mytag',
+          name: 'My Custom Tag',
+        },
+        {
+          key: 'otherkey',
+          name: 'My other tag',
+        },
+      ]);
+
+      expect(TagStore.getIssueAttributes().has).toEqual({
+        key: 'has',
+        name: 'Has Tag',
+        values: ['mytag', 'otherkey'],
+        predefined: true,
+      });
+    });
 
     it('should not overwrite predefined filters', () => {
-      const isTag = TagStore.tags.is;
       TagStore.onLoadTagsSuccess([
         {
           key: 'is',
@@ -71,7 +64,21 @@ describe('TagStore', function() {
         },
       ]);
 
-      expect(TagStore.tags.is).toEqual(isTag);
+      const tags = TagStore.getIssueAttributes();
+      expect(tags.is).toBeTruthy();
+      expect(tags.is.key).toBe('is');
+      expect(tags.assigned).toBeTruthy();
+    });
+  });
+
+  describe('getBuiltInTags()', function() {
+    it('should be a map of built in properties', () => {
+      const tags = TagStore.getBuiltInTags();
+      expect(tags.location).toEqual({
+        key: 'location',
+        name: 'location',
+      });
+      expect(tags.id).toBeUndefined();
     });
   });
 });
