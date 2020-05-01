@@ -214,6 +214,7 @@ class Table extends React.Component<Props> {
     return (
       <DiscoverQuery
         eventView={eventView}
+        extraSort="transaction"
         orgSlug={organization.slug}
         location={location}
         keyTransactions={keyTransactions}

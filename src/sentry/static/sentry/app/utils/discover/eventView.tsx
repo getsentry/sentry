@@ -852,7 +852,10 @@ class EventView {
   }
 
   // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
+  getEventsAPIPayload(
+    location: Location,
+    extraSort?: string
+  ): EventQuery & LocationQuery {
     const query = (location && location.query) || {};
 
     // pick only the query strings that we care about
@@ -880,7 +883,11 @@ class EventView {
       utc: decodeScalar(query.utc),
     });
 
-    const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
+    const sortValue = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
+    const sort =
+      extraSort && sortValue && !sortValue.includes(extraSort)
+        ? [sortValue, extraSort]
+        : sortValue;
     const fields = this.getFields();
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];

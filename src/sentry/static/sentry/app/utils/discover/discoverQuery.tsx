@@ -18,6 +18,7 @@ type Props = {
   location: Location;
   eventView: EventView;
   orgSlug: string;
+  extraSort?: string;
   extraQuery?: {[key: string]: any};
   keyTransactions?: boolean;
 
@@ -71,7 +72,14 @@ class DiscoverQuery extends React.Component<Props, State> {
   };
 
   fetchData = () => {
-    const {eventView, orgSlug, location, extraQuery, keyTransactions} = this.props;
+    const {
+      eventView,
+      orgSlug,
+      location,
+      extraSort,
+      extraQuery,
+      keyTransactions,
+    } = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -81,7 +89,7 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+    const apiPayload = eventView.getEventsAPIPayload(location, extraSort);
 
     this.setState({isLoading: true, tableFetchID});
 
