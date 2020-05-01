@@ -38,7 +38,7 @@ import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import withTags from 'app/utils/withTags';
+import withIssueTags from 'app/utils/withIssueTags';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -656,13 +656,6 @@ const IssueListOverview = createReactClass({
 });
 
 export default withGlobalSelection(
-  withSavedSearches(
-    withOrganization(
-      withTags(withProfiler(IssueListOverview), {
-        includeIssueAttributes: true,
-        includeEventAttributes: true,
-      })
-    )
-  )
+  withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
 );
 export {IssueListOverview};
