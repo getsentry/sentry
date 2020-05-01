@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sentry_sdk
 import six
 
 from rest_framework.response import Response
@@ -18,24 +19,27 @@ from sentry.utils.dates import get_rollup_from_request
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
-            return self.get_v1_results(request, organization)
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+            span.set_data("organization", organization)
+            if not features.has("organizations:discover-basic", organization, actor=request.user):
+                span.set_data("using_v1_results", True)
+                return self.get_v1_results(request, organization)
 
-        top_events = "topEvents" in request.GET
-        limit = None
+            top_events = "topEvents" in request.GET
+            limit = None
 
-        if top_events:
-            try:
-                limit = int(request.GET.get("topEvents", 0))
-            except ValueError:
-                return Response({"detail": "topEvents must be an integer"}, status=400)
-            if limit > MAX_TOP_EVENTS:
-                return Response(
-                    {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
-                    status=400,
-                )
-            elif limit <= 0:
-                return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+            if top_events:
+                try:
+                    limit = int(request.GET.get("topEvents", 0))
+                except ValueError:
+                    return Response({"detail": "topEvents must be an integer"}, status=400)
+                if limit > MAX_TOP_EVENTS:
+                    return Response(
+                        {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
+                        status=400,
+                    )
+                elif limit <= 0:
+                    return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
         def get_event_stats(query_columns, query, params, rollup, reference_event):
             if top_events:
