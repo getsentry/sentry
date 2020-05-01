@@ -34,7 +34,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
     TimeSeriesSnapshot,
 )
-from sentry.models import Integration, Project
+from sentry.models import Environment, Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -280,7 +280,7 @@ def create_pending_incident_snapshot(incident):
         timedelta(minutes=time_window * 10), timedelta(days=10)
     )
     return PendingIncidentSnapshot.objects.create(
-        incident=incident, target_run_date=target_run_date,
+        incident=incident, target_run_date=target_run_date
     )
 
 
@@ -559,7 +559,7 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
-    :param environment: List of environments that this rule applies to
+    :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -599,8 +599,7 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if environment:
-            for e in environment:
-                AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
+            AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=environment)
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
@@ -659,7 +658,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
-    :param environment: List of environments that this rule applies to
+    :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -767,16 +766,22 @@ def update_alert_rule(
         if environment:
             # Delete rows we don't have present in the updated data.
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
-                environment__in=environment
+                environment=environment
             ).delete()
-            for e in environment:
-                AlertRuleEnvironment.objects.get_or_create(alert_rule=alert_rule, environment=e)
+            AlertRuleEnvironment.objects.get_or_create(
+                alert_rule=alert_rule, environment=environment
+            )
         else:
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
         if existing_subs and (
             query is not None or aggregation is not None or time_window is not None
         ):
+            try:
+                environment = alert_rule.environment.all()[:1].get()
+            except Environment.DoesNotExist:
+                environment = None
+
             # If updating any subscription details, update related Snuba subscriptions
             # too
             bulk_update_snuba_subscriptions(
@@ -785,7 +790,7 @@ def update_alert_rule(
                 QueryAggregations(alert_rule.aggregation),
                 timedelta(minutes=alert_rule.time_window),
                 timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-                list(alert_rule.environment.all()),
+                environment,
             )
 
     return alert_rule
@@ -796,6 +801,11 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     Subscribes a list of projects to an alert rule
     :return: The list of created subscriptions
     """
+    try:
+        environment = alert_rule.environment.all()[:1].get()
+    except Environment.DoesNotExist:
+        environment = None
+
     subscriptions = bulk_create_snuba_subscriptions(
         projects,
         tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
@@ -804,7 +814,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
-        list(alert_rule.environment.all()),
+        environment,
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
