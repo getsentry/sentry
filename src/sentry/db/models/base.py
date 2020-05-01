@@ -136,12 +136,15 @@ class DefaultFieldsModel(Model):
         abstract = True
 
 
+def __model_pre_save(instance, **kwargs):
+    if not isinstance(instance, DefaultFieldsModel):
+        return
+    instance.date_updated = timezone.now()
+
+
 def __model_post_save(instance, **kwargs):
     if not isinstance(instance, BaseModel):
         return
-    if isinstance(instance, DefaultFieldsModel):
-        instance.date_updated = timezone.now()
-        instance.save()
     instance._update_tracked_data()
 
 
@@ -153,5 +156,6 @@ def __model_class_prepared(sender, **kwargs):
         raise ValueError(u"{!r} model has not defined __core__".format(sender))
 
 
+signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
