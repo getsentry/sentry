@@ -109,7 +109,7 @@ class BreadcrumbFilter extends React.Component<Props, State> {
     const {filterGroups, checkedOptionsQuantity} = this.state;
 
     const hasFilterGroupsGroupTypeLevel = filterGroups.find(
-      filterGroup => filterGroup.groupType === FilterGroupType.LEVEl
+      filterGroup => filterGroup.groupType === FilterGroupType.LEVEL
     );
 
     return (

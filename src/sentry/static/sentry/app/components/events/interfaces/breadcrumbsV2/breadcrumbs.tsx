@@ -266,7 +266,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
               filterGroups={breadcrumbFilterGroups}
             />
             <StyledSearchBar
-              placeholder={t('Search breadcrumbs...')}
+              placeholder={t('Search breadcrumbs\u2026')}
               onChange={this.handleFilterBySearchTerm}
               query={searchTerm}
             />
