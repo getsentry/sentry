@@ -8,12 +8,13 @@ from bitfield.types import BitHandler
 from django.db import models
 from django.db.models import signals
 from django.db.models.query_utils import DeferredAttribute
+from django.utils import timezone
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
-__all__ = ("BaseModel", "Model", "sane_repr")
+__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr")
 
 UNSAVED = object()
 
@@ -127,6 +128,20 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
+class DefaultFieldsModel(Model):
+    date_updated = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+
+    class Meta:
+        abstract = True
+
+
+def __model_pre_save(instance, **kwargs):
+    if not isinstance(instance, DefaultFieldsModel):
+        return
+    instance.date_updated = timezone.now()
+
+
 def __model_post_save(instance, **kwargs):
     if not isinstance(instance, BaseModel):
         return
@@ -141,5 +156,6 @@ def __model_class_prepared(sender, **kwargs):
         raise ValueError(u"{!r} model has not defined __core__".format(sender))
 
 
+signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
