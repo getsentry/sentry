@@ -969,8 +969,12 @@ class SmartSearchBar extends React.Component<Props, State> {
     const lastChar = replaceText.charAt(replaceText.length - 1);
     replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
 
+    const isNewTerm = query.charAt(query.length - 1) === ' ';
+
     if (!terms) {
       newQuery = replaceText;
+    } else if (isNewTerm) {
+      newQuery = `${query}${replaceText}`;
     } else {
       const last = terms.pop() ?? '';
 
