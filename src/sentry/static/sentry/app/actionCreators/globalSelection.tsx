@@ -107,7 +107,7 @@ export function updateDateTime(
   if (!router) {
     GlobalSelectionActions.updateDateTime(datetime);
   }
-  updateParams(datetime, router, options);
+  updateParams(datetime, router, {...options, save: false});
 }
 
 /**
