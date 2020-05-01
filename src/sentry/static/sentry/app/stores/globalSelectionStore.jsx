@@ -195,12 +195,15 @@ const GlobalSelectionStore = Reflux.createStore({
     }
 
     const {project, environment} = updateObj;
+    const validatedProject = typeof project === 'string' ? [Number(project)] : project;
+    const validatedEnvironment =
+      typeof environment === 'string' ? [environment] : environment;
 
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
       const dataToSave = {
-        projects: project || this.selection.projects,
-        environments: environment || this.selection.environments,
+        projects: validatedProject || this.selection.projects,
+        environments: validatedEnvironment || this.selection.environments,
       };
       localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     } catch (ex) {
