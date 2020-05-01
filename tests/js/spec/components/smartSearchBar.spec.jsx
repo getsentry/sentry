@@ -552,7 +552,20 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onTogglePinnedSearch', function() {
+  describe('onAutoComplete()', function() {
+    it('completes terms from the list', function() {
+      const props = {
+        query: 'event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.onAutoComplete('myTag:', {type: 'tag'});
+      expect(searchBar.state.query).toEqual('event.type:error myTag:');
+    });
+  });
+
+  describe('onTogglePinnedSearch()', function() {
     let pinRequest, unpinRequest;
     beforeEach(function() {
       pinRequest = MockApiClient.addMockResponse({

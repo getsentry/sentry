@@ -127,8 +127,7 @@ const LoadingWrapper = styled('div')`
 
 const Info = styled('div')`
   display: flex;
-  justify-content: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
 `;
