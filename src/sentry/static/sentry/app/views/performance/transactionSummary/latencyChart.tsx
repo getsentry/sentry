@@ -8,7 +8,6 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {AREA_COLORS} from 'app/components/charts/utils';
 import AsyncComponent from 'app/components/asyncComponent';
 import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
@@ -188,6 +187,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+    const colors = theme.charts.getColorPalette(1);
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
@@ -227,7 +227,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         yAxis={{type: 'value'}}
         series={transformData(chartData.data, this.bucketWidth)}
         tooltip={tooltip}
-        colors={[AREA_COLORS[2]]}
+        colors={colors}
         onClick={this.handleClick}
         onMouseOver={this.handleMouseOver}
       />

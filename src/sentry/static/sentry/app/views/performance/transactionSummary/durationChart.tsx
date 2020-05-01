@@ -11,7 +11,7 @@ import ErrorPanel from 'app/components/charts/components/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {AREA_COLORS, getInterval} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -134,6 +134,9 @@ class DurationChart extends React.Component<Props> {
                     </ErrorPanel>
                   );
                 }
+                const colors =
+                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
+
                 // Create a list of series based on the order of the fields,
                 // We need to flip it at the end to ensure the series stack right.
                 const series = results
@@ -141,12 +144,12 @@ class DurationChart extends React.Component<Props> {
                       .map((values, i: number) => {
                         return {
                           ...values,
-                          color: AREA_COLORS[i],
+                          color: colors[i],
                           lineStyle: {
                             opacity: 0,
                           },
                           areaStyle: {
-                            color: AREA_COLORS[i],
+                            color: colors[i],
                             opacity: 1.0,
                           },
                         };
