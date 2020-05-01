@@ -56,7 +56,6 @@ class OrganizationIntegration(DefaultFieldsModel):
     config = EncryptedJsonField(default=dict)
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    date_added = models.DateTimeField(default=timezone.now, null=True)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
     )
@@ -101,7 +100,6 @@ class Integration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices(), null=True
     )
-    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
