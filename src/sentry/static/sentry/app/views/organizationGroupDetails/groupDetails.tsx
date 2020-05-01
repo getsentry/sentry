@@ -245,41 +245,39 @@ class GroupDetails extends React.Component<Props, State> {
 
     return (
       <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
-          {!isLoading && !isError ? (
-            <GlobalSelectionHeader
-              organization={organization}
-              forceProject={project}
-              showDateSelector={false}
-              shouldForceProject
-              lockedMessageSubject={t('issue')}
-              showIssueStreamLink
-              showProjectSettingsLink
-            />
-          ) : null}
+        {!isLoading && !isError ? (
+          <GlobalSelectionHeader
+            organization={organization}
+            forceProject={project}
+            showDateSelector={false}
+            shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
+          />
+        ) : null}
 
-          <PageContent>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : isError ? (
-              this.renderError()
-            ) : (
-              <Projects orgId={organization.slug} slugs={[project!.slug]}>
-                {({projects, initiallyLoaded, fetchError}) =>
-                  initiallyLoaded ? (
-                    fetchError ? (
-                      <LoadingError message={t('Error loading the specified project')} />
-                    ) : (
-                      this.renderContent(projects[0])
-                    )
+        <PageContent>
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : isError ? (
+            this.renderError()
+          ) : (
+            <Projects orgId={organization.slug} slugs={[project!.slug]}>
+              {({projects, initiallyLoaded, fetchError}) =>
+                initiallyLoaded ? (
+                  fetchError ? (
+                    <LoadingError message={t('Error loading the specified project')} />
                   ) : (
-                    <LoadingIndicator />
+                    this.renderContent(projects[0])
                   )
-                }
-              </Projects>
-            )}
-          </PageContent>
-        </React.Fragment>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Projects>
+          )}
+        </PageContent>
       </DocumentTitle>
     );
   }
