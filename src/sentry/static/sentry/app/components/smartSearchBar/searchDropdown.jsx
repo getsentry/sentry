@@ -131,6 +131,10 @@ const Info = styled('div')`
   padding: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 const ListItem = styled('li')`
