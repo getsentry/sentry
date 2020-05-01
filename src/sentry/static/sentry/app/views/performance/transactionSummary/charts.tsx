@@ -26,9 +26,9 @@ enum DisplayModes {
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
-  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
-  {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentile')},
+  {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
+  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
 ];
 
 type Props = {

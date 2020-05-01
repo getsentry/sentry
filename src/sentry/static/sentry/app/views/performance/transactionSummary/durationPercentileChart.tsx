@@ -1,26 +1,22 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import BarChart from 'app/components/charts/barChart';
+import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {AREA_COLORS} from 'app/components/charts/utils';
 import AsyncComponent from 'app/components/asyncComponent';
 import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
 import {HeaderTitle, StyledIconQuestion} from '../styles';
 
-const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
   'environment',
   'project',
@@ -71,10 +67,10 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       name: '',
       version: 2,
       fields: [
-        'percentile(transaction.duration, 0.1)',
+        'percentile(transaction.duration, 0.10)',
         'percentile(transaction.duration, 0.25)',
         'percentile(transaction.duration, 0.50)',
-        'percentile(transaction.duration, 0.70)',
+        'percentile(transaction.duration, 0.75)',
         'percentile(transaction.duration, 0.90)',
         'percentile(transaction.duration, 0.95)',
         'percentile(transaction.duration, 0.99)',
@@ -133,21 +129,28 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       type: 'category',
       truncate: true,
       axisLabel: {
-        margin: 20,
+        showMinLabel: true,
+        showMaxLabel: true,
       },
       axisTick: {
         interval: 0,
         alignWithLabel: true,
       },
     };
+    const tooltip = {
+      valueFormatter(value) {
+        return getDuration(value / 1000, 2);
+      },
+    };
     const colors = theme.charts.getColorPalette(1);
 
     return (
-      <BarChart
-        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
+      <LineChart
+        grid={{left: '16px', right: '16px', top: '16px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data)}
+        tooltip={tooltip}
         colors={colors}
       />
     );
@@ -160,7 +163,9 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
           {t('Duration Percentiles')}
           <Tooltip
             position="top"
-            title={t(`Visualize a transactions response time at each percentile point.`)}
+            title={t(
+              `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
+            )}
           >
             <StyledIconQuestion />
           </Tooltip>
@@ -171,29 +176,39 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 }
 
+const VALUE_EXTRACT_PATTERN = /(\d+)$/;
 /**
  * Convert a discover response into a barchart compatible series
  */
 function transformData(data: ApiResult[]) {
-  console.log(data);
-  const seriesData = Object.keys(data[0]).map((key: string) => {
-    // TODO extract only the percentile and p100 attributes,
-    // then order them so the chart series are in order..
-    const match = /^percentile_transaction_duration_(.+)$/.exec(key);
-    const name = match
-      ? (Number(match[1].replace('_', '.')) * 100).toLocaleString() + '%'
-      : '100%';
-    return {
-      name,
-      value: data[key],
-    };
+  const extractedData = Object.keys(data[0])
+    .map((key: string) => {
+      const nameMatch = VALUE_EXTRACT_PATTERN.exec(key);
+      if (!nameMatch) {
+        return [-1, -1];
+      }
+      let nameValue = Number(nameMatch[1]);
+      if (nameValue > 100) {
+        nameValue /= 10;
+      }
+      return [nameValue, data[0][key]];
+    })
+    .filter(i => i[0] > 0);
+
+  extractedData.sort((a, b) => {
+    if (a[0] > b[0]) {
+      return 1;
+    }
+    if (a[0] < b[0]) {
+      return -1;
+    }
+    return 0;
   });
-  console.log(seriesData);
 
   return [
     {
       seriesName: t('Duration'),
-      data: seriesData,
+      data: extractedData.map(i => ({value: i[1], name: `${i[0].toLocaleString()}%`})),
     },
   ];
 }
