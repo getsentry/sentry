@@ -160,7 +160,6 @@ test-python:
 	py.test tests/integration tests/sentry
 
 test-python-ci:
-	sentry init
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
 ifndef TEST_GROUP
@@ -181,7 +180,6 @@ test-symbolicator:
 	@echo ""
 
 test-acceptance: node-version-check
-	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running acceptance tests"
