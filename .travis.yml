@@ -83,14 +83,12 @@ after_script:
   - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 base_postgres: &postgres_default
-  python: 2.7
   before_install:
     - *base_install
   install:
     - true
 
 base_acceptance: &acceptance_default
-  python: 2.7
   before_install:
     - *base_install
     - find "$NODE_DIR" -type d -empty -delete
@@ -112,9 +110,10 @@ matrix:
   include:
     - name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
-      install:
+      before-install:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
+      install:
         - ./bin/yarn install --frozen-lockfile
 
     - python: 3.7
@@ -174,9 +173,8 @@ matrix:
 
     - name: 'Command Line'
       env: TEST_SUITE=cli
-      services:
-        - postgresql
-        - redis-server
+      before_install:
+        - *base_install
       install:
         - true
 
@@ -185,29 +183,21 @@ matrix:
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
+        # TODO: this is probably unnecessary, confirm pull = True
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
     - <<: *postgres_default
       name: 'Sentry-Relay integration tests'
       env: TEST_SUITE=relay-integration DB=postgres
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
       before_install:
         - *base_install
-        - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
+        # TODO: this is probably unnecessary, confirm pull = True
+        - docker pull us.gcr.io/sentryio/relay:latest  # pull relay we'll run and kill it for each test
         - docker ps -a
 
     - name: 'Snuba Integration with migrations'
       env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
-      services:
-        - docker
-        - memcached
-        - redis-server
-        - postgresql
       before_install:
         - *base_install
       install:
