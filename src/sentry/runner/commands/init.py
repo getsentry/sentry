@@ -40,6 +40,7 @@ def init(ctx, dev, directory):
             "File already exists at '%s', overwrite?" % click.format_filename(yaml), abort=True
         )
 
+    click.echo("Writing " + yaml)
     with click.open_file(yaml, "w") as fp:
         fp.write(yaml_contents)
 
@@ -48,5 +49,6 @@ def init(ctx, dev, directory):
             "File already exists at '%s', overwrite?" % click.format_filename(py), abort=True
         )
 
+    click.echo("Writing " + py)
     with click.open_file(py, "w") as fp:
         fp.write(py_contents)
