@@ -9,6 +9,7 @@ branches:
 cache:
   yarn: true
   directories:
+    - '${HOME}/.cache/pip'
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
     - '$NODE_DIR'
     - node_modules
@@ -48,7 +49,6 @@ env:
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
   python setup.py install_egg_info
-  # XXX: travis doesn't seem to be caching stuff anymore?
   pip install -U -e ".[dev]"
   # TODO: init --dev?
   sentry init
