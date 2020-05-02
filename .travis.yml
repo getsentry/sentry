@@ -29,7 +29,7 @@ env:
   global:
     - NODE_ENV=development
     - PIP_DISABLE_PIP_VERSION_CHECK=on
-    - PIP_QUIET=1
+#    - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
@@ -43,16 +43,19 @@ env:
     - SENTRY_ZOOKEEPER_HOSTS=localhost:2181
     - PYTEST_ADDOPTS="--reruns 5"
 
+# TODO: possible to enable memcached without rewriting on-disk config files?
+# XXX: have not yet confirmed devservices config match the old travis configs
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
   python setup.py install_egg_info
   pip install -U -e ".[dev]"
-
+  # TODO: init --dev?
+  sentry init
+  # TODO: devservices up should be moved to before_install and tweaked for each job
   # TODO: possible to enable memcached without rewriting on-disk config files?
   # XXX: have not yet confirmed devservices config match the old travis configs
   sentry devservices up
   docker ps -a
-
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
 script:
