@@ -82,7 +82,7 @@ base_postgres: &postgres_default
     # TODO: possible to enable memcached without rewriting on-disk config files?
     # TODO: zookeeper, kafka?
     # XXX: have not yet confirmed devservices config match the old travis configs
-    - sentry devservices up postgres redis clickhouse snuba
+    - sentry devservices up relay postgres redis clickhouse snuba
   install:
     - true
 
@@ -143,6 +143,9 @@ matrix:
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
+      # TODO: it seems the only tests that require relay here are tests/relay...
+      # could they be moved into relay_integration? if so, then we can remove relay from the devservices
+      # for postgres_default. 2/2 does not need relay.
 
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (2/2)'
