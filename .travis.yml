@@ -66,9 +66,6 @@ script:
   # installing dependencies for after_* steps here ensures they get cached
   # since those steps execute after travis runs `store build cache`
 
-after_failure:
-  - dmesg | tail -n 100
-
 after_script:
   - |
     coverage_files=$(ls .artifacts/*coverage.xml || true)
@@ -245,7 +242,6 @@ matrix:
       install: ./bin/yarn install --frozen-lockfile
       script: ./bin/yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
-      after_failure: skip
 
 notifications:
   webhooks:
