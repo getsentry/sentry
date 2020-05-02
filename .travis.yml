@@ -176,6 +176,7 @@ matrix:
       env: TEST_SUITE=cli
       before_install:
         - *base_install
+        - sentry devservices up postgres redis
       install:
         - true
 
@@ -184,6 +185,7 @@ matrix:
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
+        # TODO: enable symbolicator
         - sentry devservices up symbolicator postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
