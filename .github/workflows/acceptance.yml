@@ -78,7 +78,7 @@ jobs:
             - 1218:1218
 
         redis:
-          image: redis
+          image: redis:5.0-alpine
           ports:
             - 6379:6379
 
