@@ -87,7 +87,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-system.admin-email"
                           name="system.admin-email"
@@ -141,7 +140,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.from"
                           name="mail.from"
@@ -186,7 +184,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.host"
                           name="mail.host"
@@ -227,7 +224,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.port"
                           name="mail.port"
@@ -267,7 +263,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.username"
                           name="mail.username"
@@ -306,7 +301,6 @@ exports[`InstallWizard renders 1`] = `
                         </label>
                         <input
                           className="form-control"
-                          data-test-id="input-field"
                           disabled={false}
                           id="id-mail.password"
                           name="mail.password"

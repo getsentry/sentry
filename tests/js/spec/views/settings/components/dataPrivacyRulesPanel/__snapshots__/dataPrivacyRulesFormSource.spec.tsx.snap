@@ -102,7 +102,6 @@ exports[`DataPrivacyRulesFormSource default render 1`] = `
               <input
                 autoComplete="off"
                 className="form-control"
-                data-test-id="input-field"
                 disabled={false}
                 id="id-from"
                 name="from"
