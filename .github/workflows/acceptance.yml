@@ -20,7 +20,7 @@ jobs:
 
     acceptance:
       needs: [percynonce]
-      runs-on: ubuntu-latest
+      runs-on: ubuntu-16.04
       strategy:
         matrix:
           instance: [0, 1, 2]
