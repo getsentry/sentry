@@ -13,7 +13,7 @@ from sentry.message_filters import (
 )
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+@override_settings(ALLOWED_HOSTS=["localhost", "127.0.0.1", "testserver", "host.docker.internal"])
 class FilterTests(RelayStoreHelper, TransactionTestCase):
     def setUp(self):  # NOQA
         RelayStoreHelper.setUp(self)
