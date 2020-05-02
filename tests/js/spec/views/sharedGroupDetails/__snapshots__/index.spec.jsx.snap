@@ -569,6 +569,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                   "title": "ApiException",
                                 }
                               }
+                              isCentered={false}
                               raw={false}
                               title="Message"
                               type="message"
@@ -582,6 +583,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 >
                                   <SectionHeader
                                     id="message"
+                                    isCentered={false}
                                   >
                                     <div
                                       className="css-zang02-SectionHeader e1fbjd861"

@@ -6,6 +6,7 @@ exports[`EventDataSection renders formatted 1`] = `
 >
   <SectionHeader
     id="extra"
+    isCentered={false}
   >
     <Permalink
       className="permalink"
@@ -48,6 +49,7 @@ exports[`EventDataSection renders raw 1`] = `
 >
   <SectionHeader
     id="extra"
+    isCentered={false}
   >
     <Permalink
       className="permalink"

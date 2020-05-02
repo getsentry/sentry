@@ -69,7 +69,7 @@ class DropdownControl extends React.Component {
           {({isOpen, getMenuProps, getActorProps}) => (
             <React.Fragment>
               {this.renderButton(isOpen, getActorProps)}
-              <MenuContainer
+              <Content
                 {...getMenuProps()}
                 alignMenu={alignRight ? 'right' : 'left'}
                 width={menuWidth}
@@ -79,7 +79,7 @@ class DropdownControl extends React.Component {
                 blendWithActor={blendWithActor}
               >
                 {children}
-              </MenuContainer>
+              </Content>
             </React.Fragment>
           )}
         </DropdownMenu>
@@ -98,11 +98,10 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-const MenuContainer = styled(DropdownBubble.withComponent('ul'))`
-  list-style: none;
-  padding: 0;
-  margin: 0;
+const Content = styled(DropdownBubble.withComponent('div'))`
   display: ${p => (p.isOpen ? 'block' : 'none')};
+  border-top: 0;
+  top: 100%;
 `;
 
 const DropdownItem = styled(MenuItem)`

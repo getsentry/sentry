@@ -42,9 +42,9 @@ const Wrapper = styled('div')`
 const StyledTextField = styled(TextField)<TextField['props']>`
   margin-bottom: 0;
   input {
+    height: 28px;
     padding-left: ${space(4)};
     padding-right: ${space(4)};
-    height: 28px;
   }
 `;
 
