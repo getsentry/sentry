@@ -150,7 +150,7 @@ jobs:
           with:
             python-version: 2.7
 
-        - name: Install Dependencies
+        - name: Install System Dependencies
           run: |
             sudo apt-get update
             sudo apt-get install libxmlsec1-dev libmaxminddb-dev
