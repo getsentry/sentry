@@ -76,15 +76,9 @@ after_script:
   - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
   - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
-base_postgres: &postgres_default
-  before_install:
-    - *base_install
-    # TODO: possible to enable memcached without rewriting on-disk config files?
-    # TODO: zookeeper, kafka?
-    # XXX: have not yet confirmed devservices config match the old travis configs
-    - sentry devservices up relay postgres redis clickhouse snuba
-  install:
-    - true
+# TODO: zookeeper, kafka?
+# TODO: possible to enable memcached without rewriting on-disk config files?
+# XXX: have not yet confirmed devservices config match the old travis configs
 
 base_acceptance: &acceptance_default
   before_install:
@@ -140,16 +134,19 @@ matrix:
         - pip uninstall -y numpy
         - bin/scan
 
-    - <<: *postgres_default
-      name: 'Backend with migrations [Postgres] (1/2)'
+    - name: 'Backend with migrations [Postgres] (1/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
-      # TODO: it seems the only tests that require relay here are tests/relay...
-      # could they be moved into relay_integration? if so, then we can remove relay from the devservices
-      # for postgres_default. 2/2 does not need relay.
+      before-install:
+        - *base_install
+        # TODO: it seems the only tests that require relay here are tests/relay...
+        # If they were moved into relay_integration then we don't need relay here.
+        - sentry devservices up relay postgres redis clickhouse snuba
 
-    - <<: *postgres_default
-      name: 'Backend with migrations [Postgres] (2/2)'
+    - name: 'Backend with migrations [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
+      before-install:
+        - *base_install
+        - sentry devservices up postgres redis clickhouse snuba
 
     - <<: *acceptance_default
       name: 'Acceptance'
@@ -183,30 +180,30 @@ matrix:
       install:
         - true
 
-    - <<: *postgres_default
-      name: 'Symbolicator Integration'
+    - name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
         # TODO: enable symbolicator
         - sentry devservices up symbolicator postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
-        - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
+        # - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
-    - <<: *postgres_default
-      name: 'Sentry-Relay integration tests'
+    - name: 'Sentry-Relay integration tests'
       env: TEST_SUITE=relay-integration DB=postgres
       before_install:
         - *base_install
         - sentry devservices up relay postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
-        - docker pull us.gcr.io/sentryio/relay:latest  # pull relay we'll run and kill it for each test
+        # - docker pull us.gcr.io/sentryio/relay:latest  # pull relay we'll run and kill it for each test
         - docker ps -a
 
-    - <<: *postgres_default
-      name: 'Snuba Integration with migrations'
+    - name: 'Snuba Integration with migrations'
       env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
+      before-install:
+        - *base_install
+        - sentry devservices up postgres redis clickhouse snuba
 
     # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
