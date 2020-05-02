@@ -83,7 +83,7 @@ jobs:
             - 6379:6379
 
         memcached:
-          image: memcached
+          image: memcached:1.5-alpine
           ports:
             - 11211:11211
 
