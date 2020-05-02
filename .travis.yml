@@ -45,19 +45,12 @@ env:
     - SENTRY_ZOOKEEPER_HOSTS=localhost:2181
     - PYTEST_ADDOPTS="--reruns 5"
 
-# TODO: possible to enable memcached without rewriting on-disk config files?
-# XXX: have not yet confirmed devservices config match the old travis configs
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
   python setup.py install_egg_info
   pip install -U -e ".[dev]"
   # TODO: init --dev?
   sentry init
-  # TODO: devservices up should be moved to before_install and tweaked for each job
-  # TODO: possible to enable memcached without rewriting on-disk config files?
-  # XXX: have not yet confirmed devservices config match the old travis configs
-  sentry devservices up
-  docker ps -a
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
 script:
@@ -86,12 +79,19 @@ after_script:
 base_postgres: &postgres_default
   before_install:
     - *base_install
+    # TODO: possible to enable memcached without rewriting on-disk config files?
+    # TODO: zookeeper, kafka?
+    # XXX: have not yet confirmed devservices config match the old travis configs
+    - sentry devservices up postgres redis clickhouse snuba
   install:
     - true
 
 base_acceptance: &acceptance_default
   before_install:
     - *base_install
+    # NOTE: relay, reverse_proxy are not needed for acceptance testing
+    #       because event ingestion is not tested
+    - sentry devservices up postgres redis clickhouse snuba
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
   install:
@@ -184,6 +184,7 @@ matrix:
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
+        - sentry devservices up symbolicator postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
@@ -193,16 +194,14 @@ matrix:
       env: TEST_SUITE=relay-integration DB=postgres
       before_install:
         - *base_install
+        - sentry devservices up relay postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
         - docker pull us.gcr.io/sentryio/relay:latest  # pull relay we'll run and kill it for each test
         - docker ps -a
 
-    - name: 'Snuba Integration with migrations'
+    - <<: *postgres_default
+      name: 'Snuba Integration with migrations'
       env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
-      before_install:
-        - *base_install
-      install:
-        - true
 
     # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
