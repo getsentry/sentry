@@ -139,7 +139,7 @@ matrix:
         - *base_install
         # TODO: it seems the only tests that require relay here are tests/relay...
         # If they were moved into relay_integration then we don't need relay here.
-        - sentry devservices up relay kafka zookeeper postgres redis clickhouse snuba
+        - sentry devservices up relay postgres redis clickhouse snuba kafka zookeeper
 
     - name: 'Backend with migrations [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
@@ -193,7 +193,7 @@ matrix:
       env: TEST_SUITE=relay-integration DB=postgres
       before_install:
         - *base_install
-        - sentry devservices up relay postgres redis clickhouse snuba
+        - sentry devservices up relay postgres redis clickhouse snuba kafka zookeeper
         # TODO: this is probably unnecessary, confirm pull = True
         # - docker pull us.gcr.io/sentryio/relay:latest  # pull relay we'll run and kill it for each test
         - docker ps -a
@@ -202,7 +202,7 @@ matrix:
       env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
       before-install:
         - *base_install
-        - sentry devservices up postgres redis clickhouse snuba
+        - sentry devservices up postgres redis clickhouse snuba kafka zookeeper
 
     # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
