@@ -9,7 +9,8 @@ branches:
 cache:
   yarn: true
   directories:
-    - '${HOME}/.cache/pip'
+    # We don't cache ~/.cache/pip since we cache the entire virtualenv. It's faster.
+    # When installing sentry for testing, -U/--upgrade must be passed to pip.
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
     - '$NODE_DIR'
     - node_modules
@@ -30,7 +31,7 @@ env:
   global:
     - NODE_ENV=development
     - PIP_DISABLE_PIP_VERSION_CHECK=on
-#    - PIP_QUIET=1
+    - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
     - MIGRATIONS_TEST_MIGRATE=0
