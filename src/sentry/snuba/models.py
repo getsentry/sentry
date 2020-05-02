@@ -38,6 +38,22 @@ class QuerySubscriptionEnvironment(Model):
         unique_together = (("query_subscription", "environment"),)
 
 
+class SnubaQuery(Model):
+    __core__ = True
+
+    environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
+    dataset = models.TextField()
+    query = models.TextField()
+    aggregate = models.TextField()
+    time_window = models.IntegerField()
+    resolution = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_snubaquery"
+
+
 class QuerySubscription(Model):
     __core__ = True
 
@@ -51,15 +67,15 @@ class QuerySubscription(Model):
     environments = models.ManyToManyField(
         "sentry.Environment", through=QuerySubscriptionEnvironment
     )
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
     type = models.TextField()
     status = models.SmallIntegerField(default=Status.ACTIVE.value)
     subscription_id = models.TextField(unique=True, null=True)
-    dataset = models.TextField()
-    query = models.TextField()
-    # TODO: Remove this default after we migrate
-    aggregation = models.IntegerField(default=0)
-    time_window = models.IntegerField()
-    resolution = models.IntegerField()
+    dataset = models.TextField(null=True)
+    query = models.TextField(null=True)
+    aggregation = models.IntegerField(default=0, null=True)
+    time_window = models.IntegerField(null=True)
+    resolution = models.IntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(
