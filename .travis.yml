@@ -183,7 +183,7 @@ matrix:
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
-        - echo 'symbolicator.enabled: true' >> ~/.sentry/config.yml
+        - bash -c 'echo "symbolicator.enabled: true" >> ~/.sentry/config.yml'
         - sentry devservices up symbolicator postgres redis clickhouse snuba
         # TODO: this is probably unnecessary, confirm pull = True
         # - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
