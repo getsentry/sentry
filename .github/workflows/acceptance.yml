@@ -88,7 +88,7 @@ jobs:
             - 11211:11211
 
         postgres:
-          image: postgres:10.8
+          image: postgres:9.6
           env:
             POSTGRES_USER: postgres
           ports:
