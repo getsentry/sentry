@@ -48,6 +48,7 @@ env:
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
   python setup.py install_egg_info
+  # XXX: travis doesn't seem to be caching stuff anymore?
   pip install -U -e ".[dev]"
   # TODO: init --dev?
   sentry init
@@ -116,17 +117,12 @@ matrix:
       env: TEST_SUITE=lint-js
       install:
         - find "$NODE_DIR" -type d -empty -delete
-        # Under a "generic" language environment, this will make travis pyenv error because there
-        # is no pyenv python installed.
-        - rm .python-version
         - nvm install
         - ./bin/yarn install --frozen-lockfile
 
     - python: 3.7
       name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
       install:
-        # XXX: this must be synced with requirements-dev.txt
-        - pip install 'sentry-flake8==0.3.0'
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
         # black is going to rewrite the files in-place.
@@ -150,6 +146,7 @@ matrix:
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (1/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=0 MIGRATIONS_TEST_MIGRATE=1
+
     - <<: *postgres_default
       name: 'Backend with migrations [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
@@ -162,8 +159,7 @@ matrix:
       name: 'Plugins'
       env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
 
-    - python: 2.7
-      name: 'Frontend [test]'
+    - name: 'Frontend [test]'
       env: TEST_SUITE=js
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
@@ -171,8 +167,7 @@ matrix:
       install:
         - ./bin/yarn install --frozen-lockfile
 
-    - python: 2.7
-      name: 'Frontend [build]'
+    - name: 'Frontend [build]'
       env: TEST_SUITE=js-build
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
@@ -180,8 +175,7 @@ matrix:
       install:
         - ./bin/yarn install --frozen-lockfile
 
-    - python: 2.7
-      name: 'Command Line'
+    - name: 'Command Line'
       env: TEST_SUITE=cli
       services:
         - postgresql
@@ -210,8 +204,7 @@ matrix:
         - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
         - docker ps -a
 
-    - python: 2.7
-      name: 'Snuba Integration with migrations'
+    - name: 'Snuba Integration with migrations'
       env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
       services:
         - docker
