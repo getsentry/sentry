@@ -14,6 +14,9 @@ cache:
     - node_modules
     - '${HOME}/google-cloud-sdk'
 
+services:
+  - docker
+
 addons:
   apt:
     update: true
@@ -42,40 +45,15 @@ env:
 
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
+  python setup.py install_egg_info
+  pip install -U -e ".[dev]"
 
-  docker run \
-    --name sentry_zookeeper \
-    -d --network host \
-    -e ZOOKEEPER_CLIENT_PORT=2181 \
-    confluentinc/cp-zookeeper:4.1.0
-
-  docker run \
-    --name sentry_kafka \
-    -d --network host \
-    -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181 \
-    -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 \
-    -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092 \
-    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
-    -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
-    -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-    confluentinc/cp-kafka:5.1.2
+  # TODO: possible to enable memcached without rewriting on-disk config files?
+  # XXX: have not yet confirmed devservices config match the old travis configs
+  sentry devservices up
+  docker ps -a
 
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
-
-start_snuba: &start_snuba |-
-  docker run \
-    --name sentry_clickhouse \
-    -d --network host \
-    --ulimit nofile=262144:262144 \
-    yandex/clickhouse-server:19.11 \
-
-  docker run \
-    --name sentry_snuba \
-    -d --network host \
-    -e SNUBA_SETTINGS=test \
-    -e CLICKHOUSE_HOST=127.0.0.1 \
-    -e CLICKHOUSE_PORT=9000 \
-    getsentry/snuba
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -105,37 +83,21 @@ after_script:
 
 base_postgres: &postgres_default
   python: 2.7
-  services:
-    - memcached
-    - redis-server
-    - postgresql
   before_install:
     - *base_install
-    - *start_snuba
-    - docker ps -a
   install:
-    - python setup.py install_egg_info
-    - pip install -U -e ".[dev]"
+    - true
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
 base_acceptance: &acceptance_default
   python: 2.7
-  services:
-    - docker
-    - memcached
-    - redis-server
-    - postgresql
   before_install:
     - *base_install
-    - *start_snuba
     - find "$NODE_DIR" -type d -empty -delete
     - nvm install
-    - docker ps -a
   install:
     - ./bin/yarn install --frozen-lockfile
-    - python setup.py install_egg_info
-    - pip install -U -e ".[dev]"
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -151,8 +113,7 @@ base_acceptance: &acceptance_default
 matrix:
   fast_finish: true
   include:
-    - language: generic
-      name: 'Linter (Javascript)'
+    - name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
       install:
         - find "$NODE_DIR" -type d -empty -delete
@@ -227,8 +188,7 @@ matrix:
         - postgresql
         - redis-server
       install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
+        - true
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -237,7 +197,6 @@ matrix:
       env: TEST_SUITE=symbolicator
       before_install:
         - *base_install
-        - *start_snuba
         - docker run -d --network host --name symbolicator us.gcr.io/sentryio/symbolicator:latest run
         - docker ps -a
 
@@ -251,7 +210,6 @@ matrix:
         - postgresql
       before_install:
         - *base_install
-        - *start_snuba
         - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
         - docker ps -a
 
@@ -265,11 +223,8 @@ matrix:
         - postgresql
       before_install:
         - *base_install
-        - *start_snuba
-        - docker ps -a
       install:
-        - python setup.py install_egg_info
-        - pip install -U -e ".[dev]"
+        - true
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -286,11 +241,8 @@ matrix:
     #     - postgresql
     #   before_install:
     #     - *base_install
-    #     - *start_snuba
-    #     - docker ps -a
     #   install:
-    #     - python setup.py install_egg_info
-    #     - pip install -U -e ".[dev]"
+    #     - true
     #     - pip uninstall -y rb
     #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
     #   before_script:
