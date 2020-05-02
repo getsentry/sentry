@@ -76,7 +76,6 @@ after_script:
   - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
   - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
-# TODO: zookeeper, kafka?
 # TODO: possible to enable memcached without rewriting on-disk config files?
 # XXX: have not yet confirmed devservices config match the old travis configs
 
@@ -140,7 +139,7 @@ matrix:
         - *base_install
         # TODO: it seems the only tests that require relay here are tests/relay...
         # If they were moved into relay_integration then we don't need relay here.
-        - sentry devservices up relay postgres redis clickhouse snuba
+        - sentry devservices up relay kafka zookeeper postgres redis clickhouse snuba
 
     - name: 'Backend with migrations [Postgres] (2/2)'
       env: TEST_SUITE=postgres DB=postgres TOTAL_TEST_GROUPS=2 TEST_GROUP=1 MIGRATIONS_TEST_MIGRATE=1
