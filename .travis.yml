@@ -91,7 +91,10 @@ base_postgres: &postgres_default
   install:
     - true
   before_script:
-    - psql -c 'create database sentry;' -U postgres
+    # psql on travis machines expect a unix domain socket, but we're not using travis postgres service.
+    # So need to pass explicit -h 127.0.0.1.
+    # TODO: this could be probably replaced with make setup-db or similar?
+    - psql -h 127.0.0.1 -c 'create database sentry;' -U postgres
 
 base_acceptance: &acceptance_default
   python: 2.7
@@ -108,7 +111,7 @@ base_acceptance: &acceptance_default
     - rm ~/chromedriver_linux64.zip
     - sudo install -m755 ~/chromedriver /usr/local/bin/
   before_script:
-    - psql -c 'create database sentry;' -U postgres
+    - psql -h 127.0.0.1 -c 'create database sentry;' -U postgres
 
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
@@ -193,7 +196,7 @@ matrix:
       install:
         - true
       before_script:
-        - psql -c 'create database sentry;' -U postgres
+        - psql -h 127.0.0.1 -c 'create database sentry;' -U postgres
 
     - <<: *postgres_default
       name: 'Symbolicator Integration'
@@ -229,7 +232,7 @@ matrix:
       install:
         - true
       before_script:
-        - psql -c 'create database sentry;' -U postgres
+        - psql -h 127.0.0.1 -c 'create database sentry;' -U postgres
 
     # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
     # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
@@ -249,7 +252,7 @@ matrix:
     #     - pip uninstall -y rb
     #     - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
     #   before_script:
-    #     - psql -c 'create database sentry;' -U postgres
+    #     - psql -h 127.0.0.1 -c 'create database sentry;' -U postgres
 
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
