@@ -349,7 +349,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 {t('Tokens')}
                 <Button
                   size="xsmall"
-                  icon={<IconAdd size="xs" circle />}
+                  icon={<IconAdd size="xs" isCircle />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
                   type="button"

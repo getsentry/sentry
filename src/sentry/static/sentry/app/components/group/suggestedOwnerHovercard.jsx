@@ -8,7 +8,7 @@ import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
 import Hovercard from 'app/components/hovercard';
-import {IconCommit} from 'app/icons/iconCommit';
+import IconCommit from 'app/icons/iconCommit';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';

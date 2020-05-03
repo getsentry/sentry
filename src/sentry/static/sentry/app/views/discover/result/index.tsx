@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import {IconEdit} from 'app/icons/iconEdit';
+import IconEdit from 'app/icons/iconEdit';
 import PageHeading from 'app/components/pageHeading';
 
 import {

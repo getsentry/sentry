@@ -29,11 +29,11 @@ const AlertMessage = ({alert, system, hideCloseButton}: Props) => {
 
   const {url, message, type} = alert;
   const icon =
-    type === 'success' ? <IconCheckmark size="md" circle /> : <IconWarning size="md" />;
+    type === 'success' ? <IconCheckmark size="md" isCircle /> : <IconWarning size="md" />;
 
   const closeButton = hideCloseButton ? null : (
     <StyledCloseButton
-      icon={<IconClose size="md" circle />}
+      icon={<IconClose size="md" isCircle />}
       aria-label={t('Close')}
       onClick={handleCloseAlert}
       size="zero"

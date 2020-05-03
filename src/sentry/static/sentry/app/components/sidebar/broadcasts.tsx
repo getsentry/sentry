@@ -7,7 +7,7 @@ import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
-import {IconBroadcast} from 'app/icons/iconBroadcast';
+import IconBroadcast from 'app/icons/iconBroadcast';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization, Broadcast} from 'app/types';

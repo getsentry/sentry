@@ -9,7 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconCommit} from 'app/icons/iconCommit';
+import IconCommit from 'app/icons/iconCommit';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';

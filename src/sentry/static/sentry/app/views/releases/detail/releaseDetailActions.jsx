@@ -7,7 +7,7 @@ import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 
 import {deleteRelease} from './utils';
 

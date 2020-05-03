@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {IconQuestion} from 'app/icons/iconQuestion';
+import IconQuestion from 'app/icons/iconQuestion';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 

@@ -870,8 +870,8 @@ exports[`RuleBuilder renders 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef(IconAdd)
-                                              circle={true}
+                                            <IconAdd
+                                              isCircle={true}
                                             />
                                           }
                                           onClick={[Function]}
@@ -1031,8 +1031,8 @@ exports[`RuleBuilder renders 1`] = `
       <AddButton
         disabled={true}
         icon={
-          <ForwardRef(IconAdd)
-            circle={true}
+          <IconAdd
+            isCircle={true}
             size="xs"
           />
         }
@@ -1044,8 +1044,8 @@ exports[`RuleBuilder renders 1`] = `
           className="css-f6y09s-AddButton e1hyuoc710"
           disabled={true}
           icon={
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
+              isCircle={true}
               size="xs"
             />
           }
@@ -1059,8 +1059,8 @@ exports[`RuleBuilder renders 1`] = `
             disabled={true}
             forwardRef={null}
             icon={
-              <ForwardRef(IconAdd)
-                circle={true}
+              <IconAdd
+                isCircle={true}
                 size="xs"
               />
             }
@@ -1109,29 +1109,33 @@ exports[`RuleBuilder renders 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef(IconAdd)
-                            circle={true}
+                          <IconAdd
+                            isCircle={true}
                             size="xs"
                           >
-                            <svg
-                              fill="currentColor"
-                              height="12px"
-                              viewBox="0 0 16 16"
-                              width="12px"
+                            <ForwardRef(SvgIcon)
+                              size="xs"
                             >
-                              <g>
-                                <path
-                                  d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                />
-                                <path
-                                  d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                />
-                                <path
-                                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                />
-                              </g>
-                            </svg>
-                          </ForwardRef(IconAdd)>
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <g>
+                                  <path
+                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                  />
+                                  <path
+                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                  />
+                                  <path
+                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                  />
+                                </g>
+                              </svg>
+                            </ForwardRef(SvgIcon)>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>
@@ -1225,32 +1229,36 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            circle={true}
+            isCircle={true}
           >
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              isCircle={true}
             >
-              <svg
+              <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
-                fill="currentColor"
-                height="16px"
-                viewBox="0 0 16 16"
-                width="16px"
               >
-                <g>
-                  <path
-                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                  />
-                  <path
-                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                  />
-                  <path
-                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                  />
-                </g>
-              </svg>
-            </ForwardRef(IconAdd)>
+                <svg
+                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <g>
+                    <path
+                      d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                    />
+                    <path
+                      d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                    />
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                  </g>
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1277,32 +1285,36 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            circle={true}
+            isCircle={true}
           >
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              isCircle={true}
             >
-              <svg
+              <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
-                fill="currentColor"
-                height="16px"
-                viewBox="0 0 16 16"
-                width="16px"
               >
-                <g>
-                  <path
-                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                  />
-                  <path
-                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                  />
-                  <path
-                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                  />
-                </g>
-              </svg>
-            </ForwardRef(IconAdd)>
+                <svg
+                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <g>
+                    <path
+                      d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                    />
+                    <path
+                      d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                    />
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                  </g>
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1329,32 +1341,36 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            circle={true}
+            isCircle={true}
           >
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              isCircle={true}
             >
-              <svg
+              <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
-                fill="currentColor"
-                height="16px"
-                viewBox="0 0 16 16"
-                width="16px"
               >
-                <g>
-                  <path
-                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                  />
-                  <path
-                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                  />
-                  <path
-                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                  />
-                </g>
-              </svg>
-            </ForwardRef(IconAdd)>
+                <svg
+                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <g>
+                    <path
+                      d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                    />
+                    <path
+                      d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                    />
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                  </g>
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1381,32 +1397,36 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            circle={true}
+            isCircle={true}
           >
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              isCircle={true}
             >
-              <svg
+              <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
-                fill="currentColor"
-                height="16px"
-                viewBox="0 0 16 16"
-                width="16px"
               >
-                <g>
-                  <path
-                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                  />
-                  <path
-                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                  />
-                  <path
-                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                  />
-                </g>
-              </svg>
-            </ForwardRef(IconAdd)>
+                <svg
+                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <g>
+                    <path
+                      d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                    />
+                    <path
+                      d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                    />
+                    <path
+                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                    />
+                  </g>
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -2571,8 +2591,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef(IconAdd)
-                                              circle={true}
+                                            <IconAdd
+                                              isCircle={true}
                                             />
                                           }
                                           onClick={[Function]}
@@ -3044,8 +3064,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <AddButton
         disabled={false}
         icon={
-          <ForwardRef(IconAdd)
-            circle={true}
+          <IconAdd
+            isCircle={true}
             size="xs"
           />
         }
@@ -3057,8 +3077,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           className="css-f6y09s-AddButton e1hyuoc710"
           disabled={false}
           icon={
-            <ForwardRef(IconAdd)
-              circle={true}
+            <IconAdd
+              isCircle={true}
               size="xs"
             />
           }
@@ -3072,8 +3092,8 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             disabled={false}
             forwardRef={null}
             icon={
-              <ForwardRef(IconAdd)
-                circle={true}
+              <IconAdd
+                isCircle={true}
                 size="xs"
               />
             }
@@ -3122,29 +3142,33 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef(IconAdd)
-                            circle={true}
+                          <IconAdd
+                            isCircle={true}
                             size="xs"
                           >
-                            <svg
-                              fill="currentColor"
-                              height="12px"
-                              viewBox="0 0 16 16"
-                              width="12px"
+                            <ForwardRef(SvgIcon)
+                              size="xs"
                             >
-                              <g>
-                                <path
-                                  d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                />
-                                <path
-                                  d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                />
-                                <path
-                                  d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                />
-                              </g>
-                            </svg>
-                          </ForwardRef(IconAdd)>
+                              <svg
+                                fill="currentColor"
+                                height="12px"
+                                viewBox="0 0 16 16"
+                                width="12px"
+                              >
+                                <g>
+                                  <path
+                                    d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                  />
+                                  <path
+                                    d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                  />
+                                  <path
+                                    d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                  />
+                                </g>
+                              </svg>
+                            </ForwardRef(SvgIcon)>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>

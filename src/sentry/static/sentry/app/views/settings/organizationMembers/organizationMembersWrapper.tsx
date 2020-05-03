@@ -10,7 +10,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
 import Badge from 'app/components/badge';
 import Button from 'app/components/button';
-import {IconMail} from 'app/icons/iconMail';
+import IconMail from 'app/icons/iconMail';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import routeTitleGen from 'app/utils/routeTitle';

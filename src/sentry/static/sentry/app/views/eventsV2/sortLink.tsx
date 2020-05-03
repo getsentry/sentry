@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
-import {IconArrow} from 'app/icons/iconArrow';
+import IconArrow from 'app/icons/iconArrow';
 import Link from 'app/components/links/link';
 import {Field, Sort} from 'app/utils/discover/fields';
 import EventView, {MetaType, isFieldSortable} from 'app/utils/discover/eventView';

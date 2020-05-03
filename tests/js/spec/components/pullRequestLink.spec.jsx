@@ -29,7 +29,7 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('IconGithub');
+    const icon = wrapper.find('IconGithub').hostNodes();
     expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
@@ -48,7 +48,7 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('IconGithub');
+    const icon = wrapper.find('IconGithub').hostNodes();
     expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');

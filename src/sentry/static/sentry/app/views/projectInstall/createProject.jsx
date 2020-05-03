@@ -23,7 +23,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 import withExperiment from 'app/utils/withExperiment';
 
 class CreateProject extends React.Component {
@@ -130,7 +130,7 @@ class CreateProject extends React.Component {
                 borderless
                 data-test-id="create-team"
                 type="button"
-                icon={<IconAdd circle />}
+                icon={<IconAdd isCircle />}
                 onClick={() =>
                   openCreateTeamModal({
                     organization,

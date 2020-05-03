@@ -17,7 +17,7 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';

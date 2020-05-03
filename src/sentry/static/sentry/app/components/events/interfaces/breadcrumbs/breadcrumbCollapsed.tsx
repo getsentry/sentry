@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {tct} from 'app/locale';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
+import IconEllipsis from 'app/icons/iconEllipsis';
 
 import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 

@@ -51,7 +51,7 @@ export default class DetailsHeader extends React.Component<Props> {
         buttonProps={{size: 'small', disabled: !incident}}
       >
         <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark circle color={theme.greenLight} />
+          <IconCheckmark isCircle color={theme.greenLight} />
           {t('Resolve this incident')}
         </StatusMenuItem>
       </DropdownControl>

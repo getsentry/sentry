@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 import withOrganizations from 'app/utils/withOrganizations';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';

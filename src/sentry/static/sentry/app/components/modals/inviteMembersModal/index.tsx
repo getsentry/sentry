@@ -373,7 +373,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           disabled={disableInputs}
           priority="link"
           onClick={this.addInviteRow}
-          icon={<IconAdd size="xs" circle />}
+          icon={<IconAdd size="xs" isCircle />}
         >
           {t('Add another')}
         </AddButton>

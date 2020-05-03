@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 
 import QueryFields from './queryFields';
 import {parseSavedQuery} from '../utils';

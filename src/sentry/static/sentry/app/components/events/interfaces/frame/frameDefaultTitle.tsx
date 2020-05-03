@@ -4,7 +4,7 @@ import {Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconQuestion} from 'app/icons/iconQuestion';
+import IconQuestion from 'app/icons/iconQuestion';
 import ExternalLink from 'app/components/links/externalLink';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';

@@ -8,7 +8,7 @@ import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';

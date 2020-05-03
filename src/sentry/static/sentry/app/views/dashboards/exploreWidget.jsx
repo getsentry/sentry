@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconTelescope} from 'app/icons/iconTelescope';
+import IconTelescope from 'app/icons/iconTelescope';
 import InlineSvg from 'app/components/inlineSvg';
 import {
   getDiscoverUrlPathFromDiscoverQuery,

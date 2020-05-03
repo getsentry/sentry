@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -98,7 +98,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'path')}
                 >
-                  <StyledIconAdd circle />
+                  <StyledIconAdd isCircle />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[PATH]</TypeHint>
                 </RuleCandidate>
@@ -109,7 +109,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'url')}
                 >
-                  <StyledIconAdd circle />
+                  <StyledIconAdd isCircle />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[URL]</TypeHint>
                 </RuleCandidate>
@@ -155,7 +155,7 @@ class RuleBuilder extends React.Component {
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
-            icon={<IconAdd size="xs" circle />}
+            icon={<IconAdd size="xs" isCircle />}
             size="small"
           />
         </BuilderBar>

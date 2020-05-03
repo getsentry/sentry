@@ -13,7 +13,7 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -32,7 +32,7 @@ class OrganizationApiKeysList extends React.Component {
       <Button
         priority="primary"
         size="small"
-        icon={<IconAdd size="xs" circle />}
+        icon={<IconAdd size="xs" isCircle />}
         busy={busy}
         disabled={busy}
         onClick={onAddApiKey}

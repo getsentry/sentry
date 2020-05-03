@@ -25,7 +25,7 @@ import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 
 type Props = {
   id: string | null;
@@ -398,7 +398,7 @@ const ClearAssigneeIcon = styled(props => (
   ${getSvgStyle};
 `;
 
-const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" circle />)`
+const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" isCircle />)`
   ${getSvgStyle};
 `;
 

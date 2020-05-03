@@ -8,7 +8,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconMail} from 'app/icons/iconMail';
+import IconMail from 'app/icons/iconMail';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';

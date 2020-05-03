@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import {DocumentIntegration} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen} from 'app/icons/iconOpen';
+import IconOpen from 'app/icons/iconOpen';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import {documentIntegrations} from './constants';

@@ -1,40 +1,22 @@
 import React from 'react';
 
-import {IconProps} from 'app/types/iconProps';
-import theme from 'app/utils/theme';
+import SvgIcon from './svgIcon';
 
-export const IconSubtract = React.forwardRef(function IconSubtract(
-  {
-    color: providedColor = 'currentColor',
-    size: providedSize = 'sm',
-    circle: providedCircle = false,
-    ...props
-  }: IconProps,
-  ref: React.Ref<SVGSVGElement>
-) {
-  const color = providedColor;
-  const size = theme.iconSizes[providedSize] ?? providedSize;
+type Props = React.ComponentProps<typeof SvgIcon> & {
+  isCircle?: boolean;
+};
 
-  return (
-    <svg
-      data-test-id="icon-subtract"
-      viewBox="0 0 16 16"
-      fill={color}
-      height={size}
-      width={size}
-      {...props}
-      ref={ref}
-    >
-      {providedCircle === true ? (
-        <g>
-          <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />
-          <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />
-        </g>
-      ) : (
-        <g>
-          <path d="M15.19,8.75H.81a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z" />
-        </g>
-      )}
-    </svg>
-  );
-});
+const IconSubtract = ({isCircle = false, ...props}: Props) => (
+  <SvgIcon {...props} data-test-id="icon-subtract">
+    {isCircle ? (
+      <React.Fragment>
+        <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />
+        <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />
+      </React.Fragment>
+    ) : (
+      <path d="M15.19,8.75H.81a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z" />
+    )}
+  </SvgIcon>
+);
+
+export default IconSubtract;

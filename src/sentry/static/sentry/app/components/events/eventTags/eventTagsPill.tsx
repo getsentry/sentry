@@ -11,7 +11,7 @@ import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
 import Version from 'app/components/version';
-import {IconOpen} from 'app/icons/iconOpen';
+import IconOpen from 'app/icons/iconOpen';
 
 type Props = {
   tag: EventTag;

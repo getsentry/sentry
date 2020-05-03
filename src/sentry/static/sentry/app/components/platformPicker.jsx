@@ -17,7 +17,7 @@ import PlatformIconTile from 'app/components/platformIconTile';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
-import {IconClose} from 'app/icons';
+import IconClose from 'app/icons/iconClose';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 
@@ -203,7 +203,7 @@ const StyledPlatformIconTile = styled(PlatformIconTile)`
 `;
 
 const ClearButton = styled(p => (
-  <Button {...p} icon={<IconClose circle size="xs" />} size="xsmall" borderless />
+  <Button {...p} icon={<IconClose isCircle size="xs" />} size="xsmall" borderless />
 ))`
   position: absolute;
   top: -6px;

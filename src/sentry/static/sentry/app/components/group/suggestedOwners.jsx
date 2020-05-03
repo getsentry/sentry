@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
-import {IconInfo} from 'app/icons/iconInfo';
+import IconInfo from 'app/icons/iconInfo';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';

@@ -2,7 +2,7 @@ import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
 import AlertLink from 'app/components/alertLink';
-import {IconMail} from 'app/icons/iconMail';
+import IconMail from 'app/icons/iconMail';
 
 describe('AlertLink', function() {
   it('renders', function() {

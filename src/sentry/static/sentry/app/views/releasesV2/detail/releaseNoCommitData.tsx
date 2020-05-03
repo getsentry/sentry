@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import Well from 'app/components/well';
-import {IconCommit} from 'app/icons/iconCommit';
+import IconCommit from 'app/icons/iconCommit';
 
 type Props = {
   orgId: string;

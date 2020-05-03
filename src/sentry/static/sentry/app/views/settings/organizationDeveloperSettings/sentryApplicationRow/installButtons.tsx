@@ -38,7 +38,7 @@ export const UninstallAppButton = ({
       disabled={disabled}
     >
       <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
-        <IconSubtract circle style={{marginRight: space(0.75)}} />
+        <IconSubtract isCircle style={{marginRight: space(0.75)}} />
         {t('Uninstall')}
       </StyledUninstallButton>
     </Confirm>

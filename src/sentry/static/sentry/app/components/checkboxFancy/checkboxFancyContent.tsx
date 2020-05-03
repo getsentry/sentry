@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {IconCheckmark} from 'app/icons/iconCheckmark';
-import {IconSubtract} from 'app/icons/iconSubtract';
+import IconCheckmark from 'app/icons/iconCheckmark';
+import IconSubtract from 'app/icons/iconSubtract';
 
 type Props = {
   isChecked?: boolean;

@@ -7,7 +7,7 @@ import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconMail} from 'app/icons/iconMail';
+import IconMail from 'app/icons/iconMail';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';

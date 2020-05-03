@@ -67,8 +67,8 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
                 borderless={true}
                 data-test-id="create-team"
                 icon={
-                  <ForwardRef(IconAdd)
-                    circle={true}
+                  <IconAdd
+                    isCircle={true}
                   />
                 }
                 onClick={[Function]}
@@ -1522,8 +1522,8 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef(IconAdd)
-                                    circle={true}
+                                  <IconAdd
+                                    isCircle={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -1536,8 +1536,8 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef(IconAdd)
-                                      circle={true}
+                                    <IconAdd
+                                      isCircle={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -1583,28 +1583,30 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef(IconAdd)
-                                                  circle={true}
+                                                <IconAdd
+                                                  isCircle={true}
                                                 >
-                                                  <svg
-                                                    fill="currentColor"
-                                                    height="16px"
-                                                    viewBox="0 0 16 16"
-                                                    width="16px"
-                                                  >
-                                                    <g>
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </g>
-                                                  </svg>
-                                                </ForwardRef(IconAdd)>
+                                                  <ForwardRef(SvgIcon)>
+                                                    <svg
+                                                      fill="currentColor"
+                                                      height="16px"
+                                                      viewBox="0 0 16 16"
+                                                      width="16px"
+                                                    >
+                                                      <g>
+                                                        <path
+                                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                        />
+                                                        <path
+                                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                        />
+                                                      </g>
+                                                    </svg>
+                                                  </ForwardRef(SvgIcon)>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>
@@ -2133,8 +2135,8 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef(IconClose)
-                          circle={true}
+                        <IconClose
+                          isCircle={true}
                           size="xs"
                         />
                       }
@@ -2148,8 +2150,8 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef(IconClose)
-                            circle={true}
+                          <IconClose
+                            isCircle={true}
                             size="xs"
                           />
                         }
@@ -2197,17 +2199,19 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef(IconClose)
-                                        circle={true}
+                                      <IconClose
+                                        isCircle={true}
                                         size="xs"
                                       >
-                                        <svg
-                                          fill="currentColor"
-                                          height="12px"
-                                          viewBox="0 0 16 16"
-                                          width="12px"
+                                        <ForwardRef(SvgIcon)
+                                          size="xs"
                                         >
-                                          <g>
+                                          <svg
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
+                                          >
                                             <path
                                               d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
                                             />
@@ -2217,9 +2221,9 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                             <path
                                               d="M10.66,11.41a.74.74,0,0,1-.53-.22L4.81,5.87A.75.75,0,0,1,5.87,4.81l5.32,5.32a.74.74,0,0,1,0,1.06A.71.71,0,0,1,10.66,11.41Z"
                                             />
-                                          </g>
-                                        </svg>
-                                      </ForwardRef(IconClose)>
+                                          </svg>
+                                        </ForwardRef(SvgIcon)>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -2526,8 +2530,8 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef(IconAdd)
-                                    circle={true}
+                                  <IconAdd
+                                    isCircle={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -2540,8 +2544,8 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef(IconAdd)
-                                      circle={true}
+                                    <IconAdd
+                                      isCircle={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -2587,28 +2591,30 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef(IconAdd)
-                                                  circle={true}
+                                                <IconAdd
+                                                  isCircle={true}
                                                 >
-                                                  <svg
-                                                    fill="currentColor"
-                                                    height="16px"
-                                                    viewBox="0 0 16 16"
-                                                    width="16px"
-                                                  >
-                                                    <g>
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </g>
-                                                  </svg>
-                                                </ForwardRef(IconAdd)>
+                                                  <ForwardRef(SvgIcon)>
+                                                    <svg
+                                                      fill="currentColor"
+                                                      height="16px"
+                                                      viewBox="0 0 16 16"
+                                                      width="16px"
+                                                    >
+                                                      <g>
+                                                        <path
+                                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                        />
+                                                        <path
+                                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                        />
+                                                      </g>
+                                                    </svg>
+                                                  </ForwardRef(SvgIcon)>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>
@@ -3037,8 +3043,8 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef(IconClose)
-                          circle={true}
+                        <IconClose
+                          isCircle={true}
                           size="xs"
                         />
                       }
@@ -3052,8 +3058,8 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef(IconClose)
-                            circle={true}
+                          <IconClose
+                            isCircle={true}
                             size="xs"
                           />
                         }
@@ -3101,17 +3107,19 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef(IconClose)
-                                        circle={true}
+                                      <IconClose
+                                        isCircle={true}
                                         size="xs"
                                       >
-                                        <svg
-                                          fill="currentColor"
-                                          height="12px"
-                                          viewBox="0 0 16 16"
-                                          width="12px"
+                                        <ForwardRef(SvgIcon)
+                                          size="xs"
                                         >
-                                          <g>
+                                          <svg
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
+                                          >
                                             <path
                                               d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
                                             />
@@ -3121,9 +3129,9 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                             <path
                                               d="M10.66,11.41a.74.74,0,0,1-.53-.22L4.81,5.87A.75.75,0,0,1,5.87,4.81l5.32,5.32a.74.74,0,0,1,0,1.06A.71.71,0,0,1,10.66,11.41Z"
                                             />
-                                          </g>
-                                        </svg>
-                                      </ForwardRef(IconClose)>
+                                          </svg>
+                                        </ForwardRef(SvgIcon)>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -4230,8 +4238,8 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef(IconAdd)
-                                    circle={true}
+                                  <IconAdd
+                                    isCircle={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -4244,8 +4252,8 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef(IconAdd)
-                                      circle={true}
+                                    <IconAdd
+                                      isCircle={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -4291,28 +4299,30 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef(IconAdd)
-                                                  circle={true}
+                                                <IconAdd
+                                                  isCircle={true}
                                                 >
-                                                  <svg
-                                                    fill="currentColor"
-                                                    height="16px"
-                                                    viewBox="0 0 16 16"
-                                                    width="16px"
-                                                  >
-                                                    <g>
-                                                      <path
-                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
-                                                      />
-                                                      <path
-                                                        d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
-                                                      />
-                                                      <path
-                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
-                                                      />
-                                                    </g>
-                                                  </svg>
-                                                </ForwardRef(IconAdd)>
+                                                  <ForwardRef(SvgIcon)>
+                                                    <svg
+                                                      fill="currentColor"
+                                                      height="16px"
+                                                      viewBox="0 0 16 16"
+                                                      width="16px"
+                                                    >
+                                                      <g>
+                                                        <path
+                                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                        />
+                                                        <path
+                                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                        />
+                                                      </g>
+                                                    </svg>
+                                                  </ForwardRef(SvgIcon)>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>

@@ -12,7 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 

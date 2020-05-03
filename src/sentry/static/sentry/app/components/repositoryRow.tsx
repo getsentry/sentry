@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 import space from 'app/styles/space';
 
 type DefaultProps = {

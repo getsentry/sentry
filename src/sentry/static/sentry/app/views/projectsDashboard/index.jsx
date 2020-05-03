@@ -22,7 +22,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
-import {IconAdd} from 'app/icons/iconAdd';
+import IconAdd from 'app/icons/iconAdd';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -97,7 +97,7 @@ class Dashboard extends React.Component {
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon={<IconAdd size="xs" circle />}
+              icon={<IconAdd size="xs" isCircle />}
               data-test-id="create-project"
             >
               {t('Create Project')}

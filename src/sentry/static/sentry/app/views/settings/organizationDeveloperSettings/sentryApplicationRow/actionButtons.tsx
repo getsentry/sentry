@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LightWeightOrganization, SentryApp} from 'app/types';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons/iconDelete';
+import IconDelete from 'app/icons/iconDelete';
 import ConfirmDelete from 'app/components/confirmDelete';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

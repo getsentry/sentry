@@ -221,7 +221,7 @@ class ProjectSelector extends React.Component {
             disabled={!hasProjectWrite}
             to={`/organizations/${org.slug}/projects/new/`}
             size="xsmall"
-            icon={<IconAdd size="xs" circle />}
+            icon={<IconAdd size="xs" isCircle />}
             title={
               hasProjectWrite ? null : t("You don't have permission to add a project")
             }

@@ -13,7 +13,7 @@ import {Client} from 'app/api';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
+import IconEllipsis from 'app/icons/iconEllipsis';
 import withApi from 'app/utils/withApi';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import EventView from 'app/utils/discover/eventView';

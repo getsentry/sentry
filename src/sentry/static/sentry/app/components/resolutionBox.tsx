@@ -73,7 +73,7 @@ function ResolutionBox({statusDetails, projectId}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <IconCheckmark color={theme.green} />
+        <IconCheckmark color="green" />
         <span>{renderReason(statusDetails, projectId)}</span>
       </BannerSummary>
     </BannerContainer>
