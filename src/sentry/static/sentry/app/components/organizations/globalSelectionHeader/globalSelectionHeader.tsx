@@ -478,6 +478,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     !this.props.hasCustomRouting
       ? {
           resetParams: this.props.resetParamsOnChange,
+          save: true,
         }
       : {};
 

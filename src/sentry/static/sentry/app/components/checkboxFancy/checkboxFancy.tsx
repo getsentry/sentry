@@ -10,6 +10,7 @@ type Props = {
   isDisabled?: boolean;
   size?: string;
   className?: string;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 } & React.ComponentProps<typeof CheckboxFancyContent>;
 
 const disabledStyles = (p: Props & {theme: Theme}) =>
@@ -26,13 +27,14 @@ const hoverStyles = (p: Props & {theme: Theme}) =>
   `;
 
 const CheckboxFancy = styled(
-  ({isChecked, className, isDisabled, isIndeterminate}: Props) => (
+  ({isChecked, className, isDisabled, isIndeterminate, onClick}: Props) => (
     <div
       data-test-id="checkbox-fancy"
       role="checkbox"
       aria-disabled={isDisabled}
       aria-checked={isChecked}
       className={className}
+      onClick={onClick}
     >
       <CheckboxFancyContent isIndeterminate={isIndeterminate} isChecked={isChecked} />
     </div>

@@ -24,6 +24,7 @@ class NodeStorage(local, Service):
         "generate_id",
         "cleanup",
         "validate",
+        "bootstrap",
         "_get_cache_item",
         "_get_cache_items",
         "_set_cache_item",
@@ -92,6 +93,9 @@ class NodeStorage(local, Service):
         return b64encode(uuid4().bytes)
 
     def cleanup(self, cutoff_timestamp):
+        raise NotImplementedError
+
+    def bootstrap(self):
         raise NotImplementedError
 
     def _get_cache_item(self, id):

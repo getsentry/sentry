@@ -1,4 +1,5 @@
-import {MAX_AUTOCOMPLETE_RECENT_SEARCHES, SEARCH_TYPES} from 'app/constants';
+import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'app/constants';
+import {SearchType} from 'app/components/smartSearchBar';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SavedSearchesActions from 'app/actions/savedSearchesActions';
@@ -78,7 +79,7 @@ export function createSavedSearch(api, orgId, name, query) {
   const promise = api.requestPromise(`/organizations/${orgId}/searches/`, {
     method: 'POST',
     data: {
-      type: SEARCH_TYPES.ISSUE,
+      type: SearchType.ISSUE,
       query,
       name,
     },

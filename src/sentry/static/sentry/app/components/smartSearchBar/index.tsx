@@ -8,21 +8,9 @@ import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
-import {
-  DEFAULT_DEBOUNCE_DURATION,
-  MAX_AUTOCOMPLETE_RELEASES,
-  NEGATION_OPERATOR,
-  SEARCH_WILDCARD,
-} from 'app/constants';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
-import {
-  fetchRecentSearches,
-  pinSearch,
-  saveRecentSearch,
-  unpinSearch,
-} from 'app/actionCreators/savedSearches';
 import {fetchReleases} from 'app/actionCreators/releases';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
@@ -32,17 +20,38 @@ import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton
 import DropdownLink from 'app/components/dropdownLink';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'app/api';
+import {SavedSearch, Organization} from 'app/types';
+import {IconSearch, IconClose} from 'app/icons';
+import {
+  fetchRecentSearches,
+  pinSearch,
+  saveRecentSearch,
+  unpinSearch,
+} from 'app/actionCreators/savedSearches';
+import {
+  DEFAULT_DEBOUNCE_DURATION,
+  MAX_AUTOCOMPLETE_RELEASES,
+  NEGATION_OPERATOR,
+  SEARCH_WILDCARD,
+} from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
+import {SearchItem, SearchType, SearchGroup, Tag, ItemType} from './types';
+import {
+  addSpace,
+  removeSpace,
+  createSearchGroups,
+  filterSearchGroupsByIndex,
+} from './utils';
 
 const DROPDOWN_BLUR_DURATION = 200;
 
-const getMediaQuery = (size, type) => `
+const getMediaQuery = (size: string, type: React.CSSProperties['display']) => `
   display: ${type};
 
   @media (min-width: ${size}) {
@@ -50,7 +59,10 @@ const getMediaQuery = (size, type) => `
   }
 `;
 
-const getInputButtonStyles = p => `
+const getInputButtonStyles = (p: {
+  isActive?: boolean;
+  collapseIntoEllipsisMenu?: number;
+}) => `
   color: ${p.isActive ? theme.blueLight : theme.gray2};
   margin-left: ${space(0.5)};
   width: 18px;
@@ -69,7 +81,7 @@ const getInputButtonStyles = p => `
     getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
 `;
 
-const getDropdownElementStyles = p => `
+const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolean}) => `
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
@@ -95,12 +107,142 @@ const getDropdownElementStyles = p => `
     getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
 `;
 
-class SmartSearchBar extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  dropdownClassName?: string;
+  className?: string;
+
+  defaultQuery?: string;
+  query?: string | null;
+  /**
+   * Prepare query value before filtering dropdown items
+   */
+  prepareQuery?: (query: string) => string;
+  /**
+   * Search items to display when there's no tag key. Is a tuple of search items and recent search items
+   */
+  defaultSearchItems?: [SearchItem[], SearchItem[]];
+  /**
+   * Disabled control (e.g. read-only)
+   */
+  disabled?: boolean;
+  /**
+   * Input placeholder
+   */
+  placeholder?: string;
+  /**
+   * Map of tags
+   */
+  supportedTags?: {[key: string]: Tag};
+  /**
+   * Maximum number of search items to display or a falsey value for no
+   * maximum
+   */
+  maxSearchItems?: number;
+  /**
+   * List user's recent searches
+   */
+  hasRecentSearches?: boolean;
+  /**
+   * Has search builder UI
+   */
+  hasSearchBuilder?: boolean;
+  /**
+   * Can create a saved search
+   */
+  canCreateSavedSearch?: boolean;
+  /**
+   * Wrap the input with a form. Useful if search bar is used within a parent
+   * form
+   */
+  useFormWrapper?: boolean;
+  /**
+   * If this is defined, attempt to save search term scoped to the user and
+   * the current org
+   */
+  savedSearchType?: SearchType;
+  /**
+   * Has pinned search feature
+   */
+  hasPinnedSearch?: boolean;
+  /**
+   * The pinned search object
+   */
+  pinnedSearch?: SavedSearch;
+  /**
+   * Get a list of tag values for the passed tag
+   */
+  onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+  /**
+   * Get a list of recent searches for the current query
+   */
+  onGetRecentSearches?: (query: string) => Promise<SearchItem[]>;
+  /**
+   * Called when the user makes a search
+   */
+  onSearch?: (query: string) => void;
+  /**
+   * Called when the search input changes
+   */
+  onChange?: (value: string, e: React.ChangeEvent) => void;
+  /**
+   * Called when the search is blurred
+   */
+  onBlur?: (value: string) => void;
+  /**
+   * Called when a recent search is saved
+   */
+  onSavedRecentSearch?: (query: string) => void;
+  /**
+   * Called when the sidebar is toggled
+   */
+  onSidebarToggle?: React.EventHandler<React.MouseEvent>;
+  /**
+   * If true, excludes the environment tag from the autocompletion list. This
+   * is because we don't want to treat environment as a tag in some places
+   * such as the stream view where it is a top level concept
+   */
+  excludeEnvironment: boolean;
+};
+
+type State = {
+  /**
+   * The current search query in the input
+   */
+  query: string;
+  /**
+   * The query in the input since we last updated our autocomplete list.
+   */
+  previousQuery?: string;
+  /**
+   * Indicates that we have a query that we've already determined not to have
+   * any values. This is used to stop the autocompleter from querying if we
+   * know we will find nothing.
+   */
+  noValueQuery?: string;
+  /**
+   * The current search term (or 'key') that that we will be showing
+   * autocompletion for.
+   */
+  searchTerm: string;
+  searchGroups: SearchGroup[];
+  flatSearchItems: SearchItem[];
+  /**
+   * Index of the focused search item
+   */
+  activeSearchItem: number;
+  tags: {[key: string]: string};
+  dropdownVisible: boolean;
+  loading: boolean;
+};
+
+class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Given a query, and the current cursor position, return the string-delimiting
    * index of the search term designated by the cursor.
    */
-  static getLastTermIndex = (query, cursor) => {
+  static getLastTermIndex = (query: string, cursor: number) => {
     // TODO: work with quoted-terms
     const cursorOffset = query.slice(cursor).search(/\s|$/);
     return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
@@ -111,93 +253,8 @@ class SmartSearchBar extends React.Component {
    *
    * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
    */
-  static getQueryTerms = (query, cursor) =>
+  static getQueryTerms = (query: string, cursor: number) =>
     query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-
-  static propTypes = {
-    api: PropTypes.object,
-
-    organization: SentryTypes.Organization.isRequired,
-
-    dropdownClassName: PropTypes.string,
-
-    defaultQuery: PropTypes.string,
-
-    query: PropTypes.string,
-
-    /**
-     * Prepare query value before filtering dropdown items
-     */
-    prepareQuery: PropTypes.func,
-
-    // Search items to display when there's no tag key
-    // Should be a tuple of [searchItems[], recentSearchItems[]]
-    defaultSearchItems: PropTypes.array,
-
-    // Disabled control (e.g. read-only)
-    disabled: PropTypes.bool,
-
-    // Input placeholder
-    placeholder: PropTypes.string,
-
-    // Map of tags
-    supportedTags: PropTypes.object,
-
-    // Maximum number of search items to display
-    // or a falsey value for no maximum
-    maxSearchItems: PropTypes.number,
-
-    // List user's recent searches
-    hasRecentSearches: PropTypes.bool,
-
-    // Has search builder UI
-    hasSearchBuilder: PropTypes.bool,
-
-    // Can create a saved search
-    canCreateSavedSearch: PropTypes.bool,
-
-    // Wrap the input with a form
-    // Useful if search bar is used within a parent form
-    useFormWrapper: PropTypes.bool,
-
-    /**
-     * If this is defined, attempt to save search term scoped to the user and the current org
-     */
-    savedSearchType: PropTypes.number,
-
-    /**
-     * Has pinned search feature
-     */
-    hasPinnedSearch: PropTypes.bool,
-
-    /**
-     * The pinned search object
-     */
-    pinnedSearch: SentryTypes.SavedSearch,
-
-    // Callback that returns a promise of an array of strings
-    onGetTagValues: PropTypes.func,
-
-    // Callback that returns a promise of an array of strings
-    onGetRecentSearches: PropTypes.func,
-
-    onSearch: PropTypes.func,
-
-    // Search input change event
-    onChange: PropTypes.func,
-
-    // Search input blur event
-    onBlur: PropTypes.func,
-
-    onSavedRecentSearch: PropTypes.func,
-
-    onSidebarToggle: PropTypes.func,
-
-    // If true, excludes the environment tag from the autocompletion list
-    // This is because we don't want to treat environment as a tag in some places
-    // such as the stream view where it is a top level concept
-    excludeEnvironment: PropTypes.bool,
-  };
 
   static contextTypes = {
     router: PropTypes.object,
@@ -215,26 +272,19 @@ class SmartSearchBar extends React.Component {
     useFormWrapper: true,
   };
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      query: props.query !== null ? addSpace(props.query) : props.defaultQuery,
-      previousQuery: undefined,
-      noValueQuery: undefined,
-
-      searchTerm: '',
-      searchItems: [],
-      activeSearchItem: -1,
-
-      tags: {},
-
-      dropdownVisible: false,
-      loading: false,
-    };
-
-    this.searchInput = React.createRef();
-  }
+  state: State = {
+    query:
+      this.props.query !== null
+        ? addSpace(this.props.query)
+        : this.props.defaultQuery ?? '',
+    searchTerm: '',
+    searchGroups: [],
+    flatSearchItems: [],
+    activeSearchItem: -1,
+    tags: {},
+    dropdownVisible: false,
+    loading: false,
+  };
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     // query was updated by another source (e.g. sidebar filters)
@@ -248,9 +298,18 @@ class SmartSearchBar extends React.Component {
   componentWillUnmount() {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
-      this.blurTimeout = null;
+      this.blurTimeout = undefined;
     }
   }
+
+  /**
+   * Tracks the dropdown blur
+   */
+  blurTimeout?: number;
+  /**
+   * Ref to the search element itself
+   */
+  searchInput = React.createRef<HTMLInputElement>();
 
   blur = () => {
     if (!this.searchInput.current) {
@@ -259,7 +318,7 @@ class SmartSearchBar extends React.Component {
     this.searchInput.current.blur();
   };
 
-  onSubmit = evt => {
+  onSubmit = (evt: React.FormEvent) => {
     const {organization, savedSearchType} = this.props;
     evt.preventDefault();
 
@@ -285,55 +344,57 @@ class SmartSearchBar extends React.Component {
     } = this.props;
     this.blur();
     const query = removeSpace(this.state.query);
-    onSearch(query);
+    callIfFunction(onSearch, query);
 
     // Only save recent search query if we have a savedSearchType (also 0 is a valid value)
     // Do not save empty string queries (i.e. if they clear search)
-    if (typeof savedSearchType !== 'undefined' && query) {
-      try {
-        await saveRecentSearch(api, organization.slug, savedSearchType, query);
+    if (typeof savedSearchType === 'undefined' || !query) {
+      return;
+    }
 
-        if (onSavedRecentSearch) {
-          onSavedRecentSearch(query);
-        }
-      } catch (err) {
-        // Silently capture errors if it fails to save
-        Sentry.captureException(err);
+    try {
+      await saveRecentSearch(api, organization.slug, savedSearchType, query);
+
+      if (onSavedRecentSearch) {
+        onSavedRecentSearch(query);
       }
+    } catch (err) {
+      // Silently capture errors if it fails to save
+      Sentry.captureException(err);
     }
   };
 
-  clearSearch = () => {
-    this.setState({query: ''}, () => this.props.onSearch(this.state.query));
-  };
+  clearSearch = () =>
+    this.setState({query: ''}, () =>
+      callIfFunction(this.props.onSearch, this.state.query)
+    );
 
-  onQueryFocus = () => {
-    this.setState({
-      dropdownVisible: true,
-    });
-  };
+  onQueryFocus = () => this.setState({dropdownVisible: true});
 
-  onQueryBlur = e => {
-    // wait 200ms before closing dropdown in case blur was a result of
-    // clicking a menu option
+  onQueryBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // wait before closing dropdown in case blur was a result of clicking a
+    // menu option
     const value = e.target.value;
-    this.blurTimeout = setTimeout(() => {
-      this.blurTimeout = null;
+    const blurHandler = () => {
+      this.blurTimeout = undefined;
       this.setState({dropdownVisible: false});
       callIfFunction(this.props.onBlur, value);
-    }, DROPDOWN_BLUR_DURATION);
+    };
+
+    this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
   };
 
-  onQueryChange = evt => {
-    this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
+  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({query: evt.target.value}, this.updateAutoCompleteItems);
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
-  onInputClick = () => {
-    this.updateAutoCompleteItems();
-  };
+  onInputClick = () => this.updateAutoCompleteItems();
 
-  onKeyDown = evt => {
+  /**
+   * Handle keyboard navigation
+   */
+  onKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
     const {key} = evt;
 
     // If tab or enter is pressed while the search bar is in a loading state then
@@ -342,7 +403,7 @@ class SmartSearchBar extends React.Component {
       evt.preventDefault();
     }
 
-    if (!this.state.searchItems.length) {
+    if (!this.state.searchGroups.length) {
       return;
     }
 
@@ -352,19 +413,20 @@ class SmartSearchBar extends React.Component {
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       evt.preventDefault();
 
-      const {searchItems, flatSearchItems, activeSearchItem} = this.state;
+      const {flatSearchItems, activeSearchItem} = this.state;
+      const searchGroups = [...this.state.searchGroups];
+
       const [groupIndex, childrenIndex] = isSelectingDropdownItems
-        ? findSearchItemByIndex(searchItems, activeSearchItem)
+        ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
         : [];
 
       // Remove the previous 'active' property
       if (typeof groupIndex !== 'undefined') {
         if (
-          searchItems[groupIndex] &&
-          searchItems[groupIndex].children &&
-          searchItems[groupIndex].children[childrenIndex]
+          childrenIndex !== undefined &&
+          searchGroups[groupIndex]?.children?.[childrenIndex]
         ) {
-          delete searchItems[groupIndex].children[childrenIndex].active;
+          delete searchGroups[groupIndex].children[childrenIndex].active;
         }
       }
 
@@ -379,24 +441,25 @@ class SmartSearchBar extends React.Component {
           ? (currIndex + 1) % totalItems
           : 0;
 
-      const [nextGroupIndex, nextChildrenIndex] = findSearchItemByIndex(
-        searchItems,
+      const [nextGroupIndex, nextChildrenIndex] = filterSearchGroupsByIndex(
+        searchGroups,
         nextActiveSearchItem
       );
 
       // Make sure search items exist (e.g. both groups could be empty) and
       // attach the 'active' property to the item
-      if (searchItems[nextGroupIndex] && searchItems[nextGroupIndex].children) {
-        searchItems[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchItems[nextGroupIndex].children[nextChildrenIndex],
+      if (
+        nextGroupIndex !== undefined &&
+        nextChildrenIndex !== undefined &&
+        searchGroups[nextGroupIndex]?.children
+      ) {
+        searchGroups[nextGroupIndex].children[nextChildrenIndex] = {
+          ...searchGroups[nextGroupIndex].children[nextChildrenIndex],
           active: true,
         };
       }
 
-      this.setState({
-        activeSearchItem: nextActiveSearchItem,
-        searchItems: searchItems.slice(0),
-      });
+      this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
 
     if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
@@ -406,12 +469,15 @@ class SmartSearchBar extends React.Component {
         return;
       }
 
-      const {activeSearchItem, searchItems} = this.state;
-      const [groupIndex, childrenIndex] = findSearchItemByIndex(
-        searchItems,
+      const {activeSearchItem, searchGroups} = this.state;
+      const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
+        searchGroups,
         activeSearchItem
       );
-      const item = searchItems[groupIndex].children[childrenIndex];
+      const item =
+        groupIndex !== undefined &&
+        childrenIndex !== undefined &&
+        searchGroups[groupIndex].children[childrenIndex];
 
       if (item && !this.isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
@@ -426,17 +492,17 @@ class SmartSearchBar extends React.Component {
       }
 
       if (!useFormWrapper && !isSelectingDropdownItems) {
-        // If enter is pressed, and we are not wrapping input in a `<form>`, and
-        // we are not selecting an item from the dropdown, then we should consider
-        // the user as finished selecting and perform a "search" since there is no
-        // `<form>` to catch and call `this.onSubmit`
+        // If enter is pressed, and we are not wrapping input in a `<form>`,
+        // and we are not selecting an item from the dropdown, then we should
+        // consider the user as finished selecting and perform a "search" since
+        // there is no `<form>` to catch and call `this.onSubmit`
         this.doSearch();
       }
       return;
     }
   };
 
-  onKeyUp = evt => {
+  onKeyUp = (evt: React.KeyboardEvent<HTMLInputElement>) => {
     // Other keys are managed at onKeyDown function
     if (evt.key !== 'Escape') {
       return;
@@ -445,40 +511,40 @@ class SmartSearchBar extends React.Component {
     evt.preventDefault();
     const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
-    if (isSelectingDropdownItems) {
-      const {searchItems, activeSearchItem} = this.state;
-      const [groupIndex, childrenIndex] = isSelectingDropdownItems
-        ? findSearchItemByIndex(searchItems, activeSearchItem)
-        : [];
-
-      if (groupIndex !== undefined && childrenIndex !== undefined) {
-        delete searchItems[groupIndex].children[childrenIndex].active;
-      }
-
-      this.setState({
-        activeSearchItem: -1,
-        searchItems: this.state.searchItems.slice(0),
-      });
-    } else {
-      // Blur handler should additionally hide dropdown
+    if (!isSelectingDropdownItems) {
       this.blur();
+      return;
     }
+
+    const {searchGroups, activeSearchItem} = this.state;
+    const [groupIndex, childrenIndex] = isSelectingDropdownItems
+      ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
+      : [];
+
+    if (groupIndex !== undefined && childrenIndex !== undefined) {
+      delete searchGroups[groupIndex].children[childrenIndex].active;
+    }
+
+    this.setState({
+      activeSearchItem: -1,
+      searchGroups: [...this.state.searchGroups],
+    });
   };
 
   getCursorPosition = () => {
     if (!this.searchInput.current) {
       return -1;
     }
-    return this.searchInput.current.selectionStart;
+    return this.searchInput.current.selectionStart ?? -1;
   };
 
   /**
    * Returns array of possible key values that substring match `query`
-   *
-   * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
-  getTagKeys = query => {
-    const {supportedTags, prepareQuery} = this.props;
+  getTagKeys = (query: string): SearchItem[] => {
+    const {prepareQuery} = this.props;
+
+    const supportedTags = this.props.supportedTags ?? {};
 
     // Return all if query is empty
     let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
@@ -503,46 +569,47 @@ class SmartSearchBar extends React.Component {
    * with data when ready
    */
   getTagValues = debounce(
-    async (tag, query) => {
+    async (tag: Tag, query: string) => {
       // Strip double quotes if there are any
       query = query.replace(/"/g, '').trim();
 
-      this.setState({
-        loading: true,
-      });
+      if (!this.props.onGetTagValues) {
+        return [];
+      }
+
+      if (
+        this.state.noValueQuery !== undefined &&
+        query.startsWith(this.state.noValueQuery)
+      ) {
+        return [];
+      }
+
+      const {location} = this.context.router;
+      const endpointParams = getParams(location.query);
+
+      this.setState({loading: true});
+      let values: string[] = [];
 
       try {
-        const {location} = this.context.router;
-        const endpointParams = getParams(location.query);
-
-        if (
-          this.state.noValueQuery === undefined ||
-          !query.startsWith(this.state.noValueQuery)
-        ) {
-          const values = await this.props.onGetTagValues(tag, query, endpointParams);
-          this.setState({loading: false});
-          const noValueQuery =
-            values.length === 0 && query.length > 0 ? query : undefined;
-          this.setState({noValueQuery});
-          return values.map(value => {
-            // Wrap in quotes if there is a space
-            const escapedValue =
-              value.indexOf(' ') > -1 ? `"${value.replace('"', '\\"')}"` : value;
-            return {
-              value: escapedValue,
-              desc: escapedValue,
-            };
-          });
-        } else {
-          this.setState({loading: false});
-          return [];
-        }
+        values = await this.props.onGetTagValues(tag, query, endpointParams);
+        this.setState({loading: false});
       } catch (err) {
         this.setState({loading: false});
         Sentry.captureException(err);
-
         return [];
       }
+
+      const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
+      this.setState({noValueQuery});
+
+      return values.map(value => {
+        // Wrap in quotes if there is a space
+        const escapedValue = value.includes(' ')
+          ? `"${value.replace('"', '\\"')}"`
+          : value;
+
+        return {value: escapedValue, desc: escapedValue};
+      });
     },
     DEFAULT_DEBOUNCE_DURATION,
     {leading: true}
@@ -552,14 +619,13 @@ class SmartSearchBar extends React.Component {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = function(tag, query) {
-    return tag.values
+  getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
+    tag.values
       .filter(value => value.indexOf(query) > -1)
       .map(value => ({
         value,
         desc: value,
       }));
-  };
 
   /**
    * Get recent searches
@@ -567,6 +633,7 @@ class SmartSearchBar extends React.Component {
   getRecentSearches = debounce(
     async () => {
       const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
+
       // `savedSearchType` can be 0
       if (!defined(savedSearchType) || !hasRecentSearches) {
         return [];
@@ -579,11 +646,11 @@ class SmartSearchBar extends React.Component {
     {leading: true}
   );
 
-  fetchRecentSearches = async fullQuery => {
+  fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
 
     try {
-      const recentSearches = await fetchRecentSearches(
+      const recentSearches: any[] = await fetchRecentSearches(
         api,
         organization.slug,
         savedSearchType,
@@ -605,17 +672,17 @@ class SmartSearchBar extends React.Component {
   };
 
   getReleases = debounce(
-    async (tag, query) => {
+    async (tag: Tag, query: string) => {
       const releasePromise = this.fetchReleases(query);
 
       const tags = this.getPredefinedTagValues(tag, query);
-      const tagValues = tags.map(v => ({
+      const tagValues = tags.map<SearchItem>(v => ({
         ...v,
         type: 'first-release',
       }));
 
       const releases = await releasePromise;
-      const releaseValues = releases.map(r => ({
+      const releaseValues = releases.map<SearchItem>((r: any) => ({
         value: r.shortVersion,
         desc: r.shortVersion,
         type: 'first-release',
@@ -631,7 +698,7 @@ class SmartSearchBar extends React.Component {
    * Fetches latest releases from a organization/project. Returns an empty array
    * if an error is encountered.
    */
-  fetchReleases = async query => {
+  fetchReleases = async (query: string): Promise<any[]> => {
     const {api, organization} = this.props;
     const {location} = this.context.router;
 
@@ -655,20 +722,21 @@ class SmartSearchBar extends React.Component {
   updateAutoCompleteItems = async () => {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
-      this.blurTimeout = null;
+      this.blurTimeout = undefined;
     }
 
     const cursor = this.getCursorPosition();
     let query = this.state.query;
+
     // Don't continue if the query hasn't changed
     if (query === this.state.previousQuery) {
       return;
-    } else {
-      this.setState({previousQuery: query});
     }
 
+    this.setState({previousQuery: query});
+
     const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    const terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
+    const terms = SmartSearchBar.getQueryTerms(query, lastTermIndex);
 
     if (
       !terms || // no terms
@@ -684,9 +752,7 @@ class SmartSearchBar extends React.Component {
         // Update searchTerm, otherwise <SearchDropdown> will have wrong state
         // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
         // does not get updated)
-        this.setState({
-          searchTerm: query,
-        });
+        this.setState({searchTerm: query});
 
         const tagKeys = this.getTagKeys('');
         const recentSearches = await this.getRecentSearches();
@@ -694,20 +760,18 @@ class SmartSearchBar extends React.Component {
         return;
       }
 
-      // cursor on whitespace
-      // show default "help" search terms
-      this.setState({
-        searchTerm: '',
-      });
+      // cursor on whitespace show default "help" search terms
+      this.setState({searchTerm: ''});
 
       this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
       return;
     }
 
-    const last = terms.pop();
-    let autoCompleteItems;
-    let matchValue;
-    let tagName;
+    const last = terms.pop() ?? '';
+
+    let autoCompleteItems: SearchItem[];
+    let matchValue: string;
+    let tagName: string;
     const index = last.indexOf(':');
 
     if (index === -1) {
@@ -727,11 +791,13 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
-    const {supportedTags, prepareQuery} = this.props;
+    const {prepareQuery, excludeEnvironment} = this.props;
+    const supportedTags = this.props.supportedTags ?? {};
 
     // TODO(billy): Better parsing for these examples
-    // sentry:release:
-    // url:"http://with/colon"
+    //
+    // > sentry:release:
+    // > url:"http://with/colon"
     tagName = last.slice(0, index);
 
     // e.g. given "!gpu" we want "gpu"
@@ -742,15 +808,15 @@ class SmartSearchBar extends React.Component {
 
     // filter existing items immediately, until API can return
     // with actual tag value results
-    const filteredSearchItems = !preparedQuery
-      ? this.state.searchItems
-      : this.state.searchItems.filter(
+    const filteredSearchGroups = !preparedQuery
+      ? this.state.searchGroups
+      : this.state.searchGroups.filter(
           item => item.value && item.value.indexOf(preparedQuery) !== -1
         );
 
     this.setState({
       searchTerm: query,
-      searchItems: filteredSearchItems,
+      searchGroups: filteredSearchGroups,
     });
 
     const tag = supportedTags[tagName];
@@ -760,8 +826,9 @@ class SmartSearchBar extends React.Component {
       return;
     }
 
-    // Ignore the environment tag if the feature is active and excludeEnvironment = true
-    if (this.props.excludeEnvironment && tagName === 'environment') {
+    // Ignore the environment tag if the feature is active and
+    // excludeEnvironment = true
+    if (excludeEnvironment && tagName === 'environment') {
       return;
     }
 
@@ -781,23 +848,28 @@ class SmartSearchBar extends React.Component {
     return;
   };
 
-  isDefaultDropdownItem = item => item && item.type === 'default';
+  isDefaultDropdownItem = (item: SearchItem) => item && item.type === 'default';
 
   /**
    * Updates autocomplete dropdown items and autocomplete index state
    *
-   * @param {Object[]} searchItems List of search item objects with keys: title, desc, value
-   * @param {Object[]} recentSearchItems List of recent search items, same format as searchItem
-   * @param {String} tagName The current tag name in scope
-   * @param {String} type Defines the type/state of the dropdown menu items
+   * @param searchItems List of search item objects with keys: title, desc, value
+   * @param recentSearchItems List of recent search items, same format as searchItem
+   * @param tagName The current tag name in scope
+   * @param type Defines the type/state of the dropdown menu items
    */
-  updateAutoCompleteState = (searchItems, recentSearchItems, tagName, type) => {
+  updateAutoCompleteState = (
+    searchItems: SearchItem[],
+    recentSearchItems: SearchItem[],
+    tagName: string,
+    type: ItemType
+  ) => {
     const {hasRecentSearches, maxSearchItems} = this.props;
 
     this.setState(
       createSearchGroups(
         searchItems,
-        hasRecentSearches ? recentSearchItems : null,
+        hasRecentSearches ? recentSearchItems : undefined,
         tagName,
         type,
         maxSearchItems
@@ -805,7 +877,7 @@ class SmartSearchBar extends React.Component {
     );
   };
 
-  onTogglePinnedSearch = evt => {
+  onTogglePinnedSearch = async (evt: React.MouseEvent) => {
     const {
       api,
       organization,
@@ -826,6 +898,15 @@ class SmartSearchBar extends React.Component {
     // eslint-disable-next-line no-unused-vars
     const {cursor: _cursor, page: _page, ...currentQuery} = router.location.query;
 
+    trackAnalyticsEvent({
+      eventKey: 'search.pin',
+      eventName: 'Search: Pin',
+      organization_id: organization.id,
+      action: !!pinnedSearch ? 'unpin' : 'pin',
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      query: pinnedSearch?.query ?? this.state.query,
+    });
+
     if (!!pinnedSearch) {
       unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
         browserHistory.push({
@@ -837,34 +918,28 @@ class SmartSearchBar extends React.Component {
           },
         });
       });
-    } else {
-      pinSearch(
-        api,
-        organization.slug,
-        savedSearchType,
-        removeSpace(this.state.query)
-      ).then(resp => {
-        if (resp && resp.id) {
-          browserHistory.push({
-            ...router.location,
-            pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-            query: currentQuery,
-          });
-        }
-      });
+      return;
     }
 
-    trackAnalyticsEvent({
-      eventKey: 'search.pin',
-      eventName: 'Search: Pin',
-      organization_id: organization.id,
-      action: !!pinnedSearch ? 'unpin' : 'pin',
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
-      query: pinnedSearch?.query ?? this.state.query,
+    const resp = await pinSearch(
+      api,
+      organization.slug,
+      savedSearchType,
+      removeSpace(this.state.query)
+    );
+
+    if (!resp || !resp.id) {
+      return;
+    }
+
+    browserHistory.push({
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
+      query: currentQuery,
     });
   };
 
-  onAutoComplete = (replaceText, item) => {
+  onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === 'recent-search') {
       trackAnalyticsEvent({
         eventKey: 'search.searched',
@@ -887,17 +962,21 @@ class SmartSearchBar extends React.Component {
     const query = this.state.query;
 
     const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    const terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
-    let newQuery;
+    const terms = SmartSearchBar.getQueryTerms(query, lastTermIndex);
+    let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
     const lastChar = replaceText.charAt(replaceText.length - 1);
     replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
 
+    const isNewTerm = query.charAt(query.length - 1) === ' ';
+
     if (!terms) {
       newQuery = replaceText;
+    } else if (isNewTerm) {
+      newQuery = `${query}${replaceText}`;
     } else {
-      const last = terms.pop();
+      const last = terms.pop() ?? '';
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
@@ -916,20 +995,15 @@ class SmartSearchBar extends React.Component {
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
-    this.setState(
-      {
-        query: newQuery,
-      },
-      () => {
-        // setting a new input value will lose focus; restore it
-        if (this.searchInput.current) {
-          this.searchInput.current.focus();
-        }
-
-        // then update the autocomplete box with new contextTypes
-        this.updateAutoCompleteItems();
+    this.setState({query: newQuery}, () => {
+      // setting a new input value will lose focus; restore it
+      if (this.searchInput.current) {
+        this.searchInput.current.focus();
       }
-    );
+
+      // then update the autocomplete box with new contextTypes
+      this.updateAutoCompleteItems();
+    });
   };
 
   render() {
@@ -969,11 +1043,11 @@ class SmartSearchBar extends React.Component {
           onClick={this.onInputClick}
           disabled={disabled}
         />
-        {(this.state.loading || this.state.searchItems.length > 0) && (
+        {(this.state.loading || this.state.searchGroups.length > 0) && (
           <DropdownWrapper visible={this.state.dropdownVisible}>
             <SearchDropdown
               className={dropdownClassName}
-              items={this.state.searchItems}
+              items={this.state.searchGroups}
               onClick={this.onAutoComplete}
               loading={this.state.loading}
               searchSubstring={this.state.searchTerm}
@@ -984,13 +1058,9 @@ class SmartSearchBar extends React.Component {
     );
 
     return (
-      <Container
-        className={className}
-        isDisabled={disabled}
-        isOpen={this.state.dropdownVisible}
-      >
+      <Container className={className} isOpen={this.state.dropdownVisible}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <SearchSvg src="icon-search" />
+          <IconSearch />
         </SearchLabel>
 
         {useFormWrapper ? (
@@ -1011,7 +1081,7 @@ class SmartSearchBar extends React.Component {
               }}
               onClick={this.clearSearch}
             >
-              <InlineSvg src="icon-close" size="11" />
+              <IconClose size="xs" />
             </InputButton>
           )}
           {hasPinnedSearch && (
@@ -1125,54 +1195,32 @@ class SmartSearchBar extends React.Component {
   }
 }
 
-const SmartSearchBarContainer = withApi(
-  withOrganization(
-    createReactClass({
-      displayName: 'SmartSearchBarContainer',
+const SmartSearchBarContainer = createReactClass<Props>({
+  displayName: 'SmartSearchBarContainer',
 
-      mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
+  mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange') as any],
 
-      getInitialState() {
-        return {
-          members: MemberListStore.getAll(),
-        };
-      },
+  getInitialState() {
+    return {
+      members: MemberListStore.getAll(),
+    };
+  },
 
-      onMemberListStoreChange(members) {
-        this.setState(
-          {
-            members,
-          },
-          this.updateAutoCompleteItems
-        );
-      },
+  onMemberListStoreChange(members: any) {
+    this.setState({members}, this.updateAutoCompleteItems);
+  },
 
-      render() {
-        // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
-        return <SmartSearchBar {...this.props} members={this.state.members} />;
-      },
-    })
-  )
-);
+  render() {
+    // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
+    return <SmartSearchBar {...this.props} members={this.state.members} />;
+  },
+});
 
-export function addSpace(query = '') {
-  if (query.length !== 0 && query[query.length - 1] !== ' ') {
-    return query + ' ';
-  } else {
-    return query;
-  }
-}
+export default withApi(withOrganization(SmartSearchBarContainer));
+export {SmartSearchBar, SearchType};
 
-export function removeSpace(query = '') {
-  if (query[query.length - 1] === ' ') {
-    return query.slice(0, query.length - 1);
-  } else {
-    return query;
-  }
-}
-
-const Container = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+const Container = styled('div')<{isOpen: boolean}>`
+  border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
@@ -1191,7 +1239,7 @@ const Container = styled('div')`
   }
 `;
 
-const DropdownWrapper = styled('div')`
+const DropdownWrapper = styled('div')<{visible: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
@@ -1254,7 +1302,10 @@ const MenuIcon = styled(InlineSvg)`
 `;
 
 const EllipsisButton = styled(InputButton)`
-  /* this is necessary because DropdownLink wraps the button in an unstyled span */
+  /*
+   * this is necessary because DropdownLink wraps the button in an unstyled
+   * span
+   */
   margin: 6px 0 0 0;
 `;
 
@@ -1271,119 +1322,3 @@ const SearchLabel = styled('label')`
   padding-left: ${space(1)};
   color: ${p => p.theme.gray2};
 `;
-
-const SearchSvg = styled(InlineSvg)`
-  margin-top: ${space(0.25)};
-  margin-left: ${space(0.25)};
-`;
-
-function getTitleForType(type) {
-  if (type === 'tag-value') {
-    return t('Tag Values');
-  }
-
-  if (type === 'recent-search') {
-    return t('Recent Searches');
-  }
-
-  if (type === 'default') {
-    return t('Common Search Terms');
-  }
-
-  return t('Tags');
-}
-
-function getIconForTypeAndTag(type, tagName) {
-  if (type === 'recent-search') {
-    return 'icon-clock';
-  }
-
-  if (type === 'default') {
-    return 'icon-star-outline';
-  }
-
-  // Change based on tagName and default to "icon-tag"
-  switch (tagName) {
-    case 'is':
-      return 'icon-toggle';
-    case 'assigned':
-    case 'bookmarks':
-      return 'icon-user';
-    case 'firstSeen':
-    case 'lastSeen':
-    case 'event.timestamp':
-      return 'icon-av_timer';
-    default:
-      return 'icon-tag';
-  }
-}
-
-function createSearchGroups(
-  searchItems,
-  recentSearchItems,
-  tagName,
-  type,
-  maxSearchItems
-) {
-  const activeSearchItem = 0;
-
-  if (maxSearchItems && maxSearchItems > 0) {
-    searchItems = searchItems.slice(0, maxSearchItems);
-  }
-
-  const searchGroup = {
-    title: getTitleForType(type),
-    type: type === 'invalid-tag' ? type : 'header',
-    icon: getIconForTypeAndTag(type, tagName),
-    children: [...searchItems],
-  };
-
-  const recentSearchGroup = recentSearchItems && {
-    title: t('Recent Searches'),
-    type: 'header',
-    icon: 'icon-clock',
-    children: [...recentSearchItems],
-  };
-
-  if (searchGroup.children && !!searchGroup.children.length) {
-    searchGroup.children[activeSearchItem] = {
-      ...searchGroup.children[activeSearchItem],
-    };
-  }
-
-  return {
-    searchItems: [searchGroup, ...(recentSearchItems ? [recentSearchGroup] : [])],
-    flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
-    activeSearchItem: -1,
-  };
-}
-
-/**
- * Items is a list of dropdown groups that have a `children` field.
- * Only the `children` are selectable, so we need to find which child is selected
- * given an index that is in range of the sum of all `children` lengths
- *
- * @return {Array} Returns a tuple of [groupIndex, childrenIndex]
- */
-function findSearchItemByIndex(items, index, _total) {
-  let _index = index;
-  let foundSearchItem = [undefined, undefined];
-
-  items.find(({children}, i) => {
-    if (!children || !children.length) {
-      return false;
-    }
-    if (_index < children.length) {
-      foundSearchItem = [i, _index];
-      return true;
-    }
-
-    _index -= children.length;
-    return false;
-  });
-
-  return foundSearchItem;
-}
-
-export default SmartSearchBarContainer;
-export {SmartSearchBar};

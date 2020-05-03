@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sentry_sdk
 import six
 
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features, eventstore
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.api.bases import OrganizationEventsV2EndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
@@ -18,24 +19,27 @@ from sentry.utils.dates import get_rollup_from_request
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
-            return self.get_v1_results(request, organization)
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+            span.set_data("organization", organization)
+            if not features.has("organizations:discover-basic", organization, actor=request.user):
+                span.set_data("using_v1_results", True)
+                return self.get_v1_results(request, organization)
 
-        top_events = "topEvents" in request.GET
-        limit = None
+            top_events = "topEvents" in request.GET
+            limit = None
 
-        if top_events:
-            try:
-                limit = int(request.GET.get("topEvents", 0))
-            except ValueError:
-                return Response({"detail": "topEvents must be an integer"}, status=400)
-            if limit > MAX_TOP_EVENTS:
-                return Response(
-                    {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
-                    status=400,
-                )
-            elif limit <= 0:
-                return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+            if top_events:
+                try:
+                    limit = int(request.GET.get("topEvents", 0))
+                except ValueError:
+                    return Response({"detail": "topEvents must be an integer"}, status=400)
+                if limit > MAX_TOP_EVENTS:
+                    return Response(
+                        {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
+                        status=400,
+                    )
+                elif limit <= 0:
+                    return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
 
         def get_event_stats(query_columns, query, params, rollup, reference_event):
             if top_events:
@@ -67,7 +71,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get_v1_results(self, request, organization):
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except (OrganizationEventsError, InvalidSearchQuery) as exc:
+        except InvalidSearchQuery as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response({"data": []})

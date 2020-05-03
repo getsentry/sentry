@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
+import sentry_sdk
+
 from sentry import options, roles, tsdb, projectoptions
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
@@ -163,20 +165,26 @@ class ProjectSerializer(Serializer):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
-        # Retrieve all registered organization features
-        project_features = features.all(feature_type=ProjectFeature).keys()
-        feature_list = set()
+        with sentry_sdk.start_span(
+            op="project_feature_list", description=getattr(obj, "name")
+        ) as span:
+            # Retrieve all registered organization features
+            project_features = features.all(feature_type=ProjectFeature).keys()
+            feature_list = set()
 
-        for feature_name in project_features:
-            if not feature_name.startswith("projects:"):
-                continue
-            if features.has(feature_name, obj, actor=user):
-                # Remove the project scope prefix
-                feature_list.add(feature_name[len("projects:") :])
+            for feature_name in project_features:
+                if not feature_name.startswith("projects:"):
+                    continue
+                if features.has(feature_name, obj, actor=user):
+                    # Remove the project scope prefix
+                    feature_list.add(feature_name[len("projects:") :])
 
-        if obj.flags.has_releases:
-            feature_list.add("releases")
-        return feature_list
+            if obj.flags.has_releases:
+                feature_list.add("releases")
+
+            span.set_data("Feature Count", len(feature_list))
+
+            return feature_list
 
     def serialize(self, obj, attrs, user):
         feature_list = self.get_feature_list(obj, user)

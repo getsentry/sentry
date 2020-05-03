@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 from rest_framework.exceptions import PermissionDenied, ParseError
 from django.core.cache import cache
 
@@ -25,10 +24,6 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.sdk import bind_organization_context
 from sentry.utils.compat import map
-
-
-class OrganizationEventsError(Exception):
-    pass
 
 
 class NoProjects(Exception):
@@ -271,12 +266,12 @@ class OrganizationEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=u"Invalid date range: {}".format(e))
 
         try:
             projects = self.get_projects(request, organization)
         except ValueError:
-            raise OrganizationEventsError("Invalid project ids")
+            raise ParseError(detail="Invalid project ids")
 
         if not projects:
             raise NoProjects
@@ -294,7 +289,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with sentry_sdk.start_span(
+            op="check_object_permissions_on_organization", description=organization_slug
+        ):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)

@@ -82,6 +82,8 @@ class EventsAreaChart extends React.Component {
       data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
+    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
+
     return (
       <AreaChart
         {...props}
@@ -92,6 +94,7 @@ class EventsAreaChart extends React.Component {
           showSymbol: false,
         }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
+        colors={colors}
         grid={{
           left: '24px',
           right: '24px',
