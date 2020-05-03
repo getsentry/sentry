@@ -120,13 +120,10 @@ def up(services, project, exclude, fast):
     for service in exclude:
         if service not in containers:
             click.secho(
-                "Service `{}` is not known or not enabled.\n".format(service),
-                err=True,
-                fg="red",
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red",
             )
             click.secho(
-                "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
-                err=True,
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True,
             )
             raise click.Abort()
 
