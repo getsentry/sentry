@@ -5,7 +5,6 @@ import signal
 import os
 import click
 from six import text_type
-from itertools import chain
 
 from sentry.utils.compat import map
 
@@ -99,7 +98,7 @@ def attach(project, fast, service):
 @devservices.command()
 @click.argument("services", nargs=-1)
 @click.option("--project", default="sentry")
-@click.option("--exclude", multiple=True, help="Services to ignore and not run.")
+@click.option("--exclude", multiple=True, help="Service to ignore and not run. Repeatable option.")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 def up(services, project, exclude, fast):
     """
@@ -107,6 +106,8 @@ def up(services, project, exclude, fast):
 
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring up.
+
+    You may also exclude services, for example: --exclude redis --exclude postgres.
     """
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
@@ -115,6 +116,16 @@ def up(services, project, exclude, fast):
     configure()
 
     containers = _prepare_containers(project, silent=True)
+
+    for service in exclude:
+        if service not in containers:
+            click.secho(
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red",
+            )
+            click.secho(
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True,
+            )
+            raise click.Abort()
 
     if services:
         selected_containers = {}
@@ -143,7 +154,6 @@ def up(services, project, exclude, fast):
     client = get_docker_client()
     get_or_create(client, "network", project)
 
-    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
     for name, container_options in containers.items():
         if name in exclude:
             continue
