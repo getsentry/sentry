@@ -41,7 +41,11 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.eventView !== this.props.eventView) {
+    if (
+      prevProps.eventView &&
+      this.props.eventView &&
+      prevProps.eventView.id !== this.props.eventView.id
+    ) {
       this.fetchData();
     }
   }
