@@ -244,8 +244,8 @@ class GroupDetails extends React.Component<Props, State> {
     const isLoading = loading || (!group && !isError);
 
     return (
-      <React.Fragment>
-        <DocumentTitle title={this.getTitle()}>
+      <DocumentTitle title={this.getTitle()}>
+        <React.Fragment>
           {!isLoading && !isError ? (
             <GlobalSelectionHeader
               organization={organization}
@@ -279,8 +279,8 @@ class GroupDetails extends React.Component<Props, State> {
               </Projects>
             )}
           </PageContent>
-        </DocumentTitle>
-      </React.Fragment>
+        </React.Fragment>
+      </DocumentTitle>
     );
   }
 }
