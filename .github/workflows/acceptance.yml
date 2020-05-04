@@ -48,11 +48,7 @@ jobs:
         SENTRY_KAFKA_HOSTS: kafka:9093
         SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
         SENTRY_REDIS_HOST: redis
-        # The hostname used to communicate with the PostgreSQL service container
-        # POSTGRES_HOST: postgres
-        # # The default PostgreSQL port
-        # POSTGRES_PORT: 5432
-        # POSTGRES_ENV_POSTGRES_PASSWORD: postgres
+        # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
         # Percy config
@@ -148,6 +144,8 @@ jobs:
             node-version: ${{ steps.nvmrc.outputs.version }}
 
         # Use `.python-version` to avoid duplication
+        # XXX: can't actually read from .python-version because GitHub Actions
+        # does not support our version (2.7.16)
         - name: Get python version from `.python-version`
           id: python-version
           run: echo "::set-output name=version::2.7.17"
