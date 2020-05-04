@@ -1,29 +1,21 @@
 import React from 'react';
 
-import {Frame, PlatformType} from 'app/components/events/interfaces/frame/types';
+import {PlatformType} from 'app/components/events/interfaces/frame/types';
 import {defined} from 'app/utils';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SentryTypes from 'app/sentryTypes';
-
-type StackViewType = 'app' | 'full' | 'raw';
-
-type Stacktrace = {
-  frames: Array<Frame>;
-  hasSystemFrames: boolean;
-  registers: {[key: string]: string} | null;
-  framesOmitted: any;
-};
+import {Stacktrace, StackViewType} from 'app/types/stacktrace';
 
 type Props = {
   stackView: StackViewType;
   data: Stacktrace | null;
   event: SentryTypes.Event;
   platform: PlatformType;
+  stacktrace: Stacktrace;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;
-  stacktrace: Stacktrace;
 };
 
 const ExceptionStacktraceContent = ({
