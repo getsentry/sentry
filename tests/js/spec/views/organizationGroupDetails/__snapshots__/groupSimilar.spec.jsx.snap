@@ -1272,7 +1272,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             >
                               <GroupExtra>
                                 <div
-                                  className="css-1s7tq6o-GroupExtra eec9orn0"
+                                  className="css-29ed03-GroupExtra eec9orn0"
                                 >
                                   <GroupShortId
                                     avatar={
@@ -1565,27 +1565,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         <div
                                           className="css-1lz86t0-Container e1fmxtba0"
                                         >
-                                          <EmotionCssPropInternal
-                                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Times"
-                                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-                                            css={
-                                              Object {
-                                                "map": undefined,
-                                                "name": "1ggv3lw-Times",
-                                                "next": undefined,
-                                                "styles": "
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-;label:Times;",
-                                                "toString": [Function],
-                                              }
-                                            }
-                                          >
+                                          <FlexWrapper>
                                             <div
-                                              className="css-1ggv3lw-Times"
+                                              className="css-13zgepw-FlexWrapper e1fmxtba1"
                                             >
                                               <TimeSince
                                                 className="hidden-xs hidden-sm"
@@ -1601,7 +1583,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 </time>
                                               </TimeSince>
                                             </div>
-                                          </EmotionCssPropInternal>
+                                          </FlexWrapper>
                                         </div>
                                       </Container>
                                     </Times>

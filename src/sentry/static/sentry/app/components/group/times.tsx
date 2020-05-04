@@ -1,4 +1,3 @@
-import {css} from '@emotion/core';
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
@@ -21,11 +20,7 @@ type Props = {
 
 const Times = ({lastSeen, firstSeen}: Props) => (
   <Container>
-    <div
-      css={css`
-        ${overflowEllipsis}
-      `}
-    >
+    <FlexWrapper>
       {lastSeen && (
         <React.Fragment>
           <GroupTimeIcon src="icon-clock-sm" />
@@ -38,7 +33,7 @@ const Times = ({lastSeen, firstSeen}: Props) => (
       {firstSeen && (
         <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
       )}
-    </div>
+    </FlexWrapper>
   </Container>
 );
 Times.propTypes = {
@@ -49,6 +44,14 @@ Times.propTypes = {
 const Container = styled('div')`
   flex-shrink: 1;
   min-width: 0; /* flex-hack for overflow-ellipsised children */
+`;
+
+const FlexWrapper = styled('div')`
+  ${overflowEllipsis}
+
+  /* The following aligns the icon with the text, fixes bug in Firefox */
+  display: flex;
+  align-items: center;
 `;
 
 const GroupTimeIcon = styled(InlineSvg)`
