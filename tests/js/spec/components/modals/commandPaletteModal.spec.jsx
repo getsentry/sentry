@@ -50,6 +50,10 @@ describe('Command Palette Modal', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
         problems: [],

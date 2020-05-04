@@ -56,6 +56,10 @@ describe('SettingsSearch', function() {
       query: 'foo',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
+      body: [],
+    });
   });
 
   it('renders', async function() {
