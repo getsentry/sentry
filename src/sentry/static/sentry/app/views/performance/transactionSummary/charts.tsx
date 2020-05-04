@@ -17,15 +17,18 @@ import OptionSelector from 'app/components/charts/optionSelector';
 import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
+import DurationPercentileChart from './durationPercentileChart';
 
 enum DisplayModes {
+  DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
   LATENCY = 'latency',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
-  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
+  {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
+  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
 ];
 
 type Props = {
@@ -70,6 +73,18 @@ class TransactionSummaryCharts extends React.Component<Props> {
           {display === DisplayModes.DURATION && (
             <DurationChart
               organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
+          {display === DisplayModes.DURATION_PERCENTILE && (
+            <DurationPercentileChart
+              organization={organization}
+              location={location}
               query={eventView.query}
               project={eventView.project}
               environment={eventView.environment}
