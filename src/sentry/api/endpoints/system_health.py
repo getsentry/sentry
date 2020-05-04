@@ -19,7 +19,7 @@ class SystemHealthEndpoint(Endpoint):
         if not is_active_superuser(request):
             return Response()
 
-        results = status_checks.check_all()
+        results = status_checks.check_all(request)
         return Response(
             {
                 "problems": [

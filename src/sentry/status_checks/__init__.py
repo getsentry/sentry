@@ -8,9 +8,15 @@ from .base import Problem, StatusCheck, sort_by_severity  # NOQA
 from .celery_alive import CeleryAliveCheck
 from .celery_app_version import CeleryAppVersionCheck
 from .warnings import WarningStatusCheck
+from .slack_integration_version import SlackIntegrationVersion
 
-checks = [CeleryAliveCheck(), CeleryAppVersionCheck(), WarningStatusCheck(seen_warnings)]
+checks = [
+    CeleryAliveCheck(),
+    CeleryAppVersionCheck(),
+    WarningStatusCheck(seen_warnings),
+    SlackIntegrationVersion(),
+]
 
 
-def check_all():
-    return {check: check.check() for check in checks}
+def check_all(request):
+    return {check: check.check(request) for check in checks}

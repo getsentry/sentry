@@ -7,7 +7,7 @@ class WarningStatusCheck(StatusCheck):
     def __init__(self, warning_set):
         self.__warning_set = warning_set
 
-    def check(self):
+    def check(self, _request):
         if self.__warning_set:
             return [
                 Problem(

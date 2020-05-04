@@ -9,7 +9,7 @@ from .base import StatusCheck, Problem
 
 
 class CeleryAppVersionCheck(StatusCheck):
-    def check(self):
+    def check(self, _request):
         # There is no queue, and celery is not running, so never show error
         if settings.CELERY_ALWAYS_EAGER:
             return []
