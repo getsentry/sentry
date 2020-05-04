@@ -148,10 +148,6 @@ class DurationChart extends React.Component<Props> {
                           lineStyle: {
                             opacity: 0,
                           },
-                          areaStyle: {
-                            color: colors[i],
-                            opacity: 1.0,
-                          },
                         };
                       })
                       .reverse()
