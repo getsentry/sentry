@@ -329,6 +329,11 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
                 for k in query_params.filter_keys
             ]
             project_ids = list(set.union(*map(set, ids)))
+    elif query_params.conditions:
+        project_ids = []
+        for cond in query_params.conditions:
+            if cond[0] == "project_id":
+                project_ids = [cond[2]] if cond[1] == "=" else cond[2]
     else:
         project_ids = []
 
@@ -551,10 +556,13 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         try:
             with timer("snuba_query"):
                 body = json.dumps(query_params)
+                referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
-                    op="snuba", description=u"query {}".format(body)
+                    op="snuba", description=u"query {}".format(referrer)
                 ) as span:
-                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    span.set_tag("referrer", referrer)
+                    for param_key, param_data in six.iteritems(query_params):
+                        span.set_data(param_key, param_data)
                     return (
                         _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
                         forward,

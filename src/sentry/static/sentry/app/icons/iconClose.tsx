@@ -12,7 +12,7 @@ export const IconClose = React.forwardRef(function IconClose(
   }: IconProps,
   ref: React.Ref<SVGSVGElement>
 ) {
-  const color = providedColor;
+  const color = theme[providedColor] ?? providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   return (

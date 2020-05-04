@@ -387,7 +387,9 @@ export type Environment = {
 };
 
 // TODO(ts): This type is incomplete
-export type SavedSearch = {};
+export type SavedSearch = {
+  query?: string;
+};
 
 export type PluginNoProject = {
   id: string;
@@ -448,10 +450,9 @@ export type DocumentIntegration = {
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
-  forceUrlSync?: boolean;
   datetime: {
-    start: Date | null;
-    end: Date | null;
+    start: Date | string | null;
+    end: Date | string | null;
     period: string;
     utc: boolean;
   };
@@ -1187,4 +1188,12 @@ export type Activity = {
   issue?: Group;
   project: Project;
   user?: User;
+};
+
+export type PlatformIntegration = {
+  id: string;
+  type: string;
+  language: string;
+  link: string | null;
+  name: string;
 };

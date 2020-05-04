@@ -3,7 +3,9 @@ import forOwn from 'lodash/forOwn';
 import isObject from 'lodash/isObject';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';
@@ -99,11 +101,15 @@ class ExceptionMechanism extends React.Component {
     });
 
     return (
-      <div className="exception-mechanism">
+      <Wrapper>
         <Pills>{pills}</Pills>
-      </div>
+      </Wrapper>
     );
   }
 }
 
 export default ExceptionMechanism;
+
+const Wrapper = styled('div')`
+  margin: ${space(2)} 0;
+`;

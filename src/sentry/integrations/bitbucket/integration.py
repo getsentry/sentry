@@ -70,7 +70,7 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 # see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication#scopes-bbc
-scopes = ("issue:write", "pullrequest", "webhook")
+scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
 class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):

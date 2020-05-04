@@ -62,14 +62,14 @@ class BaseApiResponse(object):
 
         # Some APIs will return JSON with an invalid content-type, so we try
         # to decode it anyways
-        if "application/json" not in response.headers["Content-Type"]:
+        if "application/json" not in response.headers.get("Content-Type", ""):
             try:
                 data = json.loads(response.text, object_pairs_hook=OrderedDict)
             except (TypeError, ValueError):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
                 raise UnsupportedResponseType(
-                    response.headers["Content-Type"], response.status_code
+                    response.headers.get("Content-Type", ""), response.status_code
                 )
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
@@ -238,9 +238,9 @@ class BaseApiClient(object):
                     self.logger.exception(
                         "request.error", extra={self.integration_type: self.name, "url": full_url}
                     )
-                    raise ApiError("Internal Error")
+                    raise ApiError("Internal Error", url=full_url)
                 self.track_response_data(resp.status_code, span, e)
-                raise ApiError.from_response(resp)
+                raise ApiError.from_response(resp, url=full_url)
 
             self.track_response_data(resp.status_code, span, None, resp)
 

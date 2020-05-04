@@ -470,3 +470,111 @@ class GenericOffsetPaginator(object):
         # TODO use Cursor.value as the `end` argument to data_fn() so that
         # subsequent pages returned using these cursors are using the same end
         # date for queries, this should stop drift from new incoming events.
+
+
+class CombinedQuerysetPaginator(object):
+    multiplier = 1000000  # Use microseconds for date keys.
+
+    def __init__(self, order_by, querysets, on_results=None):
+        if order_by:
+            if order_by.startswith("-"):
+                self.key, self.desc = order_by[1:], True
+            else:
+                self.key, self.desc = order_by, False
+        else:
+            self.key = None
+            self.desc = False
+
+        self.querysets = querysets
+        self.on_results = on_results
+        # IMPROVEMENT: Ensure each model in the querysets has attribute of self.key
+        # ... or accept a function that can map to the proper key based on model instance
+        # use case could be sorting by name/label for AlertRule / Rule
+        # For now...just be diligent in your usage.
+
+    def get_item_key(self, item, for_prev=False):
+        if self.key == "date_added":  # Could generalize this more
+            return self.multiplier * float(getattr(item, self.key).strftime("%s.%f"))
+        else:
+            value = getattr(item, self.key)
+            return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+
+    def value_from_cursor(self, cursor):
+        if self.key == "date_added":  # Could generalize this more
+            return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
+                tzinfo=timezone.utc
+            )
+        else:
+            return cursor.value
+
+    def _is_asc(self, is_prev):
+        return (self.desc and is_prev) or not (self.desc or is_prev)
+
+    def _build_combined_querysets(self, value, is_prev, limit, extra):
+        asc = self._is_asc(is_prev)
+
+        if asc:
+            order_by = self.key
+            filter_condition = "%s__gte" % self.key
+        else:
+            order_by = "-%s" % self.key
+            filter_condition = "%s__lte" % self.key
+
+        filters = {}
+        if value is not None:
+            assert self.key
+            filters[filter_condition] = value
+
+        combined_querysets = list()
+        for queryset in self.querysets:
+            queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+            combined_querysets += list(queryset)
+
+        combined_querysets.sort(
+            key=lambda item: (getattr(item, self.key), type(item).__name__), reverse=not asc
+        )
+        return combined_querysets
+
+    def get_result(self, cursor=None, limit=100):
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        if cursor.value:
+            cursor_value = self.value_from_cursor(cursor)
+        else:
+            cursor_value = None
+
+        limit = min(limit, MAX_LIMIT)
+
+        offset = cursor.offset
+        extra = 1
+        if cursor.is_prev and cursor.value:
+            extra += 1
+        combined_querysets = self._build_combined_querysets(
+            cursor_value, cursor.is_prev, limit, extra
+        )
+
+        stop = offset + limit + extra
+        results = list(combined_querysets[offset:stop])
+
+        if cursor.is_prev and cursor.value:
+            # If the first result is equal to the cursor_value then it's safe to filter
+            # it out, since the value hasn't been updated
+            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                results = results[1:]
+            # Otherwise we may have fetched an extra row, just drop it off the end if so.
+            elif len(results) == offset + limit + extra:
+                results = results[:-1]
+
+        # We reversed the results when generating the querysets, so we need to reverse back now.
+        if cursor.is_prev:
+            results.reverse()
+
+        return build_cursor(
+            results=results,
+            cursor=cursor,
+            key=self.get_item_key,
+            limit=limit,
+            is_desc=self.desc,
+            on_results=self.on_results,
+        )

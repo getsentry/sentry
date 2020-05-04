@@ -19,7 +19,6 @@ _DEFAULT_DAEMONS = {
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
     "storybook": ["./bin/yarn", "storybook"],
-    "reverse_proxy": ["sentry", "devservices", "attach", "--is-devserver", "reverse_proxy"],
 }
 
 
@@ -204,7 +203,7 @@ def devserver(
             daemons += [_get_daemon("post-process-forwarder")]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest"), _get_daemon("reverse_proxy")]
+        daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
@@ -223,6 +222,12 @@ def devserver(
         daemons += [
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
+
+    from sentry.runner.commands.devservices import _prepare_containers
+
+    for name, container_options in _prepare_containers("sentry", silent=True).items():
+        if container_options.get("with_devserver", False):
+            daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
 
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.

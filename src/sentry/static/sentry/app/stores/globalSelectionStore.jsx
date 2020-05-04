@@ -70,6 +70,7 @@ const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset(this.selection);
     this.listenTo(GlobalSelectionActions.reset, this.onReset);
+    this.listenTo(GlobalSelectionActions.save, this.onSave);
     this.listenTo(GlobalSelectionActions.updateProjects, this.updateProjects);
     this.listenTo(GlobalSelectionActions.updateDateTime, this.updateDateTime);
     this.listenTo(GlobalSelectionActions.updateEnvironments, this.updateEnvironments);
@@ -84,16 +85,7 @@ const GlobalSelectionStore = Reflux.createStore({
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
    */
-  loadInitialData(
-    organization,
-    queryParams,
-    {api, forceUrlSync, onlyIfNeverLoaded} = {}
-  ) {
-    // If this option is true, only load if it has never been loaded before
-    if (onlyIfNeverLoaded && this._hasLoaded) {
-      return;
-    }
-
+  loadInitialData(organization, queryParams, {api, skipLastUsed} = {}) {
     this._hasLoaded = true;
     this.organization = organization;
     const query = pick(queryParams, Object.values(URL_PARAM));
@@ -113,7 +105,7 @@ const GlobalSelectionStore = Reflux.createStore({
           [DATE_TIME.UTC]: parsed.utc || null,
         },
       };
-    } else {
+    } else if (!skipLastUsed) {
       try {
         const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
 
@@ -129,15 +121,12 @@ const GlobalSelectionStore = Reflux.createStore({
         // use default if invalid
       }
     }
-    this.loadSelectionIfValid(globalSelection, organization, forceUrlSync, api);
+    this.loadSelectionIfValid(globalSelection, organization, api);
   },
 
-  async loadSelectionIfValid(globalSelection, organization, forceUrlSync, api) {
+  async loadSelectionIfValid(globalSelection, organization, api) {
     if (await isValidSelection(globalSelection, organization, api)) {
-      this.selection = {
-        ...globalSelection,
-        ...(forceUrlSync ? {forceUrlSync: true} : {}),
-      };
+      this.selection = globalSelection;
       this.trigger(this.selection);
     }
   },
@@ -160,7 +149,6 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       projects,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
@@ -173,7 +161,6 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       datetime,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
@@ -186,11 +173,20 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       environments,
     };
-    this.updateLocalStorage();
     this.trigger(this.selection);
   },
 
-  updateLocalStorage() {
+  /**
+   * Save to local storage when user explicitly changes header values.
+   *
+   * e.g. if localstorage is empty, user loads issue details for project "foo"
+   * this should not consider "foo" as last used and should not save to local storage.
+   *
+   * However, if user then changes environment, it should...? Currently it will
+   * save the current project alongside environment to local storage. It's debatable if
+   * this is the desired behavior.
+   */
+  onSave(updateObj) {
     // Do nothing if no org is loaded or user is not an org member. Only
     // organizations that a user has membership in will be available via the
     // organizations store
@@ -198,11 +194,16 @@ const GlobalSelectionStore = Reflux.createStore({
       return;
     }
 
+    const {project, environment} = updateObj;
+    const validatedProject = typeof project === 'string' ? [Number(project)] : project;
+    const validatedEnvironment =
+      typeof environment === 'string' ? [environment] : environment;
+
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${this.organization.slug}`;
       const dataToSave = {
-        projects: this.selection.projects,
-        environments: this.selection.environments,
+        projects: validatedProject || this.selection.projects,
+        environments: validatedEnvironment || this.selection.environments,
       };
       localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
     } catch (ex) {

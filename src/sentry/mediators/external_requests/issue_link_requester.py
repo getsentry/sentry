@@ -74,7 +74,7 @@ class IssueLinkRequester(Mediator):
         try:
             body = safe_urlread(req)
             response = json.loads(body)
-        except Exception:
+        except Exception as e:
             logger.info(
                 "issue-link-requester.error",
                 extra={
@@ -83,6 +83,7 @@ class IssueLinkRequester(Mediator):
                     "project": self.group.project.slug,
                     "group": self.group.id,
                     "uri": self.uri,
+                    "error_message": six.text_type(e),
                 },
             )
             response = {}

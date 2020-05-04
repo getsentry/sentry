@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
@@ -8,20 +7,23 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-class SearchDropdown extends React.PureComponent {
-  static propTypes = {
-    items: PropTypes.array.isRequired,
-    searchSubstring: PropTypes.string,
-    onClick: PropTypes.func.isRequired,
-    loading: PropTypes.bool,
-  };
+import {SearchGroup, SearchItem} from './types';
 
+type Props = {
+  className?: string;
+  items: SearchGroup[];
+  searchSubstring: string;
+  onClick: (value: string, item: SearchItem) => void;
+  loading: boolean;
+};
+
+class SearchDropdown extends React.PureComponent<Props> {
   static defaultProps = {
     searchSubstring: '',
     onClick: function() {},
   };
 
-  renderDescription = item => {
+  renderDescription = (item: SearchItem) => {
     const searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) {
       return item.desc;
@@ -48,7 +50,7 @@ class SearchDropdown extends React.PureComponent {
     );
   };
 
-  renderHeaderItem = item => (
+  renderHeaderItem = (item: SearchGroup) => (
     <SearchDropdownGroup key={item.title}>
       <SearchDropdownGroupTitle>
         <GroupTitleIcon className={classNames('icon', item.icon)} />
@@ -58,18 +60,19 @@ class SearchDropdown extends React.PureComponent {
     </SearchDropdownGroup>
   );
 
-  renderItem = item => (
-    <SearchItem
+  renderItem = (item: SearchItem) => (
+    <SearchListItem
       key={item.value || item.desc}
-      className={item.active ? 'active' : null}
+      className={item.active ? 'active' : undefined}
       data-test-id="search-autocomplete-item"
       onClick={this.props.onClick.bind(this, item.value, item)}
+      ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
         {item.title && item.title + ' · '}
         <Description>{this.renderDescription(item)}</Description>
       </SearchItemTitleWrapper>
-    </SearchItem>
+    </SearchListItem>
   );
 
   render() {
@@ -127,17 +130,18 @@ const LoadingWrapper = styled('div')`
 
 const Info = styled('div')`
   display: flex;
-  justify-content: center;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 const ListItem = styled('li')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border-bottom: none;
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
   }
 `;
 
@@ -166,7 +170,8 @@ const SearchItemsList = styled('ul')`
   margin-bottom: 0;
 `;
 
-const SearchItem = styled(ListItem)`
+const SearchListItem = styled(ListItem)`
+  scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;

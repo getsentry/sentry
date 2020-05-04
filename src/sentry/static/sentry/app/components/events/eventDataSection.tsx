@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -12,6 +13,7 @@ import space from 'app/styles/space';
 const defaultProps = {
   wrapTitle: true,
   raw: false,
+  isCentered: false,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -66,6 +68,7 @@ class EventDataSection extends React.Component<Props> {
       raw,
       wrapTitle,
       actions,
+      isCentered,
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
@@ -73,7 +76,7 @@ class EventDataSection extends React.Component<Props> {
     return (
       <DataSection className={className || ''}>
         {title && (
-          <SectionHeader id={type}>
+          <SectionHeader id={type} isCentered={isCentered}>
             <Permalink href={'#' + type} className="permalink">
               <em className="icon-anchor" />
             </Permalink>
@@ -116,7 +119,7 @@ const Permalink = styled('a')`
   padding: ${space(0.25)} 5px;
 `;
 
-const SectionHeader = styled('div')`
+const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
   justify-content: space-between;
   position: relative;
@@ -156,12 +159,22 @@ const SectionHeader = styled('div')`
   &:hover ${Permalink} {
     display: block;
   }
+
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
     }
   }
+
+  ${p =>
+    p.isCentered &&
+    css`
+      align-items: center;
+      @media (max-width: ${p.theme.breakpoints[0]}) {
+        display: block;
+      }
+    `}
 `;
 
 const SectionContents = styled('div')`

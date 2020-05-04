@@ -13,7 +13,6 @@ from sentry.api.base import LINK_HEADER
 from sentry.api.bases import (
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
-    OrganizationEventsError,
     NoProjects,
 )
 from sentry.api.helpers.events import get_direct_hit_response
@@ -40,7 +39,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 self.get_filter_params(request, organization),
                 "api.organization-events-direct-hit",
             )
-        except (OrganizationEventsError, NoProjects):
+        except NoProjects:
             pass
         else:
             if direct_hit_resp:
@@ -49,8 +48,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
@@ -122,20 +119,20 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
-        try:
-            params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            raise ParseError(detail=six.text_type(exc))
-        except NoProjects:
-            return Response([])
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+            span.set_tag("organization", organization)
+            try:
+                params = self.get_filter_params(request, organization)
+            except NoProjects:
+                return Response([])
 
-        params["organization_id"] = organization.id
+            params["organization_id"] = organization.id
 
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
-        )
-        if not has_global_views and len(params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
+            has_global_views = features.has(
+                "organizations:global-views", organization, actor=request.user
+            )
+            if not has_global_views and len(params.get("project_id", [])) > 1:
+                raise ParseError(detail="You cannot view events from multiple projects.")
 
         def data_fn(offset, limit):
             return discover.query(

@@ -168,6 +168,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_empty_spaces_stripped_correctly(self):
+        assert parse_search_query(
+            "event.type:transaction   transaction:/organizations/:orgId/discover/results/"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="event.type"),
+                operator="=",
+                value=SearchValue(raw_value="transaction"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="transaction"),
+                operator="=",
+                value=SearchValue(raw_value="/organizations/:orgId/discover/results/"),
+            ),
+        ]
+
     def test_timestamp(self):
         # test date format
         assert parse_search_query("timestamp>2015-05-18") == [
@@ -1198,8 +1214,8 @@ class GetSnubaQueryArgsTest(TestCase):
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("project.name:{}".format(p1.slug), params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
-        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert _filter.project_ids == [p1.id, p2.id]
+        assert _filter.filter_keys == {"project_id": [p1.id]}
+        assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
         _filter = get_filter("!project.name:{}".format(p1.slug), params)

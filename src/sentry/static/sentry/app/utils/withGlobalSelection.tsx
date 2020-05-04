@@ -7,7 +7,6 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {GlobalSelection} from 'app/types';
 
 type InjectedGlobalSelectionProps = {
-  forceUrlSync?: boolean;
   selection: GlobalSelection;
 };
 
@@ -52,10 +51,9 @@ const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
     },
 
     render() {
-      const {forceUrlSync, ...selection} = this.state.selection;
+      const {selection} = this.state;
       return (
         <WrappedComponent
-          forceUrlSync={!!forceUrlSync}
           selection={selection as GlobalSelection}
           {...(this.props as P)}
         />

@@ -204,6 +204,18 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
+class PendingIncidentSnapshot(Model):
+    __core__ = True
+
+    incident = OneToOneCascadeDeletes("sentry.Incident")
+    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pendingincidentsnapshot"
+
+
 class IncidentSnapshot(Model):
     __core__ = True
 
@@ -383,6 +395,7 @@ class AlertRule(Model):
     objects_with_snapshots = BaseManager()
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
+    snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
     query_subscriptions = models.ManyToManyField(
         "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
     )
@@ -391,8 +404,8 @@ class AlertRule(Model):
     )
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
-    dataset = models.TextField()
-    query = models.TextField()
+    dataset = models.TextField(null=True)
+    query = models.TextField(null=True)
     environment = models.ManyToManyField(
         "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
     )
@@ -400,9 +413,9 @@ class AlertRule(Model):
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
     # TODO: Remove this default after we migrate
-    aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value)
-    time_window = models.IntegerField()
-    resolution = models.IntegerField()
+    aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value, null=True)
+    time_window = models.IntegerField(null=True)
+    resolution = models.IntegerField(null=True)
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
@@ -418,6 +431,8 @@ class AlertRule(Model):
         # migrations have not been run. In migration 0061, this index is set to
         # a partial index where status=0
         unique_together = (("organization", "name", "status"),)
+
+    __repr__ = sane_repr("id", "name", "date_added")
 
 
 class TriggerStatus(Enum):

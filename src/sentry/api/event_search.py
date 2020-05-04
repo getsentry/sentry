@@ -96,12 +96,12 @@ event_search_grammar = Grammar(
     r"""
 search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
-paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
+paren_term           = spaces open_paren space? (paren_term / boolean_term)+ space? closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
-                       space?
+                       spaces
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
@@ -310,7 +310,7 @@ class SearchVisitor(NodeVisitor):
 
     def remove_space(self, children):
         def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " ")
+            return not (isinstance(child, Node) and child.text == " " * len(child.text))
 
         return filter(is_not_space, children)
 
@@ -370,7 +370,6 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-
         return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
@@ -568,7 +567,12 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-        (function_name, open_paren, args, close_paren) = children
+        if len(children) == 3:
+            (function_name, open_paren, close_paren) = children
+            args = ""
+        else:
+            (function_name, open_paren, args, close_paren) = children
+
         if isinstance(args, Node):
             args = ""
         elif isinstance(args, list):
@@ -799,6 +803,8 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    # Used to avoid doing multiple conditions on project ID
+    project_to_filter = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
@@ -819,6 +825,9 @@ def get_filter(query=None, params=None):
                 term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
+                    if term.operator == "=":
+                        project_to_filter = project.id
+
                     kwargs["conditions"].append(converted_filter)
             elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
@@ -869,7 +878,10 @@ def get_filter(query=None, params=None):
             kwargs[key] = params.get(key, None)
         # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
-            kwargs["project_ids"] = params["project_id"]
+            if project_to_filter:
+                kwargs["project_ids"] = [project_to_filter]
+            else:
+                kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
             term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
@@ -1403,7 +1415,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
-        project_ids = snuba_filter.filter_keys.get("project_id", [])
+        # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
+        filtered_project_ids = None
+        if snuba_filter.conditions:
+            for cond in snuba_filter.conditions:
+                if cond[0] == "project_id":
+                    filtered_project_ids = [cond[2]] if cond[1] == "=" else cond[2]
+
+        project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [

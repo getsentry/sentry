@@ -64,7 +64,7 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentGroup,
     IncidentProject,
-    IncidentSnapshot,
+    PendingIncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
@@ -206,11 +206,28 @@ class UpdateIncidentStatus(TestCase):
             projects=[self.project],
         )
         with self.assertChanges(
-            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
+            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
             before=False,
             after=True,
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+
+    def test_pending_snapshot_management(self):
+        # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
+        incident = create_incident(
+            self.organization,
+            IncidentType.ALERT_TRIGGERED,
+            "Test",
+            "",
+            QueryAggregations.TOTAL,
+            timezone.now(),
+            projects=[self.project],
+        )
+        assert PendingIncidentSnapshot.objects.all().count() == 0
+        update_incident_status(incident, IncidentStatus.CLOSED)
+        assert PendingIncidentSnapshot.objects.filter(incident=incident).count() == 1
+        update_incident_status(incident, IncidentStatus.OPEN)
+        assert PendingIncidentSnapshot.objects.filter(incident=incident).count() == 0
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -268,7 +285,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
         time_window = incident.alert_rule.time_window if incident.alert_rule else 1
         assert result.rollup == time_window * 60
         expected_start = start if start else incident.date_started - timedelta(minutes=1)
-        expected_end = end if end else incident.current_end_date
+        expected_end = end if end else incident.current_end_date + timedelta(minutes=1)
 
         if windowed_stats:
             now = timezone.now()
@@ -461,7 +478,7 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         )
         snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
         assert snapshot.start == incident.date_started - timedelta(minutes=1)
-        assert snapshot.end == incident.current_end_date
+        assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
         assert [row[1] for row in snapshot.values] == [2, 1]
 
         snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
@@ -611,6 +628,33 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         aggregates = get_incident_aggregates(incident)
         assert snapshot.unique_users == aggregates["unique_users"]
         assert snapshot.total_events == aggregates["count"]
+
+    def test_windowed_capped_end(self):
+        # When processing PendingIncidentSnapshots, the task could run later than we'd like the
+        # end to actually be, so we have logic to cap it to 10 datapoints, or 10 days, whichever is less. This tests that logic.
+
+        time_window = 1500  # more than 24 hours, so gets capped at 10 days
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "hello",
+            "level:error",
+            QueryAggregations.TOTAL,
+            time_window,
+            1,
+        )
+
+        incident = self.create_incident(self.organization)
+        incident.update(status=IncidentStatus.CLOSED.value, alert_rule=alert_rule)
+        incident.date_closed = timezone.now() - timedelta(days=11)
+
+        start, end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert end == incident.current_end_date + timedelta(days=10)
+
+        alert_rule.update(time_window=10)
+
+        start, end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert end == incident.current_end_date + timedelta(minutes=100)
 
 
 @freeze_time()

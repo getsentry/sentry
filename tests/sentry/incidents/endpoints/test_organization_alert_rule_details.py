@@ -86,6 +86,7 @@ class AlertRuleDetailsBase(object):
         self.method = "get"
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug)
+            assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
         self.endpoint = original_endpoint
         self.method = original_method
@@ -378,6 +379,24 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             )
         serialized_alert_rule["triggers"][0]["thresholdType"] = 0  # Back to normal, valid.
 
+    def test_update_snapshot(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Archive the rule so that the endpoint 404's, without this, it should 200 and the test would fail:
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
+
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=404, **serialized_alert_rule
+            )
+
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "delete"
@@ -387,6 +406,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
+
         with self.feature("organizations:incidents"):
             self.get_valid_response(self.organization.slug, self.alert_rule.id, status_code=204)
 

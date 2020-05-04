@@ -14,7 +14,7 @@ import EventView, {MetaType, EventData} from 'app/utils/discover/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import {decodeScalar} from 'app/views/eventsV2/utils';
+import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/components/searchBar';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -225,7 +225,7 @@ class Table extends React.Component<Props> {
               placeholder={t('Filter Transactions')}
               onSearch={this.handleTransactionSearchQuery}
             />
-            <PanelTable
+            <StyledPanelTable
               headers={this.renderHeader(tableData)}
               isLoading={isLoading}
               isEmpty={!tableData || tableData.data.length === 0}
@@ -233,7 +233,7 @@ class Table extends React.Component<Props> {
               disablePadding
             >
               {this.renderResults(isLoading, tableData)}
-            </PanelTable>
+            </StyledPanelTable>
             <Pagination pageLinks={pageLinks} />
           </div>
         )}
@@ -246,6 +246,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(1)};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: minmax(300px, auto) repeat(7, minmax(80px, 150px));
 `;
 
 export default withProjects(Table);
