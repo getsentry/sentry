@@ -1789,7 +1789,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
             assert data[0]["impact_300"] == 1.0
-            assert data[0]["user_misery_300"] == 0
+            assert data[0]["user_misery_300"] == 1
             assert data[0]["error_rate"] == 0.5
 
         with self.feature(
