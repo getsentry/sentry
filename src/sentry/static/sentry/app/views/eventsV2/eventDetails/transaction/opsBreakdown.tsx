@@ -156,44 +156,46 @@ class OpsBreakdown extends React.Component<Props> {
       }
     );
 
-    const rootTransactionInterval = Math.abs(event.endTimestamp - event.startTimestamp);
-
     const breakdown = sortedOpsBreakdown
       .slice(0, TOP_N_SPANS)
       .map(([operationName, duration]: [OperationName, Duration]) => {
         return {
           name: operationName,
-          percentage: duration / rootTransactionInterval,
+          // percentage to be recalculated after the ops breakdown group is decided
+          percentage: 0,
           totalInterval: duration,
         };
       });
 
-    const other = sortedOpsBreakdown
-      .slice(TOP_N_SPANS)
-      .reduce(
-        (
-          accOther: OpStats | undefined,
-          [_operationName, duration]: [OperationName, Duration]
-        ) => {
-          if (!accOther) {
-            return {
-              name: t('Other'),
-              percentage: duration / rootTransactionInterval,
-              totalInterval: duration,
-            };
-          }
+    const other = sortedOpsBreakdown.slice(TOP_N_SPANS).reduce(
+      (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {
+        accOther.totalInterval += duration;
 
-          accOther.totalInterval += duration;
-          accOther.percentage = accOther.totalInterval / rootTransactionInterval;
+        return accOther;
+      },
+      {
+        name: t('Other'),
+        // percentage to be recalculated after the ops breakdown group is decided
+        percentage: 0,
+        totalInterval: 0,
+      }
+    );
 
-          return accOther;
-        },
-        undefined
-      );
-
-    if (other) {
+    if (other.totalInterval > 0) {
       breakdown.push(other);
     }
+
+    // calculate breakdown total duration
+
+    const total = breakdown.reduce((sum: number, operationNameGroup) => {
+      return sum + operationNameGroup.totalInterval;
+    }, 0);
+
+    // recalculate percentage values
+
+    breakdown.forEach(operationNameGroup => {
+      operationNameGroup.percentage = operationNameGroup.totalInterval / total;
+    });
 
     return breakdown;
   }
