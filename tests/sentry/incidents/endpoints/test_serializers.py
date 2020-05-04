@@ -101,7 +101,7 @@ class TestAlertRuleSerializer(TestCase):
 
         base_params.update({"environment": [env_1.name]})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
 
         # Make sure AlertRuleEnvironment entry was made:
@@ -150,6 +150,22 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid()
         serializer.save()
         assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 0
+
+    def test_environment_non_list(self):
+        base_params = self.valid_params.copy()
+        env_1 = Environment.objects.create(organization_id=self.organization.id, name="test_env_1")
+        Environment.objects.create(organization_id=self.organization.id, name="test_env_2")
+
+        base_params.update({"environment": env_1.name})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+
+        # Make sure AlertRuleEnvironment entry was made:
+        alert_rule_env = AlertRuleEnvironment.objects.get(
+            environment=env_1.id, alert_rule=alert_rule
+        )
+        assert alert_rule_env
 
     def test_time_window(self):
         self.run_fail_validation_test(
