@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import LineChart from 'app/components/charts/lineChart';
+import AreaChart from 'app/components/charts/areaChart';
 import ErrorPanel from 'app/components/charts/components/errorPanel';
 import AsyncComponent from 'app/components/asyncComponent';
 import Tooltip from 'app/components/tooltip';
@@ -145,7 +145,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     const colors = theme.charts.getColorPalette(1);
 
     return (
-      <LineChart
+      <AreaChart
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
