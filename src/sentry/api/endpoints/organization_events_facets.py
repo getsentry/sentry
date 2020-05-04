@@ -22,7 +22,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             try:
                 params = self.get_filter_params(request, organization)
             except NoProjects:
-                raise ParseError(detail="A valid project must be included.")
+                return Response([])
             self._validate_project_ids(request, organization, params)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
