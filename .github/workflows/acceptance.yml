@@ -162,6 +162,8 @@ jobs:
             yarn install --frozen-lockfile
 
         - name: Install Python Dependencies
+          env:
+            PGPASSWORD: postgres
           run: |
             python setup.py install_egg_info
             pip install -U -e ".[dev]"
