@@ -78,7 +78,7 @@
     "intersection-observer": "^0.7.0",
     "ios-device-list": "^1.1.30",
     "jed": "^1.1.0",
-    "jquery": "2.2.2",
+    "jquery": "3.5.0",
     "js-cookie": "2.2.1",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
@@ -128,7 +128,8 @@
     "webpack": "4.42.1",
     "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": "^4.4.2",
+    "snyk": "^1.317.0"
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.2.0",
@@ -195,10 +196,13 @@
     "storybook-build": "build-storybook -c .storybook -o .storybook-out && sed -i -e 's/\\/sb_dll/sb_dll/g' .storybook-out/index.html",
     "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
     "webpack-profile": "yarn -s webpack --profile --json > stats.json",
-    "build": "yarn webpack --output-path=public"
+    "build": "yarn webpack --output-path=public",
+    "snyk-protect": "snyk protect",
+    "prepare": "yarn run snyk-protect"
   },
   "volta": {
     "node": "10.16.3",
     "yarn": "1.21.1"
-  }
+  },
+  "snyk": true
 }
