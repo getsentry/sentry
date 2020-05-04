@@ -205,7 +205,7 @@ describe('IssueListSearchBar', function() {
       wrapper.update();
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(0)
           .find('li')
           .prop('className')
@@ -214,7 +214,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(0)
           .find('li')
           .prop('className')
@@ -223,7 +223,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(1)
           .find('li')
           .prop('className')
@@ -233,7 +233,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .last()
           .find('li')
           .prop('className')
