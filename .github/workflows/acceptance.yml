@@ -99,7 +99,7 @@ jobs:
             --health-cmd pg_isready
             --health-interval 10s
             --health-timeout 5s
-            --health-retries 5
+            --health-retries 15
 
         zookeeper:
           image: confluentinc/cp-zookeeper:4.1.0
