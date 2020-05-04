@@ -50,7 +50,7 @@ class ProjectSerializerTest(TestCase):
 
         result = serialize(project, user, ProjectSerializer(include_features=False))
 
-        assert result["features"] is None
+        assert "features" not in result
 
     def test_member_access(self):
         user = self.create_user(username="foo")
@@ -228,7 +228,7 @@ class ProjectSummarySerializerTest(TestCase):
         result = serialize(
             self.project, self.user, ProjectSummarySerializer(include_features=False)
         )
-        assert result["features"] is None
+        assert "features" not in result
 
     def test_user_reports(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
