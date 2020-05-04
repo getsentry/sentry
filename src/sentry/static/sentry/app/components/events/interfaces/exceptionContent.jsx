@@ -86,4 +86,5 @@ const ExceptionDetails = styled('div')`
   grid-gap: ${space(1)};
   align-items: center;
   grid-template-columns: max-content max-content;
+  margin: ${space(2)} 0;
 `;
