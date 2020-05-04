@@ -925,13 +925,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   &:before {
     content: '';
     height: 1px;
-    border-bottom: ${p => {
-      if (p.orphanBranch) {
-        return `1px dashed ${p.theme.gray1}`;
-      }
-
-      return `1px solid ${p.theme.gray1}`;
-    }};
+    border-bottom: 1px ${p => p.orphanBranch ? 'dashed' : 'solid'} ${p => p.theme.gray1};
 
     width: 100%;
     position: absolute;
