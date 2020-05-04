@@ -55,7 +55,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: location.query.query}},
+        {
+          query: {
+            query: location.query.query,
+            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
+          },
+        },
       ],
     ];
 

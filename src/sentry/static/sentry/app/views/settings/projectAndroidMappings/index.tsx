@@ -13,8 +13,9 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import Checkbox from 'app/components/checkbox';
 import SearchBar from 'app/components/searchBar';
-
-import {DebugFile} from './types';
+// TODO(matej): use own components
+import DebugFileRow from 'app/views/settings/projectDebugFiles/debugFileRow';
+import {DebugFile} from 'app/views/settings/projectDebugFiles/types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -107,16 +108,15 @@ class ProjectAndroidMappings extends AsyncView<Props, State> {
     return mappings.map(mapping => {
       const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${mapping.id}`;
 
-      return '';
-      // return (
-      //   <DebugFileRow
-      //     debugFile={debugFile}
-      //     showDetails={showDetails}
-      //     downloadUrl={downloadUrl}
-      //     onDelete={this.handleDelete}
-      //     key={debugFile.id}
-      //   />
-      // );
+      return (
+        <DebugFileRow
+          debugFile={mapping}
+          showDetails={showDetails}
+          downloadUrl={downloadUrl}
+          onDelete={this.handleDelete}
+          key={mapping.id}
+        />
+      );
     });
   }
 
