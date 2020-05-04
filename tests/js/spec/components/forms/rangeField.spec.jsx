@@ -62,7 +62,7 @@ describe('RangeField', function() {
         },
       });
 
-      expect(wrapper.find('input').prop('value')).toBe(0);
+      expect(wrapper.find('[name="fieldName"]').prop('value')).toBe(0);
     });
   });
 });

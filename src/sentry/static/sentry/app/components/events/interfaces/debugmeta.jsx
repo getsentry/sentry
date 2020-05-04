@@ -10,7 +10,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
-import EventDataSection, {SectionHeader} from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -479,6 +479,7 @@ class DebugMetaInterface extends React.PureComponent {
         title={titleElement}
         actions={this.renderToolbar()}
         wrapTitle={false}
+        isCentered
       >
         <ClippedBox clipHeight={350}>
           <DebugImagesPanel>
@@ -524,13 +525,6 @@ const Label = styled('label')`
 `;
 
 const StyledEventDataSection = styled(EventDataSection)`
-  ${SectionHeader} {
-    align-items: center;
-    @media (max-width: ${p => p.theme.breakpoints[0]}) {
-      display: block;
-    }
-  }
-
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(4)};
   }

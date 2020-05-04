@@ -9,7 +9,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {IconInfo} from 'app/icons';
+import {IconInfo, IconSettings} from 'app/icons';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -95,7 +95,7 @@ class HeaderItem extends React.Component<Props> {
         )}
         {settingsLink && (
           <SettingsIconLink to={settingsLink}>
-            <SettingsIcon src="icon-settings" />
+            <IconSettings />
           </SettingsIconLink>
         )}
         {!locked && !loading && (
@@ -193,11 +193,6 @@ const SettingsIconLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
-`;
-
-const SettingsIcon = styled(InlineSvg)`
-  height: 16px;
-  width: 16px;
 `;
 
 const StyledLock = styled(InlineSvg)`

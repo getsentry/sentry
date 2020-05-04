@@ -1,18 +1,18 @@
-import {Breadcrumb} from './types';
+import {Breadcrumb, BreadcrumbType} from './types';
 
 function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   if (breadcrumb.level) {
     if (breadcrumb.level === 'warning') {
       return {
         ...breadcrumb,
-        type: 'warning',
+        type: BreadcrumbType.WARNING,
       };
     }
 
     if (breadcrumb.level === 'error') {
       return {
         ...breadcrumb,
-        type: 'error',
+        type: BreadcrumbType.ERROR,
       };
     }
   }
@@ -23,14 +23,14 @@ function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
     if (category === 'ui') {
       return {
         ...breadcrumb,
-        type: 'ui',
+        type: BreadcrumbType.UI,
       };
     }
 
     if (category === 'console' || category === 'navigation') {
       return {
         ...breadcrumb,
-        type: 'debug',
+        type: BreadcrumbType.DEBUG,
       };
     }
 
@@ -40,7 +40,7 @@ function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
     ) {
       return {
         ...breadcrumb,
-        type: 'error',
+        type: BreadcrumbType.ERROR,
       };
     }
   }

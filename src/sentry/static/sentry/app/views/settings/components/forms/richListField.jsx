@@ -7,10 +7,9 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconAdd, IconDelete, IconSettings} from 'app/icons';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Confirm from 'app/components/confirm';
-import {IconAdd} from 'app/icons/iconAdd';
 
 const RichListProps = {
   /**
@@ -152,7 +151,7 @@ class RichList extends React.PureComponent {
           <ItemButton
             onClick={() => this.onEditItem(item, index)}
             disabled={disabled}
-            icon="icon-settings"
+            icon={<IconSettings />}
             size="zero"
             borderless
           />

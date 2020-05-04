@@ -4,7 +4,7 @@ import EventView from 'app/utils/discover/eventView';
 import {TableData, TableDataRow} from 'app/views/eventsV2/table/types';
 
 import {SpanBoundsType, SpanGeneratedBoundsType, isGapSpan, getSpanID} from './utils';
-import {ProcessedSpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, ParsedTraceType, TreeDepthType} from './types';
 import SpanBar from './spanBar';
 
 type PropType = {
@@ -14,7 +14,7 @@ type PropType = {
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
-  continuingTreeDepths: Array<number>;
+  continuingTreeDepths: Array<TreeDepthType>;
   numOfSpanChildren: number;
   renderedSpanChildren: Array<JSX.Element>;
   spanBarColour?: string;
