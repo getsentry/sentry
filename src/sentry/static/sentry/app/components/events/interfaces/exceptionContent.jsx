@@ -5,7 +5,11 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
 import SentryTypes from 'app/sentryTypes';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
 
 import ExceptionStacktraceContent from './exceptionStacktraceContent';
 
@@ -35,9 +39,20 @@ class ExceptionContent extends React.Component {
           {value => <StyledPre className="exc-message">{value}</StyledPre>}
         </Annotated>
 
-        {exc.mechanism && (
-          <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />
+        {(defined(exc?.module) || exc.mechanism) && (
+          <ExceptionDetails>
+            {exc.mechanism && (
+              <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />
+            )}
+
+            {defined(exc?.module) && (
+              <Pills>
+                <Pill name={t('module')} value={exc.module} />
+              </Pills>
+            )}
+          </ExceptionDetails>
         )}
+
         <ExceptionStacktraceContent
           data={
             this.props.type === 'original'
@@ -64,4 +79,11 @@ export default ExceptionContent;
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};
   margin-top: 0;
+`;
+
+const ExceptionDetails = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  align-items: center;
+  grid-template-columns: max-content max-content;
 `;

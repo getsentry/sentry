@@ -180,6 +180,43 @@ exports[`CrashContent renders with meta data 1`] = `
               </ErrorBoundary>
             </MetaData>
           </Annotated>
+          <ExceptionDetails>
+            <div
+              className="css-dabvxe-ExceptionDetails e1rxtykr1"
+            >
+              <Pills>
+                <div
+                  className="css-169cud9-Pills e17cyim10"
+                >
+                  <Pill
+                    name="module"
+                    value="exceptions"
+                  >
+                    <StyledPill>
+                      <li
+                        className="css-22pqns-StyledPill ez9cevw0"
+                      >
+                        <PillName>
+                          <span
+                            className="css-rc2gkf-PillName ez9cevw1"
+                          >
+                            module
+                          </span>
+                        </PillName>
+                        <PillValue>
+                          <span
+                            className="css-1vzt662-PillName-PillValue ez9cevw2"
+                          >
+                            exceptions
+                          </span>
+                        </PillValue>
+                      </li>
+                    </StyledPill>
+                  </Pill>
+                </div>
+              </Pills>
+            </div>
+          </ExceptionDetails>
           <ExceptionStacktraceContent
             data={
               Object {

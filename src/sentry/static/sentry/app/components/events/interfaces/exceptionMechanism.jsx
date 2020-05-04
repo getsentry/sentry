@@ -98,11 +98,7 @@ class ExceptionMechanism extends React.Component {
       }
     });
 
-    return (
-      <div className="exception-mechanism">
-        <Pills>{pills}</Pills>
-      </div>
-    );
+    return <Pills>{pills}</Pills>;
   }
 }
 
