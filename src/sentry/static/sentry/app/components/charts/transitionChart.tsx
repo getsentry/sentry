@@ -2,10 +2,15 @@ import React from 'react';
 
 import LoadingPanel from 'app/views/events/loadingPanel';
 
+const defaultProps = {
+  height: '200px',
+};
+
 type Props = {
   reloading: boolean;
   loading: boolean;
-};
+  height?: number;
+} & typeof defaultProps;
 
 type State = {
   prevReloading: boolean;
@@ -14,6 +19,8 @@ type State = {
 };
 
 class TransitionChart extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
   state = {
     prevReloading: this.props.reloading,
     prevLoading: this.props.loading,
@@ -81,10 +88,10 @@ class TransitionChart extends React.Component<Props, State> {
   }
 
   render() {
-    const {loading, reloading} = this.props;
+    const {height, loading, reloading} = this.props;
 
     if (loading && !reloading) {
-      return <LoadingPanel data-test-id="events-request-loading" />;
+      return <LoadingPanel height={height} data-test-id="events-request-loading" />;
     }
 
     // We make use of the key prop to explicitly remount the children

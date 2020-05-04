@@ -15,17 +15,20 @@ import {
 import OptionSelector from 'app/components/charts/optionSelector';
 
 import {ChartContainer} from '../styles';
+import ApdexThroughputChart from './apdexThroughputChart';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
 
 enum DisplayModes {
   DURATION = 'duration',
   LATENCY = 'latency',
+  APDEX_THROUGHPUT = 'apdexthroughput',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
+  {value: DisplayModes.APDEX_THROUGHPUT, label: t('Apdex, Throughput')},
 ];
 
 type Props = {
@@ -69,6 +72,17 @@ class TransactionSummaryCharts extends React.Component<Props> {
           )}
           {display === DisplayModes.DURATION && (
             <DurationChart
+              organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
+          {display === DisplayModes.APDEX_THROUGHPUT && (
+            <ApdexThroughputChart
               organization={organization}
               query={eventView.query}
               project={eventView.project}
