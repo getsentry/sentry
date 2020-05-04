@@ -24,6 +24,8 @@ UNSAFE_FILES = (
     "outcomes_consumer.py",
 )
 
+UNSAFE_TAG = "_unsafe"
+
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import configure_scope, push_scope, capture_message, capture_exception  # NOQA
@@ -36,6 +38,11 @@ def is_current_event_safe():
     """
 
     with configure_scope() as scope:
+
+        # Scope was explicitly marked as unsafe
+        if scope._tags.get(UNSAFE_TAG):
+            return False
+
         project_id = scope._tags.get("project")
 
         if project_id and project_id == settings.SENTRY_PROJECT:
@@ -46,6 +53,17 @@ def is_current_event_safe():
             return False
 
     return True
+
+
+def mark_scope_as_unsafe():
+    """
+    Set the unsafe tag on the SDK scope for outgoing crashe and transactions.
+
+    Marking a scope explicitly as unsafe allows the recursion breaker to
+    decide early, before walking the stack and checking for unsafe files.
+    """
+    with configure_scope() as scope:
+        scope.set_tag(UNSAFE_TAG, True)
 
 
 def set_current_project(project_id):
