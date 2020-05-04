@@ -161,8 +161,8 @@ def get_release_adoption(project_releases, environments=None, now=None):
     total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "users"],
-        groupby=["release", "project_id"],
+        selected_columns=["project_id", "users"],
+        groupby=["project_id"],
         start=start,
         conditions=conditions,
         filter_keys=filter_keys,
