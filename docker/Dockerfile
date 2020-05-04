@@ -187,6 +187,7 @@ RUN set -x \
 
 COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl && pip check
+RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 COPY ./docker/docker-entrypoint.sh /
