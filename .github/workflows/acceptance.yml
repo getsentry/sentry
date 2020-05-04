@@ -150,17 +150,18 @@ jobs:
         # Use `.python-version` to avoid duplication
         - name: Get python version from `.python-version`
           id: python-version
-          run: echo "::set-output name=version::$(cat .python-version)"
+          run: echo "::set-output name=version::2.7.17"
 
         # setup python
         - name: Set up Python ${{ steps.python-version.outputs.version }}
           uses: actions/setup-python@v1
           with:
             python-version: ${{ steps.python-version.outputs.version}}
+
         # setup pip
-        - name: Install pip 
+        - name: Install pip
           run: |
-            pip install --no-cache-dir "pip>=20.0.2"
+            make ensure-pinned-pip
 
         # pip cache
         - name: Get pip cache dir
