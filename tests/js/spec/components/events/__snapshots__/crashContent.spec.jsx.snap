@@ -77,7 +77,7 @@ exports[`CrashContent renders with meta data 1`] = `
             title={
               <span>
                 <span>
-                  Module: 
+                  from 
                 </span>
                 <span>
                   exceptions

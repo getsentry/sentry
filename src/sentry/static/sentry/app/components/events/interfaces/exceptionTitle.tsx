@@ -14,7 +14,7 @@ type Props = {
 const ExceptionTitle = ({type, exceptionModule}: Props) => {
   if (defined(exceptionModule)) {
     return (
-      <Tooltip title={tct('Module: [exceptionModule]', {exceptionModule})}>
+      <Tooltip title={tct('from [exceptionModule]', {exceptionModule})}>
         <Title>{type}</Title>
       </Tooltip>
     );
