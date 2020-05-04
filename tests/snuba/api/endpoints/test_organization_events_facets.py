@@ -243,8 +243,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         )
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
-        assert response.status_code == 400, response.content
-        assert response.data == {"detail": "A valid project must be included."}
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     def test_multiple_projects_without_global_view(self):
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
