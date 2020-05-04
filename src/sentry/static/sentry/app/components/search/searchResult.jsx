@@ -4,7 +4,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
@@ -126,15 +126,15 @@ class SearchResult extends React.Component {
     }
 
     if (isSettings) {
-      return <ResultTypeIcon src="icon-settings" />;
+      return <IconSettings />;
     }
 
     if (isField) {
-      return <ResultTypeIcon src="icon-input" />;
+      return <IconInput />;
     }
 
     if (isRoute) {
-      return <ResultTypeIcon src="icon-link" />;
+      return <IconLink />;
     }
 
     if (isIntegration) {
@@ -148,7 +148,7 @@ class SearchResult extends React.Component {
     return (
       <Wrapper>
         <Content>{this.renderContent()}</Content>
-        {this.renderResultType()}
+        <IconWrapper>{this.renderResultType()}</IconWrapper>
       </Wrapper>
     );
   }
@@ -182,10 +182,7 @@ const Content = styled('div')`
   flex-direction: column;
 `;
 
-const ResultTypeIcon = styled(InlineSvg)`
-  font-size: 1.2em;
-  flex-shrink: 0;
-
+const IconWrapper = styled('div')`
   ${/* sc-selector*/ SettingsSearch} & {
     color: inherit;
   }

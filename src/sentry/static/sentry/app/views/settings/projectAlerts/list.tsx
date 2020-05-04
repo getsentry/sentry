@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconSettings} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
 import {PanelTable} from 'app/components/panels';
@@ -88,7 +88,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
           title={t('Alerts')}
           action={
             <HeaderActions>
-              <Button to={`${basePath}settings/`} size="small" icon="icon-settings">
+              <Button to={`${basePath}settings/`} size="small" icon={<IconSettings />}>
                 {t('Settings')}
               </Button>
               <OnboardingHovercard organization={organization} location={location}>
