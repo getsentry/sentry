@@ -48,6 +48,7 @@ exports[`CrashContent renders with meta data 1`] = `
         }
       }
       newestFirst={true}
+      stackView="full"
       type="original"
       values={
         Array [
@@ -61,26 +62,79 @@ exports[`CrashContent renders with meta data 1`] = `
           },
         ]
       }
-      view="full"
     >
-      <div>
-        <div
-          className="exception"
-          key="0"
+      <div
+        className="exception"
+        key="0"
+      >
+        <ExceptionTitle
+          exceptionModule="exceptions"
+          type="ValueError"
         >
-          <h5
-            className="break-word"
-            style={
-              Object {
-                "marginBottom": 5,
-              }
+          <Tooltip
+            containerDisplayMode="inline-block"
+            position="top"
+            title={
+              <span>
+                <span>
+                  Module: 
+                </span>
+                <span>
+                  exceptions
+                </span>
+              </span>
             }
           >
-            <span>
-              ValueError
-            </span>
-          </h5>
-          <Annotated
+            <Manager>
+              <Reference>
+                <InnerReference
+                  setReferenceNode={[Function]}
+                >
+                  <Container
+                    aria-describedby="tooltip-123456"
+                    containerDisplayMode="inline-block"
+                    onBlur={[Function]}
+                    onFocus={[Function]}
+                    onMouseEnter={[Function]}
+                    onMouseLeave={[Function]}
+                  >
+                    <span
+                      aria-describedby="tooltip-123456"
+                      className="css-1y4rfpo-Container eowlwvy0"
+                      onBlur={[Function]}
+                      onFocus={[Function]}
+                      onMouseEnter={[Function]}
+                      onMouseLeave={[Function]}
+                    >
+                      <Title>
+                        <h5
+                          className="css-dcmuoy-Title e1b96xrx0"
+                        >
+                          ValueError
+                        </h5>
+                      </Title>
+                    </span>
+                  </Container>
+                </InnerReference>
+              </Reference>
+            </Manager>
+          </Tooltip>
+        </ExceptionTitle>
+        <Annotated
+          object={
+            Object {
+              "module": "exceptions",
+              "stacktrace": Object {
+                "frames": Array [],
+              },
+              "type": "ValueError",
+              "value": "python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err",
+            }
+          }
+          objectKey="value"
+          required={true}
+        >
+          <MetaData
             object={
               Object {
                 "module": "exceptions",
@@ -91,133 +145,108 @@ exports[`CrashContent renders with meta data 1`] = `
                 "value": "python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err",
               }
             }
-            objectKey="value"
+            prop="value"
             required={true}
           >
-            <MetaData
-              object={
-                Object {
-                  "module": "exceptions",
-                  "stacktrace": Object {
-                    "frames": Array [],
-                  },
-                  "type": "ValueError",
-                  "value": "python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err",
-                }
-              }
-              prop="value"
-              required={true}
+            <ErrorBoundary
+              mini={true}
             >
-              <ErrorBoundary
-                mini={true}
+              <StyledPre
+                className="exc-message"
               >
-                <StyledPre
-                  className="exc-message"
+                <pre
+                  className="exc-message css-1q8nviw-StyledPre e1jgwng30"
                 >
-                  <pre
-                    className="exc-message css-1q8nviw-StyledPre e1rxtykr0"
-                  >
-                    <AnnotatedText
-                      chunks={Array []}
-                      errors={Array []}
-                      remarks={
+                  <AnnotatedText
+                    chunks={Array []}
+                    errors={Array []}
+                    remarks={
+                      Array [
                         Array [
-                          Array [
-                            "device_id",
-                            "p",
-                            11,
-                            51,
-                          ],
-                        ]
-                      }
-                      value="python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err"
-                    >
-                      <span>
-                        <Tooltip
-                          containerDisplayMode="inline-block"
-                          position="top"
-                          title="Pseudonymized because of PII rule \\"device_id\\""
-                        >
-                          <Manager>
-                            <Reference>
-                              <InnerReference
-                                setReferenceNode={[Function]}
+                          "device_id",
+                          "p",
+                          11,
+                          51,
+                        ],
+                      ]
+                    }
+                    value="python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err"
+                  >
+                    <span>
+                      <Tooltip
+                        containerDisplayMode="inline-block"
+                        position="top"
+                        title="Pseudonymized because of PII rule \\"device_id\\""
+                      >
+                        <Manager>
+                          <Reference>
+                            <InnerReference
+                              setReferenceNode={[Function]}
+                            >
+                              <Container
+                                aria-describedby="tooltip-123456"
+                                containerDisplayMode="inline-block"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
                               >
-                                <Container
+                                <span
                                   aria-describedby="tooltip-123456"
-                                  containerDisplayMode="inline-block"
+                                  className="css-1y4rfpo-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
-                                  <span
-                                    aria-describedby="tooltip-123456"
-                                    className="css-1y4rfpo-Container eowlwvy0"
-                                    onBlur={[Function]}
-                                    onFocus={[Function]}
-                                    onMouseEnter={[Function]}
-                                    onMouseLeave={[Function]}
-                                  >
-                                    <Redaction>
-                                      <span
-                                        className="css-1vnqw28-Redaction e1p1th7g1"
-                                      >
-                                        python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err
-                                      </span>
-                                    </Redaction>
-                                  </span>
-                                </Container>
-                              </InnerReference>
-                            </Reference>
-                          </Manager>
-                        </Tooltip>
-                         
-                      </span>
-                    </AnnotatedText>
-                  </pre>
-                </StyledPre>
-              </ErrorBoundary>
-            </MetaData>
-          </Annotated>
-          <ExceptionDetails>
-            <div
-              className="css-1oi8coz-ExceptionDetails e1rxtykr1"
-            >
-              <Pills>
-                <div
-                  className="css-169cud9-Pills e17cyim10"
-                >
-                  <Pill
-                    name="module"
-                    value="exceptions"
-                  >
-                    <StyledPill>
-                      <li
-                        className="css-22pqns-StyledPill ez9cevw0"
-                      >
-                        <PillName>
-                          <span
-                            className="css-rc2gkf-PillName ez9cevw1"
-                          >
-                            module
-                          </span>
-                        </PillName>
-                        <PillValue>
-                          <span
-                            className="css-1vzt662-PillName-PillValue ez9cevw2"
-                          >
-                            exceptions
-                          </span>
-                        </PillValue>
-                      </li>
-                    </StyledPill>
-                  </Pill>
-                </div>
-              </Pills>
-            </div>
-          </ExceptionDetails>
-          <ExceptionStacktraceContent
+                                  <Redaction>
+                                    <span
+                                      className="css-1vnqw28-Redaction e1p1th7g1"
+                                    >
+                                      python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err
+                                    </span>
+                                  </Redaction>
+                                </span>
+                              </Container>
+                            </InnerReference>
+                          </Reference>
+                        </Manager>
+                      </Tooltip>
+                       
+                    </span>
+                  </AnnotatedText>
+                </pre>
+              </StyledPre>
+            </ErrorBoundary>
+          </MetaData>
+        </Annotated>
+        <ExceptionStacktraceContent
+          data={
+            Object {
+              "frames": Array [],
+            }
+          }
+          event={
+            Object {
+              "dateCreated": "2019-05-21T18:01:48.762Z",
+              "eventID": "12345678901234567890123456789012",
+              "groupID": "1",
+              "id": "1",
+              "message": "ApiException",
+              "tags": Array [],
+              "title": "ApiException",
+            }
+          }
+          expandFirstFrame={true}
+          newestFirst={true}
+          stackView="full"
+          stacktrace={
+            Object {
+              "frames": Array [],
+            }
+          }
+        >
+          <StacktraceContent
             data={
               Object {
                 "frames": Array [],
@@ -235,43 +264,16 @@ exports[`CrashContent renders with meta data 1`] = `
               }
             }
             expandFirstFrame={true}
+            includeSystemFrames={true}
             newestFirst={true}
-            stackView="full"
-            stacktrace={
-              Object {
-                "frames": Array [],
-              }
-            }
           >
-            <StacktraceContent
-              data={
-                Object {
-                  "frames": Array [],
-                }
-              }
-              event={
-                Object {
-                  "dateCreated": "2019-05-21T18:01:48.762Z",
-                  "eventID": "12345678901234567890123456789012",
-                  "groupID": "1",
-                  "id": "1",
-                  "message": "ApiException",
-                  "tags": Array [],
-                  "title": "ApiException",
-                }
-              }
-              expandFirstFrame={true}
-              includeSystemFrames={true}
-              newestFirst={true}
+            <div
+              className=" traceback full-traceback"
             >
-              <div
-                className=" traceback full-traceback"
-              >
-                <ul />
-              </div>
-            </StacktraceContent>
-          </ExceptionStacktraceContent>
-        </div>
+              <ul />
+            </div>
+          </StacktraceContent>
+        </ExceptionStacktraceContent>
       </div>
     </ExceptionContent>
   </ErrorBoundary>
