@@ -83,7 +83,7 @@ class OpsBreakdown extends React.Component<Props> {
           ];
 
     const operationNameIntervals = spans.reduce(
-      (intervals: OperationNameIntervals, span: RawSpanType) => {
+      (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
         let startTimestamp = span.start_timestamp;
         let endTimestamp = span.timestamp;
 
@@ -104,9 +104,9 @@ class OpsBreakdown extends React.Component<Props> {
 
         const cover: TimeWindowSpan = [startTimestamp, endTimestamp];
 
-        const operationNameInterval = intervals[operationName] ?? [];
+        const operationNameInterval = intervals[operationName];
 
-        if (operationNameInterval.length <= 0) {
+        if (!Array.isArray(operationNameInterval)) {
           intervals[operationName] = [cover];
 
           return intervals;
@@ -119,11 +119,11 @@ class OpsBreakdown extends React.Component<Props> {
         return intervals;
       },
       {}
-    );
+    ) as OperationNameIntervals;
 
     const operationNameCoverage = Object.entries(operationNameIntervals).reduce(
       (
-        acc: OperationNameCoverage,
+        acc: Partial<OperationNameCoverage>,
         [operationName, intervals]: [OperationName, TimeWindowSpan[]]
       ) => {
         const duration = intervals.reduce((sum: number, [start, end]) => {
@@ -135,7 +135,7 @@ class OpsBreakdown extends React.Component<Props> {
         return acc;
       },
       {}
-    );
+    ) as OperationNameCoverage;
 
     const sortedOpsBreakdown = Object.entries(operationNameCoverage).sort(
       (first: [OperationName, Duration], second: [OperationName, Duration]) => {
