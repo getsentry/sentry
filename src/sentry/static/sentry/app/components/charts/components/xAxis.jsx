@@ -1,5 +1,4 @@
-import ConfigStore from 'app/stores/configStore';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, use24Hours} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 
 import {truncationFormatter, useShortInterval} from '../utils';
@@ -17,12 +16,6 @@ export default function XAxis({
   utc,
   ...props
 } = {}) {
-  const use24Hours = () => {
-    const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
-    return options.clock24Hours;
-  };
-
   const axisLabelFormatter = (value, index) => {
     if (isGroupedByDate) {
       const timeFormat = use24Hours() ? 'HH:mm' : 'LT';

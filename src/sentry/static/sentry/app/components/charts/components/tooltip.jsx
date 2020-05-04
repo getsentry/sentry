@@ -1,15 +1,8 @@
 import 'echarts/lib/component/tooltip';
 
-import ConfigStore from 'app/stores/configStore';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, use24Hours} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
-
-const use24Hours = () => {
-  const user = ConfigStore.get('user');
-  const options = user ? user.options : {};
-  return options.clock24Hours;
-};
 
 function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   if (!isTimestamp) {
