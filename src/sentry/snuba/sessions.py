@@ -186,7 +186,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         if not total:
             adoption = None
         else:
-            adoption = x["users"] / total * 100
+            adoption = float(x["users"]) / total * 100
         rv[x["project_id"], x["release"]] = {
             "adoption": adoption,
             "users_24h": x["users"],
