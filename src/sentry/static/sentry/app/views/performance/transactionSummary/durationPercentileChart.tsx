@@ -15,7 +15,7 @@ import EventView from 'app/utils/discover/eventView';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -159,7 +159,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Duration Percentiles')}
           <Tooltip
             position="top"
@@ -169,7 +169,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
           >
             <StyledIconQuestion />
           </Tooltip>
-        </HeaderTitle>
+        </HeaderTitleLegend>
         {this.renderComponent()}
       </React.Fragment>
     );
