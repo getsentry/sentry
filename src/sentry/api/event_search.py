@@ -864,7 +864,7 @@ def get_filter(query=None, params=None):
                             parse_release(
                                 term.value.value,
                                 params["project_id"],
-                                params.get("environment"),
+                                params.get("environment_objects"),
                                 params["organization_id"],
                             )
                         ),
@@ -902,11 +902,7 @@ def get_filter(query=None, params=None):
             else:
                 kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
-            term = SearchFilter(
-                SearchKey("environment"),
-                "=",
-                SearchValue([env.name for env in params["environment"]]),
-            )
+            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]),)
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])

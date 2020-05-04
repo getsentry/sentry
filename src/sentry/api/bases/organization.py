@@ -284,7 +284,8 @@ class OrganizationEndpoint(Endpoint):
             "organization_id": organization.id,
         }
         if environments:
-            params["environment"] = environments
+            params["environment"] = [env.name for env in environments]
+            params["environment_objects"] = environments
 
         return params
 
