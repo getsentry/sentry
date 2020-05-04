@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from django.db import models
 from sentry.db.models.manager import BaseManager
 
@@ -8,11 +10,29 @@ from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 
 class CommitAuthorManager(BaseManager):
     def get_or_create(self, organization_id, email, defaults, **kwargs):
+
+        # Truncate commit author name in case it is too long
+        author_name_source = None
+
+        if "name" in kwargs:
+            author_name_source = kwargs
+        elif "name" in defaults:
+            author_name_source = defaults
+
+        if author_name_source is not None and isinstance(
+            author_name_source["name"], six.string_types
+        ):
+            author_name_source["name"] = author_name_source["name"][:128]
+
         # Force email address to lowercase because GitHub does this. Note though that this isn't technically
         # to spec; only the domain part of the email address is actually case-insensitive.
         # See: https://stackoverflow.com/questions/9807909/are-email-addresses-case-sensitive
+        #
+        # Also, truncate commit author email in case it is too long
+        email = email.lower()[:75]
+
         return super(CommitAuthorManager, self).get_or_create(
-            organization_id=organization_id, email=email.lower(), defaults=defaults, **kwargs
+            organization_id=organization_id, email=email, defaults=defaults, **kwargs
         )
 
 

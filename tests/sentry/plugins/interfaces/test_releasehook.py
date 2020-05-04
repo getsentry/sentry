@@ -106,6 +106,13 @@ class SetCommitsTest(TestCase):
                 "author_email": "jane@example.com",
             },
             {"id": "bbee5b51f84611e4b14834363b8514c2", "message": "bar", "author_name": "Joe^^"},
+            # commit author name and email will automatically be truncated
+            {
+                "id": "bbee5b51f84611e4b14834363b8514c3",
+                "message": "baz",
+                "author_name": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ac purus orci. Nullam maximus ut nibh vel condimentum. Vivamus tincidunt donec.",
+                "author_email": "MailForTheQuickBrownFoxJumpsOverTheLazyDog@TheQuickBrownFoxJumpsOverTheLazyDog.com",
+            },
         ]
 
         hook = ReleaseHook(project)
@@ -118,7 +125,7 @@ class SetCommitsTest(TestCase):
             .order_by("releasecommit__order")
         )
 
-        assert len(commit_list) == 2
+        assert len(commit_list) == 3
         assert commit_list[0].key == "c7155651831549cf8a5e47889fce17eb"
         assert commit_list[0].message == "foo"
         assert commit_list[0].author.name is None
@@ -127,3 +134,12 @@ class SetCommitsTest(TestCase):
         assert commit_list[1].message == "bar"
         assert commit_list[1].author.name == "Joe^^"
         assert commit_list[1].author.email == "joe@localhost"
+        assert commit_list[2].message == "baz"
+        assert (
+            commit_list[2].author.name
+            == "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ac purus orci. Nullam maximus ut nibh vel condimentum. Vivamus tinc"
+        )
+        assert (
+            commit_list[2].author.email
+            == "mailforthequickbrownfoxjumpsoverthelazydog@thequickbrownfoxjumpsoverthel..."
+        )
