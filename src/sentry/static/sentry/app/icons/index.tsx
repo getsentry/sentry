@@ -29,7 +29,7 @@ export {default as IconGithub} from './iconGithub';
 export {default as IconGitlab} from './iconGitlab';
 export {default as IconGoogle} from './iconGoogle';
 export {default as IconGrabbable} from './iconGrabbable';
-export {default as IconGraph} from './iconGraphCircle';
+export {default as IconGraph} from './iconGraph';
 export {default as IconGroup} from './iconGroup';
 export {default as IconInfo} from './iconInfo';
 export {default as IconInput} from './iconInput';
