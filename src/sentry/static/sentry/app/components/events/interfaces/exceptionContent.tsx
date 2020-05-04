@@ -76,32 +76,24 @@ const ExceptionContent = ({
     exceptionValues.reverse();
   }
 
-  return (
-    <React.Fragment>
-      {exceptionValues.map((exc, excIdx) => (
-        <div key={excIdx} className="exception">
-          <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
-          <Annotated object={exc} objectKey="value" required>
-            {value => <StyledPre className="exc-message">{value}</StyledPre>}
-          </Annotated>
-          {exc.mechanism && (
-            <ExceptionMechanism data={exc.mechanism} platform={platform} />
-          )}
-          <ExceptionStacktraceContent
-            data={
-              type === 'original' ? exc.stacktrace : exc.rawStacktrace || exc.stacktrace
-            }
-            stackView={stackView}
-            stacktrace={exc.stacktrace}
-            expandFirstFrame={excIdx === 0}
-            platform={platform}
-            newestFirst={newestFirst}
-            event={event}
-          />
-        </div>
-      ))}
-    </React.Fragment>
-  );
+  return exceptionValues.map((exc, excIdx) => (
+    <div key={excIdx} className="exception">
+      <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
+      <Annotated object={exc} objectKey="value" required>
+        {value => <StyledPre className="exc-message">{value}</StyledPre>}
+      </Annotated>
+      {exc.mechanism && <ExceptionMechanism data={exc.mechanism} platform={platform} />}
+      <ExceptionStacktraceContent
+        data={type === 'original' ? exc.stacktrace : exc.rawStacktrace || exc.stacktrace}
+        stackView={stackView}
+        stacktrace={exc.stacktrace}
+        expandFirstFrame={excIdx === 0}
+        platform={platform}
+        newestFirst={newestFirst}
+        event={event}
+      />
+    </div>
+  ));
 };
 
 export default ExceptionContent;
