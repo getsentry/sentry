@@ -70,6 +70,7 @@ class FilesChanged extends AsyncView<Props, State> {
               key={repository}
               repository={repository}
               fileChangeSummary={filesByRepository[repository]}
+              collapsable={false}
             />
           ))
         ) : (

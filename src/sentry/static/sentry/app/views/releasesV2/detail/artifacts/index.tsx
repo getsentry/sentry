@@ -2,7 +2,6 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import ReleaseArtifactsV1 from 'app/views/releases/detail/releaseArtifacts';
 import AsyncView from 'app/views/asyncView';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -38,20 +37,12 @@ class ReleaseArtifacts extends AsyncView<Props> {
     const {params, location} = this.props;
 
     return (
-      <React.Fragment>
-        <Alert type="warning">
-          {t(
-            'We are working on improving this experience, therefore Artifacts will be moving to Settings soon.'
-          )}
-        </Alert>
-
-        <ReleaseArtifactsV1
-          params={params}
-          location={location}
-          projectId={project.slug}
-          smallEmptyMessage
-        />
-      </React.Fragment>
+      <ReleaseArtifactsV1
+        params={params}
+        location={location}
+        projectId={project.slug}
+        smallEmptyMessage
+      />
     );
   }
 }

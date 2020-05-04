@@ -19,9 +19,10 @@ import {deleteRelease} from './utils';
 type Props = {
   orgId: string;
   version: string;
+  hasHealthData: boolean;
 };
 
-const ReleaseActions = ({orgId, version}: Props) => {
+const ReleaseActions = ({orgId, version, hasHealthData}: Props) => {
   const handleDelete = async () => {
     const redirectPath = `/organizations/${orgId}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
@@ -50,8 +51,9 @@ const ReleaseActions = ({orgId, version}: Props) => {
             title={t(
               'You can only delete releases if they have no issues or health data.'
             )}
+            disabled={!hasHealthData}
           >
-            <Button icon={<IconDelete />} />
+            <Button icon={<IconDelete />} disabled={hasHealthData} />
           </Tooltip>
         </div>
       </Confirm>
