@@ -52,6 +52,7 @@ jobs:
         POSTGRES_HOST: postgres
         # The default PostgreSQL port
         POSTGRES_PORT: 5432
+        POSTGRES_ENV_POSTGRES_PASSWORD: postgres
 
         # Percy config
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
