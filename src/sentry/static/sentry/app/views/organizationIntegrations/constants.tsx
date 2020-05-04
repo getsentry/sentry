@@ -188,7 +188,6 @@ export const documentIntegrationList: DocumentIntegration[] = [
 
 export const documentIntegrations: {
   [key: string]: DocumentIntegration;
-} = documentIntegrationList.reduce((accum, integration) => {
-  accum[integration.slug] = integration;
-  return accum;
-}, {});
+} = Object.fromEntries(
+  documentIntegrationList.map(integration => [integration.slug, integration])
+);
