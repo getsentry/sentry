@@ -91,6 +91,7 @@ jobs:
           image: postgres:9.6
           env:
             POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: ""
           ports:
             # Maps tcp port 5432 on service container to the host
             - 5432:5432
