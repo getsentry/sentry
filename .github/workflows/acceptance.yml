@@ -148,12 +148,12 @@ jobs:
             node-version: ${{ steps.nvmrc.outputs.version }}
 
         # Use `.python-version` to avoid duplication
-        - name: Get python version from `.python-verion`
+        - name: Get python version from `.python-version`
           id: python-version
           run: echo "::set-output name=version::$(cat .python-version)"
 
         # setup python
-        - name: Set up Python ${{ steps.python-verion.outputs.version }}
+        - name: Set up Python ${{ steps.python-version.outputs.version }}
           uses: actions/setup-python@v1
           with:
             python-version: ${{ steps.python-version.outputs.version}}
