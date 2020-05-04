@@ -4,6 +4,7 @@ import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
 
 import {SentryTransactionEvent} from 'app/types';
+import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 import {
@@ -11,8 +12,12 @@ import {
   ProcessedSpanType,
   GapSpanType,
   RawSpanType,
+  OrphanSpanType,
+  SpanType,
   SpanEntry,
   TraceContextType,
+  TreeDepthType,
+  OrphanTreeDepth,
 } from './types';
 
 type Rect = {
@@ -346,8 +351,25 @@ export function getTraceDateTimeRange(input: {
 }
 
 export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
-  // @ts-ignore
-  return span.type === 'gap';
+  if ('type' in span) {
+    return span.type === 'gap';
+  }
+
+  return false;
+}
+
+export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
+  if ('type' in span) {
+    if (span.type === 'orphan') {
+      return true;
+    }
+
+    if (span.type === 'gap') {
+      return span.isOrphan;
+    }
+  }
+
+  return false;
 }
 
 export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
@@ -415,6 +437,16 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     };
   }
 
+  // any span may be a parent of another span
+  const potentialParents = new Set(
+    spans.map(span => {
+      return span.span_id;
+    })
+  );
+
+  // the root transaction span is a parent of all other spans
+  potentialParents.add(rootSpanID);
+
   // we reduce spans to become an object mapping span ids to their children
 
   const init: ParsedTraceType = {
@@ -429,16 +461,36 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     spans,
   };
 
-  const reduced: ParsedTraceType = spans.reduce((acc, span) => {
-    if (!isValidSpanID(getSpanParentSpanID(span))) {
-      return acc;
+  const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
+    let span: SpanType = inputSpan;
+
+    const parentSpanId = getSpanParentSpanID(span);
+
+    const hasParent = parentSpanId && potentialParents.has(parentSpanId);
+
+    if (!isValidSpanID(parentSpanId) || !hasParent) {
+      // this span is considered an orphan with respect to the spans within this transaction.
+      // although the span is an orphan, it's still a descendant of this transaction,
+      // so we set its parent span id to be the root transaction span's id
+      span.parent_span_id = rootSpanID;
+
+      span = {
+        type: 'orphan',
+        ...span,
+      } as OrphanSpanType;
     }
 
-    const spanChildren: Array<RawSpanType> = acc.childSpans?.[span.parent_span_id!] ?? [];
+    assert(span.parent_span_id);
+
+    // get any span children whose parent_span_id is equal to span.parent_span_id,
+    // otherwise start with an empty array
+    const spanChildren: Array<SpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
-    set(acc.childSpans, span.parent_span_id!, spanChildren);
+    set(acc.childSpans, span.parent_span_id, spanChildren);
+
+    // set trace start & end timestamps based on given span's start and end timestamps
 
     if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
       acc.traceStartTimestamp = span.start_timestamp;
@@ -470,21 +522,56 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     return acc;
   }, init);
 
-  // sort span children by their start timestamps in ascending order
+  // sort span children
 
   Object.values(reduced.childSpans).forEach(spanChildren => {
-    spanChildren.sort((firstSpan, secondSpan) => {
-      if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
-        return -1;
-      }
-
-      if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
-        return 0;
-      }
-
-      return 1;
-    });
+    spanChildren.sort(sortSpans);
   });
 
   return reduced;
+}
+
+function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
+  // orphan spans come after non-ophan spans.
+
+  if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
+    // sort secondSpan before firstSpan
+    return 1;
+  }
+
+  if (!isOrphanSpan(firstSpan) && isOrphanSpan(secondSpan)) {
+    // sort firstSpan before secondSpan
+    return -1;
+  }
+
+  // sort spans by their start timestamp in ascending order
+
+  if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
+    // sort firstSpan before secondSpan
+    return -1;
+  }
+
+  if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
+    return 0;
+  }
+
+  // sort secondSpan before firstSpan
+  return 1;
+}
+
+export function isOrphanTreeDepth(
+  treeDepth: TreeDepthType
+): treeDepth is OrphanTreeDepth {
+  if (typeof treeDepth === 'number') {
+    return false;
+  }
+  return treeDepth?.type === 'orphan';
+}
+
+export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
+  if (isOrphanTreeDepth(treeDepth)) {
+    return treeDepth.depth;
+  }
+
+  return treeDepth;
 }

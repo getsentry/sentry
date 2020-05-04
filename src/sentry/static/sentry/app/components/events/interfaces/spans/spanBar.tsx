@@ -18,8 +18,11 @@ import {
   getHumanDuration,
   getSpanID,
   getSpanOperation,
+  isOrphanSpan,
+  unwrapTreeDepth,
+  isOrphanTreeDepth,
 } from './utils';
-import {ParsedTraceType, ProcessedSpanType} from './types';
+import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
@@ -174,7 +177,7 @@ type SpanBarProps = {
   spanBarHatch?: boolean;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   treeDepth: number;
-  continuingTreeDepths: Array<number>;
+  continuingTreeDepths: Array<TreeDepthType>;
   showSpanTree: boolean;
   numOfSpanChildren: number;
   spanNumber: number;
@@ -309,7 +312,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   };
 
   renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
-    const {isLast, isRoot, treeDepth, continuingTreeDepths, span} = this.props;
+    const {
+      isLast,
+      isRoot,
+      treeDepth: spanTreeDepth,
+      continuingTreeDepths,
+      span,
+    } = this.props;
 
     const spanID = getSpanID(span);
 
@@ -319,6 +328,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           <ConnectorBar
             style={{right: '16px', height: '10px', bottom: '-5px', top: 'auto'}}
             key={`${spanID}-last`}
+            orphanBranch={false}
           />
         );
       }
@@ -326,22 +336,49 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(depth => {
-      const left = ((treeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
-      return <ConnectorBar style={{left}} key={`${spanID}-${depth}`} />;
+    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+      const depth: number = unwrapTreeDepth(treeDepth);
+
+      if (depth === 0) {
+        // do not render a connector bar at depth 0,
+        // if we did render a connector bar, this bar would be placed at depth -1
+        // which does not exist.
+        return null;
+      }
+      const left = ((spanTreeDepth - depth) * (TOGGLE_BORDER_BOX / 2) + 1) * -1;
+
+      return (
+        <ConnectorBar
+          style={{left}}
+          key={`${spanID}-${depth}`}
+          orphanBranch={isOrphanTreeDepth(treeDepth)}
+        />
+      );
     });
 
     if (hasToggler) {
+      // if there is a toggle button, we add a connector bar to create an attachment
+      // between the toggle button and any connector bars below the toggle button
       connectorBars.push(
         <ConnectorBar
-          style={{right: '16px', height: '10px', bottom: '0', top: 'auto'}}
+          style={{
+            right: '16px',
+            height: '10px',
+            bottom: isLast ? `-${SPAN_ROW_HEIGHT / 2}px` : '0',
+            top: 'auto',
+          }}
           key={`${spanID}-last`}
+          orphanBranch={false}
         />
       );
     }
 
     return (
-      <SpanTreeConnector isLast={isLast} hasToggler={hasToggler}>
+      <SpanTreeConnector
+        isLast={isLast}
+        hasToggler={hasToggler}
+        orphanBranch={isOrphanSpan(span)}
+      >
         {connectorBars}
       </SpanTreeConnector>
     );
@@ -868,26 +905,28 @@ type TogglerTypes = OmitHtmlDivProps<{
 
 const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
   position: relative;
-  height: 16px;
+  height: ${SPAN_ROW_HEIGHT}px;
   width: ${p => (p.hasToggler ? '40px' : '12px')};
   min-width: ${p => (p.hasToggler ? '40px' : '12px')};
   margin-right: ${p => (p.hasToggler ? space(0.5) : space(1))};
   z-index: ${zIndex.spanTreeToggler};
   display: flex;
   justify-content: flex-end;
+  align-items: center;
 `;
 
-const SpanTreeConnector = styled('div')<TogglerTypes>`
-  height: ${p => (p.isLast ? '80%' : '160%')};
+const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
+  height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px solid ${p => p.theme.gray1};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
   position: absolute;
-  top: -5px;
+  top: 0;
 
   &:before {
     content: '';
     height: 1px;
-    background-color: ${p => p.theme.gray1};
+    border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
+
     width: 100%;
     position: absolute;
     bottom: ${p => (p.isLast ? '0' : '50%')};
@@ -901,13 +940,14 @@ const SpanTreeConnector = styled('div')<TogglerTypes>`
     width: 3px;
     position: absolute;
     right: 0;
-    top: 11px;
+    top: ${SPAN_ROW_HEIGHT / 2 - 2}px;
   }
 `;
 
-const ConnectorBar = styled('div')`
+const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
-  border-left: 1px solid ${p => p.theme.gray1};
+
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
   top: -5px;
   position: absolute;
 `;
@@ -945,6 +985,7 @@ type SpanTreeTogglerAndDivProps = OmitHtmlDivProps<{
 }>;
 
 const SpanTreeToggler = styled('div')<SpanTreeTogglerAndDivProps>`
+  height: 16px;
   white-space: nowrap;
   min-width: 30px;
   display: flex;
