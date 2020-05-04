@@ -14,7 +14,7 @@ type ExceptionStacktraceContentProps = React.ComponentProps<
   typeof ExceptionStacktraceContent
 >;
 
-// TODO(ts): Move the types below to exptionMechanism component once it is in typescript
+// TODO(ts): Move the types below to exceptionMechanism component once it is in typescript
 type MechanismMeta = {
   errno?: {
     number: number;
