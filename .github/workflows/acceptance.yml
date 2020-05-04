@@ -161,7 +161,7 @@ jobs:
         # setup pip
         - name: Install pip
           run: |
-            make ensure-pinned-pip
+            pip install --no-cache-dir --upgrade "pip>=20.0.2"
 
         # pip cache
         - name: Get pip cache dir
