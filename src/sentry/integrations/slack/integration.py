@@ -122,6 +122,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
+            "user_scopes": frozenset(["links:read"]),
             "oauth_scopes": self.identity_oauth_scopes,
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }

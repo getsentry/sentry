@@ -13,7 +13,7 @@ class SlackIdentityProvider(OAuth2Provider):
     # This identity provider is used for authorizing the Slack application
     # through their Bot token (or legacy Workspace Token if enabled) flow.
 
-    oauth_scopes = ("identity.basic", "identity.email")
+    oauth_scopes = ("identity.basic", "identity.email", "links:read")
 
     def get_oauth_authorize_url(self):
         if self.use_wst_app:

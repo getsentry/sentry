@@ -89,12 +89,16 @@ class OAuth2Provider(Provider):
     def get_refresh_token_headers(self):
         return None
 
+    def get_user_scopes(self):
+        return self.config.get("user_scopes", "")
+
     def get_pipeline_views(self):
         return [
             OAuth2LoginView(
                 authorize_url=self.get_oauth_authorize_url(),
                 client_id=self.get_oauth_client_id(),
                 scope=" ".join(self.get_oauth_scopes()),
+                user_scope=" ".join(self.get_user_scopes()),
             ),
             OAuth2CallbackView(
                 access_token_url=self.get_oauth_access_token_url(),
@@ -204,8 +208,11 @@ class OAuth2LoginView(PipelineView):
     authorize_url = None
     client_id = None
     scope = ""
+    user_scope = ""
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
+    def __init__(
+        self, authorize_url=None, client_id=None, scope=None, user_scope=None, *args, **kwargs
+    ):
         super(OAuth2LoginView, self).__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
@@ -213,6 +220,8 @@ class OAuth2LoginView(PipelineView):
             self.client_id = client_id
         if scope is not None:
             self.scope = scope
+        if user_scope is not None:
+            self.user_scope = user_scope
 
     def get_scope(self):
         return self.scope
@@ -221,13 +230,17 @@ class OAuth2LoginView(PipelineView):
         return self.authorize_url
 
     def get_authorize_params(self, state, redirect_uri):
-        return {
+        data = {
             "client_id": self.client_id,
             "response_type": "code",
             "scope": self.get_scope(),
             "state": state,
             "redirect_uri": redirect_uri,
         }
+        if self.user_scope:
+            data["user_scope"] = self.user_scope
+
+        return data
 
     @csrf_exempt
     def dispatch(self, request, pipeline):
