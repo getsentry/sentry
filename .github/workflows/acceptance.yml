@@ -27,7 +27,7 @@ jobs:
 
       env:
         PIP_DISABLE_PIP_VERSION_CHECK: on
-        PIP_QUIET: 1
+        # PIP_QUIET: 1
 
         SENTRY_LIGHT_BUILD: 1
         SENTRY_SKIP_BACKEND_VALIDATION: 1
@@ -147,11 +147,20 @@ jobs:
           with:
             node-version: ${{ steps.nvmrc.outputs.version }}
 
+        # Use `.python-version` to avoid duplication
+        - name: Get python version from `.python-verion`
+          id: python-version
+          run: echo "::set-output name=version::$(cat .python-version)"
+
         # setup python
-        - name: Set up Python 2.7
+        - name: Set up Python ${{ steps.python-verion.outputs.version }}
           uses: actions/setup-python@v1
           with:
-            python-version: 2.7
+            python-version: ${{ steps.python-version.outputs.version}}
+        # setup pip
+        - name: Install pip 
+          run: |
+            pip install --no-cache-dir "pip>=20.0.2"
 
         # pip cache
         - name: Get pip cache dir
