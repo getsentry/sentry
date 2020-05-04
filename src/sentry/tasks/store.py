@@ -397,7 +397,7 @@ def _do_process_event(
     #
     # *Right now* the only sensitive data that is added in stacktrace
     # processing are usernames in filepaths, so we run directly after
-    # stacktrace processors and `get_event_enhancers`.
+    # stacktrace processors.
     #
     # We do not yet want to deal with context data produced by plugins like
     # sessionstack or fullstory (which are in `get_event_preprocessors`), as

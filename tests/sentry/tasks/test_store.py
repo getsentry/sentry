@@ -319,16 +319,8 @@ def test_scrubbing_after_processing(
 ):
     @register_plugin
     class TestPlugin(Plugin2):
-        def get_event_enhancers(self, data):
-            def more_extra(data):
-                data["extra"]["aaa"] = "remove me"
-                return data
-
-            return [more_extra]
-
         def get_event_preprocessors(self, data):
-            # Right now we do not scrub data from event preprocessors, only
-            # from event enhancers.
+            # Right now we do not scrub data from event preprocessors
             def more_extra(data):
                 data["extra"]["aaa2"] = "event preprocessor"
                 return data
@@ -353,13 +345,15 @@ def test_scrubbing_after_processing(
         "platform": "python",
         "logentry": {"formatted": "test"},
         "event_id": EVENT_ID,
-        "extra": {},
+        "extra": {"aaa": "remove me"},
     }
 
     mock_default_cache.get.return_value = data
 
     with Feature({"organizations:datascrubbers-v2": True}):
-        process_event(cache_key="e:1", start_time=1)
+        # We pass data_has_changed=True to pretend that we've added "extra" attribute
+        # to "data" shortly before (e.g. during symbolication).
+        process_event(cache_key="e:1", start_time=1, data_has_changed=True)
 
     ((_, (key, event, duration), _),) = mock_default_cache.set.mock_calls
     assert key == "e:1"
