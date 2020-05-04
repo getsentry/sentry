@@ -387,7 +387,9 @@ export type Environment = {
 };
 
 // TODO(ts): This type is incomplete
-export type SavedSearch = {};
+export type SavedSearch = {
+  query?: string;
+};
 
 export type PluginNoProject = {
   id: string;
