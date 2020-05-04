@@ -49,10 +49,11 @@ jobs:
         SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
         SENTRY_REDIS_HOST: redis
         # The hostname used to communicate with the PostgreSQL service container
-        POSTGRES_HOST: postgres
-        # The default PostgreSQL port
-        POSTGRES_PORT: 5432
-        POSTGRES_ENV_POSTGRES_PASSWORD: postgres
+        # POSTGRES_HOST: postgres
+        # # The default PostgreSQL port
+        # POSTGRES_PORT: 5432
+        # POSTGRES_ENV_POSTGRES_PASSWORD: postgres
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
         # Percy config
         PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
