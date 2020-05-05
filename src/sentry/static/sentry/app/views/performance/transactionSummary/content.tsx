@@ -59,7 +59,7 @@ class SummaryContent extends React.Component<Props> {
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
-          <Main>
+          <StyledMain>
             <TransactionSummaryCharts
               organization={organization}
               location={location}
@@ -92,7 +92,7 @@ class SummaryContent extends React.Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
-          </Main>
+          </StyledMain>
           <Side>
             <UserStats
               organization={organization}
@@ -119,6 +119,11 @@ const StyledTitleHeader = styled('span')`
   align-self: center;
   min-height: 30px;
   ${overflowEllipsis};
+`;
+
+// Allow overflow so chart tooltip and assignee dropdown display.
+const StyledMain = styled(Main)`
+  overflow: visible;
 `;
 
 const KeyTransactionContainer = styled('div')`

@@ -51,7 +51,7 @@ export const ContentBox = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
+    grid-template-columns: minmax(100px, auto) 325px;
   }
 `;
 export const Main = styled('div')`
