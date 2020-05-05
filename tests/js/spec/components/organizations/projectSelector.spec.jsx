@@ -1,7 +1,7 @@
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import ProjectSelector from 'app/components/projectSelector';
+import ProjectSelector from 'app/components/organizations/projectSelector';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ProjectSelector', function() {
