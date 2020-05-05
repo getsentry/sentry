@@ -265,11 +265,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 checked={false}
                                 id="1"
                                 readOnly={true}
+                                type="radio"
                                 value="member"
                               >
                                 <input
                                   checked={false}
-                                  className="radio-select"
+                                  className="css-58nv73-Radio e1d7o7s40"
                                   id="1"
                                   readOnly={true}
                                   type="radio"
@@ -362,11 +363,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 checked={false}
                                 id="2"
                                 readOnly={true}
+                                type="radio"
                                 value="bar"
                               >
                                 <input
                                   checked={false}
-                                  className="radio-select"
+                                  className="css-58nv73-Radio e1d7o7s40"
                                   id="2"
                                   readOnly={true}
                                   type="radio"

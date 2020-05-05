@@ -10,7 +10,6 @@ import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
-import InlineSvg from 'app/components/inlineSvg';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Feature from 'app/components/acl/feature';
@@ -23,7 +22,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd, IconSettings} from 'app/icons';
 
 const renderDisabledCheckbox = p => (
   <Hovercard
@@ -436,7 +435,7 @@ class ProjectSelectorItem extends React.PureComponent {
             to={`/settings/${organization.slug}/${project.slug}/`}
             onClick={e => e.stopPropagation()}
           >
-            <SettingsIcon src="icon-settings" />
+            <IconSettings />
           </SettingsIconLink>
         </GlobalSelectionHeaderRow>
       </BadgeAndActionsWrapper>
@@ -492,11 +491,6 @@ const SettingsIconLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
-`;
-
-const SettingsIcon = styled(InlineSvg)`
-  height: 16px;
-  width: 16px;
 `;
 
 const Label = styled('div')`
