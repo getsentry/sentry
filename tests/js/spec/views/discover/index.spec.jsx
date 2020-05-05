@@ -2,9 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
-import ProjectsStore from 'app/stores/projectsStore';
 
 describe('DiscoverContainer', function() {
   beforeEach(function() {
