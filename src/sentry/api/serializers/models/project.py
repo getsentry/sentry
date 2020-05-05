@@ -58,12 +58,13 @@ class ProjectSerializer(Serializer):
     such as "show all projects for this organization", and its attributes be kept to a minimum.
     """
 
-    def __init__(self, environment_id=None, stats_period=None):
+    def __init__(self, environment_id=None, stats_period=None, include_features=True):
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
 
         self.environment_id = environment_id
         self.stats_period = stats_period
+        self.include_features = include_features
 
     def get_access_by_project(self, item_list, user):
         request = env.request
@@ -165,6 +166,9 @@ class ProjectSerializer(Serializer):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
+        if not self.include_features:
+            return None
+
         with sentry_sdk.start_span(
             op="project_feature_list", description=getattr(obj, "name")
         ) as span:
@@ -187,8 +191,6 @@ class ProjectSerializer(Serializer):
             return feature_list
 
     def serialize(self, obj, attrs, user):
-        feature_list = self.get_feature_list(obj, user)
-
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         if attrs.get("avatar"):
@@ -208,7 +210,6 @@ class ProjectSerializer(Serializer):
             "color": obj.color,
             "dateCreated": obj.date_added,
             "firstEvent": obj.first_event,
-            "features": feature_list,
             "status": status_label,
             "platform": obj.platform,
             "isInternal": obj.is_internal_project(),
@@ -216,8 +217,16 @@ class ProjectSerializer(Serializer):
             "hasAccess": attrs["has_access"],
             "avatar": avatar,
         }
+        return self._add_conditional_attributes(obj, attrs, user, context)
+
+    def _add_conditional_attributes(self, obj, attrs, user, context):
+        feature_list = self.get_feature_list(obj, user)
+        if feature_list is not None:
+            context["features"] = feature_list
+
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
+
         return context
 
 
@@ -358,7 +367,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        feature_list = self.get_feature_list(obj, user)
         context = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],
@@ -370,7 +378,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
-            "features": feature_list,
             "firstEvent": obj.first_event,
             "platform": obj.platform,
             "platforms": attrs["platforms"],
@@ -378,9 +385,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "latestRelease": attrs["latest_release"],
             "hasUserReports": attrs["has_user_reports"],
         }
-        if "stats" in attrs:
-            context["stats"] = attrs["stats"]
-        return context
+        return self._add_conditional_attributes(obj, attrs, user, context)
 
 
 def bulk_fetch_project_latest_releases(projects):
