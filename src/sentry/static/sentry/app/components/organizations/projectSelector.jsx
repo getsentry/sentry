@@ -9,7 +9,6 @@ import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Feature from 'app/components/acl/feature';
@@ -45,9 +44,6 @@ class ProjectSelector extends React.Component {
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
     organization: PropTypes.object.isRequired,
-    projects: PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
-    ),
 
     // used by multiProjectSelector
     multiProjects: PropTypes.arrayOf(
@@ -120,56 +116,12 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {organization, projects, multiProjects, nonMemberProjects} = this.props;
-
-    if (multiProjects) {
-      return [
-        sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
-        nonMemberProjects || [],
-      ];
-    }
-
-    // Legacy
-    const {isSuperuser} = ConfigStore.get('user');
-    const unfilteredProjects = projects || organization.projects;
-
-    const filteredProjects = isSuperuser
-      ? unfilteredProjects
-      : unfilteredProjects.filter(project => project.isMember);
+    const {multiProjects, nonMemberProjects} = this.props;
 
     return [
-      sortArray(filteredProjects, project => [!project.isBookmarked, project.name]),
-      [],
+      sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
+      nonMemberProjects || [],
     ];
-  }
-
-  isControlled = () => typeof this.props.selectedProjects !== 'undefined';
-
-  toggleProject(project, e) {
-    const {onMultiSelect} = this.props;
-    const {slug} = project;
-    // Don't update state if this is a controlled component
-    if (this.isControlled()) {
-      return;
-    }
-
-    this.setState(state => {
-      const selectedProjects = new Map(state.selectedProjects.entries());
-
-      if (selectedProjects.has(slug)) {
-        selectedProjects.delete(slug);
-      } else {
-        selectedProjects.set(slug, project);
-      }
-
-      if (typeof onMultiSelect === 'function') {
-        onMultiSelect(Array.from(selectedProjects.values()), e);
-      }
-
-      return {
-        selectedProjects,
-      };
-    });
   }
 
   handleSelect = ({value: project}) => {
@@ -181,32 +133,26 @@ class ProjectSelector extends React.Component {
 
   handleMultiSelect = (project, e) => {
     const {onMultiSelect, selectedProjects} = this.props;
-    const isControlled = this.isControlled();
     const hasCallback = typeof onMultiSelect === 'function';
 
-    if (isControlled && !hasCallback) {
+    if (!hasCallback) {
       // eslint-disable-next-line no-console
       console.error(
         'ProjectSelector is a controlled component but `onMultiSelect` callback is not defined'
       );
+      return;
     }
 
-    if (hasCallback) {
-      if (isControlled) {
-        const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
-        if (selectedProjectsMap.has(project.slug)) {
-          // unselected a project
+    const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
+    if (selectedProjectsMap.has(project.slug)) {
+      // unselected a project
 
-          selectedProjectsMap.delete(project.slug);
-        } else {
-          selectedProjectsMap.set(project.slug, project);
-        }
-
-        onMultiSelect(Array.from(selectedProjectsMap.values()), e);
-      }
+      selectedProjectsMap.delete(project.slug);
+    } else {
+      selectedProjectsMap.set(project.slug, project);
     }
 
-    this.toggleProject(project, e);
+    onMultiSelect(Array.from(selectedProjectsMap.values()), e);
   };
 
   render() {
@@ -243,9 +189,7 @@ class ProjectSelector extends React.Component {
           multi={multi}
           inputValue={inputValue}
           isChecked={
-            this.isControlled()
-              ? !!this.props.selectedProjects.find(({slug}) => slug === project.slug)
-              : this.state.selectedProjects.has(project.slug)
+            !!this.props.selectedProjects.find(({slug}) => slug === project.slug)
           }
           style={{padding: 0}}
           onMultiSelect={this.handleMultiSelect}
@@ -334,9 +278,7 @@ class ProjectSelector extends React.Component {
           children({
             ...renderProps,
             activeProject,
-            selectedProjects: this.isControlled()
-              ? this.props.selectedProjects
-              : Array.from(this.state.selectedProjects.values()),
+            selectedProjects: this.props.selectedProjects,
           })
         }
       </DropdownAutoComplete>
