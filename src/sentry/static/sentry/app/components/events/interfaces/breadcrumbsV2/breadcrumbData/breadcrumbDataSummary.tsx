@@ -7,12 +7,8 @@ import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 
-type KvData = {
-  [key: string]: any;
-};
-
 type Props = {
-  kvData?: KvData;
+  kvData?: Record<string, any>;
 };
 
 type State = {

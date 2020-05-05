@@ -5,13 +5,13 @@ import {IconProps} from 'app/types/iconProps';
 import {BreadCrumbIconWrapper} from './styles';
 import {BreadcrumbDetails} from '../breadcrumbs/types';
 
-type Props = Omit<BreadcrumbDetails, 'description'>;
+type Props = Omit<BreadcrumbDetails, 'description'> & Pick<IconProps, 'size'>;
 
-const BreadcrumbIcon = ({icon, color, borderColor}: Props) => {
+const BreadcrumbIcon = ({icon, color, borderColor, size}: Props) => {
   const Icon = icon as React.ComponentType<IconProps>;
   return (
     <BreadCrumbIconWrapper color={color} borderColor={borderColor}>
-      <Icon />
+      <Icon size={size} />
     </BreadCrumbIconWrapper>
   );
 };

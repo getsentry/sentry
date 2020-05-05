@@ -14,6 +14,7 @@ type Props = {
 
 const BreadcrumbDataException = ({breadcrumb}: Props) => {
   const {data} = breadcrumb;
+  const dataValue = data?.value;
   return (
     <BreadcrumbDataSummary kvData={omit(data, ['type', 'value'])}>
       {data?.type &&
@@ -21,10 +22,9 @@ const BreadcrumbDataException = ({breadcrumb}: Props) => {
           value: <strong>{`${data.type}: `}</strong>,
           meta: getMeta(data, 'type'),
         })}
-      {defined(data) &&
-        defined(data?.value) &&
+      {defined(dataValue) &&
         getBreadcrumbCustomRendererValue({
-          value: breadcrumb?.message ? `${data.value}. ` : data.value,
+          value: breadcrumb?.message ? `${dataValue}. ` : dataValue,
           meta: getMeta(data, 'value'),
         })}
       {breadcrumb?.message &&

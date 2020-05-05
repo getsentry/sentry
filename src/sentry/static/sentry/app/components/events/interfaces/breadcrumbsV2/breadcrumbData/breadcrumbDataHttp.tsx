@@ -35,6 +35,8 @@ const BreadcrumbDataHttp = ({breadcrumb}: Props) => {
     }
   };
 
+  const statusCode = data?.status_code;
+
   return (
     <BreadcrumbDataSummary kvData={omit(data, ['method', 'url', 'status_code'])}>
       {data?.method &&
@@ -47,11 +49,10 @@ const BreadcrumbDataHttp = ({breadcrumb}: Props) => {
           value: renderUrl(data.url),
           meta: getMeta(data, 'url'),
         })}
-      {defined(data) &&
-        defined(data.status_code) &&
+      {defined(statusCode) &&
         getBreadcrumbCustomRendererValue({
           value: (
-            <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>
+            <span data-test-id="http-renderer-status-code">{` [${statusCode}]`}</span>
           ),
           meta: getMeta(data, 'status_code'),
         })}
