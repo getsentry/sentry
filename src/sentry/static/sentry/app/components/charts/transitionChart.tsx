@@ -9,7 +9,6 @@ const defaultProps = {
 type Props = {
   reloading: boolean;
   loading: boolean;
-  height?: number;
 } & typeof defaultProps;
 
 type State = {
