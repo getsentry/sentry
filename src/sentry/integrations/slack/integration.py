@@ -123,6 +123,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
+            "user_scopes": frozenset(["links:read"]) if not self.use_wst_app else (),
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }
 
