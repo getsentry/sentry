@@ -111,13 +111,7 @@ class SlackOAuth2LoginView(OAuth2LoginView):
             self.user_scope = user_scope
 
     def get_authorize_params(self, state, redirect_uri):
-        data = {
-            "client_id": self.client_id,
-            "response_type": "code",
-            "scope": self.get_scope(),
-            "state": state,
-            "redirect_uri": redirect_uri,
-        }
+        data = super(SlackOAuth2LoginView, self).get_authorize_params(state, redirect_uri)
 
         # XXX(meredith): Bot apps must be added manually to channels, and link unfurling
         # only works for channels the bot is a part of, so in order to expand the usage
