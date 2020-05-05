@@ -12,5 +12,5 @@ register = template.Library()
 
 @register.inclusion_tag("sentry/partial/system-status.html", takes_context=True)
 def show_system_status(context):
-    problems = itertools.chain.from_iterable(status_checks.check_all().values())
+    problems = itertools.chain.from_iterable(status_checks.check_all(context.request).values())
     return {"problems": sort_by_severity(problems)}

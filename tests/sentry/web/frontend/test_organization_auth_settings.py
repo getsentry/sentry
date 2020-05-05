@@ -60,21 +60,21 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
-    # def test_superuser_can_load(self):
-    #     owner = self.create_owner_and_attach_identity()
+    def test_superuser_can_load(self):
+        owner = self.create_owner_and_attach_identity()
 
-    #     # owner can't load without feature
-    #     self.login_as(owner, organization_id=self.organization.id)
-    #     with self.feature({"organizations:sso-basic": False}):
-    #         resp = self.client.get(self.path)
-    #         assert resp.status_code == 302
+        # owner can't load without feature
+        self.login_as(owner, organization_id=self.organization.id)
+        with self.feature({"organizations:sso-basic": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 302
 
-    #     # superuser can load without feature
-    #     superuser = self.create_user(is_superuser=True)
-    #     self.login_as(superuser, superuser=True)
-    #     with self.feature({"organizations:sso-basic": False}):
-    #         resp = self.client.get(self.path)
-    #         assert resp.status_code == 200
+        # superuser can load without feature
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+        with self.feature({"organizations:sso-basic": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
 
 
 class OrganizationAuthSettingsTest(AuthProviderTestCase):

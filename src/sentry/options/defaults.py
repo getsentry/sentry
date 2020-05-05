@@ -128,6 +128,10 @@ register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
+# Slack migration
+register("slack-migration.enable-banner-check", default=False)
+register("slack-migration.banner-sample-rate", default=0.0)
+
 # GitHub Integration
 register("github-app.id", default=0)
 register("github-app.name", default="")
