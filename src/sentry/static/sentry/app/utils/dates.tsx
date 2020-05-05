@@ -212,3 +212,7 @@ export function parsePeriodToHours(str: string): number {
       return -1;
   }
 }
+
+export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
+
+export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');

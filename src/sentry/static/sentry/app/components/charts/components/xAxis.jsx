@@ -1,4 +1,4 @@
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 
 import {truncationFormatter, useShortInterval} from '../utils';
@@ -18,10 +18,11 @@ export default function XAxis({
 } = {}) {
   const axisLabelFormatter = (value, index) => {
     if (isGroupedByDate) {
-      const dateFormat = useShortDate ? 'MMM Do' : 'MMM D LT';
+      const timeFormat = getTimeFormat();
+      const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =
-        useShortInterval({start, end, period}) && !firstItem ? 'LT' : dateFormat;
+        useShortInterval({start, end, period}) && !firstItem ? timeFormat : dateFormat;
       return getFormattedDate(value, format, {local: !utc});
     } else if (props.truncate) {
       return truncationFormatter(value, props.truncate);
