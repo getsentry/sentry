@@ -118,6 +118,11 @@ class ReleaseOverview extends AsyncView<Props> {
                     />
                   </Main>
                   <Sidebar>
+                    <ProjectReleaseDetails
+                      release={release}
+                      orgSlug={organization.slug}
+                      selection={selection}
+                    />
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown
                         version={version}
@@ -125,7 +130,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         projectSlug={project.slug}
                       />
                     )}
-                    <ProjectReleaseDetails release={release} />
                     {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}

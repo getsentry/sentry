@@ -4,35 +4,60 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Release} from 'app/types';
+import {Release, GlobalSelection} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
+import DateTime from 'app/components/dateTime';
+import Link from 'app/components/links/link';
+import EventView from 'app/utils/discover/eventView';
+import {formatVersion} from 'app/utils/formatters';
+import {getUtcDateString} from 'app/utils/dates';
 
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   release: Release;
+  orgSlug: string;
+  selection: GlobalSelection;
 };
 
-// TODO(releasesV2): TagValues should probably be links
-const ProjectReleaseDetails = ({release}: Props) => {
+const ProjectReleaseDetails = ({release, selection, orgSlug}: Props) => {
   const {version, dateCreated, firstEvent, lastEvent} = release;
+  const {projects, environments, datetime} = selection;
+  const {start, end, period} = datetime;
+
+  const releaseQuery = EventView.fromSavedQuery({
+    id: undefined,
+    version: 2,
+    name: `${t('Release')} ${formatVersion(version)}`,
+    fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+    query: `release:${version}`,
+    orderby: '-last_seen',
+    range: period,
+    environment: environments,
+    projects,
+    start: start ? getUtcDateString(start) : undefined,
+    end: end ? getUtcDateString(end) : undefined,
+  }).getResultsViewUrlTarget(orgSlug);
+
   return (
     <Wrapper>
       <SectionHeading>{t('Project Release Details')}</SectionHeading>
       <StyledTable>
         <tbody>
           <StyledTr>
-            <TagKey>{t('Version')}</TagKey>
+            <TagKey>{t('Created')}</TagKey>
             <TagValue>
-              <Version version={version} anchor={false} />
+              <DateTime date={dateCreated} seconds={false} />
             </TagValue>
           </StyledTr>
 
           <StyledTr>
-            <TagKey>{t('Created')}</TagKey>
+            <TagKey>{t('Version')}</TagKey>
             <TagValue>
-              <TimeSince date={dateCreated} />
+              <Link to={releaseQuery}>
+                <Version version={version} anchor={false} />
+              </Link>
             </TagValue>
           </StyledTr>
 
@@ -52,10 +77,9 @@ const ProjectReleaseDetails = ({release}: Props) => {
 };
 
 const StyledTable = styled('table')`
-  table-layout: fixed;
   width: 100%;
   max-width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledTr = styled('tr')`
@@ -75,6 +99,7 @@ const TagKey = styled('td')`
 const TagValue = styled(TagKey)`
   text-align: right;
   ${overflowEllipsis};
+  min-width: 160px;
 `;
 
 export default ProjectReleaseDetails;
