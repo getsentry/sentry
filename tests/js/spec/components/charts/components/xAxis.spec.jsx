@@ -1,4 +1,5 @@
 import XAxis from 'app/components/charts/components/xAxis';
+import ConfigStore from 'app/stores/configStore';
 
 jest.mock('moment', () => {
   const moment = require.requireActual('moment-timezone');
@@ -95,6 +96,29 @@ describe('Chart XAxis', function() {
 
         it('formats axis label for second data point', function() {
           expect(axisLabelFormatter(timestamp, 1)).toEqual('12:00 AM');
+        });
+      });
+
+      describe('24 hour clock', function() {
+        beforeEach(function() {
+          xAxisObj = XAxis({
+            ...props,
+            period: '24h',
+            utc: true,
+          });
+
+          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+
+          const user = TestStubs.User();
+          user.options.clock24Hours = true;
+          ConfigStore.set('user', user);
+        });
+        it('formats axis label for first data point', function() {
+          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 00:00');
+        });
+
+        it('formats axis label for second data point', function() {
+          expect(axisLabelFormatter(timestamp, 1)).toEqual('00:00');
         });
       });
     });

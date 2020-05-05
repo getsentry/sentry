@@ -213,7 +213,4 @@ export function parsePeriodToHours(str: string): number {
   }
 }
 
-export const use24Hours = (): boolean => {
-  const user = ConfigStore.get('user');
-  return user && user.options && user.options.clock24Hours;
-};
+export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
