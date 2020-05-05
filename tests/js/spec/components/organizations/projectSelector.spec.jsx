@@ -1,8 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import ProjectSelector from 'app/components/projectSelector';
-import ProjectsStore from 'app/stores/projectsStore';
+import ProjectSelector from 'app/components/organizations/projectSelector';
 
 describe('ProjectSelector', function() {
   const testTeam = TestStubs.Team({
@@ -45,16 +44,15 @@ describe('ProjectSelector', function() {
     organization: mockOrg,
     projectId: '',
     children: actorRenderer,
+    multiProjects: mockOrg.projects,
+    selectedProjects: [],
   };
-
-  beforeEach(function() {
-    ProjectsStore.loadInitialData(mockOrg.projects);
-  });
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
     const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
+        multiProjects={[]}
         organization={{
           id: 'org',
           slug: 'org-slug',
@@ -66,8 +64,6 @@ describe('ProjectSelector', function() {
       routerContext
     );
 
-    ProjectsStore.loadInitialData([]);
-
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
     // Should not have "Create Project" button
@@ -78,6 +74,7 @@ describe('ProjectSelector', function() {
     const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
+        multiProjects={[]}
         organization={{
           id: 'org',
           slug: 'org-slug',
@@ -89,8 +86,6 @@ describe('ProjectSelector', function() {
       routerContext
     );
 
-    ProjectsStore.loadInitialData([]);
-
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
     // Should not have "Create Project" button
@@ -100,6 +95,7 @@ describe('ProjectSelector', function() {
   it('lists projects and has filter', function() {
     const wrapper = mountWithTheme(<ProjectSelector {...props} />, routerContext);
     openMenu(wrapper);
+
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
@@ -167,8 +163,14 @@ describe('ProjectSelector', function() {
 
   it('does not call `onSelect` when using multi select', function() {
     const mock = jest.fn();
+    const onMultiSelectMock = jest.fn();
     const wrapper = mountWithTheme(
-      <ProjectSelector {...props} multi onSelect={mock} />,
+      <ProjectSelector
+        {...props}
+        multi
+        onSelect={mock}
+        onMultiSelect={onMultiSelectMock}
+      />,
       routerContext
     );
     openMenu(wrapper);
@@ -181,107 +183,7 @@ describe('ProjectSelector', function() {
 
     // onSelect callback should NOT be called
     expect(mock).not.toHaveBeenCalled();
-  });
-
-  it('calls `onMultiSelect` and render prop when using multi select as an uncontrolled component', async function() {
-    const mock = jest.fn();
-    const wrapper = mountWithTheme(
-      <ProjectSelector {...props} multi onMultiSelect={mock} />,
-      routerContext
-    );
-    openMenu(wrapper);
-
-    // Select first project
-    wrapper
-      .find('CheckboxHitbox')
-      .at(0)
-      .simulate('click', {target: {checked: true}});
-
-    expect(mock).toHaveBeenLastCalledWith(
-      [
-        expect.objectContaining({
-          slug: 'test-project',
-        }),
-      ],
-      expect.anything()
-    );
-
-    expect(actorRenderer).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        selectedProjects: [expect.objectContaining({slug: 'test-project'})],
-      })
-    );
-
-    expect(
-      Array.from(
-        wrapper
-          .find('ProjectSelectorItem')
-          .filterWhere(p => p.prop('isChecked'))
-          .map(p => p.prop('project').slug)
-      )
-    ).toEqual(['test-project']);
-
-    // second project
-    wrapper
-      .find('CheckboxHitbox')
-      .at(1)
-      .simulate('click', {target: {checked: true}});
-
-    expect(mock).toHaveBeenLastCalledWith(
-      [
-        expect.objectContaining({
-          slug: 'test-project',
-        }),
-        expect.objectContaining({
-          slug: 'another-project',
-        }),
-      ],
-      expect.anything()
-    );
-    expect(actorRenderer).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        selectedProjects: [
-          expect.objectContaining({slug: 'test-project'}),
-          expect.objectContaining({slug: 'another-project'}),
-        ],
-      })
-    );
-    expect(
-      Array.from(
-        wrapper
-          .find('ProjectSelectorItem')
-          .filterWhere(p => p.prop('isChecked'))
-          .map(p => p.prop('project').slug)
-      )
-    ).toEqual(['test-project', 'another-project']);
-
-    // Can unselect item
-    wrapper
-      .find('CheckboxHitbox')
-      .at(1)
-      .simulate('click', {target: {checked: false}});
-
-    expect(mock).toHaveBeenLastCalledWith(
-      [
-        expect.objectContaining({
-          slug: 'test-project',
-        }),
-      ],
-      expect.anything()
-    );
-    expect(actorRenderer).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        selectedProjects: [expect.objectContaining({slug: 'test-project'})],
-      })
-    );
-    expect(
-      Array.from(
-        wrapper
-          .find('ProjectSelectorItem')
-          .filterWhere(p => p.prop('isChecked'))
-          .map(p => p.prop('project').slug)
-      )
-    ).toEqual(['test-project']);
+    expect(onMultiSelectMock).toHaveBeenCalled();
   });
 
   it('displays multi projects', function() {

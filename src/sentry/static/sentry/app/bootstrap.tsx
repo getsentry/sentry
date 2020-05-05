@@ -1,3 +1,4 @@
+/* global process */
 import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
@@ -43,7 +44,10 @@ function getSentryIntegrations() {
     // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
     // incompatible. It's a newer plugin, so this can be expected, but we
     // should fix.
-    integrations.push(new SentryRRWeb() as any);
+    if (process.env.NODE_ENV === 'production') {
+      // Only use this in prod as there seem to be issues with hot reload in dev
+      integrations.push(new SentryRRWeb() as any);
+    }
   }
   return integrations;
 }

@@ -117,7 +117,7 @@ const GroupEventToolbar = createReactClass({
 
     return (
       <div key="related-transaction">
-        <RelatedTransactionButton title={t('Related Transaction')} to={to}>
+        <RelatedTransactionButton title={t('Related Transaction')} to={to} size="small">
           {t('Related Transaction')}
         </RelatedTransactionButton>
       </div>
