@@ -57,9 +57,10 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
     const enforceSingleProject = !organization.features.includes('global-views');
     const [memberProjects, nonMemberProjects] = this.getProjects();
 
+    // We can initialize before ProjectsStore is fully loaded if we don't need to enforce single project.
     return (
       <React.Fragment>
-        {!loadingProjects && (
+        {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
           <InitializeGlobalSelectionHeader
             location={location}
             router={router}

@@ -62,7 +62,15 @@ describe('GlobalSelectionHeader', function() {
       projects: organization.projects,
       loading: false,
     }));
-    GlobalSelectionStore.reset();
+
+    getItem.mockImplementation(() => null);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+  });
+
+  afterEach(function() {
     [
       globalActions.updateDateTime,
       globalActions.updateProjects,
@@ -73,12 +81,7 @@ describe('GlobalSelectionHeader', function() {
       router.replace,
       getItem,
     ].forEach(mock => mock.mockClear());
-
-    getItem.mockImplementation(() => null);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    GlobalSelectionStore.reset();
   });
 
   it('does not update router if there is custom routing', function() {
@@ -144,6 +147,9 @@ describe('GlobalSelectionHeader', function() {
       />,
       routerContext
     );
+
+    await tick();
+    wrapper.update();
 
     mockRouterPush(wrapper, router);
 
@@ -981,7 +987,7 @@ describe('GlobalSelectionHeader', function() {
       ]);
     });
 
-    it('shows "My Projects" button', function() {
+    it('shows "My Projects" button', async function() {
       initialData.organization.features.push('global-views');
       wrapper = mountWithTheme(
         <GlobalSelectionHeader
@@ -990,6 +996,9 @@ describe('GlobalSelectionHeader', function() {
         />,
         initialData.routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       // open the project menu.
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -1006,7 +1015,7 @@ describe('GlobalSelectionHeader', function() {
       ).toEqual('View My Projects');
     });
 
-    it('shows "All Projects" button based on features', function() {
+    it('shows "All Projects" button based on features', async function() {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
       wrapper = mountWithTheme(
@@ -1016,6 +1025,8 @@ describe('GlobalSelectionHeader', function() {
         />,
         initialData.routerContext
       );
+      await tick();
+      wrapper.update();
 
       // open the project menu.
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
@@ -1032,7 +1043,7 @@ describe('GlobalSelectionHeader', function() {
       ).toEqual('View All Projects');
     });
 
-    it('shows "All Projects" button based on role', function() {
+    it('shows "All Projects" button based on role', async function() {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
       wrapper = mountWithTheme(
@@ -1043,6 +1054,8 @@ describe('GlobalSelectionHeader', function() {
         initialData.routerContext
       );
 
+      await tick();
+      wrapper.update();
       // open the project menu.
       wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
       const projectSelector = wrapper.find('MultipleProjectSelector');

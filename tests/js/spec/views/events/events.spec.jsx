@@ -372,6 +372,11 @@ describe('EventsContainer', function() {
     mockRouterPush(wrapper, router);
   });
 
+  afterEach(async function() {
+    ProjectsStore.reset();
+    await tick();
+  });
+
   it('performs the correct queries when there is a search query', async function() {
     wrapper.find('SmartSearchBar input').simulate('change', {target: {value: 'http'}});
     wrapper.find('SmartSearchBar input').simulate('submit');
