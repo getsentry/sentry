@@ -1,4 +1,4 @@
-import {getFormattedDate, use24Hours} from 'app/utils/dates';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 
 import {truncationFormatter, useShortInterval} from '../utils';
@@ -18,7 +18,7 @@ export default function XAxis({
 } = {}) {
   const axisLabelFormatter = (value, index) => {
     if (isGroupedByDate) {
-      const timeFormat = use24Hours() ? 'HH:mm' : 'LT';
+      const timeFormat = getTimeFormat();
       const dateFormat = useShortDate ? 'MMM Do' : `MMM D ${timeFormat}`;
       const firstItem = index === 0;
       const format =

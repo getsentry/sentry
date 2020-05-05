@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
-import {use24Hours} from 'app/utils/dates';
+import {use24Hours, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {formatFloat} from 'app/utils/formatters';
 
@@ -141,15 +141,15 @@ class StackedBarChart extends React.Component {
   timeLabelAsHour(point) {
     const timeMoment = moment(point.x * 1000);
     const nextMoment = timeMoment.clone().add(59, 'minute');
-    const format = use24Hours() ? 'HH:mm' : 'LT';
+    const timeFormat = getTimeFormat();
 
     return (
       <span>
         {timeMoment.format('LL')}
         <br />
-        {timeMoment.format(format)}
+        {timeMoment.format(timeFormat)}
         &#8594;
-        {nextMoment.format(format)}
+        {nextMoment.format(timeFormat)}
       </span>
     );
   }
@@ -163,7 +163,7 @@ class StackedBarChart extends React.Component {
   timeLabelAsRange(interval, point) {
     const timeMoment = moment(point.x * 1000);
     const nextMoment = timeMoment.clone().add(interval - 1, 'second');
-    const format = use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
+    const format = `MMM Do, ${getTimeFormat()}`;
 
     // e.g. Aug 23rd, 12:50 pm
     return (

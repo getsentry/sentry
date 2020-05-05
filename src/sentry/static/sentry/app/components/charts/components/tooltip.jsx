@@ -1,6 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
-import {getFormattedDate, use24Hours} from 'app/utils/dates';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
 
@@ -8,8 +8,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   if (!isTimestamp) {
     return value;
   }
-  const timeFormat = use24Hours() ? ' HH:mm' : ' LT';
-  const format = `MMM D, YYYY${showTimeInTooltip ? timeFormat : ''}`;
+  const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
 
   return getFormattedDate(value, format, {local: !utc});
 }
