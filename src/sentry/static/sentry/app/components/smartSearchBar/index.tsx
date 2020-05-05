@@ -132,6 +132,10 @@ type Props = {
    */
   placeholder?: string;
   /**
+   * Allows additional content to be played before the search bar and icon
+   */
+  inlineLabel?: React.ReactNode;
+  /**
    * Map of tags
    */
   supportedTags?: {[key: string]: Tag};
@@ -1019,6 +1023,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       disabled,
       useFormWrapper,
       onSidebarToggle,
+      inlineLabel,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1061,6 +1066,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       <Container className={className} isOpen={this.state.dropdownVisible}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
+          {inlineLabel}
         </SearchLabel>
 
         {useFormWrapper ? (

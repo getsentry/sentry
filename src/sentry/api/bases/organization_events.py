@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
@@ -142,7 +142,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             ):
                 columns = request.GET.getlist("yAxis", ["count()"])
                 query = request.GET.get("query")
-                params = self.get_filter_params(request, organization)
+                try:
+                    params = self.get_filter_params(request, organization)
+                except NoProjects:
+                    return {"data": []}
                 rollup = get_rollup_from_request(
                     request,
                     params,

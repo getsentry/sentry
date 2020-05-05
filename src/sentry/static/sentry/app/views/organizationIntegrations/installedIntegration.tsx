@@ -8,7 +8,7 @@ import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrat
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete, IconSettings} from 'app/icons';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
@@ -173,7 +173,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 >
                   <StyledButton
                     borderless
-                    icon="icon-settings"
+                    icon={<IconSettings />}
                     disabled={!this.hasConfiguration() || !hasAccess}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
