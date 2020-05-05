@@ -117,7 +117,7 @@ const GroupEventToolbar = createReactClass({
 
     return (
       <div key="related-transaction">
-        <RelatedTransactionButton title={t('Related Transaction')} to={to}>
+        <RelatedTransactionButton title={t('Related Transaction')} to={to} size="small">
           {t('Related Transaction')}
         </RelatedTransactionButton>
       </div>
@@ -135,6 +135,7 @@ const GroupEventToolbar = createReactClass({
     const eventNavNodes = [
       this.renderRelatedTransactionButton(),
       <Button
+        size="small"
         key="oldest"
         to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
         disabled={!evt.previousEventID}
@@ -143,6 +144,7 @@ const GroupEventToolbar = createReactClass({
         <span className="icon-skip-back" />
       </Button>,
       <Button
+        size="small"
         key="prev"
         to={{
           pathname: `${baseEventsPath}${evt.previousEventID}/`,
@@ -153,6 +155,7 @@ const GroupEventToolbar = createReactClass({
         {t('Older')}
       </Button>,
       <Button
+        size="small"
         key="next"
         to={{pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query}}
         disabled={!evt.nextEventID}
@@ -160,6 +163,7 @@ const GroupEventToolbar = createReactClass({
         {t('Newer')}
       </Button>,
       <Button
+        size="small"
         key="latest"
         to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
         disabled={!evt.nextEventID}

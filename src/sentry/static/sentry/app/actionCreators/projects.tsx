@@ -1,6 +1,9 @@
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
+import {Query} from 'history';
 
+import {Client} from 'app/api';
+import {Project, Team} from 'app/types';
 import {
   addLoadingMessage,
   addErrorMessage,
@@ -10,7 +13,14 @@ import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
-export function update(api, params) {
+type UpdateParams = {
+  orgId: string;
+  projectId: string;
+  data?: {[key: string]: any};
+  query?: Query;
+};
+
+export function update(api: Client, params: UpdateParams) {
   ProjectActions.update(params.projectId, params.data);
 
   const endpoint = `/projects/${params.orgId}/${params.projectId}/`;
@@ -31,7 +41,7 @@ export function update(api, params) {
     );
 }
 
-export function loadStats(api, params) {
+export function loadStats(api: Client, params: UpdateParams) {
   ProjectActions.loadStats(params.orgId, params.data);
 
   const endpoint = `/organizations/${params.orgId}/stats/`;
@@ -48,13 +58,13 @@ export function loadStats(api, params) {
 
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-const _projectStatsToFetch = new Set();
+const _projectStatsToFetch: Set<string> = new Set();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout
 const MAX_PROJECTS_TO_FETCH = 10;
 
-const _queryForStats = (api, projects, orgId) => {
+const _queryForStats = (api: Client, projects: string[], orgId: string) => {
   const idQueryParams = projects.map(project => `id:${project}`).join(' ');
   const endpoint = `/organizations/${orgId}/projects/`;
 
@@ -66,51 +76,53 @@ const _queryForStats = (api, projects, orgId) => {
   });
 };
 
-export const _debouncedLoadStats = debounce((api, projectSet, params) => {
-  const existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(
-    ({id}) => id
-  );
-  const projects = Array.from(projectSet).filter(
-    project => !existingProjectStats.includes(project)
-  );
+export const _debouncedLoadStats = debounce(
+  (api: Client, projectSet: Set<string>, params) => {
+    const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
+    const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
+    const projects = Array.from(projectSet).filter(
+      project => !existingProjectStats.includes(project)
+    );
 
-  if (!projects.length) {
+    if (!projects.length) {
+      _projectStatsToFetch.clear();
+      return;
+    }
+
+    // Split projects into more manageable chunks to query, otherwise we can
+    // potentially face server timeouts
+    const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
+      _queryForStats(api, chunkedProjects, params.orgId)
+    );
+
+    Promise.all(queries)
+      .then(results => {
+        ProjectActions.loadStatsForProjectSuccess(
+          results.reduce((acc, result) => acc.concat(result), [])
+        );
+      })
+      .catch(() => {
+        addErrorMessage(t('Unable to fetch all project stats'));
+      });
+
+    // Reset projects list
     _projectStatsToFetch.clear();
-    return;
-  }
+  },
+  50
+);
 
-  // Split projects into more manageable chunks to query, otherwise we can
-  // potentially face server timeouts
-  const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
-    _queryForStats(api, chunkedProjects, params.orgId)
-  );
-
-  Promise.all(queries)
-    .then(results => {
-      ProjectActions.loadStatsForProjectSuccess(
-        results.reduce((acc, result) => acc.concat(result), [])
-      );
-    })
-    .catch(() => {
-      addErrorMessage(t('Unable to fetch all project stats'));
-    });
-
-  // Reset projects list
-  _projectStatsToFetch.clear();
-}, 50);
-
-export function loadStatsForProject(api, project, params) {
+export function loadStatsForProject(api: Client, project: string, params: UpdateParams) {
   // Queue up a list of projects that we need stats for
   // and call a debounced function to fetch stats for list of projects
   _projectStatsToFetch.add(project);
   _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
-export function setActiveProject(project) {
+export function setActiveProject(project: Project) {
   ProjectActions.setActive(project);
 }
 
-export function removeProject(api, orgId, project) {
+export function removeProject(api: Client, orgId: string, project: Project) {
   const endpoint = `/projects/${orgId}/${project.slug}/`;
 
   ProjectActions.removeProject(project);
@@ -133,7 +145,12 @@ export function removeProject(api, orgId, project) {
     );
 }
 
-export function transferProject(api, orgId, project, email) {
+export function transferProject(
+  api: Client,
+  orgId: string,
+  project: Project,
+  email: string
+) {
   const endpoint = `/projects/${orgId}/${project.slug}/transfer/`;
 
   return api
@@ -165,12 +182,17 @@ export function transferProject(api, orgId, project, email) {
 /**
  *  Adds a team to a project
  *
- * @param {Client} api API Client
- * @param {String} orgSlug Organization Slug
- * @param {String} projectSlug Project Slug
- * @param {String} team Team data object
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
+ * @param team Team data object
  */
-export function addTeamToProject(api, orgSlug, projectSlug, team) {
+export function addTeamToProject(
+  api: Client,
+  orgSlug: string,
+  projectSlug: string,
+  team: Team
+) {
   const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
 
   addLoadingMessage();
@@ -205,14 +227,19 @@ export function addTeamToProject(api, orgSlug, projectSlug, team) {
 }
 
 /**
- *  Removes a team from a project
+ * Removes a team from a project
  *
- * @param {Client} api API Client
- * @param {String} orgSlug Organization Slug
- * @param {String} projectSlug Project Slug
- * @param {String} teamSlug Team Slug
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
+ * @param teamSlug Team Slug
  */
-export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
+export function removeTeamFromProject(
+  api: Client,
+  orgSlug: string,
+  projectSlug: string,
+  teamSlug: string
+) {
   const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
 
   addLoadingMessage();
@@ -248,21 +275,22 @@ export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
 
 /**
  * Change a project's slug
- * @param {String} prev Previous slug
- * @param {String} next New slug
+ *
+ * @param prev Previous slug
+ * @param next New slug
  */
-export function changeProjectSlug(prev, next) {
+export function changeProjectSlug(prev: string, next: string) {
   ProjectActions.changeSlug(prev, next);
 }
 
 /**
  * Send a sample event
  *
- * @param {Client} api API Client
- * @param {String} orgSlug Organization Slug
- * @param {String} projectSlug Project Slug
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
  */
-export function sendSampleEvent(api, orgSlug, projectSlug) {
+export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: string) {
   const endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
 
   return api.requestPromise(endpoint, {
@@ -273,13 +301,19 @@ export function sendSampleEvent(api, orgSlug, projectSlug) {
 /**
  * Creates a project
  *
- * @param {Client} api API Client
- * @param {String} orgSlug Organization Slug
- * @param {String} team The team slug to assign the project to
- * @param {String} name Name of the project
- * @param {String} platform The platform key of the project
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param team The team slug to assign the project to
+ * @param name Name of the project
+ * @param platform The platform key of the project
  */
-export function createProject(api, orgSlug, team, name, platform) {
+export function createProject(
+  api: Client,
+  orgSlug: string,
+  team: string,
+  name: string,
+  platform: string
+) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
     data: {name, platform},
@@ -290,10 +324,16 @@ export function createProject(api, orgSlug, team, name, platform) {
  * Load platform documentation specific to the project. The DSN and various
  * other project specific secrets will be included in the documentation.
  *
- * @param {Client} api API Client
- * @param {String} orgSlug Organization Slug
- * @param {String} projectSlug Project Slug
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectSlug Project Slug
+ * @param platform Project platform.
  */
-export function loadDocs(api, orgSlug, projectSlug, platform) {
+export function loadDocs(
+  api: Client,
+  orgSlug: string,
+  projectSlug: string,
+  platform: string
+) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }

@@ -113,6 +113,7 @@ class PagerDutyNotifyServiceAction(EventAction):
                         "service_id": service.id,
                     },
                 )
+                raise e
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

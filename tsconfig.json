@@ -20,6 +20,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "pretty": false,
+    "resolveJsonModule": true,
     "sourceMap": true,
     "strict": true,
     "target": "es5",
@@ -35,7 +36,13 @@
       "app/*": ["src/sentry/static/sentry/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "@emotion/styled": ["src/sentry/static/sentry/app/styled.tsx"],
-      "@original-emotion/*": ["node_modules/@emotion/*"]
+      "@original-emotion/*": ["node_modules/@emotion/*"],
+      // Use the stub file for typechecking. Webpack resolver will use the real files
+      // based on configuration.
+      "integration-docs-platforms": [
+          "tests/fixtures/integration-docs/_platforms.json",
+          "src/sentry/integration-docs/_platforms.json"
+      ]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },

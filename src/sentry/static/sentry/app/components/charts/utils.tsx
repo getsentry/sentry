@@ -11,16 +11,6 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 const TWENTY_FOUR_HOURS = 1440;
 const ONE_HOUR = 60;
 
-export const AREA_COLORS = [
-  // This first color is used when only a single series is plotted.
-  {line: '#948BCF', area: '#C4BFE9'},
-  {line: '#FFE3FD', area: '#FFE3FD'},
-  {line: '#E8B0F2', area: '#E8B0F2'},
-  {line: '#BD81E6', area: '#BD81E6'},
-  {line: '#5246A3', area: '#5246A3'},
-  {line: '#422C6F', area: '#422C6F'},
-];
-
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
 export function truncationFormatter(value: string, truncate: number): string {

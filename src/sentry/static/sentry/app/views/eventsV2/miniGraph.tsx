@@ -69,6 +69,7 @@ class MiniGraph extends React.Component<Props> {
       environment,
       yAxis,
     } = this.getRefreshProps(this.props);
+    const colors = theme.charts.getColorPalette(1);
 
     return (
       <EventsRequest
@@ -103,7 +104,8 @@ class MiniGraph extends React.Component<Props> {
           const data = (timeseriesData || []).map(series => ({
             ...series,
             areaStyle: {
-              opacity: 0.4,
+              color: colors[0],
+              opacity: 0.5,
             },
             lineStyle: {
               opacity: 0,
@@ -137,7 +139,6 @@ class MiniGraph extends React.Component<Props> {
                 bottom: 0,
                 containLabel: false,
               }}
-              colors={['#6d5fc7']}
               options={{
                 hoverAnimation: false,
               }}

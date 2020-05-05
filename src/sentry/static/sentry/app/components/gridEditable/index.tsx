@@ -321,7 +321,7 @@ class GridEditable<
 
   renderDownloadButton(canEdit: boolean) {
     const {data} = this.props;
-    if (data.length < 50) {
+    if (data && data.length < 50) {
       return this.renderBrowserExportButton(canEdit);
     } else {
       return (

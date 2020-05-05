@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import sentry_sdk
 import six
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ParseError
@@ -7,7 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
+from sentry.api.bases import OrganizationEndpoint, NoProjects
 from sentry.api.event_search import (
     get_filter,
     InvalidSearchQuery,
@@ -31,7 +32,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -60,7 +61,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             try:
                 group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
-                raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
+                raise ParseError(detail="Invalid group parameter. Values must be numbers")
 
             projects = Project.objects.filter(
                 organization=organization, group__id__in=group_ids
@@ -74,7 +75,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -88,19 +89,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_results_with_meta(self, request, organization, project_ids, results):
-        data = self.handle_data(request, organization, project_ids, results.get("data"))
-        if not data:
-            return {"data": [], "meta": {}}
+        with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
+            data = self.handle_data(request, organization, project_ids, results.get("data"))
+            if not data:
+                return {"data": [], "meta": {}}
 
-        meta = {
-            value["name"]: get_json_meta_type(value["name"], value["type"])
-            for value in results["meta"]
-        }
-        # Ensure all columns in the result have types.
-        for key in data[0]:
-            if key not in meta:
-                meta[key] = "string"
-        return {"meta": meta, "data": data}
+            meta = {
+                value["name"]: get_json_meta_type(value["name"], value["type"])
+                for value in results["meta"]
+            }
+            # Ensure all columns in the result have types.
+            for key in data[0]:
+                if key not in meta:
+                    meta[key] = "string"
+            return {"meta": meta, "data": data}
 
     def handle_data(self, request, organization, project_ids, results):
         if not results:
@@ -135,55 +137,63 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def get_event_stats_data(self, request, organization, get_event_stats, top_events=False):
         try:
-            columns = request.GET.getlist("yAxis", ["count()"])
-            query = request.GET.get("query")
-            params = self.get_filter_params(request, organization)
-            rollup = get_rollup_from_request(
-                request,
-                params,
-                "1h",
-                InvalidSearchQuery(
-                    "Your interval and date range would create too many results. "
-                    "Use a larger interval, or a smaller date range."
-                ),
-            )
-            # Backwards compatibility for incidents which uses the old
-            # column aliases as it straddles both versions of events/discover.
-            # We will need these aliases until discover2 flags are enabled for all
-            # users.
-            column_map = {
-                "user_count": "count_unique(user)",
-                "event_count": "count()",
-                "rpm()": "rpm(%d)" % rollup,
-                "rps()": "rps(%d)" % rollup,
-            }
-            query_columns = [column_map.get(column, column) for column in columns]
-            reference_event = self.reference_event(
-                request, organization, params.get("start"), params.get("end")
-            )
+            with sentry_sdk.start_span(
+                op="discover.endpoint", description="base.stats_query_creation"
+            ):
+                columns = request.GET.getlist("yAxis", ["count()"])
+                query = request.GET.get("query")
+                try:
+                    params = self.get_filter_params(request, organization)
+                except NoProjects:
+                    return {"data": []}
+                rollup = get_rollup_from_request(
+                    request,
+                    params,
+                    "1h",
+                    InvalidSearchQuery(
+                        "Your interval and date range would create too many results. "
+                        "Use a larger interval, or a smaller date range."
+                    ),
+                )
+                # Backwards compatibility for incidents which uses the old
+                # column aliases as it straddles both versions of events/discover.
+                # We will need these aliases until discover2 flags are enabled for all
+                # users.
+                column_map = {
+                    "user_count": "count_unique(user)",
+                    "event_count": "count()",
+                    "rpm()": "rpm(%d)" % rollup,
+                    "rps()": "rps(%d)" % rollup,
+                }
+                query_columns = [column_map.get(column, column) for column in columns]
+                reference_event = self.reference_event(
+                    request, organization, params.get("start"), params.get("end")
+                )
 
-            result = get_event_stats(query_columns, query, params, rollup, reference_event)
+            with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
+                result = get_event_stats(query_columns, query, params, rollup, reference_event)
         except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
             raise ParseError(detail=six.text_type(error))
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
-        if top_events:
-            results = {}
-            for key, event_result in six.iteritems(result):
-                if len(query_columns) > 1:
-                    results[key] = self.serialize_multiple_axis(
-                        serializer, event_result, columns, query_columns
-                    )
-                else:
-                    # Need to get function alias if count is a field, but not the axis
-                    results[key] = serializer.serialize(
-                        event_result, get_function_alias(query_columns[0])
-                    )
-            return results
-        elif len(query_columns) > 1:
-            return self.serialize_multiple_axis(serializer, result, columns, query_columns)
-        else:
-            return serializer.serialize(result)
+        with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
+            if top_events:
+                results = {}
+                for key, event_result in six.iteritems(result):
+                    if len(query_columns) > 1:
+                        results[key] = self.serialize_multiple_axis(
+                            serializer, event_result, columns, query_columns
+                        )
+                    else:
+                        # Need to get function alias if count is a field, but not the axis
+                        results[key] = serializer.serialize(
+                            event_result, get_function_alias(query_columns[0])
+                        )
+                return results
+            elif len(query_columns) > 1:
+                return self.serialize_multiple_axis(serializer, result, columns, query_columns)
+            else:
+                return serializer.serialize(result)
 
     def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
         # Return with requested yAxis as the key
