@@ -158,13 +158,17 @@ def get_release_adoption(project_releases, environments=None, now=None):
         now = datetime.now(pytz.utc)
     start = now - timedelta(days=1)
 
+    total_conditions = []
+    if environments is not None:
+        total_conditions.append(["environment", "IN", environments])
+
     total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "users"],
-        groupby=["release", "project_id"],
+        selected_columns=["project_id", "users"],
+        groupby=["project_id"],
         start=start,
-        conditions=conditions,
+        conditions=total_conditions,
         filter_keys=filter_keys,
     )["data"]:
         total_users[x["project_id"]] = x["users"]
@@ -182,7 +186,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         if not total:
             adoption = None
         else:
-            adoption = x["users"] / total * 100
+            adoption = float(x["users"]) / total * 100
         rv[x["project_id"], x["release"]] = {
             "adoption": adoption,
             "users_24h": x["users"],
