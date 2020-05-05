@@ -29,8 +29,8 @@ const BreadcrumbListHeaderWrapper = styled(BreadcrumbListItem)`
 const BreadcrumbListHeaderItem = styled('div')`
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeSmall};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   font-weight: 600;
   text-transform: uppercase;
-  border-radius: 4px 4px 0 0;
   line-height: 1;
 `;

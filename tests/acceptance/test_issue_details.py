@@ -95,7 +95,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature('breadcrumbs-v2'):
             event = self.create_sample_event(default="unity", platform="csharp")
             self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.snapshot("issue details unity - - breadcrumbs v2"")
+            self.browser.snapshot("issue details unity - - breadcrumbs v2")
 
     def test_android_event(self):
         event = self.create_sample_event(platform="android")
