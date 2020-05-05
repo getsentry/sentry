@@ -122,6 +122,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       release={release}
                       orgSlug={organization.slug}
                       selection={selection}
+                      hasDiscover={hasDiscover}
                     />
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown

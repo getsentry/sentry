@@ -19,9 +19,10 @@ type Props = {
   release: Release;
   orgSlug: string;
   selection: GlobalSelection;
+  hasDiscover: boolean;
 };
 
-const ProjectReleaseDetails = ({release, selection, orgSlug}: Props) => {
+const ProjectReleaseDetails = ({release, selection, orgSlug, hasDiscover}: Props) => {
   const {version, dateCreated, firstEvent, lastEvent} = release;
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
@@ -55,9 +56,13 @@ const ProjectReleaseDetails = ({release, selection, orgSlug}: Props) => {
           <StyledTr>
             <TagKey>{t('Version')}</TagKey>
             <TagValue>
-              <Link to={releaseQuery}>
+              {hasDiscover ? (
+                <Link to={releaseQuery}>
+                  <Version version={version} anchor={false} />
+                </Link>
+              ) : (
                 <Version version={version} anchor={false} />
-              </Link>
+              )}
             </TagValue>
           </StyledTr>
 
