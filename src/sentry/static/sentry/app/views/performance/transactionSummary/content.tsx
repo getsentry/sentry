@@ -6,7 +6,7 @@ import {Organization} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import EventView from 'app/utils/discover/eventView';
 import Tags from 'app/views/eventsV2/tags';
-import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
+import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 import SummaryContentTable from './table';
@@ -14,6 +14,7 @@ import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
+import RelatedIssues from './relatedIssues';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -58,7 +59,7 @@ class SummaryContent extends React.Component<Props> {
           <StyledTitleHeader>{transactionName}</StyledTitleHeader>
         </HeaderBox>
         <ContentBox>
-          <div>
+          <Main>
             <TransactionSummaryCharts
               organization={organization}
               location={location}
@@ -83,7 +84,15 @@ class SummaryContent extends React.Component<Props> {
                 />
               )}
             </DiscoverQuery>
-          </div>
+            <RelatedIssues
+              organization={organization}
+              location={location}
+              transaction={transactionName}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          </Main>
           <Side>
             <UserStats
               organization={organization}
@@ -110,10 +119,6 @@ const StyledTitleHeader = styled('span')`
   align-self: center;
   min-height: 30px;
   ${overflowEllipsis};
-`;
-
-const Side = styled('div')`
-  grid-column: 2/3;
 `;
 
 const KeyTransactionContainer = styled('div')`
