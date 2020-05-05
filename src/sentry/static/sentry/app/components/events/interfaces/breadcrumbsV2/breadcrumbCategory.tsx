@@ -3,18 +3,23 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
 
 type Props = {
-  category?: string;
+  category?: string | null;
 };
 
-const BreadcrumbCategory = ({category = 'generic'}: Props) => (
-  <div>
-    <Tooltip title={category}>
-      <Category title={category}>{category}</Category>
-    </Tooltip>
-  </div>
-);
+const BreadcrumbCategory = ({category}: Props) => {
+  const title = !defined(category) ? t('generic') : category;
+  return (
+    <div>
+      <Tooltip title={title}>
+        <Category title={title}>{title}</Category>
+      </Tooltip>
+    </div>
+  );
+};
 
 export default BreadcrumbCategory;
 

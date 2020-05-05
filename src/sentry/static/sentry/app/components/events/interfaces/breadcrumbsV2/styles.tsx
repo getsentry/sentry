@@ -29,13 +29,18 @@ const BreadcrumbListItem = styled('li')<{hasError?: boolean}>`
   :last-child:before {
     bottom: calc(100% - ${space(1)});
   }
-  ${p =>
-    p.hasError &&
-    css`
-      background: #fffcfb;
-      border: 1px solid #e7c0bc;
-      margin: -1px;
-    `}
+  :last-child {
+    ${p =>
+      p.hasError
+        ? css`
+            background: #fffcfb;
+            border: 1px solid #e7c0bc;
+            margin: -1px;
+          `
+        : css`
+            border-bottom: 0;
+          `}
+  }
 `;
 
 const BreadCrumbIconWrapper = styled('div')<{

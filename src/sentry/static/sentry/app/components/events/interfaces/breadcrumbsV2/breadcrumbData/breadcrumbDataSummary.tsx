@@ -81,12 +81,10 @@ const StyledPre = styled('pre')`
   word-break: break-all;
   margin: 0;
   font-size: ${p => p.theme.fontSizeSmall};
+  display: inline;
 `;
 
 const BreadcrumbDataSummaryData = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
   margin: ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
