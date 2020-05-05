@@ -17,6 +17,7 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
+import {PERFORMANCE_TERMS} from '../constants';
 import {HeaderContainer, HeaderTitle, StyledIconQuestion, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
@@ -25,13 +26,12 @@ const YAXIS_OPTIONS = [
   {
     label: 'Apdex',
     value: 'apdex(300)',
-    tooltip:
-      'Apdex is a ratio of satisfactory response times to unsatisfactory response times.',
+    tooltip: PERFORMANCE_TERMS.apdex,
   },
   {
     label: 'Throughput',
     value: 'rpm()',
-    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
+    tooltip: PERFORMANCE_TERMS.rpm,
   },
 ];
 

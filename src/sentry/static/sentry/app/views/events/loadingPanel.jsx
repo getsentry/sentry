@@ -11,10 +11,14 @@ const LoadingPanel = styled(props => (
   flex: 1;
   flex-shrink: 0;
   overflow: hidden;
-  height: 200px;
+  height: ${p => p.height};
   position: relative;
   border-color: transparent;
   margin-bottom: 0;
 `;
+
+LoadingPanel.defaultProps = {
+  height: '200px',
+};
 
 export default LoadingPanel;
