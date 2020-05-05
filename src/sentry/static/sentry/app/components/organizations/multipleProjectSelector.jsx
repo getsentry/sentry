@@ -10,12 +10,13 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
+
+import ProjectSelector from './projectSelector';
 
 export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
