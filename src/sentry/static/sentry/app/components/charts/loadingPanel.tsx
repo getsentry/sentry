@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import LoadingMask from 'app/components/loadingMask';
 
-const LoadingPanel = styled(props => (
+type Props = {
+  height: string;
+};
+
+const LoadingPanel = styled((props: Props) => (
   <div {...props}>
     <LoadingMask />
   </div>
