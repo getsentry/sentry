@@ -70,7 +70,7 @@ describe('ProjectSelector', function() {
     expect(wrapper.find('CreateProjectButton')).toHaveLength(0);
   });
 
-  it('should show empty message and create project button, when no projects and has "project:write" access', async function() {
+  it('should show empty message and create project button, when no projects and has "project:write" access', function() {
     const wrapper = mountWithTheme(
       <ProjectSelector
         {...props}
@@ -85,8 +85,6 @@ describe('ProjectSelector', function() {
       />,
       routerContext
     );
-    await tick();
-    wrapper.update();
 
     openMenu(wrapper);
     expect(wrapper.find('EmptyMessage').prop('children')).toBe('You have no projects');
