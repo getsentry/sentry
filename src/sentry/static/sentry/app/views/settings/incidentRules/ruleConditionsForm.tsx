@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Environment, Organization} from 'app/types';
@@ -10,6 +11,8 @@ import {t} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
+import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 import {AlertRuleAggregations, TimeWindow} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
@@ -80,6 +83,13 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
                 defaultQuery={initialData?.query ?? ''}
+                inlineLabel={
+                  <Tooltip
+                    title={t('Metric alerts are filtered to error events automatically')}
+                  >
+                    <SearchEventTypeNote>event.type:error</SearchEventTypeNote>
+                  </Tooltip>
+                }
                 help={t('Choose which metric to trigger on')}
                 disabled={disabled}
                 useFormWrapper={false}
@@ -155,5 +165,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
   }
 }
+
+const SearchEventTypeNote = styled('div')`
+  font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.gray3};
+  background: ${p => p.theme.offWhiteLight};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.5)} ${space(0.75)};
+  margin: 0 ${space(0.5)} 0 ${space(1)};
+  user-select: none;
+`;
 
 export default RuleConditionsForm;
