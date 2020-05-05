@@ -4,6 +4,7 @@ import functools
 import logging
 import six
 import time
+import sentry_sdk
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -149,19 +150,22 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        self.args = args
-        self.kwargs = kwargs
-        request = self.initialize_request(request, *args, **kwargs)
-        self.load_json_body(request)
-        self.request = request
-        self.headers = self.default_response_headers  # deprecate?
+        with sentry_sdk.start_span(op="PERF: base.dispatch - setup"):
+            self.args = args
+            self.kwargs = kwargs
+            request = self.initialize_request(request, *args, **kwargs)
+            self.load_json_body(request)
+            self.request = request
+            self.headers = self.default_response_headers  # deprecate?
 
         # Tags that will ultimately flow into the metrics backend at the end of
         # the request (happens via middleware/stats.py).
         request._metric_tags = {}
 
         if settings.SENTRY_API_RESPONSE_DELAY:
-            time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
+            with sentry_sdk.start_span(op="PERF: base.dispatch - sleep") as span:
+                span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
+                time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
         origin = request.META.get("HTTP_ORIGIN", "null")
         # A "null" value should be treated as no Origin for us.
@@ -170,30 +174,31 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            if origin and request.auth:
-                allowed_origins = request.auth.get_allowed_origins()
-                if not is_valid_origin(origin, allowed=allowed_origins):
-                    response = Response("Invalid origin: %s" % (origin,), status=400)
-                    self.response = self.finalize_response(request, response, *args, **kwargs)
-                    return self.response
+            with sentry_sdk.start_span(op="PERF: base.dispatch - request") as span:
+                if origin and request.auth:
+                    allowed_origins = request.auth.get_allowed_origins()
+                    if not is_valid_origin(origin, allowed=allowed_origins):
+                        response = Response("Invalid origin: %s" % (origin,), status=400)
+                        self.response = self.finalize_response(request, response, *args, **kwargs)
+                        return self.response
 
-            self.initial(request, *args, **kwargs)
+                self.initial(request, *args, **kwargs)
 
-            # Get the appropriate handler method
-            if request.method.lower() in self.http_method_names:
-                handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                # Get the appropriate handler method
+                if request.method.lower() in self.http_method_names:
+                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
 
-                (args, kwargs) = self.convert_args(request, *args, **kwargs)
-                self.args = args
-                self.kwargs = kwargs
-            else:
-                handler = self.http_method_not_allowed
+                    (args, kwargs) = self.convert_args(request, *args, **kwargs)
+                    self.args = args
+                    self.kwargs = kwargs
+                else:
+                    handler = self.http_method_not_allowed
 
-            if getattr(request, "access", None) is None:
-                # setup default access
-                request.access = access.from_request(request)
+                if getattr(request, "access", None) is None:
+                    # setup default access
+                    request.access = access.from_request(request)
 
-            response = handler(request, *args, **kwargs)
+                response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
