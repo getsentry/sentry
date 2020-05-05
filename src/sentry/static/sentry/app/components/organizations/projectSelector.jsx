@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {Link} from 'react-router';
-import flatten from 'lodash/flatten';
 
 import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
@@ -20,7 +19,6 @@ import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import withProjects from 'app/utils/withProjects';
 import {IconAdd, IconSettings} from 'app/icons';
 
 const renderDisabledCheckbox = p => (
@@ -40,10 +38,7 @@ const renderDisabledCheckbox = p => (
 
 class ProjectSelector extends React.Component {
   static propTypes = {
-    // Accepts a project id (slug) and not a project *object* because ProjectSelector
-    // is created from Django templates, and only organization is serialized
-    projectId: PropTypes.string,
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization,
 
     // used by multiProjectSelector
     multiProjects: PropTypes.arrayOf(
@@ -95,24 +90,12 @@ class ProjectSelector extends React.Component {
     onSelect: () => {},
   };
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      activeProject: this.getActiveProject(),
-      selectedProjects: new Map(),
-    };
-  }
+  state = {
+    selectedProjects: new Map(),
+  };
 
   urlPrefix() {
     return `/organizations/${this.props.organization.slug}`;
-  }
-
-  getActiveProject() {
-    const {projectId} = this.props;
-    const projects = flatten(this.getProjects());
-
-    return projects.find(({slug}) => slug === projectId);
   }
 
   getProjects() {
@@ -127,7 +110,6 @@ class ProjectSelector extends React.Component {
   handleSelect = ({value: project}) => {
     const {onSelect} = this.props;
 
-    this.setState({activeProject: project});
     onSelect(project);
   };
 
@@ -169,7 +151,6 @@ class ProjectSelector extends React.Component {
       searching,
       paginated,
     } = this.props;
-    const {activeProject} = this.state;
     const access = new Set(org.access);
 
     const [projects, nonMemberProjects] = this.getProjects();
@@ -277,7 +258,6 @@ class ProjectSelector extends React.Component {
         {renderProps =>
           children({
             ...renderProps,
-            activeProject,
             selectedProjects: this.props.selectedProjects,
           })
         }
@@ -455,4 +435,4 @@ const BadgeAndActionsWrapper = styled('div')`
   }
 `;
 
-export default withProjects(ProjectSelector);
+export default ProjectSelector;
