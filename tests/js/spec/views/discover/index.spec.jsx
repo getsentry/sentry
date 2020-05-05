@@ -63,26 +63,6 @@ describe('DiscoverContainer', function() {
       expect(queryBuilder.getColumns().some(column => column.name === 'tag1')).toBe(true);
       expect(queryBuilder.getColumns().some(column => column.name === 'tag2')).toBe(true);
     });
-
-    it('sets active projects from global selection', async function() {
-      ProjectsStore.loadInitialData(organization.projects);
-
-      GlobalSelectionStore.reset({
-        projects: [1],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d'},
-      });
-
-      wrapper = mountWithTheme(
-        <DiscoverContainerWithStore
-          location={{query: {}, search: ''}}
-          params={{}}
-          organization={organization}
-        />,
-        TestStubs.routerContext()
-      );
-      expect(wrapper.find('MultipleProjectSelector').text()).toBe('test-project');
-    });
   });
 
   describe('saved query', function() {
