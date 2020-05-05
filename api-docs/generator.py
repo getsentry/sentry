@@ -27,15 +27,10 @@ devservices_settings = {
 }
 
 apidoc_containers_overrides = {
-    "postgres": {
-        "ports": {"5432/tcp": 5400},
-        "environment": {"POSTGRES_DB": "sentry_api_docs"},
-        "volumes": None,
-    },
-    "redis": {"ports": {"6379/tcp": 12355}, "volumes": None},
+    "postgres": {"environment": {"POSTGRES_DB": "sentry_api_docs"}, "volumes": None},
+    "redis": {"volumes": None},
     "clickhouse": {"ports": None, "volumes": None, "only_if": None},
     "snuba": {
-        "ports": {"1218/tcp": 1219},
         "pull": None,
         "command": ["devserver", "--no-workers"],
         "environment": {
@@ -117,7 +112,7 @@ from sentry.runner import configure
 configure()
 
 sentry = Popen(
-    ["sentry", "--config=" + SENTRY_CONFIG, "run", "web", "-w", "1", "--bind", "127.0.0.1:12356"]
+    ["sentry", "--config=" + SENTRY_CONFIG, "run", "web", "-w", "1", "--bind", "127.0.0.1:9000"]
 )
 
 from django.core.management import call_command
