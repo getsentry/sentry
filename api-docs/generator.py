@@ -5,7 +5,13 @@ import click
 import docker
 import json
 import os
+import six
+import zlib
+from datetime import datetime
+from contextlib import contextmanager
 from sentry.runner.commands.devservices import get_docker_client, get_or_create
+from sentry.utils.apidocs import MockUtils, iter_scenarios, iter_endpoints, get_sections
+from sentry.utils.integrationdocs import sync_docs
 from sentry.conf.server import SENTRY_DEVSERVICES
 from subprocess import Popen
 
@@ -18,7 +24,6 @@ client = get_docker_client()
 
 # Use a unique network and namespace for our apidocs
 namespace = "apidocs"
-network = get_or_create(client, "network", namespace)
 
 # Define our set of containers we want to run
 APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba", "relay", "reverse_proxy"]
@@ -72,68 +77,59 @@ def deep_merge(defaults, overrides):
     return merged
 
 
-containers = deep_merge(devservices_settings, apidoc_containers_overrides)
+@contextmanager
+def apidoc_containers():
+    network = get_or_create(client, "network", namespace)
 
+    containers = deep_merge(devservices_settings, apidoc_containers_overrides)
 
-# Massage our list into some shared settings instead of repeating
-# it for each definition.
-for name, options in containers.items():
-    options["network"] = namespace
-    options["detach"] = True
-    options["name"] = namespace + "_" + name
-    containers[name] = options
+    # Massage our list into some shared settings instead of repeating
+    # it for each definition.
+    for name, options in containers.items():
+        options["network"] = namespace
+        options["detach"] = True
+        options["name"] = namespace + "_" + name
+        containers[name] = options
 
-# Pull all of our unique images once.
-pulled = set()
+    # Pull all of our unique images once.
+    pulled = set()
 
-for name, options in containers.items():
-    if options["image"] not in pulled:
-        click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
-        client.images.pull(options["image"])
-        pulled.add(options["image"])
+    for name, options in containers.items():
+        if options["image"] not in pulled:
+            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+            client.images.pull(options["image"])
+            pulled.add(options["image"])
 
+    # Run each of our containers, if found running already, delete first
+    # and create new. We never want to reuse.
+    for name, options in containers.items():
+        try:
+            container = client.containers.get(options["name"])
+        except docker.errors.NotFound:
+            pass
+        else:
+            container.stop()
+            container.remove()
 
-# Run each of our containers, if found running already, delete first
-# and create new. We never want to reuse.
-for name, options in containers.items():
-    try:
-        container = client.containers.get(options["name"])
-    except docker.errors.NotFound:
-        pass
-    else:
-        container.stop()
-        container.remove()
+        click.secho("> Creating '%s' container" % options["name"], err=True, fg="yellow")
+        client.containers.run(**options)
 
-    click.secho("> Creating '%s' container" % options["name"], err=True, fg="yellow")
-    client.containers.run(**options)
+    yield
 
-from sentry.runner import configure
+    # Delete all of our containers now. If it's not running, do nothing.
+    for name, options in containers.items():
+        try:
+            container = client.containers.get(options["name"])
+        except docker.errors.NotFound:
+            pass
+        else:
+            click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
+            container.stop()
+            container.remove()
 
-configure()
-
-sentry = Popen(
-    ["sentry", "--config=" + SENTRY_CONFIG, "run", "web", "-w", "1", "--bind", "127.0.0.1:9000"]
-)
-
-from django.core.management import call_command
-
-call_command(
-    "migrate",
-    interactive=False,
-    traceback=True,
-    verbosity=0,
-    migrate=True,
-    merge=True,
-    ignore_ghost_migrations=True,
-)
-
-import zlib
-import six
-
-from datetime import datetime
-from sentry.utils.apidocs import MockUtils, Runner, iter_scenarios, iter_endpoints, get_sections
-from sentry.web.helpers import render_to_string
-from sentry.utils.integrationdocs import sync_docs
+    # Remove our network that we created.
+    click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
+    network.remove()
 
 
 def color_for_string(s):
@@ -151,6 +147,8 @@ def report(category, message, fg=None):
 
 
 def run_scenario(vars, scenario_ident, func):
+    from sentry.utils.apidocs import Runner
+
     runner = Runner(scenario_ident, func, **vars)
     report("scenario", 'Running scenario "%s"' % scenario_ident)
     func(runner)
@@ -165,79 +163,94 @@ def cli(output_path, output_format):
     if output_path is not None:
         OUTPUT_PATH = os.path.abspath(output_path)
 
-    utils = MockUtils()
-    report("org", "Creating user and organization")
-    user = utils.create_user("john@interstellar.invalid")
-    org = utils.create_org("The Interstellar Jurisdiction", owner=user)
-    report("auth", "Creating api token")
-    api_token = utils.create_api_token(user)
+    with apidoc_containers():
+        from sentry.runner import configure
 
-    report("org", "Creating team")
-    team = utils.create_team("Powerful Abolitionist", org=org)
-    utils.join_team(team, user)
+        configure()
 
-    projects = []
-    for project_name in "Pump Station", "Prime Mover":
-        report("project", 'Creating project "%s"' % project_name)
-        project = utils.create_project(project_name, teams=[team], org=org)
-        release = utils.create_release(project=project, user=user)
-        report("event", 'Creating event for "%s"' % project_name)
+        sentry = Popen(
+            [
+                "sentry",
+                "--config=" + SENTRY_CONFIG,
+                "run",
+                "web",
+                "-w",
+                "1",
+                "--bind",
+                "127.0.0.1:9000",
+            ]
+        )
 
-        event1 = utils.create_event(project=project, release=release, platform="python")
-        event2 = utils.create_event(project=project, release=release, platform="java")
-        projects.append({"project": project, "release": release, "events": [event1, event2]})
+        from django.core.management import call_command
 
-    # HACK: the scenario in ProjectDetailsEndpoint#put requires our integration docs to be in place
-    # so that we can validate the platform. We create the docker container that runs generator.py
-    # with SENTRY_LIGHT_BUILD=1, which doesn't run `sync_docs` and `sync_docs` requires sentry
-    # to be configured, which we do in this file. So, we need to do the sync_docs here.
-    sync_docs(quiet=True)
+        call_command(
+            "migrate",
+            interactive=False,
+            traceback=True,
+            verbosity=0,
+            migrate=True,
+            merge=True,
+            ignore_ghost_migrations=True,
+        )
 
-    vars = {
-        "org": org,
-        "me": user,
-        "api_token": api_token,
-        "teams": [{"team": team, "projects": projects}],
-    }
+        utils = MockUtils()
+        report("org", "Creating user and organization")
+        user = utils.create_user("john@interstellar.invalid")
+        org = utils.create_org("The Interstellar Jurisdiction", owner=user)
+        report("auth", "Creating api token")
+        api_token = utils.create_api_token(user)
 
-    scenario_map = {}
-    report("docs", "Collecting scenarios")
-    for scenario_ident, func in iter_scenarios():
-        scenario = run_scenario(vars, scenario_ident, func)
-        scenario_map[scenario_ident] = scenario
+        report("org", "Creating team")
+        team = utils.create_team("Powerful Abolitionist", org=org)
+        utils.join_team(team, user)
 
-    section_mapping = {}
-    report("docs", "Collecting endpoint documentation")
-    for endpoint in iter_endpoints():
-        report("endpoint", 'Collecting docs for "%s"' % endpoint["endpoint_name"])
+        projects = []
+        for project_name in "Pump Station", "Prime Mover":
+            report("project", 'Creating project "%s"' % project_name)
+            project = utils.create_project(project_name, teams=[team], org=org)
+            release = utils.create_release(project=project, user=user)
+            report("event", 'Creating event for "%s"' % project_name)
 
-        section_mapping.setdefault(endpoint["section"], []).append(endpoint)
-    sections = get_sections()
+            event1 = utils.create_event(project=project, release=release, platform="python")
+            event2 = utils.create_event(project=project, release=release, platform="java")
+            projects.append({"project": project, "release": release, "events": [event1, event2]})
 
-    if output_format in ("json", "both"):
-        output_json(sections, scenario_map, section_mapping)
-    if output_format in ("markdown", "both"):
-        output_markdown(sections, scenario_map, section_mapping)
+        # HACK: the scenario in ProjectDetailsEndpoint#put requires our integration docs to be in place
+        # so that we can validate the platform. We create the docker container that runs generator.py
+        # with SENTRY_LIGHT_BUILD=1, which doesn't run `sync_docs` and `sync_docs` requires sentry
+        # to be configured, which we do in this file. So, we need to do the sync_docs here.
+        sync_docs(quiet=True)
 
-    # Delete all of our containers now. If it's not running, do nothing.
-    for name, options in containers.items():
-        try:
-            container = client.containers.get(options["name"])
-        except docker.errors.NotFound:
-            pass
-        else:
-            click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
-            container.stop()
-            container.remove()
+        vars = {
+            "org": org,
+            "me": user,
+            "api_token": api_token,
+            "teams": [{"team": team, "projects": projects}],
+        }
+
+        scenario_map = {}
+        report("docs", "Collecting scenarios")
+        for scenario_ident, func in iter_scenarios():
+            scenario = run_scenario(vars, scenario_ident, func)
+            scenario_map[scenario_ident] = scenario
+
+        section_mapping = {}
+        report("docs", "Collecting endpoint documentation")
+        for endpoint in iter_endpoints():
+            report("endpoint", 'Collecting docs for "%s"' % endpoint["endpoint_name"])
+
+            section_mapping.setdefault(endpoint["section"], []).append(endpoint)
+        sections = get_sections()
+
+        if output_format in ("json", "both"):
+            output_json(sections, scenario_map, section_mapping)
+        if output_format in ("markdown", "both"):
+            output_markdown(sections, scenario_map, section_mapping)
 
     if sentry is not None:
         report("sentry", "Shutting down sentry server")
         sentry.kill()
         sentry.wait()
-
-    # Remove our network that we created.
-    click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
-    network.remove()
 
 
 def output_json(sections, scenarios, section_mapping):
@@ -309,6 +322,8 @@ def dump_json(path, data):
 
 
 def dump_index_markdown(section, title, links):
+    from sentry.web.helpers import render_to_string
+
     path = os.path.join(OUTPUT_PATH, "markdown", section, "index.md")
     try:
         os.makedirs(os.path.dirname(path))
