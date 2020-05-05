@@ -149,7 +149,7 @@ class TeamWithProjectsSerializer(TeamSerializer):
         projects = [pt.project for pt in project_teams]
         project_serializer = ProjectSerializer(
             include_features=not all(
-                features.has("organizations:enterprise-perf", org) for org in orgs
+                features.has("organizations:enterprise-perf", org) for org in orgs.values()
             )
         )
         serialized_projects = serialize(projects, user, project_serializer)
