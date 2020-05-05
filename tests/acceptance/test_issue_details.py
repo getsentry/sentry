@@ -80,7 +80,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details cocoa")
 
     def test_cocoa_event_breadcrumb_v2(self):
-        with self.feature("breadcrumbs-v2"):
+        with self.feature("organizations:breadcrumbs-v2"):
             # TODO: This should become its own "rust" platform type
             event = self.create_sample_event(platform="native", sample_name="Rust")
             self.page.visit_issue(self.org.slug, event.group.id)
@@ -92,10 +92,10 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details unity")
 
     def test_unity_event_breadcrumb_v2(self):
-        with self.feature("breadcrumbs-v2"):
+        with self.feature("organizations:breadcrumbs-v2"):
             event = self.create_sample_event(default="unity", platform="csharp")
             self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.snapshot("issue details unity - - breadcrumbs v2")
+            self.browser.snapshot("issue details unity - breadcrumbs v2")
 
     def test_android_event(self):
         event = self.create_sample_event(platform="android")
@@ -128,7 +128,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details rust")
 
     def test_rust_event_breadcrumb_v2(self):
-        with self.feature("breadcrumbs-v2"):
+        with self.feature("organizations:breadcrumbs-v2"):
             # TODO: This should become its own "rust" platform type
             event = self.create_sample_event(platform="native", sample_name="Rust")
             self.page.visit_issue(self.org.slug, event.group.id)
