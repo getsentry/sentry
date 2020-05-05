@@ -137,10 +137,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // If this is alert threshold and inverted, it can't be above resolve
     // If this is resolve threshold and not inverted, it can't be above resolve
     // If this is resolve threshold and inverted, it can't be below resolve
+    // Since we're comparing non-inclusive thresholds here (>, <), we need
+    // to modify the values when we compare. An example of why:
+    // Alert > 0, resolve < 1. This means that we want to alert on values
+    // of 1 or more, and resolve on values of 0 or less. This is valid, but
+    // without modifying the values, this boundary case will fail.
     const isValid =
       trigger.thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold <= resolveThreshold
-        : alertThreshold >= resolveThreshold;
+        ? alertThreshold - 1 <= resolveThreshold + 1
+        : alertThreshold + 1 >= resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
     const isResolveChanged = changeObj?.hasOwnProperty('resolveThreshold');
@@ -241,10 +246,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const criticalTrigger = triggers[criticalTriggerIndex];
       const warningTrigger = triggers[warningTriggerIndex];
 
+      const warningThreshold = warningTrigger.alertThreshold ?? 0;
+      const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
+
       const hasError =
         criticalTrigger.thresholdType === AlertRuleThresholdType.ABOVE
-          ? warningTrigger.alertThreshold > criticalTrigger.alertThreshold
-          : warningTrigger.alertThreshold < criticalTrigger.alertThreshold;
+          ? warningThreshold > criticalThreshold
+          : warningThreshold < criticalThreshold;
 
       if (hasError) {
         [criticalTriggerIndex, warningTriggerIndex].forEach(index => {
@@ -392,6 +400,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       ? `${query} ${this.getEventType()}`.trim()
       : query;
 
+    const chart = (
+      <TriggersChart
+        api={this.api}
+        organization={organization}
+        projects={this.state.projects}
+        triggers={triggers}
+        query={queryAndAlwaysErrorEvents}
+        aggregation={aggregation}
+        timeWindow={timeWindow}
+      />
+    );
+
     return (
       <Access access={['project:write']}>
         {({hasAccess}) => (
@@ -431,22 +451,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <TriggersChart
-              api={this.api}
-              organization={organization}
-              projects={this.state.projects}
-              triggers={triggers}
-              query={queryAndAlwaysErrorEvents}
-              aggregation={aggregation}
-              timeWindow={timeWindow}
-            />
-
             <RuleConditionsForm
               api={this.api}
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
               onFilterUpdate={this.handleFilterUpdate}
+              thresholdChart={chart}
             />
 
             <Triggers

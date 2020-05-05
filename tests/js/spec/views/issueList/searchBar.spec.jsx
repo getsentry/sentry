@@ -20,6 +20,13 @@ describe('IssueListSearchBar', function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     supportedTags = TagStore.getAllTags();
+    // Add a tag that is preseeded with values.
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+      values: ['assigned', 'unresolved', 'ignored'],
+      predefined: true,
+    };
 
     tagValuePromise = Promise.resolve([]);
 
@@ -198,7 +205,7 @@ describe('IssueListSearchBar', function() {
       wrapper.update();
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(0)
           .find('li')
           .prop('className')
@@ -207,7 +214,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(0)
           .find('li')
           .prop('className')
@@ -216,7 +223,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowDown'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .at(1)
           .find('li')
           .prop('className')
@@ -226,7 +233,7 @@ describe('IssueListSearchBar', function() {
       wrapper.find('input').simulate('keyDown', {key: 'ArrowUp'});
       expect(
         wrapper
-          .find('SearchItem')
+          .find('SearchListItem')
           .last()
           .find('li')
           .prop('className')

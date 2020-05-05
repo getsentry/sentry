@@ -5,7 +5,6 @@ import signal
 import os
 import click
 from six import text_type
-from itertools import chain
 
 from sentry.utils.compat import map
 
@@ -77,7 +76,7 @@ def attach(project, fast, service):
     client = get_docker_client()
     containers = _prepare_containers(project, silent=True)
     if service not in containers:
-        raise click.ClickException("Service {} is not known or not enabled.".format(service))
+        raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
 
     container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
@@ -97,29 +96,53 @@ def attach(project, fast, service):
 
 
 @devservices.command()
+@click.argument("services", nargs=-1)
 @click.option("--project", default="sentry")
-@click.option("--exclude", multiple=True, help="Services to ignore and not run.")
+@click.option("--exclude", multiple=True, help="Service to ignore and not run. Repeatable option.")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
-def up(project, exclude, fast):
+def up(services, project, exclude, fast):
     """
     Run/update dependent services.
+
+    The default is everything, however you may pass positional arguments to specify
+    an explicit list of services to bring up.
+
+    You may also exclude services, for example: --exclude redis --exclude postgres.
     """
-
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
-    exclude = set(chain.from_iterable(x.split(",") for x in exclude))
 
     from sentry.runner import configure
 
     configure()
 
-    from django.conf import settings
+    containers = _prepare_containers(project, silent=True)
 
-    client = get_docker_client()
+    for service in exclude:
+        if service not in containers:
+            click.secho(
+                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red",
+            )
+            click.secho(
+                "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True,
+            )
+            raise click.Abort()
 
-    get_or_create(client, "network", project)
-
-    containers = _prepare_containers(project)
+    if services:
+        selected_containers = {}
+        for service in services:
+            if service not in containers:
+                click.secho(
+                    "Service `{}` is not known or not enabled.\n".format(service),
+                    err=True,
+                    fg="red",
+                )
+                click.secho(
+                    "Services that are available:\n" + "\n".join(containers.keys()) + "\n",
+                    err=True,
+                )
+                raise click.Abort()
+            selected_containers[service] = containers[service]
+        containers = selected_containers
 
     if fast:
         click.secho(
@@ -128,13 +151,12 @@ def up(project, exclude, fast):
             fg="red",
         )
 
-    for name, options in settings.SENTRY_DEVSERVICES.items():
+    client = get_docker_client()
+    get_or_create(client, "network", project)
+
+    for name, container_options in containers.items():
         if name in exclude:
             continue
-
-        if name not in containers:
-            continue
-
         _start_service(client, name, containers, project, fast=fast)
 
 

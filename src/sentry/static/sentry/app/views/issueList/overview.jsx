@@ -6,7 +6,6 @@ import Reflux from 'reflux';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import qs from 'query-string';
 
@@ -33,13 +32,13 @@ import ProcessingIssueList from 'app/components/stream/processingIssueList';
 import SentryTypes from 'app/sentryTypes';
 import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
-import TagStore from 'app/stores/tagStore';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
+import withIssueTags from 'app/utils/withIssueTags';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -62,15 +61,13 @@ const IssueListOverview = createReactClass({
     savedSearch: SentryTypes.SavedSearch,
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearchLoading: PropTypes.bool.isRequired,
+    tags: PropTypes.object,
 
     // TODO(apm): manual profiling
     finishProfile: PropTypes.func,
   },
 
-  mixins: [
-    Reflux.listenTo(GroupStore, 'onGroupChange'),
-    Reflux.listenTo(TagStore, 'onTagsChange'),
-  ],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
 
   getInitialState() {
     const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -90,7 +87,6 @@ const IssueListOverview = createReactClass({
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
-      tags: TagStore.getAllTags(),
       // the project for the selected issues
       // Will only be set if selected issues all belong
       // to one project.
@@ -266,7 +262,10 @@ const IssueListOverview = createReactClass({
 
   fetchTags() {
     const {organization, selection} = this.props;
-    loadOrganizationTags(this.api, organization.slug, selection);
+    this.setState({tagsLoading: true});
+    loadOrganizationTags(this.api, organization.slug, selection).then(() =>
+      this.setState({tagsLoading: false})
+    );
   },
 
   fetchData() {
@@ -438,15 +437,6 @@ const IssueListOverview = createReactClass({
     this.transitionTo({cursor, page: nextPage});
   },
 
-  onTagsChange(tags) {
-    // Exclude the environment tag as it lives in global search.
-    // Exclude the timestamp tag since we use event.timestamp instead here
-    this.setState({
-      tags: omit(tags, ['environment', 'timestamp']),
-      tagsLoading: false,
-    });
-  },
-
   onSidebarToggle() {
     const {organization} = this.props;
     this.setState({
@@ -601,7 +591,7 @@ const IssueListOverview = createReactClass({
       classes.push('show-sidebar');
     }
 
-    const {params, organization, savedSearch, savedSearches} = this.props;
+    const {params, organization, savedSearch, savedSearches, tags} = this.props;
     const query = this.getQuery();
 
     return (
@@ -624,7 +614,7 @@ const IssueListOverview = createReactClass({
             isSearchDisabled={this.state.isSidebarVisible}
             savedSearchList={savedSearches}
             tagValueLoader={this.tagValueLoader}
-            tags={this.state.tags}
+            tags={tags}
           />
 
           <Panel>
@@ -654,7 +644,7 @@ const IssueListOverview = createReactClass({
         </div>
         <IssueListSidebar
           loading={this.state.tagsLoading}
-          tags={this.state.tags}
+          tags={tags}
           query={query}
           onQueryChange={this.onIssueListSidebarSearch}
           orgId={organization.slug}
@@ -665,7 +655,7 @@ const IssueListOverview = createReactClass({
   },
 });
 
-export default withSavedSearches(
-  withGlobalSelection(withOrganization(withProfiler(IssueListOverview)))
+export default withGlobalSelection(
+  withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
 );
 export {IssueListOverview};

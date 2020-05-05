@@ -20,6 +20,7 @@ type Options = {
    * List of parameters to remove when changing URL params
    */
   resetParams?: string[];
+  save?: boolean;
 };
 
 /**
@@ -106,7 +107,7 @@ export function updateDateTime(
   if (!router) {
     GlobalSelectionActions.updateDateTime(datetime);
   }
-  updateParams(datetime, router, options);
+  updateParams(datetime, router, {...options, save: false});
 }
 
 /**
@@ -147,6 +148,10 @@ export function updateParams(obj: UrlParams, router?: Router, options?: Options)
   // Only push new location if query params has changed because this will cause a heavy re-render
   if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
     return;
+  }
+
+  if (options?.save) {
+    GlobalSelectionActions.save(newQuery);
   }
 
   router.push({

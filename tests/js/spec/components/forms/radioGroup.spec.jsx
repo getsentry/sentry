@@ -37,7 +37,7 @@ describe('RadioGroup', function() {
     expect(wrapper).toMatchSnapshot();
 
     expect(wrapper.find('RadioLineText').props().disabled).toBe(true);
-    expect(wrapper.find('RadioLineButtonFill').props().disabled).toBe(true);
+    expect(wrapper.find('Radio').props().disabled).toBe(true);
   });
 
   it('can select a different item', function() {
@@ -75,9 +75,9 @@ describe('RadioGroup', function() {
       />
     );
     wrapper
-      .find('[role="radio"]')
+      .find('[role="radio"] Radio')
       .last()
-      .simulate('click');
+      .simulate('change');
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 });

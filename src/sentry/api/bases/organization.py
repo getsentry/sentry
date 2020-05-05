@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 from rest_framework.exceptions import PermissionDenied, ParseError
 from django.core.cache import cache
 
@@ -25,10 +24,6 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.sdk import bind_organization_context
 from sentry.utils.compat import map
-
-
-class OrganizationEventsError(Exception):
-    pass
 
 
 class NoProjects(Exception):
@@ -248,7 +243,8 @@ class OrganizationEndpoint(Endpoint):
         return projects
 
     def get_environments(self, request, organization):
-        return get_environments(request, organization)
+        with sentry_sdk.start_span(op="PERF: Org.get_environments"):
+            return get_environments(request, organization)
 
     def get_filter_params(self, request, organization, date_filter_optional=False):
         """
@@ -271,12 +267,13 @@ class OrganizationEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as e:
-            raise OrganizationEventsError(six.text_type(e))
+            raise ParseError(detail=u"Invalid date range: {}".format(e))
 
-        try:
-            projects = self.get_projects(request, organization)
-        except ValueError:
-            raise OrganizationEventsError("Invalid project ids")
+        with sentry_sdk.start_span(op="PERF: org.get_filter_params - projects"):
+            try:
+                projects = self.get_projects(request, organization)
+            except ValueError:
+                raise ParseError(detail="Invalid project ids")
 
         if not projects:
             raise NoProjects
@@ -289,12 +286,15 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
-        try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
-        except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
+        with sentry_sdk.start_span(op="PERF: org.convert_args - organization (cache)"):
+            try:
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
+            except Organization.DoesNotExist:
+                raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with sentry_sdk.start_span(
+            op="check_object_permissions_on_organization", description=organization_slug
+        ):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)

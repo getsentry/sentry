@@ -67,14 +67,14 @@ export default class FormField<
     meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
   };
 
+  static contextTypes = {
+    form: PropTypes.object,
+  };
+
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
-  };
-
-  static contextTypes = {
-    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {
@@ -199,9 +199,14 @@ export default class FormField<
           {this.getField()}
           {this.renderDisabledReason()}
           {defined(help) && <p className="help-block">{help}</p>}
-          {shouldShowErrorMessage && <p className="error">{error}</p>}
+          {shouldShowErrorMessage && <ErrorMessage>{error}</ErrorMessage>}
         </div>
       </div>
     );
   }
 }
+
+const ErrorMessage = styled('p')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.red};
+`;
