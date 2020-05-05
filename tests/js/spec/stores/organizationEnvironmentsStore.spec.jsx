@@ -21,7 +21,7 @@ describe('OrganizationEnvironmentsStore', function() {
 
     expect(environments.length).toBe(2);
     expect(environments.map(env => env.name)).toEqual(['production', 'staging']);
-    expect(environments.map(env => env.displayName)).toEqual(['Production', 'Staging']);
+    expect(environments.map(env => env.displayName)).toEqual(['production', 'staging']);
   });
 
   it('has the correct loading state', async function() {
