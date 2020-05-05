@@ -88,6 +88,11 @@ def get_project_releases_by_stability(
     if stats_period is None:
         stats_period = "24h"
 
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        scope = scope[:-4]
+        stats_period = "24h"
+
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
     orderby = {
