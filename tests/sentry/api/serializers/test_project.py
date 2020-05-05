@@ -12,6 +12,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
+    ProjectSerializer,
     ProjectWithOrganizationSerializer,
     ProjectWithTeamSerializer,
     ProjectSummarySerializer,
@@ -39,6 +40,17 @@ class ProjectSerializerTest(TestCase):
         assert result["slug"] == project.slug
         assert result["name"] == project.name
         assert result["id"] == six.text_type(project.id)
+        assert result["features"] is not None
+
+    def test_suppress_features(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(teams=[team], organization=organization, name="foo")
+
+        result = serialize(project, user, ProjectSerializer(include_features=False))
+
+        assert "features" not in result
 
     def test_member_access(self):
         user = self.create_user(username="foo")
@@ -211,6 +223,12 @@ class ProjectSummarySerializerTest(TestCase):
         }
         assert result["latestRelease"] == {"version": self.release.version}
         assert result["environments"] == ["production", "staging"]
+
+    def test_suppress_features(self):
+        result = serialize(
+            self.project, self.user, ProjectSummarySerializer(include_features=False)
+        )
+        assert "features" not in result
 
     def test_user_reports(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
