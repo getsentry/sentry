@@ -122,6 +122,16 @@ fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
 
+run-acceptance:
+	@echo "--> Running acceptance tests"
+ifndef TEST_GROUP
+	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+else
+	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
+endif
+
+	@echo ""
+
 test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
@@ -184,14 +194,7 @@ test-acceptance: node-version-check
 	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
-	@echo "--> Running acceptance tests"
-ifndef TEST_GROUP
-	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-else
-	py.test tests/acceptance -m group_$(TEST_GROUP) --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
-endif
-
-	@echo ""
+	make run-acceptance
 
 test-plugins:
 	@echo "--> Building static assets"
