@@ -681,6 +681,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=6),
         "options": {"expires": 60 * 25},
     },
+    "process_pending_incident_snapshots": {
+        "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600, "queue": "incidents"},
+    },
 }
 
 BGTASKS = {
@@ -858,6 +863,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
+    # Enable the new version of interface/breadcrumbs
+    "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,

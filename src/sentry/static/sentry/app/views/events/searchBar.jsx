@@ -1,29 +1,28 @@
 import {ClassNames} from '@emotion/core';
+import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
+import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
+import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 
-import {NEGATION_OPERATOR, SEARCH_TYPES, SEARCH_WILDCARD} from 'app/constants';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
-import SmartSearchBar from 'app/components/smartSearchBar';
+import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
+import {FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-
-const tagToObjectReducer = (acc, name) => {
-  acc[name] = {
-    key: name,
-    name,
-  };
-  return acc;
-};
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
+);
+
+const FIELD_TAGS = Object.fromEntries(
+  Object.keys(FIELDS).map(item => [item, {key: item, name: item}])
 );
 
 class SearchBar extends React.PureComponent {
@@ -72,23 +71,38 @@ class SearchBar extends React.PureComponent {
     ({key}, query) => `${key}-${query}`
   );
 
-  getAllTags = (orgTags = []) => orgTags.sort().reduce(tagToObjectReducer, {});
-
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
   prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
+  getTagList() {
+    const {organization, tags} = this.props;
+    const fields = organization.features.includes('transaction-events')
+      ? FIELD_TAGS
+      : omit(FIELD_TAGS, TRACING_FIELDS);
+    const combined = assign({}, tags, fields);
+    combined.has = {
+      key: 'has',
+      name: 'Has property',
+      values: Object.keys(combined),
+      predefined: true,
+    };
+
+    return combined;
+  }
+
   render() {
+    const tags = this.getTagList();
     return (
       <ClassNames>
         {({css}) => (
           <SmartSearchBar
             {...this.props}
             hasRecentSearches
-            savedSearchType={SEARCH_TYPES.EVENT}
+            savedSearchType={SearchType.EVENT}
             onGetTagValues={this.getEventFieldValues}
-            supportedTags={this.props.tags}
+            supportedTags={tags}
             prepareQuery={this.prepareQuery}
             excludeEnvironment
             dropdownClassName={css`

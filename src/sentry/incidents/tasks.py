@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+from django.db import transaction
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
@@ -8,6 +10,8 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
+    PendingIncidentSnapshot,
+    IncidentSnapshot,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
@@ -181,3 +185,38 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
         auto_resolve_snapshot_incidents.apply_async(
             kwargs={"alert_rule_id": alert_rule_id}, countdown=1
         )
+
+
+@instrumented_task(
+    name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
+)
+def process_pending_incident_snapshots():
+    """
+    Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
+    has passed it's target_run_date.
+    """
+    from sentry.incidents.logic import create_incident_snapshot
+
+    batch_size = 50
+
+    now = timezone.now()
+    pending_snapshots = PendingIncidentSnapshot.objects.filter(
+        target_run_date__lte=now
+    ).select_related("incident")
+
+    if not pending_snapshots:
+        return
+
+    for processed, pending_snapshot in enumerate(pending_snapshots):
+        incident = pending_snapshot.incident
+        if processed > batch_size:
+            process_pending_incident_snapshots.apply_async(countdown=1)
+            break
+        else:
+            with transaction.atomic():
+                if (
+                    incident.status == IncidentStatus.CLOSED.value
+                    and not IncidentSnapshot.objects.filter(incident=incident).exists()
+                ):
+                    create_incident_snapshot(incident, windowed_stats=True)
+                pending_snapshot.delete()

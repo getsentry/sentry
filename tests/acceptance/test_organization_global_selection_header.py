@@ -153,9 +153,11 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
 
-            # FIXME(billy): This is a bug, should not be in local storage
             # should not be in local storage
-            # assert self.browser.get_local_storage_item(u"global-selection:{}".format(self.org.slug)) is None
+            assert (
+                self.browser.get_local_storage_item(u"global-selection:{}".format(self.org.slug))
+                is None
+            )
 
             # reloads page with no project id in URL, remains "My Projects" because
             # there has been no explicit project selection via UI
@@ -171,6 +173,12 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
+
+            self.issues_list.global_selection.select_date("Last 24 hours")
+            self.issues_list.wait_until_loaded()
+            assert u"statsPeriod=24h" in self.browser.current_url
+            # This doesn't work because we treat as dynamic data in CI
+            # assert self.issues_list.global_selection.get_selected_date() == "Last 24 hours"
 
             # reloading page with no project id in URL after previously
             # selecting an explicit project should load previously selected project
