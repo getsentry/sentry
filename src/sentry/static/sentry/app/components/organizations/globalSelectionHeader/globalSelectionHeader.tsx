@@ -360,8 +360,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
       ? [parseInt(forceProject.id, 10)]
       : this.props.selection.projects;
 
-    const isReady = !loadingProjects && !isGlobalSelectionReady;
-
     return (
       <React.Fragment>
         <Header className={className}>
@@ -399,7 +397,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
                     projects={loadingProjects ? projects : memberProjects}
-                    loadingProjects={!initiallyLoaded && !isReady}
+                    isGlobalSelectionReady={isGlobalSelectionReady}
+                    isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}
