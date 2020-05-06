@@ -322,12 +322,12 @@ export class IntegrationListDirectory extends AsyncComponent<
     }
 
     if (selectedCategory) {
-      displayedList = displayedList.filter(
-        integration => getCategoriesForIntegration(integration).includes(selectedCategory)
+      displayedList = displayedList.filter(integration =>
+        getCategoriesForIntegration(integration).includes(selectedCategory)
       );
     }
 
-    this.setState({displayedList})
+    this.setState({displayedList});
 
     return displayedList;
   };
