@@ -122,7 +122,7 @@ fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
 
-run-acceptance:
+run-acceptance: ensure-venv
 	@echo "--> Running acceptance tests"
 ifndef TEST_GROUP
 	py.test tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --junit-xml=".artifacts/acceptance.junit.xml" --html=".artifacts/acceptance.pytest.html" --self-contained-html
@@ -131,6 +131,10 @@ else
 endif
 
 	@echo ""
+
+run-acceptance-gha:
+	source .venv/bin/activate
+	make run-acceptance
 
 test-cli:
 	@echo "--> Testing CLI"
