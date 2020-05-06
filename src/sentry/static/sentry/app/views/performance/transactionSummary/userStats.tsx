@@ -28,7 +28,7 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['impact', '', undefined],
+        function: ['user_misery', 300, undefined],
       },
     ]);
 
@@ -82,8 +82,8 @@ class UserStats extends React.Component<Props> {
                 <StatNumber>{stats['apdex()']}</StatNumber>
               </div>
               <div>
-                <StatTitle>{t('User Impact')}</StatTitle>
-                <StatNumber>{stats['impact()']}</StatNumber>
+                <StatTitle>{t('User Misery')}</StatTitle>
+                <StatNumber>{stats['user_misery(300)']}</StatNumber>
               </div>
             </Container>
           );
