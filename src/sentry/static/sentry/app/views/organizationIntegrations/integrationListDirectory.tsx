@@ -336,7 +336,9 @@ export class IntegrationListDirectory extends AsyncComponent<
     this.setState({searchInput: value}, () => {
       this.updateQueryString();
       const result = this.calculateDisplayedList();
-      this.debouncedTrackIntegrationSearch(value, result.length);
+      if (value) {
+        this.debouncedTrackIntegrationSearch(value, result.length);
+      }
     });
   };
 
@@ -345,15 +347,17 @@ export class IntegrationListDirectory extends AsyncComponent<
       this.updateQueryString();
       this.calculateDisplayedList();
 
-      trackIntegrationEvent(
-        {
-          eventKey: 'integrations.directory_category_selected',
-          eventName: 'Integrations: Directory Category Selected',
-          view: 'integrations_directory',
-          category,
-        },
-        this.props.organization
-      );
+      if (category) {
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.directory_category_selected',
+            eventName: 'Integrations: Directory Category Selected',
+            view: 'integrations_directory',
+            category,
+          },
+          this.props.organization
+        );
+      }
     });
   };
 
