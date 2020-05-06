@@ -448,7 +448,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
               <PanelSubHeader>
                 {t(
-                  'Whenever %s of these conditions are met',
+                  'Whenever %s of these conditions are met for an issue',
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
                       className={classNames({
