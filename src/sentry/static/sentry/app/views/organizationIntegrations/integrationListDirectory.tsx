@@ -1,46 +1,48 @@
-import groupBy from 'lodash/groupBy';
-import debounce from 'lodash/debounce';
-import React from 'react';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import uniq from 'lodash/uniq';
+import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
+import uniq from 'lodash/uniq';
+import queryString from 'query-string';
+import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {
-  Organization,
-  Integration,
-  SentryApp,
-  IntegrationProvider,
-  DocumentIntegration,
-  SentryAppInstallation,
-  PluginWithProjectList,
-  AppOrProviderOrPlugin,
-} from 'app/types';
-import {Panel, PanelBody} from 'app/components/panels';
-import {
-  trackIntegrationEvent,
-  getSentryAppInstallStatus,
-  isSentryApp,
-  isPlugin,
-  isDocumentIntegration,
-  getCategoriesForIntegration,
-  isSlackWorkspaceApp,
-  getReauthAlertText,
-} from 'app/utils/integrationUtil';
-import {t, tct} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
-import SearchBar from 'app/components/searchBar';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import space from 'app/styles/space';
-import SelectControl from 'app/components/forms/selectControl';
 import Feature from 'app/components/acl/feature';
+import AsyncComponent from 'app/components/asyncComponent';
+import SelectControl from 'app/components/forms/selectControl';
+import {Panel, PanelBody} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {
+  AppOrProviderOrPlugin,
+  DocumentIntegration,
+  Integration,
+  IntegrationProvider,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+  SentryAppInstallation,
+} from 'app/types';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {
+  getCategoriesForIntegration,
+  getReauthAlertText,
+  getSentryAppInstallStatus,
+  isDocumentIntegration,
+  isPlugin,
+  isSentryApp,
+  isSlackWorkspaceApp,
+  trackIntegrationEvent,
+} from 'app/utils/integrationUtil';
+import withOrganization from 'app/utils/withOrganization';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 
-import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
+import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
