@@ -5,7 +5,6 @@ import six
 from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -108,10 +107,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            serializer = ProjectSummarySerializer(
-                include_features=not features.has("organizations:enterprise-perf", organization)
-            )
-            return Response(serialize(list(queryset), request.user, serializer))
+            return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
 
             def serialize_on_result(result):

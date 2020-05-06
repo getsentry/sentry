@@ -34,7 +34,6 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path)
         self.check_valid_response(response, [project])
         assert self.client.session["activeorg"] == self.org.slug
-        assert "features" in response.data[0]
 
     def test_with_stats(self):
         self.login_as(user=self.user)
@@ -163,19 +162,6 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path + "?all_projects=1&per_page=1")
         # Verify all projects in the org are returned in sorted order
         self.check_valid_response(response, sorted_projects)
-
-        for project in response.data:
-            assert "features" in project
-
-    def test_all_projects_suppresses_flags(self):
-        self.login_as(user=self.user)
-        self.create_project(teams=[self.team], name="foo", slug="foo")
-        self.create_project(teams=[self.team], name="bar", slug="bar")
-
-        with self.feature("organizations:enterprise-perf"):
-            response = self.client.get(self.path + "?all_projects=1&per_page=1")
-        for project in response.data:
-            assert "features" not in project
 
     def test_user_projects(self):
         self.foo_user = self.create_user("foo@example.com")
