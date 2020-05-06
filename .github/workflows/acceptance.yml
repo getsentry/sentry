@@ -156,24 +156,24 @@ jobs:
           with:
             python-version: ${{ steps.python-version.outputs.version}}
 
-        # setup pip
-        - name: Install pip
-          run: |
-            pip install --no-cache-dir --upgrade "pip>=20.0.2"
-
-        # pip cache
-        - name: Get pip cache dir
-          id: pip-cache
-          run: |
-            echo "::set-output name=dir::$(pip cache dir)"
-
-        - name: pip cache
+        - name: Pull cached virtualenv
           uses: actions/cache@v1
           with:
-            path: ${{ steps.pip-cache.outputs.dir }}
+            path: .venv
             key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
             restore-keys: |
-              ${{ runner.os }}-pip-
+              ${{ runner.os }}-venv-
+
+        # activate cached venv (this might not persist in future steps, we'll see)
+        - name: Ensure virtualenv activation
+          run: |
+            [ ! -x .venv/bin/activate ] && python -m virtualenv .venv
+            source .venv/bin/activate
+
+        # setup pip
+        - name: Ensure updated virtualenv pip
+          run: |
+            make ensure-pinned-pip
 
         - name: Install System Dependencies
           run: |
