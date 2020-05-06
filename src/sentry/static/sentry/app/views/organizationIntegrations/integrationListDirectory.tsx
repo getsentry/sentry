@@ -114,7 +114,9 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const list = this.sortIntegrations(combined);
 
-    this.setState({list, displayedList: list}, () => this.trackPageViewed());
+    const {searchInput, selectedCategory} = this.getFilterParameters();
+
+    this.setState({list, searchInput, selectedCategory}, () => this.trackPageViewed());
   }
 
   trackPageViewed() {
@@ -270,6 +272,18 @@ export class IntegrationListDirectory extends AsyncComponent<
       this.props.organization
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
+
+  /**
+   * Get filter parameters and guard against `queryString.parse` returning arrays.
+   */
+  getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
+    const {category, search} = queryString.parse(this.props.location.search);
+
+    const selectedCategory = Array.isArray(category) ? category[0] : category || "";
+    const searchInput = Array.isArray(search) ? search[0] : search || "";
+
+    return {searchInput, selectedCategory};
+  };
 
   /**
    * Update the query string with the current filter parameter values.
