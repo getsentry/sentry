@@ -106,19 +106,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"
 
-        include_features = not features.has("organizations:enterprise-perf", organization)
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            serializer = ProjectSummarySerializer(include_features=include_features)
+            serializer = ProjectSummarySerializer(
+                include_features=not features.has("organizations:enterprise-perf", organization)
+            )
             return Response(serialize(list(queryset), request.user, serializer))
         else:
 
             def serialize_on_result(result):
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
-                    environment_id=environment_id,
-                    stats_period=stats_period,
-                    include_features=include_features,
+                    environment_id=environment_id, stats_period=stats_period,
                 )
                 return serialize(result, request.user, serializer)
 
