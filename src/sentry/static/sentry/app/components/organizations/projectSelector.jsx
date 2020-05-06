@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import sortBy from 'lodash/sortBy';
 import styled from '@emotion/styled';
 import {Link} from 'react-router';
 
