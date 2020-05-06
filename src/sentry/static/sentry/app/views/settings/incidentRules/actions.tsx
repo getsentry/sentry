@@ -27,13 +27,7 @@ export async function addOrUpdateRule(
 
   return api.requestPromise(endpoint, {
     method,
-    data: {
-      ...rule,
-
-      // Clearing environments from the UI will result in a null value
-      // which will error in API, make sure we normalize to empty array
-      environment: rule.environment ?? [],
-    },
+    data: rule,
   });
 }
 

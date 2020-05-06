@@ -15,7 +15,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
 
-import {AlertRuleAggregations, TimeWindow} from './types';
+import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
@@ -76,7 +76,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     const {organization, disabled, onFilterUpdate} = this.props;
     const {environments} = this.state;
 
-    const environmentList: [string, React.ReactNode][] = defined(environments)
+    const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
+      environments
+    )
       ? environments.map((env: Environment) => [env.name, getDisplayName(env)])
       : [];
 
@@ -93,7 +95,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
         </div>
       </React.Fragment>
     );
-    environmentList.unshift(['', anyEnvironmentLabel]);
+    environmentList.unshift([null, anyEnvironmentLabel]);
 
     return (
       <Panel>
@@ -167,7 +169,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <SelectField
             name="environment"
             label={t('Environment')}
-            placeholder={t('Select an environment')}
+            placeholder={t('All Environments')}
             help={t('Choose which environment events must match')}
             styles={{
               singleValue: (base: any) => ({
