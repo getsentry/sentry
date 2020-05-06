@@ -1,6 +1,6 @@
 import React from 'react';
 
-import LoadingPanel from 'app/views/events/loadingPanel';
+import LoadingPanel from 'app/components/charts/loadingPanel';
 
 const defaultProps = {
   height: '200px',
