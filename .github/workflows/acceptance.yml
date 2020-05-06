@@ -219,7 +219,7 @@ jobs:
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
-            command: "source .venv/bin/activate && make run-acceptance"
+            command: "bash -c 'source .venv/bin/activate && make run-acceptance'"
           env:
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
