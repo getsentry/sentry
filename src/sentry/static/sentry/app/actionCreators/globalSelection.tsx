@@ -143,9 +143,10 @@ export function initializeUrlState({
           ...JSON.parse(storedValue),
         };
       }
-    } catch (ex) {
+    } catch (err) {
       // use default if invalid
-      console.error(ex); // eslint-disable-line no-console
+      Sentry.captureException(err);
+      console.error(err); // eslint-disable-line no-console
     }
   }
 
