@@ -8,7 +8,7 @@ import GlobalSelectionHeader from './globalSelectionHeader';
 type Props = {
   isDisabled: boolean;
   shouldEnforceSingleProject: boolean;
-} & Pick<ReactRouter.WithRouterProps, 'location' | 'router' | 'routes'> &
+} & Pick<ReactRouter.WithRouterProps, 'location' | 'router'> &
   Pick<
     React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
     | 'defaultSelection'
@@ -16,7 +16,13 @@ type Props = {
     | 'shouldForceProject'
     | 'memberProjects'
     | 'organization'
-  >;
+  > & {
+    routes: Array<
+      ReactRouter.PlainRoute<any> & {
+        globalSelectionSkipLastUsed?: boolean;
+      }
+    >;
+  };
 
 /**
  * Initializes GlobalSelectionHeader
@@ -41,13 +47,13 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       shouldEnforceSingleProject,
     } = this.props;
 
-    // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
+    // Make an exception for routes (e.g. issue details, in the case where it is accessed directly (e.g. from email))
     // We do not want to load the user's last used env/project in this case, otherwise will
     // lead to very confusing behavior.
     //
     // `routes` is only ever undefined in tests
     const skipLastUsed = !!routes?.find(
-      ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
+      ({globalSelectionSkipLastUsed}) => globalSelectionSkipLastUsed
     );
     initializeUrlState({
       organization,
