@@ -1,7 +1,7 @@
 import {Color} from 'app/utils/theme';
 import {IconProps} from 'app/types/iconProps';
 
-export enum BreadcrumbLevel {
+export enum BreadcrumbLevelType {
   FATAL = 'fatal',
   ERROR = 'error',
   WARNING = 'warning',
@@ -28,7 +28,7 @@ type BreadcrumbTypeBase = {
   timestamp?: string; //it's recommended
   category?: string;
   message?: string;
-  level?: BreadcrumbLevel;
+  level?: BreadcrumbLevelType;
   event_id?: string;
 };
 

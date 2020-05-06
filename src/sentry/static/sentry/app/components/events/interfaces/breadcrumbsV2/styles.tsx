@@ -5,13 +5,14 @@ import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
 // TODO(style): the color #fffcfb and  #e7c0bc are not yet in theme and no similar theme's color was found.
-const BreadCrumb = styled('li')<{hasError?: boolean}>`
+const BreadcrumbListItem = styled('li')<{hasError?: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
-  padding: ${space(1)} ${space(3)} ${space(0.75)} ${space(3)} !important;
+  padding: ${space(1)} ${space(2)} ${space(1)} ${space(3)};
   display: grid;
-  grid-template-columns: 26px 1fr 50px;
-  grid-gap: ${space(1.5)};
+  grid-template-columns: 50px 100px 1fr 80px 80px;
+  grid-gap: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   :before {
     content: '';
     display: block;
@@ -22,7 +23,9 @@ const BreadCrumb = styled('li')<{hasError?: boolean}>`
     background: ${p => p.theme.borderLight};
     position: absolute;
   }
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  :first-child:before {
+    content: none;
+  }
   :last-child:before {
     bottom: calc(100% - ${space(1)});
   }
@@ -55,4 +58,4 @@ const BreadCrumbIconWrapper = styled('div')<{
   border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray2)};
 `;
 
-export {BreadCrumb, BreadCrumbIconWrapper};
+export {BreadcrumbListItem, BreadCrumbIconWrapper};
