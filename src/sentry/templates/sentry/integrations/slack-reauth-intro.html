@@ -1,0 +1,28 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Slack Migration" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+<h3>Slack ReAuth</h3>
+
+
+    <p>
+      {% trans "Words about the Slack Migration" %}
+    </p>
+
+    <p>
+    {{channels}}
+    </p>
+
+    <div class="form-actions clearfix">
+        <div class="pull-right">
+            <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+        </div>
+    </div>
+{% endblock %}

@@ -12,12 +12,15 @@ from sentry.integrations import (
     FeatureDescription,
     IntegrationInstallation,
 )
-from sentry.pipeline import NestedPipelineView
+
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 from .client import SlackClient
 from .utils import logger
+
+from sentry.web.helpers import render_to_response
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
@@ -110,7 +113,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             config=identity_pipeline_config,
         )
 
-        return [identity_pipeline_view]
+        return [SlackReAuthIntro(), SlackReAuthChannels(), identity_pipeline_view]
 
     def get_team_info(self, access_token):
         payload = {"token": access_token}
@@ -146,6 +149,9 @@ class SlackIntegrationProvider(IntegrationProvider):
             "installation_type": "born_as_bot",
         }
 
+        if state.get("integration_id"):
+            metadata["installation_type"] = "migrated_to_bot"
+
         return {
             "name": team_name,
             "external_id": team_id,
@@ -157,3 +163,85 @@ class SlackIntegrationProvider(IntegrationProvider):
                 "data": {},
             },
         }
+
+
+class SlackReAuthIntro(PipelineView):
+    """
+        This pipeline step handles rendering the migration
+        intro with context about the migration.
+
+        If the `integration_id` is not present in the request
+        then we can fast forward through the pipeline to move
+        on to installing the integration as normal.
+
+    """
+
+    def dispatch(self, request, pipeline):
+        if "integration_id" in request.GET:
+            pipeline.bind_state("integration_id".request.GET["integration_id"])
+
+        # this should be nested but leaving here for now
+        next_url_param = "?show_alert_rules"
+        channels = []
+
+        if "show_alert_rules" in request.GET:
+            return pipeline.next_step()
+
+        return render_to_response(
+            template="sentry/integrations/slack-reauth-intro.html",
+            context={
+                "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_url_param),
+                "channels": channels,
+            },
+            request=request,
+        )
+
+        # if we dont have the integration_id we dont care about the
+        # migration path, skip straight to install
+        pipeline.state.step_index = 2
+        return pipeline.current_step()
+
+
+class SlackReAuthChannels(PipelineView):
+    """
+        This pipeline step handles rendering the channels
+        that are problematic:
+
+        1. private
+        2. removed
+        3. unauthorized
+
+        Any private channels in alert rules will also be binded
+        to the pipeline state to be used later.
+
+    """
+
+    def dispatch(self, request, pipeline):
+        next_url_param = "?start_migration"
+        channels = _get_channels(pipeline.organization)
+
+        if "start_migration" in request.GET:
+            return pipeline.next_step()
+
+        return render_to_response(
+            template="sentry/integrations/slack-reauth-intro.html",
+            context={
+                "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_url_param),
+                "channels": channels,
+            },
+            request=request,
+        )
+
+
+def _get_channels(pipeline):
+    # todo: get all the channels from the alert rules
+    # and then make requests to slack using old access token (which
+    # will still be stored as access_token cause we havent migrated yet)
+    organization = pipeline.organization
+    integration_id = pipeline.state.get("integration_id")
+
+    from sentry.models import Rule
+
+    Rule.objects.filter(
+        project__in=organization.project_set().all(), status=0,
+    )
