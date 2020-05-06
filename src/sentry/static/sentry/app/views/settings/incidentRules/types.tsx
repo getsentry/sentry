@@ -45,7 +45,7 @@ export type UnsavedIncidentRule = {
   aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
-  environment: string[];
+  environment: string | string[]; // Temporarily can be either
   query: string;
   timeWindow: number;
   triggers: Trigger[];
