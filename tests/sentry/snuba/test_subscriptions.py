@@ -21,7 +21,7 @@ class CreateSnubaSubscriptionTest(TestCase):
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
         subscription = create_snuba_subscription(
-            self.project, type, dataset, query, aggregation, time_window, resolution, []
+            self.project, type, dataset, query, aggregation, time_window, resolution, None
         )
         assert subscription.status == QuerySubscription.Status.CREATING.value
         assert subscription.project == self.project
@@ -42,7 +42,7 @@ class CreateSnubaSubscriptionTest(TestCase):
             time_window = timedelta(minutes=10)
             resolution = timedelta(minutes=1)
             subscription = create_snuba_subscription(
-                self.project, type, dataset, query, aggregation, time_window, resolution, []
+                self.project, type, dataset, query, aggregation, time_window, resolution, None
             )
             subscription = QuerySubscription.objects.get(id=subscription.id)
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
@@ -63,7 +63,7 @@ class CreateSnubaSubscriptionTest(TestCase):
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
         subscription = create_snuba_subscription(
-            self.project, type, dataset, query, aggregation, time_window, resolution, []
+            self.project, type, dataset, query, aggregation, time_window, resolution, None
         )
         assert subscription.status == QuerySubscription.Status.CREATING.value
         assert subscription.project == self.project
@@ -87,7 +87,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
 
         query = "level:warning"
@@ -97,7 +97,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
         subscription = QuerySubscription.objects.get(id=subscription.id)
         subscription_id = subscription.subscription_id
         assert subscription_id is not None
-        update_snuba_subscription(subscription, query, aggregation, time_window, resolution, [])
+        update_snuba_subscription(subscription, query, aggregation, time_window, resolution, None)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
         assert subscription.query == query
@@ -115,7 +115,7 @@ class UpdateSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
 
             query = "level:warning"
@@ -125,7 +125,9 @@ class UpdateSnubaSubscriptionTest(TestCase):
             subscription = QuerySubscription.objects.get(id=subscription.id)
             subscription_id = subscription.subscription_id
             assert subscription_id is not None
-            update_snuba_subscription(subscription, query, aggregation, time_window, resolution, [])
+            update_snuba_subscription(
+                subscription, query, aggregation, time_window, resolution, None
+            )
             subscription = QuerySubscription.objects.get(id=subscription.id)
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
             assert subscription.subscription_id is not None
@@ -147,7 +149,7 @@ class BulkDeleteSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
             other_subscription = create_snuba_subscription(
                 self.create_project(organization=self.organization),
@@ -157,7 +159,7 @@ class BulkDeleteSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
         subscription_ids = [subscription.id, other_subscription.id]
         bulk_delete_snuba_subscriptions([subscription, other_subscription])
@@ -182,7 +184,7 @@ class DeleteSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
         # Refetch since snuba creation happens in a task
         subscription = QuerySubscription.objects.get(id=subscription.id)
@@ -202,7 +204,7 @@ class DeleteSnubaSubscriptionTest(TestCase):
                 QueryAggregations.TOTAL,
                 timedelta(minutes=10),
                 timedelta(minutes=1),
-                [],
+                None,
             )
             subscription_id = subscription.id
             delete_snuba_subscription(subscription)

@@ -130,12 +130,12 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.create_environment(project=self.project, name="prod"),
             self.create_environment(project=self.project, name="dev"),
         ]
-        alert_rule = self.create_alert_rule(environment=environments)
+        alert_rule = self.create_alert_rule(environment=environments[0])
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
-        assert "dev, prod" == handler.generate_email_context(status).get("environment")
+        assert "prod" == handler.generate_email_context(status).get("environment")
 
 
 @freeze_time()

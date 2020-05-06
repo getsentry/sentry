@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import json
 
 from sentry.api.event_search import get_filter
+from sentry.models import Environment
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import (
     QueryAggregations,
@@ -116,9 +117,13 @@ def delete_subscription_from_snuba(query_subscription_id):
 
 def _create_in_snuba(subscription):
     conditions = resolve_discover_aliases(get_filter(subscription.query))[0].conditions
-    environments = list(subscription.environments.all())
-    if environments:
-        conditions.append(["environment", "IN", [env.name for env in environments]])
+    try:
+        environment = subscription.environments.all()[:1].get()
+    except Environment.DoesNotExist:
+        environment = None
+
+    if environment:
+        conditions.append(["environment", "=", environment.name])
     conditions = apply_dataset_conditions(QueryDatasets(subscription.dataset), conditions)
     response = _snuba_pool.urlopen(
         "POST",

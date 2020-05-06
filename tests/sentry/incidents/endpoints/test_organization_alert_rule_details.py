@@ -88,6 +88,10 @@ class AlertRuleDetailsBase(object):
             resp = self.get_valid_response(self.organization.slug)
             assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
+            if serialized_alert_rule["environment"]:
+                serialized_alert_rule["environment"] = serialized_alert_rule["environment"][0]
+            else:
+                serialized_alert_rule.pop("environment", None)
         self.endpoint = original_endpoint
         self.method = original_method
         return serialized_alert_rule
