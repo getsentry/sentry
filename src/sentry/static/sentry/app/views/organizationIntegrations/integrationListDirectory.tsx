@@ -279,8 +279,8 @@ export class IntegrationListDirectory extends AsyncComponent<
   getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
     const {category, search} = queryString.parse(this.props.location.search);
 
-    const selectedCategory = Array.isArray(category) ? category[0] : category || "";
-    const searchInput = Array.isArray(search) ? search[0] : search || "";
+    const selectedCategory = Array.isArray(category) ? category[0] : category || '';
+    const searchInput = Array.isArray(search) ? search[0] : search || '';
 
     return {searchInput, selectedCategory};
   };
@@ -349,6 +349,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       );
     });
   };
+
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -390,7 +391,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {organization} = this.props;
 
     const isLegacy = plugin.isHidden;
-    const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
+    const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
@@ -489,7 +490,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   ]}
                 />
                 <SearchBar
-                  query={this.state.searchInput || ''}
+                  query={searchInput || ''}
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
@@ -508,7 +509,7 @@ export class IntegrationListDirectory extends AsyncComponent<
               <EmptyResultsContainer>
                 <EmptyResultsBody>
                   {tct('No Integrations found for "[searchTerm]".', {
-                    searchTerm: this.state.searchInput,
+                    searchTerm: searchInput,
                   })}
                 </EmptyResultsBody>
               </EmptyResultsContainer>
