@@ -71,7 +71,7 @@ const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 type ConditionOrAction = string;
 
 type RuleTaskResponse = {
-  status: 'pending' | 'failed' | 'succes';
+  status: 'pending' | 'failed' | 'success';
   rule?: IssueAlertRule;
   error?: string;
 };
