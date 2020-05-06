@@ -119,7 +119,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {searchInput, selectedCategory} = this.getFilterParameters();
 
     this.setState({list, searchInput, selectedCategory}, () => {
-      this.calculateDisplayedList();
+      this.updateDisplayedList();
       this.trackPageViewed();
     });
   }
@@ -311,7 +311,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   /**
    * Filter the integrations list by ANDing together the search query and the category select.
    */
-  calculateDisplayedList = (): AppOrProviderOrPlugin[] => {
+  updateDisplayedList = (): AppOrProviderOrPlugin[] => {
     const {fuzzy, list, searchInput, selectedCategory} = this.state;
 
     let displayedList = list;
@@ -335,7 +335,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   handleSearchChange = async (value: string) => {
     this.setState({searchInput: value}, () => {
       this.updateQueryString();
-      const result = this.calculateDisplayedList();
+      const result = this.updateDisplayedList();
       if (value) {
         this.debouncedTrackIntegrationSearch(value, result.length);
       }
@@ -345,7 +345,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   onCategorySelect = ({value: category}: {value: string}) => {
     this.setState({selectedCategory: category}, () => {
       this.updateQueryString();
-      this.calculateDisplayedList();
+      this.updateDisplayedList();
 
       if (category) {
         trackIntegrationEvent(
