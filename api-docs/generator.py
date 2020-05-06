@@ -1,40 +1,135 @@
+#!/usr/bin/env python2.7
 from __future__ import absolute_import
 
-import os
-import zlib
-import json
 import click
-import logging
+import docker
+import json
+import os
 import six
-
+import zlib
 from datetime import datetime
-from subprocess import Popen, PIPE, check_output
-from six.moves.urllib.parse import urlparse
+from contextlib import contextmanager
+from sentry.runner.commands.devservices import get_docker_client, get_or_create
+from sentry.utils.apidocs import MockUtils, iter_scenarios, iter_endpoints, get_sections
+from sentry.utils.integrationdocs import sync_docs
+from sentry.conf.server import SENTRY_DEVSERVICES
+from subprocess import Popen
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+OUTPUT_PATH = "/usr/src/output"
 SENTRY_CONFIG = os.environ["SENTRY_CONF"] = os.path.join(HERE, "sentry.conf.py")
 os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
-# No sentry or django imports before this point
-from sentry.runner import configure
+client = get_docker_client()
 
-configure()
-from django.conf import settings
+# Use a unique network and namespace for our apidocs
+namespace = "apidocs"
 
-# Fair game from here
-from django.core.management import call_command
+# Define our set of containers we want to run
+APIDOC_CONTAINERS = ["postgres", "redis", "clickhouse", "snuba", "relay", "reverse_proxy"]
+devservices_settings = {
+    container_name: SENTRY_DEVSERVICES[container_name] for container_name in APIDOC_CONTAINERS
+}
 
-from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, iter_endpoints, get_sections
-from sentry.web.helpers import render_to_string
+apidoc_containers_overrides = {
+    "postgres": {"environment": {"POSTGRES_DB": "sentry_api_docs"}, "volumes": None},
+    "redis": {"volumes": None},
+    "clickhouse": {"ports": None, "volumes": None, "only_if": None},
+    "snuba": {
+        "pull": None,
+        "command": ["devserver", "--no-workers"],
+        "environment": {
+            "CLICKHOUSE_HOST": namespace + "_clickhouse",
+            "DEFAULT_BROKERS": None,
+            "REDIS_HOST": namespace + "_redis",
+        },
+        "volumes": None,
+        "only_if": None,
+    },
+    "relay": {"pull": None, "volumes": None, "only_if": None, "with_devserver": None},
+    "reverse_proxy": {"volumes": None, "only_if": None, "with_devserver": None},
+}
 
 
-OUTPUT_PATH = os.path.join(HERE, "cache")
-HOST = urlparse(settings.SENTRY_OPTIONS["system.url-prefix"]).netloc
+def deep_merge(defaults, overrides):
+    """
+    Deep merges two dictionaries.
+
+    If the value is None in `overrides`, that key-value pair will not show up in the final result.
+    """
+    merged = {}
+    for key in defaults:
+        if isinstance(defaults[key], dict):
+            if key not in overrides:
+                merged[key] = defaults[key]
+            elif overrides[key] is None:
+                continue
+            elif isinstance(overrides[key], dict):
+                merged[key] = deep_merge(defaults[key], overrides[key])
+            else:
+                raise Exception("Types must match")
+        elif key in overrides and overrides[key] is None:
+            continue
+        elif key in overrides:
+            merged[key] = overrides[key]
+        else:
+            merged[key] = defaults[key]
+    return merged
 
 
-# We don't care about you, go away
-_logger = logging.getLogger("sentry.events")
-_logger.disabled = True
+@contextmanager
+def apidoc_containers():
+    network = get_or_create(client, "network", namespace)
+
+    containers = deep_merge(devservices_settings, apidoc_containers_overrides)
+
+    # Massage our list into some shared settings instead of repeating
+    # it for each definition.
+    for name, options in containers.items():
+        options["network"] = namespace
+        options["detach"] = True
+        options["name"] = namespace + "_" + name
+        containers[name] = options
+
+    # Pull all of our unique images once.
+    pulled = set()
+
+    for name, options in containers.items():
+        if options["image"] not in pulled:
+            click.secho("> Pulling image '%s'" % options["image"], err=True, fg="green")
+            client.images.pull(options["image"])
+            pulled.add(options["image"])
+
+    # Run each of our containers, if found running already, delete first
+    # and create new. We never want to reuse.
+    for name, options in containers.items():
+        try:
+            container = client.containers.get(options["name"])
+        except docker.errors.NotFound:
+            pass
+        else:
+            container.stop()
+            container.remove()
+
+        click.secho("> Creating '%s' container" % options["name"], err=True, fg="yellow")
+        client.containers.run(**options)
+
+    yield
+
+    # Delete all of our containers now. If it's not running, do nothing.
+    for name, options in containers.items():
+        try:
+            container = client.containers.get(options["name"])
+        except docker.errors.NotFound:
+            pass
+        else:
+            click.secho("> Removing '%s' container" % container.name, err=True, fg="red")
+            container.stop()
+            container.remove()
+
+    # Remove our network that we created.
+    click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
+    network.remove()
 
 
 def color_for_string(s):
@@ -51,76 +146,9 @@ def report(category, message, fg=None):
     )
 
 
-def launch_redis():
-    report("redis", "Launching redis server")
-    cl = Popen(["redis-server", "-"], stdin=PIPE, stdout=open(os.devnull, "r+"))
-    cl.stdin.write(
-        """
-    port %(port)s
-    databases %(databases)d
-    save ""
-    """
-        % {"port": six.text_type(settings.SENTRY_APIDOCS_REDIS_PORT), "databases": 4}
-    )
-    cl.stdin.flush()
-    cl.stdin.close()
-    return cl
-
-
-def spawn_sentry():
-    report("sentry", "Launching sentry server")
-    cl = Popen(
-        [
-            "sentry",
-            "--config=" + SENTRY_CONFIG,
-            "run",
-            "web",
-            "-w",
-            "1",
-            "--bind",
-            "127.0.0.1:%s" % settings.SENTRY_APIDOCS_WEB_PORT,
-        ]
-    )
-    return cl
-
-
-def init_db():
-    drop_db()
-    report("db", "Migrating database (this can take some time)")
-    call_command("syncdb", migrate=True, interactive=False, traceback=True, verbosity=0)
-
-
-def drop_db():
-    report("db", "Dropping database")
-    config = settings.DATABASES["default"]
-    check_output(["dropdb", "-U", config["USER"], "-h", config["HOST"], config["NAME"]])
-    check_output(["createdb", "-U", config["USER"], "-h", config["HOST"], config["NAME"]])
-
-
-class SentryBox(object):
-    def __init__(self):
-        self.redis = None
-        self.sentry = None
-        self.task_runner = None
-
-    def __enter__(self):
-        self.redis = launch_redis()
-        self.sentry = spawn_sentry()
-        init_db()
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if self.sentry is not None:
-            report("sentry", "Shutting down sentry server")
-            self.sentry.kill()
-            self.sentry.wait()
-        if self.redis is not None:
-            report("redis", "Stopping redis server")
-            self.redis.kill()
-            self.redis.wait()
-
-
 def run_scenario(vars, scenario_ident, func):
+    from sentry.utils.apidocs import Runner
+
     runner = Runner(scenario_ident, func, **vars)
     report("scenario", 'Running scenario "%s"' % scenario_ident)
     func(runner)
@@ -131,11 +159,40 @@ def run_scenario(vars, scenario_ident, func):
 @click.option("--output-path", type=click.Path())
 @click.option("--output-format", type=click.Choice(["json", "markdown", "both"]), default="both")
 def cli(output_path, output_format):
-    """API docs dummy generator."""
     global OUTPUT_PATH
     if output_path is not None:
         OUTPUT_PATH = os.path.abspath(output_path)
-    with SentryBox():
+
+    with apidoc_containers():
+        from sentry.runner import configure
+
+        configure()
+
+        sentry = Popen(
+            [
+                "sentry",
+                "--config=" + SENTRY_CONFIG,
+                "run",
+                "web",
+                "-w",
+                "1",
+                "--bind",
+                "127.0.0.1:9000",
+            ]
+        )
+
+        from django.core.management import call_command
+
+        call_command(
+            "migrate",
+            interactive=False,
+            traceback=True,
+            verbosity=0,
+            migrate=True,
+            merge=True,
+            ignore_ghost_migrations=True,
+        )
+
         utils = MockUtils()
         report("org", "Creating user and organization")
         user = utils.create_user("john@interstellar.invalid")
@@ -157,6 +214,12 @@ def cli(output_path, output_format):
             event1 = utils.create_event(project=project, release=release, platform="python")
             event2 = utils.create_event(project=project, release=release, platform="java")
             projects.append({"project": project, "release": release, "events": [event1, event2]})
+
+        # HACK: the scenario in ProjectDetailsEndpoint#put requires our integration docs to be in place
+        # so that we can validate the platform. We create the docker container that runs generator.py
+        # with SENTRY_LIGHT_BUILD=1, which doesn't run `sync_docs` and `sync_docs` requires sentry
+        # to be configured, which we do in this file. So, we need to do the sync_docs here.
+        sync_docs(quiet=True)
 
         vars = {
             "org": org,
@@ -184,6 +247,11 @@ def cli(output_path, output_format):
         if output_format in ("markdown", "both"):
             output_markdown(sections, scenario_map, section_mapping)
 
+    if sentry is not None:
+        report("sentry", "Shutting down sentry server")
+        sentry.kill()
+        sentry.wait()
+
 
 def output_json(sections, scenarios, section_mapping):
     report("docs", "Generating JSON documents")
@@ -204,12 +272,19 @@ def output_json(sections, scenarios, section_mapping):
 
 def output_markdown(sections, scenarios, section_mapping):
     report("docs", "Generating markdown documents")
+
+    # With nested URLs, we can have groups of URLs that are nested under multiple base URLs. We only want
+    # them to show up once in the index.md. So, keep a set of endpoints we have already processed
+    # to avoid duplication.
+    processed_endpoints = set()
+
     for section, title in sections.items():
         i = 0
         links = []
         for endpoint in section_mapping.get(section, []):
             i += 1
             path = u"{}/{}.md".format(section, endpoint["endpoint_name"])
+
             auth = ""
             if len(endpoint["params"].get("auth", [])):
                 auth = endpoint["params"]["auth"][0]["description"]
@@ -229,7 +304,9 @@ def output_markdown(sections, scenarios, section_mapping):
             )
             dump_markdown(path, payload)
 
-            links.append({"title": endpoint["title"], "path": path})
+            if path not in processed_endpoints:
+                links.append({"title": endpoint["title"], "path": path})
+                processed_endpoints.add(path)
         dump_index_markdown(section, title, links)
 
 
@@ -245,6 +322,8 @@ def dump_json(path, data):
 
 
 def dump_index_markdown(section, title, links):
+    from sentry.web.helpers import render_to_string
+
     path = os.path.join(OUTPUT_PATH, "markdown", section, "index.md")
     try:
         os.makedirs(os.path.dirname(path))
