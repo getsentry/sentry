@@ -27,7 +27,7 @@ type Props = {
   project: Project;
   disabled?: boolean;
   pollInterval?: number;
-  onIssueRecieved?: (props: {firstIssue: FirstIssue}) => void;
+  onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
 };
 
@@ -61,7 +61,7 @@ class EventWaiter extends React.Component<Props, State> {
   intervalId: number | null = null;
 
   pollHandler = async () => {
-    const {api, organization, project, onIssueRecieved} = this.props;
+    const {api, organization, project, onIssueReceived} = this.props;
     let firstEvent = null;
 
     try {
@@ -107,8 +107,8 @@ class EventWaiter extends React.Component<Props, State> {
 
     recordAnalyticsFirstEvent({organization, project});
 
-    if (onIssueRecieved) {
-      onIssueRecieved({firstIssue});
+    if (onIssueReceived) {
+      onIssueReceived({firstIssue});
     }
 
     this.stopPolling();

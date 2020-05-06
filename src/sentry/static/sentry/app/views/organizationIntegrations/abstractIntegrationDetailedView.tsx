@@ -140,7 +140,7 @@ class AbstractIntegrationDetailedView<
   };
 
   //Returns the string that is shown as the title of a tab
-  getTabDiplay(tab: Tab): string {
+  getTabDisplay(tab: Tab): string {
     //default is return the tab
     return tab;
   }
@@ -305,7 +305,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <CapitalizedLink>{t(this.getTabDiplay(tabName))}</CapitalizedLink>
+            <CapitalizedLink>{t(this.getTabDisplay(tabName))}</CapitalizedLink>
           </li>
         ))}
       </ul>
