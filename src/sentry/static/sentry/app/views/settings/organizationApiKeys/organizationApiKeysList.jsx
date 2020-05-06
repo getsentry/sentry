@@ -32,7 +32,7 @@ class OrganizationApiKeysList extends React.Component {
       <Button
         priority="primary"
         size="small"
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
         busy={busy}
         disabled={busy}
         onClick={onAddApiKey}

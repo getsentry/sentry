@@ -97,7 +97,7 @@ class Dashboard extends React.Component {
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon={<IconAdd size="xs" isCircle />}
+              icon={<IconAdd size="xs" isCircled />}
               data-test-id="create-project"
             >
               {t('Create Project')}

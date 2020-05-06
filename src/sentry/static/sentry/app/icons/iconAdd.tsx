@@ -3,12 +3,12 @@ import React from 'react';
 import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon> & {
-  isCircle?: boolean;
+  isCircled?: boolean;
 };
 
-const IconAdd = ({isCircle = false, ...props}: Props) => (
+const IconAdd = ({isCircled = false, ...props}: Props) => (
   <SvgIcon {...props}>
-    {isCircle ? (
+    {isCircled ? (
       <React.Fragment>
         <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />
         <path d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z" />

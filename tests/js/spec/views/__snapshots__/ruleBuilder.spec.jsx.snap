@@ -871,7 +871,7 @@ exports[`RuleBuilder renders 1`] = `
                                           disabled={false}
                                           icon={
                                             <IconAdd
-                                              isCircle={true}
+                                              isCircled={true}
                                             />
                                           }
                                           onClick={[Function]}
@@ -1032,7 +1032,7 @@ exports[`RuleBuilder renders 1`] = `
         disabled={true}
         icon={
           <IconAdd
-            isCircle={true}
+            isCircled={true}
             size="xs"
           />
         }
@@ -1045,7 +1045,7 @@ exports[`RuleBuilder renders 1`] = `
           disabled={true}
           icon={
             <IconAdd
-              isCircle={true}
+              isCircled={true}
               size="xs"
             />
           }
@@ -1060,7 +1060,7 @@ exports[`RuleBuilder renders 1`] = `
             forwardRef={null}
             icon={
               <IconAdd
-                isCircle={true}
+                isCircled={true}
                 size="xs"
               />
             }
@@ -1110,7 +1110,7 @@ exports[`RuleBuilder renders 1`] = `
                           size="small"
                         >
                           <IconAdd
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           >
                             <ForwardRef(SvgIcon)
@@ -1227,11 +1227,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            isCircle={true}
+            isCircled={true}
           >
             <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
-              isCircle={true}
+              isCircled={true}
             >
               <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
@@ -1281,11 +1281,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            isCircle={true}
+            isCircled={true}
           >
             <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
-              isCircle={true}
+              isCircled={true}
             >
               <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
@@ -1335,11 +1335,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            isCircle={true}
+            isCircled={true}
           >
             <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
-              isCircle={true}
+              isCircled={true}
             >
               <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
@@ -1389,11 +1389,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           onClick={[Function]}
         >
           <StyledIconAdd
-            isCircle={true}
+            isCircled={true}
           >
             <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
-              isCircle={true}
+              isCircled={true}
             >
               <ForwardRef(SvgIcon)
                 className="css-zq12t8-StyledIconAdd e1hyuoc74"
@@ -2582,7 +2582,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           disabled={false}
                                           icon={
                                             <IconAdd
-                                              isCircle={true}
+                                              isCircled={true}
                                             />
                                           }
                                           onClick={[Function]}
@@ -3055,7 +3055,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         disabled={false}
         icon={
           <IconAdd
-            isCircle={true}
+            isCircled={true}
             size="xs"
           />
         }
@@ -3068,7 +3068,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           disabled={false}
           icon={
             <IconAdd
-              isCircle={true}
+              isCircled={true}
               size="xs"
             />
           }
@@ -3083,7 +3083,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             forwardRef={null}
             icon={
               <IconAdd
-                isCircle={true}
+                isCircled={true}
                 size="xs"
               />
             }
@@ -3133,7 +3133,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           size="small"
                         >
                           <IconAdd
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           >
                             <ForwardRef(SvgIcon)

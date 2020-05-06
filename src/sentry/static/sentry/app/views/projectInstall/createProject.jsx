@@ -130,7 +130,7 @@ class CreateProject extends React.Component {
                 borderless
                 data-test-id="create-team"
                 type="button"
-                icon={<IconAdd isCircle />}
+                icon={<IconAdd isCircled />}
                 onClick={() =>
                   openCreateTeamModal({
                     organization,

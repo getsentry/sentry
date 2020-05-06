@@ -98,7 +98,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'path')}
                 >
-                  <StyledIconAdd isCircle />
+                  <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[PATH]</TypeHint>
                 </RuleCandidate>
@@ -109,7 +109,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'url')}
                 >
-                  <StyledIconAdd isCircle />
+                  <StyledIconAdd isCircled />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[URL]</TypeHint>
                 </RuleCandidate>
@@ -155,7 +155,7 @@ class RuleBuilder extends React.Component {
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
-            icon={<IconAdd size="xs" isCircle />}
+            icon={<IconAdd size="xs" isCircled />}
             size="small"
           />
         </BuilderBar>

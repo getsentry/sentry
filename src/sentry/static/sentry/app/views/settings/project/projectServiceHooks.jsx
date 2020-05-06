@@ -155,7 +155,7 @@ export default class ProjectServiceHooks extends AsyncView {
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
-                icon={<IconAdd size="xs" isCircle />}
+                icon={<IconAdd size="xs" isCircled />}
               >
                 {t('Create New Hook')}
               </Button>

@@ -100,7 +100,7 @@ class OrganizationProjects extends AsyncView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Project')}
       </Button>

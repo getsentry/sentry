@@ -261,7 +261,7 @@ class TeamMembers extends React.Component {
   removeButton = member => (
     <Button
       size="small"
-      icon={<IconSubtract size="xs" isCircle />}
+      icon={<IconSubtract size="xs" isCircled />}
       onClick={this.removeMember.bind(this, member)}
       label={t('Remove')}
     >

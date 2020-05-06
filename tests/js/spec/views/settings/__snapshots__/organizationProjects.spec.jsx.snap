@@ -67,7 +67,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                 disabled={false}
                 icon={
                   <IconAdd
-                    isCircle={true}
+                    isCircled={true}
                     size="xs"
                   />
                 }
@@ -87,7 +87,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                   disabled={false}
                   icon={
                     <IconAdd
-                      isCircle={true}
+                      isCircled={true}
                       size="xs"
                     />
                   }
@@ -132,7 +132,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                           disabled={false}
                           icon={
                             <IconAdd
-                              isCircle={true}
+                              isCircled={true}
                               size="xs"
                             />
                           }
@@ -146,7 +146,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                             forwardRef={null}
                             icon={
                               <IconAdd
-                                isCircle={true}
+                                isCircled={true}
                                 size="xs"
                               />
                             }
@@ -212,7 +212,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                                             size="small"
                                           >
                                             <IconAdd
-                                              isCircle={true}
+                                              isCircled={true}
                                               size="xs"
                                             >
                                               <ForwardRef(SvgIcon)

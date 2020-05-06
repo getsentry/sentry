@@ -48,7 +48,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
         <ForwardRef
           icon={
             <IconAdd
-              isCircle={true}
+              isCircled={true}
               size="xs"
             />
           }
@@ -66,7 +66,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
           <ForwardRef
             icon={
               <IconAdd
-                isCircle={true}
+                isCircled={true}
                 size="xs"
               />
             }
@@ -109,7 +109,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   <forwardRef<Button>
                     icon={
                       <IconAdd
-                        isCircle={true}
+                        isCircled={true}
                         size="xs"
                       />
                     }
@@ -122,7 +122,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       forwardRef={null}
                       icon={
                         <IconAdd
-                          isCircle={true}
+                          isCircled={true}
                           size="xs"
                         />
                       }
@@ -173,7 +173,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                     size="small"
                                   >
                                     <IconAdd
-                                      isCircle={true}
+                                      isCircled={true}
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)

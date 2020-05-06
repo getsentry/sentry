@@ -55,7 +55,7 @@ class OrganizationTeams extends React.Component {
             organization,
           })
         }
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Team')}
       </Button>

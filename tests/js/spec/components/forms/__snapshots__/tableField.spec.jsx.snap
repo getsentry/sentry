@@ -252,7 +252,7 @@ exports[`TableField renders renders with form context 1`] = `
                                         disabled={false}
                                         icon={
                                           <IconAdd
-                                            isCircle={true}
+                                            isCircled={true}
                                             size="xs"
                                           />
                                         }
@@ -265,7 +265,7 @@ exports[`TableField renders renders with form context 1`] = `
                                           forwardRef={null}
                                           icon={
                                             <IconAdd
-                                              isCircle={true}
+                                              isCircled={true}
                                               size="xs"
                                             />
                                           }
@@ -314,7 +314,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                         size="xsmall"
                                                       >
                                                         <IconAdd
-                                                          isCircle={true}
+                                                          isCircled={true}
                                                           size="xs"
                                                         >
                                                           <ForwardRef(SvgIcon)
@@ -675,7 +675,7 @@ exports[`TableField renders renders without form context 1`] = `
                                   disabled={false}
                                   icon={
                                     <IconAdd
-                                      isCircle={true}
+                                      isCircled={true}
                                       size="xs"
                                     />
                                   }
@@ -688,7 +688,7 @@ exports[`TableField renders renders without form context 1`] = `
                                     forwardRef={null}
                                     icon={
                                       <IconAdd
-                                        isCircle={true}
+                                        isCircled={true}
                                         size="xs"
                                       />
                                     }
@@ -737,7 +737,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                   size="xsmall"
                                                 >
                                                   <IconAdd
-                                                    isCircle={true}
+                                                    isCircled={true}
                                                     size="xs"
                                                   >
                                                     <ForwardRef(SvgIcon)

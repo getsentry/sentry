@@ -151,7 +151,7 @@ export default class SelectOwners extends React.Component {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-              icon={<IconAdd isCircle />}
+              icon={<IconAdd isCircled />}
             />
           </Tooltip>
         </Container>

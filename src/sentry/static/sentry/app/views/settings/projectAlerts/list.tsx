@@ -101,7 +101,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
                     disabled={!canEditRule}
                     priority="primary"
                     size="small"
-                    icon={<IconAdd size="xs" isCircle />}
+                    icon={<IconAdd size="xs" isCircled />}
                   >
                     {t('New Alert Rule')}
                   </Button>

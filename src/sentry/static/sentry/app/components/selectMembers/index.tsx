@@ -184,7 +184,7 @@ class SelectMembers extends React.Component<Props, State> {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-              icon={<IconAdd isCircle />}
+              icon={<IconAdd isCircled />}
             />
           </Tooltip>
         </UnmentionableTeam>

@@ -74,7 +74,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         to={`/settings/${orgId}/developer-settings/new-internal/`}
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('New Internal Integration')}
       </Button>
@@ -109,7 +109,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         to={`/settings/${orgId}/developer-settings/new-public/`}
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('New Public Integration')}
       </Button>

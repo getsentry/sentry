@@ -95,7 +95,7 @@ export default class TableField extends React.Component<Props> {
 
     const button = (
       <Button
-        icon={<IconAdd size="xs" isCircle />}
+        icon={<IconAdd size="xs" isCircled />}
         onClick={addRow}
         size="xsmall"
         disabled={disabled}

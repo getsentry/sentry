@@ -225,7 +225,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     <forwardRef<Button>
                       icon={
                         <IconAdd
-                          isCircle={true}
+                          isCircled={true}
                           size="xs"
                         />
                       }
@@ -239,7 +239,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         forwardRef={null}
                         icon={
                           <IconAdd
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           />
                         }
@@ -305,7 +305,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         size="small"
                                       >
                                         <IconAdd
-                                          isCircle={true}
+                                          isCircled={true}
                                           size="xs"
                                         >
                                           <ForwardRef(SvgIcon)
@@ -395,7 +395,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     <forwardRef<Button>
                       icon={
                         <IconAdd
-                          isCircle={true}
+                          isCircled={true}
                           size="xs"
                         />
                       }
@@ -409,7 +409,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         forwardRef={null}
                         icon={
                           <IconAdd
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           />
                         }
@@ -475,7 +475,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         size="small"
                                       >
                                         <IconAdd
-                                          isCircle={true}
+                                          isCircled={true}
                                           size="xs"
                                         >
                                           <ForwardRef(SvgIcon)

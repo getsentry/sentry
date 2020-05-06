@@ -76,7 +76,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             <Button
               priority="primary"
               size="small"
-              icon={<IconAdd size="xs" isCircle />}
+              icon={<IconAdd size="xs" isCircled />}
               onClick={() => onClick()}
             >
               {t('Add Services')}

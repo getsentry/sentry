@@ -27,7 +27,7 @@ const BreadCrumbsSearch = ({
       onChange={onChangeSearchTerm}
     />
     <StyledIconSearch />
-    <StyledIconClose show={!!searchTerm} onClick={onClearSearchTerm} isCircle />
+    <StyledIconClose show={!!searchTerm} onClick={onClearSearchTerm} isCircled />
   </Wrapper>
 );
 

@@ -68,7 +68,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
                 data-test-id="create-team"
                 icon={
                   <IconAdd
-                    isCircle={true}
+                    isCircled={true}
                   />
                 }
                 onClick={[Function]}
@@ -1523,7 +1523,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 data-test-id="create-team"
                                 icon={
                                   <IconAdd
-                                    isCircle={true}
+                                    isCircled={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -1537,7 +1537,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   forwardRef={null}
                                   icon={
                                     <IconAdd
-                                      isCircle={true}
+                                      isCircled={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -1584,7 +1584,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
                                                 <IconAdd
-                                                  isCircle={true}
+                                                  isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
                                                     <svg
@@ -2134,7 +2134,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
                         <IconClose
-                          isCircle={true}
+                          isCircled={true}
                           size="xs"
                         />
                       }
@@ -2149,7 +2149,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         forwardRef={null}
                         icon={
                           <IconClose
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           />
                         }
@@ -2198,7 +2198,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       size="xsmall"
                                     >
                                       <IconClose
-                                        isCircle={true}
+                                        isCircled={true}
                                         size="xs"
                                       >
                                         <ForwardRef(SvgIcon)
@@ -2529,7 +2529,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 data-test-id="create-team"
                                 icon={
                                   <IconAdd
-                                    isCircle={true}
+                                    isCircled={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -2543,7 +2543,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   forwardRef={null}
                                   icon={
                                     <IconAdd
-                                      isCircle={true}
+                                      isCircled={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -2590,7 +2590,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
                                                 <IconAdd
-                                                  isCircle={true}
+                                                  isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
                                                     <svg
@@ -3040,7 +3040,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
                         <IconClose
-                          isCircle={true}
+                          isCircled={true}
                           size="xs"
                         />
                       }
@@ -3055,7 +3055,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         forwardRef={null}
                         icon={
                           <IconClose
-                            isCircle={true}
+                            isCircled={true}
                             size="xs"
                           />
                         }
@@ -3104,7 +3104,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       size="xsmall"
                                     >
                                       <IconClose
-                                        isCircle={true}
+                                        isCircled={true}
                                         size="xs"
                                       >
                                         <ForwardRef(SvgIcon)
@@ -4235,7 +4235,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 data-test-id="create-team"
                                 icon={
                                   <IconAdd
-                                    isCircle={true}
+                                    isCircled={true}
                                   />
                                 }
                                 onClick={[Function]}
@@ -4249,7 +4249,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   forwardRef={null}
                                   icon={
                                     <IconAdd
-                                      isCircle={true}
+                                      isCircled={true}
                                     />
                                   }
                                   onClick={[Function]}
@@ -4296,7 +4296,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
                                                 <IconAdd
-                                                  isCircle={true}
+                                                  isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
                                                     <svg

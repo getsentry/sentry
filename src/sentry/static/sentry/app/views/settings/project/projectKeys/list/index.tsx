@@ -176,7 +176,7 @@ class ProjectKeys extends AsyncView<Props, State> {
                 onClick={this.handleCreateKey}
                 size="small"
                 priority="primary"
-                icon={<IconAdd size="xs" isCircle />}
+                icon={<IconAdd size="xs" isCircled />}
               >
                 {t('Generate New Key')}
               </Button>

@@ -148,7 +148,7 @@ export default class ChoiceMapper extends React.Component {
       >
         {({isOpen}) => (
           <DropdownButton
-            icon={<IconAdd size="xs" isCircle />}
+            icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
             size="xsmall"
             disabled={disabled}

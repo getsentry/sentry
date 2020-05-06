@@ -398,7 +398,7 @@ const ClearAssigneeIcon = styled(props => (
   ${getSvgStyle};
 `;
 
-const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" isCircle />)`
+const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" isCircled />)`
   ${getSvgStyle};
 `;
 

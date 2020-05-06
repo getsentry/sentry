@@ -400,7 +400,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               size="small"
               label={t('Add a Column')}
               onClick={this.handleAddColumn}
-              icon={<IconAdd isCircle size="xs" />}
+              icon={<IconAdd isCircled size="xs" />}
             >
               {t('Add a Column')}
             </Button>

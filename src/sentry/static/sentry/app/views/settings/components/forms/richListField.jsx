@@ -174,7 +174,7 @@ class RichList extends React.PureComponent {
         {({isOpen}) => (
           <DropdownButton
             disabled={disabled}
-            icon={<IconAdd size="xs" isCircle />}
+            icon={<IconAdd size="xs" isCircled />}
             isOpen={isOpen}
             size="small"
           >
