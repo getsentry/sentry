@@ -38,7 +38,7 @@ const defaultProps = {
    * Text to show in the confirmation button
    */
   confirmText: t('Confirm') as React.ReactNode,
-  // Stop event propgation when opening the confirm modal
+  // Stop event propagation when opening the confirm modal
   stopPropagation: false,
 };
 
@@ -128,7 +128,7 @@ class Confirm extends React.PureComponent<Props, State> {
     onCancel: PropTypes.func,
     header: PropTypes.node,
 
-    // Stop event propgation when opening the confirm modal
+    // Stop event propagation when opening the confirm modal
     stopPropagation: PropTypes.bool,
   };
 

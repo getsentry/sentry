@@ -368,7 +368,7 @@ function getNewQueryParams(
 function getParams(params: UrlParams): UrlParams {
   const {start, end, period, statsPeriod, ...otherParams} = params;
 
-  // `statsPeriod` takes precendence for now
+  // `statsPeriod` takes precedence for now
   const coercedPeriod = statsPeriod || period;
 
   // Filter null values

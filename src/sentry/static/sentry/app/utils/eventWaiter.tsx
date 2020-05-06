@@ -16,7 +16,7 @@ const recordAnalyticsFirstEvent = ({organization, project}) =>
 
 /**
  * Should no issue object be available (the first issue has expired) then it
- * will simply be boolean true. When no event has been recieved this will be
+ * will simply be boolean true. When no event has been received this will be
  * null. Otherwise it will be the group
  */
 type FirstIssue = null | true | Group;
