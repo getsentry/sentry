@@ -51,8 +51,16 @@ export const ContentBox = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
+    grid-template-columns: minmax(100px, auto) 325px;
   }
+`;
+export const Main = styled('div')`
+  grid-column: 1/2;
+  max-width: 100%;
+  overflow: hidden;
+`;
+export const Side = styled('div')`
+  grid-column: 2/3;
 `;
 
 export const HeaderBox = styled(ContentBox)`

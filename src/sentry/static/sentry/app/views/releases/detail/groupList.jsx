@@ -32,6 +32,7 @@ const GroupList = createReactClass({
     endpointPath: PropTypes.string,
     renderEmptyMessage: PropTypes.func,
     queryParams: PropTypes.object,
+    withPagination: PropTypes.bool,
   },
 
   contextTypes: {
@@ -44,6 +45,7 @@ const GroupList = createReactClass({
     return {
       canSelectGroups: true,
       withChart: true,
+      withPagination: true,
     };
   },
 
@@ -165,7 +167,13 @@ const GroupList = createReactClass({
   },
 
   render() {
-    const {orgId, canSelectGroups, withChart, renderEmptyMessage} = this.props;
+    const {
+      orgId,
+      canSelectGroups,
+      withChart,
+      renderEmptyMessage,
+      withPagination,
+    } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
@@ -211,7 +219,9 @@ const GroupList = createReactClass({
             })}
           </PanelBody>
         </Panel>
-        <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+        {withPagination && (
+          <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+        )}
       </React.Fragment>
     );
   },
