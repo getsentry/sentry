@@ -164,16 +164,16 @@ jobs:
             restore-keys: |
               ${{ runner.os }}-venv-
 
-        # activate cached venv (this might not persist in future steps, we'll see)
-        - name: Ensure virtualenv activation
+        # activate cached venv
+        - name: Ensure virtualenv
           run: |
             pip install virtualenv
             [ ! -x .venv/bin/activate ] && python -m virtualenv .venv
-            source .venv/bin/activate
 
         # setup pip
         - name: Ensure updated virtualenv pip
           run: |
+            source .venv/bin/activate
             make ensure-pinned-pip
 
         - name: Install System Dependencies
@@ -189,6 +189,7 @@ jobs:
           env:
             PGPASSWORD: postgres
           run: |
+            source .venv/bin/activate
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
             pip install -U -e ".[dev]"
@@ -206,6 +207,7 @@ jobs:
 
         - name: Build platform assets
           run: |
+            source .venv/bin/activate
             sentry init
             make build-platform-assets
 
@@ -217,7 +219,7 @@ jobs:
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
-            command: "make run-acceptance"
+            command: "source .venv/bin/activate && make run-acceptance"
           env:
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
