@@ -28,7 +28,7 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['user_misery', 300, undefined],
+        function: ['user_misery', '300', undefined],
       },
     ]);
 
