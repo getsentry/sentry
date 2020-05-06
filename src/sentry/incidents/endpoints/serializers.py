@@ -268,7 +268,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    environment = EnvironmentField(required=False)
+    environment = EnvironmentField(required=False, allow_null=True)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
