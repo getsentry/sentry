@@ -167,6 +167,7 @@ jobs:
         # activate cached venv (this might not persist in future steps, we'll see)
         - name: Ensure virtualenv activation
           run: |
+            pip install virtualenv
             [ ! -x .venv/bin/activate ] && python -m virtualenv .venv
             source .venv/bin/activate
 
