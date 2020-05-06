@@ -3,43 +3,19 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Release, GlobalSelection} from 'app/types';
+import {Release} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
-import EventView from 'app/utils/discover/eventView';
-import {formatVersion} from 'app/utils/formatters';
-import {getUtcDateString} from 'app/utils/dates';
 
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   release: Release;
-  orgSlug: string;
-  selection: GlobalSelection;
-  hasDiscover: boolean;
 };
 
-const ProjectReleaseDetails = ({release, selection, orgSlug, hasDiscover}: Props) => {
+const ProjectReleaseDetails = ({release}: Props) => {
   const {version, dateCreated, firstEvent, lastEvent} = release;
-  const {projects, environments, datetime} = selection;
-  const {start, end, period} = datetime;
-
-  const releaseQuery = EventView.fromSavedQuery({
-    id: undefined,
-    version: 2,
-    name: `${t('Release')} ${formatVersion(version)}`,
-    fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-    query: `release:${version}`,
-    orderby: '-last_seen',
-    range: period,
-    environment: environments,
-    projects,
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-  }).getResultsViewUrlTarget(orgSlug);
 
   return (
     <Wrapper>
@@ -56,13 +32,7 @@ const ProjectReleaseDetails = ({release, selection, orgSlug, hasDiscover}: Props
           <StyledTr>
             <TagKey>{t('Version')}</TagKey>
             <TagValue>
-              {hasDiscover ? (
-                <Link to={releaseQuery}>
-                  <Version version={version} anchor={false} />
-                </Link>
-              ) : (
-                <Version version={version} anchor={false} />
-              )}
+              <Version version={version} anchor={false} />
             </TagValue>
           </StyledTr>
 
@@ -82,9 +52,9 @@ const ProjectReleaseDetails = ({release, selection, orgSlug, hasDiscover}: Props
 };
 
 const StyledTable = styled('table')`
+  table-layout: fixed;
   width: 100%;
   max-width: 100%;
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledTr = styled('tr')`
@@ -96,6 +66,7 @@ const StyledTr = styled('tr')`
 const TagKey = styled('td')`
   color: ${p => p.theme.gray3};
   padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -103,8 +74,9 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
-  ${overflowEllipsis};
-  min-width: 160px;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 160px;
+  }
 `;
 
 export default ProjectReleaseDetails;
