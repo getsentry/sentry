@@ -1,10 +1,7 @@
 import Reflux from 'reflux';
 
-import {toTitleCase} from 'app/utils';
 import EnvironmentActions from 'app/actions/environmentActions';
-
-const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
-const DEFAULT_EMPTY_ROUTING_NAME = 'none';
+import {getDisplayName, getUrlRoutingName} from 'app/utils/environment';
 
 const OrganizationEnvironmentsStore = Reflux.createStore({
   init() {
@@ -27,10 +24,10 @@ const OrganizationEnvironmentsStore = Reflux.createStore({
       id: item.id,
       name: item.name,
       get displayName() {
-        return toTitleCase(item.name) || DEFAULT_EMPTY_ENV_NAME;
+        return getDisplayName(item);
       },
       get urlRoutingName() {
-        return encodeURIComponent(item.name) || DEFAULT_EMPTY_ROUTING_NAME;
+        return getUrlRoutingName(item);
       },
     };
   },

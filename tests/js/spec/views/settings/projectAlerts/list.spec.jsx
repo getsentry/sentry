@@ -59,7 +59,7 @@ describe('ProjectAlertsList', function() {
         .find('RuleDescription')
         .at(0)
         .text()
-    ).toBe('Environment: Staging');
+    ).toBe('Environment: staging');
 
     expect(
       wrapper
@@ -94,7 +94,7 @@ describe('ProjectAlertsList', function() {
         .find('RuleDescription')
         .at(0)
         .text()
-    ).toBe('Environment: Staging');
+    ).toBe('Environment: staging');
     expect(wrapper.find('RuleName')).toHaveLength(0);
   });
 });
