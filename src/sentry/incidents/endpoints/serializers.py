@@ -9,6 +9,7 @@ from rest_framework import serializers
 from django.db import transaction
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
@@ -29,7 +30,6 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models.environment import Environment
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -268,7 +268,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    environment = ObjectField(required=False)
+    environment = EnvironmentField(required=False)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
@@ -310,21 +310,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Invalid aggregation, valid values are %s"
                 % [item.value for item in QueryAggregations]
             )
-
-    def validate_environment(self, environment):
-        def convert_to_environment(env_name):
-            try:
-                return Environment.objects.get(
-                    organization_id=self.context["organization"].id, name=env_name
-                )
-            except Environment.DoesNotExist:
-                raise serializers.ValidationError("Environment is not part of this organization")
-
-        if isinstance(environment, list):
-            environments = map(convert_to_environment, environment)
-        else:
-            environments = [convert_to_environment(environment)]
-        return environments
 
     def validate(self, data):
         """Performs validation on an alert rule's data

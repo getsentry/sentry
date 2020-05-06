@@ -51,7 +51,7 @@ class IncidentListEndpointTest(APITestCase):
     def test_filter_env(self):
         self.create_team(organization=self.organization, members=[self.user])
         env = self.create_environment(self.project)
-        rule = self.create_alert_rule(projects=[self.project], environment=[env])
+        rule = self.create_alert_rule(projects=[self.project], environment=env)
 
         incident = self.create_incident(alert_rule=rule)
         self.create_incident()
@@ -59,9 +59,7 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
-            resp_filter_env = self.get_valid_response(
-                self.organization.slug, environment=[env.name]
-            )
+            resp_filter_env = self.get_valid_response(self.organization.slug, environment=env.name)
             resp_no_env_filter = self.get_valid_response(self.organization.slug)
 
         # The alert without an environment assigned should not be selected

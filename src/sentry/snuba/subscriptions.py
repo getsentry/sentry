@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, dataset, query, aggregation, time_window, resolution, environments
+    projects, subscription_type, dataset, query, aggregation, time_window, resolution, environment
 ):
     """
     Creates a subscription to a snuba query for each project.
@@ -27,7 +27,7 @@ def bulk_create_snuba_subscriptions(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
-    :param environments: List of environments to filter by
+    :param environment: An optional environment to filter by
     :return: A list of QuerySubscriptions
     """
     subscriptions = []
@@ -42,14 +42,14 @@ def bulk_create_snuba_subscriptions(
                 aggregation,
                 time_window,
                 resolution,
-                environments,
+                environment,
             )
         )
     return subscriptions
 
 
 def create_snuba_subscription(
-    project, subscription_type, dataset, query, aggregation, time_window, resolution, environments
+    project, subscription_type, dataset, query, aggregation, time_window, resolution, environment
 ):
     """
     Creates a subscription to a snuba query.
@@ -63,7 +63,7 @@ def create_snuba_subscription(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
-    :param environments: List of environments to filter by
+    :param environment: An optional environment to filter by
     :return: The QuerySubscription representing the subscription
     """
     subscription = QuerySubscription.objects.create(
@@ -76,11 +76,10 @@ def create_snuba_subscription(
         time_window=int(time_window.total_seconds()),
         resolution=int(resolution.total_seconds()),
     )
-    sub_envs = [
-        QuerySubscriptionEnvironment(query_subscription=subscription, environment=env)
-        for env in environments
-    ]
-    QuerySubscriptionEnvironment.objects.bulk_create(sub_envs)
+    if environment:
+        QuerySubscriptionEnvironment.objects.create(
+            query_subscription=subscription, environment=environment
+        )
 
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
@@ -90,7 +89,7 @@ def create_snuba_subscription(
 
 
 def bulk_update_snuba_subscriptions(
-    subscriptions, query, aggregation, time_window, resolution, environments
+    subscriptions, query, aggregation, time_window, resolution, environment
 ):
     """
     Updates a list of query subscriptions.
@@ -101,7 +100,7 @@ def bulk_update_snuba_subscriptions(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
-    :param environments: List of environments to filter by
+    :param environment: An optional environment to filter by
     :return: A list of QuerySubscriptions
     """
     updated_subscriptions = []
@@ -109,14 +108,14 @@ def bulk_update_snuba_subscriptions(
     for subscription in subscriptions:
         updated_subscriptions.append(
             update_snuba_subscription(
-                subscription, query, aggregation, time_window, resolution, environments
+                subscription, query, aggregation, time_window, resolution, environment
             )
         )
     return subscriptions
 
 
 def update_snuba_subscription(
-    subscription, query, aggregation, time_window, resolution, environments
+    subscription, query, aggregation, time_window, resolution, environment
 ):
     """
     Updates a subscription to a snuba query.
@@ -126,7 +125,7 @@ def update_snuba_subscription(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
-    :param environments: List of environments to filter by
+    :param environment: An optional environment to filter by
     :return: The QuerySubscription representing the subscription
     """
     subscription.update(
@@ -137,11 +136,11 @@ def update_snuba_subscription(
         resolution=int(resolution.total_seconds()),
     )
     QuerySubscriptionEnvironment.objects.filter(query_subscription=subscription).exclude(
-        environment__in=environments
+        environment=environment
     ).delete()
-    for e in environments:
+    if environment:
         QuerySubscriptionEnvironment.objects.get_or_create(
-            query_subscription=subscription, environment=e
+            query_subscription=subscription, environment=environment
         )
 
     update_subscription_in_snuba.apply_async(
