@@ -901,7 +901,7 @@ def get_filter(query=None, params=None):
             else:
                 kwargs["project_ids"] = params["project_id"]
         if "environment" in params:
-            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]),)
+            term = SearchFilter(SearchKey("environment"), "=", SearchValue(params["environment"]))
             kwargs["conditions"].append(convert_search_filter_to_snuba_query(term))
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])
