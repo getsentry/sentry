@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 __all__ = ["FeatureManager"]
 
+import itertools
+
 from django.conf import settings
 
 from sentry.utils.safe import safe_execute
@@ -66,8 +68,37 @@ class FeatureManager(object):
 
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """
+        return self.build()(name, *args, **kwargs)
+
+    def build(self):
+        """
+        Set up delayed execution of ``has``.
+
+        Successive calls to the returned predicate have better performance than
+        repeatedly calling ``FeatureManager.has``, because it retains the the
+        set of ``feature.handler.FeatureHandler`` objects. An instance of the
+        predicate should be kept only in a short-lived context, because any
+        dynamic changes to plugins' feature handlers are not reflected in its
+        behavior.
+        """
+        return FeaturePredicate(self)
+
+
+class FeaturePredicate(object):
+    def __init__(self, manager):
+        from sentry.plugins.base import plugins
+
+        self.manager = manager
+
+        handlers_per_plugin = [
+            safe_execute(plugin.get_feature_hooks, _with_transaction=False) or ()
+            for plugin in plugins.all(version=2)
+        ]
+        self.handlers = tuple(itertools.chain(*handlers_per_plugin))
+
+    def __call__(self, name, *args, **kwargs):
         actor = kwargs.pop("actor", None)
-        feature = self.get(name, *args, **kwargs)
+        feature = self.manager.get(name, *args, **kwargs)
 
         # Check plugin feature handlers
         rv = self._get_plugin_value(feature, actor)
@@ -82,12 +113,8 @@ class FeatureManager(object):
         return False
 
     def _get_plugin_value(self, feature, actor):
-        from sentry.plugins.base import plugins
-
-        for plugin in plugins.all(version=2):
-            handlers = safe_execute(plugin.get_feature_hooks, _with_transaction=False)
-            for handler in handlers or ():
-                rv = handler(feature, actor)
-                if rv is not None:
-                    return rv
+        for handler in self.handlers:
+            rv = handler(feature, actor)
+            if rv is not None:
+                return rv
         return None

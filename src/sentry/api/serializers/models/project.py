@@ -51,6 +51,35 @@ STATS_PERIOD_CHOICES = {
 }
 
 
+class _ProjectFeatureChecker(object):
+    def __init__(self):
+        from sentry import features
+        from sentry.features.base import ProjectFeature
+
+        self.project_features = features.all(feature_type=ProjectFeature).keys()
+        self.has_feature = features.build()
+
+    def get_feature_list(self, obj, user):
+        with sentry_sdk.start_span(
+            op="project_feature_list", description=getattr(obj, "name")
+        ) as span:
+            feature_list = set(
+                feature_name[len("projects:") :]
+                for feature_name in self.project_features
+                if (
+                    feature_name.startswith("projects:")
+                    and self.has_feature(feature_name, obj, actor=user)
+                )
+            )
+
+            if obj.flags.has_releases:
+                feature_list.add("releases")
+
+            span.set_data("Feature Count", len(feature_list))
+
+            return feature_list
+
+
 @register(Project)
 class ProjectSerializer(Serializer):
     """
@@ -161,33 +190,18 @@ class ProjectSerializer(Serializer):
                 result[item]["stats"] = stats[item.id]
         return result
 
-    def get_feature_list(self, obj, user):
-        from sentry import features
-        from sentry.features.base import ProjectFeature
+    def get_feature_list(self, obj, user, feature_checker):
+        return (feature_checker or _ProjectFeatureChecker()).get_feature_list(obj, user)
 
-        with sentry_sdk.start_span(
-            op="project_feature_list", description=getattr(obj, "name")
-        ) as span:
-            # Retrieve all registered organization features
-            project_features = features.all(feature_type=ProjectFeature).keys()
-            feature_list = set()
+    def serialize_all(self, objects, attrs, user, **kwargs):
+        # There is a measured performance benefit to initializing this
+        # only once per serialization batch.
+        kwargs["feature_checker"] = _ProjectFeatureChecker()
 
-            for feature_name in project_features:
-                if not feature_name.startswith("projects:"):
-                    continue
-                if features.has(feature_name, obj, actor=user):
-                    # Remove the project scope prefix
-                    feature_list.add(feature_name[len("projects:") :])
+        return super(ProjectSerializer, self).serialize_all(objects, attrs, user, **kwargs)
 
-            if obj.flags.has_releases:
-                feature_list.add("releases")
-
-            span.set_data("Feature Count", len(feature_list))
-
-            return feature_list
-
-    def serialize(self, obj, attrs, user):
-        feature_list = self.get_feature_list(obj, user)
+    def serialize(self, obj, attrs, user, feature_checker=None):
+        feature_list = self.get_feature_list(obj, user, feature_checker)
 
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -357,8 +371,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user):
-        feature_list = self.get_feature_list(obj, user)
+    def serialize(self, obj, attrs, user, feature_checker=None):
+        feature_list = self.get_feature_list(obj, user, feature_checker)
         context = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],

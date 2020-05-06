@@ -42,7 +42,7 @@ def serialize(objects, user=None, serializer=None, **kwargs):
             )
 
         with sentry_sdk.start_span(op="serialize.iterate", description=type(serializer).__name__):
-            return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
+            return serializer.serialize_all(objects, attrs=attrs, user=user, **kwargs)
 
 
 def register(type):
@@ -61,6 +61,11 @@ class Serializer(object):
 
     def get_attrs(self, item_list, user, **kwargs):
         return {}
+
+    def serialize_all(self, objects, attrs, user, **kwargs):
+        return [
+            self.serialize(obj, attrs=attrs.get(obj, {}), user=user, **kwargs) for obj in objects
+        ]
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {}
