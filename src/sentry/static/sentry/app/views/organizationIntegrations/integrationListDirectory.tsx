@@ -61,7 +61,6 @@ type State = {
   extraApp?: SentryApp;
   searchInput: string;
   list: AppOrProviderOrPlugin[];
-  displayedList: AppOrProviderOrPlugin[];
   selectedCategory: string;
 };
 
@@ -81,7 +80,6 @@ export class IntegrationListDirectory extends AsyncComponent<
     return {
       ...super.getDefaultState(),
       list: [],
-      displayedList: [],
       selectedCategory: '',
     };
   }
@@ -291,40 +289,49 @@ export class IntegrationListDirectory extends AsyncComponent<
     });
   };
 
+  /**
+   * Filter the integrations list by ANDing together the search query and the category select.
+   */
+  getDisplayedList = (): AppOrProviderOrPlugin[] => {
+    const {fuzzy, list, searchInput, selectedCategory} = this.state;
+
+    let displayedList = list;
+
+    if (searchInput && fuzzy) {
+      const searchResults = fuzzy.search(searchInput);
+      displayedList = this.sortIntegrations(searchResults.map(i => i.item));
+    }
+
+    if (selectedCategory) {
+      displayedList = displayedList.filter(integration => {
+        return getCategoriesForIntegration(integration).includes(selectedCategory);
+      });
+    }
+
+    return displayedList;
+  };
+
   handleSearchChange = async (value: string) => {
     this.setState({searchInput: value}, () => {
-      if (!value) {
-        return this.setState({displayedList: this.state.list});
-      }
-      const result = this.state.fuzzy && this.state.fuzzy.search(value);
       this.updateQueryString();
+      // TODO We're only re-calculating this list to track its size.
+      const result = this.getDisplayedList();
       this.debouncedTrackIntegrationSearch(value, result.length);
-      return this.setState({
-        displayedList: this.sortIntegrations(result.map(i => i.item)),
-      });
     });
   };
 
   onCategorySelect = ({value: category}: {value: string}) => {
     this.setState({selectedCategory: category}, () => {
-      if (!category) {
-        return this.setState({displayedList: this.state.list});
-      }
-      const result = this.state.list.filter(integration => {
-        return getCategoriesForIntegration(integration).includes(category);
-      });
       this.updateQueryString();
 
-      return this.setState({displayedList: result}, () =>
-        trackIntegrationEvent(
-          {
-            eventKey: 'integrations.directory_category_selected',
-            eventName: 'Integrations: Directory Category Selected',
-            view: 'integrations_directory',
-            category,
-          },
-          this.props.organization
-        )
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.directory_category_selected',
+          eventName: 'Integrations: Directory Category Selected',
+          view: 'integrations_directory',
+          category,
+        },
+        this.props.organization
       );
     });
   };
@@ -443,7 +450,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {displayedList, selectedCategory, list} = this.state;
+    const {list, searchInput, selectedCategory} = this.state;
+    const displayedList = this.getDisplayedList();
 
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
