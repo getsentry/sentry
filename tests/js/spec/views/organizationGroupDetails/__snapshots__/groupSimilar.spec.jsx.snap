@@ -337,10 +337,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </h2>
             <StyledSimilarSpectrum>
               <SimilarSpectrum
-                className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
               >
                 <div
-                  className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                  className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
                 >
                   <span>
                     Similar
@@ -349,35 +349,35 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     colorIndex={4}
                   >
                     <span
-                      className="css-h1r3gt-SpectrumItem e1hn3xkk1"
+                      className="css-h1r3gt-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={3}
                   >
                     <span
-                      className="css-1j6o86h-SpectrumItem e1hn3xkk1"
+                      className="css-1j6o86h-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={2}
                   >
                     <span
-                      className="css-1pl5ll-SpectrumItem e1hn3xkk1"
+                      className="css-1pl5ll-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={1}
                   >
                     <span
-                      className="css-w9x78l-SpectrumItem e1hn3xkk1"
+                      className="css-w9x78l-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={0}
                   >
                     <span
-                      className="css-arcd4a-SpectrumItem e1hn3xkk1"
+                      className="css-arcd4a-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <span>
