@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import LoadingMask from 'app/components/loadingMask';
 
 type Props = {
-  height: string;
-};
+  height?: string;
+} & React.HTMLProps<HTMLDivElement>;
 
-const LoadingPanel = styled((props: Props) => (
+const LoadingPanel = styled(({height: _height, ...props}: Props) => (
   <div {...props}>
     <LoadingMask />
   </div>
