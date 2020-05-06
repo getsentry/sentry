@@ -273,12 +273,31 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
+  /**
+   * Update the query string with the current filter parameter values.
+   */
+  updateQueryString = () => {
+    const {searchInput, selectedCategory} = this.state;
+
+    const searchString = queryString.stringify({
+      ...queryString.parse(this.props.location.search),
+      search: searchInput ? searchInput : undefined,
+      category: selectedCategory ? selectedCategory : undefined,
+    });
+
+    browserHistory.replace({
+      pathname: this.props.location.pathname,
+      search: searchString ? `?${searchString}` : undefined,
+    });
+  };
+
   handleSearchChange = async (value: string) => {
     this.setState({searchInput: value}, () => {
       if (!value) {
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(value);
+      this.updateQueryString();
       this.debouncedTrackIntegrationSearch(value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
@@ -294,6 +313,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       const result = this.state.list.filter(integration => {
         return getCategoriesForIntegration(integration).includes(category);
       });
+      this.updateQueryString();
 
       return this.setState({displayedList: result}, () =>
         trackIntegrationEvent(
