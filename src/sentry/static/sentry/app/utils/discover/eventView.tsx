@@ -1030,9 +1030,9 @@ export const isAPIPayloadSimilar = (
   return true;
 };
 
-export function pickRelevantLocationQueryStrings(location: Location): LocationQuery {
+export function pickRelevantLocationQueryStrings(location: Location) {
   const query = location.query || {};
-  const picked = pick<LocationQuery>(query || {}, EXTERNAL_QUERY_STRING_KEYS);
+  const picked = pick(query || {}, EXTERNAL_QUERY_STRING_KEYS);
 
   return picked;
 }
