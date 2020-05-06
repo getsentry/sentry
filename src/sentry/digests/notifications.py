@@ -11,7 +11,6 @@ from six.moves import reduce
 from sentry.app import tsdb
 from sentry.digests import Record
 from sentry.models import Project, Group, GroupStatus, Rule
-from sentry.utils import metrics
 from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger("sentry.digests")
@@ -24,13 +23,13 @@ def split_key(key):
 
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
+    # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
+    # on-prem users might transition at any time, so we need to keep this transition
+    # code around for a while, maybe indefinitely.
     if len(key_parts) == 5:
         target_type = ActionTargetType(key_parts[3])
         target_identifier = key_parts[4] if key_parts[4] else None
-        metrics.incr("digests.new_key_seen")
     else:
-        metrics.incr("digests.old_key_seen")
-
         target_type = ActionTargetType.ISSUE_OWNERS
         target_identifier = None
     return Project.objects.get(pk=project_id), target_type, target_identifier
