@@ -11,7 +11,9 @@ export enum FilterGroupType {
 
 type FilterGroupBase = {
   isChecked: boolean;
-} & BreadcrumbDetails;
+  symbol: React.ReactNode;
+  description?: string;
+};
 
 type FilterGroupTypeType = {
   groupType: FilterGroupType.TYPE;

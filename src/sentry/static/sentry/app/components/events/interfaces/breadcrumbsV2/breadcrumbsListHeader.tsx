@@ -11,7 +11,7 @@ const BreadcrumbsListHeader = () => {
     <BreadcrumbListHeaderWrapper>
       <BreadcrumbListHeaderItem>{t('Type')}</BreadcrumbListHeaderItem>
       <BreadcrumbListHeaderItem>{t('Category')}</BreadcrumbListHeaderItem>
-      <BreadcrumbListHeaderItem>{t('Summary')}</BreadcrumbListHeaderItem>
+      <BreadcrumbListHeaderItem>{t('Description')}</BreadcrumbListHeaderItem>
       <BreadcrumbListHeaderItem>{t('Level')}</BreadcrumbListHeaderItem>
       <BreadcrumbListHeaderItem>{t('Datetime')}</BreadcrumbListHeaderItem>
     </BreadcrumbListHeaderWrapper>

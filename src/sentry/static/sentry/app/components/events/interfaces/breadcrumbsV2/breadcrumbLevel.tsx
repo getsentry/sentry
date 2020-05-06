@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Tag from 'app/views/settings/components/tag';
+import {t} from 'app/locale';
 
 import {BreadcrumbLevelType} from '../breadcrumbs/types';
 
@@ -18,7 +19,7 @@ const BreadcrumbLevelTag = ({level}: Props) => {
     case BreadcrumbLevelType.WARNING:
       return <Tag priority="warning">{level}</Tag>;
     default:
-      return <Tag>{level}</Tag>;
+      return <Tag>{level || t('undefined')}</Tag>;
   }
 };
 

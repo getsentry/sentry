@@ -1,12 +1,11 @@
+import {defined} from 'app/utils';
+
 import {Breadcrumb, BreadcrumbType} from '../breadcrumbs/types';
 
 function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   // special case for 'ui.' and `sentry.` category breadcrumbs
   // TODO: find a better way to customize UI around non-schema data
-  if (
-    (!breadcrumb.type || breadcrumb.type === BreadcrumbType.DEFAULT) &&
-    breadcrumb.category
-  ) {
+  if (breadcrumb.type === BreadcrumbType.DEFAULT && defined(breadcrumb?.category)) {
     const [category, subcategory] = breadcrumb.category.split('.');
     if (category === 'ui') {
       return {
