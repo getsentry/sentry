@@ -73,5 +73,7 @@ class KafkaPublisher(object):
 
     def publish(self, channel, value, key=None):
         self.producer.produce(topic=channel, value=value, key=key)
-        if not self.asynchronous:
+        if self.asynchronous:
+            self.producer.poll(0)
+        else:
             self.producer.flush()
