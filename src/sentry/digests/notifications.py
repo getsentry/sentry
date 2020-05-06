@@ -23,8 +23,15 @@ def split_key(key):
 
     key_parts = key.split(":", 4)
     project_id = key_parts[2]
-    target_type = ActionTargetType(key_parts[3])
-    target_identifier = key_parts[4] if key_parts[4] else None
+    # XXX: We transitioned to new style keys (len == 5) a while ago on sentry.io. But
+    # on-prem users might transition at any time, so we need to keep this transition
+    # code around for a while, maybe indefinitely.
+    if len(key_parts) == 5:
+        target_type = ActionTargetType(key_parts[3])
+        target_identifier = key_parts[4] if key_parts[4] else None
+    else:
+        target_type = ActionTargetType.ISSUE_OWNERS
+        target_identifier = None
     return Project.objects.get(pk=project_id), target_type, target_identifier
 
 
