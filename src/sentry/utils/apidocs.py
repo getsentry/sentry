@@ -9,14 +9,17 @@ import mimetypes
 from binascii import hexlify
 
 from collections import defaultdict
+from copy import copy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.conf.urls import RegexURLResolver, RegexURLPattern
 from django.db import transaction
 from docutils.core import publish_doctree
 from pytz import utc
 from random import randint
 from six import StringIO
+from sentry.utils.compat import map
 
 # Do not import from sentry here!  Bad things will happen
 
@@ -225,7 +228,7 @@ def camelcase_to_dashes(string):
     return camel_re.sub(handler, string).lstrip("-")
 
 
-def extract_endpoint_info(pattern, internal_endpoint):
+def extract_endpoint_info(pattern, internal_endpoint, parents):
     path = simplify_regex(pattern.regex.pattern)
     from sentry.constants import HTTP_METHODS
 
@@ -246,8 +249,14 @@ def extract_endpoint_info(pattern, internal_endpoint):
             endpoint_name = endpoint_name[:-8]
         endpoint_name = camelcase_to_dashes(endpoint_name)
         title, text, warning, params = parse_doc_string(doc)
+        if not parents:
+            api_path = API_PREFIX + path.lstrip("/")
+        else:
+            parents_prefix = "".join(map(lambda x: x.lstrip("/"), parents))
+            api_path = API_PREFIX + parents_prefix.lstrip("/") + path.lstrip("/")
+
         yield dict(
-            path=API_PREFIX + path.lstrip("/"),
+            path=api_path,
             method=method_name,
             title=title,
             text=text,
@@ -260,14 +269,40 @@ def extract_endpoint_info(pattern, internal_endpoint):
         )
 
 
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def resolve_nested_routes(pattern, current_parents=None):
+    """
+    Returns a list of tuples. The first element in the tuple is a RegexURLPattern. The second element is
+    a string list of all the parents that url pattern has.
+    """
+    if current_parents:
+        parents = copy(current_parents)
+    else:
+        parents = []
+
+    if isinstance(pattern, RegexURLPattern):
+        return [(pattern, current_parents)]
+    elif isinstance(pattern, RegexURLResolver):
+        parent = simplify_regex(pattern.regex.pattern)
+        parents.append(parent)
+        return flatten(map(lambda p: resolve_nested_routes(p, parents), pattern.url_patterns))
+    elif isinstance(pattern, list):
+        return flatten(map(lambda p: resolve_nested_routes(p, current_parents), pattern))
+
+
 def iter_endpoints():
     from sentry.api.urls import urlpatterns
 
-    for pattern in urlpatterns:
+    resolved_patterns = resolve_nested_routes(urlpatterns)
+
+    for pattern, parents in resolved_patterns:
         internal_endpoint = get_internal_endpoint_from_pattern(pattern)
         if internal_endpoint is None:
             continue
-        for endpoint in extract_endpoint_info(pattern, internal_endpoint):
+        for endpoint in extract_endpoint_info(pattern, internal_endpoint, parents):
             yield endpoint
 
 
