@@ -21,14 +21,12 @@ class BaseAlertRuleSerializerTest(object):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
-        assert result["thresholdType"] == 0
-        assert result["dataset"] == alert_rule.dataset
-        assert result["query"] == alert_rule.query
+        assert result["dataset"] == alert_rule.snuba_query.dataset
+        assert result["query"] == alert_rule.snuba_query.query
+        assert result["aggregate"] == alert_rule.snuba_query.aggregate
         assert result["aggregation"] == alert_rule.aggregation
-        assert result["timeWindow"] == alert_rule.time_window
-        assert result["resolution"] == alert_rule.resolution
-        assert result["alertThreshold"] == 0
-        assert result["resolveThreshold"] == 0
+        assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
+        assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if not skip_dates:
