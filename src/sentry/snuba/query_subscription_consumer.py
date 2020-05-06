@@ -200,6 +200,7 @@ class QuerySubscriptionConsumer(object):
                     "timestamp": contents["timestamp"],
                     "query_subscription_id": contents["subscription_id"],
                     "project_id": subscription.project_id,
+                    "request": contents.get("request"),
                     "subscription_dataset": subscription.dataset,
                     "subscription_query": subscription.query,
                     "subscription_aggregation": subscription.aggregation,
@@ -248,6 +249,11 @@ class QuerySubscriptionConsumer(object):
             except jsonschema.ValidationError:
                 metrics.incr("snuba_query_subscriber.message_payload_invalid")
                 raise InvalidSchemaError("Message payload does not match schema")
+        # XXX: Since we just return the raw dict here, when the payload changes it'll
+        # break things. This should convert the payload into a class rather than passing
+        # the dict around, but until we get time to refactor we can keep things working
+        # here.
+        payload.setdefault("values", payload.get("result"))
 
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         return payload
