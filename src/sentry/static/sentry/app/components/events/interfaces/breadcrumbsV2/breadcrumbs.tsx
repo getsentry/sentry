@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 import omit from 'lodash/omit';
 
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -24,8 +25,8 @@ import getBreadcrumbTypeDetails from './getBreadcrumbTypeDetails';
 import {FilterGroupType} from './breadcrumbFilter/types';
 import BreadcrumbsListHeader from './breadcrumbsListHeader';
 import BreadcrumbsListBody from './breadcrumbsListBody';
-import BreadcrumbIcon from './breadcrumbIcon';
 import BreadcrumbLevel from './breadcrumbLevel';
+import BreadcrumbIcon from './breadcrumbIcon';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -39,6 +40,7 @@ type State = {
   searchTerm: string;
   breadcrumbs: Array<BreadcrumbWithDetails>;
   filteredByFilter: Array<BreadcrumbWithDetails>;
+  filteredByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
   filterGroups: BreadcrumbFilterGroups;
 };
@@ -57,6 +59,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     searchTerm: '',
     breadcrumbs: [],
     filteredByFilter: [],
+    filteredByCustomSearch: [],
     filteredBreadcrumbs: [],
     filterGroups: [],
   };
@@ -114,6 +117,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       breadcrumbs: convertedBreadcrumbs,
       filteredBreadcrumbs: convertedBreadcrumbs,
       filteredByFilter: convertedBreadcrumbs,
+      filteredByCustomSearch: convertedBreadcrumbs,
       filterGroups: [
         ...breadcrumbTypes
           // in case of a breadcrumb of type BreadcrumbType.DEFAULT, moves it to the last position of the array
@@ -239,21 +243,30 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     );
   };
 
-  handleFilterBySearchTerm = (value = '') => {
-    const {filteredByFilter} = this.state;
+  handleFilterBySearchTerm = (value: string) => {
+    const {filteredByCustomSearch} = this.state;
 
     const searchTerm = value.toLocaleLowerCase();
 
-    const filteredBreadcrumbs = filteredByFilter.filter(
-      item =>
-        !!['category', 'message', 'level', 'timestamp'].find(prop => {
-          const searchValue = item[prop];
-          if (searchValue) {
-            return searchValue.toLowerCase().indexOf(searchTerm) !== -1;
-          }
-          return false;
-        })
-    );
+    const filteredBreadcrumbs = filteredByCustomSearch.filter(obj => {
+      return Object.keys(
+        pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
+      ).some(key => {
+        if (typeof obj[key] === 'string' || typeof obj[key] === 'number') {
+          return String(obj[key])
+            .toLocaleLowerCase()
+            .includes(searchTerm);
+        }
+        if (typeof obj[key] === 'object') {
+          return (
+            JSON.stringify(obj)
+              .toLocaleLowerCase()
+              .indexOf(searchTerm) !== -1
+          );
+        }
+        return false;
+      });
+    });
 
     this.setState({
       searchTerm,
