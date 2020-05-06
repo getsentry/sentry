@@ -226,7 +226,11 @@ def parse_user_value(value, user):
 
 def get_latest_release(projects, environments, organization_id=None):
     if organization_id is None:
-        organization_id = projects[0].organization_id
+        project = projects[0]
+        if hasattr(project, "organization_id"):
+            organization_id = project.organization_id
+        else:
+            return ""
 
     release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
 

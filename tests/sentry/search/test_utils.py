@@ -526,6 +526,12 @@ class GetLatestReleaseTest(TestCase):
         result = get_latest_release([self.project], [environment])
         assert result == new.version
 
+        assert get_latest_release([self.project.id], [environment]) == ""
+        assert (
+            get_latest_release([self.project.id], [environment], self.project.organization_id)
+            == new.version
+        )
+
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
             environment = self.create_environment()
