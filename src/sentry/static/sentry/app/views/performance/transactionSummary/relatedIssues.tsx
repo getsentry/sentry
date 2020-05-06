@@ -13,6 +13,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import GroupList from 'app/views/releases/detail/groupList';
+import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -38,7 +39,11 @@ class RelatedIssues extends React.Component<Props> {
       path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
-        query: `is:unresolved transaction:${transaction}`,
+        query: stringifyQueryObject({
+          query: [],
+          is: ['unresolved'],
+          transaction: [transaction],
+        }),
       },
     };
   }
