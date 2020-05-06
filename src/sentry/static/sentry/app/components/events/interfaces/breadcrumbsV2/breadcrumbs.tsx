@@ -8,23 +8,19 @@ import {t} from 'app/locale';
 import {Event} from 'app/types';
 import space from 'app/styles/space';
 import SearchBar from 'app/components/searchBar';
-import {IconProps} from 'app/types/iconProps';
 
-import {PlatformContextProvider} from '../breadcrumbs/platformContext';
-import BreadcrumbTime from '../breadcrumbs/breadcrumbTime';
-import BreadcrumbCollapsed from '../breadcrumbs/breadcrumbCollapsed';
 import {
   Breadcrumb,
   BreadcrumbDetails,
   BreadcrumbType,
-  BreadcrumbLevel,
+  BreadcrumbLevelType,
 } from '../breadcrumbs/types';
 import BreadcrumbFilter from './breadcrumbFilter/breadcrumbFilter';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbDetails from './getBreadcrumbDetails';
-import BreadcrumbRenderer from './breadcrumbRenderer';
-import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 import {FilterGroupType} from './breadcrumbFilter/types';
+import BreadcrumbsListHeader from './breadcrumbsListHeader';
+import BreadcrumbsListBody from './breadcrumbsListBody';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -138,7 +134,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       const {type, value, module: mdl} = exception.data.values[0];
       return {
         type: BreadcrumbType.EXCEPTION,
-        level: BreadcrumbLevel.ERROR,
+        level: BreadcrumbLevelType.ERROR,
         category: this.moduleToCategory(mdl) || 'exception',
         data: {
           type,
@@ -152,7 +148,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
     return {
       type: BreadcrumbType.MESSAGE,
-      level: levelTag?.value as BreadcrumbLevel,
+      level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
       timestamp: event.dateCreated,
@@ -227,7 +223,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     });
   };
 
-  handleCollapseToggle = () => {
+  handleToggleCollapse = () => {
     this.setState(prevState => ({
       isCollapsed: !prevState.isCollapsed,
     }));
@@ -241,7 +237,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   };
 
   render() {
-    const {event, type} = this.props;
+    const {type} = this.props;
     const {breadcrumbFilterGroups, searchTerm} = this.state;
 
     const {
@@ -277,37 +273,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <PlatformContextProvider value={{platform: event.platform}}>
-              <BreadCrumbs className="crumbs">
-                {collapsedQuantity > 0 && (
-                  <BreadcrumbCollapsed
-                    onClick={this.handleCollapseToggle}
-                    quantity={collapsedQuantity}
-                  />
-                )}
-                {filteredCollapsedBreadcrumbs.map(
-                  ({color, borderColor, icon, ...crumb}, idx) => {
-                    const Icon = icon as React.ComponentType<IconProps>;
-                    return (
-                      <BreadCrumb
-                        data-test-id="breadcrumb"
-                        key={idx}
-                        hasError={
-                          crumb.type === BreadcrumbType.MESSAGE ||
-                          crumb.type === BreadcrumbType.EXCEPTION
-                        }
-                      >
-                        <BreadCrumbIconWrapper color={color} borderColor={borderColor}>
-                          <Icon />
-                        </BreadCrumbIconWrapper>
-                        <BreadcrumbRenderer breadcrumb={crumb as Breadcrumb} />
-                        <BreadcrumbTime timestamp={crumb.timestamp} />
-                      </BreadCrumb>
-                    );
-                  }
-                )}
-              </BreadCrumbs>
-            </PlatformContextProvider>
+            <BreadcrumbList>
+              <BreadcrumbsListHeader />
+              <BreadcrumbsListBody
+                onToggleCollapse={this.handleToggleCollapse}
+                collapsedQuantity={collapsedQuantity}
+                breadcrumbs={filteredCollapsedBreadcrumbs}
+              />
+            </BreadcrumbList>
           ) : (
             <EmptyStateWarning small>
               {t('Sorry, no breadcrumbs match your search query.')}
@@ -321,17 +294,17 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
 export default BreadcrumbsContainer;
 
-const BreadCrumbs = styled('ul')`
-  padding-left: 0;
-  list-style: none;
-  margin-bottom: 0;
-`;
-
 const Content = styled('div')`
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};
+`;
+
+const BreadcrumbList = styled('ul')`
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 0;
 `;
 
 const Search = styled('div')`

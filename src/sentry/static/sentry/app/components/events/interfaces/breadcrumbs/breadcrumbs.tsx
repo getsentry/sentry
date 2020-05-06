@@ -14,7 +14,7 @@ import BreadcrumbTime from './breadcrumbTime';
 import BreadcrumbCollapsed from './breadcrumbCollapsed';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbDetails from './getBreadcrumbDetails';
-import {Breadcrumb, BreadcrumbType, BreadcrumbLevel} from './types';
+import {Breadcrumb, BreadcrumbType, BreadcrumbLevelType} from './types';
 import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
@@ -86,7 +86,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       const {type, value, module: mdl} = exception.data.values[0];
       return {
         type: BreadcrumbType.ERROR,
-        level: BreadcrumbLevel.ERROR,
+        level: BreadcrumbLevelType.ERROR,
         category: this.moduleToCategory(mdl) || 'exception',
         data: {
           type,
@@ -100,7 +100,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
     return {
       type: BreadcrumbType.MESSAGE,
-      level: levelTag?.value as BreadcrumbLevel,
+      level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
       timestamp: event.dateCreated,

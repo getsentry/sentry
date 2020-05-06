@@ -5,7 +5,7 @@ import space from 'app/styles/space';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 import {FilterType, FilterGroupType, FilterGroup} from './types';
-import BreadcrumbFilterGroupIcon from './breadcrumbFilterGroupIcon';
+import BreadcrumbIcon from '../breadcrumbIcon';
 
 type Props = {
   groupHeaderTitle: string;
@@ -32,10 +32,11 @@ const BreadcrumbFilterGroup = ({groupHeaderTitle, data, onClick}: Props) => {
               isChecked={isChecked}
               onClick={handleClick(type, groupType)}
             >
-              <BreadcrumbFilterGroupIcon
+              <BreadcrumbIcon
                 icon={icon}
                 color={color}
                 borderColor={borderColor}
+                size="xs"
               />
               <ListItemDescription>{description}</ListItemDescription>
               <CheckboxFancy isChecked={isChecked} />

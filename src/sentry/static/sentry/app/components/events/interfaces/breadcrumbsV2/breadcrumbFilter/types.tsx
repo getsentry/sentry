@@ -1,7 +1,7 @@
 import {
   BreadcrumbDetails,
   BreadcrumbType,
-  BreadcrumbLevel,
+  BreadcrumbLevelType,
 } from '../../breadcrumbs/types';
 
 export enum FilterGroupType {
@@ -20,11 +20,11 @@ type FilterGroupTypeType = {
 
 type FilterGroupTypeLevel = {
   groupType: FilterGroupType.LEVEL;
-  type: BreadcrumbLevel;
+  type: BreadcrumbLevelType;
 } & FilterGroupBase;
 
 export type FilterGroup = FilterGroupTypeType | FilterGroupTypeLevel;
 
-export type FilterType = BreadcrumbLevel | BreadcrumbType;
+export type FilterType = BreadcrumbLevelType | BreadcrumbType;
 
 export {BreadcrumbDetails};

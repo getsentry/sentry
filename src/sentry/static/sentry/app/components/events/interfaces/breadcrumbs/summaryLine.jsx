@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 function isOverflowing(el) {
   // XXX(mitsuhiko): subtract one because of reasons. Not sure which ones.
@@ -58,10 +59,22 @@ class SummaryLine extends React.Component {
         onClick={this.onToggle}
         ref={this.makeSummariesGreatAgain}
       >
-        {this.props.children}
+        <StyledPre>
+          <code>{this.props.children}</code>
+        </StyledPre>
       </div>
     );
   }
 }
 
 export default SummaryLine;
+
+const StyledPre = styled('pre')`
+  padding: 0;
+  background: none;
+  font-size: ${p => p.theme.fontSizeSmall};
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 1px 0 2px 0;
+`;
