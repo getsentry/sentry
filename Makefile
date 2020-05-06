@@ -133,7 +133,7 @@ endif
 	@echo ""
 
 run-acceptance-gha:
-	source .venv/bin/activate
+	. .venv/bin/activate
 	make run-acceptance
 
 test-cli:
