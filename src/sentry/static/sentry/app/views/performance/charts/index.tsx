@@ -6,7 +6,7 @@ import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getInterval} from 'app/components/charts/utils';
-import LoadingPanel from 'app/views/events/loadingPanel';
+import LoadingPanel from 'app/components/charts/loadingPanel';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';

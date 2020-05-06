@@ -13,8 +13,8 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import {getDuration, formatPercentage} from 'app/utils/formatters';
 
 import EventsRequest from './utils/eventsRequest';
