@@ -14,7 +14,7 @@ import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -260,10 +260,7 @@ class IncidentsListContainer extends React.Component<Props> {
           <PageContent>
             <PageHeader>
               <StyledPageHeading>
-                {t('Alerts')}{' '}
-                <BetaTag
-                  title={t('This page is in beta and may change in the future.')}
-                />
+                {t('Alerts')} <FeatureBadge type="beta" />
               </StyledPageHeading>
 
               <Actions>
