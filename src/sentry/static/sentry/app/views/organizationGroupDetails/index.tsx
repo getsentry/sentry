@@ -10,6 +10,7 @@ import GroupDetails from './groupDetails';
 
 type Props = {
   selection: GlobalSelection;
+  isGlobalSelectionReady: boolean;
   organization: Organization;
   children: React.ReactNode;
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
