@@ -1,46 +1,48 @@
-import groupBy from 'lodash/groupBy';
-import debounce from 'lodash/debounce';
-import React from 'react';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import uniq from 'lodash/uniq';
+import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
+import uniq from 'lodash/uniq';
+import queryString from 'query-string';
+import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {
-  Organization,
-  Integration,
-  SentryApp,
-  IntegrationProvider,
-  DocumentIntegration,
-  SentryAppInstallation,
-  PluginWithProjectList,
-  AppOrProviderOrPlugin,
-} from 'app/types';
-import {Panel, PanelBody} from 'app/components/panels';
-import {
-  trackIntegrationEvent,
-  getSentryAppInstallStatus,
-  isSentryApp,
-  isPlugin,
-  isDocumentIntegration,
-  getCategoriesForIntegration,
-  isSlackWorkspaceApp,
-  getReauthAlertText,
-} from 'app/utils/integrationUtil';
-import {t, tct} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
-import SearchBar from 'app/components/searchBar';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import space from 'app/styles/space';
-import SelectControl from 'app/components/forms/selectControl';
 import Feature from 'app/components/acl/feature';
+import AsyncComponent from 'app/components/asyncComponent';
+import SelectControl from 'app/components/forms/selectControl';
+import {Panel, PanelBody} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {
+  AppOrProviderOrPlugin,
+  DocumentIntegration,
+  Integration,
+  IntegrationProvider,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+  SentryAppInstallation,
+} from 'app/types';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {
+  getCategoriesForIntegration,
+  getReauthAlertText,
+  getSentryAppInstallStatus,
+  isDocumentIntegration,
+  isPlugin,
+  isSentryApp,
+  isSlackWorkspaceApp,
+  trackIntegrationEvent,
+} from 'app/utils/integrationUtil';
+import withOrganization from 'app/utils/withOrganization';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 
-import {POPULARITY_WEIGHT, documentIntegrations} from './constants';
+import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
@@ -114,7 +116,12 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const list = this.sortIntegrations(combined);
 
-    this.setState({list, displayedList: list}, () => this.trackPageViewed());
+    const {searchInput, selectedCategory} = this.getFilterParameters();
+
+    this.setState({list, searchInput, selectedCategory}, () => {
+      this.updateDisplayedList();
+      this.trackPageViewed();
+    });
   }
 
   trackPageViewed() {
@@ -271,29 +278,76 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
+  /**
+   * Get filter parameters and guard against `queryString.parse` returning arrays.
+   */
+  getFilterParameters = (): {searchInput: string; selectedCategory: string} => {
+    const {category, search} = queryString.parse(this.props.location.search);
+
+    const selectedCategory = Array.isArray(category) ? category[0] : category || '';
+    const searchInput = Array.isArray(search) ? search[0] : search || '';
+
+    return {searchInput, selectedCategory};
+  };
+
+  /**
+   * Update the query string with the current filter parameter values.
+   */
+  updateQueryString = () => {
+    const {searchInput, selectedCategory} = this.state;
+
+    const searchString = queryString.stringify({
+      ...queryString.parse(this.props.location.search),
+      search: searchInput ? searchInput : undefined,
+      category: selectedCategory ? selectedCategory : undefined,
+    });
+
+    browserHistory.replace({
+      pathname: this.props.location.pathname,
+      search: searchString ? `?${searchString}` : undefined,
+    });
+  };
+
+  /**
+   * Filter the integrations list by ANDing together the search query and the category select.
+   */
+  updateDisplayedList = (): AppOrProviderOrPlugin[] => {
+    const {fuzzy, list, searchInput, selectedCategory} = this.state;
+
+    let displayedList = list;
+
+    if (searchInput && fuzzy) {
+      const searchResults = fuzzy.search(searchInput);
+      displayedList = this.sortIntegrations(searchResults.map(i => i.item));
+    }
+
+    if (selectedCategory) {
+      displayedList = displayedList.filter(integration =>
+        getCategoriesForIntegration(integration).includes(selectedCategory)
+      );
+    }
+
+    this.setState({displayedList});
+
+    return displayedList;
+  };
+
   handleSearchChange = async (value: string) => {
     this.setState({searchInput: value}, () => {
-      if (!value) {
-        return this.setState({displayedList: this.state.list});
+      this.updateQueryString();
+      const result = this.updateDisplayedList();
+      if (value) {
+        this.debouncedTrackIntegrationSearch(value, result.length);
       }
-      const result = this.state.fuzzy && this.state.fuzzy.search(value);
-      this.debouncedTrackIntegrationSearch(value, result.length);
-      return this.setState({
-        displayedList: this.sortIntegrations(result.map(i => i.item)),
-      });
     });
   };
 
   onCategorySelect = ({value: category}: {value: string}) => {
     this.setState({selectedCategory: category}, () => {
-      if (!category) {
-        return this.setState({displayedList: this.state.list});
-      }
-      const result = this.state.list.filter(integration => {
-        return getCategoriesForIntegration(integration).includes(category);
-      });
+      this.updateQueryString();
+      this.updateDisplayedList();
 
-      return this.setState({displayedList: result}, () =>
+      if (category) {
         trackIntegrationEvent(
           {
             eventKey: 'integrations.directory_category_selected',
@@ -302,10 +356,11 @@ export class IntegrationListDirectory extends AsyncComponent<
             category,
           },
           this.props.organization
-        )
-      );
+        );
+      }
     });
   };
+
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -347,7 +402,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {organization} = this.props;
 
     const isLegacy = plugin.isHidden;
-    const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
+    const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
@@ -421,7 +476,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {displayedList, selectedCategory, list} = this.state;
+    const {displayedList, list, searchInput, selectedCategory} = this.state;
 
     const title = t('Integrations');
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
@@ -445,7 +500,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   ]}
                 />
                 <SearchBar
-                  query={this.state.searchInput || ''}
+                  query={searchInput || ''}
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
                   width="25em"
@@ -464,7 +519,7 @@ export class IntegrationListDirectory extends AsyncComponent<
               <EmptyResultsContainer>
                 <EmptyResultsBody>
                   {tct('No Integrations found for "[searchTerm]".', {
-                    searchTerm: this.state.searchInput,
+                    searchTerm: searchInput,
                   })}
                 </EmptyResultsBody>
               </EmptyResultsContainer>
