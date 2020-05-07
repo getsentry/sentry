@@ -185,6 +185,8 @@ class GroupAssigneeTestCase(TestCase):
 
     def test_assignee_sync_inbound_assign(self):
         group = self.group
+        self.user = self.create_user(email="myemail@gmail.com")
+        self.create_member(teams=[self.team], user=self.user, organization=group.organization)
         user_no_access = self.create_user()
         user_w_access = self.user
         integration = Integration.objects.create(provider="example", external_id="123456")
@@ -217,14 +219,14 @@ class GroupAssigneeTestCase(TestCase):
         with self.feature("organizations:integrations-issue-sync"):
             # no permissions
             groups_updated = sync_group_assignee_inbound(
-                integration, user_no_access.email, "APP-123"
+                integration, "user_no_access.email", "APP-123"
             )
 
             assert not groups_updated
 
             # w permissions
             groups_updated = sync_group_assignee_inbound(
-                integration, user_w_access.email, "APP-123"
+                integration, "MyEmail@gmail.com", "APP-123"
             )
 
             assert groups_updated[0] == group

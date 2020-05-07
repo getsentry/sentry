@@ -78,7 +78,7 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     users = {
         u.id: u
         for u in User.objects.filter(
-            id__in=UserEmail.objects.filter(is_verified=True, email=email).values_list(
+            id__in=UserEmail.objects.filter(is_verified=True, email__iexact=email).values_list(
                 "user_id", flat=True
             )
         )
