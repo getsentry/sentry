@@ -73,6 +73,7 @@ manager.add(64, "advanced_search", "Advanced Search", "web", prerequisite=["firs
 manager.add(65, "saved_search", "Saved Search", "web", prerequisite=["advanced_search"])
 manager.add(66, "inbound_filters", "Inbound Filters", "web", prerequisite=["first_event"])
 manager.add(67, "alert_rules", "Alert Rules", "web", prerequisite=["first_event"])
+manager.add(67, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=["first_event"])
 manager.add(
     68,
     "issue_tracker_integration",
