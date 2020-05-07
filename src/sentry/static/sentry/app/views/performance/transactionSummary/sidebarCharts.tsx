@@ -103,7 +103,10 @@ class SidebarCharts extends React.Component<Props, State> {
             formatter: (value: number) => formatFloat(value, 2),
             color: theme.gray1,
           },
-          min: 'dataMin',
+          min({min}: {min: number}) {
+            // Scale to the nearest 0.x
+            return Math.floor(min * 10) / 10;
+          },
           ...axisLineConfig,
         },
         {
@@ -113,7 +116,9 @@ class SidebarCharts extends React.Component<Props, State> {
             formatter: formatAbbreviatedNumber,
             color: theme.gray1,
           },
-          min: 'dataMin',
+          min({min}: {min: number}) {
+            return Math.floor(min);
+          },
           ...axisLineConfig,
         },
         {
@@ -123,8 +128,10 @@ class SidebarCharts extends React.Component<Props, State> {
             formatter: (value: number) => formatPercentage(value, 2),
             color: theme.gray1,
           },
-          min: 'dataMin',
-          max: 'dataMax',
+          min({min}: {min: number}) {
+            // Round to nearest 1%
+            return Math.floor(min * 100) / 100;
+          },
           ...axisLineConfig,
         },
       ],
@@ -132,6 +139,21 @@ class SidebarCharts extends React.Component<Props, State> {
       isGroupedByDate: true,
       showTimeInTooltip: true,
       colors: [colors[0], colors[1], colors[2]],
+      tooltip: {
+        truncate: 80,
+        valueFormatter(value: number, seriesName: string) {
+          if (seriesName.includes('apdex')) {
+            return formatFloat(value, 2);
+          }
+          if (seriesName.includes('error_rate')) {
+            return formatPercentage(value, 2);
+          }
+          if (typeof value === 'number') {
+            return value.toLocaleString();
+          }
+          return value;
+        },
+      },
     };
 
     const datetimeSelection = {

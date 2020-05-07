@@ -658,7 +658,7 @@ export const EChartsAxis = PropTypes.shape({
   // if a catergory axis has data: ['categoryA', 'categoryB', 'categoryC'], and
   // the ordinal 2 represents 'categoryC'. Moreover, it can be set as negative
   // number, like -3.
-  min: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  min: PropTypes.oneOfType([PropTypes.number, PropTypes.string, PropTypes.func]),
 
   // The maximum value of axis.
   // It can be set to a special value 'dataMax' so that the minimum value on
@@ -671,7 +671,7 @@ export const EChartsAxis = PropTypes.shape({
   // if a catergory axis has data: ['categoryA', 'categoryB', 'categoryC'], and
   // the ordinal 2 represents 'categoryC'. Moreover, it can be set as negative
   // number, like -3.
-  max: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  max: PropTypes.oneOfType([PropTypes.number, PropTypes.string, PropTypes.func]),
 
   // It is available only in numerical axis, i.e., type: 'value'.
   //
