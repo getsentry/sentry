@@ -1,0 +1,36 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>Slack Upgrade</h3>
+  Your Sentry Slack Integration for workspace <strong>{{integration.name}}</strong> has been updated. For more information, <a href="{{ doc_link }}">check out the documentation.</a>
+  <br />
+  <br />
+  {% if good_channels %}
+    <div>
+        <p>Sentry was able to send messages to the following private channels with instructions on how to add Sentry to the channel:</p>
+        {% for channel in good_channels %}
+            <div>
+                {{ channel }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if problem_channels %}
+        <br />
+        <div>
+        <p>Sentry was unable to send messages to the following private channels:</p>
+        {% for channel in problem_channels %}
+            <div>
+                {{ channel }}
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block footer %}{% endblock %}

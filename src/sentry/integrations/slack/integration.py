@@ -17,6 +17,7 @@ from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
+from .post_migration import run_post_migration
 from .client import SlackClient
 from .utils import logger, use_slack_v2
 
@@ -187,3 +188,8 @@ class SlackIntegrationProvider(IntegrationProvider):
                 "data": {},
             },
         }
+
+    def post_install(self, integration, organization):
+        run_post_migration.apply_async(
+            kwargs={"integration_id": integration.id, "organization_id": organization.id}
+        )
