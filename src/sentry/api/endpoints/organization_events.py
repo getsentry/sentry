@@ -126,8 +126,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             except NoProjects:
                 return Response([])
 
-            params["organization_id"] = organization.id
-
             has_global_views = features.has(
                 "organizations:global-views", organization, actor=request.user
             )

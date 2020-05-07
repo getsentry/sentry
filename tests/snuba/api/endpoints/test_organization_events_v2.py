@@ -636,6 +636,41 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert "order by" in response.content
 
+    def test_latest_release_alias(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        event1 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "release": "0.8"},
+            project_id=project.id,
+        )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["issue.id", "release"], "query": "release:latest"},
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0]["issue.id"] == event1.group_id
+        assert data[0]["release"] == "0.8"
+
+        event2 = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "release": "0.9"},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["issue.id", "release"], "query": "release:latest"},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data[0]["issue.id"] == event2.group_id
+        assert data[0]["release"] == "0.9"
+
     def test_aliased_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()
