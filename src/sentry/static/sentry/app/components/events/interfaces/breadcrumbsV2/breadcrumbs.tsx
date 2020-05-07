@@ -249,8 +249,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
     const searchTerm = value.toLocaleLowerCase();
 
-    const filteredBreadcrumbs = filteredByCustomSearch.filter(obj => {
-      return Object.keys(
+    const filteredBreadcrumbs = filteredByCustomSearch.filter(obj =>
+      Object.keys(
         pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
         if (!defined(obj[key]) || !String(obj[key]).trim()) {
@@ -259,8 +259,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
         return JSON.stringify(obj[key])
           .toLocaleLowerCase()
           .includes(searchTerm);
-      });
-    });
+      })
+    );
 
     this.setState({
       searchTerm,
