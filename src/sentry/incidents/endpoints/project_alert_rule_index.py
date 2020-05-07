@@ -13,6 +13,7 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.models import Rule, RuleStatus
+from sentry.signals import metric_alert_rule_created
 
 
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
@@ -68,6 +69,9 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
+            metric_alert_rule_created.send_robust(
+                user=request.user, project=project, rule=alert_rule, sender=self
+            )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
