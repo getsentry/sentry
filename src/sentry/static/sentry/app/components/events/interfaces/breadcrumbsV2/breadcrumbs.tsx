@@ -245,11 +245,11 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   };
 
   handleFilterBySearchTerm = (value: string) => {
-    const {filteredByCustomSearch} = this.state;
+    const {filteredByFilter} = this.state;
 
     const searchTerm = value.toLocaleLowerCase();
 
-    const filteredBreadcrumbs = filteredByCustomSearch.filter(obj =>
+    const filteredBreadcrumbs = filteredByFilter.filter(obj =>
       Object.keys(
         pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
