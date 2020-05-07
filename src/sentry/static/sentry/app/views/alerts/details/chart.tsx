@@ -122,7 +122,7 @@ export default class Chart extends React.PureComponent<Props> {
                   labelForValue: seriesName,
                   seriesName,
                   symbol: `image://${detectedSymbol}`,
-                  name: t('Incident Started'),
+                  name: t('Alert Triggered'),
                   coord: detectedCoordinate,
                 },
                 ...(closedTs
@@ -132,7 +132,7 @@ export default class Chart extends React.PureComponent<Props> {
                         seriesName,
                         symbol: `image://${closedSymbol}`,
                         symbolSize: 24,
-                        name: t('Incident Closed'),
+                        name: t('Alert Resolved'),
                         coord: closedCoordinate,
                       },
                     ]
