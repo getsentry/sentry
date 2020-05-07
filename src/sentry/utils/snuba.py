@@ -1023,3 +1023,36 @@ def shrink_time_window(issues, start):
 
 def naiveify_datetime(dt):
     return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def quantize_time(time, key_hash, duration=300):
+    """ Adds jitter based on the key_hash around start/end times for caching snuba queries
+
+        Given a time and a key_hash this should result in a timestamp that remains the same for a duration
+        The end of the duration will be different per key_hash which avoids spikes in the number of queries
+        Must be based on the key_hash so they cache keys are consistent per query
+
+        For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
+        60, we have the default duration of 300 (5 Minutes)
+        - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
+            - eg. Even when its 17:05:00 the suffix will still be 17:00:30
+        - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
+    """
+    # Use the hash so that seconds past the hour gets rounded differently per query.
+    jitter = key_hash % duration
+    seconds_past_hour = time.minute * 60 + time.second
+    # Round seconds to a multiple of duration, cause this uses "floor" division shouldn't give us a future window
+    time_window_start = seconds_past_hour // duration * duration + jitter
+    # If the time is past the rounded seconds then we want our key to be for this timewindow
+    if time_window_start < seconds_past_hour:
+        seconds_past_hour = time_window_start
+    # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
+    else:
+        seconds_past_hour = time_window_start - duration
+    return (
+        # Since we're adding seconds past the hour, we want time but without minutes or seconds
+        time.replace(minute=0, second=0, microsecond=0)
+        +
+        # Use timedelta here so keys are consistent around hour boundaries
+        timedelta(seconds=seconds_past_hour)
+    )
