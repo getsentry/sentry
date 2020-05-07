@@ -12,6 +12,7 @@ import space from 'app/styles/space';
 import SearchBar from 'app/components/searchBar';
 import Button from 'app/components/button';
 import {IconWarning} from 'app/icons/iconWarning';
+import {defined} from 'app/utils';
 
 import {
   Breadcrumb,
@@ -252,19 +253,12 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       return Object.keys(
         pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
-        if (typeof obj[key] === 'string' || typeof obj[key] === 'number') {
-          return String(obj[key])
-            .toLocaleLowerCase()
-            .includes(searchTerm);
+        if (!defined(obj[key]) || !String(obj[key]).trim()) {
+          return false;
         }
-        if (typeof obj[key] === 'object') {
-          return (
-            JSON.stringify(obj)
-              .toLocaleLowerCase()
-              .indexOf(searchTerm) !== -1
-          );
-        }
-        return false;
+        return JSON.stringify(obj[key])
+          .toLocaleLowerCase()
+          .includes(searchTerm);
       });
     });
 
