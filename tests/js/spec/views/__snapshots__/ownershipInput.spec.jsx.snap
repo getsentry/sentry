@@ -133,7 +133,7 @@ exports[`Project Ownership Input renders 1`] = `
           value="path"
         >
           <SelectField
-            className="css-1xr8uy6-BuilderSelect e1hyuoc76"
+            className="css-1vsx268-BuilderSelect e1hyuoc76"
             clearable={false}
             deprecatedSelectControl={true}
             disabled={false}
@@ -167,7 +167,7 @@ exports[`Project Ownership Input renders 1`] = `
             value="path"
           >
             <div
-              className="css-1xr8uy6-BuilderSelect e1hyuoc76"
+              className="css-1vsx268-BuilderSelect e1hyuoc76"
               style={
                 Object {
                   "width": 140,
@@ -557,7 +557,7 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
-            className="css-n5owx7-Input-BuilderInput e1hyuoc77"
+            className="css-v3z08s-Input-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""

@@ -23,6 +23,19 @@ const initialState = {
   isValid: false,
 };
 
+function getMatchPlaceholder(type) {
+  switch (type) {
+    case 'path':
+      return 'src/example/*';
+    case 'url':
+      return 'https://example.com/settings/*';
+    case 'tag':
+      return 'tag-value';
+    default:
+      return '';
+  }
+}
+
 class RuleBuilder extends React.Component {
   static propTypes = {
     project: SentryTypes.Project,
@@ -155,13 +168,7 @@ class RuleBuilder extends React.Component {
             value={text}
             onChange={this.handleChangeValue}
             disabled={disabled}
-            placeholder={
-              type === 'path'
-                ? 'src/example/*'
-                : type === 'url'
-                ? 'https://example.com/settings/*'
-                : 'tag-value'
-            }
+            placeholder={getMatchPlaceholder(type)}
           />
           <Divider src="icon-chevron-right" />
           <SelectOwnersWrapper>
