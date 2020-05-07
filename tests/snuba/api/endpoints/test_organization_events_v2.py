@@ -3,6 +3,9 @@ from __future__ import absolute_import
 import six
 import pytest
 import random
+import mock
+
+from pytz import utc
 from datetime import timedelta
 from math import ceil
 
@@ -2435,3 +2438,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         for idx, datum in enumerate(data):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]
+
+    @mock.patch("sentry.utils.snuba.quantize_time")
+    def test_quantize_dates(self, mock_quantize):
+        self.login_as(user=self.user)
+        self.create_project()
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        with self.feature("organizations:discover-basic"):
+            # Don't quantize short time periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]},
+            )
+            # Don't quantize absolute date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(days=20)),
+                    "end": iso_format(before_now(days=15)),
+                    "query": "",
+                    "field": ["id", "timestamp"],
+                },
+            )
+
+            assert len(mock_quantize.mock_calls) == 0
+
+            # Quantize long date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""},
+            )
+
+            assert len(mock_quantize.mock_calls) == 2
