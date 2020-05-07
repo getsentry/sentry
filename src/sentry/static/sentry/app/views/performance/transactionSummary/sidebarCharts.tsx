@@ -242,7 +242,7 @@ class SidebarCharts extends React.Component<Props, State> {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(2)};
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`
