@@ -51,35 +51,6 @@ STATS_PERIOD_CHOICES = {
 }
 
 
-class _ProjectFeatureChecker(object):
-    def __init__(self):
-        from sentry import features
-        from sentry.features.base import ProjectFeature
-
-        self.project_features = features.all(feature_type=ProjectFeature).keys()
-        self.has_feature = features.build()
-
-    def get_feature_list(self, obj, user):
-        with sentry_sdk.start_span(
-            op="project_feature_list", description=getattr(obj, "name")
-        ) as span:
-            feature_list = set(
-                feature_name[len("projects:") :]
-                for feature_name in self.project_features
-                if (
-                    feature_name.startswith("projects:")
-                    and self.has_feature(feature_name, obj, actor=user)
-                )
-            )
-
-            if obj.flags.has_releases:
-                feature_list.add("releases")
-
-            span.set_data("Feature Count", len(feature_list))
-
-            return feature_list
-
-
 @register(Project)
 class ProjectSerializer(Serializer):
     """
@@ -128,6 +99,9 @@ class ProjectSerializer(Serializer):
         return result
 
     def get_attrs(self, item_list, user):
+        from sentry import features
+        from sentry.features.base import ProjectFeature
+
         project_ids = [i.id for i in item_list]
         if user.is_authenticated() and item_list:
             bookmarks = set(
@@ -174,6 +148,9 @@ class ProjectSerializer(Serializer):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
+        project_features = features.all(feature_type=ProjectFeature).keys()
+        has_feature = features.build()
+
         result = self.get_access_by_project(item_list, user)
         for item in item_list:
             result[item].update(
@@ -184,25 +161,35 @@ class ProjectSerializer(Serializer):
                     ),
                     "avatar": avatars.get(item.id),
                     "platforms": platforms_by_project[item.id],
+                    "features": self.get_feature_list(item, user, project_features, has_feature),
                 }
             )
             if stats:
                 result[item]["stats"] = stats[item.id]
         return result
 
-    def get_feature_list(self, obj, user, feature_checker):
-        return (feature_checker or _ProjectFeatureChecker()).get_feature_list(obj, user)
+    def get_feature_list(self, obj, user, project_features, has_feature):
+        with sentry_sdk.start_span(
+            op="project_feature_list", description=getattr(obj, "name")
+        ) as span:
+            # Retrieve all registered organization features
+            feature_list = set()
 
-    def serialize_all(self, objects, attrs, user, **kwargs):
-        # There is a measured performance benefit to initializing this
-        # only once per serialization batch.
-        kwargs["feature_checker"] = _ProjectFeatureChecker()
+            for feature_name in project_features:
+                if not feature_name.startswith("projects:"):
+                    continue
+                if has_feature(feature_name, obj, actor=user):
+                    # Remove the project scope prefix
+                    feature_list.add(feature_name[len("projects:") :])
 
-        return super(ProjectSerializer, self).serialize_all(objects, attrs, user, **kwargs)
+            if obj.flags.has_releases:
+                feature_list.add("releases")
 
-    def serialize(self, obj, attrs, user, feature_checker=None):
-        feature_list = self.get_feature_list(obj, user, feature_checker)
+            span.set_data("Feature Count", len(feature_list))
 
+            return feature_list
+
+    def serialize(self, obj, attrs, user):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
         if attrs.get("avatar"):
@@ -222,7 +209,7 @@ class ProjectSerializer(Serializer):
             "color": obj.color,
             "dateCreated": obj.date_added,
             "firstEvent": obj.first_event,
-            "features": feature_list,
+            "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
             "isInternal": obj.is_internal_project(),
@@ -371,8 +358,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, feature_checker=None):
-        feature_list = self.get_feature_list(obj, user, feature_checker)
+    def serialize(self, obj, attrs, user):
         context = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],
@@ -384,7 +370,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "hasAccess": attrs["has_access"],
             "dateCreated": obj.date_added,
             "environments": attrs["environments"],
-            "features": feature_list,
+            "features": attrs["features"],
             "firstEvent": obj.first_event,
             "platform": obj.platform,
             "platforms": attrs["platforms"],
