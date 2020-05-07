@@ -120,13 +120,15 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagKey(group_id=group_id, **data)
 
     def __get_tag_key_and_top_values(
-        self, project_id, group_id, environment_id, key, limit=3, raise_on_empty=True, **kwargs
+        self, project_id, group_id, environment_ids, key, limit=3, raise_on_empty=True, **kwargs
     ):
 
         tag = u"tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
-        if environment_id:
-            filters["environment"] = [environment_id]
+        if environment_ids:
+            filters["environment"] = (
+                environment_ids if isinstance(environment_ids, list) else [environment_ids]
+            )
         if group_id is not None:
             filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
@@ -341,9 +343,9 @@ class SnubaTagStorage(TagStorage):
             else:
                 return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
-    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, **kwargs):
+    def get_tag_key(self, project_id, environment_ids, key, status=TagKeyStatus.VISIBLE, **kwargs):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_key_and_top_values(project_id, None, environment_id, key, **kwargs)
+        return self.__get_tag_key_and_top_values(project_id, None, environment_ids, key, **kwargs)
 
     def get_tag_keys(
         self, project_id, environment_id, status=TagKeyStatus.VISIBLE, include_values_seen=False
@@ -759,15 +761,17 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_id, key, callbacks=(), offset=0
+        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
     ):
         filters = {
             "project_id": get_project_list(project_id),
             "tags_key": [key],
             "group_id": [group_id],
         }
-        if environment_id:
-            filters["environment"] = [environment_id]
+        if environment_ids:
+            filters["environment"] = (
+                environment_ids if isinstance(environment_ids, list) else [environment_ids]
+            )
         results = snuba.query(
             groupby=["tags_value"],
             filter_keys=filters,
@@ -793,7 +797,7 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -805,7 +809,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_id, key)
+        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_ids, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")

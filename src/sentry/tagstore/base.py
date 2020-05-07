@@ -220,7 +220,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         """
         >>> get_group_tag_value_paginator(1, 2, 3, 'environment')

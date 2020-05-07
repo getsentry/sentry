@@ -18,7 +18,7 @@ import TimeSince from 'app/components/timeSince';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Group, Tag, TagValue} from 'app/types';
+import {Group, Tag, TagValue, Environment} from 'app/types';
 
 type RouteParams = {
   groupId: string;
@@ -28,6 +28,7 @@ type RouteParams = {
 
 type Props = {
   group: Group;
+  environments: Environment[];
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -40,11 +41,16 @@ class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): [string, string, any][] {
+    const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
-      ['tag', `/issues/${groupId}/tags/${tagKey}/`],
-      ['tagValueList', `/issues/${groupId}/tags/${tagKey}/values/`],
+      ['tag', `/issues/${groupId}/tags/${tagKey}/`, {query: {environment}}],
+      [
+        'tagValueList',
+        `/issues/${groupId}/tags/${tagKey}/values/`,
+        {query: {environment}},
+      ],
     ];
   }
 
