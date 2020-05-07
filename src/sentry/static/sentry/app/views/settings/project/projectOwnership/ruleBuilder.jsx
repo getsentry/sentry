@@ -232,7 +232,7 @@ const BuilderSelect = styled(SelectField)`
 const BuilderInput = styled(Input)`
   padding: ${space(1)};
   line-height: 19px;
-   margin-right: ${space(0.5)};
+  margin-right: ${space(0.5)};
 `;
 
 const BuilderTagNameInput = styled(Input)`
