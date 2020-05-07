@@ -538,6 +538,7 @@ const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
   max-height: 600px;
   overflow-y: auto;
+  overflow-x: hidden;
 `;
 
 const DebugImageItem = styled(PanelItem)`
