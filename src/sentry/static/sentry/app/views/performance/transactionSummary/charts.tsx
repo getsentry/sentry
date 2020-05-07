@@ -12,10 +12,10 @@ import {
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
+import {decodeScalar} from 'app/utils/queryString';
 import OptionSelector from 'app/components/charts/optionSelector';
 
 import {ChartContainer} from '../styles';
-import ApdexThroughputChart from './apdexThroughputChart';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
 import DurationPercentileChart from './durationPercentileChart';
@@ -29,7 +29,6 @@ enum DisplayModes {
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
-  {value: DisplayModes.APDEX_THROUGHPUT, label: t('Apdex, Throughput')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
 ];
@@ -52,11 +51,10 @@ class TransactionSummaryCharts extends React.Component<Props> {
 
   render() {
     const {totalValues, eventView, organization, location} = this.props;
-    const display = location.query.display
-      ? Array.isArray(location.query.display)
-        ? location.query.display[0]
-        : location.query.display
-      : DisplayModes.DURATION;
+    let display = decodeScalar(location.query.display) || DisplayModes.DURATION;
+    if (!DisplayModes.hasOwnProperty(display)) {
+      display = DisplayModes.DURATION;
+    }
 
     return (
       <Panel>
@@ -75,17 +73,6 @@ class TransactionSummaryCharts extends React.Component<Props> {
           )}
           {display === DisplayModes.DURATION && (
             <DurationChart
-              organization={organization}
-              query={eventView.query}
-              project={eventView.project}
-              environment={eventView.environment}
-              start={eventView.start}
-              end={eventView.end}
-              statsPeriod={eventView.statsPeriod}
-            />
-          )}
-          {display === DisplayModes.APDEX_THROUGHPUT && (
-            <ApdexThroughputChart
               organization={organization}
               query={eventView.query}
               project={eventView.project}
