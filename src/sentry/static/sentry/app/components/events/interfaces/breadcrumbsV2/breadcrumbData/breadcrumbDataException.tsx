@@ -15,6 +15,7 @@ type Props = {
 const BreadcrumbDataException = ({breadcrumb}: Props) => {
   const {data} = breadcrumb;
   const dataValue = data?.value;
+
   return (
     <BreadcrumbDataSummary kvData={omit(data, ['type', 'value'])}>
       {data?.type &&
