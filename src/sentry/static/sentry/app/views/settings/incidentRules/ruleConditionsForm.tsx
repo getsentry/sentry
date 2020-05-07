@@ -7,14 +7,15 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
 
-import {AlertRuleAggregations, TimeWindow} from './types';
+import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
@@ -73,6 +74,28 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
   render() {
     const {organization, disabled, onFilterUpdate} = this.props;
+    const {environments} = this.state;
+
+    const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
+      environments
+    )
+      ? environments.map((env: Environment) => [env.name, getDisplayName(env)])
+      : [];
+
+    const anyEnvironmentLabel = (
+      <React.Fragment>
+        {t('All Environments')}
+        <div className="all-environment-note">
+          {tct(
+            `This will count events across every environment. For example,
+             having 50 [code1:production] events and 50 [code2:development]
+             events would trigger an alert with a critical threshold of 100.`,
+            {code1: <code />, code2: <code />}
+          )}
+        </div>
+      </React.Fragment>
+    );
+    environmentList.unshift([null, anyEnvironmentLabel]);
 
     return (
       <Panel>
@@ -146,18 +169,23 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <SelectField
             name="environment"
             label={t('Environment')}
+            placeholder={t('All Environments')}
             help={t('Choose which environment events must match')}
-            placeholder={t('All environments')}
-            choices={
-              defined(this.state.environments)
-                ? this.state.environments.map((env: Environment) => [
-                    env.name,
-                    getDisplayName(env),
-                  ])
-                : []
-            }
+            styles={{
+              singleValue: (base: any) => ({
+                ...base,
+                '.all-environment-note': {display: 'none'},
+              }),
+              option: (base: any, state: any) => ({
+                ...base,
+                '.all-environment-note': {
+                  ...(!state.isSelected && !state.isFocused ? {color: theme.gray3} : {}),
+                  fontSize: theme.fontSizeSmall,
+                },
+              }),
+            }}
+            choices={environmentList}
             isDisabled={disabled || this.state.environments === null}
-            multiple
             isClearable
           />
         </PanelBody>

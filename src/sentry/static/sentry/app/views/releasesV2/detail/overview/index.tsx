@@ -119,6 +119,7 @@ class ReleaseOverview extends AsyncView<Props> {
                     />
                   </Main>
                   <Sidebar>
+                    <ProjectReleaseDetails release={release} />
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown
                         version={version}
@@ -126,7 +127,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         projectSlug={project.slug}
                       />
                     )}
-                    <ProjectReleaseDetails release={release} />
                     {releaseProjects.length > 1 && (
                       <OtherProjects
                         projects={releaseProjects.filter(p => p.slug !== project.slug)}
