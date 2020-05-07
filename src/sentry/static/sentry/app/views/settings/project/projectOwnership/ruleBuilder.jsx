@@ -50,8 +50,7 @@ class RuleBuilder extends React.Component {
   };
 
   handleTagNameChangeValue = e => {
-    this.setState({tagName: e.target.value});
-    this.checkIsValid();
+    this.setState({tagName: e.target.value}, this.checkIsValid);
   };
 
   handleChangeValue = e => {
@@ -142,7 +141,7 @@ class RuleBuilder extends React.Component {
             clearable={false}
             disabled={disabled}
           />
-          {this.state.type === 'tag' && (
+          {type === 'tag' && (
             <BuilderTagNameInput
               controlled
               value={tagName}
@@ -225,7 +224,7 @@ const BuilderBar = styled('div')`
 `;
 
 const BuilderSelect = styled(SelectField)`
-  margin-right: 10px;
+  margin-right: ${space(1.5)};
   width: 50px;
   flex-shrink: 0;
 `;
@@ -233,13 +232,13 @@ const BuilderSelect = styled(SelectField)`
 const BuilderInput = styled(Input)`
   padding: ${space(1)};
   line-height: 19px;
-  margin-right: 5px;
+   margin-right: ${space(0.5)};
 `;
 
 const BuilderTagNameInput = styled(Input)`
   padding: ${space(1)};
   line-height: 19px;
-  margin-right: 5px;
+  margin-right: ${space(0.5)};
   width: 200px;
 `;
 
