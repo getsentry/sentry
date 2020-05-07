@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import BetaTag from 'app/components/betaTag';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
@@ -121,7 +122,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
   }
 
-  renderDropdown() {
+  renderHeaderButtons() {
     const selectView = (viewKey: FilterViews) => {
       return () => {
         this.setState({
@@ -163,8 +164,11 @@ class PerformanceLanding extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>{t('Performance')}</div>
-                <div>{this.renderDropdown()}</div>
+                <div>
+                  {t('Performance')}
+                  <BetaTag />
+                </div>
+                <div>{this.renderHeaderButtons()}</div>
               </StyledPageHeader>
               {this.renderError()}
               <Charts
