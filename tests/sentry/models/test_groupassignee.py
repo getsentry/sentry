@@ -219,7 +219,7 @@ class GroupAssigneeTestCase(TestCase):
         with self.feature("organizations:integrations-issue-sync"):
             # no permissions
             groups_updated = sync_group_assignee_inbound(
-                integration, "user_no_access.email", "APP-123"
+                integration, user_no_access.email, "APP-123"
             )
 
             assert not groups_updated
