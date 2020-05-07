@@ -222,47 +222,48 @@ class Results extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <ResultsHeader
-                organization={organization}
-                location={location}
-                eventView={eventView}
-              />
-              <ContentBox>
-                <Top>
-                  {this.renderError(error)}
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={this.handleSearch}
-                  />
-                  <ResultsChart
-                    api={api}
-                    router={router}
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    total={totalValues}
-                  />
-                </Top>
-                <Main>
-                  <Table
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    title={title}
-                    setError={this.setError}
-                  />
-                </Main>
-                <Side>{this.renderTagsTable()}</Side>
-              </ContentBox>
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
+          <GlobalSelectionHeader>
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <ResultsHeader
+                  organization={organization}
+                  location={location}
+                  eventView={eventView}
+                />
+                <ContentBox>
+                  <Top>
+                    {this.renderError(error)}
+                    <StyledSearchBar
+                      organization={organization}
+                      projectIds={eventView.project}
+                      query={query}
+                      onSearch={this.handleSearch}
+                    />
+                    <ResultsChart
+                      api={api}
+                      router={router}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      total={totalValues}
+                    />
+                  </Top>
+                  <Main>
+                    <Table
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      title={title}
+                      setError={this.setError}
+                    />
+                  </Main>
+                  <Side>{this.renderTagsTable()}</Side>
+                </ContentBox>
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
         </React.Fragment>
       </SentryDocumentTitle>
     );

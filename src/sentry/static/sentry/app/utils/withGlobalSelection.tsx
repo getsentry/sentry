@@ -7,11 +7,13 @@ import getDisplayName from 'app/utils/getDisplayName';
 import {GlobalSelection} from 'app/types';
 
 type InjectedGlobalSelectionProps = {
-  selection: GlobalSelection;
+  selection?: GlobalSelection;
+  isGlobalSelectionReady?: boolean;
 };
 
 type State = {
   selection: GlobalSelection;
+  isReady?: boolean;
 };
 
 /**
@@ -29,32 +31,22 @@ const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
     mixins: [Reflux.listenTo(GlobalSelectionStore, 'onUpdate') as any],
 
     getInitialState() {
-      return {
-        selection: GlobalSelectionStore.get(),
-      };
+      return GlobalSelectionStore.get();
     },
 
-    componentDidMount() {
-      this.updateSelection();
-    },
-
-    onUpdate() {
-      this.updateSelection();
-    },
-
-    updateSelection() {
-      const selection = GlobalSelectionStore.get();
-
-      if (this.state.selection !== selection) {
-        this.setState({selection});
+    onUpdate(selection: State) {
+      if (this.state !== selection) {
+        this.setState(selection);
       }
     },
 
     render() {
-      const {selection} = this.state;
+      const {isReady, selection} = this.state;
+
       return (
         <WrappedComponent
           selection={selection as GlobalSelection}
+          isGlobalSelectionReady={isReady}
           {...(this.props as P)}
         />
       );

@@ -22,13 +22,11 @@ import ReleaseHeader from './releaseHeader';
 
 const ReleaseDetailsContainer = props => (
   <React.Fragment>
-    <GlobalSelectionHeader organization={props.organization} />
-    <OrganizationReleaseDetails {...props} />
+    <GlobalSelectionHeader>
+      <OrganizationReleaseDetails {...props} />
+    </GlobalSelectionHeader>
   </React.Fragment>
 );
-ReleaseDetailsContainer.propTypes = {
-  organization: SentryTypes.Organization,
-};
 
 class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {

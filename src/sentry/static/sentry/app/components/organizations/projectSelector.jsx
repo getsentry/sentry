@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import sortBy from 'lodash/sortBy';
 import styled from '@emotion/styled';
 import {Link} from 'react-router';
 
 import {analytics} from 'app/utils/analytics';
-import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
@@ -102,7 +102,7 @@ class ProjectSelector extends React.Component {
     const {multiProjects, nonMemberProjects} = this.props;
 
     return [
-      sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
+      sortBy(multiProjects, project => [!project.isBookmarked, project.name]),
       nonMemberProjects || [],
     ];
   }

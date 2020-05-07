@@ -3,7 +3,8 @@ import React from 'react';
 import moment from 'moment';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {updateParams} from 'app/actionCreators/globalSelection';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {updateDateTime} from 'app/actionCreators/globalSelection';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
@@ -89,6 +90,7 @@ class ChartZoom extends React.Component {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory) => {
+    const {router, onZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -103,20 +105,22 @@ class ChartZoom extends React.Component {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    callIfFunction(this.props.onZoom, {
+    callIfFunction(onZoom, {
       period,
       start: startFormatted,
       end: endFormatted,
     });
 
     this.zooming = () => {
-      updateParams(
+      updateDateTime(
         {
           period,
-          start: startFormatted,
-          end: endFormatted,
+          start: startFormatted
+            ? getUtcToLocalDateObject(startFormatted)
+            : startFormatted,
+          end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
         },
-        this.props.router
+        router
       );
 
       this.saveCurrentPeriod({period, start, end});
@@ -202,11 +206,11 @@ class ChartZoom extends React.Component {
       children,
       xAxisIndex,
 
-      onZoom, // eslint-disable-line no-unused-vars
-      onRestore, // eslint-disable-line no-unused-vars
-      onChartReady, // eslint-disable-line no-unused-vars
-      onDataZoom, // eslint-disable-line no-unused-vars
-      onFinished, // eslint-disable-line no-unused-vars
+      onZoom: _onZoom,
+      onRestore: _onRestore,
+      onChartReady: _onChartReady,
+      onDataZoom: _onDataZoom,
+      onFinished: _onFinished,
       ...props
     } = this.props;
 

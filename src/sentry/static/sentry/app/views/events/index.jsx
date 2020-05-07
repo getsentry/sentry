@@ -62,29 +62,29 @@ class EventsContainer extends React.Component {
         hookName="feature-disabled:events-page"
         renderDisabled
       >
-        <GlobalSelectionHeader
-          organization={organization}
-          resetParamsOnChange={['cursor']}
-        />
-        <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
-            <Body>
-              <PageHeader>
-                <HeaderTitle>
-                  {t('Events')} <BetaTag />
-                </HeaderTitle>
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={(location.query && location.query.query) || ''}
-                  placeholder={t('Search for events, users, tags, and everything else.')}
-                  onSearch={this.handleSearch}
-                />
-              </PageHeader>
-              {children}
-            </Body>
-          </LightWeightNoProjectMessage>
-        </PageContent>
+        <GlobalSelectionHeader resetParamsOnChange={['cursor']}>
+          <PageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <Body>
+                <PageHeader>
+                  <HeaderTitle>
+                    {t('Events')} <BetaTag />
+                  </HeaderTitle>
+                  <StyledSearchBar
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={(location.query && location.query.query) || ''}
+                    placeholder={t(
+                      'Search for events, users, tags, and everything else.'
+                    )}
+                    onSearch={this.handleSearch}
+                  />
+                </PageHeader>
+                {children}
+              </Body>
+            </LightWeightNoProjectMessage>
+          </PageContent>
+        </GlobalSelectionHeader>
       </Feature>
     );
   }

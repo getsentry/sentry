@@ -5,13 +5,10 @@ import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mount} from 'sentry-test/enzyme';
-import {updateParams} from 'app/actionCreators/globalSelection';
+import * as globalSelection from 'app/actionCreators/globalSelection';
 
 jest.mock('app/views/events/utils/eventsRequest', () => jest.fn(() => null));
-
-jest.mock('app/actionCreators/globalSelection', () => ({
-  updateParams: jest.fn(),
-}));
+jest.spyOn(globalSelection, 'updateDateTime');
 
 describe('EventsChart', function() {
   const {router, routerContext, org} = initializeOrg();
@@ -19,6 +16,7 @@ describe('EventsChart', function() {
   let wrapper;
 
   beforeEach(function() {
+    globalSelection.updateDateTime.mockClear();
     mockZoomRange(1543449600000, 1543708800000);
     wrapper = mount(
       <EventsChart
@@ -100,14 +98,14 @@ describe('EventsChart', function() {
     expect(chartZoomInstance.currentPeriod.end).toEqual('2018-12-02T00:00:00');
     const newParams = {
       period: null,
-      start: '2018-11-29T00:00:00',
-      end: '2018-12-02T00:00:00',
+      start: getUtcToLocalDateObject('2018-11-29T00:00:00'),
+      end: getUtcToLocalDateObject('2018-12-02T00:00:00'),
     };
-    expect(updateParams).toHaveBeenCalledWith(newParams, router);
+    expect(globalSelection.updateDateTime).toHaveBeenCalledWith(newParams, router);
     wrapper.setProps({
       period: newParams.period,
-      start: getUtcToLocalDateObject(newParams.start),
-      end: getUtcToLocalDateObject(newParams.end),
+      start: newParams.start,
+      end: newParams.end,
     });
     wrapper.update();
   });
@@ -136,7 +134,7 @@ describe('EventsChart', function() {
       start: null,
       end: null,
     };
-    expect(updateParams).toHaveBeenCalledWith(newParams, router);
+    expect(globalSelection.updateDateTime).toHaveBeenLastCalledWith(newParams, router);
     wrapper.setProps({
       period: '14d',
       start: null,

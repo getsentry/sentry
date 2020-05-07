@@ -206,15 +206,12 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          showAbsolute={false}
-          timeRangeHint={t(
-            'Changing this date range will recalculate the release metrics.'
-          )}
-        />
-
+      <GlobalSelectionHeader
+        showAbsolute={false}
+        timeRangeHint={t(
+          'Changing this date range will recalculate the release metrics.'
+        )}
+      >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
@@ -245,7 +242,7 @@ class ReleasesList extends AsyncView<Props, State> {
             )}
           </LightWeightNoProjectMessage>
         </PageContent>
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

@@ -119,12 +119,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         # selecting an explicit project should load previously selected project
         # from local storage
         # TODO check environment as well
-        # FIXME below is currently broken
-        # self.issues_list.visit_issue_list(
-        #     self.org.slug
-        # )
-        # self.issues_list.wait_until_loaded()
-        # assert u"project={}".format(self.project_3.id) in self.browser.current_url
+        self.issues_list.visit_issue_list(self.org.slug)
+        self.issues_list.wait_until_loaded()
+        assert u"project={}".format(self.project_3.id) in self.browser.current_url
 
     def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
         """
@@ -163,8 +160,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             # there has been no explicit project selection via UI
             self.issues_list.visit_issue_list(self.org.slug)
             assert u"project=" not in self.browser.current_url
-            # FIXME
-            # assert self.issues_list.global_selection.get_selected_project_slug() == "My Projects"
+            assert self.issues_list.global_selection.get_selected_project_slug() == "My Projects"
 
             # can select a different project
             self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
@@ -186,8 +182,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_until_loaded()
             # TODO check environment as well
-            # FIXME: This is current broken and is a bug
-            # assert u"project={}".format(self.project_3.id) in self.browser.current_url
+            assert u"project={}".format(self.project_3.id) in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )

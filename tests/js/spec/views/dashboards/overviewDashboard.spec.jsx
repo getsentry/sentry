@@ -29,13 +29,16 @@ describe('OverviewDashboard', function() {
 
   const org = organization;
 
-  const createWrapper = props => {
+  const createWrapper = async props => {
+    ProjectsStore.loadInitialData(organization.projects);
     wrapper = mountWithTheme(
       <DashboardsContainer>
         <OverviewDashboard params={{orgId: organization.slug}} {...props} />
       </DashboardsContainer>,
       routerContext
     );
+    await tick();
+    wrapper.update();
     mockRouterPush(wrapper, router);
   };
 
@@ -96,7 +99,7 @@ describe('OverviewDashboard', function() {
       eventsByReleaseWidget,
     ]);
 
-    createWrapper(dashboardData);
+    await createWrapper(dashboardData);
 
     // TODO(billy): Figure out why releases gets called twice
     expect(discoverMock).toHaveBeenCalledTimes(4);

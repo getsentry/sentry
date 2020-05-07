@@ -1,10 +1,12 @@
 import React from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import OrganizationUserFeedback from 'app/views/userFeedback';
+import ProjectsStore from 'app/stores/projectsStore';
+import UserFeedback from 'app/views/userFeedback';
 
-describe('OrganizationUserFeedback', function() {
-  let organization, routerContext;
+describe('UserFeedback', function() {
+  const {organization, routerContext} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
@@ -20,25 +22,17 @@ describe('OrganizationUserFeedback', function() {
       url: '/organizations/org-slug/environments/',
       body: TestStubs.Environments(),
     });
-
-    organization = TestStubs.Organization();
-    routerContext = TestStubs.routerContext([
-      {
-        organization,
-        router: {
-          ...TestStubs.router(),
-          params: {
-            orgId: organization.slug,
-          },
-        },
-      },
-    ]);
   });
 
-  it('renders', function() {
+  afterEach(function() {
+    ProjectsStore.reset();
+  });
+
+  it('renders', async function() {
+    const project = TestStubs.Project({isMember: true});
     const params = {
       organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
+        projects: [project],
       }),
       location: {query: {}, search: ''},
       params: {
@@ -46,11 +40,17 @@ describe('OrganizationUserFeedback', function() {
       },
       finishProfile: jest.fn(),
     };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+      headers: {Link: pageLinks},
+    });
 
-    const wrapper = mountWithTheme(
-      <OrganizationUserFeedback {...params} />,
-      routerContext
-    );
+    ProjectsStore.loadInitialData(params.organization.projects);
+
+    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
+    await tick();
+    wrapper.update();
 
     expect(wrapper.find('CompactIssue')).toHaveLength(1);
   });
@@ -65,10 +65,7 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationUserFeedback {...params} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
@@ -89,10 +86,7 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationUserFeedback {...params} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
   });
@@ -112,10 +106,7 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationUserFeedback {...params} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
   });
@@ -135,10 +126,7 @@ describe('OrganizationUserFeedback', function() {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationUserFeedback {...params} />,
-      routerContext
-    );
+    const wrapper = mountWithTheme(<UserFeedback {...params} />, routerContext);
 
     expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112', '113']);
   });

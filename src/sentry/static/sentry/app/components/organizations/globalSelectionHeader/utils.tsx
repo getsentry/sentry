@@ -1,13 +1,15 @@
 import {Location} from 'history';
+import identity from 'lodash/identity';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
-import identity from 'lodash/identity';
 
+import {DATE_TIME, DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {URL_PARAM, DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 
 import {getParams} from './getParams';
+
+const DEFAULT_PARAMS = getParams({});
 
 // Parses URL query parameters for values relevant to global selection header
 export function getStateFromQuery(
@@ -67,4 +69,16 @@ export function extractSelectionParameters(query) {
  */
 export function extractDatetimeSelectionParameters(query) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
+}
+export function getDefaultSelection() {
+  return {
+    projects: [],
+    environments: [],
+    datetime: {
+      [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
+      [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
+      [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
+      [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
+    },
+  };
 }

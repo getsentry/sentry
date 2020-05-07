@@ -72,6 +72,8 @@ describe('OrganizationDashboard', function() {
 
   it('queries and renders discover-based widgets grouped by time', async function() {
     createWrapper(TestStubs.Dashboard());
+    await tick();
+    wrapper.update();
 
     expect(discoverMock).toHaveBeenCalledTimes(2);
     expect(discoverMock).toHaveBeenCalledWith(

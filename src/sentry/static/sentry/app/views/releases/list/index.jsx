@@ -27,11 +27,11 @@ import ReleaseListHeader from './releaseListHeader';
 import ReleaseProgress from './releaseProgress';
 
 const ReleasesContainer = props => {
-  const {organization} = props;
   return (
     <React.Fragment>
-      <GlobalSelectionHeader organization={organization} />
-      <OrganizationReleases {...props} />
+      <GlobalSelectionHeader>
+        <OrganizationReleases {...props} />
+      </GlobalSelectionHeader>
     </React.Fragment>
   );
 };

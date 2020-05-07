@@ -1158,6 +1158,7 @@ function routes() {
           /organizations/:orgId/issues */}
         <Route
           path="/organizations/:orgId/issues/:groupId/"
+          globalSelectionSkipLastUsed
           componentPromise={() =>
             import(
               /* webpackChunkName: "OrganizationGroupDetails" */ 'app/views/organizationGroupDetails'
@@ -1165,8 +1166,6 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         >
-          {/* XXX: if we change the path for group details, we *must* update `OrganizationContext`.
-            There is behavior that depends on this path and unfortunately no great way to test for this contract */}
           <IndexRoute
             componentPromise={() =>
               import(

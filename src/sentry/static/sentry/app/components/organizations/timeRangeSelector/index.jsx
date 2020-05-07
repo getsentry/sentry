@@ -63,6 +63,12 @@ const SelectorItemsHook = HookOrDefault({
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
     /**
+     * When the default period is selected, it is visually dimmed and
+     * makes the selector unclearable.
+     */
+    defaultPeriod: PropTypes.string,
+
+    /**
      * Show absolute date selectors
      */
     showAbsolute: PropTypes.bool,
@@ -111,11 +117,6 @@ class TimeRangeSelector extends React.PureComponent {
      * Just used for metrics
      */
     organization: SentryTypes.Organization,
-
-    /**
-     * Allow user to clear the time range selection
-     */
-    allowClearTimeRange: PropTypes.bool,
 
     /**
      * Small info icon with tooltip hint text
@@ -305,13 +306,7 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {
-      showAbsolute,
-      showRelative,
-      organization,
-      allowClearTimeRange,
-      hint,
-    } = this.props;
+    const {defaultPeriod, showAbsolute, showRelative, organization, hint} = this.props;
     const {start, end, relative} = this.state;
 
     const shouldShowAbsolute = showAbsolute;
@@ -321,13 +316,10 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = isAbsoluteSelected ? (
       <DateSummary utc={this.state.utc} start={start} end={end} />
     ) : (
-      getRelativeSummary(relative || DEFAULT_STATS_PERIOD)
+      getRelativeSummary(relative || defaultPeriod)
     );
 
-    const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
-
-    const allowClear =
-      typeof allowClearTimeRange === 'boolean' ? allowClearTimeRange : true;
+    const relativeSelected = isAbsoluteSelected ? null : relative || defaultPeriod;
 
     return (
       <DropdownMenu
@@ -343,12 +335,12 @@ class TimeRangeSelector extends React.PureComponent {
               icon={<IconCalendar />}
               isOpen={isOpen}
               hasSelected={
-                (!!this.props.relative && this.props.relative !== DEFAULT_STATS_PERIOD) ||
+                (!!this.props.relative && this.props.relative !== defaultPeriod) ||
                 isAbsoluteSelected
               }
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
-              allowClear={allowClear}
+              allowClear
               hint={hint}
               {...getActorProps()}
             >

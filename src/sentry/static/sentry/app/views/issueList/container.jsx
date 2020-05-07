@@ -21,15 +21,13 @@ class IssueListContainer extends React.Component {
 
     return (
       <DocumentTitle title={this.getTitle()}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-
+        <GlobalSelectionHeader>
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               {children}
             </LightWeightNoProjectMessage>
           </PageContent>
-        </React.Fragment>
+        </GlobalSelectionHeader>
       </DocumentTitle>
     );
   }
