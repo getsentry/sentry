@@ -14,23 +14,22 @@ import {Organization, Project} from 'app/types';
 import RuleNode from './ruleNode';
 
 type Props = {
-  // All available actions or conditions
-  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
-
-  // actions/conditions that have been added to the rule
-  items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
-
   project: Project;
-
   organization: Organization;
-
-  // Placeholder for select control
+  /**
+   * All available actions or conditions
+   */
+  nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
+  /**
+   * actions/conditions that have been added to the rule
+   */
+  items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
+  /**
+   * Placeholder for select control
+   */
   placeholder: string;
-
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
-
   onAddRow: (value: string) => void;
-
   onDeleteRow: (ruleIndex: number) => void;
 };
 
