@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 
 const initialState = {
   text: '',
+  tagName: '',
   type: 'path',
   owners: [],
   isValid: false,
@@ -48,6 +49,11 @@ class RuleBuilder extends React.Component {
     this.checkIsValid();
   };
 
+  handleTagNameChangeValue = e => {
+    this.setState({tagName: e.target.value});
+    this.checkIsValid();
+  };
+
   handleChangeValue = e => {
     this.setState({text: e.target.value});
     this.checkIsValid();
@@ -59,7 +65,7 @@ class RuleBuilder extends React.Component {
   };
 
   handleAddRule = () => {
-    const {type, text, owners, isValid} = this.state;
+    const {type, text, tagName, owners, isValid} = this.state;
 
     if (!isValid) {
       addErrorMessage('A rule needs a type, a value, and one or more issue owners.');
@@ -74,7 +80,11 @@ class RuleBuilder extends React.Component {
       )
       .join(' ');
 
-    const rule = `${type}:${text} ${ownerText}`;
+    const quotedText = text.match(/\s/) ? `"${text}"` : text;
+
+    const rule = `${
+      type === 'tag' ? `tags.${tagName}` : type
+    }:${quotedText} ${ownerText}`;
     this.props.onAddRule(rule);
     this.setState(initialState);
   };
@@ -86,7 +96,7 @@ class RuleBuilder extends React.Component {
 
   render() {
     const {urls, paths, disabled, project, organization} = this.props;
-    const {type, text, owners, isValid} = this.state;
+    const {type, text, tagName, owners, isValid} = this.state;
 
     return (
       <React.Fragment>
@@ -125,19 +135,33 @@ class RuleBuilder extends React.Component {
             onChange={this.handleTypeChange}
             options={[
               {value: 'path', label: t('Path')},
+              {value: 'tag', label: t('Tag')},
               {value: 'url', label: t('URL')},
             ]}
             style={{width: 140}}
             clearable={false}
             disabled={disabled}
           />
+          {this.state.type === 'tag' && (
+            <BuilderTagNameInput
+              controlled
+              value={tagName}
+              onChange={this.handleTagNameChangeValue}
+              disabled={disabled}
+              placeholder="tag-name"
+            />
+          )}
           <BuilderInput
             controlled
             value={text}
             onChange={this.handleChangeValue}
             disabled={disabled}
             placeholder={
-              type === 'path' ? 'src/example/*' : 'https://example.com/settings/*'
+              type === 'path'
+                ? 'src/example/*'
+                : type === 'url'
+                ? 'https://example.com/settings/*'
+                : 'tag-value'
             }
           />
           <Divider src="icon-chevron-right" />
@@ -202,7 +226,7 @@ const BuilderBar = styled('div')`
 
 const BuilderSelect = styled(SelectField)`
   margin-right: 10px;
-  width: 80px;
+  width: 50px;
   flex-shrink: 0;
 `;
 
@@ -210,6 +234,13 @@ const BuilderInput = styled(Input)`
   padding: ${space(1)};
   line-height: 19px;
   margin-right: 5px;
+`;
+
+const BuilderTagNameInput = styled(Input)`
+  padding: ${space(1)};
+  line-height: 19px;
+  margin-right: 5px;
+  width: 200px;
 `;
 
 const Divider = styled(InlineSvg)`
