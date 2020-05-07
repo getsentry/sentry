@@ -102,92 +102,100 @@ class ProjectSerializer(Serializer):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
-        project_ids = [i.id for i in item_list]
-        if user.is_authenticated() and item_list:
-            bookmarks = set(
-                ProjectBookmark.objects.filter(user=user, project_id__in=project_ids).values_list(
-                    "project_id", flat=True
+        def measure_span(op_tag):
+            span = sentry_sdk.start_span(op="serialize.get_attrs.project.{}".format(op_tag))
+            span.set_data("Object Count", len(item_list))
+            return span
+
+        with measure_span("preamble"):
+            project_ids = [i.id for i in item_list]
+            if user.is_authenticated() and item_list:
+                bookmarks = set(
+                    ProjectBookmark.objects.filter(
+                        user=user, project_id__in=project_ids
+                    ).values_list("project_id", flat=True)
                 )
-            )
-            user_options = {
-                (u.project_id, u.key): u.value
-                for u in UserOption.objects.filter(
-                    Q(user=user, project__in=item_list, key="mail:alert")
-                    | Q(user=user, key="subscribe_by_default", project__isnull=True)
-                )
-            }
-            default_subscribe = user_options.get("subscribe_by_default", "1") == "1"
-        else:
-            bookmarks = set()
-            user_options = {}
-            default_subscribe = False
-
-        if self.stats_period:
-            # we need to compute stats at 1d (1h resolution), and 14d
-            project_ids = [o.id for o in item_list]
-
-            segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
-            now = timezone.now()
-            stats = tsdb.get_range(
-                model=tsdb.models.project,
-                keys=project_ids,
-                end=now,
-                start=now - ((segments - 1) * interval),
-                rollup=int(interval.total_seconds()),
-                environment_ids=self.environment_id and [self.environment_id],
-            )
-        else:
-            stats = None
-
-        avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
-        project_ids = [i.id for i in item_list]
-        platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
-            "project_id", "platform"
-        )
-        platforms_by_project = defaultdict(list)
-        for project_id, platform in platforms:
-            platforms_by_project[project_id].append(platform)
-
-        project_features = features.all(feature_type=ProjectFeature).keys()
-        has_feature = features.build()
-
-        result = self.get_access_by_project(item_list, user)
-        for item in item_list:
-            result[item].update(
-                {
-                    "is_bookmarked": item.id in bookmarks,
-                    "is_subscribed": bool(
-                        user_options.get((item.id, "mail:alert"), default_subscribe)
-                    ),
-                    "avatar": avatars.get(item.id),
-                    "platforms": platforms_by_project[item.id],
-                    "features": self.get_feature_list(item, user, project_features, has_feature),
+                user_options = {
+                    (u.project_id, u.key): u.value
+                    for u in UserOption.objects.filter(
+                        Q(user=user, project__in=item_list, key="mail:alert")
+                        | Q(user=user, key="subscribe_by_default", project__isnull=True)
+                    )
                 }
+                default_subscribe = user_options.get("subscribe_by_default", "1") == "1"
+            else:
+                bookmarks = set()
+                user_options = {}
+                default_subscribe = False
+
+            if self.stats_period:
+                # we need to compute stats at 1d (1h resolution), and 14d
+                project_ids = [o.id for o in item_list]
+
+                segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+                now = timezone.now()
+                stats = tsdb.get_range(
+                    model=tsdb.models.project,
+                    keys=project_ids,
+                    end=now,
+                    start=now - ((segments - 1) * interval),
+                    rollup=int(interval.total_seconds()),
+                    environment_ids=self.environment_id and [self.environment_id],
+                )
+            else:
+                stats = None
+
+            avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
+            project_ids = [i.id for i in item_list]
+            platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
+                "project_id", "platform"
             )
-            if stats:
-                result[item]["stats"] = stats[item.id]
+            platforms_by_project = defaultdict(list)
+            for project_id, platform in platforms:
+                platforms_by_project[project_id].append(platform)
+
+        with measure_span("access"):
+            result = self.get_access_by_project(item_list, user)
+
+        with measure_span("features"):
+            project_features = features.all(feature_type=ProjectFeature).keys()
+            has_feature = features.build()
+            for item in item_list:
+                result[item]["features"] = self.get_feature_list(
+                    item, user, project_features, has_feature
+                )
+
+        with measure_span("other"):
+            for item in item_list:
+                result[item].update(
+                    {
+                        "is_bookmarked": item.id in bookmarks,
+                        "is_subscribed": bool(
+                            user_options.get((item.id, "mail:alert"), default_subscribe)
+                        ),
+                        "avatar": avatars.get(item.id),
+                        "platforms": platforms_by_project[item.id],
+                    }
+                )
+                if stats:
+                    result[item]["stats"] = stats[item.id]
         return result
 
     def get_feature_list(self, obj, user, project_features, has_feature):
-        with sentry_sdk.start_span(
-            op="project_feature_list", description=getattr(obj, "name")
-        ) as span:
-            # Retrieve all registered organization features
-            feature_list = set()
+        # Retrieve all registered organization features
+        feature_list = set()
 
-            for feature_name in project_features:
-                if not feature_name.startswith("projects:"):
-                    continue
-                if has_feature(feature_name, obj, actor=user):
-                    # Remove the project scope prefix
-                    feature_list.add(feature_name[len("projects:") :])
+        for feature_name in project_features:
+            if not feature_name.startswith("projects:"):
+                continue
+            if has_feature(feature_name, obj, actor=user):
+                # Remove the project scope prefix
+                feature_list.add(feature_name[len("projects:") :])
 
-            if obj.flags.has_releases:
-                feature_list.add("releases")
+        if obj.flags.has_releases:
+            feature_list.add("releases")
 
-            span.set_data("Feature Count", len(feature_list))
-
-            return feature_list
+        return feature_list
 
     def serialize(self, obj, attrs, user):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
