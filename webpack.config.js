@@ -323,7 +323,7 @@ let appConfig = {
     /**
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
-    new FixStyleOnlyEntriesPlugin(),
+    new FixStyleOnlyEntriesPlugin({silent: true}),
 
     new SentryInstrumentation(),
 
