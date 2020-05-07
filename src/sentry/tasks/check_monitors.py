@@ -39,7 +39,7 @@ def check_monitors(current_datetime=None):
         :10000
     ]
     for monitor in qs:
-        logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
+        logger.debug("monitor.missed-checkin", extra={"monitor_id": monitor.id})
         monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
@@ -52,7 +52,7 @@ def check_monitors(current_datetime=None):
             continue
 
         monitor = checkin.monitor
-        logger.info(
+        logger.debug(
             "monitor.checkin-timeout", extra={"monitor_id": monitor.id, "checkin_id": checkin.id}
         )
         affected = MonitorCheckIn.objects.filter(
