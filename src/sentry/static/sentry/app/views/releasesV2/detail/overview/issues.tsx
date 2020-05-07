@@ -6,7 +6,7 @@ import {Location} from 'history';
 import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Button from 'app/components/button';
-import GroupList from 'app/views/releases/detail/groupList';
+import GroupList from 'app/components/issues/groupList';
 import space from 'app/styles/space';
 import {Panel, PanelBody} from 'app/components/panels';
 import EventView from 'app/utils/discover/eventView';
