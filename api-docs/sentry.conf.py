@@ -37,7 +37,7 @@ SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
 LOGIN_REDIRECT_URL = SENTRY_URL_PREFIX + "/"
-SENTRY_USE_RELAY = True
+SENTRY_USE_RELAY = False
 SENTRY_WEB_HOST = "127.0.0.1"
 SENTRY_APIDOCS_WEB_PORT = SENTRY_WEB_PORT
 SENTRY_WEB_OPTIONS = {
