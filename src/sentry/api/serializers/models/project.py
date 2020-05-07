@@ -159,10 +159,10 @@ class ProjectSerializer(Serializer):
 
         with measure_span("features"):
             project_features = features.all(feature_type=ProjectFeature).keys()
-            has_feature = features.build()
+            feature_checker = features.build_checker()
             for item in item_list:
                 result[item]["features"] = self.get_feature_list(
-                    item, user, project_features, has_feature
+                    item, user, project_features, feature_checker
                 )
 
         with measure_span("other"):
@@ -181,14 +181,14 @@ class ProjectSerializer(Serializer):
                     result[item]["stats"] = stats[item.id]
         return result
 
-    def get_feature_list(self, obj, user, project_features, has_feature):
+    def get_feature_list(self, obj, user, project_features, feature_checker):
         # Retrieve all registered organization features
         feature_list = set()
 
         for feature_name in project_features:
             if not feature_name.startswith("projects:"):
                 continue
-            if has_feature(feature_name, obj, actor=user):
+            if feature_checker.has(feature_name, obj, actor=user):
                 # Remove the project scope prefix
                 feature_list.add(feature_name[len("projects:") :])
 

@@ -68,23 +68,23 @@ class FeatureManager(object):
 
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
         """
-        return self.build()(name, *args, **kwargs)
+        return self.build_checker().has(name, *args, **kwargs)
 
-    def build(self):
+    def build_checker(self):
         """
-        Set up delayed execution of ``has``.
+        Set up for a delayed execution of ``has``.
 
-        Successive calls to the returned predicate have better performance than
-        repeatedly calling ``FeatureManager.has``, because it retains the the
-        set of ``feature.handler.FeatureHandler`` objects. An instance of the
-        predicate should be kept only in a short-lived context, because any
+        Successive calls to the returned checker have better performance than
+        repeatedly calling ``FeatureManager.has``, because it retains the set
+        of ``feature.handler.FeatureHandler`` objects. An instance of the
+        checker should be kept only in a short-lived context, because any
         dynamic changes to plugins' feature handlers are not reflected in its
         behavior.
         """
-        return FeaturePredicate(self)
+        return FeatureChecker(self)
 
 
-class FeaturePredicate(object):
+class FeatureChecker(object):
     def __init__(self, manager):
         from sentry.plugins.base import plugins
 
@@ -96,7 +96,7 @@ class FeaturePredicate(object):
         ]
         self.handlers = tuple(itertools.chain(*handlers_per_plugin))
 
-    def __call__(self, name, *args, **kwargs):
+    def has(self, name, *args, **kwargs):
         actor = kwargs.pop("actor", None)
         feature = self.manager.get(name, *args, **kwargs)
 
