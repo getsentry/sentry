@@ -182,7 +182,6 @@ class ProjectSerializer(Serializer):
         return result
 
     def get_feature_list(self, obj, user, project_features, feature_checker):
-        # Retrieve all registered organization features
         feature_list = set()
 
         for feature_name in project_features:
