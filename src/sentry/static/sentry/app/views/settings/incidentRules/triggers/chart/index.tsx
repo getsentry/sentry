@@ -116,14 +116,14 @@ const TransparentLoadingMask = styled(LoadingMask)<{visible: boolean}>`
 
 const ChartPlaceholder = styled(Placeholder)`
   margin: ${space(2)} 0;
-  height: 168px;
+  height: 184px;
 `;
 
 const StickyWrapper = styled('div')`
   position: sticky;
   top: 69px; /* Height of settings breadcrumb 69px */
   z-index: ${p => p.theme.zIndex.dropdown - 1};
-  padding: 0 ${space(2)};
+  padding: ${space(2)} ${space(2)} 0;
   border-bottom: 1px solid ${p => p.theme.borderLight};
   background: rgba(255, 255, 255, 0.9);
 `;
