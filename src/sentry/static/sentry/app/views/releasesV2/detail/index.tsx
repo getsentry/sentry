@@ -92,7 +92,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
       return (
         <PageContent>
           <Alert type="error" icon={<IconWarning />}>
-            {t('This release may not be in your selected project')}
+            {t('This release may not be in your selected project.')}
           </Alert>
         </PageContent>
       );
