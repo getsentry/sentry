@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
 import Tag from 'app/views/settings/components/tag';
+import BetaTag from 'app/components/betaTag';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -119,11 +120,7 @@ const SidebarItem = ({
                     {t('New')}
                   </StyledTag>
                 )}
-                {isBeta && (
-                  <StyledTag priority="beta" size="small">
-                    {t('Beta')}
-                  </StyledTag>
-                )}
+                {isBeta && <BetaTag />}
               </LabelHook>
             </SidebarItemLabel>
           )}
