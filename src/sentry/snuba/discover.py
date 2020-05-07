@@ -101,6 +101,9 @@ def find_reference_event(reference_event):
     if reference_event.end:
         end = reference_event.end + timedelta(seconds=5)
 
+    # We use raw_query here because generating conditions from an eventstore
+    # event requires non-trivial translation from the flat list of fields into
+    # structured fields like message, stack, and tags.
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},

@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {SavedSearch, Organization} from 'app/types';
+import {SavedSearch, LightWeightOrganization} from 'app/types';
 import {IconSearch, IconClose} from 'app/icons';
 import {
   fetchRecentSearches,
@@ -109,7 +109,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: LightWeightOrganization;
   dropdownClassName?: string;
   className?: string;
 
