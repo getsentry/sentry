@@ -200,7 +200,6 @@ class QuerySubscriptionConsumer(object):
                     "timestamp": contents["timestamp"],
                     "query_subscription_id": contents["subscription_id"],
                     "project_id": subscription.project_id,
-                    "snuba_subscription_request": contents.get("request"),
                     "subscription_dataset": subscription.dataset,
                     "subscription_query": subscription.query,
                     "subscription_aggregation": subscription.aggregation,
