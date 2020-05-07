@@ -86,6 +86,22 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return snuba_args
 
+    def quantize_date_params(self, request, params):
+        # We only need to perform this rounding on relative date periods
+        if "statsPeriod" not in request.GET:
+            return params
+        results = params.copy()
+        duration = (params["end"] - params["start"]).total_seconds()
+        # Only perform rounding on durations longer than an hour
+        if duration > 3600:
+            # Round to 15 minutes if over 30 days, otherwise round to the minute
+            round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
+            for key in ["start", "end"]:
+                results[key] = snuba.quantize_time(
+                    params[key], params.get("organization_id", 0), duration=round_to
+                )
+        return results
+
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def handle_results_with_meta(self, request, organization, project_ids, results):
@@ -146,6 +162,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     params = self.get_filter_params(request, organization)
                 except NoProjects:
                     return {"data": []}
+                params = self.quantize_date_params(request, params)
                 rollup = get_rollup_from_request(
                     request,
                     params,

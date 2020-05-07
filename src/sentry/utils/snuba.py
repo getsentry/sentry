@@ -1041,7 +1041,7 @@ def quantize_time(time, key_hash, duration=300):
     # Use the hash so that seconds past the hour gets rounded differently per query.
     jitter = key_hash % duration
     seconds_past_hour = time.minute * 60 + time.second
-    # Round seconds to a multiple of duration, cause this uses "floor" division shouldn't give us a future window
+    # Round seconds to a multiple of duration, because this uses "floor" division shouldn't give us a future window
     time_window_start = seconds_past_hour // duration * duration + jitter
     # If the time is past the rounded seconds then we want our key to be for this timewindow
     if time_window_start < seconds_past_hour:
