@@ -60,8 +60,7 @@ export default class DetailsBody extends React.Component<Props> {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: (incident && incident.title) || '',
-      fields: ['issue', 'count(id)', 'count_unique(user.id)'],
-      widths: ['400', '200', '-1'],
+      fields: ['issue', 'title', 'count(id)', 'count_unique(user.id)'],
       orderby:
         incident.aggregation === AlertRuleAggregations.UNIQUE_USERS
           ? '-count_unique_user_id'

@@ -29,6 +29,7 @@ type Props = {
   organization: Organization;
   environments: string[];
   children: React.ReactNode;
+  isGlobalSelectionReady: boolean;
   finishProfile: () => void;
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
@@ -37,7 +38,7 @@ type State = {
   loading: boolean;
   error: boolean;
   errorType: Error;
-  project: null | Pick<Project, 'platform' | 'id' | 'slug'>;
+  project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
 };
 
 class GroupDetails extends React.Component<Props, State> {
@@ -59,9 +60,13 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(_prevProps, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevState.loading && !this.state.loading) {
       callIfFunction(this.props.finishProfile);
+    }
+
+    if (prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady) {
+      this.fetchData();
     }
   }
 
@@ -89,7 +94,12 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    const {environments, api} = this.props;
+    const {environments, api, isGlobalSelectionReady} = this.props;
+
+    // Need to wait for global selection store to be ready before making request
+    if (!isGlobalSelectionReady) {
+      return;
+    }
 
     try {
       const data = await api.requestPromise(this.groupDetailsEndpoint, {
@@ -246,39 +256,38 @@ class GroupDetails extends React.Component<Props, State> {
     return (
       <DocumentTitle title={this.getTitle()}>
         <React.Fragment>
-          {!isLoading && !isError ? (
-            <GlobalSelectionHeader
-              organization={organization}
-              forceProject={project}
-              showDateSelector={false}
-              shouldForceProject
-              lockedMessageSubject={t('issue')}
-              showIssueStreamLink
-              showProjectSettingsLink
-            />
-          ) : null}
-
-          <PageContent>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : isError ? (
-              this.renderError()
-            ) : (
-              <Projects orgId={organization.slug} slugs={[project!.slug]}>
-                {({projects, initiallyLoaded, fetchError}) =>
-                  initiallyLoaded ? (
-                    fetchError ? (
-                      <LoadingError message={t('Error loading the specified project')} />
+          <GlobalSelectionHeader
+            forceProject={project}
+            showDateSelector={false}
+            shouldForceProject
+            lockedMessageSubject={t('issue')}
+            showIssueStreamLink
+            showProjectSettingsLink
+          >
+            <PageContent>
+              {isLoading ? (
+                <LoadingIndicator />
+              ) : isError ? (
+                this.renderError()
+              ) : (
+                <Projects orgId={organization.slug} slugs={[project!.slug]}>
+                  {({projects, initiallyLoaded, fetchError}) =>
+                    initiallyLoaded ? (
+                      fetchError ? (
+                        <LoadingError
+                          message={t('Error loading the specified project')}
+                        />
+                      ) : (
+                        this.renderContent(projects[0])
+                      )
                     ) : (
-                      this.renderContent(projects[0])
+                      <LoadingIndicator />
                     )
-                  ) : (
-                    <LoadingIndicator />
-                  )
-                }
-              </Projects>
-            )}
-          </PageContent>
+                  }
+                </Projects>
+              )}
+            </PageContent>
+          </GlobalSelectionHeader>
         </React.Fragment>
       </DocumentTitle>
     );

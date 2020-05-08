@@ -6,6 +6,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import qs from 'query-string';
 
+import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {t} from 'app/locale';
@@ -17,10 +18,32 @@ import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
+import {Group} from 'app/types';
 
 import GroupListHeader from './groupListHeader';
 
-const GroupList = createReactClass({
+const defaultProps = {
+  canSelectGroups: true,
+  withChart: true,
+  withPagination: true,
+};
+
+type Props = {
+  api: Client;
+  query: string;
+  orgId: string;
+  endpointPath: string;
+  renderEmptyMessage?: () => React.ReactNode;
+  queryParams?: {[key: string]: number | string | string[] | undefined | null};
+} & Partial<typeof defaultProps>;
+
+type State = {
+  loading: boolean;
+  error: boolean;
+  groups: Group[];
+};
+
+const GroupList = createReactClass<Props, State>({
   displayName: 'GroupList',
 
   propTypes: {
@@ -39,15 +62,7 @@ const GroupList = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
-
-  getDefaultProps() {
-    return {
-      canSelectGroups: true,
-      withChart: true,
-      withPagination: true,
-    };
-  },
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
 
   getInitialState() {
     return {
@@ -226,6 +241,8 @@ const GroupList = createReactClass({
     );
   },
 });
+
+GroupList.defaultProps = defaultProps;
 
 export {GroupList};
 

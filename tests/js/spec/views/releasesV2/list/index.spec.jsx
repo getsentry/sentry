@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import ProjectsStore from 'app/stores/projectsStore';
 import ReleaseList from 'app/views/releasesV2/list/';
 
 describe('ReleasesV2List', function() {
@@ -25,7 +26,8 @@ describe('ReleasesV2List', function() {
   };
   let wrapper, endpointMock;
 
-  beforeEach(function() {
+  beforeEach(async function() {
+    ProjectsStore.loadInitialData(organization.projects);
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -41,9 +43,12 @@ describe('ReleasesV2List', function() {
     });
 
     wrapper = mountWithTheme(<ReleaseList {...props} />, routerContext);
+    await tick();
+    wrapper.update();
   });
 
   afterEach(function() {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

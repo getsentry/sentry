@@ -49,8 +49,6 @@ export function getUserTimezone(): string {
   return user && user.options && user.options.timezone;
 }
 
-// TODO(billy): The below functions should be refactored to a TimeRangeSelector specific utils
-
 /**
  * Given a UTC date, return a Date object in local time
  */
