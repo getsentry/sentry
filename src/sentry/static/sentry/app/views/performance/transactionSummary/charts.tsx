@@ -52,7 +52,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
   render() {
     const {totalValues, eventView, organization, location} = this.props;
     let display = decodeScalar(location.query.display) || DisplayModes.DURATION;
-    if (!DisplayModes.hasOwnProperty(display)) {
+    if (!Object.values(DisplayModes).includes(display as DisplayModes)) {
       display = DisplayModes.DURATION;
     }
 
