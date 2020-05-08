@@ -321,7 +321,7 @@ const ButtonSaveAs = styled(DropdownButton)`
 const ButtonSaved = styled(Button)`
   cursor: not-allowed;
 `;
-const ButtonSaveDropDown = styled('li')`
+const ButtonSaveDropDown = styled('div')`
   padding: ${space(1)};
 `;
 const ButtonSaveInput = styled(Input)`
