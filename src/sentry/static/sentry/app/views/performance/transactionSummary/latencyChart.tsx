@@ -7,18 +7,17 @@ import pick from 'lodash/pick';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
-import {AREA_COLORS} from 'app/components/charts/utils';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import LoadingPanel from 'app/components/charts/loadingPanel';
 import AsyncComponent from 'app/components/asyncComponent';
 import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
-import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
 
 const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
@@ -188,6 +187,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+    const colors = theme.charts.getColorPalette(1);
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
@@ -222,12 +222,12 @@ class LatencyChart extends AsyncComponent<Props, State> {
 
     return (
       <BarChart
-        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data, this.bucketWidth)}
         tooltip={tooltip}
-        colors={[AREA_COLORS[2]]}
+        colors={colors}
         onClick={this.handleClick}
         onMouseOver={this.handleMouseOver}
       />
@@ -237,7 +237,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Latency Distribution')}
           <Tooltip
             position="top"
@@ -247,7 +247,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
           >
             <StyledIconQuestion />
           </Tooltip>
-        </HeaderTitle>
+        </HeaderTitleLegend>
         {this.renderComponent()}
       </React.Fragment>
     );

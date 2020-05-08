@@ -26,9 +26,14 @@ class RepositoryFileSummary extends React.Component {
   static propTypes = {
     fileChangeSummary: PropTypes.object,
     repository: PropTypes.string,
+    collapsable: PropTypes.bool,
+    maxWhenCollapsed: PropTypes.number,
   };
 
-  static MAX_WHEN_COLLAPSED = 5;
+  static defaultProps = {
+    collapsable: true,
+    maxWhenCollapsed: 5,
+  };
 
   constructor(...args) {
     super(...args);
@@ -45,16 +50,15 @@ class RepositoryFileSummary extends React.Component {
   };
 
   render() {
-    const {repository, fileChangeSummary} = this.props;
-    const MAX = RepositoryFileSummary.MAX_WHEN_COLLAPSED;
+    const {repository, fileChangeSummary, collapsable, maxWhenCollapsed} = this.props;
     let files = Object.keys(fileChangeSummary);
     const fileCount = files.length;
     files.sort();
-    if (this.state.collapsed && fileCount > MAX) {
-      files = files.slice(0, MAX);
+    if (this.state.collapsed && collapsable && fileCount > maxWhenCollapsed) {
+      files = files.slice(0, maxWhenCollapsed);
     }
     const numCollapsed = fileCount - files.length;
-    const canCollapse = fileCount > MAX;
+    const canCollapse = collapsable && fileCount > maxWhenCollapsed;
     return (
       <Container>
         <h5>

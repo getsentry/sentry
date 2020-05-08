@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Environment, Organization} from 'app/types';
@@ -10,8 +11,11 @@ import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import Tooltip from 'app/components/tooltip';
 
-import {AlertRuleAggregations, TimeWindow} from './types';
+import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
@@ -33,6 +37,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
+  thresholdChart: React.ReactNode;
   onFilterUpdate: (query: string) => void;
 };
 
@@ -69,11 +74,62 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
   render() {
     const {organization, disabled, onFilterUpdate} = this.props;
+    const {environments} = this.state;
+
+    const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
+      environments
+    )
+      ? environments.map((env: Environment) => [env.name, getDisplayName(env)])
+      : [];
+
+    const anyEnvironmentLabel = (
+      <React.Fragment>
+        {t('All Environments')}
+        <div className="all-environment-note">
+          {tct(
+            `This will count events across every environment. For example,
+             having 50 [code1:production] events and 50 [code2:development]
+             events would trigger an alert with a critical threshold of 100.`,
+            {code1: <code />, code2: <code />}
+          )}
+        </div>
+      </React.Fragment>
+    );
+    environmentList.unshift([null, anyEnvironmentLabel]);
 
     return (
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
+          {this.props.thresholdChart}
+          <FormField name="query" inline={false}>
+            {({onChange, onBlur, onKeyDown, initialData}) => (
+              <SearchBar
+                defaultQuery={initialData?.query ?? ''}
+                inlineLabel={
+                  <Tooltip
+                    title={t('Metric alerts are filtered to error events automatically')}
+                  >
+                    <SearchEventTypeNote>event.type:error</SearchEventTypeNote>
+                  </Tooltip>
+                }
+                help={t('Choose which metric to trigger on')}
+                disabled={disabled}
+                useFormWrapper={false}
+                organization={organization}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                onBlur={query => {
+                  onFilterUpdate(query);
+                  onBlur(query);
+                }}
+                onSearch={query => {
+                  onFilterUpdate(query);
+                  onChange(query, {});
+                }}
+              />
+            )}
+          </FormField>
           <SelectField
             name="aggregation"
             label={t('Metric')}
@@ -91,50 +147,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             required
             isDisabled={disabled}
           />
-          <SelectField
-            name="environment"
-            label={t('Environment')}
-            help={t('Choose which environment events must match')}
-            placeholder={t('All environments')}
-            choices={
-              defined(this.state.environments)
-                ? this.state.environments.map((env: Environment) => [
-                    env.name,
-                    getDisplayName(env),
-                  ])
-                : []
-            }
-            isDisabled={disabled || this.state.environments === null}
-            multiple
-            isClearable
-          />
-          <FormField
-            name="query"
-            label={t('Filter')}
-            placeholder="error.type:TypeError"
-            help={tct(`By default a filter of [filter] is automatically applied`, {
-              filter: <code>event.type:error</code>,
-            })}
-          >
-            {({onChange, onBlur, onKeyDown, initialData}) => (
-              <SearchBar
-                defaultQuery={initialData?.query ?? ''}
-                disabled={disabled}
-                useFormWrapper={false}
-                organization={organization}
-                onChange={onChange}
-                onKeyDown={onKeyDown}
-                onBlur={query => {
-                  onFilterUpdate(query);
-                  onBlur(query);
-                }}
-                onSearch={query => {
-                  onFilterUpdate(query);
-                  onChange(query, {});
-                }}
-              />
-            )}
-          </FormField>
           <SelectField
             name="timeWindow"
             label={t('Time Window')}
@@ -154,10 +166,42 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             getValue={value => Number(value)}
             setValue={value => `${value}`}
           />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            placeholder={t('All Environments')}
+            help={t('Choose which environment events must match')}
+            styles={{
+              singleValue: (base: any) => ({
+                ...base,
+                '.all-environment-note': {display: 'none'},
+              }),
+              option: (base: any, state: any) => ({
+                ...base,
+                '.all-environment-note': {
+                  ...(!state.isSelected && !state.isFocused ? {color: theme.gray3} : {}),
+                  fontSize: theme.fontSizeSmall,
+                },
+              }),
+            }}
+            choices={environmentList}
+            isDisabled={disabled || this.state.environments === null}
+            isClearable
+          />
         </PanelBody>
       </Panel>
     );
   }
 }
+
+const SearchEventTypeNote = styled('div')`
+  font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.gray3};
+  background: ${p => p.theme.offWhiteLight};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.5)} ${space(0.75)};
+  margin: 0 ${space(0.5)} 0 ${space(1)};
+  user-select: none;
+`;
 
 export default RuleConditionsForm;

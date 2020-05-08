@@ -3,6 +3,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {Organization, Tag} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -121,14 +122,15 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: err.status,
           },
         });
+        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: message,
           pageLinks: null,
           tableData: null,
         });
-        setError(err.responseJSON.detail);
+        setError(message);
       });
   };
 
@@ -153,9 +155,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi(
-  withTags(Table, {includeEventAttributes: false, includeIssueAttributes: false})
-);
+export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;

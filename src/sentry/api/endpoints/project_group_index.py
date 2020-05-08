@@ -279,6 +279,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         search_fn = functools.partial(self._search, request, project)
         return update_groups(request, [project], project.organization_id, search_fn)
 
+    @attach_scenarios([bulk_remove_issues_scenario])
     def delete(self, request, project):
         """
         Bulk Remove a List of Issues

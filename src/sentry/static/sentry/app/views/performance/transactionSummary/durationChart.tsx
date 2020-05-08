@@ -7,11 +7,11 @@ import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
-import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {AREA_COLORS, getInterval} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -21,7 +21,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -66,7 +66,7 @@ class DurationChart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const legend = {
-      right: 16,
+      right: 10,
       top: 0,
       icon: 'circle',
       itemHeight: 8,
@@ -94,17 +94,17 @@ class DurationChart extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Duration Breakdown')}
           <Tooltip
             position="top"
             title={t(
-              `This graph shows a breakdown of transaction durations by percentile over time.`
+              `Duration Breakdown reflects transaction durations by percentile over time.`
             )}
           >
             <StyledIconQuestion size="sm" />
           </Tooltip>
-        </HeaderTitle>
+        </HeaderTitleLegend>
         <ChartZoom
           router={router}
           period={statsPeriod}
@@ -134,6 +134,9 @@ class DurationChart extends React.Component<Props> {
                     </ErrorPanel>
                   );
                 }
+                const colors =
+                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
+
                 // Create a list of series based on the order of the fields,
                 // We need to flip it at the end to ensure the series stack right.
                 const series = results
@@ -141,13 +144,9 @@ class DurationChart extends React.Component<Props> {
                       .map((values, i: number) => {
                         return {
                           ...values,
-                          color: AREA_COLORS[i],
+                          color: colors[i],
                           lineStyle: {
                             opacity: 0,
-                          },
-                          areaStyle: {
-                            color: AREA_COLORS[i],
-                            opacity: 1.0,
                           },
                         };
                       })
@@ -168,10 +167,10 @@ class DurationChart extends React.Component<Props> {
                           }}
                           tooltip={tooltip}
                           grid={{
-                            left: '24px',
-                            right: '24px',
-                            top: '32px',
-                            bottom: '12px',
+                            left: '10px',
+                            right: '10px',
+                            top: '40px',
+                            bottom: '0px',
                           }}
                         />
                       </TransitionChart>

@@ -23,7 +23,11 @@ import Alert from 'app/components/alert';
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
 
-type ReleaseContext = {release: Release; project: ReleaseProject};
+type ReleaseContext = {
+  release: Release;
+  project: ReleaseProject;
+  releaseProjects: ReleaseProject[];
+};
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
 type RouteParams = {
@@ -34,6 +38,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   selection: GlobalSelection;
+  releaseProjects: ReleaseProject[];
 };
 
 type State = {
@@ -78,23 +83,26 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  handleError(e, args) {
-    const {router, location} = this.props;
-    const possiblyWrongProject = e.status === 403;
+  renderError(...args) {
+    const possiblyWrongProject = Object.values(this.state.errors).find(
+      e => e?.status === 404 || e?.status === 403
+    );
 
     if (possiblyWrongProject) {
-      // refreshing this page without project ID will bring up a project selector
-      router.replace({
-        ...location,
-        query: {...location.query, project: undefined},
-      });
-      return;
+      return (
+        <PageContent>
+          <Alert type="error" icon={<IconWarning />}>
+            {t('This release may not be in your selected project.')}
+          </Alert>
+        </PageContent>
+      );
     }
-    super.handleError(e, args);
+
+    return super.renderError(...args);
   }
 
   renderBody() {
-    const {organization, location, selection} = this.props;
+    const {organization, location, selection, releaseProjects} = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
 
@@ -118,7 +126,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
           />
 
           <ContentBox>
-            <ReleaseContext.Provider value={{release, project}}>
+            <ReleaseContext.Provider value={{release, project, releaseProjects}}>
               {this.props.children}
             </ReleaseContext.Provider>
           </ContentBox>
@@ -128,7 +136,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseProjects'>> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -202,7 +210,8 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
           showProjectSettingsLink
           projectsFooterMessage={this.renderProjectsFooterMessage()}
         />
-        <ReleasesV2Detail {...this.props} />
+
+        <ReleasesV2Detail {...this.props} releaseProjects={projects} />
       </React.Fragment>
     );
   }

@@ -119,18 +119,18 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
-        try:
-            params = self.get_filter_params(request, organization)
-        except NoProjects:
-            return Response([])
+        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+            span.set_tag("organization", organization)
+            try:
+                params = self.get_filter_params(request, organization)
+            except NoProjects:
+                return Response([])
 
-        params["organization_id"] = organization.id
-
-        has_global_views = features.has(
-            "organizations:global-views", organization, actor=request.user
-        )
-        if not has_global_views and len(params.get("project_id", [])) > 1:
-            raise ParseError(detail="You cannot view events from multiple projects.")
+            has_global_views = features.has(
+                "organizations:global-views", organization, actor=request.user
+            )
+            if not has_global_views and len(params.get("project_id", [])) > 1:
+                raise ParseError(detail="You cannot view events from multiple projects.")
 
         def data_fn(offset, limit):
             return discover.query(

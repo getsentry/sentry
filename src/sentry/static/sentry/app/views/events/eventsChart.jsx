@@ -3,7 +3,7 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {t} from 'app/locale';
-import {getInterval, AREA_SINGLE_COLOR, AREA_COLORS} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -13,8 +13,8 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import {getDuration, formatPercentage} from 'app/utils/formatters';
 
 import EventsRequest from './utils/eventsRequest';
@@ -82,10 +82,7 @@ class EventsAreaChart extends React.Component {
       data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
     };
 
-    const colors =
-      timeseriesData.length === 1
-        ? [AREA_SINGLE_COLOR]
-        : AREA_COLORS.slice(0, timeseriesData.length);
+    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
 
     return (
       <AreaChart

@@ -168,6 +168,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_empty_spaces_stripped_correctly(self):
+        assert parse_search_query(
+            "event.type:transaction   transaction:/organizations/:orgId/discover/results/"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="event.type"),
+                operator="=",
+                value=SearchValue(raw_value="transaction"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="transaction"),
+                operator="=",
+                value=SearchValue(raw_value="/organizations/:orgId/discover/results/"),
+            ),
+        ]
+
     def test_timestamp(self):
         # test date format
         assert parse_search_query("timestamp>2015-05-18") == [
@@ -999,6 +1015,7 @@ class GetSnubaQueryArgsTest(TestCase):
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
+                "organization_id": 1,
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             },

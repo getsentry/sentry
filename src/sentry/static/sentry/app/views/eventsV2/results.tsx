@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {ContentBox} from 'app/utils/discover/styles';
+import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -250,7 +250,7 @@ class Results extends React.Component<Props, State> {
                     total={totalValues}
                   />
                 </Top>
-                <Main eventView={eventView}>
+                <Main>
                   <Table
                     organization={organization}
                     eventView={eventView}
@@ -259,7 +259,7 @@ class Results extends React.Component<Props, State> {
                     setError={this.setError}
                   />
                 </Main>
-                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
+                <Side>{this.renderTagsTable()}</Side>
               </ContentBox>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
@@ -283,14 +283,6 @@ export const StyledSearchBar = styled(SearchBar)`
 export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
-`;
-export const Main = styled('div')<{eventView: EventView}>`
-  grid-column: 1/2;
-  max-width: 100%;
-  overflow: hidden;
-`;
-export const Side = styled('div')<{eventView: EventView}>`
-  grid-column: 2/3;
 `;
 
 export default withApi(withOrganization(withGlobalSelection(Results)));

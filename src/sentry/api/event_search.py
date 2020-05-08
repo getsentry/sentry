@@ -21,6 +21,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_release,
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
@@ -96,12 +97,12 @@ event_search_grammar = Grammar(
     r"""
 search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
-paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
+paren_term           = spaces open_paren space? (paren_term / boolean_term)+ space? closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
-                       space?
+                       spaces
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
@@ -180,6 +181,7 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 USER_ALIAS = "user"
+RELEASE_ALIAS = "release"
 
 
 class InvalidSearchQuery(Exception):
@@ -310,7 +312,7 @@ class SearchVisitor(NodeVisitor):
 
     def remove_space(self, children):
         def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " ")
+            return not (isinstance(child, Node) and child.text == " " * len(child.text))
 
         return filter(is_not_space, children)
 
@@ -370,7 +372,6 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-
         return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
@@ -568,7 +569,12 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-        (function_name, open_paren, args, close_paren) = children
+        if len(children) == 3:
+            (function_name, open_paren, close_paren) = children
+            args = ""
+        else:
+            (function_name, open_paren, args, close_paren) = children
+
         if isinstance(args, Node):
             args = ""
         elif isinstance(args, list):
@@ -804,16 +810,15 @@ def get_filter(query=None, params=None):
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
+            value = term.value.value
             if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
                 project = None
                 try:
-                    project = Project.objects.get(
-                        id__in=params.get("project_id", []), slug=term.value.value
-                    )
+                    project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
                 except Exception:
                     raise InvalidSearchQuery(
                         u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                            term.value.value
+                            value
                         )
                     )
 
@@ -825,19 +830,19 @@ def get_filter(query=None, params=None):
                         project_to_filter = project.id
 
                     kwargs["conditions"].append(converted_filter)
-            elif name == ISSUE_ID_ALIAS and term.value.value != "":
+            elif name == ISSUE_ID_ALIAS and value != "":
                 # A blank term value means that this is a has filter
-                kwargs["group_ids"].extend(to_list(term.value.value))
-            elif name == ISSUE_ALIAS and term.value.value != "":
+                kwargs["group_ids"].extend(to_list(value))
+            elif name == ISSUE_ALIAS and value != "":
                 if params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
-                            params["organization_id"], term.value.value
+                            params["organization_id"], value
                         )
                         kwargs["group_ids"].extend(to_list(group.id))
                     except Exception:
                         raise InvalidSearchQuery(
-                            u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
+                            u"Invalid value '{}' for 'issue:' filter".format(value)
                         )
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
@@ -845,10 +850,27 @@ def get_filter(query=None, params=None):
                     convert_search_filter_to_snuba_query(term, key=field)
                     for field in FIELD_ALIASES[USER_ALIAS]["fields"]
                 ]
-                if term.operator == "!=" and term.value.value != "":
+                if term.operator == "!=" and value != "":
                     kwargs["conditions"].extend(user_conditions)
                 else:
                     kwargs["conditions"].append(user_conditions)
+            elif name == RELEASE_ALIAS and params and value == "latest":
+                converted_filter = convert_search_filter_to_snuba_query(
+                    SearchFilter(
+                        term.key,
+                        term.operator,
+                        SearchValue(
+                            parse_release(
+                                value,
+                                params["project_id"],
+                                params.get("environment_objects"),
+                                params["organization_id"],
+                            )
+                        ),
+                    )
+                )
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 if "column_alias" in FIELD_ALIASES[name]:
                     term = SearchFilter(

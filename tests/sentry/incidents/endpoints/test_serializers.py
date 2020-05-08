@@ -94,14 +94,13 @@ class TestAlertRuleSerializer(TestCase):
             "triggers": field_is_required,
         }
 
-    def test_environment(self):
+    def test_environment_non_list(self):
         base_params = self.valid_params.copy()
         env_1 = Environment.objects.create(organization_id=self.organization.id, name="test_env_1")
-        env_2 = Environment.objects.create(organization_id=self.organization.id, name="test_env_2")
 
-        base_params.update({"environment": [env_1.name]})
+        base_params.update({"environment": env_1.name})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
 
         # Make sure AlertRuleEnvironment entry was made:
@@ -109,47 +108,6 @@ class TestAlertRuleSerializer(TestCase):
             environment=env_1.id, alert_rule=alert_rule
         )
         assert alert_rule_env
-
-        base_params.update({"id": alert_rule.id})
-        base_params.update({"environment": [env_1.name, env_2.name]})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        alert_rule = serializer.save()
-
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 2
-        assert len(list(alert_rule.environment.all())) == 2
-
-        base_params.update({"environment": [env_2.name]})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        serializer.save()
-
-        # Make sure env_1 AlertRuleEnvironment was deleted:
-        try:
-            alert_rule_env = AlertRuleEnvironment.objects.get(
-                environment=env_1.id, alert_rule=alert_rule
-            )
-            assert False
-        except AlertRuleEnvironment.DoesNotExist:
-            assert True
-        # And that env_2 is still present:
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 1
-        assert (
-            len(AlertRuleEnvironment.objects.filter(environment=env_2.id, alert_rule=alert_rule))
-            == 1
-        )
-
-        base_params.update({"environment": []})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        serializer.save()
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 0
 
     def test_time_window(self):
         self.run_fail_validation_test(
