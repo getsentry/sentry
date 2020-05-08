@@ -1,6 +1,5 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -11,25 +10,14 @@ import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
-import SentryTypes from 'app/sentryTypes';
 
 import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
-type Props = {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
-  params: {
-    orgId: string;
-    projectId: string;
-  };
-} & RouteComponentProps<{}, {}>;
+};
 
 class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    // left router contextType to satisfy the compiler
-    router: PropTypes.object,
-  };
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
     return [
@@ -45,7 +33,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const {orgId} = this.props.params;
     const {authProvider} = this.state;
     const initialData = this.props.organization;
