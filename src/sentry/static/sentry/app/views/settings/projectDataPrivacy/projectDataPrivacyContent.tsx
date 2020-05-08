@@ -17,6 +17,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
+
 class ProjectDataPrivacyContent extends AsyncView<Props> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, project} = this.props;
