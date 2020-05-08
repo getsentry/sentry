@@ -275,7 +275,7 @@ def record_alert_rule_created(user, project, rule, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         rule_id=rule.id,
-        actions=[a["id"] for a in rule.data.get("actions", [])],
+        type="issue",
     )
 
 
@@ -292,11 +292,12 @@ def record_metric_alert_rule_created(user, project, rule, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "metric_alert.created",
+        "alert.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         rule_id=rule.id,
+        type="metric",
     )
 
 
