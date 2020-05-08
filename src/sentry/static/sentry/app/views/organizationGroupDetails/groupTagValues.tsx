@@ -13,6 +13,7 @@ import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {IconMail, IconOpen} from 'app/icons';
+import DetailedError from 'app/components/errors/detailedError';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
@@ -41,11 +42,11 @@ class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): [string, string, any?][] {
     const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
-      ['tag', `/issues/${groupId}/tags/${tagKey}/`, {query: {environment}}],
+      ['tag', `/issues/${groupId}/tags/${tagKey}/`],
       [
         'tagValueList',
         `/issues/${groupId}/tags/${tagKey}/values/`,
@@ -64,6 +65,16 @@ class GroupTagValues extends AsyncComponent<
       tagValueList,
       property('count')
     ).reverse();
+
+    if (sortedTagValueList.length === 0 && this.props.environments?.length > 0) {
+      return (
+        <DetailedError
+          className="group-tags-details-error"
+          heading={t('Sorry, the tags for this issue could not be found.')}
+          message={t('No tags were found for the currently selected environments')}
+        />
+      );
+    }
 
     const issuesPath = `/organizations/${orgId}/issues/`;
 
