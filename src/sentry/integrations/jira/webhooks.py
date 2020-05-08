@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import logging
 
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -31,14 +32,18 @@ def handle_assignee_change(integration, data):
     if assignee is None:
         sync_group_assignee_inbound(integration, None, issue_key, assign=False)
         return
+    email = assignee.get("emailAddress")
+    # pull email from API if we can use it
+    if not email and settings.JIRA_USE_EMAIL_SCOPE:
+        account_id = assignee.get("accountId")
+        client = JiraApiClient(
+            integration.metadata["base_url"],
+            JiraCloud(integration.metadata["shared_secret"]),
+            verify_ssl=True,
+        )
+        email = client.get_email(account_id)
 
-    account_id = assignee.get("accountId")
-    client = JiraApiClient(
-        integration.metadata["base_url"],
-        JiraCloud(integration.metadata["shared_secret"]),
-        verify_ssl=True,
-    )
-    email = client.get_email(account_id)
+    # TODO(steve) check display name
     if not email:
         logger.info(
             "missing-assignee-email",
@@ -46,7 +51,7 @@ def handle_assignee_change(integration, data):
         )
         return
 
-    sync_group_assignee_inbound(integration, assignee["emailAddress"], issue_key, assign=True)
+    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
 
 
 def handle_status_change(integration, data):

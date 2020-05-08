@@ -4,6 +4,7 @@ import logging
 import six
 from operator import attrgetter
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -716,20 +717,19 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
-                    res = client.search_users_for_issue(external_issue.key, ue.email)
+                    users = client.search_users_for_issue(external_issue.key, ue.email)
                 except (ApiUnauthorized, ApiError):
                     continue
-                try:
-                    jira_user = [
-                        r
-                        for r in res
-                        if r.get("emailAddress") and r["emailAddress"].lower() == ue.email.lower()
-                    ][0]
-                except IndexError:
-                    pass
-                else:
-                    break
-
+                for user in users:
+                    email = user.get("emailAddress")
+                    # pull email from API if we can use it
+                    if not email and settings.JIRA_USE_EMAIL_SCOPE:
+                        account_id = user.get("accountId")
+                        email = client.get_email(account_id)
+                    if email.lower() == ue.email.lower():
+                        jira_user = user
+                        break
+            # TODO(steve): add check against display name
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(

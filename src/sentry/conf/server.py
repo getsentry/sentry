@@ -1792,6 +1792,12 @@ KAFKA_TOPICS = {
 # disabled them.
 SLACK_INTEGRATION_USE_WST = False
 
+
+# For Jira, only approved apps can use the access_email_addresses scope
+# This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
+# We use the email with Jira 2-way sync in order to match the user
+JIRA_USE_EMAIL_SCOPE = False
+
 """
 Fields are:
  - south_app_name: Which app to apply the conversion to

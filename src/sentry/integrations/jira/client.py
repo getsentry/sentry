@@ -66,6 +66,7 @@ class JiraCloud(object):
 
 
 class JiraApiClient(ApiClient):
+    # TODO: Update to v3 endpoints
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
     STATUS_URL = "/rest/api/2/status"
@@ -219,4 +220,5 @@ class JiraApiClient(ApiClient):
 
     def get_email(self, name_or_account_id):
         user_id_field = self.user_id_field()
-        return self.get(self.EMAIL_URL, params={user_id_field: name_or_account_id})
+        user = self.get_cached(self.EMAIL_URL, params={user_id_field: name_or_account_id})
+        return user.get("email")
