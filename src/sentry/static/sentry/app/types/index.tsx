@@ -155,6 +155,8 @@ export type Project = {
   processingIssues: number;
 } & AvatarProject;
 
+export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
 export type ProjectRelease = {
   version: string;
   dateCreated: string;
@@ -387,7 +389,9 @@ export type Environment = {
 };
 
 // TODO(ts): This type is incomplete
-export type SavedSearch = {};
+export type SavedSearch = {
+  query?: string;
+};
 
 export type PluginNoProject = {
   id: string;

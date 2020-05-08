@@ -5,6 +5,7 @@ import six
 from django.db.models import Q
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -105,15 +106,19 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"
 
+        include_features = not features.has("organizations:enterprise-perf", organization)
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
+            serializer = ProjectSummarySerializer(include_features=include_features)
+            return Response(serialize(list(queryset), request.user, serializer))
         else:
 
             def serialize_on_result(result):
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
-                    environment_id=environment_id, stats_period=stats_period,
+                    environment_id=environment_id,
+                    stats_period=stats_period,
+                    include_features=include_features,
                 )
                 return serialize(result, request.user, serializer)
 

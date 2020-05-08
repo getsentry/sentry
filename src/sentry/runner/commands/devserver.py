@@ -232,9 +232,9 @@ def devserver(
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
     if daemons:
-        uwsgi_overrides["log-format"] = '"%(method) %(uri) %(proto)" %(status) %(size)'
+        uwsgi_overrides["log-format"] = '"%(method) %(status) %(uri) %(proto)" %(size)'
     else:
-        uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size)'
+        uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(status) %(uri) %(proto)" %(size)'
 
     server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 

@@ -7,8 +7,8 @@ import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
-import TransparentLoadingMask from 'app/components/charts/components/transparentLoadingMask';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {getInterval} from 'app/components/charts/utils';
@@ -147,10 +147,6 @@ class DurationChart extends React.Component<Props> {
                           color: colors[i],
                           lineStyle: {
                             opacity: 0,
-                          },
-                          areaStyle: {
-                            color: colors[i],
-                            opacity: 1.0,
                           },
                         };
                       })

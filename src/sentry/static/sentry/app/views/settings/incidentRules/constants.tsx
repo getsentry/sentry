@@ -25,6 +25,6 @@ export function createDefaultRule(): UnsavedIncidentRule {
     timeWindow: 1,
     triggers: [createDefaultTrigger()],
     projects: [],
-    environment: [],
+    environment: null,
   };
 }

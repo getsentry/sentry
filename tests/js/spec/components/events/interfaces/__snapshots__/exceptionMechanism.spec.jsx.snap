@@ -1,9 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ExceptionMechanism additional data should render all fields in the data object 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -16,13 +14,11 @@ exports[`ExceptionMechanism additional data should render all fields in the data
       value="0x1"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism additional data should skip object-like values 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -30,13 +26,11 @@ exports[`ExceptionMechanism additional data should skip object-like values 1`] =
       value="generic"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should add the help_link to the description hovercard 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -70,13 +64,11 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
       </Hovercard>
     </Pill>
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should not add the help_link if not starts with http(s) 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -102,13 +94,11 @@ exports[`ExceptionMechanism basic attributes should not add the help_link if not
       </Hovercard>
     </Pill>
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should render a description hovercard 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -134,13 +124,11 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
       </Hovercard>
     </Pill>
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should render a help_link icon 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -157,13 +145,11 @@ exports[`ExceptionMechanism basic attributes should render a help_link icon 1`] 
       </a>
     </Pill>
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should render the exception mechanism 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -171,13 +157,11 @@ exports[`ExceptionMechanism basic attributes should render the exception mechani
       value="generic"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism basic attributes should render the handled pill 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -190,13 +174,11 @@ exports[`ExceptionMechanism basic attributes should render the handled pill 1`] 
       value={false}
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism errno meta should prefer the errno name if present 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -209,13 +191,11 @@ exports[`ExceptionMechanism errno meta should prefer the errno name if present 1
       value="E2BIG"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism errno meta should render the errno number 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -228,13 +208,11 @@ exports[`ExceptionMechanism errno meta should render the errno number 1`] = `
       value={7}
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism mach_exception meta should prefer the exception name if present 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -247,13 +225,11 @@ exports[`ExceptionMechanism mach_exception meta should prefer the exception name
       value="EXC_BAD_ACCESS"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism mach_exception meta should render the mach exception number 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -266,13 +242,11 @@ exports[`ExceptionMechanism mach_exception meta should render the mach exception
       value={1}
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism signal meta should add the signal code if present 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -285,13 +259,11 @@ exports[`ExceptionMechanism signal meta should add the signal code if present 1`
       value="11 (code 0)"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism signal meta should prefer signal and code names if present 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -304,13 +276,11 @@ exports[`ExceptionMechanism signal meta should prefer signal and code names if p
       value="SIGSEGV (SEGV_NOOP)"
     />
   </Pills>
-</div>
+</Wrapper>
 `;
 
 exports[`ExceptionMechanism signal meta should render the signal number 1`] = `
-<div
-  className="exception-mechanism"
->
+<Wrapper>
   <Pills>
     <Pill
       key="mechanism"
@@ -323,5 +293,5 @@ exports[`ExceptionMechanism signal meta should render the signal number 1`] = `
       value={11}
     />
   </Pills>
-</div>
+</Wrapper>
 `;

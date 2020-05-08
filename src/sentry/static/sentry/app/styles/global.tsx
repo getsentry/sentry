@@ -9,6 +9,10 @@ const styles = (theme: Theme) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
   }
+
+  abbr {
+    border-bottom: 1px dotted ${theme.gray2};
+  }
 `;
 
 /**

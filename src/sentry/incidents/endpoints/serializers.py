@@ -9,8 +9,8 @@ from rest_framework import serializers
 from django.db import transaction
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
@@ -256,6 +256,11 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     raise serializers.ValidationError(action_serializer.errors)
 
 
+class ObjectField(serializers.Field):
+    def to_internal_value(self, data):
+        return data
+
+
 class AlertRuleSerializer(CamelSnakeModelSerializer):
     """
     Serializer for creating/updating an alert rule. Required context:
@@ -263,7 +268,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    environment = serializers.ListField(child=EnvironmentField(), required=False)
+    environment = EnvironmentField(required=False, allow_null=True)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)

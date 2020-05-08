@@ -99,13 +99,16 @@ class PluginComponentBase extends React.Component {
   }
 
   onSaveSuccess(callback, ...args) {
+    callback = callbackWithArgs(callback, ...args);
     this.setState(
       {
         state: FormState.READY,
       },
-      callbackWithArgs(callback, ...args)
+      () => callback && callback()
     );
-    addSuccessMessage(t('Success!'));
+    setTimeout(() => {
+      addSuccessMessage(t('Success!'));
+    }, 0);
   }
 
   onSaveError(callback, ...args) {
@@ -114,11 +117,11 @@ class PluginComponentBase extends React.Component {
       {
         state: FormState.ERROR,
       },
-      () => {
-        addErrorMessage(t('Unable to save changes. Please try again.'));
-        callback && callback();
-      }
+      () => callback && callback()
     );
+    setTimeout(() => {
+      addErrorMessage(t('Unable to save changes. Please try again.'));
+    }, 0);
   }
 
   onSaveComplete(callback, ...args) {

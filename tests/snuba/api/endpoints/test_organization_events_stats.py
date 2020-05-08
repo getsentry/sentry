@@ -520,6 +520,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
 
+    def test_latest_release_query_filter(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "release:latest",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200
+
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(

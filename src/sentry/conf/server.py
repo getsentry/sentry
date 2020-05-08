@@ -863,6 +863,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
+    # Enable the new version of interface/breadcrumbs
+    "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -945,6 +947,9 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 
 # Sample rate for Sentry transactions
 SENTRY_APM_SAMPLING = 0
+
+# Sample rate for symbolicate_event task transactions
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
 
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
@@ -1343,6 +1348,7 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "--color",
             "--output-pathinfo",
             "--watch",
             u"--config={}".format(

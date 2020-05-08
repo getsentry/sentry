@@ -11,6 +11,7 @@ import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import withLatestContext from 'app/utils/withLatestContext';
+import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
 
 // event ids must have string length of 32
 const shouldSearchEventIds = query => typeof query === 'string' && query.length === 32;
@@ -90,7 +91,13 @@ async function createPluginResults(pluginsPromise, orgId) {
     })
     .map(plugin => ({
       title: plugin.isHidden ? `${plugin.name} (Legacy)` : plugin.name,
-      description: plugin.description,
+      description: (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: markedSingleLine(plugin.description),
+          }}
+        />
+      ),
       model: plugin,
       sourceType: 'plugin',
       resultType: 'integration',
@@ -118,6 +125,42 @@ async function createIntegrationResults(integrationsPromise, orgId) {
       }))) ||
     []
   );
+}
+
+async function createSentryAppResults(sentryAppPromise, orgId) {
+  const sentryApps = (await sentryAppPromise) || [];
+  return sentryApps.map(sentryApp => ({
+    title: sentryApp.name,
+    description: (
+      <span
+        dangerouslySetInnerHTML={{
+          __html: markedSingleLine(sentryApp.overview || ''),
+        }}
+      />
+    ),
+    model: sentryApp,
+    sourceType: 'sentryApp',
+    resultType: 'integration',
+    to: `/settings/${orgId}/sentry-apps/${sentryApp.slug}/`,
+  }));
+}
+
+//Not really async but we need to return a promise
+async function creatDocIntegrationResults(orgId) {
+  return documentIntegrationList.map(integration => ({
+    title: integration.name,
+    description: (
+      <span
+        dangerouslySetInnerHTML={{
+          __html: markedSingleLine(integration.description),
+        }}
+      />
+    ),
+    model: integration,
+    sourceType: 'docIntegration',
+    resultType: 'integration',
+    to: `/settings/${orgId}/document-integrations/${integration.slug}/`,
+  }));
 }
 
 async function createShortIdLookupResult(shortIdLookupPromise) {
@@ -232,6 +275,7 @@ class ApiSource extends React.Component {
         `/organizations/${orgId}/members/`,
         `/organizations/${orgId}/plugins/configs/`,
         `/organizations/${orgId}/config/integrations/`,
+        '/sentry-apps/?status=published',
       ];
 
       directUrls = [
@@ -307,6 +351,7 @@ class ApiSource extends React.Component {
       members,
       plugins,
       integrations,
+      sentryApps,
     ] = searchRequests;
     const [shortIdLookup, eventIdLookup] = directRequests;
 
@@ -318,6 +363,7 @@ class ApiSource extends React.Component {
         members,
         plugins,
         integrations,
+        sentryApps,
       ]),
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
@@ -340,7 +386,15 @@ class ApiSource extends React.Component {
   async getSearchableResults(requests) {
     const {params, organization} = this.props;
     const orgId = (params && params.orgId) || (organization && organization.slug);
-    const [organizations, projects, teams, members, plugins, integrations] = requests;
+    const [
+      organizations,
+      projects,
+      teams,
+      members,
+      plugins,
+      integrations,
+      sentryApps,
+    ] = requests;
     const searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
@@ -349,6 +403,8 @@ class ApiSource extends React.Component {
         createMemberResults(members, orgId),
         createIntegrationResults(integrations, orgId),
         createPluginResults(plugins, orgId),
+        createSentryAppResults(sentryApps, orgId),
+        creatDocIntegrationResults(orgId),
       ])
     );
 

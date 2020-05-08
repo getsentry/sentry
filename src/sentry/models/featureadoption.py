@@ -106,6 +106,8 @@ manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["firs
 manager.add(90, "release_created", "Create Release Using API", "api")
 manager.add(91, "deploy_created", "Create Deploy Using API", "api")
 
+manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=["first_event"])
+
 
 class FeatureAdoptionManager(BaseManager):
     def in_cache(self, organization_id, feature_id):

@@ -41,7 +41,9 @@ describe('GroupReleaseStats', function() {
 
   it('renders specific environments', function() {
     const wrapper = createWrapper({environments: TestStubs.Environments()});
-    expect(wrapper.find('[data-test-id="env-label"]').text()).toBe('Production, Staging');
+    expect(wrapper.find('[data-test-id="env-label"]').text()).toBe(
+      'Production, Staging, STAGING'
+    );
     expect(wrapper.find('GroupReleaseChart')).toHaveLength(2);
     expect(wrapper.find('SeenInfo')).toHaveLength(2);
   });

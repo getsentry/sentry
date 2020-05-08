@@ -6,7 +6,7 @@ from collections import defaultdict
 from django.db.models import Count
 
 
-from sentry import roles
+from sentry import roles, features
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.superuser import is_active_superuser
@@ -132,6 +132,8 @@ class TeamSerializer(Serializer):
 
 class TeamWithProjectsSerializer(TeamSerializer):
     def get_attrs(self, item_list, user):
+        from sentry.api.serializers.models.project import ProjectSerializer
+
         project_teams = list(
             ProjectTeam.objects.filter(team__in=item_list, project__status=ProjectStatus.VISIBLE)
             .order_by("project__name", "project__slug")
@@ -145,9 +147,13 @@ class TeamWithProjectsSerializer(TeamSerializer):
             project_team.project._organization_cache = orgs[project_team.project.organization_id]
 
         projects = [pt.project for pt in project_teams]
-        projects_by_id = {
-            project.id: data for project, data in zip(projects, serialize(projects, user))
-        }
+        project_serializer = ProjectSerializer(
+            include_features=not all(
+                features.has("organizations:enterprise-perf", org) for org in orgs.values()
+            )
+        )
+        serialized_projects = serialize(projects, user, project_serializer)
+        projects_by_id = {project.id: data for project, data in zip(projects, serialized_projects)}
 
         project_map = defaultdict(list)
         for project_team in project_teams:
