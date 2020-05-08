@@ -948,6 +948,9 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # Sample rate for Sentry transactions
 SENTRY_APM_SAMPLING = 0
 
+# Sample rate for symbolicate_event task transactions
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None
@@ -1345,6 +1348,7 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "--color",
             "--output-pathinfo",
             "--watch",
             u"--config={}".format(
@@ -1786,12 +1790,6 @@ KAFKA_TOPICS = {
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
-
-# Enable this to use the legacy Slack Workspace Token apps. You will likely
-# never need to switch this unless you created a workspace app before slack
-# disabled them.
-SLACK_INTEGRATION_USE_WST = False
-
 
 # For Jira, only approved apps can use the access_email_addresses scope
 # This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)

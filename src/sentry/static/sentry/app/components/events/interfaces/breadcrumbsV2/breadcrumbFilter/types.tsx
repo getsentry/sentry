@@ -1,7 +1,7 @@
 import {
   BreadcrumbDetails,
   BreadcrumbType,
-  BreadcrumbLevel,
+  BreadcrumbLevelType,
 } from '../../breadcrumbs/types';
 
 export enum FilterGroupType {
@@ -11,7 +11,9 @@ export enum FilterGroupType {
 
 type FilterGroupBase = {
   isChecked: boolean;
-} & BreadcrumbDetails;
+  symbol: React.ReactNode;
+  description?: string;
+};
 
 type FilterGroupTypeType = {
   groupType: FilterGroupType.TYPE;
@@ -20,11 +22,11 @@ type FilterGroupTypeType = {
 
 type FilterGroupTypeLevel = {
   groupType: FilterGroupType.LEVEL;
-  type: BreadcrumbLevel;
+  type: BreadcrumbLevelType;
 } & FilterGroupBase;
 
 export type FilterGroup = FilterGroupTypeType | FilterGroupTypeLevel;
 
-export type FilterType = BreadcrumbLevel | BreadcrumbType;
+export type FilterType = BreadcrumbLevelType | BreadcrumbType;
 
 export {BreadcrumbDetails};

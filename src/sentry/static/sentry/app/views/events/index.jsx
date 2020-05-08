@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -62,29 +62,29 @@ class EventsContainer extends React.Component {
         hookName="feature-disabled:events-page"
         renderDisabled
       >
-        <GlobalSelectionHeader
-          organization={organization}
-          resetParamsOnChange={['cursor']}
-        />
-        <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
-            <Body>
-              <PageHeader>
-                <HeaderTitle>
-                  {t('Events')} <BetaTag />
-                </HeaderTitle>
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={selection.projects}
-                  query={(location.query && location.query.query) || ''}
-                  placeholder={t('Search for events, users, tags, and everything else.')}
-                  onSearch={this.handleSearch}
-                />
-              </PageHeader>
-              {children}
-            </Body>
-          </LightWeightNoProjectMessage>
-        </PageContent>
+        <GlobalSelectionHeader resetParamsOnChange={['cursor']}>
+          <PageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <Body>
+                <PageHeader>
+                  <HeaderTitle>
+                    {t('Events')} <FeatureBadge type="beta" />
+                  </HeaderTitle>
+                  <StyledSearchBar
+                    organization={organization}
+                    projectIds={selection.projects}
+                    query={(location.query && location.query.query) || ''}
+                    placeholder={t(
+                      'Search for events, users, tags, and everything else.'
+                    )}
+                    onSearch={this.handleSearch}
+                  />
+                </PageHeader>
+                {children}
+              </Body>
+            </LightWeightNoProjectMessage>
+          </PageContent>
+        </GlobalSelectionHeader>
       </Feature>
     );
   }

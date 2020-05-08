@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {ContentBox} from 'app/utils/discover/styles';
+import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import Alert from 'app/components/alert';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -222,47 +222,48 @@ class Results extends React.Component<Props, State> {
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <ResultsHeader
-                organization={organization}
-                location={location}
-                eventView={eventView}
-              />
-              <ContentBox>
-                <Top>
-                  {this.renderError(error)}
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={this.handleSearch}
-                  />
-                  <ResultsChart
-                    api={api}
-                    router={router}
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    total={totalValues}
-                  />
-                </Top>
-                <Main eventView={eventView}>
-                  <Table
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    title={title}
-                    setError={this.setError}
-                  />
-                </Main>
-                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-              </ContentBox>
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
+          <GlobalSelectionHeader>
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <ResultsHeader
+                  organization={organization}
+                  location={location}
+                  eventView={eventView}
+                />
+                <ContentBox>
+                  <Top>
+                    {this.renderError(error)}
+                    <StyledSearchBar
+                      organization={organization}
+                      projectIds={eventView.project}
+                      query={query}
+                      onSearch={this.handleSearch}
+                    />
+                    <ResultsChart
+                      api={api}
+                      router={router}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      total={totalValues}
+                    />
+                  </Top>
+                  <Main>
+                    <Table
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      title={title}
+                      setError={this.setError}
+                    />
+                  </Main>
+                  <Side>{this.renderTagsTable()}</Side>
+                </ContentBox>
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
         </React.Fragment>
       </SentryDocumentTitle>
     );
@@ -283,14 +284,6 @@ export const StyledSearchBar = styled(SearchBar)`
 export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
-`;
-export const Main = styled('div')<{eventView: EventView}>`
-  grid-column: 1/2;
-  max-width: 100%;
-  overflow: hidden;
-`;
-export const Side = styled('div')<{eventView: EventView}>`
-  grid-column: 2/3;
 `;
 
 export default withApi(withOrganization(withGlobalSelection(Results)));

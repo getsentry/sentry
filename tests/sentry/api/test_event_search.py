@@ -51,6 +51,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
     assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
+    assert get_json_meta_type("user_misery_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
 
@@ -1015,6 +1016,7 @@ class GetSnubaQueryArgsTest(TestCase):
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
+                "organization_id": 1,
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             },
@@ -1328,6 +1330,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "last_seen()",
             "apdex(300)",
             "impact(300)",
+            "user_misery(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -1345,6 +1348,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 None,
                 "impact_300",
             ],
+            ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],

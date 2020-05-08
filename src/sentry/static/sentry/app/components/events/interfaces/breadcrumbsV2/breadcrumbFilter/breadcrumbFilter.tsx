@@ -84,22 +84,31 @@ class BreadcrumbFilter extends React.Component<Props, State> {
   getDropDownButton = ({isOpen, getActorProps}) => {
     const {checkedOptionsQuantity} = this.state;
 
-    let buttonLabel = t('Filter By');
-    let buttonPriority = 'default';
+    const dropDownButtonProps = {
+      buttonLabel: t('Filter By'),
+      buttonPriority: 'default',
+      hasDarkBorderBottomColor: false,
+    };
 
     if (checkedOptionsQuantity > 0) {
-      buttonLabel = tn('%s Active Filter', '%s Active Filters', checkedOptionsQuantity);
-      buttonPriority = 'primary';
+      dropDownButtonProps.buttonLabel = tn(
+        '%s Active Filter',
+        '%s Active Filters',
+        checkedOptionsQuantity
+      );
+      dropDownButtonProps.buttonPriority = 'primary';
+      dropDownButtonProps.hasDarkBorderBottomColor = true;
     }
 
     return (
       <StyledDropdownButton
         {...getActorProps()}
         isOpen={isOpen}
+        hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
         size="small"
-        priority={buttonPriority}
+        priority={dropDownButtonProps.buttonPriority}
       >
-        {buttonLabel}
+        {dropDownButtonProps.buttonLabel}
       </StyledDropdownButton>
     );
   };
@@ -114,7 +123,7 @@ class BreadcrumbFilter extends React.Component<Props, State> {
 
     return (
       <Wrapper>
-        <DropdownControl menuWidth="20vh" blendWithActor button={this.getDropDownButton}>
+        <DropdownControl menuWidth="240px" blendWithActor button={this.getDropDownButton}>
           <React.Fragment>
             <BreadcrumbFilterHeader
               onSelectAll={this.handleSelectAll}
@@ -149,7 +158,7 @@ class BreadcrumbFilter extends React.Component<Props, State> {
 
 export default BreadcrumbFilter;
 
-const StyledDropdownButton = styled(DropdownButton)`
+const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -164,6 +173,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
   ${p =>
     !p.isOpen &&
+    p.hasDarkBorderBottomColor &&
     css`
       border-bottom-color: ${p.theme.button.primary.border};
     `}

@@ -28,12 +28,17 @@ class DeliverDigestTest(TestCase):
             data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        key = "mail:p:{}".format(self.project.id)
         backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
         backend.add(key, event_to_record(event_2, [rule]), increment_delay=0, maximum_delay=0)
         digests.digest = backend.digest
         with self.tasks():
             deliver_digest(key)
         assert "2 new alerts since" in mail.outbox[0].subject
+
+    @patch.object(sentry, "digests")
+    def test_old_key(self, digests):
+        self.run_test("mail:p:{}".format(self.project.id), digests)
 
     @patch.object(sentry, "digests")
     def test_new_key(self, digests):

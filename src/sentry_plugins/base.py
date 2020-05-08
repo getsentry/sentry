@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pkg_resources
 import sentry_plugins
 import six
 import sys
@@ -68,14 +67,3 @@ class CorePluginMixin(object):
         else:
             self.logger.exception(six.text_type(exc))
             six.reraise(PluginError, PluginError(self.message_from_error(exc)), sys.exc_info()[2])
-
-
-def assert_package_not_installed(name):
-    try:
-        pkg_resources.get_distribution(name)
-    except pkg_resources.DistributionNotFound:
-        return
-    else:
-        raise RuntimeError(
-            "Found %r. This has been superseded by 'sentry-plugins', so please uninstall." % name
-        )

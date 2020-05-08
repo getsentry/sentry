@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
-import {AREA_SINGLE_COLOR} from './utils';
 
 class AreaChart extends React.Component {
   static propTypes = {
@@ -22,9 +21,13 @@ class AreaChart extends React.Component {
             stack: stacked ? 'area' : false,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
-            color: (colors && colors[i]) || AREA_SINGLE_COLOR,
+            color: colors && colors[i],
+            lineStyle: {
+              opacity: 1,
+              width: 0.4,
+            },
             areaStyle: {
-              color: (colors && colors[i]) || AREA_SINGLE_COLOR,
+              color: colors && colors[i],
               opacity: 1.0,
             },
             animation: false,

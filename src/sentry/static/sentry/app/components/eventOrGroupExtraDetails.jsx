@@ -104,14 +104,15 @@ class EventOrGroupExtraDetails extends React.Component {
 }
 
 const GroupExtra = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
+  display: inline-grid;
+  grid-auto-flow: column dense;
   grid-gap: ${space(2)};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.gray3};
   font-size: 12px;
   position: relative;
+  min-width: 500px;
 
   a {
     color: inherit;

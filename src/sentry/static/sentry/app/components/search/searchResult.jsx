@@ -138,7 +138,7 @@ class SearchResult extends React.Component {
     }
 
     if (isIntegration) {
-      return <StyledPluginIcon pluginId={model.key || model.id} />;
+      return <StyledPluginIcon pluginId={model.slug} />;
     }
 
     return null;

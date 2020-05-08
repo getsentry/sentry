@@ -155,6 +155,8 @@ export type Project = {
   processingIssues: number;
 } & AvatarProject;
 
+export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
 export type ProjectRelease = {
   version: string;
   dateCreated: string;
