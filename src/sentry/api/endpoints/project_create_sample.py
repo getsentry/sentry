@@ -8,6 +8,8 @@ from sentry.utils.samples import create_sample_event
 
 
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
+    # Members should be able to create sample events.
+    # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)
 
     def post(self, request, project):
