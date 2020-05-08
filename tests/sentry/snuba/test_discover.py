@@ -250,6 +250,18 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
         assert "event_id" not in data[0]
 
+    def test_latest_release_condition(self):
+        result = discover.query(
+            selected_columns=["id", "message"],
+            query="release:latest",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert len(result["data"]) == 1
+        data = result["data"]
+        assert data[0]["id"] == self.event.event_id
+        assert data[0]["message"] == self.event.message
+        assert "event_id" not in data[0]
+
     def test_environment_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],

@@ -12,7 +12,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import GroupList from 'app/views/releases/detail/groupList';
+import GroupList from 'app/components/issues/groupList';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 type Props = {

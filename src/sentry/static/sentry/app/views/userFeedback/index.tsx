@@ -114,8 +114,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+      <GlobalSelectionHeader>
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">
@@ -148,7 +147,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             </div>
           </LightWeightNoProjectMessage>
         </PageContent>
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

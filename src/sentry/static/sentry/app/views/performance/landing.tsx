@@ -6,14 +6,13 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import BetaTag from 'app/components/betaTag';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import EventView from 'app/utils/discover/eventView';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -70,46 +69,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     this.setState({error});
   };
 
-  generateGlobalSelection = () => {
-    const {location} = this.props;
-    const {eventView} = this.state;
-
-    const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
-      : null;
-
-    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
-
-    const {utc} = getParams(location.query);
-
-    return {
-      projects: globalSelection.project,
-      environments: globalSelection.environment,
-      datetime: {
-        start,
-        end,
-        period: globalSelection.statsPeriod || DEFAULT_STATS_PERIOD,
-        utc: utc === 'true',
-      },
-    };
-  };
-
-  allowClearTimeRange = (): boolean => {
-    const {datetime} = this.generateGlobalSelection();
-    const {start, end, period} = datetime;
-
-    if (period === DEFAULT_STATS_PERIOD) {
-      return false;
-    }
-
-    if ((start && end) || typeof period === 'string') {
-      return true;
-    }
-
-    return false;
-  };
-
   getViewLabel(currentView: FilterViews): string {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
@@ -121,7 +80,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
   }
 
-  renderDropdown() {
+  renderHeaderButtons() {
     const selectView = (viewKey: FilterViews) => {
       return () => {
         this.setState({
@@ -154,17 +113,24 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader
-            organization={organization}
-            selection={this.generateGlobalSelection()}
-            allowClearTimeRange={this.allowClearTimeRange()}
-          />
+        <GlobalSelectionHeader
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>{t('Performance')}</div>
-                <div>{this.renderDropdown()}</div>
+                <div>
+                  {t('Performance')}
+                  <BetaTag />
+                </div>
+                <div>{this.renderHeaderButtons()}</div>
               </StyledPageHeader>
               {this.renderError()}
               <Charts
@@ -183,7 +149,7 @@ class PerformanceLanding extends React.Component<Props, State> {
               />
             </LightWeightNoProjectMessage>
           </PageContent>
-        </React.Fragment>
+        </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
   }
