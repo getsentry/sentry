@@ -43,7 +43,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert params["response_type"] == ["code"]
         assert params["client_id"] == [expected_client_id]
 
-        assert params.get("user_scope") is None if is_wst_app else ["links:read"]
+        assert params.get("user_scope") == ["links:read"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
