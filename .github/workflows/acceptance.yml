@@ -145,10 +145,13 @@ jobs:
 
         # Use `.python-version` to avoid duplication
         # XXX: can't actually read from .python-version because GitHub Actions
-        # does not support our version (2.7.18)
+        # does not support our version (2.7.16)
+        #
+        # XXX: Using `2.7` as GHA image only seems to keep one minor version around and will break
+        # CI if we pin it to a specific patch version.
         - name: Get python version from `.python-version`
           id: python-version
-          run: echo "::set-output name=version::2.7.18"
+          run: echo "::set-output name=version::2.7"
 
         # setup python
         - name: Set up Python ${{ steps.python-version.outputs.version }}
