@@ -215,7 +215,7 @@ class ActionsPanel extends React.PureComponent<Props> {
                       key={action.type}
                       value={action.targetIdentifier}
                       onChange={this.handleChangeSpecificTargetIdentifier.bind(this, i)}
-                      placeholder="Channel or user i.e. #critical"
+                      placeholder="@username or #channel"
                     />
                   )}
                   <DeleteActionButton

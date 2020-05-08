@@ -24,7 +24,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     value: PropTypes.array,
     projects: PropTypes.array.isRequired,
     nonMemberProjects: PropTypes.array.isRequired,
-    loadingProjects: PropTypes.bool,
+    isGlobalSelectionReady: PropTypes.bool,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
     multi: PropTypes.bool,
@@ -45,12 +45,9 @@ export default class MultipleProjectSelector extends React.PureComponent {
     lockedMessageSubject: t('page'),
   };
 
-  constructor() {
-    super();
-    this.state = {
-      hasChanges: false,
-    };
-  }
+  state = {
+    hasChanges: false,
+  };
 
   // Reset "hasChanges" state and call `onUpdate` callback
   doUpdate = () => {
@@ -183,7 +180,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     const {
       value,
       projects,
-      loadingProjects,
+      isGlobalSelectionReady,
       nonMemberProjects,
       multi,
       organization,
@@ -216,11 +213,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
       >
         {this.renderProjectName()}
       </StyledHeaderItem>
-    ) : loadingProjects ? (
+    ) : !isGlobalSelectionReady ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
         icon={<StyledInlineSvg src="icon-project" />}
-        loading={loadingProjects}
+        loading
       >
         {t('Loading\u2026')}
       </StyledHeaderItem>

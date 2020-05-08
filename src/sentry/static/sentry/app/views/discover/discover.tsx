@@ -463,7 +463,6 @@ export default class Discover extends React.Component<Props, State> {
           onChangeTime={this.changeTime}
           onUpdateTime={this.updateDateTimeAndRun}
         />
-
         <Body>
           <BodyContent>
             {shouldDisplayResult && (
