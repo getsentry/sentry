@@ -60,17 +60,11 @@ class Chart extends React.Component<Props> {
       yAxes: [
         {
           gridIndex: 0,
-          min({min}: {min: number}) {
-            // Scale to the nearest 0.x
-            return Math.floor(min * 10) / 10;
-          },
+          scale: true,
         },
         {
           gridIndex: 1,
-          min({min}: {min: number}) {
-            // Round to the nearest integer.
-            return Math.floor(min);
-          },
+          scale: true,
         },
       ],
       utc,
