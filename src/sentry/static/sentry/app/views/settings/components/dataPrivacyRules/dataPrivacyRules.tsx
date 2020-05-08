@@ -347,9 +347,8 @@ class DataPrivacyRules extends React.Component<Props, State> {
             <div>{t('Data Privacy Rules')}</div>
           </PanelHeader>
           <PanelAlert type="info">
-            {`${additionalContext} ${t(
-              'The new rules will only apply to upcoming events. '
-            )}`}{' '}
+            {additionalContext}{' '}
+            {`${t('The new rules will only apply to upcoming events. ')}`}{' '}
             {tct('For more details, see [linkToDocs].', {
               linkToDocs: (
                 <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
