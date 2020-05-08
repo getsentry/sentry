@@ -99,11 +99,15 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {multiProjects, nonMemberProjects} = this.props;
+    const {multiProjects, nonMemberProjects, selectedProjects} = this.props;
 
     return [
-      sortBy(multiProjects, project => [!project.isBookmarked, project.name]),
-      nonMemberProjects || [],
+      sortBy(multiProjects, project => [
+        !(selectedProjects || []).includes(project),
+        !project.isBookmarked,
+        project.slug,
+      ]),
+      sortBy(nonMemberProjects || [], project => [project.slug]),
     ];
   }
 

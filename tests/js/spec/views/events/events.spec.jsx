@@ -309,8 +309,8 @@ describe('EventsContainer', function() {
 
   const {organization, router, routerContext} = initializeOrg({
     projects: [
-      {isMember: true, isBookmarked: true},
-      {isMember: true, slug: 'new-project', id: 3},
+      {isMember: true, slug: 'new-project-2', id: 2, isBookmarked: true},
+      {isMember: true, slug: 'new-project-3', id: 3},
     ],
     organization: {
       features: ['events', 'internal-catchall'],
@@ -414,14 +414,11 @@ describe('EventsContainer', function() {
   });
 
   it('updates when changing projects', async function() {
-    // Project id = 3 should be first selected because of ProjectsStore.getAll sorting by slug
-    expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([3]);
+    // Project id = 2 should be first selected because of ProjectsStore.getAll sorting by slug
+    expect(wrapper.find('MultipleProjectSelector').prop('value')).toEqual([2]);
 
     wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
 
-    // TODO(billy): Fix this sorting, 2 gets moved up
-    // because the component (ProjectSelector) sorts it and
-    // orders isBookmarked to the top
     wrapper
       .find('MultipleProjectSelector AutoCompleteItem ProjectSelectorItem')
       .at(0)
