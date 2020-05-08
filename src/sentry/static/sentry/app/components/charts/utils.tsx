@@ -8,6 +8,7 @@ import {escape} from 'app/utils';
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
+const THIRTY_DAYS = 43200;
 const TWENTY_FOUR_HOURS = 1440;
 const ONE_HOUR = 60;
 
@@ -35,6 +36,15 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 
 export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (diffInMinutes >= THIRTY_DAYS) {
+    // Greater than or equal to 30 days
+    if (highFidelity) {
+      return '1h';
+    } else {
+      return '24h';
+    }
+  }
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
     // Greater than 24 hours
