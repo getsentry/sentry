@@ -373,7 +373,6 @@ class Sidebar extends React.Component<Props, State> {
                     to={`/organizations/${organization.slug}/issues/`}
                     id="issues"
                   />
-
                   {discoverState.events && (
                     <Feature
                       features={['events']}
@@ -395,7 +394,6 @@ class Sidebar extends React.Component<Props, State> {
                       />
                     </Feature>
                   )}
-
                   {discoverState.discover2 && (
                     <Feature
                       hookName="feature-disabled:discover2-sidebar-item"
@@ -659,7 +657,7 @@ const responsiveFlex = css`
 
 const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
-  background: linear-gradient(${p => p.theme.gray4}, ${p => p.theme.gray5});
+  background: linear-gradient(294.17deg, #2f1937 35.57%, #452650 92.42%, #452650 92.42%);
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
