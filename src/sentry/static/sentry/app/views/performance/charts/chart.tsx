@@ -57,7 +57,16 @@ class Chart extends React.Component<Props> {
           type: 'time',
         },
       ],
-      yAxes: [{gridIndex: 0}, {gridIndex: 1}],
+      yAxes: [
+        {
+          gridIndex: 0,
+          scale: true,
+        },
+        {
+          gridIndex: 1,
+          scale: true,
+        },
+      ],
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
