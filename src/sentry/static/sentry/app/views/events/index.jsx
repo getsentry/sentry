@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -68,7 +68,7 @@ class EventsContainer extends React.Component {
               <Body>
                 <PageHeader>
                   <HeaderTitle>
-                    {t('Events')} <BetaTag />
+                    {t('Events')} <FeatureBadge type="beta" />
                   </HeaderTitle>
                   <StyledSearchBar
                     organization={organization}
