@@ -216,4 +216,42 @@ describe('ProjectSelector', function() {
     expect(wrapper.text()).toContain("Projects I don't belong to");
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
+
+  it('displays projects in alphabetical order partitioned by project membership', function() {
+    const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
+    const projectB = TestStubs.Project({id: '2', slug: 'b-project'});
+    const projectANonM = TestStubs.Project({id: '3', slug: 'a-non-m-project'});
+    const projectBNonM = TestStubs.Project({id: '4', slug: 'b-non-m-project'});
+
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [projectB, projectA],
+      nonMemberProjects: [projectBNonM, projectANonM],
+      selectedProjects: [],
+    };
+
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
+    openMenu(wrapper);
+
+    const positionA = wrapper.text().indexOf(projectA.slug);
+    const positionB = wrapper.text().indexOf(projectB.slug);
+
+    const positionANonM = wrapper.text().indexOf(projectANonM.slug);
+    const positionBNonM = wrapper.text().indexOf(projectBNonM.slug);
+
+    expect(wrapper.text()).toContain("Projects I don't belong to");
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
+
+    expect(positionA).toBeGreaterThan(-1);
+    expect(positionB).toBeGreaterThan(-1);
+    expect(positionANonM).toBeGreaterThan(-1);
+    expect(positionBNonM).toBeGreaterThan(-1);
+
+    expect(positionA).toBeLessThan(positionB);
+    expect(positionB).toBeLessThan(positionANonM);
+    expect(positionANonM).toBeLessThan(positionBNonM);
+  });
 });
