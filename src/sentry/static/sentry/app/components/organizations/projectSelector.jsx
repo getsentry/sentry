@@ -107,7 +107,7 @@ class ProjectSelector extends React.Component {
         !project.isBookmarked,
         project.slug,
       ]),
-      nonMemberProjects || [],
+      sortBy(nonMemberProjects || [], project => [project.slug]),
     ];
   }
 
