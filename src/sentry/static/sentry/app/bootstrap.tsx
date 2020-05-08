@@ -46,7 +46,11 @@ function getSentryIntegrations() {
     // should fix.
     if (process.env.NODE_ENV === 'production') {
       // Only use this in prod as there seem to be issues with hot reload in dev
-      integrations.push(new SentryRRWeb() as any);
+      integrations.push(
+        new SentryRRWeb({
+          checkoutEveryNms: 60 * 1000, // 60 seconds
+        }) as any
+      );
     }
   }
   return integrations;
