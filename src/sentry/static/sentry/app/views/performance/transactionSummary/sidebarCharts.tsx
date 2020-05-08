@@ -54,6 +54,7 @@ class SidebarCharts extends React.Component<Props, State> {
 
     const colors = theme.charts.getColorPalette(3);
     const axisLineConfig = {
+      scale: true,
       axisLine: {
         show: false,
       },
@@ -103,10 +104,6 @@ class SidebarCharts extends React.Component<Props, State> {
             formatter: (value: number) => formatFloat(value, 2),
             color: theme.gray1,
           },
-          min({min}: {min: number}) {
-            // Scale to the nearest 0.x
-            return Math.floor(min * 10) / 10;
-          },
           ...axisLineConfig,
         },
         {
@@ -116,9 +113,6 @@ class SidebarCharts extends React.Component<Props, State> {
             formatter: formatAbbreviatedNumber,
             color: theme.gray1,
           },
-          min({min}: {min: number}) {
-            return Math.floor(min);
-          },
           ...axisLineConfig,
         },
         {
@@ -127,10 +121,6 @@ class SidebarCharts extends React.Component<Props, State> {
           axisLabel: {
             formatter: (value: number) => formatPercentage(value, 2),
             color: theme.gray1,
-          },
-          min({min}: {min: number}) {
-            // Round to nearest 1%
-            return Math.floor(min * 100) / 100;
           },
           ...axisLineConfig,
         },
