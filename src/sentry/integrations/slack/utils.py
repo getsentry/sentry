@@ -8,7 +8,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -449,9 +449,3 @@ def send_incident_alert_notification(action, incident):
         logger.info(
             "rule.fail.slack_post", extra={"error": six.text_type(e)},
         )
-
-
-def use_slack_v2(pipeline):
-    return features.has(
-        "organizations:slack-v2", pipeline.organization, actor=pipeline.request.user
-    )

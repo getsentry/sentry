@@ -1791,11 +1791,6 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
-# Enable this to use the legacy Slack Workspace Token apps. You will likely
-# never need to switch this unless you created a workspace app before slack
-# disabled them.
-SLACK_INTEGRATION_USE_WST = False
-
 """
 Fields are:
  - south_app_name: Which app to apply the conversion to
