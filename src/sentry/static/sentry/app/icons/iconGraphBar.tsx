@@ -12,4 +12,4 @@ const IconGraphBar = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGraphBar;
+export {IconGraphBar};

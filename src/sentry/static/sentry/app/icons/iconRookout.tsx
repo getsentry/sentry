@@ -10,4 +10,4 @@ const IconRookout = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconRookout;
+export {IconRookout};

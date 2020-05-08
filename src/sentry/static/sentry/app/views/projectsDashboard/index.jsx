@@ -22,7 +22,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 import Resources from './resources';
 import TeamSection from './teamSection';

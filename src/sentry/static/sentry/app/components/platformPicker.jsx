@@ -17,7 +17,7 @@ import PlatformIconTile from 'app/components/platformIconTile';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
-import IconClose from 'app/icons/iconClose';
+import {IconClose} from 'app/icons';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 

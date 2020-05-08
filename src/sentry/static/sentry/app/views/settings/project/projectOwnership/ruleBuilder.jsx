@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';

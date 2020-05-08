@@ -11,4 +11,4 @@ const IconGraphCircle = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGraphCircle;
+export {IconGraphCircle};

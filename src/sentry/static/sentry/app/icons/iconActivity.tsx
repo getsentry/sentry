@@ -15,4 +15,4 @@ const IconActivity = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconActivity;
+export {IconActivity};

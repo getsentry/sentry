@@ -17,7 +17,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import routeTitleGen from 'app/utils/routeTitle';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 import ProjectStatsGraph from './projectStatsGraph';
 

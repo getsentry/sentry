@@ -14,4 +14,4 @@ const IconTelescope = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconTelescope;
+export {IconTelescope};

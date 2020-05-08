@@ -22,4 +22,4 @@ const IconPin = ({isSolid = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconPin;
+export {IconPin};

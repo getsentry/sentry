@@ -9,7 +9,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 import AllTeamsList from './allTeamsList';
 

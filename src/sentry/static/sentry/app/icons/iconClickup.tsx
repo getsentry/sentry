@@ -11,4 +11,4 @@ const IconClickup = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconClickup;
+export {IconClickup};

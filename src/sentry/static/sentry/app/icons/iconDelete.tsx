@@ -15,4 +15,4 @@ const IconDelete = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconDelete;
+export {IconDelete};

@@ -14,4 +14,4 @@ const IconPrint = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconPrint;
+export {IconPrint};

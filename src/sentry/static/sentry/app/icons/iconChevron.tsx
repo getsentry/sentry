@@ -32,4 +32,4 @@ const IconChevron = ({isCircled = false, direction = 'up', ...props}: Props) => 
   </SvgIcon>
 );
 
-export default IconChevron;
+export {IconChevron};

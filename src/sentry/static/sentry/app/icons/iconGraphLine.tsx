@@ -11,4 +11,4 @@ const IconGraphLine = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGraphLine;
+export {IconGraphLine};

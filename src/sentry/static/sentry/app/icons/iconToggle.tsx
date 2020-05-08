@@ -11,4 +11,4 @@ const IconToggle = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconToggle;
+export {IconToggle};

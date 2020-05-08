@@ -15,4 +15,4 @@ const IconGrabbable = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGrabbable;
+export {IconGrabbable};

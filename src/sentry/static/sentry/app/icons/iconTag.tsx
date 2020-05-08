@@ -11,4 +11,4 @@ const IconTag = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconTag;
+export {IconTag};

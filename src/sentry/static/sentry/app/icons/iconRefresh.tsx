@@ -11,4 +11,4 @@ const IconRefresh = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconRefresh;
+export {IconRefresh};

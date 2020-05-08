@@ -12,4 +12,4 @@ const IconWarning = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconWarning;
+export {IconWarning};

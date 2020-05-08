@@ -11,4 +11,4 @@ const IconClock = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconClock;
+export {IconClock};

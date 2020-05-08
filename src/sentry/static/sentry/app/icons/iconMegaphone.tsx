@@ -12,4 +12,4 @@ const IconMegaphone = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconMegaphone;
+export {IconMegaphone};

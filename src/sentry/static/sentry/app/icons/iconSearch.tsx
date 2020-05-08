@@ -11,4 +11,4 @@ const IconSearch = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconSearch;
+export {IconSearch};

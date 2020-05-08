@@ -10,4 +10,4 @@ const IconTerminal = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconTerminal;
+export {IconTerminal};

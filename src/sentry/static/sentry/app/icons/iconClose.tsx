@@ -23,4 +23,4 @@ const IconClose = ({isCircled = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconClose;
+export {IconClose};

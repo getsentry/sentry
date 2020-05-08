@@ -10,4 +10,4 @@ const IconSentry = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconSentry;
+export {IconSentry};

@@ -19,4 +19,4 @@ const IconCheckmark = ({isCircled = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconCheckmark;
+export {IconCheckmark};

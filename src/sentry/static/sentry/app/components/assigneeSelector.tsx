@@ -25,7 +25,7 @@ import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 type Props = {
   id: string | null;

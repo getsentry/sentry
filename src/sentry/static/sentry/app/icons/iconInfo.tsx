@@ -4,7 +4,7 @@ import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon>;
 
-const IconInput = (props: Props) => (
+const IconInfo = (props: Props) => (
   <SvgIcon {...props}>
     <path d="M8,11.78A.74.74,0,0,1,7.24,11V7a.75.75,0,0,1,1.5,0v4A.75.75,0,0,1,8,11.78Z" />
     <circle cx="8" cy="4.78" r="0.76" />
@@ -12,4 +12,4 @@ const IconInput = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconInput;
+export {IconInfo};

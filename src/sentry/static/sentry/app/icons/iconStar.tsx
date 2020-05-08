@@ -16,4 +16,4 @@ const IconStar = ({isSolid = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconStar;
+export {IconStar};

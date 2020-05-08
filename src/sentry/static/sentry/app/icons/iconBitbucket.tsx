@@ -10,4 +10,4 @@ const IconBitbucket = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconBitbucket;
+export {IconBitbucket};

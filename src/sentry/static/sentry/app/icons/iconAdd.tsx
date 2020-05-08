@@ -23,4 +23,4 @@ const IconAdd = ({isCircled = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconAdd;
+export {IconAdd};

@@ -10,4 +10,4 @@ const IconGithub = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGithub;
+export {IconGithub};

@@ -12,4 +12,4 @@ const IconMenu = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconMenu;
+export {IconMenu};

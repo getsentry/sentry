@@ -12,4 +12,4 @@ const IconCommit = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconCommit;
+export {IconCommit};

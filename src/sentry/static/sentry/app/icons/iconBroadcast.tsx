@@ -11,4 +11,4 @@ const IconBroadcast = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconBroadcast;
+export {IconBroadcast};

@@ -10,4 +10,4 @@ const IconJira = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconJira;
+export {IconJira};

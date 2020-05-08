@@ -19,4 +19,4 @@ const IconLightning = ({isSolid = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconLightning;
+export {IconLightning};

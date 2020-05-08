@@ -11,4 +11,4 @@ const IconReturn = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconReturn;
+export {IconReturn};

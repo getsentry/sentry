@@ -18,4 +18,4 @@ const IconSiren = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconSiren;
+export {IconSiren};

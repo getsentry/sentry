@@ -11,4 +11,4 @@ const IconSettings = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconSettings;
+export {IconSettings};

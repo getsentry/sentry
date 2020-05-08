@@ -25,4 +25,4 @@ const IconArrow = ({direction = 'up', ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconArrow;
+export {IconArrow};

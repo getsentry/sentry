@@ -18,4 +18,4 @@ const IconEvent = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconEvent;
+export {IconEvent};

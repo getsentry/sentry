@@ -24,4 +24,4 @@ const IconEdit = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconEdit;
+export {IconEdit};

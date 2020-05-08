@@ -11,4 +11,4 @@ const IconClubhouse = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconClubhouse;
+export {IconClubhouse};

@@ -12,5 +12,4 @@ const IconSync = (props: Props) => (
     <path d="M15.15,8.75A.76.76,0,0,1,14.4,8,6.39,6.39,0,0,0,2.26,5.19.75.75,0,0,1,.91,4.53,7.9,7.9,0,0,1,15.9,8,.75.75,0,0,1,15.15,8.75Z" />
   </SvgIcon>
 );
-
-export default IconSync;
+export {IconSync};

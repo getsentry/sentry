@@ -12,4 +12,4 @@ const IconLock = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconLock;
+export {IconLock};

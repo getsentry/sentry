@@ -16,7 +16,7 @@ import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 class ServiceHookRow extends React.Component {
   static propTypes = {

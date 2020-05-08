@@ -19,4 +19,4 @@ const IconLocation = ({isSolid = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconLocation;
+export {IconLocation};

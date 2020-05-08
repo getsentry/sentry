@@ -10,4 +10,4 @@ const IconChat = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconChat;
+export {IconChat};

@@ -10,4 +10,4 @@ const IconGeneric = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconGeneric;
+export {IconGeneric};

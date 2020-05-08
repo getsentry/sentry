@@ -14,4 +14,4 @@ const IconWindow = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconWindow;
+export {IconWindow};

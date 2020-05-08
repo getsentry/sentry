@@ -13,4 +13,4 @@ const IconDashboard = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconDashboard;
+export {IconDashboard};

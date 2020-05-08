@@ -1,9 +1,9 @@
 import React from 'react';
 
 import SvgIcon from './svgIcon';
-import IconGraphLine from './iconGraphLine';
-import IconGraphCircle from './iconGraphCircle';
-import IconGraphBar from './iconGraphBar';
+import {IconGraphLine} from './iconGraphLine';
+import {IconGraphCircle} from './iconGraphCircle';
+import {IconGraphBar} from './iconGraphBar';
 
 type Props = React.ComponentProps<typeof SvgIcon> & {
   type?: 'line' | 'circle' | 'bar';
@@ -20,4 +20,4 @@ const IconGraph = ({type = 'line', ...props}: Props) => {
   }
 };
 
-export default IconGraph;
+export {IconGraph};

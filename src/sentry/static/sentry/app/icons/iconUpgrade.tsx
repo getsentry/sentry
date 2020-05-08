@@ -12,4 +12,4 @@ const IconUpgrade = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconUpgrade;
+export {IconUpgrade};

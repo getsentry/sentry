@@ -17,7 +17,7 @@ import MultiSelectControl from 'app/components/forms/multiSelectControl';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 
 class ValueComponent extends React.Component {

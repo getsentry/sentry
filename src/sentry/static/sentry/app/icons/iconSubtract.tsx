@@ -19,4 +19,4 @@ const IconSubtract = ({isCircled = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconSubtract;
+export {IconSubtract};

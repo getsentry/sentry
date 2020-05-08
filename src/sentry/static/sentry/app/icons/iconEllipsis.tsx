@@ -12,4 +12,4 @@ const IconEllipsis = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconEllipsis;
+export {IconEllipsis};

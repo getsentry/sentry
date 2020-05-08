@@ -29,4 +29,4 @@ const IconSliders = ({direction = 'up', ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconSliders;
+export {IconSliders};

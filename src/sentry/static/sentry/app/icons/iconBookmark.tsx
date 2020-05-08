@@ -16,4 +16,4 @@ const IconBookmark = ({isSolid = false, ...props}: Props) => (
   </SvgIcon>
 );
 
-export default IconBookmark;
+export {IconBookmark};

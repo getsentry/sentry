@@ -25,4 +25,4 @@ const IconMail = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconMail;
+export {IconMail};

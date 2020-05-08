@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import IconAdd from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 import {Member, Organization, Project, Team, User} from 'app/types';
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {callIfFunction} from 'app/utils/callIfFunction';

@@ -10,4 +10,4 @@ const IconAttachment = (props: Props) => (
   </SvgIcon>
 );
 
-export default IconAttachment;
+export {IconAttachment};
