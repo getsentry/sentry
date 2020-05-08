@@ -13,7 +13,6 @@ from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
     alert_rule_created,
-    metric_alert_rule_created,
     data_scrubber_enabled,
     deploy_created,
     event_processed,
@@ -255,8 +254,8 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, **kwargs):
-    if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
@@ -275,29 +274,7 @@ def record_alert_rule_created(user, project, rule, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         rule_id=rule.id,
-        type="issue",
-    )
-
-
-@metric_alert_rule_created.connect(weak=False)
-def record_metric_alert_rule_created(user, project, rule, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="metric_alert_rules", complete=True
-    )
-
-    if user and user.is_authenticated():
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        "alert.created",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        rule_id=rule.id,
-        type="metric",
+        type=rule_type,
     )
 
 
