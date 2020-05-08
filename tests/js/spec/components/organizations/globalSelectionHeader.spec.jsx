@@ -35,6 +35,7 @@ describe('GlobalSelectionHeader', function() {
     projects: [
       {
         id: 2,
+        slug: 'project-2',
       },
       {
         id: 3,
@@ -168,7 +169,7 @@ describe('GlobalSelectionHeader', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find('MultipleProjectSelector Content').text()).toBe(
-      'project-slug, project-3'
+      'project-2, project-3'
     );
 
     // Select environment
