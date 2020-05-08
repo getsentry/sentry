@@ -245,10 +245,9 @@ describe('ProjectSelector', function() {
     expect(wrapper.text()).toContain("Projects I don't belong to");
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
 
-    expect(positionA).toBeGreaterThan(-1);
-    expect(positionB).toBeGreaterThan(-1);
-    expect(positionANonM).toBeGreaterThan(-1);
-    expect(positionBNonM).toBeGreaterThan(-1);
+    [positionA, positionB, positionANonM, positionBNonM].forEach(position =>
+      expect(position).toBeGreaterThan(-1)
+    );
 
     expect(positionA).toBeLessThan(positionB);
     expect(positionB).toBeLessThan(positionANonM);
@@ -337,5 +336,54 @@ describe('ProjectSelector', function() {
     expect(positionB).toBeLessThan(positionC);
     expect(positionC).toBeLessThan(positionA);
     expect(positionA).toBeLessThan(positionH);
+  });
+
+  it('displays non member projects in alphabetical sort order', function() {
+    const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
+    const projectBBookmarked = TestStubs.Project({
+      id: '2',
+      slug: 'b-project',
+      isBookmarked: true,
+    });
+    const projectCSelected = TestStubs.Project({id: '3', slug: 'c-project'});
+    const projectDSelectedBookmarked = TestStubs.Project({
+      id: '4',
+      slug: 'd-project',
+      isBookmarked: true,
+    });
+
+    const multiProjectProps = {
+      ...props,
+      multiProjects: [],
+      nonMemberProjects: [
+        projectCSelected,
+        projectA,
+        projectDSelectedBookmarked,
+        projectBBookmarked,
+      ],
+      selectedProjects: [projectCSelected, projectDSelectedBookmarked],
+    };
+
+    const wrapper = mountWithTheme(
+      <ProjectSelector {...multiProjectProps} />,
+      routerContext
+    );
+    openMenu(wrapper);
+
+    const positionA = wrapper.text().indexOf(projectA.slug);
+    const positionB = wrapper.text().indexOf(projectBBookmarked.slug);
+    const positionC = wrapper.text().indexOf(projectCSelected.slug);
+    const positionD = wrapper.text().indexOf(projectDSelectedBookmarked.slug);
+
+    expect(wrapper.text()).toContain("Projects I don't belong to");
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(4);
+
+    [positionA, positionB, positionC, positionD].forEach(position =>
+      expect(position).toBeGreaterThan(-1)
+    );
+
+    expect(positionA).toBeLessThan(positionB);
+    expect(positionB).toBeLessThan(positionC);
+    expect(positionC).toBeLessThan(positionD);
   });
 });
