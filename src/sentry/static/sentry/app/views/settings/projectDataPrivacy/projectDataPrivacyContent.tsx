@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
@@ -9,25 +9,23 @@ import Form from 'app/views/settings/components/forms/form';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
-import SentryTypes from 'app/sentryTypes';
+import {Organization, Project} from 'app/types';
 
 import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
-class ProjectDataPrivacyContent extends AsyncView<{}> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    // left the router contextType to satisfy the compiler
-    router: PropTypes.object,
-  };
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
+  project: Project;
+};
 
+class ProjectDataPrivacyContent extends AsyncView<Props> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, project} = this.context;
+    const {organization, project} = this.props;
     return [['data', `/projects/${organization.slug}/${project.slug}/`]];
   }
 
   renderBody() {
-    const {organization, project} = this.context;
+    const {organization, project} = this.props;
     const initialData = this.state.data;
     const endpoint = `/projects/${organization.slug}/${project.slug}/`;
     const access = new Set(organization.access);
