@@ -5,22 +5,19 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleExcludedProjects,
-    AlertRuleTrigger,
-    AlertRuleEnvironment,
-)
+from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
 from sentry.models import Rule
 from sentry.utils.compat import zip
+from sentry.utils.db import attach_foreignkey
 
 
 @register(AlertRule)
 class AlertRuleSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         alert_rules = {item.id: item for item in item_list}
-        result = defaultdict(dict)
+        attach_foreignkey(item_list, AlertRule.snuba_query, related=("environment",))
 
+        result = defaultdict(dict)
         triggers = AlertRuleTrigger.objects.filter(alert_rule__in=item_list).order_by("label")
         serialized_triggers = serialize(list(triggers))
         for trigger, serialized in zip(triggers, serialized_triggers):
@@ -28,15 +25,6 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             alert_rule_triggers.append(serialized)
-
-        alert_rule_environments = AlertRuleEnvironment.objects.select_related("environment").filter(
-            alert_rule__in=item_list
-        )
-        for are in alert_rule_environments:
-            alert_rule_environment = result[alert_rules[are.alert_rule.id]].setdefault(
-                "environment", []
-            )
-            alert_rule_environment.append(are.environment.name)
 
         return result
 
@@ -46,19 +34,18 @@ class AlertRuleSerializer(Serializer):
             "name": obj.name,
             "organizationId": six.text_type(obj.organization_id),
             "status": obj.status,
-            # TODO: Remove when frontend isn't using
-            "thresholdType": 0,
-            "dataset": obj.dataset,
-            "query": obj.query,
+            "dataset": obj.snuba_query.dataset,
+            "query": obj.snuba_query.query,
+            "aggregate": obj.snuba_query.aggregate,
+            # These fields are deprecated. Once we've moved over to using aggregate
+            # entirely we can remove
             "aggregation": obj.aggregation,
             "aggregations": [obj.aggregation],
-            "timeWindow": obj.time_window,
-            "environment": attrs.get("environment", []),
-            "resolution": obj.resolution,
-            # TODO: Remove when frontend isn't using
-            "alertThreshold": 0,
-            # TODO: Remove when frontend isn't using
-            "resolveThreshold": 0,
+            # TODO: Start having the frontend expect seconds
+            "timeWindow": obj.snuba_query.time_window / 60,
+            "environment": obj.snuba_query.environment,
+            # TODO: Start having the frontend expect seconds
+            "resolution": obj.snuba_query.resolution / 60,
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
             "includeAllProjects": obj.include_all_projects,
