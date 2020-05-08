@@ -11,7 +11,7 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import options, roles, tsdb, projectoptions
+from sentry import options, roles, tsdb, projectoptions, features
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles, get_team_memberships
@@ -20,6 +20,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
+from sentry.features.base import ProjectFeature
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -99,9 +100,6 @@ class ProjectSerializer(Serializer):
         return result
 
     def get_attrs(self, item_list, user):
-        from sentry import features
-        from sentry.features.base import ProjectFeature
-
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op="serialize.get_attrs.project.{}".format(op_tag))
             span.set_data("Object Count", len(item_list))
