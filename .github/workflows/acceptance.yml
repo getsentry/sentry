@@ -145,7 +145,7 @@ jobs:
 
         # Use `.python-version` to avoid duplication
         # XXX: can't actually read from .python-version because GitHub Actions
-        # does not support our version (16)
+        # does not support our version (2.7.18)
         - name: Get python version from `.python-version`
           id: python-version
           run: echo "::set-output name=version::2.7.18"
