@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
 import HookOrDefault from 'app/components/hookOrDefault';
-import Tag from 'app/views/settings/components/tag';
+import FeatureBadge from 'app/components/featureBadge';
 
 type Props = {
   to: React.ComponentProps<Link>['to'];
@@ -22,13 +22,7 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
   });
 
   const renderedBadge =
-    badge === 'new' ? (
-      <StyledTag priority="warning" size="small" border>
-        {badge}
-      </StyledTag>
-    ) : (
-      <Badge text={badge} />
-    );
+    badge === 'new' ? <FeatureBadge type="new" /> : <Badge text={badge} />;
 
   return (
     <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
@@ -38,10 +32,6 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
     </StyledNavItem>
   );
 };
-
-const StyledTag = styled(Tag)`
-  margin-left: 0.25em;
-`;
 
 const StyledNavItem = styled(Link)`
   display: block;

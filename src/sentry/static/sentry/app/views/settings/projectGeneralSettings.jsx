@@ -26,7 +26,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -449,7 +449,7 @@ class ProjectGeneralSettings extends AsyncView {
               {...jsonFormProps}
               title={
                 <React.Fragment>
-                  {t('Grouping Settings')} <BetaTag />
+                  {t('Grouping Settings')} <FeatureBadge type="beta" />
                 </React.Fragment>
               }
               fields={[

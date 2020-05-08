@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
@@ -127,8 +127,7 @@ class PerformanceLanding extends React.Component<Props, State> {
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <div>
-                  {t('Performance')}
-                  <BetaTag />
+                  {t('Performance')} <FeatureBadge type="beta" />
                 </div>
                 <div>{this.renderHeaderButtons()}</div>
               </StyledPageHeader>

@@ -66,6 +66,7 @@ const SidebarWrapper = styled('div')`
   background: ${p => p.theme.white};
   border-right: 1px solid ${p => p.theme.borderLight};
   padding: ${space(4)};
+  padding-right: ${space(2)};
 `;
 
 const HeaderContent = styled('div')`
