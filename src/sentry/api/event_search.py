@@ -1044,7 +1044,7 @@ class IntervalDefault(NumberRange):
 
 
 # When adding functions to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
+# static/sentry/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FUNCTIONS = {
     "percentile": {
