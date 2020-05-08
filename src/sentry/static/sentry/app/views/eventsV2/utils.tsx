@@ -167,6 +167,7 @@ const TRANSFORM_AGGREGATES: {[field: string]: string} = {
   latest_event: 'id',
   apdex: '',
   impact: '',
+  user_misery: '',
   error_rate: '',
 };
 

@@ -249,7 +249,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(300px, auto) repeat(7, minmax(80px, 150px));
+  grid-template-columns: minmax(300px, auto) repeat(8, minmax(80px, 175px));
 `;
 
 export default withProjects(Table);

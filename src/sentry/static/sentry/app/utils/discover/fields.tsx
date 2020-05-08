@@ -195,6 +195,18 @@ export const AGGREGATIONS = {
     outputType: 'number',
     isSortable: true,
   },
+  user_misery: {
+    parameters: [
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+  },
   rps: {
     parameters: [],
     outputType: 'number',
@@ -316,6 +328,7 @@ export const TRACING_FIELDS = [
   'error_rate',
   'apdex',
   'impact',
+  'user_misery',
   'rps',
   'rpm',
 ];
