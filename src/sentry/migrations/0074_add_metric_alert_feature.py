@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0072_alert_rules_query_changes'),
+        ('sentry', '0073_migrate_alert_query_model'),
     ]
 
     operations = [
