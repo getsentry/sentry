@@ -67,7 +67,7 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('IconGitlab');
+    const icon = wrapper.find('IconGitlab').hostNodes();
     expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
@@ -86,7 +86,7 @@ describe('PullRequestLink', function() {
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
 
-    const icon = wrapper.find('IconGitlab');
+    const icon = wrapper.find('IconGitlab').hostNodes();
     expect(icon).toHaveLength(0);
 
     const link = wrapper.find('a');
