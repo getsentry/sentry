@@ -18,9 +18,18 @@ type GlobalSelectionHeaderProps = Omit<
 type Props = {
   organization: Organization;
   projects: Project[];
+
+  /**
+   * If this is true, do not attempt to control routing. This is only used in discover v1
+   *
+   * TODO(discoverv1): Removeme
+   */
   hasCustomRouting?: boolean;
 } & ReactRouter.WithRouterProps &
-  GlobalSelectionHeaderProps;
+  GlobalSelectionHeaderProps &
+  Partial<
+    Pick<React.ComponentProps<typeof InitializeGlobalSelectionHeader>, 'skipLoadLastUsed'>
+  >;
 
 class GlobalSelectionHeaderContainer extends React.Component<Props> {
   getProjects = () => {
@@ -52,6 +61,7 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
       forceProject,
       shouldForceProject,
       hasCustomRouting,
+      skipLoadLastUsed,
       ...props
     } = this.props;
     const enforceSingleProject = !organization.features.includes('global-views');
@@ -63,8 +73,8 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
         {(!loadingProjects || (!shouldForceProject && !enforceSingleProject)) && (
           <InitializeGlobalSelectionHeader
             location={location}
+            skipLoadLastUsed={!!skipLoadLastUsed}
             router={router}
-            routes={routes}
             organization={organization}
             defaultSelection={defaultSelection}
             forceProject={forceProject}

@@ -257,6 +257,7 @@ class GroupDetails extends React.Component<Props, State> {
       <DocumentTitle title={this.getTitle()}>
         <React.Fragment>
           <GlobalSelectionHeader
+            skipLoadLastUsed
             forceProject={project}
             showDateSelector={false}
             shouldForceProject

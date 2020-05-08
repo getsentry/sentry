@@ -91,7 +91,7 @@ type InitializeUrlStateParams = {
   /**
    * If true, do not load from local storage
    */
-  skipLastUsed?: boolean;
+  skipLoadLastUsed?: boolean;
   defaultSelection?: Partial<GlobalSelection>;
   forceProject?: MinimalProject | null;
 };
@@ -101,7 +101,7 @@ export function initializeUrlState({
   queryParams,
   router,
   memberProjects,
-  skipLastUsed,
+  skipLoadLastUsed,
   shouldForceProject,
   shouldEnforceSingleProject,
   defaultSelection,
@@ -132,7 +132,7 @@ export function initializeUrlState({
   if (hasProjectOrEnvironmentInUrl) {
     globalSelection.projects = parsed.project || [];
     globalSelection.environments = parsed.environment || [];
-  } else if (!skipLastUsed) {
+  } else if (!skipLoadLastUsed) {
     try {
       const localStorageKey = `${LOCAL_STORAGE_KEY}:${orgSlug}`;
       const storedValue = localStorage.getItem(localStorageKey);
