@@ -34,7 +34,7 @@ def update_organization_release_scenario(runner):
     release = runner.utils.create_release(runner.default_project, runner.me, version="3000")
     runner.request(
         method="PUT",
-        path="/organization/%s/releases/%s/" % (runner.org.slug, release.version),
+        path="/organizations/%s/releases/%s/" % (runner.org.slug, release.version),
         data={
             "url": "https://vcshub.invalid/user/project/refs/deadbeef1337",
             "ref": "deadbeef1337",
