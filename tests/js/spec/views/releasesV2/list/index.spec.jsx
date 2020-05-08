@@ -54,7 +54,13 @@ describe('ReleasesV2List', function() {
     expect(items.at(0).text()).toContain('1.0.0');
     expect(items.at(0).text()).toContain('Release adoption');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).text()).not.toContain('Release adoption');
+    expect(
+      items
+        .at(2)
+        .find('DailyUsersColumn')
+        .at(1)
+        .text()
+    ).toContain('n/a');
   });
 
   it('displays the right empty state', function() {

@@ -7,93 +7,95 @@ import Count from 'app/components/count';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
-import {ProjectRelease, ReleaseProject} from 'app/types';
+import {Release} from 'app/types';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
-import ProjectBadge from 'app/components/idBadge/projectBadge.jsx';
+import TextOverflow from 'app/components/textOverflow';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Tag from 'app/views/settings/components/tag';
 
 import ReleaseHealth from './releaseHealth';
+import NotAvailable from './notAvailable';
 
 type Props = {
-  release: ProjectRelease;
-  project: ReleaseProject;
+  release: Release;
+  orgSlug: string;
   location: Location;
   reloading: boolean;
 };
 
-const ReleaseCard = ({release, project, location, reloading}: Props) => (
-  <StyledPanel reloading={reloading ? 1 : 0}>
-    <PanelBody>
-      <StyledPanelItem>
-        <HeaderLayout>
-          <VersionColumn>
-            <ColumnTitle>{t('Version')}</ColumnTitle>
-          </VersionColumn>
-          <ProjectsColumn>
-            <ColumnTitle>{t('Project name')}</ColumnTitle>
-          </ProjectsColumn>
-          <CommitsColumn>
-            {release.commitCount > 0 && (
+const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
+  const {version, commitCount, lastDeploy, authors, dateCreated} = release;
+  return (
+    <StyledPanel reloading={reloading ? 1 : 0}>
+      <PanelBody>
+        <StyledPanelItem>
+          <HeaderLayout>
+            <VersionColumn>
+              <ColumnTitle>{t('Release Version')}</ColumnTitle>
+            </VersionColumn>
+
+            <CreatedColumn>
               <ColumnTitle>
-                {[
-                  tn('%s commit', '%s commits', release.commitCount || 0),
-                  t('by'),
-                  tn('%s author', '%s authors', release.authors?.length || 0),
-                ].join(' ')}
+                {lastDeploy?.dateFinished ? t('Last Deploy') : t('Date Created')}
               </ColumnTitle>
-            )}
-          </CommitsColumn>
-          <CreatedColumn>
-            <ColumnTitle>{t('Created')}</ColumnTitle>
-          </CreatedColumn>
-          <NewIssuesColumn>
-            <ColumnTitle>{t('New issues')}</ColumnTitle>
-          </NewIssuesColumn>
-        </HeaderLayout>
-        <Layout>
-          <VersionColumn>
-            <VersionWrapper>
-              <Version
-                version={release.version}
-                preserveGlobalSelection
-                tooltipRawVersion
-                truncate
-                projectId={String(project.id)}
-              />
-              <TimeWithIcon date={release.dateReleased || release.dateCreated} />
-            </VersionWrapper>
-          </VersionColumn>
+            </CreatedColumn>
 
-          <ProjectsColumn>
-            <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
-          </ProjectsColumn>
+            <CommitsColumn>
+              <ColumnTitle>
+                {commitCount > 0
+                  ? [
+                      tn('%s commit', '%s commits', commitCount || 0),
+                      t('by'),
+                      tn('%s author', '%s authors', authors.length || 0),
+                    ].join(' ')
+                  : t('Commits')}
+              </ColumnTitle>
+            </CommitsColumn>
 
-          <CommitsColumn>
-            <ReleaseStats release={release} withHeading={false} />
-          </CommitsColumn>
+            <NewIssuesColumn>
+              <ColumnTitle>{t('New issues')}</ColumnTitle>
+            </NewIssuesColumn>
+          </HeaderLayout>
 
-          <CreatedColumn>
-            {release.dateReleased || release.dateCreated ? (
-              <TimeSince date={release.dateReleased || release.dateCreated} />
-            ) : (
-              <span>-</span>
-            )}
-          </CreatedColumn>
+          <Layout>
+            <VersionColumn>
+              <VersionWrapper>
+                <Version version={version} tooltipRawVersion truncate anchor={false} />
+              </VersionWrapper>
+            </VersionColumn>
 
-          <NewIssuesColumn>
-            <Count value={release.newGroups || 0} />
-          </NewIssuesColumn>
-        </Layout>
-      </StyledPanelItem>
-    </PanelBody>
+            <CreatedColumn>
+              <TextOverflow>
+                {lastDeploy?.dateFinished && (
+                  <DeployEnv>{lastDeploy.environment}</DeployEnv>
+                )}
+                <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+              </TextOverflow>
+            </CreatedColumn>
 
-    {release.healthData?.hasHealthData && (
-      <ReleaseHealth release={release} location={location} />
-    )}
-  </StyledPanel>
-);
+            <CommitsColumn>
+              <CommitsWrapper>
+                {commitCount > 0 ? (
+                  <ReleaseStats release={release} withHeading={false} />
+                ) : (
+                  <NotAvailable />
+                )}
+              </CommitsWrapper>
+            </CommitsColumn>
+
+            <NewIssuesColumn>
+              <Count value={release.newGroups || 0} />
+            </NewIssuesColumn>
+          </Layout>
+        </StyledPanelItem>
+      </PanelBody>
+
+      <ReleaseHealth release={release} orgSlug={orgSlug} location={location} />
+    </StyledPanel>
+  );
+};
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
@@ -106,18 +108,23 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'version projects commits created new-issues';
-  grid-template-columns: 3fr minmax(230px, 2fr) 4fr 160px 1fr;
+  /* 0fr a,b,c are here to match the health grid layout (offset because of gap on fewer columns) */
+  grid-template-areas: 'version created a b commits c new-issues';
+  grid-template-columns: 2fr 5fr 0fr 0fr 2.1fr 0fr 1.4fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'version projects created new-issues';
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-areas: 'version created a commits b new-issues';
+    grid-template-columns: 2fr 3.5fr 0fr 2.5fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'version projects new-issues';
-    grid-template-columns: 2fr 2fr 1fr;
+    grid-template-areas: 'version created a b new-issues';
+    grid-template-columns: 2fr 3fr 0fr 0fr 2fr;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-areas: 'version created new-issues';
+    grid-template-columns: 2fr 1.5fr 1fr;
   }
 `;
 
@@ -136,32 +143,21 @@ const RightAlignedColumn = styled(Column)`
   text-align: right;
 `;
 
-const CenterColumn = styled(Column)`
-  text-align: center;
-`;
-
 const VersionColumn = styled(Column)`
   grid-area: version;
   display: flex;
   align-items: center;
 `;
 
-const ProjectsColumn = styled(Column)`
-  grid-area: projects;
-`;
-
-const CommitsColumn = styled(CenterColumn)`
+const CommitsColumn = styled(Column)`
   grid-area: commits;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
-  }
-`;
-
-const CreatedColumn = styled(RightAlignedColumn)`
-  grid-area: created;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
+`;
+
+const CreatedColumn = styled(Column)`
+  grid-area: created;
 `;
 
 const NewIssuesColumn = styled(RightAlignedColumn)`
@@ -184,22 +180,25 @@ const VersionWrapper = styled('div')`
   display: inline-block;
 `;
 
-const TimeWithIcon = styled(({date, ...props}) => (
-  <span {...props}>
-    <ClockIcon className="icon icon-clock" />
-    <TimeSince date={date} />
-  </span>
-))`
-  align-items: center;
-  color: ${p => p.theme.gray2};
+const DeployEnv = styled(Tag)`
+  background-color: ${p => p.theme.gray4};
+  color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeSmall};
-  display: none;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: inline-flex;
+  margin-right: ${space(1)};
+  position: relative;
+  bottom: ${space(0.25)};
+  display: inline-block;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
   }
 `;
-const ClockIcon = styled('span')`
-  margin-right: ${space(0.25)};
+
+const CommitsWrapper = styled('div')`
+  position: relative;
+  bottom: ${space(0.25)};
 `;
 
 export default ReleaseCard;

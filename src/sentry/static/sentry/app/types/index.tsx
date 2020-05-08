@@ -155,17 +155,6 @@ export type Project = {
   processingIssues: number;
 } & AvatarProject;
 
-export type ProjectRelease = {
-  version: string;
-  dateCreated: string;
-  dateReleased: string | null;
-  commitCount: number;
-  authors: User[];
-  newGroups: number;
-  healthData: Health | null;
-  project: ReleaseProject;
-};
-
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;

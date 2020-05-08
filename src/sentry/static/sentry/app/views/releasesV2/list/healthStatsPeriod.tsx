@@ -51,7 +51,6 @@ const Wrapper = styled('div')`
   flex: 1;
   justify-content: flex-end;
   text-align: right;
-  margin-right: ${space(2)};
   margin-left: ${space(0.5)};
 `;
 
