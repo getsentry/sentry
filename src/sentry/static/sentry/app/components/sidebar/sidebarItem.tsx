@@ -9,6 +9,7 @@ import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
 import {Theme} from 'app/utils/theme';
 import Link from 'app/components/links/link';
+import localStorage from 'app/utils/localStorage';
 
 import {SidebarOrientation} from './types';
 
@@ -95,6 +96,9 @@ const SidebarItem = ({
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
+  const isNewSeenKey = `sidebar-new-seen:${id}`;
+  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+
   return (
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
@@ -104,6 +108,7 @@ const SidebarItem = ({
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           typeof onClick === 'function' && onClick(id, event);
+          showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
       >
         <SidebarItemWrapper>
@@ -112,12 +117,12 @@ const SidebarItem = ({
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
-                {isNew && <FeatureBadge type="new" />}
+                {showIsNew && <FeatureBadge type="new" />}
                 {isBeta && <FeatureBadge type="beta" />}
               </LabelHook>
             </SidebarItemLabel>
           )}
-          {collapsed && isNew && <CollapsedFeatureBadge type="new" />}
+          {collapsed && showIsNew && <CollapsedFeatureBadge type="new" />}
           {collapsed && isBeta && <CollapsedFeatureBadge type="beta" />}
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
