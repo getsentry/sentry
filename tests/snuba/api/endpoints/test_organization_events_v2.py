@@ -817,6 +817,41 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["error_rate"] == 0.75
 
+    def test_user_misery_alias_field(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        events = [
+            ("one", 300),
+            ("one", 300),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data("transaction")
+            data["event_id"] = "{}".format(idx) * 32
+            data["transaction"] = "/user_misery/horribilis/{}".format(idx)
+            data["user"] = {"email": "{}@example.com".format(event[0])}
+            data["timestamp"] = iso_format(before_now(minutes=(1 + idx)))
+            data["start_timestamp"] = iso_format(
+                before_now(minutes=(1 + idx), milliseconds=event[1])
+            )
+            self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["user_misery(300)"], "query": "event.type:transaction"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["user_misery_300"] == 2
+
     def test_aggregation(self):
         self.login_as(user=self.user)
         project = self.create_project()
@@ -1759,6 +1794,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         "percentile(transaction.duration, 0.99)",
                         "apdex(300)",
                         "impact(300)",
+                        "user_misery(300)",
                         "error_rate()",
                     ],
                     "query": "event.type:transaction",
@@ -1776,6 +1812,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["apdex_300"] == "number"
             assert meta["error_rate"] == "percentage"
             assert meta["impact_300"] == "number"
+            assert meta["user_misery_300"] == "number"
 
             data = response.data["data"]
             assert len(data) == 1
@@ -1787,6 +1824,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["percentile_transaction_duration_0_99"] == 5000
             assert data[0]["apdex_300"] == 0.0
             assert data[0]["impact_300"] == 1.0
+            assert data[0]["user_misery_300"] == 1
             assert data[0]["error_rate"] == 0.5
 
         with self.feature(
