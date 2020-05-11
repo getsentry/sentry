@@ -9,7 +9,7 @@ import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {IconCommit} from 'app/icons/iconCommit';
+import {IconCommit} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';

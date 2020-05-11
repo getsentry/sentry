@@ -104,11 +104,11 @@ class EventCause extends React.Component {
             <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
               {expanded ? (
                 <React.Fragment>
-                  {t('Show less')} <IconSubtract circle size="md" />
+                  {t('Show less')} <IconSubtract isCircled size="md" />
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  {t('Show more')} <IconAdd circle size="md" />
+                  {t('Show more')} <IconAdd isCircled size="md" />
                 </React.Fragment>
               )}
             </ExpandButton>

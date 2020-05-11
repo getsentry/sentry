@@ -762,7 +762,7 @@ const StyledIconChevron = styled(({collapsed, ...props}) => (
   <IconChevron
     direction="left"
     size="md"
-    circle
+    isCircled
     css={[ExpandedIcon, collapsed && CollapsedIcon]}
     {...props}
   />

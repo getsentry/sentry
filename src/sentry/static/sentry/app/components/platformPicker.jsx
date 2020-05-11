@@ -203,7 +203,7 @@ const StyledPlatformIconTile = styled(PlatformIconTile)`
 `;
 
 const ClearButton = styled(p => (
-  <Button {...p} icon={<IconClose circle size="xs" />} size="xsmall" borderless />
+  <Button {...p} icon={<IconClose isCircled size="xs" />} size="xsmall" borderless />
 ))`
   position: absolute;
   top: -6px;

@@ -2,9 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import TextField from 'app/components/forms/textField';
-import {IconSearch} from 'app/icons/iconSearch';
+import {IconSearch, IconClose} from 'app/icons';
 import {t} from 'app/locale';
-import {IconClose} from 'app/icons/iconClose';
 import space from 'app/styles/space';
 
 type Props = {
@@ -27,7 +26,7 @@ const BreadCrumbsSearch = ({
       onChange={onChangeSearchTerm}
     />
     <StyledIconSearch />
-    <StyledIconClose show={!!searchTerm} onClick={onClearSearchTerm} circle />
+    <StyledIconClose show={!!searchTerm} onClick={onClearSearchTerm} isCircled />
   </Wrapper>
 );
 

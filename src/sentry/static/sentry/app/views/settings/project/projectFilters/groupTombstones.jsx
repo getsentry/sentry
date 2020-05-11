@@ -9,7 +9,7 @@ import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete} from 'app/icons';
 import {Panel, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';

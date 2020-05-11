@@ -1,5 +1,7 @@
 import {Color} from 'app/utils/theme';
-import {IconProps} from 'app/types/iconProps';
+import SvgIcon from 'app/icons/svgIcon';
+
+export type IconProps = React.ComponentProps<typeof SvgIcon>;
 
 export enum BreadcrumbLevelType {
   FATAL = 'fatal',
