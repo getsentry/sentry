@@ -11,7 +11,7 @@ import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
-import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
+import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
 
 import {Frame} from './types';
 

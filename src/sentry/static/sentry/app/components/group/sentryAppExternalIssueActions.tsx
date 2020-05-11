@@ -8,7 +8,7 @@ import withApi from 'app/utils/withApi';
 import InlineSvg from 'app/components/inlineSvg';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {IntegrationLink} from 'app/components/issueSyncListElement';
-import SentryAppIcon from 'app/components/sentryAppIcon';
+import {SentryAppIcon} from 'app/components/sentryAppIcon';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
