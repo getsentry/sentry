@@ -60,13 +60,14 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
             )}
           </DailyUsersColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
-          <ErrorsColumn>{t('Errors')}</ErrorsColumn>
+          <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
         </HeaderLayout>
       </StyledPanelHeader>
 
       <PanelBody>
         <ClippedBox clipHeight={200}>
           {release.projects.map(project => {
+            const {id, slug, healthData, newGroups} = project;
             const {
               hasHealthData,
               adoption,
@@ -74,15 +75,14 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
               crashFreeUsers,
               crashFreeSessions,
               sessionsCrashed,
-              sessionsErrored,
               totalUsers,
               totalUsers24h,
               totalSessions,
               totalSessions24h,
-            } = project.healthData;
+            } = healthData;
 
             return (
-              <StyledPanelItem key={`${release.version}-${project.slug}-health`}>
+              <StyledPanelItem key={`${release.version}-${slug}-health`}>
                 <Layout>
                   <ProjectColumn>
                     <GlobalSelectionLink
@@ -90,14 +90,10 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                         pathname: `/organizations/${orgSlug}/releases/${encodeURIComponent(
                           release.version
                         )}/`,
-                        query: {project: project.id},
+                        query: {project: id},
                       }}
                     >
-                      <ProjectBadge
-                        project={project}
-                        avatarSize={16}
-                        key={project.slug}
-                      />
+                      <ProjectBadge project={project} avatarSize={16} key={slug} />
                     </GlobalSelectionLink>
                   </ProjectColumn>
 
@@ -183,9 +179,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     {hasHealthData ? <Count value={sessionsCrashed} /> : <NotAvailable />}
                   </CrashesColumn>
 
-                  <ErrorsColumn>
-                    <Count value={sessionsErrored} />
-                  </ErrorsColumn>
+                  <NewIssuesColumn>
+                    <Count value={newGroups || 0} />
+                  </NewIssuesColumn>
                 </Layout>
               </StyledPanelItem>
             );
@@ -210,21 +206,21 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'project adoption crash-free-users crash-free-sessions daily-users crashes errors';
-  grid-template-columns: 2fr 2fr 1.5fr 1.5fr 2.1fr 0.7fr 0.7fr;
+  grid-template-areas: 'project adoption crash-free-users crash-free-sessions daily-users crashes new-issues';
+  grid-template-columns: 2fr 2fr 1.4fr 1.4fr 2.1fr 0.7fr 0.8fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'project adoption crash-free-users crash-free-sessions crashes errors';
+    grid-template-areas: 'project adoption crash-free-users crash-free-sessions crashes new-issues';
     grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'project crash-free-users crash-free-sessions crashes errors';
+    grid-template-areas: 'project crash-free-users crash-free-sessions crashes new-issues';
     grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-areas: 'project crash-free-sessions errors';
+    grid-template-areas: 'project crash-free-sessions new-issues';
     grid-template-columns: 2fr 1.5fr 1fr;
   }
 `;
@@ -284,8 +280,8 @@ const CrashesColumn = styled(RightColumn)`
     display: none;
   }
 `;
-const ErrorsColumn = styled(RightColumn)`
-  grid-area: errors;
+const NewIssuesColumn = styled(RightColumn)`
+  grid-area: new-issues;
 `;
 
 const AdoptionWrapper = styled('div')`

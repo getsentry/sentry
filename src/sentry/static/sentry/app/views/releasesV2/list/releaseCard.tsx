@@ -111,7 +111,7 @@ const Layout = styled('div')`
   display: grid;
   /* 0fr a,b,c are here to match the health grid layout (offset because of gap on fewer columns) */
   grid-template-areas: 'version created a b commits c new-issues';
-  grid-template-columns: 2fr 5fr 0fr 0fr 2.1fr 0fr 1.4fr;
+  grid-template-columns: 2fr 4.8fr 0fr 0fr 2.1fr 0fr 1.5fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;

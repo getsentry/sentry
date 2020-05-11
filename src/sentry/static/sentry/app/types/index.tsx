@@ -887,6 +887,7 @@ export type ReleaseProject = {
   id: number;
   platform: string;
   platforms: string[];
+  newGroups: number;
   healthData: Health;
 };
 
