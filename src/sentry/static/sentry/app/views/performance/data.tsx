@@ -21,8 +21,8 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
     'p95()',
     'error_rate()',
     'apdex(300)',
-    'user_misery(300)',
     'count_unique(user)',
+    'user_misery(300)',
   ],
   version: 2,
 };
