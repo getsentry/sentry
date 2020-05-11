@@ -47,7 +47,7 @@ class QuotaConfig(object):
                         quota will only apply to the specified scope instance
                         (e.g. a project key). Requires ``scope`` to be set
                         explicitly.
-    :param limit:       Maxmimum number of matching events allowed. Can be ``0``
+    :param limit:       Maximum number of matching events allowed. Can be ``0``
                         to reject all events, ``None`` for an unlimited counted
                         quota, or a positive number for enforcement. Requires
                         ``window`` if the limit is not ``0``.
