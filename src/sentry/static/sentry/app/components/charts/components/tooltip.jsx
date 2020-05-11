@@ -76,7 +76,10 @@ function getFormatter({
         seriesParamsOrParam.data.labelForValue,
         truncate
       );
-      const formattedValue = valueFormatter(seriesParamsOrParam.data.coord[1]);
+      const formattedValue = valueFormatter(
+        seriesParamsOrParam.data.coord[1],
+        seriesParamsOrParam.name
+      );
       return [
         '<div class="tooltip-series">',
         `<div>
@@ -108,7 +111,7 @@ function getFormatter({
         .filter(getFilter)
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
-          const value = valueFormatter(getSeriesValue(s, 1));
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),
