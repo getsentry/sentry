@@ -260,7 +260,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
     def test_get_tag_key(self):
         with pytest.raises(TagKeyNotFound):
             self.ts.get_tag_key(
-                project_id=self.proj1.id, environment_ids=[self.proj1env1.id], key="notreal"
+                project_id=self.proj1.id, environment_id=self.proj1env1.id, key="notreal"
             )
 
     def test_get_tag_value(self):

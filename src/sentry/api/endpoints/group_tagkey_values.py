@@ -38,7 +38,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         try:
-            tagstore.get_tag_key(group.project_id, environment_ids, lookup_key)
+            tagstore.get_tag_key(group.project_id, None, lookup_key)
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 

@@ -120,15 +120,13 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagKey(group_id=group_id, **data)
 
     def __get_tag_key_and_top_values(
-        self, project_id, group_id, environment_ids, key, limit=3, raise_on_empty=True, **kwargs
+        self, project_id, group_id, environment_id, key, limit=3, raise_on_empty=True, **kwargs
     ):
 
         tag = u"tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
-        if environment_ids:
-            filters["environment"] = (
-                environment_ids if isinstance(environment_ids, list) else [environment_ids]
-            )
+        if environment_id:
+            filters["environment"] = [environment_id]
         if group_id is not None:
             filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
@@ -343,9 +341,9 @@ class SnubaTagStorage(TagStorage):
             else:
                 return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
-    def get_tag_key(self, project_id, environment_ids, key, status=TagKeyStatus.VISIBLE, **kwargs):
+    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, **kwargs):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_key_and_top_values(project_id, None, environment_ids, key, **kwargs)
+        return self.__get_tag_key_and_top_values(project_id, None, environment_id, key, **kwargs)
 
     def get_tag_keys(
         self, project_id, environment_id, status=TagKeyStatus.VISIBLE, include_values_seen=False
