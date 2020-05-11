@@ -1,0 +1,95 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Slack Migration" %} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <style>
+    li {
+        list-style-type: none;
+    }
+    .channel-name {
+        margin-left: 20px;
+        font-size: 80%;
+    }
+    div {
+        padding:10px 0px;
+    }
+    h6 {
+        margin-bottom:3px;
+    }
+    .section-info {
+        font-size: 80%;
+    }
+  </style>
+{% endblock %}
+
+
+{% block main %}
+{% if is_loading %}
+    <h3>Slack Migration: Alert Rule Audit</h3>
+    <p>next we will verify le channels.. please note that this may take a while</p>
+    <div class="form-actions clearfix">
+        <div class="pull-right">
+            <a class="btn btn-primary" href="{{ next_url }}">{% trans "verify" %}</a>
+        </div>
+    </div>
+{% else %}
+    <h3>Slack Migration: Alert Rule Audit</h3>
+        {% if private or no_permission or not_found %}
+            <p class="alert alert-block flex section-info">
+                <i class="icon icon-exclamation"></i>
+                {% trans "Oop, looks like there are some channels that might need action post-migration" %}
+            </p>
+        {% endif %}
+
+        <div>
+            {% if private %}
+                <h6><strong>Private Channels</strong></h6>
+                <p class="section-info">
+                    {% trans "For private channels, once you migrate, you'll need to make sure to add the Sentry bot to these channels in order for your alert rules to continue to work." %}
+                </p>
+            {% endif %}
+            {% for channel in private %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+        </div>
+
+        <div>
+            {% if no_permission %}
+                <h6><strong>Missing or Unauthorized Channels</strong></h6>
+                <p class="section-info">
+                    {% trans "These channels were found to be missing or unauthorized by the current Slack integration. If they are private channels, you'll have make sure to add the Sentry bot to the channels after migration. Otherwise you may want update your alert rules to use a different channel." %}
+                </p>
+            {% endif %}
+            {% for channel in no_permission %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+            {% for channel in not_found %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+        </div>
+
+        <div>
+            {% if private or no_permission or not_found %}
+            <h6><strong>Next Steps</strong></h6>
+                <p class="section-info"> Not to worry, something something about docs information i dk. Click "Next" to start the re-authentication flow!</p>
+            {% else %}
+             <p class="section-info"> You are good to go! Click "Next" to start the re-authentication flow!</p>
+            {% endif %}
+
+
+        </div>
+
+        <div class="form-actions clearfix">
+            <div class="pull-right">
+                <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+            </div>
+        </div>
+{% endif %}
+{% endblock %}

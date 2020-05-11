@@ -1,0 +1,41 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% trans "Slack Migration" %} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <style>
+    li {
+        list-style-type: none;
+    }
+    .channel-name {
+        margin-left: 20px;
+        font-size: 80%;
+    }
+    div {
+        padding:10px 0px;
+    }
+    h6 {
+        margin-bottom:3px;
+    }
+    .section-info {
+        font-size: 80%;
+    }
+  </style>
+{% endblock %}
+
+
+{% block main %}
+    <h3>Slack Migration: Introduction</h3>
+    <p>{% trans "We have to re-authenticate your slack integration, shouldn't be too bad." %}</p>
+    <div class="form-actions clearfix">
+        <div class="pull-right">
+            <a class="btn btn-primary" href="{{ next_url }}">{% trans "Continue" %}</a>
+        </div>
+    </div>
+{% endblock %}
