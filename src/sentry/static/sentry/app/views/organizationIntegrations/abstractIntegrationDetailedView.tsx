@@ -109,7 +109,7 @@ class AbstractIntegrationDetailedView<
   }
 
   // Returns an array of RawIntegrationFeatures which is used in feature gating
-  // and displaying what the integraiton does
+  // and displaying what the integration does
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -181,7 +181,7 @@ class AbstractIntegrationDetailedView<
   }
 
   /***
-   * Actually implmeented methods below*
+   * Actually implemented methods below
    */
 
   get integrationSlug() {
