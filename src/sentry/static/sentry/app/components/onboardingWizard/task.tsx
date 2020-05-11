@@ -246,13 +246,13 @@ const completedItemPoses = {
 
 const CompleteIndicator = posed(IconCheckmark)(completedItemPoses);
 CompleteIndicator.defaultProps = {
-  circle: true,
+  isCircled: true,
   color: theme.green,
 };
 
 const SkippedIndicator = posed(IconClose)(completedItemPoses);
 SkippedIndicator.defaultProps = {
-  circle: true,
+  isCircled: true,
   color: theme.yellowOrange,
 };
 
