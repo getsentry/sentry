@@ -158,11 +158,10 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       <span
                         className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
                       >
-                        <IconChevron
+                        <ForwardRef
                           direction="right"
                         >
                           <EmotionCssPropInternal
-                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                             __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
@@ -200,7 +199,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               </svg>
                             </ForwardRef(SvgIcon)>
                           </EmotionCssPropInternal>
-                        </IconChevron>
+                        </ForwardRef>
                       </span>
                     </IconLink>
                   </a>
@@ -224,7 +223,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     Public Integrations
                     <forwardRef<Button>
                       icon={
-                        <IconAdd
+                        <ForwardRef
                           isCircled={true}
                           size="xs"
                         />
@@ -238,7 +237,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <IconAdd
+                          <ForwardRef
                             isCircled={true}
                             size="xs"
                           />
@@ -304,7 +303,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
-                                        <IconAdd
+                                        <ForwardRef
                                           isCircled={true}
                                           size="xs"
                                         >
@@ -328,7 +327,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </IconAdd>
+                                        </ForwardRef>
                                       </span>
                                     </Icon>
                                     New Public Integration
@@ -394,7 +393,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     Internal Integrations
                     <forwardRef<Button>
                       icon={
-                        <IconAdd
+                        <ForwardRef
                           isCircled={true}
                           size="xs"
                         />
@@ -408,7 +407,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <IconAdd
+                          <ForwardRef
                             isCircled={true}
                             size="xs"
                           />
@@ -474,7 +473,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
-                                        <IconAdd
+                                        <ForwardRef
                                           isCircled={true}
                                           size="xs"
                                         >
@@ -498,7 +497,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </IconAdd>
+                                        </ForwardRef>
                                       </span>
                                     </Icon>
                                     New Internal Integration

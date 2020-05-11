@@ -4,8 +4,8 @@ import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon>;
 
-const IconMail = (props: Props) => (
-  <SvgIcon {...props}>
+const IconMail = React.forwardRef<SVGSVGElement, Props>((props: Props, ref) => (
+  <SvgIcon {...props} ref={ref}>
     <path d="M15.25,14.09H.75A.76.76,0,0,1,0,13.34V2.66a.76.76,0,0,1,.75-.75h14.5a.76.76,0,0,1,.75.75V13.34A.76.76,0,0,1,15.25,14.09ZM1.5,12.59h13V3.41H1.5Z" />
     <path d="M8,9.92a.78.78,0,0,1-.5-.19L.25,3.22a.75.75,0,1,1,1-1.12L8,8.16,14.75,2.1a.75.75,0,1,1,1,1.12L8.5,9.73A.78.78,0,0,1,8,9.92Z" />
     <rect
@@ -23,6 +23,6 @@ const IconMail = (props: Props) => (
       transform="translate(-3.86 12.68) rotate(-48.09)"
     />
   </SvgIcon>
-);
+));
 
 export {IconMail};
