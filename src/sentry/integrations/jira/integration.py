@@ -717,19 +717,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
-                    users = client.search_users_for_issue(external_issue.key, ue.email)
+                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
                 except (ApiUnauthorized, ApiError):
                     continue
-                for user in users:
-                    email = user.get("emailAddress")
+                for possible_user in possible_users:
+                    email = possible_user.get("emailAddress")
                     # pull email from API if we can use it
                     if not email and settings.JIRA_USE_EMAIL_SCOPE:
-                        account_id = user.get("accountId")
+                        account_id = possible_user.get("accountId")
                         email = client.get_email(account_id)
-                    if email.lower() == ue.email.lower():
-                        jira_user = user
+                    # match on lowercase email
+                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
+                    if email and email.lower() == ue.email.lower():
+                        jira_user = possible_user
                         break
-            # TODO(steve): add check against display name
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
