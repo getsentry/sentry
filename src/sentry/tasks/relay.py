@@ -3,11 +3,14 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 
 from sentry.models.projectkey import ProjectKey
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+
+# We assume that this cache is Redis, not memcached. It has to be, for
+# consistency.
+from sentry.cache import default_cache
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +41,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     # against bursts of updates, but introduces a different race where an
     # outdated cache may be used.
     debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    cache.delete(debounce_key)
+    default_cache.delete(debounce_key)
 
     if project_id:
         projects = [Project.objects.get_from_cache(id=project_id)]
@@ -103,7 +106,7 @@ def schedule_update_config_cache(
         raise TypeError("One of organization_id and project_id has to be provided, not both.")
 
     debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    if cache.get(debounce_key, None):
+    if default_cache.get(debounce_key, None):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -111,7 +114,7 @@ def schedule_update_config_cache(
         # If this task is already in the queue, do not schedule another task.
         return
 
-    cache.set(debounce_key, True, 3600)
+    default_cache.set(debounce_key, True, 3600)
 
     # XXX(markus): We could schedule this task a couple seconds into the
     # future, this would make debouncing more effective. If we want to do this
