@@ -20,7 +20,7 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
-  display: inline-grid;
+  display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(1.5)};
   align-items: center;
