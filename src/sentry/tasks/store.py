@@ -102,6 +102,10 @@ def submit_save_event(project, cache_key, event_id, start_time, data):
     )
 
 
+def sample_process_event_apm():
+    return random.random() < getattr(settings, "SENTRY_PROCESS_EVENT_APM_SAMPLING", 0)
+
+
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
     from sentry.lang.native.processing import should_process_with_symbolicator
 
@@ -537,13 +541,20 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    return _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_event,
-        data_has_changed=data_has_changed,
-    )
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event,
+            data_has_changed=data_has_changed,
+        )
 
 
 @instrumented_task(
@@ -555,13 +566,20 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    return _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_event_from_reprocessing,
-        data_has_changed=data_has_changed,
-    )
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event_from_reprocessing",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event_from_reprocessing,
+            data_has_changed=data_has_changed,
+        )
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
