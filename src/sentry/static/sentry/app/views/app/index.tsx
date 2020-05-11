@@ -59,6 +59,7 @@ type State = {
   error: boolean;
   needsUpgrade: boolean;
   newsletterConsentPrompt: boolean;
+  user?: Config['user'];
 };
 
 class App extends React.Component<Props, State> {
@@ -66,17 +67,12 @@ class App extends React.Component<Props, State> {
     location: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    console.log(props.config);
-    const user = ConfigStore.get('user');
-    this.state = {
-      loading: false,
-      error: false,
-      needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
-      newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
-    };
-  }
+  state = {
+    loading: false,
+    error: false,
+    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
+    newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
+  };
 
   getChildContext() {
     return {
@@ -157,7 +153,7 @@ class App extends React.Component<Props, State> {
       }
 
       // Otherwise, the user has become unauthenticated. Send them to auth
-      Cookies.set('session_expired', 1);
+      Cookies.set('session_expired', '1');
 
       if (EXPERIMENTAL_SPA) {
         browserHistory.replace('/auth/login/');
@@ -194,7 +190,8 @@ class App extends React.Component<Props, State> {
   }
 
   handleConfigStoreChange(config) {
-    const newState: Partial<Pick<State, 'needsUpgrade'>> & {user?: Config['user']} = {};
+    // TODO(ts): What's the best way to type this?
+    const newState: any = {};
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
