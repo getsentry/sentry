@@ -59,13 +59,14 @@ describe('OpenInContextLine', function() {
         filename,
       };
       const url = addQueryParamsToExistingUrl(baseUrl, queryParams);
-      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').prop('href')).toEqual(
-        url
+      const stacktraceLinkFoo = wrapper.find(
+        'OpenInLink[data-test-id="stacktrace-link-foo"]'
       );
-      expect(wrapper.find('a[data-test-id="stacktrace-link-foo"]').text()).toEqual('Foo');
-      expect(wrapper.find('a[data-test-id="stacktrace-link-tesla"]').text()).toEqual(
-        'Tesla'
-      );
+      expect(stacktraceLinkFoo.prop('to')).toEqual(url);
+      expect(stacktraceLinkFoo.text()).toEqual('Foo');
+      expect(
+        wrapper.find('OpenInLink[data-test-id="stacktrace-link-tesla"]').text()
+      ).toEqual('Tesla');
     });
   });
 });

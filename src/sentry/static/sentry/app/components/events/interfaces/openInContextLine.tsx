@@ -24,15 +24,15 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
     });
   };
 
-  const getUrl = (component: SentryAppComponent) => {
-    return addQueryParamsToExistingUrl(component.schema.url, {lineNo, filename});
+  const getUrl = (url: SentryAppComponent['schema']['url']) => {
+    return addQueryParamsToExistingUrl(url, {lineNo, filename});
   };
 
   return (
     <OpenInContainer columnQuantity={components.length + 1}>
       <div>{t('Open this line in:')}</div>
       {components.map(component => {
-        const url = getUrl(component);
+        const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
         const onClickRecordInteraction = handleRecordInteraction(slug);
         return (
