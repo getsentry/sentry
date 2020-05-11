@@ -2133,7 +2133,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <IconClose
+                        <ForwardRef
                           isCircled={true}
                           size="xs"
                         />
@@ -2148,7 +2148,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <IconClose
+                          <ForwardRef
                             isCircled={true}
                             size="xs"
                           />
@@ -2197,7 +2197,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <IconClose
+                                      <ForwardRef
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -2221,7 +2221,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </IconClose>
+                                      </ForwardRef>
                                     </span>
                                   </Icon>
                                 </span>
@@ -3039,7 +3039,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <IconClose
+                        <ForwardRef
                           isCircled={true}
                           size="xs"
                         />
@@ -3054,7 +3054,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <IconClose
+                          <ForwardRef
                             isCircled={true}
                             size="xs"
                           />
@@ -3103,7 +3103,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <IconClose
+                                      <ForwardRef
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -3127,7 +3127,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </IconClose>
+                                      </ForwardRef>
                                     </span>
                                   </Icon>
                                 </span>
