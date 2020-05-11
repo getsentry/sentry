@@ -256,6 +256,7 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
+            "new_groups",
             "release_id",
             "release__version",
             "project__slug",
@@ -286,6 +287,7 @@ class ReleaseSerializer(Serializer):
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
+                "new_groups": pr["new_groups"],
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
