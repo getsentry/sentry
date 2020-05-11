@@ -7,7 +7,7 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import {Organization, Release} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
@@ -201,7 +201,7 @@ class ReleasesList extends AsyncView<Props, State> {
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases')} <BetaTag />
+                {t('Releases')} <FeatureBadge type="beta" />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions

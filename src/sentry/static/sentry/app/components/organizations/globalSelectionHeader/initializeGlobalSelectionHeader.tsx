@@ -8,6 +8,13 @@ import GlobalSelectionHeader from './globalSelectionHeader';
 type Props = {
   isDisabled: boolean;
   shouldEnforceSingleProject: boolean;
+  /**
+   * Skip loading from local storage
+   * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
+   * We do not want to load the user's last used env/project in this case, otherwise will
+   * lead to very confusing behavior.
+   */
+  skipLoadLastUsed: boolean;
 } & Pick<ReactRouter.WithRouterProps, 'location' | 'router'> &
   Pick<
     React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
@@ -16,13 +23,7 @@ type Props = {
     | 'shouldForceProject'
     | 'memberProjects'
     | 'organization'
-  > & {
-    routes: Array<
-      ReactRouter.PlainRoute<any> & {
-        globalSelectionSkipLastUsed?: boolean;
-      }
-    >;
-  };
+  >;
 
 /**
  * Initializes GlobalSelectionHeader
@@ -38,28 +39,21 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
     const {
       location,
       router,
-      routes,
       organization,
       defaultSelection,
       forceProject,
       memberProjects,
       shouldForceProject,
       shouldEnforceSingleProject,
+      skipLoadLastUsed,
     } = this.props;
 
-    // Make an exception for routes (e.g. issue details, in the case where it is accessed directly (e.g. from email))
-    // We do not want to load the user's last used env/project in this case, otherwise will
-    // lead to very confusing behavior.
     //
-    // `routes` is only ever undefined in tests
-    const skipLastUsed = !!routes?.find(
-      ({globalSelectionSkipLastUsed}) => globalSelectionSkipLastUsed
-    );
     initializeUrlState({
       organization,
       queryParams: location.query,
       router,
-      skipLastUsed,
+      skipLoadLastUsed,
       memberProjects,
       defaultSelection,
       forceProject,

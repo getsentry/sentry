@@ -18,6 +18,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
+import {Theme} from 'app/utils/theme';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -69,7 +70,7 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 const ResponseCode = ({code}: {code: number}) => {
-  let priority = 'error';
+  let priority: keyof Theme['alert'] = 'error';
   if (code <= 399 && code >= 300) {
     priority = 'warning';
   } else if (code <= 299 && code >= 100) {

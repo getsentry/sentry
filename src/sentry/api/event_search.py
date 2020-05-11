@@ -260,6 +260,7 @@ class SearchVisitor(NodeVisitor):
             "p95",
             "p99",
             "error_rate",
+            "user_misery",
         ]
     )
     date_keys = set(
@@ -1044,7 +1045,7 @@ class IntervalDefault(NumberRange):
 
 
 # When adding functions to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
+# static/sentry/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FUNCTIONS = {
     "percentile": {
@@ -1122,6 +1123,13 @@ FUNCTIONS = {
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
         "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "result_type": "number",
+    },
+    "user_misery": {
+        "name": "user_misery",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        "transform": u"uniqIf(user, duration > {tolerated:g})",
         "result_type": "number",
     },
     "error_rate": {

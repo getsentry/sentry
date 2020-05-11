@@ -1158,7 +1158,6 @@ function routes() {
           /organizations/:orgId/issues */}
         <Route
           path="/organizations/:orgId/issues/:groupId/"
-          globalSelectionSkipLastUsed
           componentPromise={() =>
             import(
               /* webpackChunkName: "OrganizationGroupDetails" */ 'app/views/organizationGroupDetails'
