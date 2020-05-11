@@ -75,11 +75,12 @@ const OpenInLink = styled(Link)`
   display: inline-grid;
   align-items: center;
   grid-template-columns: max-content auto;
-  grid-gap: ${space(0.5)};
+  grid-gap: ${space(0.75)};
   color: ${p => p.theme.gray2};
 `;
 
 const OpenInName = styled('strong')`
   color: ${p => p.theme.gray3};
   font-weight: 700;
+  text-indent: initial;
 `;
