@@ -211,13 +211,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     try:
-        with metrics.timer("tasks.store.symbolicate_event.symbolication"):
-            symbolicated_data = safe_execute(
-                symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
-            )
-        if symbolicated_data:
-            data = symbolicated_data
-            has_changed = True
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
+            span.set_data("symbolicaton_function", symbolication_function.__name__)
+
+            with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+                symbolicated_data = safe_execute(
+                    symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
+                )
+
+            span.set_data("symbolicated_data", bool(symbolicated_data))
+            if symbolicated_data:
+                data = symbolicated_data
+                has_changed = True
 
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -397,12 +402,14 @@ def _do_process_event(
 
     event_id = data["event_id"]
 
-    project = Project.objects.get_from_cache(id=project_id)
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+        project = Project.objects.get_from_cache(id=project_id)
 
     has_changed = bool(data_has_changed)
 
-    # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_reprocessing_revision"):
+        # Fetch the reprocessing revision
+        reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
     # Stacktrace based event processors.
     with sentry_sdk.start_span(op="task.store.process_event.stacktraces"):
