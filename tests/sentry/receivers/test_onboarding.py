@@ -269,7 +269,11 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_alert_added(self):
         alert_rule_created.send(
-            rule=Rule(id=1), project=self.project, user=self.user, sender=type(Rule)
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="issue",
+            sender=type(Rule),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -340,7 +344,11 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=type(IssueTrackingPlugin),
         )
         alert_rule_created.send(
-            rule=Rule(id=1), project=self.project, user=self.user, sender=type(Rule)
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="issue",
+            sender=type(Rule),
         )
 
         assert (
