@@ -47,7 +47,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
       action={
         <ForwardRef
           icon={
-            <IconAdd
+            <ForwardRef
               isCircled={true}
               size="xs"
             />
@@ -65,7 +65,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
         action={
           <ForwardRef
             icon={
-              <IconAdd
+              <ForwardRef
                 isCircled={true}
                 size="xs"
               />
@@ -108,7 +108,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                 >
                   <forwardRef<Button>
                     icon={
-                      <IconAdd
+                      <ForwardRef
                         isCircled={true}
                         size="xs"
                       />
@@ -121,7 +121,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       disabled={false}
                       forwardRef={null}
                       icon={
-                        <IconAdd
+                        <ForwardRef
                           isCircled={true}
                           size="xs"
                         />
@@ -172,7 +172,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                     className="css-1hbuack-Icon edwq9my2"
                                     size="small"
                                   >
-                                    <IconAdd
+                                    <ForwardRef
                                       isCircled={true}
                                       size="xs"
                                     >
@@ -196,7 +196,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </IconAdd>
+                                    </ForwardRef>
                                   </span>
                                 </Icon>
                                 New API Key
