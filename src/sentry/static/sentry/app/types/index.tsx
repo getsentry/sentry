@@ -726,6 +726,8 @@ export type SentryAppSchemaIssueLink = {
 export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
+  url: string;
+  params?: Array<string>;
 };
 
 export type SentryAppSchemaElement =
@@ -949,7 +951,7 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: SentryAppSchemaIssueLink;
+  schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
     slug: string;
