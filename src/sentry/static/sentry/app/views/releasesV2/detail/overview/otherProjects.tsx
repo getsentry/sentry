@@ -7,8 +7,8 @@ import space from 'app/styles/space';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {ReleaseProject} from 'app/types';
-import {IconProject} from 'app/icons';
 import Button from 'app/components/button';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -57,15 +57,14 @@ class OtherProjects extends React.Component<Props, State> {
         </SectionHeading>
         {projectsToRender.map(project => (
           <Row key={project.id}>
-            <Link
+            <StyledLink
               to={{
                 pathname: location.pathname,
                 query: {...location.query, project: project.id, yAxis: undefined},
               }}
             >
-              <StyledIconProject size="sm" />
-              {project.slug}
-            </Link>
+              <ProjectBadge project={project} avatarSize={16} key={project.slug} />
+            </StyledLink>
           </Row>
         ))}
         {numberOfCollapsedProjects > 0 && (
@@ -88,16 +87,14 @@ class OtherProjects extends React.Component<Props, State> {
 }
 
 const Row = styled('div')`
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.blue};
   ${overflowEllipsis}
 `;
 
-const StyledIconProject = styled(IconProject)`
-  margin-right: ${space(1)};
-  position: relative;
-  top: ${space(0.25)};
+const StyledLink = styled(Link)`
+  display: inline-block;
 `;
 
 const CollapseToggle = styled(Button)`
