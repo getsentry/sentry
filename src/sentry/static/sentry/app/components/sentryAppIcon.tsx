@@ -1,9 +1,10 @@
 import React from 'react';
 
+import {SentryAppComponent} from 'app/types';
 import {IconClickup, IconClubhouse, IconRookout, IconGeneric} from 'app/icons';
 
 type Props = {
-  slug: string;
+  slug: SentryAppComponent['sentryApp']['slug'];
 };
 
 const SentryAppIcon = ({slug}: Props) => {
