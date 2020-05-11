@@ -195,8 +195,6 @@ class Sidebar extends React.Component<Props, State> {
       'releases',
       'user-feedback',
       'discover',
-      'discover/queries',
-      'discover/results',
       'performance',
       'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
