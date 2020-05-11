@@ -174,7 +174,7 @@ export function unpinSearch(api, orgId, type, pinnedSearch) {
 }
 
 /**
- * Send a DELETE rquest to remove a saved search
+ * Send a DELETE request to remove a saved search
  *
  * @param {Object} api API client
  * @param {String} orgId Organization slug

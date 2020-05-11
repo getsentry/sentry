@@ -70,7 +70,7 @@ export function getOnboardingTasks(
               api={api}
               organization={organization}
               project={projects[0]}
-              onIssueRecieved={() => !taskIsDone(task) && onCompleteTask()}
+              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
               {() => <EventWaitingIndicator />}
             </EventWaiter>

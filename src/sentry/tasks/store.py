@@ -514,7 +514,7 @@ def _do_process_event(
                 return
         except RetryProcessing:
             # If `create_failed_event` indicates that we need to retry we
-            # invoke outselves again.  This happens when the reprocessing
+            # invoke ourselves again.  This happens when the reprocessing
             # revision changed while we were processing.
             _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
             return

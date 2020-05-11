@@ -15,7 +15,7 @@ describe('SentryAppExternalIssueForm', () => {
   let sentryAppInstallation;
   let component;
   let submitUrl;
-  let externalIssueRequst;
+  let externalIssueRequest;
 
   beforeEach(() => {
     group = TestStubs.Group({
@@ -27,7 +27,7 @@ describe('SentryAppExternalIssueForm', () => {
     sentryApp = TestStubs.SentryApp();
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
     submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
-    externalIssueRequst = Client.addMockResponse({
+    externalIssueRequest = Client.addMockResponse({
       url: submitUrl,
       method: 'POST',
       body: {},
@@ -57,7 +57,7 @@ describe('SentryAppExternalIssueForm', () => {
 
     it('does not submit form if required fields are not set', () => {
       wrapper.find('form').simulate('submit');
-      expect(externalIssueRequst).not.toHaveBeenCalled();
+      expect(externalIssueRequest).not.toHaveBeenCalled();
     });
 
     it('submits to the New External Issue endpoint', () => {
@@ -65,7 +65,7 @@ describe('SentryAppExternalIssueForm', () => {
 
       wrapper.find('form').simulate('submit');
 
-      expect(externalIssueRequst).toHaveBeenCalledWith(
+      expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
         expect.objectContaining({
           data: {
@@ -125,7 +125,7 @@ describe('SentryAppExternalIssueForm', () => {
 
       wrapper.find('form').simulate('submit');
 
-      expect(externalIssueRequst).toHaveBeenCalledWith(
+      expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
         expect.objectContaining({
           data: {

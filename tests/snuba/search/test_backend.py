@@ -41,7 +41,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo. Also,this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messsages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
                 "environment": "production",
                 "tags": {"server": "example.com"},
                 "timestamp": event1_timestamp,

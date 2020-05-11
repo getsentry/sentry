@@ -87,6 +87,6 @@ class ProjectOptionsManager(object):
 
     def all(self):
         """
-        Return an interator for all keys in the registry.
+        Return an iterator for all keys in the registry.
         """
         return six.itervalues(self.registry)

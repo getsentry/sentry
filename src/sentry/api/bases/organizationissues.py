@@ -14,7 +14,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 class OrganizationIssuesEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
     def get_queryset(self, request, organization, member, project_list):
-        # Must return a 'sorty_by' selector for pagination that is a datetime
+        # Must return a 'sort_by' selector for pagination that is a datetime
         return Group.objects.none()
 
     def get(self, request, organization, member):

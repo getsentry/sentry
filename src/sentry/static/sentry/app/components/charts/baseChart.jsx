@@ -18,7 +18,7 @@ import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 
-// If dimension is a number conver it to pixels, otherwise use dimension without transform
+// If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
   if (typeof dimension === 'number') {
     return `${dimension}px`;

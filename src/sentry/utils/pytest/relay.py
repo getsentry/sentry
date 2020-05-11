@@ -1,4 +1,4 @@
-# Fixutres used to interact with a test Relay server
+# Fixtures used to interact with a test Relay server
 
 from __future__ import absolute_import
 

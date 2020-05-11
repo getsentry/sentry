@@ -253,7 +253,7 @@ class GroupSerializerBase(Serializer):
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
 
-        # find all the integration installss that have issue tracking
+        # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
             if not (
                 integration.has_feature(IntegrationFeatures.ISSUE_BASIC)

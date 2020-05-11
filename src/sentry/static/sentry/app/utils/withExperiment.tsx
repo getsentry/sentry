@@ -62,7 +62,7 @@ type LogExperimentProps = {
  * A HoC wrapper that injects `experimentAssignment` into a component
  *
  * This wrapper will automatically log exposure of the experiment upon
- * receiving the componentDidMount lifecylce event.
+ * receiving the componentDidMount lifecycle event.
  *
  * For organization experiments, an organization object must be provided to the
  * component. You may wish to use the withOrganization HoC for this.

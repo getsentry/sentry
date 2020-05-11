@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 def pytest_configure(config):
     import warnings
 
-    # XXX(dramer): Kombu throws a warning due to transaction.commit_manually
+    # XXX(dcramer): Kombu throws a warning due to transaction.commit_manually
     # being used
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 

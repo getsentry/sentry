@@ -110,7 +110,7 @@ class VersionHoverCard extends React.Component {
     const {version} = this.props;
     const lastCommit = release.lastCommit;
 
-    const recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
+    const recentDeploysByEnvironment = deploys.reduce(function(dbe, deploy) {
       const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
         dbe[environment] = dateFinished;
@@ -118,9 +118,9 @@ class VersionHoverCard extends React.Component {
 
       return dbe;
     }, {});
-    let mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment);
-    if (Object.keys(recentDeploysByEnviroment).length > 3) {
-      mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
+    let mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment);
+    if (Object.keys(recentDeploysByEnvironment).length > 3) {
+      mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment).slice(0, 3);
     }
     return {
       header: (
@@ -166,7 +166,7 @@ class VersionHoverCard extends React.Component {
                 <h6 className="deploy-heading">{t('Deploys')}</h6>
               </div>
               {mostRecentDeploySlice.map((env, idx) => {
-                const dateFinished = recentDeploysByEnviroment[env];
+                const dateFinished = recentDeploysByEnvironment[env];
                 return (
                   <div className="deploy" key={idx}>
                     <div className="deploy-meta" style={{position: 'relative'}}>

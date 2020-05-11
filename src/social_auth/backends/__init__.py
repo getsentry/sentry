@@ -51,7 +51,7 @@ PIPELINE = setting(
     "SOCIAL_AUTH_PIPELINE",
     (
         "social_auth.backends.pipeline.social.social_auth_user",
-        # Removed by default since it can be a dangerouse behavior that
+        # Removed by default since it can be a dangerous behavior that
         # could lead to accounts take over.
         # 'social_auth.backends.pipeline.associate.associate_by_email',
         "social_auth.backends.pipeline.user.get_username",
@@ -267,7 +267,7 @@ class BaseAuth(object):
         raise NotImplementedError("Implement in subclass")
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         raise NotImplementedError("Implement in subclass")
 
     def to_session_dict(self, next_idx, *args, **kwargs):
@@ -507,7 +507,7 @@ class BaseOAuth1(OAuthAuth):
         return self.request(url, auth=self.oauth_auth(token))
 
     def fetch_response(self, request):
-        """Executes request and fetchs service response"""
+        """Executes request and fetches service response"""
         response = dsa_urlopen(request.to_url())
         return "\n".join(response.readlines())
 
@@ -616,7 +616,7 @@ class BaseOAuth2(OAuthAuth):
         return {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
         request = Request(

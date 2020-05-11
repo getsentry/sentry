@@ -128,7 +128,7 @@ export default class AsyncComponent<
     }
   }
 
-  // Compatiblity shim for child classes that call super on this hook.
+  // Compatibility shim for child classes that call super on this hook.
   UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
   componentDidUpdate(prevProps: P, prevContext: any) {

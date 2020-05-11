@@ -189,7 +189,7 @@ class Field extends React.Component<Props> {
 
     // See comments in prop types
     if (typeof children === 'function') {
-      //need to cast b/c TS claims childen is not otherwise callable
+      //need to cast b/c TS claims children is not otherwise callable
       Control = (children as ChildrenFunction)({
         ...otherProps,
         ...controlProps,

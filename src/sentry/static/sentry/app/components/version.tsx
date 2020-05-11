@@ -42,7 +42,7 @@ type Props = {
    */
   withPackage?: boolean;
   /**
-   * Will add project ID to the linked url (can be overriden by preserveGlobalSelection).
+   * Will add project ID to the linked url (can be overridden by preserveGlobalSelection).
    * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
@@ -141,7 +141,7 @@ Version.propTypes = {
   className: PropTypes.string,
 };
 
-// TODO(matej): try to wrap version with this when truncate prop is true (in seperate PR)
+// TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
 //   ${overflowEllipsis};
 //   max-width: 100%;

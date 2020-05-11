@@ -1337,7 +1337,7 @@ def _find_hashes(project, hash_list):
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
 def _materialize_event_metrics(jobs):
     for job in jobs:
-        # Enusre the _metrics key exists. This is usually created during
+        # Ensure the _metrics key exists. This is usually created during
         # and prefilled with ingestion sizes.
         event_metrics = job["event"].data.get("_metrics") or {}
         job["event"].data["_metrics"] = event_metrics

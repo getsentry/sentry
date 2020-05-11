@@ -256,7 +256,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  //no configuraitons for sentry apps
+  //no configurations for sentry apps
   renderConfigurations() {
     return null;
   }

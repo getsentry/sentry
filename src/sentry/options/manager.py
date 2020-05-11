@@ -8,7 +8,7 @@ from django.conf import settings
 
 from sentry.utils.types import type_from_value, Any
 
-# Prevent outselves from clobbering the builtin
+# Prevent ourselves from clobbering the builtin
 _type = type
 
 logger = logging.getLogger("sentry")
@@ -94,7 +94,7 @@ class OptionsManager(object):
         try:
             return self.registry[key]
         except KeyError:
-            # HACK: Historically, Options were used for random adhoc things.
+            # HACK: Historically, Options were used for random ad hoc things.
             # Fortunately, they all share the same prefix, 'sentry:', so
             # we special case them here and construct a faux key until we migrate.
             if key.startswith(("sentry:", "getsentry:")):
@@ -238,7 +238,7 @@ class OptionsManager(object):
             default = type
             default_value = default()
 
-        # Boolean values need to be set to ALLOW_EMPTY becaues otherwise, "False"
+        # Boolean values need to be set to ALLOW_EMPTY because otherwise, "False"
         # would be treated as a not valid value
         if default_value is True or default_value is False:
             flags |= FLAG_ALLOW_EMPTY
@@ -271,7 +271,7 @@ class OptionsManager(object):
 
     def all(self):
         """
-        Return an interator for all keys in the registry.
+        Return an iterator for all keys in the registry.
         """
         return six.itervalues(self.registry)
 

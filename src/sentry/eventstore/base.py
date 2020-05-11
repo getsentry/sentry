@@ -19,7 +19,7 @@ class Filter(object):
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
     having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
-    group_ids (Sequence[int]): List of group IDs to fetch - defualt None
+    group_ids (Sequence[int]): List of group IDs to fetch - default None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
 
     selected_columns (Sequence[str]): List of columns to select

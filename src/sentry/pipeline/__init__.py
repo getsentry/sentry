@@ -27,7 +27,7 @@ class PipelineProvider(object):
 
     def set_config(self, config):
         """
-        Use set_config to allow additional provider configuration be assend to
+        Use set_config to allow additional provider configuration be assigned to
         the provider instance. This is useful for example when nesting
         pipelines and the provider needs to be configured differently.
         """
@@ -42,7 +42,7 @@ class PipelineProvider(object):
 
 class PipelineView(BaseView):
     """
-    A class implementing the PipelineView may be used in a PipleineProviders
+    A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
@@ -114,7 +114,7 @@ class Pipeline(object):
     :provider_model_cls:
     The Provider model object represents the instance of an object implementing
     the PipelineProvider interface. This is used to look up the instance
-    when constructing an in progress pipleine (get_for_request).
+    when constructing an in progress pipeline (get_for_request).
 
     :config:
     A object that specifies additional pipeline and provider runtime

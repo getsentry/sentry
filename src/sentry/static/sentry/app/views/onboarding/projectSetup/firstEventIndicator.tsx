@@ -28,7 +28,7 @@ const Indicator = ({
     {!firstIssue ? (
       <Waiting key="waiting" />
     ) : (
-      <Success key="recieved" firstIssue={firstIssue} {...props} />
+      <Success key="received" firstIssue={firstIssue} {...props} />
     )}
   </PoseGroup>
 );

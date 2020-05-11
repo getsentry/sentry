@@ -572,7 +572,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
           if (rectBelowMinimap) {
             // if the first span is below the minimap, we scroll the minimap
-            // to the top. this addresss spurious scrolling to the top of the page
+            // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
               minimapSlider.style.top = '0px';
               return;

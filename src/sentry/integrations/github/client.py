@@ -80,8 +80,8 @@ class GitHubClientMixin(ApiClient):
     def get_token(self, force_refresh=False):
         """
         Get token retrieves the active access token from the integration model.
-        Should the token have expried, a new token will be generated and
-        automatically presisted into the integration.
+        Should the token have expired, a new token will be generated and
+        automatically persisted into the integration.
         """
         token = self.integration.metadata.get("access_token")
         expires_at = self.integration.metadata.get("expires_at")

@@ -16,7 +16,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 /**
  * The Hooks type mapping is the master interface for all external Hooks into
- * the sentry frontent application.
+ * the sentry frontend application.
  */
 export type Hooks = {_: any} & RouteHooks &
   ComponentHooks &
@@ -196,7 +196,7 @@ type AnalyticsTrackEvent = (opts: {
 }) => void;
 
 /**
- * Trigger adhoc analytics tracking in the hook store.
+ * Trigger ad hoc analytics tracking in the hook store.
  */
 type AnalyticsTrackAdhocEvent = (opts: {
   /**

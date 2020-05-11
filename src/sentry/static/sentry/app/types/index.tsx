@@ -72,7 +72,7 @@ export type Actor = {
 
 /**
  * Organization summaries are sent when you request a
- * list of all organiations
+ * list of all organizations
  */
 export type OrganizationSummary = {
   status: {

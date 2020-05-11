@@ -32,7 +32,7 @@ describe('AcceptProjectTransfer', function() {
     mountWithTheme(
       <AcceptProjectTransfer
         location={{
-          pathame: 'endpoint',
+          pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
       />,
@@ -46,7 +46,7 @@ describe('AcceptProjectTransfer', function() {
     const wrapper = mountWithTheme(
       <AcceptProjectTransfer
         location={{
-          pathame: 'endpoint',
+          pathname: 'endpoint',
           query: {data: 'XYZ'},
         }}
       />,

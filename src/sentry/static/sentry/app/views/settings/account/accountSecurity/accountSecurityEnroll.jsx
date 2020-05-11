@@ -290,7 +290,7 @@ class AccountSecurityEnroll extends AsyncView {
     }
 
     // `authenticator.authId` is NOT the same as `props.params.authId` This is
-    // for backwards compatbility with API endpoint
+    // for backwards compatability with API endpoint
     try {
       await this.api.requestPromise(this.authenticatorEndpoint, {method: 'DELETE'});
     } catch (err) {

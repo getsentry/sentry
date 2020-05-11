@@ -75,7 +75,7 @@ type Props = DefaultProps & {
   shouldIgnoreClickOutside?: (event: MouseEvent) => boolean;
   /**
    * If this is set, then this will become a "controlled" component.
-   * It will no longer set local state and dropdown visiblity will
+   * It will no longer set local state and dropdown visibility will
    * only follow `isOpen`.
    */
   isOpen?: boolean;
