@@ -17,8 +17,9 @@ import withOrganization from 'app/utils/withOrganization';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
+import Confirm from 'app/components/confirm';
+import {IconSubtract} from 'app/icons';
 
-import {UninstallAppButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
@@ -234,7 +235,8 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    return !this.install ? (
+    const install = this.install;
+    return !install ? (
       <InstallButton
         size="small"
         priority="primary"
@@ -246,13 +248,20 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         {t('Accept & Install')}
       </InstallButton>
     ) : (
-      <UninstallAppButton
-        install={this.install}
-        app={this.sentryApp}
-        onClickUninstall={this.handleUninstall}
-        onUninstallModalOpen={this.recordUninstallClicked}
+      <Confirm
+        message={tct('Are you sure you want to remove the [slug] installation?', {
+          slug: this.integrationSlug,
+        })}
+        priority="danger"
+        onConfirm={() => this.handleUninstall(install)} //called when the user confirms the action
+        onConfirming={this.recordUninstallClicked} //called when the confirm modal opens
         disabled={!userHasAccess}
-      />
+      >
+        <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
+          <IconSubtract isCircled style={{marginRight: space(0.75)}} />
+          {t('Uninstall')}
+        </StyledUninstallButton>
+      </Confirm>
     );
   }
 
@@ -286,6 +295,16 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
 
 const InstallButton = styled(Button)`
   margin-left: ${space(1)};
+`;
+
+const StyledUninstallButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+  background: #ffffff;
+
+  border: ${p => `1px solid ${p.theme.gray2}`};
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
 `;
 
 export default withOrganization(SentryAppDetailedView);
