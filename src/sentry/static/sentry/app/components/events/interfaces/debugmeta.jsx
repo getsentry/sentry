@@ -481,8 +481,8 @@ class DebugMetaInterface extends React.PureComponent {
         wrapTitle={false}
         isCentered
       >
-        <ClippedBox clipHeight={350}>
-          <DebugImagesPanel>
+        <DebugImagesPanel>
+          <ClippedBox clipHeight={560}>
             <PanelBody>
               {foundFrame && (
                 <ImageForBar
@@ -507,8 +507,8 @@ class DebugMetaInterface extends React.PureComponent {
                 </EmptyItem>
               )}
             </PanelBody>
-          </DebugImagesPanel>
-        </ClippedBox>
+          </ClippedBox>
+        </DebugImagesPanel>
       </StyledEventDataSection>
     );
   }
@@ -536,10 +536,9 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    max-height: 600px;
-    overflow-y: auto;
-  }
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
 `;
 
 const DebugImageItem = styled(PanelItem)`

@@ -12,6 +12,7 @@ from sentry.api.paginator import OffsetPaginator, CombinedQuerysetPaginator
 from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
+from sentry.signals import alert_rule_created
 from sentry.models import Rule, RuleStatus
 
 
@@ -68,6 +69,9 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
+            alert_rule_created.send_robust(
+                user=request.user, project=project, rule=alert_rule, rule_type="metric", sender=self
+            )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

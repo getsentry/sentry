@@ -83,19 +83,22 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     ];
   }
 
-  handleError(e, args) {
-    const {router, location} = this.props;
-    const possiblyWrongProject = e.status === 403;
+  renderError(...args) {
+    const possiblyWrongProject = Object.values(this.state.errors).find(
+      e => e?.status === 404 || e?.status === 403
+    );
 
     if (possiblyWrongProject) {
-      // refreshing this page without project ID will bring up a project selector
-      router.replace({
-        ...location,
-        query: {...location.query, project: undefined},
-      });
-      return;
+      return (
+        <PageContent>
+          <Alert type="error" icon={<IconWarning />}>
+            {t('This release may not be in your selected project.')}
+          </Alert>
+        </PageContent>
+      );
     }
-    super.handleError(e, args);
+
+    return super.renderError(...args);
   }
 
   renderBody() {
@@ -196,20 +199,17 @@ class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseProje
     }
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          lockedMessageSubject={t('release')}
-          shouldForceProject={projects.length === 1}
-          forceProject={projects.length === 1 ? projects[0] : undefined}
-          specificProjectSlugs={projects.map(p => p.slug)}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-          projectsFooterMessage={this.renderProjectsFooterMessage()}
-        />
-
+      <GlobalSelectionHeader
+        lockedMessageSubject={t('release')}
+        shouldForceProject={projects.length === 1}
+        forceProject={projects.length === 1 ? projects[0] : undefined}
+        specificProjectSlugs={projects.map(p => p.slug)}
+        disableMultipleProjectSelection
+        showProjectSettingsLink
+        projectsFooterMessage={this.renderProjectsFooterMessage()}
+      >
         <ReleasesV2Detail {...this.props} releaseProjects={projects} />
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

@@ -7,7 +7,7 @@ import space from 'app/styles/space';
 import Radio from 'app/components/radio';
 import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 
 type Props = {
@@ -64,7 +64,7 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
           onChange={() => onChange('metric')}
         />
         {t('Metric Alert')}
-        <BetaTag />
+        <FeatureBadge type="beta" />
       </RadioLabel>
       <p>
         {t(

@@ -246,7 +246,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     return (
       <ButtonSaved disabled={this.props.disabled}>
-        <StyledIconBookmark solid size="xs" color={theme.yellow} />
+        <StyledIconBookmark isSolid size="xs" color={theme.yellow} />
         {t('Saved query')}
       </ButtonSaved>
     );
@@ -321,7 +321,7 @@ const ButtonSaveAs = styled(DropdownButton)`
 const ButtonSaved = styled(Button)`
   cursor: not-allowed;
 `;
-const ButtonSaveDropDown = styled('li')`
+const ButtonSaveDropDown = styled('div')`
   padding: ${space(1)};
 `;
 const ButtonSaveInput = styled(Input)`

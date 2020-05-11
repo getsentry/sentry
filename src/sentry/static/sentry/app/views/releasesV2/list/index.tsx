@@ -8,7 +8,7 @@ import flatMap from 'lodash/flatMap';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import {Organization, Release, ProjectRelease} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
@@ -206,20 +206,17 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          showAbsolute={false}
-          timeRangeHint={t(
-            'Changing this date range will recalculate the release metrics.'
-          )}
-        />
-
+      <GlobalSelectionHeader
+        showAbsolute={false}
+        timeRangeHint={t(
+          'Changing this date range will recalculate the release metrics.'
+        )}
+      >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>
-                {t('Releases')} <BetaTag />
+                {t('Releases')} <FeatureBadge type="beta" />
               </PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
@@ -245,7 +242,7 @@ class ReleasesList extends AsyncView<Props, State> {
             )}
           </LightWeightNoProjectMessage>
         </PageContent>
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

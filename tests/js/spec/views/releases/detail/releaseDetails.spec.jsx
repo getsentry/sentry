@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import ReleaseDetails from 'app/views/releases/detail/';
+import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ReleaseDetails', function() {
   let deleteMock;
@@ -33,7 +34,8 @@ describe('ReleaseDetails', function() {
     });
   });
 
-  it('shows release details', function() {
+  it('shows release details', async function() {
+    const organization = TestStubs.Organization();
     const params = {
       orgId: 'acme',
       projectId: 'anvils',
@@ -53,6 +55,11 @@ describe('ReleaseDetails', function() {
       </ReleaseDetails>,
       TestStubs.routerContext()
     );
+
+    ProjectsStore.loadInitialData(organization.projects);
+
+    await tick();
+    wrapper.update();
 
     // Click delete button
     wrapper
