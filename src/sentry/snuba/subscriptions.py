@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 aggregation_function_translations = {
     QueryAggregations.TOTAL: "count()",
-    QueryAggregations.UNIQUE_USERS: "count_unique(user)",
+    QueryAggregations.UNIQUE_USERS: "count_unique(tags[sentry:user])",
 }
 
 
