@@ -38,196 +38,187 @@ type Props = ReactRouter.WithRouterProps & {
   eventView: EventView;
 };
 
-type State = {
-  loading: boolean;
-  error: boolean;
-};
+function SidebarCharts({api, eventView, organization, router}: Props) {
+  const statsPeriod = eventView.statsPeriod;
+  const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
+  const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
+  const utc = decodeScalar(router.location.query.utc);
 
-class SidebarCharts extends React.Component<Props, State> {
-  render() {
-    const {api, eventView, organization, router} = this.props;
-
-    const statsPeriod = eventView.statsPeriod;
-    const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
-    const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
-
-    const colors = theme.charts.getColorPalette(3);
-    const axisLineConfig = {
-      scale: true,
-      axisLine: {
-        show: false,
+  const colors = theme.charts.getColorPalette(3);
+  const axisLineConfig = {
+    scale: true,
+    axisLine: {
+      show: false,
+    },
+    axisTick: {
+      show: false,
+    },
+    splitLine: {
+      show: false,
+    },
+  };
+  const chartOptions = {
+    height: 580,
+    grid: [
+      {
+        top: '40px',
+        left: '10px',
+        right: '10px',
+        height: '120px',
       },
-      axisTick: {
-        show: false,
+      {
+        top: '230px',
+        left: '10px',
+        right: '10px',
+        height: '150px',
       },
-      splitLine: {
-        show: false,
+      {
+        top: '450px',
+        left: '10px',
+        right: '10px',
+        height: '120px',
       },
-    };
-    const chartOptions = {
-      height: 580,
-      grid: [
-        {
-          top: '40px',
-          left: '10px',
-          right: '10px',
-          height: '120px',
+    ],
+    axisPointer: {
+      // Link each x-axis together.
+      link: [{xAxisIndex: [0, 1, 2]}],
+    },
+    xAxes: Array.from(new Array(3)).map((_i, index) => ({
+      gridIndex: index,
+      type: 'time',
+      show: false,
+    })),
+    yAxes: [
+      {
+        // apdex
+        gridIndex: 0,
+        axisLabel: {
+          formatter: (value: number) => formatFloat(value, 2),
+          color: theme.gray1,
         },
-        {
-          top: '230px',
-          left: '10px',
-          right: '10px',
-          height: '150px',
-        },
-        {
-          top: '450px',
-          left: '10px',
-          right: '10px',
-          height: '120px',
-        },
-      ],
-      axisPointer: {
-        // Link each x-axis together.
-        link: [{xAxisIndex: [0, 1, 2]}],
+        ...axisLineConfig,
       },
-      xAxes: Array.from(new Array(3)).map((_i, index) => ({
-        gridIndex: index,
-        type: 'time',
-        show: false,
-      })),
-      yAxes: [
-        {
-          // apdex
-          gridIndex: 0,
-          axisLabel: {
-            formatter: (value: number) => formatFloat(value, 2),
-            color: theme.gray1,
-          },
-          ...axisLineConfig,
+      {
+        // throughput
+        gridIndex: 1,
+        axisLabel: {
+          formatter: formatAbbreviatedNumber,
+          color: theme.gray1,
         },
-        {
-          // throughput
-          gridIndex: 1,
-          axisLabel: {
-            formatter: formatAbbreviatedNumber,
-            color: theme.gray1,
-          },
-          ...axisLineConfig,
-        },
-        {
-          // error rate
-          gridIndex: 2,
-          axisLabel: {
-            formatter: (value: number) => formatPercentage(value, 2),
-            color: theme.gray1,
-          },
-          ...axisLineConfig,
-        },
-      ],
-      utc,
-      isGroupedByDate: true,
-      showTimeInTooltip: true,
-      colors: [colors[0], colors[1], colors[2]],
-      tooltip: {
-        truncate: 80,
-        valueFormatter(value: number, seriesName: string) {
-          if (seriesName.includes('apdex')) {
-            return formatFloat(value, 2);
-          }
-          if (seriesName.includes('error_rate')) {
-            return formatPercentage(value, 2);
-          }
-          if (typeof value === 'number') {
-            return value.toLocaleString();
-          }
-          return value;
-        },
+        ...axisLineConfig,
       },
-    };
+      {
+        // error rate
+        gridIndex: 2,
+        axisLabel: {
+          formatter: (value: number) => formatPercentage(value, 2),
+          color: theme.gray1,
+        },
+        ...axisLineConfig,
+      },
+    ],
+    utc,
+    isGroupedByDate: true,
+    showTimeInTooltip: true,
+    colors: [colors[0], colors[1], colors[2]],
+    tooltip: {
+      truncate: 80,
+      valueFormatter(value: number, seriesName: string) {
+        if (seriesName.includes('apdex')) {
+          return formatFloat(value, 2);
+        }
+        if (seriesName.includes('error_rate')) {
+          return formatPercentage(value, 2);
+        }
+        if (typeof value === 'number') {
+          return value.toLocaleString();
+        }
+        return value;
+      },
+    },
+  };
 
-    const datetimeSelection = {
-      start: start || null,
-      end: end || null,
-      period: statsPeriod,
-    };
-    const project = eventView.project;
-    const environment = eventView.environment;
+  const datetimeSelection = {
+    start: start || null,
+    end: end || null,
+    period: statsPeriod,
+  };
+  const project = eventView.project;
+  const environment = eventView.environment;
 
-    return (
-      <RelativeBox>
-        <ChartTitle top="0px" key="apdex">
-          {t('Apdex')}
-          <Tooltip position="top" title={PERFORMANCE_TERMS.apdex}>
-            <StyledIconQuestion size="sm" />
-          </Tooltip>
-        </ChartTitle>
+  return (
+    <RelativeBox>
+      <ChartTitle top="0px" key="apdex">
+        {t('Apdex')}
+        <Tooltip position="top" title={PERFORMANCE_TERMS.apdex}>
+          <StyledIconQuestion size="sm" />
+        </Tooltip>
+      </ChartTitle>
 
-        <ChartTitle top="190px" key="throughput">
-          {t('Throughput')}
-          <Tooltip position="top" title={PERFORMANCE_TERMS.rpm}>
-            <StyledIconQuestion size="sm" />
-          </Tooltip>
-        </ChartTitle>
+      <ChartTitle top="190px" key="throughput">
+        {t('Throughput')}
+        <Tooltip position="top" title={PERFORMANCE_TERMS.rpm}>
+          <StyledIconQuestion size="sm" />
+        </Tooltip>
+      </ChartTitle>
 
-        <ChartTitle top="410px" key="error-rate">
-          {t('Error Rate')}
-          <Tooltip position="top" title={PERFORMANCE_TERMS.errorRate}>
-            <StyledIconQuestion size="sm" />
-          </Tooltip>
-        </ChartTitle>
+      <ChartTitle top="410px" key="error-rate">
+        {t('Error Rate')}
+        <Tooltip position="top" title={PERFORMANCE_TERMS.errorRate}>
+          <StyledIconQuestion size="sm" />
+        </Tooltip>
+      </ChartTitle>
 
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-          xAxisIndex={[0, 1, 2]}
-        >
-          {zoomRenderProps => (
-            <EventsRequest
-              api={api}
-              organization={organization}
-              period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
-              start={start}
-              end={end}
-              interval={getInterval(datetimeSelection, true)}
-              showLoading={false}
-              query={eventView.query}
-              includePrevious={false}
-              yAxis={['apdex(300)', 'rpm()', 'error_rate()']}
-            >
-              {({results, errored, loading, reloading}) => {
-                if (errored) {
-                  return (
-                    <ErrorPanel>
-                      <IconWarning color={theme.gray2} size="lg" />
-                    </ErrorPanel>
-                  );
-                }
-                const series = results
-                  ? results.map((values, i: number) => ({
-                      ...values,
-                      yAxisIndex: i,
-                      xAxisIndex: i,
-                    }))
-                  : [];
-
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        projects={project}
+        environments={environment}
+        xAxisIndex={[0, 1, 2]}
+      >
+        {zoomRenderProps => (
+          <EventsRequest
+            api={api}
+            organization={organization}
+            period={statsPeriod}
+            project={[...project]}
+            environment={[...environment]}
+            start={start}
+            end={end}
+            interval={getInterval(datetimeSelection, true)}
+            showLoading={false}
+            query={eventView.query}
+            includePrevious={false}
+            yAxis={['apdex(300)', 'rpm()', 'error_rate()']}
+          >
+            {({results, errored, loading, reloading}) => {
+              if (errored) {
                 return (
-                  <TransitionChart loading={loading} reloading={reloading} height="550px">
-                    <TransparentLoadingMask visible={reloading} />
-                    <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
-                  </TransitionChart>
+                  <ErrorPanel>
+                    <IconWarning color={theme.gray2} size="lg" />
+                  </ErrorPanel>
                 );
-              }}
-            </EventsRequest>
-          )}
-        </ChartZoom>
-      </RelativeBox>
-    );
-  }
+              }
+              const series = results
+                ? results.map((values, i: number) => ({
+                    ...values,
+                    yAxisIndex: i,
+                    xAxisIndex: i,
+                  }))
+                : [];
+
+              return (
+                <TransitionChart loading={loading} reloading={reloading} height="550px">
+                  <TransparentLoadingMask visible={reloading} />
+                  <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+                </TransitionChart>
+              );
+            }}
+          </EventsRequest>
+        )}
+      </ChartZoom>
+    </RelativeBox>
+  );
 }
 
 const RelativeBox = styled('div')`
