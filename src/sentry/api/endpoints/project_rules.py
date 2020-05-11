@@ -83,7 +83,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
             alert_rule_created.send_robust(
-                user=request.user, project=project, rule=rule, sender=self
+                user=request.user, project=project, rule=rule, rule_type="issue", sender=self
             )
 
             return Response(serialize(rule, request.user))
