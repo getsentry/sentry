@@ -1,23 +1,24 @@
 import capitalize from 'lodash/capitalize';
 import React from 'react';
 
-import {uniqueId} from 'app/utils/guid';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import HookStore from 'app/stores/hookStore';
 import {
-  Organization,
-  SentryAppInstallation,
-  IntegrationInstallationStatus,
-  SentryAppStatus,
-  IntegrationFeature,
   AppOrProviderOrPlugin,
-  SentryApp,
-  PluginWithProjectList,
   DocumentIntegration,
   Integration,
+  IntegrationFeature,
+  IntegrationInstallationStatus,
   IntegrationProvider,
+  IntegrationType,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+  SentryAppInstallation,
+  SentryAppStatus,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import HookStore from 'app/stores/hookStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 

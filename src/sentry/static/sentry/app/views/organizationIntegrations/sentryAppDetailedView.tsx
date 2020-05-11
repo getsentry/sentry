@@ -2,26 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/button';
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {openModal} from 'app/actionCreators/modal';
 import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
-import {toPermissions} from 'app/utils/consolidatedScopes';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
-import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
-import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
-import {openModal} from 'app/actionCreators/modal';
-import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
 import Confirm from 'app/components/confirm';
 import {IconSubtract} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
+import {toPermissions} from 'app/utils/consolidatedScopes';
+import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import SplitInstallationIdModal from './SplitInstallationIdModal';
 
 type State = {
   sentryApp: SentryApp;

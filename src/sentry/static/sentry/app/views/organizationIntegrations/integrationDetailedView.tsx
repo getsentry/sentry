@@ -1,23 +1,23 @@
+import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
 
-import {IconWarning} from 'app/icons';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {RequestOptions} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import {Integration, IntegrationProvider} from 'app/types';
-import {RequestOptions} from 'app/api';
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import Button from 'app/components/button';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
-import Button from 'app/components/button';
-import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import withOrganization from 'app/utils/withOrganization';
+import {Integration, IntegrationProvider} from 'app/types';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
+import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import AddIntegrationButton from './addIntegrationButton';
+import InstalledIntegration from './installedIntegration';
 
 type State = {
   configurations: Integration[];

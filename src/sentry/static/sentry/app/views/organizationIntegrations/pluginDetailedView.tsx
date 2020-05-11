@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {PluginWithProjectList, PluginProjectItem} from 'app/types';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import Button from 'app/components/button';
-import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
 import * as modal from 'app/actionCreators/modal';
+import Button from 'app/components/button';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {PluginWithProjectList, PluginProjectItem} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import InstalledPlugin from './installedPlugin';
 
 type State = {
   plugins: PluginWithProjectList[];
