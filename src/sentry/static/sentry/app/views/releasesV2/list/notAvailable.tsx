@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 
-type Props = {};
-
-const NotAvailable = ({}: Props) => {
+const NotAvailable = () => {
   return <Wrapper>{t('n/a')}</Wrapper>;
 };
 
