@@ -32,7 +32,7 @@ type Props = {
 
 const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
-  const {hasHealthData, sessionsCrashed, sessionsErrored} = project.healthData;
+  const {hasHealthData, sessionsCrashed} = project.healthData;
 
   const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
@@ -84,9 +84,6 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
-          <ReleaseStat label={t('Errors')}>
-            <Count value={sessionsErrored} />
-          </ReleaseStat>
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
