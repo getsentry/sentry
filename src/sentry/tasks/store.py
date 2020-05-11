@@ -102,6 +102,10 @@ def submit_save_event(project, cache_key, event_id, start_time, data):
     )
 
 
+def sample_process_event_apm():
+    return random.random() < getattr(settings, "SENTRY_PROCESS_EVENT_APM_SAMPLING", 0)
+
+
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
     from sentry.lang.native.processing import should_process_with_symbolicator
 
@@ -211,13 +215,18 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
     try:
-        with metrics.timer("tasks.store.symbolicate_event.symbolication"):
-            symbolicated_data = safe_execute(
-                symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
-            )
-        if symbolicated_data:
-            data = symbolicated_data
-            has_changed = True
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
+            span.set_data("symbolicaton_function", symbolication_function.__name__)
+
+            with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+                symbolicated_data = safe_execute(
+                    symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
+                )
+
+            span.set_data("symbolicated_data", bool(symbolicated_data))
+            if symbolicated_data:
+                data = symbolicated_data
+                has_changed = True
 
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -397,12 +406,14 @@ def _do_process_event(
 
     event_id = data["event_id"]
 
-    project = Project.objects.get_from_cache(id=project_id)
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+        project = Project.objects.get_from_cache(id=project_id)
 
     has_changed = bool(data_has_changed)
 
-    # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_reprocessing_revision"):
+        # Fetch the reprocessing revision
+        reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
 
     # Stacktrace based event processors.
     with sentry_sdk.start_span(op="task.store.process_event.stacktraces"):
@@ -530,13 +541,20 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    return _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_event,
-        data_has_changed=data_has_changed,
-    )
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event,
+            data_has_changed=data_has_changed,
+        )
 
 
 @instrumented_task(
@@ -548,13 +566,20 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    return _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_event_from_reprocessing,
-        data_has_changed=data_has_changed,
-    )
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event_from_reprocessing",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event_from_reprocessing,
+            data_has_changed=data_has_changed,
+        )
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
