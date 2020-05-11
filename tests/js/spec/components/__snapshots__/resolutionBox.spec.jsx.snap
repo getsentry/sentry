@@ -5,8 +5,8 @@ exports[`ResolutionBox render() handles default 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       This issue has been marked as resolved.
@@ -20,8 +20,8 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       <span
@@ -60,8 +60,8 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       This issue has been marked as resolved in the upcoming release.
@@ -75,8 +75,8 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       <span
@@ -123,8 +123,8 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       <span
@@ -157,8 +157,8 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <ForwardRef(IconCheckmark)
-      color="#57be8c"
+    <IconCheckmark
+      color="green"
     />
     <span>
       <span

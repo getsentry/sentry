@@ -951,6 +951,9 @@ SENTRY_APM_SAMPLING = 0
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
 
+# Sample rate for the process_event task transactions
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 0.01
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None
