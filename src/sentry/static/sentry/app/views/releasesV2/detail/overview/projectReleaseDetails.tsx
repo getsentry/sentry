@@ -7,6 +7,7 @@ import {Release} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
+import Tooltip from 'app/components/tooltip';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -33,7 +34,9 @@ const ProjectReleaseDetails = ({release}: Props) => {
             <StyledTr>
               <TagKey>{t('Last Deploy')}</TagKey>
               <TagValue>
-                <DateTime date={lastDeploy.dateFinished} seconds={false} />
+                <Tooltip title={lastDeploy.environment}>
+                  <DateTime date={lastDeploy.dateFinished} seconds={false} />
+                </Tooltip>
               </TagValue>
             </StyledTr>
           )}
