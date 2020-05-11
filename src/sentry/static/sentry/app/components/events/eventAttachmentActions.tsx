@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconDelete} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 

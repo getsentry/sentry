@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import Well from 'app/components/well';
-import {IconCommit} from 'app/icons/iconCommit';
+import {IconCommit} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';

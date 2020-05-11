@@ -342,6 +342,6 @@ const theme = {
 
 export type Theme = typeof theme;
 export type Color = keyof typeof colors;
-export type IconSizes = keyof typeof iconSizes;
+export type IconSize = keyof typeof iconSizes;
 
 export default theme;
