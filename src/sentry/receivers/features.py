@@ -274,7 +274,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         rule_id=rule.id,
-        type=rule_type,
+        rule_type=rule_type,
     )
 
 
