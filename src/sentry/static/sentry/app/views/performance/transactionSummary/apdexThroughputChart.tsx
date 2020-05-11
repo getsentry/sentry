@@ -5,13 +5,13 @@ import * as ReactRouter from 'react-router';
 import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import Tooltip from 'app/components/tooltip';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {QuestionTooltip} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
-import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -113,15 +113,11 @@ class ApdexThroughputChart extends React.Component<Props> {
       <React.Fragment>
         <HeaderTitleLegend key="apdex">
           {t('Apdex')}
-          <Tooltip position="top" title={PERFORMANCE_TERMS.apdex}>
-            <StyledIconQuestion size="sm" />
-          </Tooltip>
+          <QuestionTooltip position="top" size="sm" title={PERFORMANCE_TERMS.apdex} />
         </HeaderTitleLegend>
         <MiddleHeaderTitleLegend key="rpm">
           {t('Throughput')}
-          <Tooltip position="top" title={PERFORMANCE_TERMS.rpm}>
-            <StyledIconQuestion size="sm" />
-          </Tooltip>
+          <QuestionTooltip position="top" size="sm" title={PERFORMANCE_TERMS.rpm} />
         </MiddleHeaderTitleLegend>
         <ChartZoom
           router={router}
