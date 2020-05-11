@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {IconQuestion} from 'app/icons';
 
 export const GridBodyCell = styled('div')`
   font-size: 14px;
@@ -53,11 +52,6 @@ export const ChartsGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-column-gap: ${space(1)};
-`;
-
-export const StyledIconQuestion = styled(IconQuestion)`
-  color: ${p => p.theme.gray1};
-  margin-left: ${space(1)};
 `;
 
 export const ErrorPanel = styled('div')`
