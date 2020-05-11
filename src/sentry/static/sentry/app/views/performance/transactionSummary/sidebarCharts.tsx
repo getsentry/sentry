@@ -7,11 +7,10 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import Tooltip from 'app/components/tooltip';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {SectionHeading} from 'app/components/charts/styles';
+import {SectionHeading, QuestionTooltip} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import {getInterval} from 'app/components/charts/utils';
@@ -28,8 +27,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-
-import {StyledIconQuestion} from '../styles';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
@@ -150,23 +147,17 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     <RelativeBox>
       <ChartTitle top="0px" key="apdex">
         {t('Apdex')}
-        <Tooltip position="top" title={PERFORMANCE_TERMS.apdex}>
-          <StyledIconQuestion size="sm" />
-        </Tooltip>
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.apdex} size="sm" />
       </ChartTitle>
 
       <ChartTitle top="190px" key="throughput">
         {t('Throughput')}
-        <Tooltip position="top" title={PERFORMANCE_TERMS.rpm}>
-          <StyledIconQuestion size="sm" />
-        </Tooltip>
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.rpm} size="sm" />
       </ChartTitle>
 
       <ChartTitle top="410px" key="error-rate">
         {t('Error Rate')}
-        <Tooltip position="top" title={PERFORMANCE_TERMS.errorRate}>
-          <StyledIconQuestion size="sm" />
-        </Tooltip>
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.errorRate} size="sm" />
       </ChartTitle>
 
       <ChartZoom
