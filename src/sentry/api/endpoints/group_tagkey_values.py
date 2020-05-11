@@ -4,11 +4,11 @@ from sentry import tagstore
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 from sentry.models import Group
 from sentry.utils.apidocs import scenario
-from sentry.api.helpers.environments import get_environments
 
 
 @scenario("ListTagValues")

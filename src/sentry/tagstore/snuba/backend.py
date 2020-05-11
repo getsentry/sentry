@@ -769,9 +769,7 @@ class SnubaTagStorage(TagStorage):
             "group_id": [group_id],
         }
         if environment_ids:
-            filters["environment"] = (
-                environment_ids if isinstance(environment_ids, list) else [environment_ids]
-            )
+            filters["environment"] = environment_ids
         results = snuba.query(
             groupby=["tags_value"],
             filter_keys=filters,

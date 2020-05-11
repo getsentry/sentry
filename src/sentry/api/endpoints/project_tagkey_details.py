@@ -69,6 +69,6 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def get_tag_keys_for_deletion(self, project_id, key):
         try:
-            return [tagstore.get_tag_key(project_id=project_id, key=key, environment_id=None)]
+            return [tagstore.get_tag_key(project_id=project_id, key=key, environment_ids=None)]
         except tagstore.TagKeyNotFound:
             return []
