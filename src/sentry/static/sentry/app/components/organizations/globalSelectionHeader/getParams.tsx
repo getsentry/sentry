@@ -143,7 +143,7 @@ export function getParams(
 ): ParsedParams {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
-  // `statsPeriod` takes precendence for now
+  // `statsPeriod` takes precedence for now
   let coercedPeriod = getStatsPeriodValue(statsPeriod) || getStatsPeriodValue(period);
 
   const dateTimeStart = getDateTimeString(start);

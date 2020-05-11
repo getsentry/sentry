@@ -2180,7 +2180,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         projects = [f for f in result if f.key == "project"]
         assert [p.count for p in projects] == [1, 1]
 
-    def test_enviroment_promoted_tag(self):
+    def test_environment_promoted_tag(self):
         for env in ("prod", "staging", None):
             self.store_event(
                 data={

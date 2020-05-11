@@ -172,7 +172,7 @@ class BaseAccess(object):
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
-    # would be based on the same scopes as API access so theres clarity in
+    # would be based on the same scopes as API access so there's clarity in
     # what things mean
     def __init__(
         self,
