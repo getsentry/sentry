@@ -13,7 +13,7 @@ import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
-import ProjectBadge from 'app/components/idBadge/projectBadge.jsx';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
 import ClippedBox from 'app/components/clippedBox';
 
@@ -95,7 +95,7 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     >
                       <ProjectBadge
                         project={project}
-                        avatarSize={14}
+                        avatarSize={16}
                         key={project.slug}
                       />
                     </GlobalSelectionLink>

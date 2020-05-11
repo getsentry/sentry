@@ -100,6 +100,7 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
 const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
   pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
+  overflow: hidden;
 `;
 
 const StyledPanelItem = styled(PanelItem)`
