@@ -94,6 +94,8 @@ class ProjectOwnership extends AsyncView {
                 path:src/example/pipeline/* person@sentry.io #infrastructure
                 {'\n'}
                 url:http://example.com/settings/* #product
+                {'\n'}
+                tags.sku_class:enterprise #enterprise
               </CodeBlock>
             </Block>
             <OwnerInput

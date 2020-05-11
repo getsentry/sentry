@@ -86,6 +86,10 @@ exports[`RuleBuilder renders 1`] = `
               "value": "path",
             },
             Object {
+              "label": "Tag",
+              "value": "tag",
+            },
+            Object {
               "label": "URL",
               "value": "url",
             },
@@ -101,7 +105,7 @@ exports[`RuleBuilder renders 1`] = `
         value="path"
       >
         <SelectField
-          className="css-10lzdlx-BuilderSelect e1hyuoc76"
+          className="css-1vsx268-BuilderSelect e1hyuoc76"
           clearable={false}
           deprecatedSelectControl={true}
           disabled={false}
@@ -114,6 +118,10 @@ exports[`RuleBuilder renders 1`] = `
               Object {
                 "label": "Path",
                 "value": "path",
+              },
+              Object {
+                "label": "Tag",
+                "value": "tag",
               },
               Object {
                 "label": "URL",
@@ -131,7 +139,7 @@ exports[`RuleBuilder renders 1`] = `
           value="path"
         >
           <div
-            className="css-10lzdlx-BuilderSelect e1hyuoc76"
+            className="css-1vsx268-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
@@ -156,6 +164,10 @@ exports[`RuleBuilder renders 1`] = `
                       "value": "path",
                     },
                     Object {
+                      "label": "Tag",
+                      "value": "tag",
+                    },
+                    Object {
                       "label": "URL",
                       "value": "url",
                     },
@@ -178,6 +190,10 @@ exports[`RuleBuilder renders 1`] = `
                       Object {
                         "label": "Path",
                         "value": "path",
+                      },
+                      Object {
+                        "label": "Tag",
+                        "value": "tag",
                       },
                       Object {
                         "label": "URL",
@@ -205,6 +221,10 @@ exports[`RuleBuilder renders 1`] = `
                           "value": "path",
                         },
                         Object {
+                          "label": "Tag",
+                          "value": "tag",
+                        },
+                        Object {
                           "label": "URL",
                           "value": "url",
                         },
@@ -228,6 +248,10 @@ exports[`RuleBuilder renders 1`] = `
                           Object {
                             "label": "Path",
                             "value": "path",
+                          },
+                          Object {
+                            "label": "Tag",
+                            "value": "tag",
                           },
                           Object {
                             "label": "URL",
@@ -258,6 +282,10 @@ exports[`RuleBuilder renders 1`] = `
                               "value": "path",
                             },
                             Object {
+                              "label": "Tag",
+                              "value": "tag",
+                            },
+                            Object {
                               "label": "URL",
                               "value": "url",
                             },
@@ -284,6 +312,10 @@ exports[`RuleBuilder renders 1`] = `
                               Object {
                                 "label": "Path",
                                 "value": "path",
+                              },
+                              Object {
+                                "label": "Tag",
+                                "value": "tag",
                               },
                               Object {
                                 "label": "URL",
@@ -337,6 +369,10 @@ exports[`RuleBuilder renders 1`] = `
                                 Object {
                                   "label": "Path",
                                   "value": "path",
+                                },
+                                Object {
+                                  "label": "Tag",
+                                  "value": "tag",
                                 },
                                 Object {
                                   "label": "URL",
@@ -493,7 +529,7 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-n5owx7-Input-BuilderInput e1hyuoc77"
+          className="css-v3z08s-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -503,11 +539,11 @@ exports[`RuleBuilder renders 1`] = `
         src="icon-chevron-right"
       >
         <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
+          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
           src="icon-chevron-right"
         >
           <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
+            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
             height="1em"
             viewBox={Object {}}
             width="1em"
@@ -521,7 +557,7 @@ exports[`RuleBuilder renders 1`] = `
       </Divider>
       <SelectOwnersWrapper>
         <div
-          className="css-1518iv7-SelectOwnersWrapper e1hyuoc79"
+          className="css-1518iv7-SelectOwnersWrapper e1hyuoc710"
         >
           <SelectOwners
             onChange={[Function]}
@@ -1041,7 +1077,7 @@ exports[`RuleBuilder renders 1`] = `
         size="small"
       >
         <forwardRef<Button>
-          className="css-f6y09s-AddButton e1hyuoc710"
+          className="css-f6y09s-AddButton e1hyuoc711"
           disabled={true}
           icon={
             <IconAdd
@@ -1055,7 +1091,7 @@ exports[`RuleBuilder renders 1`] = `
         >
           <Button
             align="center"
-            className="css-f6y09s-AddButton e1hyuoc710"
+            className="css-f6y09s-AddButton e1hyuoc711"
             disabled={true}
             forwardRef={null}
             icon={
@@ -1070,7 +1106,7 @@ exports[`RuleBuilder renders 1`] = `
           >
             <StyledButton
               aria-disabled={true}
-              className="css-f6y09s-AddButton e1hyuoc710"
+              className="css-f6y09s-AddButton e1hyuoc711"
               disabled={true}
               forwardRef={null}
               onClick={[Function]}
@@ -1080,7 +1116,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <Component
                 aria-disabled={true}
-                className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc711 css-1vf07fg-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -1088,7 +1124,7 @@ exports[`RuleBuilder renders 1`] = `
               >
                 <button
                   aria-disabled={true}
-                  className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc711 css-1vf07fg-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -1455,6 +1491,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               "value": "path",
             },
             Object {
+              "label": "Tag",
+              "value": "tag",
+            },
+            Object {
               "label": "URL",
               "value": "url",
             },
@@ -1470,7 +1510,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="path"
       >
         <SelectField
-          className="css-10lzdlx-BuilderSelect e1hyuoc76"
+          className="css-1vsx268-BuilderSelect e1hyuoc76"
           clearable={false}
           deprecatedSelectControl={true}
           disabled={false}
@@ -1483,6 +1523,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               Object {
                 "label": "Path",
                 "value": "path",
+              },
+              Object {
+                "label": "Tag",
+                "value": "tag",
               },
               Object {
                 "label": "URL",
@@ -1500,7 +1544,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           value="path"
         >
           <div
-            className="css-10lzdlx-BuilderSelect e1hyuoc76"
+            className="css-1vsx268-BuilderSelect e1hyuoc76"
             style={
               Object {
                 "width": 140,
@@ -1525,6 +1569,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       "value": "path",
                     },
                     Object {
+                      "label": "Tag",
+                      "value": "tag",
+                    },
+                    Object {
                       "label": "URL",
                       "value": "url",
                     },
@@ -1547,6 +1595,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                       Object {
                         "label": "Path",
                         "value": "path",
+                      },
+                      Object {
+                        "label": "Tag",
+                        "value": "tag",
                       },
                       Object {
                         "label": "URL",
@@ -1574,6 +1626,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           "value": "path",
                         },
                         Object {
+                          "label": "Tag",
+                          "value": "tag",
+                        },
+                        Object {
                           "label": "URL",
                           "value": "url",
                         },
@@ -1597,6 +1653,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           Object {
                             "label": "Path",
                             "value": "path",
+                          },
+                          Object {
+                            "label": "Tag",
+                            "value": "tag",
                           },
                           Object {
                             "label": "URL",
@@ -1627,6 +1687,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               "value": "path",
                             },
                             Object {
+                              "label": "Tag",
+                              "value": "tag",
+                            },
+                            Object {
                               "label": "URL",
                               "value": "url",
                             },
@@ -1653,6 +1717,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               Object {
                                 "label": "Path",
                                 "value": "path",
+                              },
+                              Object {
+                                "label": "Tag",
+                                "value": "tag",
                               },
                               Object {
                                 "label": "URL",
@@ -1706,6 +1774,10 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 Object {
                                   "label": "Path",
                                   "value": "path",
+                                },
+                                Object {
+                                  "label": "Tag",
+                                  "value": "tag",
                                 },
                                 Object {
                                   "label": "URL",
@@ -1862,7 +1934,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-n5owx7-Input-BuilderInput e1hyuoc77"
+          className="css-v3z08s-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -1872,11 +1944,11 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         src="icon-chevron-right"
       >
         <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
+          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
           src="icon-chevron-right"
         >
           <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
+            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
             height="1em"
             viewBox={Object {}}
             width="1em"
@@ -1890,7 +1962,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       </Divider>
       <SelectOwnersWrapper>
         <div
-          className="css-1518iv7-SelectOwnersWrapper e1hyuoc79"
+          className="css-1518iv7-SelectOwnersWrapper e1hyuoc710"
         >
           <SelectOwners
             onChange={[Function]}
@@ -3064,7 +3136,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         size="small"
       >
         <forwardRef<Button>
-          className="css-f6y09s-AddButton e1hyuoc710"
+          className="css-f6y09s-AddButton e1hyuoc711"
           disabled={false}
           icon={
             <IconAdd
@@ -3078,7 +3150,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         >
           <Button
             align="center"
-            className="css-f6y09s-AddButton e1hyuoc710"
+            className="css-f6y09s-AddButton e1hyuoc711"
             disabled={false}
             forwardRef={null}
             icon={
@@ -3093,7 +3165,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <StyledButton
               aria-disabled={false}
-              className="css-f6y09s-AddButton e1hyuoc710"
+              className="css-f6y09s-AddButton e1hyuoc711"
               disabled={false}
               forwardRef={null}
               onClick={[Function]}
@@ -3103,7 +3175,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <Component
                 aria-disabled={false}
-                className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc711 css-cdfv3-StyledButton-AddButton edwq9my0"
                 forwardRef={null}
                 onClick={[Function]}
                 role="button"
@@ -3111,7 +3183,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
               >
                 <button
                   aria-disabled={false}
-                  className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc711 css-cdfv3-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
