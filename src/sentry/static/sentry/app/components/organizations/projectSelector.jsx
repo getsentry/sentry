@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import sortBy from 'lodash/sortBy';
 import styled from '@emotion/styled';
 import {Link} from 'react-router';
 
 import {analytics} from 'app/utils/analytics';
-import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import {alertHighlight, pulse} from 'app/styles/animations';
 import Button from 'app/components/button';
@@ -99,11 +99,15 @@ class ProjectSelector extends React.Component {
   }
 
   getProjects() {
-    const {multiProjects, nonMemberProjects} = this.props;
+    const {multiProjects, nonMemberProjects, selectedProjects} = this.props;
 
     return [
-      sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
-      nonMemberProjects || [],
+      sortBy(multiProjects, project => [
+        !(selectedProjects || []).includes(project),
+        !project.isBookmarked,
+        project.slug,
+      ]),
+      sortBy(nonMemberProjects || [], project => [project.slug]),
     ];
   }
 
@@ -221,7 +225,7 @@ class ProjectSelector extends React.Component {
             disabled={!hasProjectWrite}
             to={`/organizations/${org.slug}/projects/new/`}
             size="xsmall"
-            icon={<IconAdd size="xs" circle />}
+            icon={<IconAdd size="xs" isCircled />}
             title={
               hasProjectWrite ? null : t("You don't have permission to add a project")
             }

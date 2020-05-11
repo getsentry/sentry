@@ -13,7 +13,6 @@ import {openSudo} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -22,10 +21,10 @@ import ProjectActions from 'app/actions/projectActions';
 import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
+import withProfiler from 'app/utils/withProfiler';
 
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
@@ -201,16 +200,6 @@ const OrganizationContext = createReactClass({
         scope.setTag('organization', organization.id);
         scope.setTag('organization.slug', organization.slug);
         scope.setContext('organization', {id: organization.id, slug: organization.slug});
-      });
-      // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
-      // We do not want to load the user's last used env/project in this case, otherwise will
-      // lead to very confusing behavior.
-      const skipLastUsed = !!this.props.routes.find(
-        ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
-      );
-      GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
-        skipLastUsed,
-        api: this.props.api,
       });
     } else if (error) {
       // If user is superuser, open sudo window

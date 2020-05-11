@@ -14,7 +14,7 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Row from 'app/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -59,7 +59,7 @@ class ApiApplications extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         onClick={this.handleCreateApplication}
-        icon={<IconAdd size="xs" circle />}
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create New Application')}
       </Button>

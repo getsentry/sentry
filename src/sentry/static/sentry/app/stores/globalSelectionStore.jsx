@@ -1,75 +1,19 @@
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 import Reflux from 'reflux';
+import isEqual from 'lodash/isEqual';
 
-import {
-  DATE_TIME,
-  URL_PARAM,
-  LOCAL_STORAGE_KEY,
-} from 'app/constants/globalSelectionHeader';
-import {getStateFromQuery} from 'app/components/organizations/globalSelectionHeader/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
+import {getDefaultSelection} from 'app/components/organizations/globalSelectionHeader/utils';
 import {isEqualWithDates} from 'app/utils/isEqualWithDates';
-import OrganizationsStore from 'app/stores/organizationsStore';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import OrganizationsStore from 'app/stores/organizationsStore';
 import localStorage from 'app/utils/localStorage';
-
-const DEFAULT_PARAMS = getParams({});
-
-const getDefaultSelection = () => ({
-  projects: [],
-  environments: [],
-  datetime: {
-    [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
-    [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
-    [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
-    [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
-  },
-});
-
-const getProjectsByIds = async (organization, projectIds, api) => {
-  const query = {};
-  query.query = projectIds.map(id => `id:${id}`).join(' ');
-  return await api.requestPromise(`/organizations/${organization.slug}/projects/`, {
-    query,
-  });
-};
-
-const isValidSelection = async (selection, organization, api) => {
-  if (organization.projects) {
-    const allowedProjects = new Set(
-      organization.projects
-        .filter(project => project.hasAccess)
-        .map(p => parseInt(p.id, 10))
-    );
-    if (
-      Array.isArray(selection.projects) &&
-      selection.projects.some(project => !allowedProjects.has(project))
-    ) {
-      return false;
-    }
-    return true;
-  } else {
-    // if the selection is [-1] (all projects) or [] (my projects) return true
-    if (selection.projects.length === 0 || selection.projects[0] === -1) {
-      return true;
-    }
-    // if we do not have organization.projects then make an API call to fetch projects based on id
-    const projects = await getProjectsByIds(organization, selection.projects, api);
-    if (
-      selection.projects.length !== projects.length ||
-      projects.some(project => !project.hasAccess)
-    ) {
-      return false;
-    }
-    return true;
-  }
-};
 
 const GlobalSelectionStore = Reflux.createStore({
   init() {
     this.reset(this.selection);
     this.listenTo(GlobalSelectionActions.reset, this.onReset);
+    this.listenTo(GlobalSelectionActions.initializeUrlState, this.onInitializeUrlState);
+    this.listenTo(GlobalSelectionActions.setOrganization, this.onSetOrganization);
     this.listenTo(GlobalSelectionActions.save, this.onSave);
     this.listenTo(GlobalSelectionActions.updateProjects, this.updateProjects);
     this.listenTo(GlobalSelectionActions.updateDateTime, this.updateDateTime);
@@ -77,67 +21,40 @@ const GlobalSelectionStore = Reflux.createStore({
   },
 
   reset(state) {
-    this._hasLoaded = false;
+    // Has passed the enforcement state
+    this._hasEnforcedProject = false;
+    this._hasInitialState = false;
     this.selection = state || getDefaultSelection();
   },
 
-  /**
-   * Initializes the global selection store
-   * If there are query params apply these, otherwise check local storage
-   */
-  loadInitialData(organization, queryParams, {api, skipLastUsed} = {}) {
-    this._hasLoaded = true;
-    this.organization = organization;
-    const query = pick(queryParams, Object.values(URL_PARAM));
-    const hasQuery = Object.keys(query).length > 0;
-
-    let globalSelection = getDefaultSelection();
-
-    if (hasQuery) {
-      const parsed = getStateFromQuery(queryParams);
-      globalSelection = {
-        projects: parsed.project || [],
-        environments: parsed.environment || [],
-        datetime: {
-          [DATE_TIME.START]: parsed.start || null,
-          [DATE_TIME.END]: parsed.end || null,
-          [DATE_TIME.PERIOD]: parsed.period || null,
-          [DATE_TIME.UTC]: parsed.utc || null,
-        },
-      };
-    } else if (!skipLastUsed) {
-      try {
-        const localStorageKey = `${LOCAL_STORAGE_KEY}:${organization.slug}`;
-
-        const storedValue = localStorage.getItem(localStorageKey);
-
-        const defaultDateTime = getDefaultSelection().datetime;
-
-        if (storedValue) {
-          globalSelection = {datetime: defaultDateTime, ...JSON.parse(storedValue)};
-        }
-      } catch (ex) {
-        console.error(ex); // eslint-disable-line no-console
-        // use default if invalid
-      }
-    }
-    this.loadSelectionIfValid(globalSelection, organization, api);
+  isReady() {
+    return this._hasInitialState;
   },
 
-  async loadSelectionIfValid(globalSelection, organization, api) {
-    if (await isValidSelection(globalSelection, organization, api)) {
-      this.selection = globalSelection;
-      this.trigger(this.selection);
-    }
+  onSetOrganization(organization) {
+    this.organization = organization;
+  },
+
+  /**
+   * Initializes the global selection store data
+   * Use query params if they exist, otherwise check local storage
+   */
+  onInitializeUrlState(newSelection) {
+    this._hasInitialState = true;
+    this.selection = newSelection;
+    this.trigger(this.get());
   },
 
   get() {
-    return this.selection;
+    return {
+      selection: this.selection,
+      isReady: this.isReady(),
+    };
   },
 
   onReset() {
     this.reset();
-    this.trigger(this.selection);
+    this.trigger(this.get());
   },
 
   updateProjects(projects = []) {
@@ -149,7 +66,7 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       projects,
     };
-    this.trigger(this.selection);
+    this.trigger(this.get());
   },
 
   updateDateTime(datetime) {
@@ -161,7 +78,7 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       datetime,
     };
-    this.trigger(this.selection);
+    this.trigger(this.get());
   },
 
   updateEnvironments(environments = []) {
@@ -173,7 +90,7 @@ const GlobalSelectionStore = Reflux.createStore({
       ...this.selection,
       environments,
     };
-    this.trigger(this.selection);
+    this.trigger(this.get());
   },
 
   /**
