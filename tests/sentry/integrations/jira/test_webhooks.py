@@ -168,6 +168,7 @@ class JiraWebhooksTest(APITestCase):
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             assert mock_sync_group_assignee_inbound.called
+            assert len(responses.calls) == 1
 
     @patch("sentry.integrations.jira.webhooks.sync_group_assignee_inbound")
     def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
