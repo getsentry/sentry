@@ -13,7 +13,7 @@ import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import Badge from 'app/components/badge';
+import Tag from 'app/views/settings/components/tag';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion} from 'app/utils/formatters';
@@ -72,7 +72,7 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
                         version
                       )}&environment=${encodeURIComponent(deploy.environment)}`}
                     >
-                      <StyledBadge text={deploy.environment} />
+                      <StyledBadge>{deploy.environment}</StyledBadge>
                     </Link>
                   </Tooltip>
                 ))}
@@ -165,12 +165,16 @@ const StatsWrapper = styled('div')`
 const DeploysWrapper = styled('div')`
   display: flex;
   margin-top: ${space(0.5)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-wrap: wrap;
+  }
 `;
 
-const StyledBadge = styled(Badge)`
+const StyledBadge = styled(Tag)`
   background-color: ${p => p.theme.gray4};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  color: ${p => p.theme.white};
+  margin-left: ${space(0.5)};
 `;
 
 const ReleaseName = styled('div')`
