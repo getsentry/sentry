@@ -15,7 +15,7 @@ type Props = {
 };
 
 const ProjectReleaseDetails = ({release}: Props) => {
-  const {version, dateCreated, firstEvent, lastEvent} = release;
+  const {version, dateCreated, firstEvent, lastEvent, lastDeploy} = release;
 
   return (
     <Wrapper>
@@ -28,6 +28,15 @@ const ProjectReleaseDetails = ({release}: Props) => {
               <DateTime date={dateCreated} seconds={false} />
             </TagValue>
           </StyledTr>
+
+          {lastDeploy?.dateFinished && (
+            <StyledTr>
+              <TagKey>{t('Last Deploy')}</TagKey>
+              <TagValue>
+                <DateTime date={lastDeploy.dateFinished} seconds={false} />
+              </TagValue>
+            </StyledTr>
+          )}
 
           <StyledTr>
             <TagKey>{t('Version')}</TagKey>
