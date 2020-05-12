@@ -14,13 +14,18 @@ import {defaultSuggestions as sourceDefaultSuggestions} from './dataPrivacyRules
 import DataPrivacyRulesModal from './dataPrivacyRulesModal';
 import DataPrivacyRulesPanelContent from './dataPrivacyRulesContent';
 import {RuleType, MethodType, EventIdStatus} from './dataPrivacyRulesForm/types';
+import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
+type DataPrivacyRulesPanelFormProps = React.ComponentProps<
+  typeof DataPrivacyRulesPanelForm
+>;
 type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
 type Rule = NonNullable<ModalProps['rule']>;
 type SourceSuggestions = ModalProps['sourceSuggestions'];
+type Errors = DataPrivacyRulesPanelFormProps['errors'];
 
 type PiiConfig = {
   type: RuleType;
@@ -194,9 +199,10 @@ class DataPrivacyRules extends React.Component<Props, State> {
     }
   };
 
-  handleSubmit = async () => {
+  handleSubmit = async (rules: Array<Rule>) => {
     const {endpoint} = this.props;
-    const {rules} = this.state;
+
+    const errors: Errors = {};
 
     let customRulesCounter = 0;
     const applications: Applications = {};
@@ -234,7 +240,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
     const relayPiiConfig = JSON.stringify(piiConfig);
 
-    await this.api
+    return await this.api
       .requestPromise(endpoint, {
         method: 'PUT',
         data: {relayPiiConfig},
@@ -246,77 +252,94 @@ class DataPrivacyRules extends React.Component<Props, State> {
       })
       .then(() => {
         addSuccessMessage(t('Successfully saved data privacy rules'));
+        return undefined;
       })
       .catch(error => {
         const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
         if (!errorMessage) {
           addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
-          return;
+          return undefined;
         }
 
         if (errorMessage.startsWith('invalid selector: ')) {
           for (const line of errorMessage.split('\n')) {
             if (line.startsWith('1 | ')) {
               const selector = line.slice(3);
-              addErrorMessage(t('Invalid selector: %s', selector));
+              errors.source = t('Invalid source value: %s', selector);
               break;
             }
           }
-          return;
+          return {
+            errors,
+          };
         }
 
         if (errorMessage.startsWith('regex parse error:')) {
           for (const line of errorMessage.split('\n')) {
             if (line.startsWith('error:')) {
               const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
-              addErrorMessage(t('Invalid regex: %s', regex));
+              errors.customRegularExpression = t('Invalid regex: %s', regex);
               break;
             }
           }
-          return;
+          return {
+            errors,
+          };
         }
 
         addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
+        return undefined;
       });
   };
 
-  handleAddRule = (newRule: Rule) => {
-    this.setState(
-      prevState => ({
-        rules: [
-          ...prevState.rules,
-          {
-            ...newRule,
-            id: prevState.rules.length + 1,
-          },
-        ],
-      }),
-      this.handleSubmit
-    );
+  handleAddRule = async (rule: Rule) => {
+    const newRule = {
+      ...rule,
+      id: this.state.rules.length,
+    };
+
+    const rules = [...this.state.rules, newRule];
+
+    return await this.handleSubmit(rules).then(result => {
+      if (!result) {
+        this.setState({
+          rules,
+        });
+        return undefined;
+      }
+      return result;
+    });
   };
 
-  handleDeleteRule = (rulesToBeDeleted: Array<Rule['id']>) => {
-    this.setState(
-      prevState => ({
-        rules: prevState.rules.filter(rule => !rulesToBeDeleted.includes(rule.id)),
-      }),
-      this.handleSubmit
-    );
+  handleUpdateRule = async (updatedRule: Rule) => {
+    const rules = this.state.rules.map(rule => {
+      if (rule.id === updatedRule.id) {
+        return updatedRule;
+      }
+      return rule;
+    });
+
+    return await this.handleSubmit(rules).then(result => {
+      if (!result) {
+        this.setState({
+          rules,
+        });
+        return undefined;
+      }
+      return result;
+    });
   };
 
-  handleUpdateRule = (updatedRule: Rule) => {
-    this.setState(
-      prevState => ({
-        rules: prevState.rules.map(rule => {
-          if (rule.id === updatedRule.id) {
-            return updatedRule;
-          }
-          return rule;
-        }),
-      }),
-      this.handleSubmit
-    );
+  handleDeleteRule = async (rulesToBeDeleted: Array<Rule['id']>) => {
+    const rules = this.state.rules.filter(rule => !rulesToBeDeleted.includes(rule.id));
+    await this.handleSubmit(rules).then(result => {
+      if (!result) {
+        this.setState({
+          rules,
+        });
+      }
+    });
   };
 
   handleToggleAddRuleModal = (showAddRuleModal: boolean) => () => {
