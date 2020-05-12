@@ -131,4 +131,4 @@ add = default_manager.add
 get = default_manager.get
 has = default_manager.has
 all = default_manager.all
-build_checker = default_manager.build_checker
+add_handler = default_manager.add_handler
