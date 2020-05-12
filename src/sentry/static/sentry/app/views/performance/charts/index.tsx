@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getInterval} from 'app/components/charts/utils';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import {QuestionTooltip} from 'app/components/charts/styles';
+import QuestionTooltip from 'app/components/questionTooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -102,10 +102,16 @@ class Container extends React.Component<Props> {
               <React.Fragment>
                 <HeaderContainer>
                   {YAXIS_OPTIONS.map(option => (
-                    <HeaderTitle key={option.label}>
-                      {option.label}
-                      <QuestionTooltip position="top" size="sm" title={option.tooltip} />
-                    </HeaderTitle>
+                    <div key={option.label}>
+                      <HeaderTitle>
+                        {option.label}
+                        <QuestionTooltip
+                          position="top"
+                          size="sm"
+                          title={option.tooltip}
+                        />
+                      </HeaderTitle>
+                    </div>
                   ))}
                 </HeaderContainer>
                 {getDynamicText({

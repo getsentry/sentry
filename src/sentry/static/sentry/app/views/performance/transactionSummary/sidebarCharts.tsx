@@ -10,7 +10,8 @@ import EventView from 'app/utils/discover/eventView';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {SectionHeading, QuestionTooltip} from 'app/components/charts/styles';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {SectionHeading} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import {getInterval} from 'app/components/charts/utils';
@@ -219,8 +220,6 @@ const RelativeBox = styled('div')`
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`
   background: ${p => p.theme.white};
-  display: flex;
-  align-items: center;
   position: absolute;
   top: ${p => p.top};
   margin: 0;

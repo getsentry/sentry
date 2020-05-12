@@ -14,16 +14,18 @@ class ScoreBar extends React.Component {
     paletteClassNames: PropTypes.arrayOf(PropTypes.string),
     size: PropTypes.number,
     thickness: PropTypes.number,
+    radius: PropTypes.number,
   };
 
   static defaultProps = {
     size: 40,
     thickness: 4,
+    radius: 3,
     palette: theme.similarity.colors,
   };
 
   render() {
-    const {className, vertical, palette, score, size, thickness} = this.props;
+    const {className, vertical, palette, score, size, thickness, radius} = this.props;
     const maxScore = palette.length;
 
     // Make sure score is between 0 and maxScore
@@ -36,6 +38,7 @@ class ScoreBar extends React.Component {
       vertical,
       thickness,
       size,
+      radius,
     };
 
     return (
@@ -63,7 +66,7 @@ const StyledScoreBar = styled(ScoreBar)`
 `;
 
 const Bar = styled('div')`
-  border-radius: 3px;
+  border-radius: ${p => p.radius}px;
   margin: 2px;
   ${p => p.empty && `background-color: ${p.theme.similarity.empty};`};
   ${p => p.color && `background-color: ${p.color};`};
@@ -72,5 +75,4 @@ const Bar = styled('div')`
   height: ${p => (!p.vertical ? p.size : p.thickness)}px;
 `;
 
-export {Bar, StyledScoreBar};
 export default StyledScoreBar;

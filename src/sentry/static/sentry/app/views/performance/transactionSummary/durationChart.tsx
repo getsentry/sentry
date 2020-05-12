@@ -10,7 +10,7 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {QuestionTooltip} from 'app/components/charts/styles';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import EventsRequest from 'app/views/events/utils/eventsRequest';

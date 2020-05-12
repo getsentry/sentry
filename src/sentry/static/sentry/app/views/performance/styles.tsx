@@ -28,14 +28,17 @@ export const HeaderContainer = styled('div')`
   padding: ${space(2)} ${space(1.5)};
 `;
 
-export const HeaderTitle = styled('div')`
+export const HeaderTitle = styled('h3')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1.5)};
+  align-items: center;
+
   font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: normal;
+  line-height: 1.2;
   color: ${p => p.theme.gray4};
   padding: 0 ${space(1)};
-
-  span {
-    vertical-align: middle;
-  }
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`
