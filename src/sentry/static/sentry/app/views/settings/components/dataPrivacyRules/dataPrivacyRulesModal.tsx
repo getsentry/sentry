@@ -16,6 +16,7 @@ const DEFAULT_RULE_SOURCE_VALUE = '';
 type FormProps = React.ComponentProps<typeof DataPrivacyRulesPanelForm>;
 type Rule = FormProps['rule'];
 type Errors = FormProps['errors'];
+type Error = keyof Errors;
 
 type Props = Pick<
   FormProps,
@@ -33,7 +34,7 @@ type State = {
 };
 
 class DataPrivacyRulesModal extends React.Component<Props, State> {
-  state = {
+  state: State = {
     rule: {
       id: defined(this.props.rule?.id) ? this.props.rule?.id! : -1,
       type: this.props.rule?.type || RuleType.CREDITCARD,
@@ -45,17 +46,59 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
     errors: {},
   };
 
-  handleChange = (updatedRule: Rule) => {
+  clearError = (error: Error) => {
+    this.setState(prevState => ({
+      errors: omit(prevState.errors, error),
+    }));
+  };
+
+  handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
+    const rule: Rule = {
+      ...this.state.rule,
+      [stateProperty]: value,
+    };
+
+    if (rule.type !== RuleType.PATTERN) {
+      delete rule?.customRegularExpression;
+      this.clearError('customRegularExpression');
+    }
+
+    if (stateProperty === 'customRegularExpression' || stateProperty === 'source') {
+      this.clearError(stateProperty as Error);
+    }
+
     this.setState(
       {
-        rule: updatedRule,
-        errors: {},
+        rule,
       },
-      this.handleValidate
+      this.handleValidateForm
     );
   };
 
-  handleValidate = () => {
+  handleValidation = <T extends keyof Errors>(field: T) => () => {
+    const isFieldValueEmpty = !this.state.rule[field];
+    const fieldErrorAlreadyExist = this.state.errors[field];
+
+    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
+      return;
+    }
+
+    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
+      this.setState(prevState => ({
+        errors: {
+          ...prevState.errors,
+          [field]: t('Field Required'),
+        },
+      }));
+      return;
+    }
+
+    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
+      this.clearError(field);
+    }
+  };
+
+  handleValidateForm = () => {
     const {rule} = this.state;
 
     const ruleKeys = Object.keys(omit(rule, 'id'));
@@ -94,6 +137,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
         <Modal.Body>
           <DataPrivacyRulesPanelForm
             onChange={this.handleChange}
+            onValidate={this.handleValidation}
             sourceSuggestions={sourceSuggestions}
             rule={rule}
             disabled={disabled}
