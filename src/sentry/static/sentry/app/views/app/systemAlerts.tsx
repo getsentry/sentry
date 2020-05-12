@@ -4,16 +4,17 @@ import Reflux from 'reflux';
 import {ThemeProvider} from 'emotion-theming';
 
 import AlertStore from 'app/stores/alertStore';
-import AlertMessage from 'app/components/alertMessage';
 import theme from 'app/utils/theme';
 
-type Alert = React.ComponentProps<typeof AlertMessage>['alert'];
+import AlertMessage from './alertMessage';
 
+type Props = {className?: string};
+type Alert = React.ComponentProps<typeof AlertMessage>['alert'];
 type State = {
   alerts: Array<Alert>;
 };
 
-const Alerts = createReactClass<{}, State>({
+const Alerts = createReactClass<Props, State>({
   displayName: 'Alerts',
   mixins: [Reflux.connect(AlertStore, 'alerts') as any],
 
@@ -24,12 +25,13 @@ const Alerts = createReactClass<{}, State>({
   },
 
   render() {
+    const {className} = this.props;
     const alerts = this.state.alerts as Array<Alert>;
     return (
       <ThemeProvider theme={theme}>
-        <div {...this.props}>
-          {alerts.map(alert => (
-            <AlertMessage alert={alert} key={alert.id} system />
+        <div className={className}>
+          {alerts.map((alert, index) => (
+            <AlertMessage alert={alert} key={`${alert.id}-${index}`} system />
           ))}
         </div>
       </ThemeProvider>

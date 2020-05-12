@@ -38,6 +38,7 @@ type Options = {
    */
   resetParams?: string[];
   save?: boolean;
+  keepCursor?: boolean;
 };
 
 /**
@@ -204,7 +205,9 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router);
+  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+    keepCursor: true,
+  });
 }
 
 /**
@@ -330,7 +333,7 @@ export function updateParamsWithoutHistory(
 
 /**
  * Creates a new query parameter object given new params and old params
- * Preserves the old query params, except for `cursor`
+ * Preserves the old query params, except for `cursor` (can be overriden with keepCursor option)
  *
  * @param obj New query params
  * @param oldQueryParams Old query params
@@ -339,10 +342,9 @@ export function updateParamsWithoutHistory(
 function getNewQueryParams(
   obj: UrlParams,
   oldQueryParams: UrlParams,
-  {resetParams}: Options = {}
+  {resetParams, keepCursor}: Options = {}
 ) {
-  // Reset cursor when changing parameters
-  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
     : oldQuery;
@@ -362,13 +364,17 @@ function getNewQueryParams(
     newQuery.end = getUtcDateString(newQuery.end);
   }
 
+  if (keepCursor) {
+    newQuery.cursor = cursor;
+  }
+
   return newQuery;
 }
 
 function getParams(params: UrlParams): UrlParams {
   const {start, end, period, statsPeriod, ...otherParams} = params;
 
-  // `statsPeriod` takes precendence for now
+  // `statsPeriod` takes precedence for now
   const coercedPeriod = statsPeriod || period;
 
   // Filter null values

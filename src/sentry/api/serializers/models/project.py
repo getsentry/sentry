@@ -51,6 +51,8 @@ STATS_PERIOD_CHOICES = {
     "24h": StatsPeriod(24, timedelta(hours=1)),
 }
 
+_PROJECT_SCOPE_PREFIX = "projects:"
+
 
 @register(Project)
 class ProjectSerializer(Serializer):
@@ -156,38 +158,37 @@ class ProjectSerializer(Serializer):
             result = self.get_access_by_project(item_list, user)
 
         with measure_span("features"):
-            project_features = features.all(feature_type=ProjectFeature).keys()
-            feature_checker = features.build_checker()
-            for item in item_list:
-                result[item]["features"] = self.get_feature_list(
-                    item, user, project_features, feature_checker
-                )
+            project_features = [
+                feature_name
+                for feature_name in features.all(feature_type=ProjectFeature).keys()
+                if feature_name.startswith(_PROJECT_SCOPE_PREFIX)
+            ]
+            for project, serialized in result.items():
+                serialized["features"] = self._get_feature_list(project, user, project_features)
 
         with measure_span("other"):
-            for item in item_list:
-                result[item].update(
+            for project, serialized in result.items():
+                serialized.update(
                     {
-                        "is_bookmarked": item.id in bookmarks,
+                        "is_bookmarked": project.id in bookmarks,
                         "is_subscribed": bool(
-                            user_options.get((item.id, "mail:alert"), default_subscribe)
+                            user_options.get((project.id, "mail:alert"), default_subscribe)
                         ),
-                        "avatar": avatars.get(item.id),
-                        "platforms": platforms_by_project[item.id],
+                        "avatar": avatars.get(project.id),
+                        "platforms": platforms_by_project[project.id],
                     }
                 )
                 if stats:
-                    result[item]["stats"] = stats[item.id]
+                    serialized["stats"] = stats[project.id]
         return result
 
-    def get_feature_list(self, obj, user, project_features, feature_checker):
-        feature_list = set()
-
-        for feature_name in project_features:
-            if not feature_name.startswith("projects:"):
-                continue
-            if feature_checker.has(feature_name, obj, actor=user):
-                # Remove the project scope prefix
-                feature_list.add(feature_name[len("projects:") :])
+    @staticmethod
+    def _get_feature_list(obj, user, project_features):
+        feature_list = set(
+            feature_name[len(_PROJECT_SCOPE_PREFIX) :]  # Remove the project scope prefix
+            for feature_name in project_features
+            if features.has(feature_name, obj, actor=user)
+        )
 
         if obj.flags.has_releases:
             feature_list.add("releases")

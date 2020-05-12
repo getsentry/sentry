@@ -72,7 +72,7 @@ class BatchingKafkaConsumer(object):
     * Messages are processed locally (e.g. not written to an external datastore!) as they are
       read from Kafka, then added to an in-memory batch
     * Batches are flushed based on the batch size or time sent since the first message
-      in the batch was recieved (e.g. "500 items or 1000ms")
+      in the batch was received (e.g. "500 items or 1000ms")
     * Kafka offsets are not automatically committed! If they were, offsets might be committed
       for messages that are still sitting in an in-memory batch, or they might *not* be committed
       when messages are sent to an external datastore right before the consumer process dies

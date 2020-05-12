@@ -16,7 +16,7 @@ BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 
 class BitbucketAPIPath(object):
     """
-    All UUID's must be surrounded by culybraces.
+    All UUID's must be surrounded by curlybraces.
 
     repo is the fully qualified slug containing 'username/repo_slug'
 

@@ -1069,6 +1069,12 @@ SENTRY_QUOTA_OPTIONS = {}
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
+# Which cache to use for debouncing cache updates to the projectconfig cache
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
+    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
+)
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
+
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
@@ -1793,6 +1799,11 @@ KAFKA_TOPICS = {
     # Topic for receiving transaction events (APM events) from Relay
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
+
+# For Jira, only approved apps can use the access_email_addresses scope
+# This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
+# We use the email with Jira 2-way sync in order to match the user
+JIRA_USE_EMAIL_SCOPE = False
 
 """
 Fields are:

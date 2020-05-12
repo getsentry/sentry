@@ -26,6 +26,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 params = self.get_filter_params(request, organization)
             except NoProjects:
                 return Response({"count": 0})
+            params = self.quantize_date_params(request, params)
 
         try:
             result = discover.query(
