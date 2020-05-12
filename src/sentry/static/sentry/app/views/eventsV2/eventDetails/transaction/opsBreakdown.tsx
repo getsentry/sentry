@@ -8,7 +8,8 @@ import {
   RawSpanType,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
-import {QuestionTooltip, SectionHeading} from 'app/components/charts/styles';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
