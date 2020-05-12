@@ -8,11 +8,11 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
 
-class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
+class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-tagkey-values"
 
     def setUp(self):
-        super(OrganizationTagKeyValuesTest, self).setUp()
+        super(OrganizationTagKeyTestCase, self).setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         user = self.create_user()
@@ -22,10 +22,10 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
     def get_response(self, key, **kwargs):
-        return super(OrganizationTagKeyValuesTest, self).get_response(self.org.slug, key)
+        return super(OrganizationTagKeyTestCase, self).get_response(self.org.slug, key, **kwargs)
 
-    def run_test(self, key, expected):
-        response = self.get_valid_response(key)
+    def run_test(self, key, expected, **kwargs):
+        response = self.get_valid_response(key, **kwargs)
         assert [(val["value"], val["count"]) for val in response.data] == expected
 
     @fixture
@@ -36,6 +36,8 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
     def group(self):
         return self.create_group(project=self.project)
 
+
+class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):
         self.store_event(
             data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
@@ -154,24 +156,74 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_no_projects(self):
         self.run_test("fruit", expected=[])
 
-    def test_transaction_tags(self):
+
+class TransactionTagKeyValues(OrganizationTagKeyTestCase):
+    def setUp(self):
+        super(TransactionTagKeyValues, self).setUp()
         data = load_data("transaction")
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(
             data, project_id=self.project.id,
         )
-        transaction = data.copy()
-        transaction["timestamp"] = iso_format(before_now(seconds=30))
-        transaction["start_timestamp"] = iso_format(before_now(seconds=35))
-        transaction["contexts"]["trace"]["status"] = "invalid_argument"
-        self.store_event(
-            transaction, project_id=self.project.id,
+        self.transaction = data.copy()
+        self.transaction.update(
+            {
+                "transaction": "/city_by_code/",
+                "timestamp": iso_format(before_now(seconds=30)),
+                "start_timestamp": iso_format(before_now(seconds=35)),
+            }
         )
-        self.run_test("transaction.status", expected=[("invalid_argument", 1), ("ok", 1)])
-        self.run_test("transaction.op", expected=[(transaction["contexts"]["trace"]["op"], 2)])
-        self.run_test("transaction.duration", expected=[("5000", 2)])
-        self.run_test("transaction", expected=[(transaction["transaction"], 2)])
+        self.transaction["contexts"]["trace"].update(
+            {"status": "unknown_error", "parent_span_id": "9000cec7cc0779c1", "op": "bar.server"}
+        )
+        self.store_event(
+            self.transaction, project_id=self.project.id,
+        )
+
+    def test_status(self):
+        self.run_test("transaction.status", expected=[("unknown_error", 1), ("ok", 1)])
         self.run_test(
-            "trace.parent_span", expected=[(transaction["contexts"]["trace"]["parent_span_id"], 2)]
+            "transaction.status",
+            qs_params={"query": "o"},
+            expected=[("unknown_error", 1), ("ok", 1)],
+        )
+        self.run_test(
+            "transaction.status", qs_params={"query": "ow"}, expected=[("unknown_error", 1)]
+        )
+
+    def test_op(self):
+        self.run_test("transaction.op", expected=[("bar.server", 1), ("foobar", 1)])
+        self.run_test(
+            "transaction.op",
+            qs_params={"query": "bar"},
+            expected=[("bar.server", 1), ("foobar", 1)],
+        )
+        self.run_test("transaction.op", qs_params={"query": "server"}, expected=[("bar.server", 1)])
+
+    def test_duration(self):
+        self.run_test("transaction.duration", expected=[("5000", 2)])
+        self.run_test("transaction.duration", qs_params={"query": "5001"}, expected=[("5000", 2)])
+        self.run_test("transaction.duration", qs_params={"query": "50"}, expected=[])
+
+    def test_transaction_title(self):
+        self.run_test("transaction", expected=[("/city_by_code/", 1), ("/country_by_code/", 1)])
+        self.run_test(
+            "transaction",
+            qs_params={"query": "by_code"},
+            expected=[("/city_by_code/", 1), ("/country_by_code/", 1)],
+        )
+        self.run_test("transaction", qs_params={"query": "city"}, expected=[("/city_by_code/", 1)])
+
+    def test_parent_span(self):
+        self.run_test(
+            "trace.parent_span", expected=[("9000cec7cc0779c1", 1), ("8988cec7cc0779c1", 1)]
+        )
+        self.run_test(
+            "trace.parent_span",
+            qs_params={"query": "cec7cc"},
+            expected=[("9000cec7cc0779c1", 1), ("8988cec7cc0779c1", 1)],
+        )
+        self.run_test(
+            "trace.parent_span", qs_params={"query": "9000"}, expected=[("9000cec7cc0779c1", 1)]
         )
