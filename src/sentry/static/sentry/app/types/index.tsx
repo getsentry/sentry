@@ -157,17 +157,6 @@ export type Project = {
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
 
-export type ProjectRelease = {
-  version: string;
-  dateCreated: string;
-  dateReleased: string | null;
-  commitCount: number;
-  authors: User[];
-  newGroups: number;
-  healthData: Health | null;
-  project: ReleaseProject;
-};
-
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;
@@ -900,6 +889,7 @@ export type ReleaseProject = {
   id: number;
   platform: string;
   platforms: string[];
+  newGroups: number;
   healthData: Health;
 };
 
