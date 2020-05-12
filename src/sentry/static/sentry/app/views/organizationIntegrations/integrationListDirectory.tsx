@@ -52,7 +52,6 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 
 type State = {
   integrations: Integration[];
-  newlyInstalledIntegrationId: string;
   plugins: PluginWithProjectList[];
   appInstalls: SentryAppInstallation[];
   orgOwnedApps: SentryApp[];
