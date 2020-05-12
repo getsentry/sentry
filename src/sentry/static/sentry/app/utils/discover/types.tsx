@@ -6,6 +6,8 @@ export enum DisplayModes {
   PREVIOUS = 'previous',
   RELEASES = 'releases',
   TOP5 = 'top5',
+  DAILY = 'daily',
+  DAILYTOP5 = 'dailytop5',
 }
 
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
@@ -13,6 +15,8 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
   {value: DisplayModes.RELEASES, label: t('Release Markers')},
   {value: DisplayModes.TOP5, label: t('Top 5 Breakdown')},
+  {value: DisplayModes.DAILY, label: t('Bar (Daily Total)')},
+  {value: DisplayModes.DAILYTOP5, label: t('Top 5 (Daily Total)')},
 ];
 
 // default list of yAxis options
