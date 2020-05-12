@@ -28,6 +28,7 @@ const Label = styled('div')`
   color: ${p => p.theme.gray2};
   line-height: 1.3;
   margin-bottom: ${space(0.25)};
+  white-space: nowrap;
 `;
 const Value = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};

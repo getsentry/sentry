@@ -13,7 +13,7 @@ import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import Badge from 'app/components/badge';
+import Tag from 'app/views/settings/components/tag';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion} from 'app/utils/formatters';
@@ -32,7 +32,7 @@ type Props = {
 
 const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
   const {version, newGroups, url} = release;
-  const {healthData} = project;
+  const {hasHealthData, sessionsCrashed} = project.healthData;
 
   const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
 
@@ -72,26 +72,22 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
                         version
                       )}&environment=${encodeURIComponent(deploy.environment)}`}
                     >
-                      <StyledBadge text={deploy.environment} />
+                      <StyledBadge>{deploy.environment}</StyledBadge>
                     </Link>
                   </Tooltip>
                 ))}
               </DeploysWrapper>
             </ReleaseStat>
           )}
-          {healthData?.hasHealthData && (
+          {hasHealthData && (
             <ReleaseStat label={t('Crashes')}>
-              <Count value={healthData?.sessionsCrashed ?? 0} />
+              <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions
-            version={version}
-            orgId={orgId}
-            hasHealthData={healthData?.hasHealthData}
-          />
+          <ReleaseActions version={version} orgId={orgId} hasHealthData={hasHealthData} />
         </StatsWrapper>
       </Layout>
 
@@ -166,12 +162,16 @@ const StatsWrapper = styled('div')`
 const DeploysWrapper = styled('div')`
   display: flex;
   margin-top: ${space(0.5)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-wrap: wrap;
+  }
 `;
 
-const StyledBadge = styled(Badge)`
+const StyledBadge = styled(Tag)`
   background-color: ${p => p.theme.gray4};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  color: ${p => p.theme.white};
+  margin-left: ${space(0.5)};
 `;
 
 const ReleaseName = styled('div')`
