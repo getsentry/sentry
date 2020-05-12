@@ -521,3 +521,21 @@ class DataCategory(IntEnum):
 
     def api_name(self):
         return self.name.lower()
+
+
+# org option default values
+PROJECT_RATE_LIMIT_DEFAULT = 100
+ACCOUNT_RATE_LIMIT_DEFAULT = 0
+REQUIRE_SCRUB_DATA_DEFAULT = False
+REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
+SENSITIVE_FIELDS_DEFAULT = None
+SAFE_FIELDS_DEFAULT = None
+ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
+EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
+REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
+SCRAPE_JAVASCRIPT_DEFAULT = True
+TRUSTED_RELAYS_DEFAULT = None
+JOIN_REQUESTS_DEFAULT = True
+
+# `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
+EVENTS_MEMBER_ADMIN_DEFAULT = True

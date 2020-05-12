@@ -98,6 +98,7 @@ export type OrganizationSummary = {
 export type LightWeightOrganization = OrganizationSummary & {
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {

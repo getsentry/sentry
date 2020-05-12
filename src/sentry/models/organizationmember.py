@@ -17,6 +17,7 @@ from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
 from sentry import roles
+from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -342,7 +343,14 @@ class OrganizationMember(Model):
         )
 
     def get_scopes(self):
-        return roles.get(self.role).scopes
+        scopes = roles.get(self.role).scopes
+
+        if self.role == "member" and not self.organization.get_option(
+            "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
+        ):
+            scopes = frozenset(s for s in scopes if s != "event:admin")
+
+        return scopes
 
     @classmethod
     def delete_expired(cls, threshold):

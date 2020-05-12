@@ -78,6 +78,12 @@ ORG_OPTIONS = (
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
+        "eventsMemberAdmin",
+        "sentry:events_member_admin",
+        bool,
+        org_serializers.EVENTS_MEMBER_ADMIN_DEFAULT,
+    ),
+    (
         "scrubIPAddresses",
         "sentry:require_scrub_ip_address",
         bool,
@@ -135,6 +141,7 @@ class OrganizationSerializer(serializers.Serializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
     attachmentsRole = serializers.CharField(required=True)
+    eventsMemberAdmin = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)

@@ -63,6 +63,25 @@ const formGroups: JsonFormObject[] = [
         label: t('Open Membership'),
         help: t('Allow organization members to freely join or leave any team'),
       },
+      {
+        name: 'eventsMemberAdmin',
+        type: 'boolean',
+        label: t('Grant Members Events Admin'),
+        help: t(
+          'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
+        ),
+      },
+      {
+        name: 'attachmentsRole',
+        type: 'array',
+        choices: ({initialData = {}}) =>
+          initialData?.availableRoles?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+        label: t('Attachments Access'),
+        help: t(
+          'Permissions required to download event attachments, such as native crash reports or log files.'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
     ],
   },
 ];

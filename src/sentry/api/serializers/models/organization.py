@@ -2,13 +2,26 @@ from __future__ import absolute_import
 
 import six
 
-from django.conf import settings
-
 from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
+from sentry.constants import (
+    LEGACY_RATE_LIMIT_OPTIONS,
+    PROJECT_RATE_LIMIT_DEFAULT,
+    ACCOUNT_RATE_LIMIT_DEFAULT,
+    REQUIRE_SCRUB_DATA_DEFAULT,
+    REQUIRE_SCRUB_DEFAULTS_DEFAULT,
+    SENSITIVE_FIELDS_DEFAULT,
+    SAFE_FIELDS_DEFAULT,
+    ATTACHMENTS_ROLE_DEFAULT,
+    REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    SCRAPE_JAVASCRIPT_DEFAULT,
+    TRUSTED_RELAYS_DEFAULT,
+    JOIN_REQUESTS_DEFAULT,
+    EVENTS_MEMBER_ADMIN_DEFAULT,
+)
+
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     ApiKey,
@@ -23,19 +36,6 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
-
-# org option default values
-PROJECT_RATE_LIMIT_DEFAULT = 100
-ACCOUNT_RATE_LIMIT_DEFAULT = 0
-REQUIRE_SCRUB_DATA_DEFAULT = False
-REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
-SENSITIVE_FIELDS_DEFAULT = None
-SAFE_FIELDS_DEFAULT = None
-ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
-REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
-SCRAPE_JAVASCRIPT_DEFAULT = True
-TRUSTED_RELAYS_DEFAULT = None
-JOIN_REQUESTS_DEFAULT = True
 
 
 @register(Organization)
@@ -192,6 +192,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "attachmentsRole": six.text_type(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
+                ),
+                "eventsMemberAdmin": bool(
+                    obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
                 ),
                 "scrubIPAddresses": bool(
                     obj.get_option(
