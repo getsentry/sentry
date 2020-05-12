@@ -195,7 +195,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             )}
           </FormField>
 
-          <Feature features={['performance_alerts']}>
+          <Feature features={['performance-alerts']}>
             {({hasFeature}) =>
               hasFeature ? (
                 <Field
