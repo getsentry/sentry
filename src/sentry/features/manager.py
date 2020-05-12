@@ -48,9 +48,8 @@ class FeatureManager(object):
         """
         Register a feature handler.
 
-        The passed object is a FeatureHandler that is not associated with any
-        one feature name, but will be applied to every flag that the ``has``
-        method checks.
+        The passed object is a FeatureHandler that is associated with all
+        features defined in the ``handler.features`` property.
         """
         for feature_name in handler.features:
             self._handler_registry[feature_name].append(handler)
