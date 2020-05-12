@@ -85,7 +85,7 @@ export const displayCrashFreePercent = (
 
 export const convertAdoptionToProgress = (
   percent: number,
-  numberOfProgressUnits = 5
+  numberOfProgressUnits = 10
 ): number => Math.ceil((percent * numberOfProgressUnits) / 100);
 
 type ProgressRingColorFn = React.ComponentProps<typeof ProgressRing>['progressColor'];

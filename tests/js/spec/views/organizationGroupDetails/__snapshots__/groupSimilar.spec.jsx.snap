@@ -1686,6 +1686,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     "#57be8c",
                                   ]
                                 }
+                                radius={3}
                                 score={4}
                                 size={40}
                                 thickness={4}
@@ -1702,6 +1703,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       "#57be8c",
                                     ]
                                   }
+                                  radius={3}
                                   score={4}
                                   size={40}
                                   thickness={4}
@@ -1713,6 +1715,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     <Bar
                                       color="#98b480"
                                       key="0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1720,12 +1723,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1733,12 +1738,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1746,12 +1753,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1759,18 +1768,21 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
@@ -1812,6 +1824,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     "#57be8c",
                                   ]
                                 }
+                                radius={3}
                                 score={0}
                                 size={40}
                                 thickness={4}
@@ -1828,6 +1841,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       "#57be8c",
                                     ]
                                   }
+                                  radius={3}
                                   score={0}
                                   size={40}
                                   thickness={4}
@@ -1839,60 +1853,70 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-4"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
