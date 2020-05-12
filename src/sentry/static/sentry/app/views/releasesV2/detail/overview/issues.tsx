@@ -178,19 +178,19 @@ class Issues extends React.Component<Props, State> {
 
           <ButtonBar gap={1}>
             <Feature features={['discover-basic']}>
-              <StyledButton to={this.getDiscoverUrl()}>
+              <OpenInButton to={this.getDiscoverUrl()}>
                 {t('Open in Discover')}
-              </StyledButton>
+              </OpenInButton>
             </Feature>
 
-            <StyledButton
+            <OpenInButton
               to={{
                 pathname: `/organizations/${orgId}/issues/`,
                 query: {...queryParams, query: `first-release:${version}`},
               }}
             >
               {t('Open in Issues')}
-            </StyledButton>
+            </OpenInButton>
           </ButtonBar>
         </ControlsWrapper>
 
@@ -212,7 +212,7 @@ class Issues extends React.Component<Props, State> {
 
 // used in media query
 const FilterButton = styled(DropdownButton)``;
-const StyledButton = styled(Button)``;
+const OpenInButton = styled(Button)``;
 
 const ControlsWrapper = styled('div')`
   display: flex;
@@ -220,7 +220,7 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    ${FilterButton}, ${StyledButton} {
+    ${FilterButton}, ${OpenInButton} {
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
