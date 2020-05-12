@@ -14,7 +14,7 @@ from sentry.integrations import (
     IntegrationInstallation,
 )
 
-from sentry.models import Integration, Rule
+from sentry.models import Integration, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -199,33 +199,21 @@ class SlackReAuthIntro(PipelineView):
             pipeline.bind_state("integration_id", request.GET["integration_id"])
             pipeline.bind_state("user_id", request.user.id)
 
-            next_param = "?start_channel_verification"
+            all_channels = _get_channels_from_rules(pipeline)
+            pipeline.bind_state("all_channels", all_channels)
+
+            next_param = "?show_verification_results"
 
             return render_to_response(
                 template="sentry/integrations/slack-reauth-introduction.html",
                 context={
                     "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
-                    "is_loading": False,
                 },
                 request=request,
             )
 
         if "show_verification_results" in request.GET:
             return pipeline.next_step()
-
-        if "start_channel_verification" in request.GET:
-            next_param = "?show_verification_results"
-            all_channels = _get_channels_from_rules(pipeline)
-            pipeline.bind_state("all_channels", all_channels)
-
-            return render_to_response(
-                template="sentry/integrations/slack-reauth-details.html",
-                context={
-                    "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
-                    "is_loading": True,
-                },
-                request=request,
-            )
 
         # if we dont have the integration_id we dont care about the
         # migration path, skip straight to install
@@ -308,12 +296,14 @@ def _get_channels_from_rules(pipeline):
     integration_id = pipeline.fetch_state("integration_id")
 
     try:
-        integration = Integration.objects.get(id=integration_id, status=0, provider="slack",)
+        integration = Integration.objects.get(id=integration_id, provider="slack",)
     except Integration.DoesNotExist:
         # probably raise an IntegrationError here
         return
 
-    rules = Rule.objects.filter(project__in=organization.project_set.all(), status=0,)
+    rules = Rule.objects.filter(
+        project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
+    )
 
     channels = []
     for rule in rules:

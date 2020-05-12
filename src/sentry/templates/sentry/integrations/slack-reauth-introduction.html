@@ -26,16 +26,95 @@
     .section-info {
         font-size: 80%;
     }
+    .loader, .loader:after {
+        border-radius: 50%;
+        width: 10em;
+        height: 10em;
+    }
+    .loader {
+        margin: 60px auto;
+        font-size: 10px;
+        position: relative;
+        text-indent: -9999em;
+        border-top: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-right: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-bottom: 1.1em solid rgba(70, 67, 67, 0.2);
+        border-left: 1.1em solid #494343;
+        -webkit-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-animation: load8 1.1s infinite linear;
+        animation: load8 1.1s infinite linear;
+    }
+    @-webkit-keyframes load8 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+        }
+    }
+    @keyframes load8 {
+        0% {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+        }
+    }
   </style>
 {% endblock %}
 
-
 {% block main %}
-    <h3>Slack Migration: Introduction</h3>
-    <p>{% trans "We have to re-authenticate your slack integration, shouldn't be too bad." %}</p>
+<script>
+    function loading() {
+        document.getElementById("loader").setAttribute("class", "loader");
+    };
+</script>
+    <h3>Authorize New Sentry Slack App</h3>
+
+    <h5>Moving Off Slack's Legacy Workspace Apps</h5>
+    <strong>Was it worth it? When we work(space)d it.</strong>
+    <strong>We put our code down, flip it and reverse it.</strong>
+    <p>
+        {% blocktrans %}
+            Slack has deprecated their workspace apps which our integration
+            was previously built on. But not to worry, Sentry has built a new Slack app,
+            and a path for you to upgrade to this new app! In order to continue using
+            the Slack integration and your existing configuration, you will need to
+            authorize the new app in upcoming steps.
+        {% endblocktrans %}
+    </p>
+    <p>{% trans "If you want more details about the move, please visit our docs" %}</p>
+
+    <h5>Existing Alert Rule Configurations</h5>
+    <strong>We (may) interrupt your regularly scheduled programming...</strong>
+    <p>
+        {% blocktrans %}
+            If you aren't using any private channels in your alert rules, authorizing
+            the new Slack app will be all you need to do. However, if you <strong>do</strong>
+            have any private channels in your rule configurations, you'll have one extra
+            step after authorizing the new Slack app.
+        {% endblocktrans %}
+    </p>
+
+    <p>
+        {% blocktrans %}
+            But how do I know what channels are being used? Good question! This next step will
+            audit your alert rules to see if there are any private channels that require
+            attention after authenticating. Please note that if you have a high number
+            of slack channels in your alert rules this could take a hot minute...
+         {% endblocktrans %}
+     </p>
+
+    <div id="loader">Loading...</div>
     <div class="form-actions clearfix">
         <div class="pull-right">
-            <a class="btn btn-primary" href="{{ next_url }}">{% trans "Continue" %}</a>
+            <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Continue" %}</a>
         </div>
     </div>
 {% endblock %}
