@@ -15,6 +15,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
+import theme from 'app/utils/theme';
 
 import {
   Container,
@@ -293,7 +294,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
         );
       }
 
-      const palette = new Array(10).fill('#1a1772');
+      const palette = new Array(10).fill(theme.purpleDarkest);
       const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
       const miseryLimit = parseInt(userMiseryField.split('_').pop(), 10);
       const title = `${userMisery} out of ${uniqueUsers} unique users waited more than ${4 *
