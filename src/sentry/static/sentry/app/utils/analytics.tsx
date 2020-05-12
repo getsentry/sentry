@@ -62,7 +62,17 @@ export const analytics: Hooks['analytics:event'] = (name, data) =>
   HookStore.get('analytics:event').forEach(cb => cb(name, data));
 
 type RecordMetric = Hooks['metrics:event'] & {
-  mark: (name: string) => void;
+  mark: (opts: {
+    /**
+     * Name of the metric event
+     */
+    name: string;
+    /**
+     * Additional data that will be sent with measure()
+     * This is useful if you want to track initial state
+     */
+    data?: object;
+  }) => void;
 
   measure: (opts: {
     /**
@@ -78,7 +88,8 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     end?: string;
     /**
-     * Additional data to send with metric event
+     * Additional data to send with metric event.
+     * If a key collide with the data in mark(), this will overwrite them
      */
     data?: object;
     /**
@@ -87,6 +98,11 @@ type RecordMetric = Hooks['metrics:event'] & {
     noCleanup?: boolean;
   }) => void;
 };
+
+/**
+ * Used to pass data between metric.mark() and metric.measure()
+ */
+const metricDataStore = new Map<string, object>();
 
 /**
  * Record metrics.
@@ -102,20 +118,25 @@ const CAN_MARK =
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
 
-metric.mark = function metricMark(name) {
+metric.mark = function metricMark({name, data = {}}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
   }
 
+  if (!name) {
+    throw new Error('Invalid argument provided to `metric.mark`');
+  }
+
   window.performance.mark(name);
+  metricDataStore.set(name, data);
 };
 
 /**
  * Performs a measurement between `start` and `end` (or now if `end` is not
  * specified) Calls `metric` with `name` and the measured time difference.
  */
-metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}) {
+metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup} = {}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
@@ -143,16 +164,20 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
   }
 
   performance.measure(name, start, endMarkName);
+  const startData = metricDataStore.get(start) || {};
 
   // Retrieve measurement entries
   performance
     .getEntriesByName(name, 'measure')
-    .forEach(measurement => metric(measurement.name, measurement.duration, data));
+    .forEach(measurement =>
+      metric(measurement.name, measurement.duration, {...startData, ...data})
+    );
 
   // By default, clean up measurements
   if (!noCleanup) {
     performance.clearMeasures(name);
     performance.clearMarks(start);
     performance.clearMarks(endMarkName);
+    metricDataStore.delete(start);
   }
 };

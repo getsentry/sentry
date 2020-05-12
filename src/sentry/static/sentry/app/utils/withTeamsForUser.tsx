@@ -45,7 +45,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
       });
 
       try {
-        metric.mark('user-teams-fetch-start');
+        metric.mark({name: 'user-teams-fetch-start'});
         const teamsWithProjects: TeamWithProjects[] = await this.props.api.requestPromise(
           this.getUsersTeamsEndpoint()
         );

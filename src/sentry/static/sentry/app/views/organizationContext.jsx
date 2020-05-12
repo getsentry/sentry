@@ -176,7 +176,7 @@ const OrganizationContext = createReactClass({
       return;
     }
 
-    metric.mark('organization-details-fetch-start');
+    metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
