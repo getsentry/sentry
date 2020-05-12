@@ -149,9 +149,7 @@ class ReleasesList extends AsyncView<Props, State> {
     if (activeSort === 'users_24h') {
       return (
         <EmptyStateWarning small>
-          {t(
-            'There are no releases with active user data (users in the last 24 hours).'
-          )}
+          {t('There are no releases with active user data (users in the last 24 hours).')}
         </EmptyStateWarning>
       );
     }
