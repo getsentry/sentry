@@ -129,6 +129,18 @@ def process_event(message, projects):
 
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
+    #
+    # XXX(markus): I believe this code is extremely broken:
+    #
+    # * it practically uses memcached in prod which has no consistency
+    #   guarantees (no idea how we don't run into issues there)
+    #
+    # * a TTL of 1h basically doesn't guarantee any deduplication at all. It
+    #   just guarantees a good error message... for one hour.
+    #
+    # This code has been ripped from the old python store endpoint. We're
+    # keeping it around because it does provide some protection against
+    # reprocessing good events if a single consumer is in a restart loop.
     deduplication_key = "ev:{}:{}".format(project_id, event_id)
     if cache.get(deduplication_key) is not None:
         logger.warning(
