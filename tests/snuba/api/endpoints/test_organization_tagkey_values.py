@@ -5,6 +5,7 @@ from exam import fixture
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.samples import load_data
 
 
 class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
@@ -152,3 +153,25 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_no_projects(self):
         self.run_test("fruit", expected=[])
+
+    def test_transaction_tags(self):
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(
+            data, project_id=self.project.id,
+        )
+        transaction = data.copy()
+        transaction["timestamp"] = iso_format(before_now(seconds=30))
+        transaction["start_timestamp"] = iso_format(before_now(seconds=35))
+        transaction["contexts"]["trace"]["status"] = "invalid_argument"
+        self.store_event(
+            transaction, project_id=self.project.id,
+        )
+        self.run_test("transaction.status", expected=[("invalid_argument", 1), ("ok", 1)])
+        self.run_test("transaction.op", expected=[(transaction["contexts"]["trace"]["op"], 2)])
+        self.run_test("transaction.duration", expected=[("5000", 2)])
+        self.run_test("transaction", expected=[(transaction["transaction"], 2)])
+        self.run_test(
+            "trace.parent_span", expected=[(transaction["contexts"]["trace"]["parent_span_id"], 2)]
+        )
