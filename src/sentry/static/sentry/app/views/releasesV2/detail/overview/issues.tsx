@@ -178,19 +178,19 @@ class Issues extends React.Component<Props, State> {
 
           <ButtonBar gap={1}>
             <Feature features={['discover-basic']}>
-              <DiscoverButton to={this.getDiscoverUrl()}>
+              <StyledButton to={this.getDiscoverUrl()}>
                 {t('Open in Discover')}
-              </DiscoverButton>
+              </StyledButton>
             </Feature>
 
-            <IssuesButton
+            <StyledButton
               to={{
                 pathname: `/organizations/${orgId}/issues/`,
                 query: {...queryParams, query: `first-release:${version}`},
               }}
             >
               {t('Open in Issues')}
-            </IssuesButton>
+            </StyledButton>
           </ButtonBar>
         </ControlsWrapper>
 
@@ -212,8 +212,7 @@ class Issues extends React.Component<Props, State> {
 
 // used in media query
 const FilterButton = styled(DropdownButton)``;
-const DiscoverButton = styled(Button)``;
-const IssuesButton = styled(Button)``;
+const StyledButton = styled(Button)``;
 
 const ControlsWrapper = styled('div')`
   display: flex;
@@ -221,7 +220,7 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    ${FilterButton}, ${DiscoverButton}, ${IssuesButton} { /* stylelint-disable-line selector-type-no-unknown */
+    ${FilterButton}, ${StyledButton} {
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
@@ -229,7 +228,7 @@ const ControlsWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     ${FilterButton} {
-      margin-bottom: ${space(1)}
+      margin-bottom: ${space(1)};
     }
   }
 `;
