@@ -115,7 +115,7 @@ export default class AsyncComponent<
       hasMeasured: false,
     };
     if (props.routes && props.routes) {
-      metric.mark(`async-component-${getRouteStringFromRoutes(props.routes)}`);
+      metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
   }
 

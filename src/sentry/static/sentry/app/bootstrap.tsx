@@ -81,7 +81,7 @@ if (window.__SENTRY__VERSION) {
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-metric.mark('sentry-app-init');
+metric.mark({name: 'sentry-app-init'});
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
