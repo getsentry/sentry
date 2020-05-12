@@ -150,7 +150,7 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {t(
-            'There are no releases with active users data (users in the last 24 hours).'
+            'There are no releases with active user data (users in the last 24 hours).'
           )}
         </EmptyStateWarning>
       );
