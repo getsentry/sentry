@@ -369,6 +369,7 @@ class ReleaseSerializer(Serializer):
                 "id": project["id"],
                 "slug": project["slug"],
                 "name": project["name"],
+                "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
             }
