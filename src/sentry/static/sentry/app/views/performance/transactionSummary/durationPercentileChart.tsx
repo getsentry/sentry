@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import {QuestionTooltip} from 'app/components/charts/styles';
+import QuestionTooltip from 'app/components/questionTooltip';
 import AsyncComponent from 'app/components/asyncComponent';
 import {OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';

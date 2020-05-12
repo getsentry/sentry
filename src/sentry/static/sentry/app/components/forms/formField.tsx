@@ -4,8 +4,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
-import InlineSvg from 'app/components/inlineSvg';
-import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {Context} from 'app/components/forms/form';
 import {Meta} from 'app/types';
 
@@ -32,11 +31,6 @@ type FormFieldState = {
   error: string | null;
   value: Value;
 };
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-  color: ${p => p.theme.gray3};
-`;
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
@@ -175,11 +169,7 @@ export default class FormField<
     if (!disabledReason) {
       return null;
     }
-    return (
-      <Tooltip title={disabledReason}>
-        <StyledInlineSvg src="icon-circle-question" size="18px" />
-      </Tooltip>
-    );
+    return <QuestionTooltip title={disabledReason} position="top" size="sm" />;
   }
 
   render() {

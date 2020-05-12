@@ -163,21 +163,16 @@ class Tags extends React.Component<Props, State> {
 
   render() {
     return (
-      <TagSection>
-        <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
+      <React.Fragment>
+        <StyledSectionHeading>{t('Event Tag Summary')}</StyledSectionHeading>
         {this.renderBody()}
-      </TagSection>
+      </React.Fragment>
     );
   }
 }
 
-// These styled components are used in getsentry for a paywall.
-export const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(1.5)} 0;
-`;
-
-export const TagSection = styled('div')`
-  margin: ${space(0.5)} 0;
+const StyledSectionHeading = styled(SectionHeading)`
+  margin-top: ${space(0.5)};
 `;
 
 const StyledError = styled('div')`

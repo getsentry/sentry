@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {IconQuestion} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 
 type Props = {
@@ -22,9 +21,7 @@ const DataPrivacyRulesFormField = ({
   <Wrapper isFullWidth={isFullWidth}>
     <Label>
       <LabelDescription>{label}</LabelDescription>
-      <Tooltip title={tooltipInfo} position="top">
-        <IconQuestion color="gray1" />
-      </Tooltip>
+      <QuestionTooltip title={tooltipInfo} position="top" size="sm" />
     </Label>
     {children}
   </Wrapper>
