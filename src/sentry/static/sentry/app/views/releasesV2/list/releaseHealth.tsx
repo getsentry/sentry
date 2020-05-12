@@ -202,6 +202,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const StyledPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
+  min-height: 46px;
 `;
 
 const Layout = styled('div')`
