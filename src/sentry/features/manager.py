@@ -11,7 +11,7 @@ from .exceptions import FeatureNotRegistered
 class FeatureManager(object):
     def __init__(self):
         self._feature_registry = {}
-        self._handler_registry = []
+        self._handler_registry = {}
 
     def all(self, feature_type=Feature):
         """
@@ -51,7 +51,10 @@ class FeatureManager(object):
         one feature name, but will be applied to every flag that the ``has``
         method checks.
         """
-        self._handler_registry.append(handler)
+        for feature_name in handler.features:
+            handlers = self._handler_registry.get(feature_name, set())
+            handlers.add(handler)
+            self._handler_registry[feature_name] = handlers
 
     def has(self, name, *args, **kwargs):
         """
@@ -92,7 +95,8 @@ class FeatureManager(object):
         return False
 
     def _get_handler(self, feature, actor):
-        for handler in self._handler_registry:
+        handlers = self._handler_registry.get(feature.name, ())
+        for handler in handlers:
             rv = handler(feature, actor)
             if rv is not None:
                 return rv
