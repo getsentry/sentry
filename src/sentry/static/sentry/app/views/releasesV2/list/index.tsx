@@ -136,6 +136,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, organization} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
+    const activeSort = this.getSort();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -145,7 +146,15 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (this.getSort() !== 'date') {
+    if (activeSort === 'users_24h') {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort !== 'date') {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
