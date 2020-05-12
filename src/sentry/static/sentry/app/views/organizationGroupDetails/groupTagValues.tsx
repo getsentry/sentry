@@ -59,6 +59,7 @@ class GroupTagValues extends AsyncComponent<
     const {
       group,
       params: {orgId, tagKey},
+      environments,
     } = this.props;
     const {tag, tagValueList, tagValueListPageLinks} = this.state;
     const sortedTagValueList: TagValue[] = sortBy(
@@ -66,10 +67,9 @@ class GroupTagValues extends AsyncComponent<
       property('count')
     ).reverse();
 
-    if (sortedTagValueList.length === 0 && this.props.environments?.length > 0) {
+    if (sortedTagValueList.length === 0 && environments.length > 0) {
       return (
         <DetailedError
-          className="group-tags-details-error"
           heading={t('Sorry, the tags for this issue could not be found.')}
           message={t('No tags were found for the currently selected environments')}
         />
