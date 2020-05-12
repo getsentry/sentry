@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ["FeatureManager"]
 
+from collections import defaultdict
 from django.conf import settings
 
 from .base import Feature
@@ -11,7 +12,7 @@ from .exceptions import FeatureNotRegistered
 class FeatureManager(object):
     def __init__(self):
         self._feature_registry = {}
-        self._handler_registry = {}
+        self._handler_registry = defaultdict(set)
 
     def all(self, feature_type=Feature):
         """
@@ -52,9 +53,7 @@ class FeatureManager(object):
         method checks.
         """
         for feature_name in handler.features:
-            handlers = self._handler_registry.get(feature_name, set())
-            handlers.add(handler)
-            self._handler_registry[feature_name] = handlers
+            self._handler_registry[feature_name].add(handler)
 
     def has(self, name, *args, **kwargs):
         """
@@ -95,7 +94,7 @@ class FeatureManager(object):
         return False
 
     def _get_handler(self, feature, actor):
-        for handler in self._handler_registry.get(feature.name, ()):
+        for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
                 return rv
