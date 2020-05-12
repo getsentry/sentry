@@ -24,7 +24,6 @@ export async function addOrUpdateRule(
     isSavedRule(rule) ? `${rule.id}/` : ''
   }`;
   const method = isExisting ? 'PUT' : 'POST';
-
   return api.requestPromise(endpoint, {
     method,
     data: rule,

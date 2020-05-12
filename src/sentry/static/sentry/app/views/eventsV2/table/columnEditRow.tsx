@@ -34,11 +34,12 @@ type ParameterDescription =
 
 type Props = {
   className?: string;
-  takeFocus: boolean;
-  parentIndex: number;
+  takeFocus?: boolean;
+  parentIndex?: number;
   column: Column;
   gridColumns: number;
   fieldOptions: FieldOptions;
+  showFunctionsOnly?: boolean;
   onChange: (index: number, column: Column) => void;
 };
 
@@ -331,12 +332,19 @@ class ColumnEditRow extends React.Component<Props> {
   }
 
   render() {
-    const {className, takeFocus, gridColumns} = this.props;
+    const {className, takeFocus, gridColumns, showFunctionsOnly} = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
+
+    let selectFields = Object.values(fieldOptions);
+    if (showFunctionsOnly) {
+      selectFields = selectFields.filter(
+        selectField => selectField.value.kind === FieldValueKind.FUNCTION
+      );
+    }
 
     const selectProps: React.ComponentProps<SelectControl> = {
       name: 'field',
-      options: Object.values(fieldOptions),
+      options: selectFields,
       placeholder: t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,

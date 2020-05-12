@@ -84,7 +84,7 @@ export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
   return !!getSortKeyFromField(field, tableMeta);
 }
 
-const generateFieldAsString = (col: Column): string => {
+export const generateFieldAsString = (col: Column): string => {
   if (col.kind === 'field') {
     return col.field;
   }

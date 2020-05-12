@@ -49,6 +49,7 @@ export type UnsavedIncidentRule = {
   query: string;
   timeWindow: number;
   triggers: Trigger[];
+  aggregate: string;
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {

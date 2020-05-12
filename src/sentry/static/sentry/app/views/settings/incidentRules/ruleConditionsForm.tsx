@@ -2,18 +2,23 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Environment, Organization} from 'app/types';
+import {Environment, Organization, SelectValue} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
+import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
+import Field from 'app/views/settings/components/forms/field';
+import {ColumnEditRow} from 'app/views/eventsV2/table/columnEditRow';
+import {FieldValue, FieldValueKind} from 'app/views/eventsV2/table/types';
 
 import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
@@ -39,6 +44,9 @@ type Props = {
   disabled: boolean;
   thresholdChart: React.ReactNode;
   onFilterUpdate: (query: string) => void;
+
+  aggregate: Column;
+  onAggregateUpdate: (index: number, column: Column) => void;
 };
 
 type State = {
@@ -52,6 +60,53 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     this.fetchData();
+  }
+
+  generateFieldOptions() {
+    const {organization} = this.props;
+
+    let fields = Object.keys(FIELDS);
+    let functions = Object.keys(AGGREGATIONS);
+
+    // Strip tracing features if the org doesn't have access.
+    if (!organization.features.includes('transaction-events')) {
+      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
+      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
+    }
+    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
+
+    // Index items by prefixed keys as custom tags
+    // can overlap both fields and function names.
+    // Having a mapping makes finding the value objects easier
+    // later as well.
+    functions.forEach(func => {
+      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
+      fieldOptions[`function:${func}`] = {
+        label: `${func}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: func,
+            parameters: AGGREGATIONS[func].parameters,
+          },
+        },
+      };
+    });
+
+    fields.forEach(field => {
+      fieldOptions[`field:${field}`] = {
+        label: field,
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: field,
+            dataType: FIELDS[field],
+          },
+        },
+      };
+    });
+
+    return fieldOptions;
   }
 
   async fetchData() {
@@ -73,7 +128,13 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterUpdate} = this.props;
+    const {
+      organization,
+      disabled,
+      onFilterUpdate,
+      onAggregateUpdate,
+      aggregate,
+    } = this.props;
     const {environments} = this.state;
 
     const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
@@ -97,6 +158,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
     environmentList.unshift([null, anyEnvironmentLabel]);
 
+    const fieldOptions = this.generateFieldOptions();
+    const gridColumns =
+      aggregate.kind === 'function' && aggregate.function[2] !== undefined ? 3 : 2;
     return (
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
@@ -130,23 +194,47 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               />
             )}
           </FormField>
-          <SelectField
-            name="aggregation"
-            label={t('Metric')}
-            help={t('Choose which metric to trigger on')}
-            choices={[
-              [
-                AlertRuleAggregations.UNIQUE_USERS,
-                getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
-              ],
-              [
-                AlertRuleAggregations.TOTAL,
-                getMetricDisplayName(AlertRuleAggregations.TOTAL),
-              ],
-            ]}
-            required
-            isDisabled={disabled}
-          />
+
+          <Feature features={['advanced-metric-alerts-alpha']}>
+            {({hasFeature}) =>
+              hasFeature ? (
+                <Field
+                  label="Metric"
+                  help={t('Choose an aggregate function and event property.')}
+                  required
+                >
+                  <div>
+                    <ColumnEditRow
+                      fieldOptions={fieldOptions}
+                      gridColumns={gridColumns}
+                      column={aggregate}
+                      onChange={onAggregateUpdate}
+                      showFunctionsOnly
+                    />
+                  </div>
+                </Field>
+              ) : (
+                <SelectField
+                  name="aggregation"
+                  label={t('Metric')}
+                  help={t('Choose which metric to trigger on')}
+                  choices={[
+                    [
+                      AlertRuleAggregations.UNIQUE_USERS,
+                      getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
+                    ],
+                    [
+                      AlertRuleAggregations.TOTAL,
+                      getMetricDisplayName(AlertRuleAggregations.TOTAL),
+                    ],
+                  ]}
+                  required
+                  isDisabled={disabled}
+                />
+              )
+            }
+          </Feature>
+
           <SelectField
             name="timeWindow"
             label={t('Time Window')}

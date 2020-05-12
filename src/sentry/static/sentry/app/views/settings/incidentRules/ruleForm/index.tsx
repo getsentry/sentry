@@ -24,6 +24,8 @@ import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 import recreateRoute from 'app/utils/recreateRoute';
 import withProject from 'app/utils/withProject';
+import {Column, explodeFieldString} from 'app/utils/discover/fields';
+import {generateFieldAsString} from 'app/utils/discover/eventView';
 
 import {
   AlertRuleAggregations,
@@ -59,6 +61,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
+  aggregate: string;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -72,10 +75,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   getDefaultState(): State {
     const {rule} = this.props;
-
     return {
       ...super.getDefaultState(),
 
+      aggregate: rule.aggregate,
       aggregation: rule.aggregation,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
@@ -274,11 +277,25 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   handleFieldChange = (name: string, value: unknown) => {
     if (['timeWindow', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
+      if (name === 'aggregation') {
+        if (value === 0) {
+          this.props.rule.aggregate = 'count()';
+        } else if (value === 1) {
+          this.props.rule.aggregate = 'count_unique(tags[sentry:user])';
+        }
+      }
     }
   };
 
   handleFilterUpdate = query => {
     this.setState({query});
+  };
+
+  handleAggregateUpdate = (_index: number, column: Column) => {
+    const string_aggregate = generateFieldAsString(column);
+    this.setState({aggregate: string_aggregate});
+    // TODO: This should bind differently? Its used for when the rule saves
+    this.props.rule.aggregate = string_aggregate;
   };
 
   handleSubmit = async (
@@ -394,11 +411,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
-    const {query, aggregation, timeWindow, triggers} = this.state;
+    const {query, aggregation, timeWindow, triggers, aggregate} = this.state;
 
     const queryAndAlwaysErrorEvents = !query.includes('event.type')
       ? `${query} ${this.getEventType()}`.trim()
       : query;
+    const aggregate_column = explodeFieldString(aggregate);
 
     const chart = (
       <TriggersChart
@@ -408,6 +426,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         triggers={triggers}
         query={queryAndAlwaysErrorEvents}
         aggregation={aggregation}
+        aggregate={aggregate}
         timeWindow={timeWindow}
       />
     );
@@ -462,6 +481,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               disabled={!hasAccess}
               onFilterUpdate={this.handleFilterUpdate}
               thresholdChart={chart}
+              aggregate={aggregate_column}
+              onAggregateUpdate={this.handleAggregateUpdate}
             />
 
             <Triggers

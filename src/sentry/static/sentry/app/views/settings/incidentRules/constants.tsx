@@ -16,11 +16,13 @@ export function createDefaultTrigger(): Trigger {
 }
 
 export const DEFAULT_METRIC = AlertRuleAggregations.TOTAL;
+export const DEFAULT_AGGREGATE = 'count()';
 
 export function createDefaultRule(): UnsavedIncidentRule {
   return {
     aggregation: DEFAULT_METRIC,
     aggregations: [DEFAULT_METRIC],
+    aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
     triggers: [createDefaultTrigger()],

@@ -22,6 +22,7 @@ type Props = {
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
   aggregation: IncidentRule['aggregation'];
+  aggregate: IncidentRule['aggregate'];
   triggers: Trigger[];
 };
 
