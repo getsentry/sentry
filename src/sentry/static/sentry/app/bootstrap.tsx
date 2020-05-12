@@ -170,7 +170,7 @@ globals.SentryApp = {
   passwordStrength: {load: loadPasswordStrength},
   U2fSign: require('app/components/u2f/u2fsign').default,
   ConfigStore: require('app/stores/configStore').default,
-  Alerts: require('app/components/alerts').default,
+  SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
 };

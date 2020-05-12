@@ -17,7 +17,6 @@ import {openCommandPalette} from 'app/actionCreators/modal';
 import {setTransactionName} from 'app/utils/apm';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
-import Alerts from 'app/components/alerts';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
@@ -31,6 +30,8 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+
+import SystemAlerts from './systemAlerts';
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
 const ALLOWED_ANON_PAGES = [
@@ -260,7 +261,7 @@ class App extends React.Component<Props, State> {
         <GlobalStyles theme={theme} />
         <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
           <GlobalModal onClose={this.handleGlobalModalClose} />
-          <Alerts className="messages-container" />
+          <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
         </div>

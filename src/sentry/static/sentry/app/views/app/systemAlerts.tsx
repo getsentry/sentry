@@ -4,8 +4,9 @@ import Reflux from 'reflux';
 import {ThemeProvider} from 'emotion-theming';
 
 import AlertStore from 'app/stores/alertStore';
-import AlertMessage from 'app/components/alertMessage';
 import theme from 'app/utils/theme';
+
+import AlertMessage from './alertMessage';
 
 type Props = {className?: string};
 type Alert = React.ComponentProps<typeof AlertMessage>['alert'];
@@ -29,8 +30,8 @@ const Alerts = createReactClass<Props, State>({
     return (
       <ThemeProvider theme={theme}>
         <div className={className}>
-          {alerts.map(alert => (
-            <AlertMessage alert={alert} key={alert.id} system />
+          {alerts.map((alert, index) => (
+            <AlertMessage alert={alert} key={`${alert.id}-${index}`} system />
           ))}
         </div>
       </ThemeProvider>

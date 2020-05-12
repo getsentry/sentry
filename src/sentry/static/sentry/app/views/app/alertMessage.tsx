@@ -10,7 +10,10 @@ import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
 type AlertType = {
-  id: string;
+  /**
+   * A lot of alerts coming from getsentry do not have an `id`
+   */
+  id?: string;
   message: React.ReactNode;
   type: 'success' | 'error' | 'warning' | 'info';
   url?: string;
