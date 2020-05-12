@@ -12,7 +12,7 @@ from .exceptions import FeatureNotRegistered
 class FeatureManager(object):
     def __init__(self):
         self._feature_registry = {}
-        self._handler_registry = defaultdict(set)
+        self._handler_registry = defaultdict(list)
 
     def all(self, feature_type=Feature):
         """
@@ -53,7 +53,7 @@ class FeatureManager(object):
         method checks.
         """
         for feature_name in handler.features:
-            self._handler_registry[feature_name].add(handler)
+            self._handler_registry[feature_name].append(handler)
 
     def has(self, name, *args, **kwargs):
         """
