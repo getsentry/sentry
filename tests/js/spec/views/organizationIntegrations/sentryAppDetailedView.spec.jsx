@@ -126,15 +126,13 @@ describe('SentryAppDetailedView', function() {
         wrapper.update();
         wrapperState = wrapper;
         expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-        expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
+        expect(wrapper.find('StyledUninstallButton').exists()).toEqual(true);
       });
 
       it('uninstalls app', async function() {
-        expect(wrapperState.find('UninstallAppButton')).toHaveLength(1);
-        wrapperState
-          .find('UninstallAppButton')
-          .props()
-          .onClickUninstall();
+        expect(wrapperState.find('StyledUninstallButton')).toHaveLength(1);
+        wrapperState.find('StyledUninstallButton').simulate('click');
+
         await tick();
         wrapperState
           .find('Confirm')
@@ -299,7 +297,7 @@ describe('SentryAppDetailedView', function() {
       expect(createRequest).toHaveBeenCalled();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-      expect(wrapper.find('UninstallAppButton').exists()).toEqual(true);
+      expect(wrapper.find('StyledUninstallButton').exists()).toEqual(true);
     });
   });
 
