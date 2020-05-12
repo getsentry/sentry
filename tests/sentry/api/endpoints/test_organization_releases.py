@@ -113,7 +113,7 @@ class OrganizationReleaseListTest(APITestCase):
         release2.add_project(project)
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
-        response = self.client.get(url + "?query=foo", format="json")
+        response = self.client.get(url + "?query=oob", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1

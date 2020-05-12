@@ -201,7 +201,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             )
 
         if query:
-            queryset = queryset.filter(version__istartswith=query)
+            queryset = queryset.filter(version__icontains=query)
 
         select_extra = {}
         sort_query = None
