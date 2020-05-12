@@ -38,6 +38,7 @@ type Options = {
    */
   resetParams?: string[];
   save?: boolean;
+  keepCursor?: boolean;
 };
 
 /**
@@ -204,7 +205,9 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router);
+  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+    keepCursor: true,
+  });
 }
 
 /**
@@ -339,10 +342,10 @@ export function updateParamsWithoutHistory(
 function getNewQueryParams(
   obj: UrlParams,
   oldQueryParams: UrlParams,
-  {resetParams}: Options = {}
+  {resetParams, keepCursor}: Options = {}
 ) {
   // Reset cursor when changing parameters
-  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
     : oldQuery;
@@ -360,6 +363,10 @@ function getNewQueryParams(
 
   if (newQuery.end) {
     newQuery.end = getUtcDateString(newQuery.end);
+  }
+
+  if (keepCursor) {
+    newQuery.cursor = cursor;
   }
 
   return newQuery;
