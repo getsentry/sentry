@@ -519,7 +519,11 @@ export type Config = {
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
-  messages: string[];
+
+  /**
+   * This comes from django (django.contrib.messages)
+   */
+  messages: {message: string; level: string}[];
   dsn: string;
   userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
