@@ -65,7 +65,7 @@ describe('ReleasesV2List', function() {
         .find('DailyUsersColumn')
         .at(1)
         .text()
-    ).toContain('n/a');
+    ).toContain('\u2014');
   });
 
   it('displays the right empty state', function() {

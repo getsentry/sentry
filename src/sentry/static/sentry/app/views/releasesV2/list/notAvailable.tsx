@@ -1,10 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-
 const NotAvailable = () => {
-  return <Wrapper>{t('n/a')}</Wrapper>;
+  return <Wrapper>{'\u2014'}</Wrapper>;
 };
 
 const Wrapper = styled('div')`
