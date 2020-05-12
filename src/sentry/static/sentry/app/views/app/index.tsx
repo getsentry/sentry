@@ -190,8 +190,7 @@ class App extends React.Component<Props, State> {
   }
 
   handleConfigStoreChange(config) {
-    // TODO(ts): What's the best way to type this?
-    const newState: any = {};
+    const newState = {} as State;
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
