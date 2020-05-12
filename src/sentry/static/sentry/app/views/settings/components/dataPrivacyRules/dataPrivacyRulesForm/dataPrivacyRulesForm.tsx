@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -23,18 +25,22 @@ type Rule = {
 
 type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
 type SourceProps = React.ComponentProps<typeof DataPrivacyRulesFormSource>;
+type Errors = {
+  customRegularExpression?: string;
+  source?: string;
+};
+type Error = keyof Errors;
 
 type Props = EventIdProps & {
   rule: Rule;
   sourceSuggestions: SourceProps['suggestions'];
   onChange: (rule: Rule) => void;
   onUpdateEventId: (eventId: string) => void;
+  errors: Errors;
 };
 
 type State = {
-  errors: {
-    [key: string]: string;
-  };
+  errors: Errors;
 };
 class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   state: State = {
@@ -42,10 +48,22 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.rule.source !== this.props.rule.source) {
-      this.handleValidation('source')();
+    if (!isEqual(prevProps.errors, this.props.errors)) {
+      this.updateErrors();
     }
   }
+
+  updateErrors = () => {
+    this.setState({
+      errors: this.props.errors || {},
+    });
+  };
+
+  clearError = (error: Error) => {
+    this.setState(prevState => ({
+      errors: omit(prevState.errors, error),
+    }));
+  };
 
   handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
     const rule: Rule = {
@@ -57,12 +75,24 @@ class DataPrivacyRulesForm extends React.PureComponent<Props, State> {
       delete rule.customRegularExpression;
     }
 
+    if (stateProperty === 'customRegularExpression' || stateProperty === 'source') {
+      this.clearError(stateProperty as Error);
+    }
+
+    if (
+      this.state.errors?.customRegularExpression &&
+      stateProperty === 'type' &&
+      value === RuleType.PATTERN
+    ) {
+      this.clearError('customRegularExpression' as Error);
+    }
+
     this.props.onChange({
       ...rule,
     });
   };
 
-  handleValidation = <T extends keyof Omit<Rule, 'id'>>(field: T) => () => {
+  handleValidation = <T extends keyof Errors>(field: T) => () => {
     const errors = {...this.state.errors};
     const isFieldValueEmpty = !this.props.rule[field];
     const fieldErrorAlreadyExist = errors[field];

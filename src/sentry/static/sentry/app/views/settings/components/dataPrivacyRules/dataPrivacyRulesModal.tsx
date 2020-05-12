@@ -15,19 +15,21 @@ const DEFAULT_RULE_SOURCE_VALUE = '';
 
 type FormProps = React.ComponentProps<typeof DataPrivacyRulesPanelForm>;
 type Rule = FormProps['rule'];
+type Errors = FormProps['errors'];
 
 type Props = Pick<
   FormProps,
   'sourceSuggestions' | 'disabled' | 'eventId' | 'onUpdateEventId'
 > & {
   rule?: Rule;
-  onSaveRule: (rule: Rule) => void;
+  onSaveRule: (rule: Rule) => Promise<{errors: Errors} | undefined>;
   onClose: () => void;
 };
 
 type State = {
   rule: Rule;
   isFormValid: boolean;
+  errors: Errors;
 };
 
 class DataPrivacyRulesModal extends React.Component<Props, State> {
@@ -40,12 +42,14 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
       customRegularExpression: this.props.rule?.customRegularExpression,
     },
     isFormValid: false,
+    errors: {},
   };
 
   handleChange = (updatedRule: Rule) => {
     this.setState(
       {
         rule: updatedRule,
+        errors: {},
       },
       this.handleValidate
     );
@@ -62,17 +66,25 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
     });
   };
 
-  handleSave = () => {
+  handleSave = async () => {
     const {rule} = this.state;
     const {onSaveRule, onClose} = this.props;
 
-    onSaveRule(rule);
-    onClose();
+    await onSaveRule(rule).then(result => {
+      if (!result) {
+        onClose();
+        return;
+      }
+
+      this.setState({
+        errors: result.errors,
+      });
+    });
   };
 
   render() {
     const {onClose, disabled, sourceSuggestions, onUpdateEventId, eventId} = this.props;
-    const {rule, isFormValid} = this.state;
+    const {rule, isFormValid, errors} = this.state;
 
     return (
       <StyledModal show animation={false} onHide={onClose}>
@@ -87,6 +99,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
             disabled={disabled}
             onUpdateEventId={onUpdateEventId}
             eventId={eventId}
+            errors={errors}
           />
         </Modal.Body>
         <Modal.Footer>

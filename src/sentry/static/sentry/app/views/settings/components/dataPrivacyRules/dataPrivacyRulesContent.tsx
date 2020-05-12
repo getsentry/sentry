@@ -17,7 +17,7 @@ type Rule = NonNullable<ModalProps['rule']>;
 
 type Props = {
   rules: Array<Rule>;
-  onUpdateRule: (updatedRule: Rule) => void;
+  onUpdateRule: ModalProps['onSaveRule'];
   onDeleteRule: (rulesToBeDeleted: Array<Rule['id']>) => void;
 } & Pick<ModalProps, 'disabled' | 'eventId' | 'onUpdateEventId' | 'sourceSuggestions'>;
 
@@ -47,17 +47,18 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
     });
   };
 
-  handleSave = (updatedRule: Rule) => {
+  handleSave = async (updatedRule: Rule) => {
     const {onUpdateRule} = this.props;
 
-    this.setState(
-      {
-        editRule: undefined,
-      },
-      () => {
-        onUpdateRule(updatedRule);
+    return await onUpdateRule(updatedRule).then(result => {
+      if (!result) {
+        this.setState({
+          editRule: undefined,
+        });
+        return undefined;
       }
-    );
+      return result;
+    });
   };
 
   render() {
