@@ -236,11 +236,11 @@ class SlackReAuthChannels(PipelineView):
     """
 
     def dispatch(self, request, pipeline):
-        next_url_param = "?start_migration"
-        channels = _request_channel_info(pipeline)
-
         if "start_migration" in request.GET:
             return pipeline.next_step()
+
+        next_url_param = "?start_migration"
+        channels = _request_channel_info(pipeline)
 
         return render_to_response(
             template="sentry/integrations/slack-reauth-details.html",
@@ -287,7 +287,6 @@ def _request_channel_info(pipeline):
             channel_responses["private"].add(Channel(channel["name"], channel["id"]))
 
     pipeline.bind_state("private_channels", channel_responses["private"])
-
     return channel_responses
 
 
