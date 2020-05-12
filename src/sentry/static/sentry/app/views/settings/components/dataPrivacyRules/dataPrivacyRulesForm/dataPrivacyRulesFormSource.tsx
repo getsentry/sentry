@@ -11,6 +11,7 @@ import {
   unaryOperatorSuggestions,
   binaryOperatorSuggestions,
 } from './dataPrivacyRulesFormSourceSuggestions';
+import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from './types';
 
 type Props = {
@@ -37,10 +38,6 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
     showSuggestions: false,
   };
 
-  componentWillMount() {
-    document.addEventListener('mousedown', this.handleClickOutside, false);
-  }
-
   componentDidMount() {
     this.loadFieldValues(this.props.value);
     this.hideSuggestions();
@@ -51,10 +48,6 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
       this.loadFieldValues(this.props.value);
       this.hideSuggestions();
     }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('mousedown', this.handleClickOutside, false);
   }
 
   selectorField = React.createRef<HTMLDivElement>();
@@ -236,15 +229,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
     this.props.onChange(newValue);
   };
 
-  handleClickOutside = (event: MouseEvent) => {
-    if (
-      event.target instanceof HTMLElement &&
-      this.selectorField.current &&
-      this.selectorField.current.contains(event.target)
-    ) {
-      return;
-    }
-
+  handleClickOutside = () => {
     this.setState({
       showSuggestions: false,
     });
@@ -373,23 +358,33 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <SuggestionsWrapper ref={this.suggestionList} data-test-id="source-suggestions">
-            {suggestions.slice(0, 50).map((suggestion, index) => (
-              <SuggestionItem
-                key={suggestion.value}
-                onClick={this.handleClickSuggestionItem(suggestion)}
-                active={index === activeSuggestion}
-                tabIndex={-1}
-              >
-                <TextOverflow>{suggestion.value}</TextOverflow>
-                {suggestion?.description && (
+          <div>
+            <SuggestionsWrapper ref={this.suggestionList} data-test-id="source-suggestions">
+              {suggestions.slice(0, 50).map((suggestion, index) => (
+                <SuggestionItem
+                  key={suggestion.value}
+                  onClick={this.handleClickSuggestionItem(suggestion)}
+                  active={index === activeSuggestion}
+                  tabIndex={-1}
+                >
+                  <TextOverflow>{suggestion.value}</TextOverflow>
+
                   <SuggestionDescription>
-                    (<TextOverflow>{suggestion.description}</TextOverflow>)
+                    {suggestion.description && (
+                      (<TextOverflow>{suggestion.description}</TextOverflow>)
+                    )}
                   </SuggestionDescription>
-                )}
-              </SuggestionItem>
-            ))}
-          </SuggestionsWrapper>
+
+                  {suggestion.examples && (
+                    <SourceSuggestionExamples
+                      examples={suggestion.examples}
+                      sourceName={suggestion.value} />
+                  )}
+                </SuggestionItem>
+              ))}
+            </SuggestionsWrapper>
+            <SuggestionsOverlay onClick={this.handleClickOutside} />
+          </div>
         )}
       </Wrapper>
     );
@@ -397,6 +392,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 }
 
 export default DataPrivacyRulesFormSource;
+
 
 const Wrapper = styled('div')`
   position: relative;
@@ -409,6 +405,8 @@ const StyledTextField = styled(TextField)`
   input {
     height: 40px;
   }
+
+  z-index: 1002;
 `;
 
 const SuggestionsWrapper = styled('ul')`
@@ -423,7 +421,7 @@ const SuggestionsWrapper = styled('ul')`
   background: ${p => p.theme.white};
   top: 35px;
   right: 0;
-  z-index: 1001;
+  z-index: 1002;
   overflow: hidden;
   max-height: 200px;
   overflow-y: auto;
@@ -431,7 +429,7 @@ const SuggestionsWrapper = styled('ul')`
 
 const SuggestionItem = styled('li')<{active: boolean}>`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr max-content;
   grid-gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   padding: ${space(1)} ${space(2)};
@@ -447,4 +445,13 @@ const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
   color: ${p => p.theme.gray2};
+`;
+
+const SuggestionsOverlay = styled('div')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
 `;
