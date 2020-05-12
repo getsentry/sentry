@@ -115,7 +115,7 @@ describe('ReleasesV2List', function() {
       routerContext
     );
     expect(wrapper.find('EmptyMessage').text()).toEqual(
-      'There are no releases with active users data (users in the last 24 hours).'
+      'There are no releases with active user data (users in the last 24 hours).'
     );
   });
 
