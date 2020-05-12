@@ -253,7 +253,11 @@ class Endpoint(APIView):
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
 
-        assert per_page <= max(max_per_page, default_per_page)
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(
+                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
+            )
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
