@@ -95,8 +95,7 @@ class FeatureManager(object):
         return False
 
     def _get_handler(self, feature, actor):
-        handlers = self._handler_registry.get(feature.name, ())
-        for handler in handlers:
+        for handler in self._handler_registry.get(feature.name, ()):
             rv = handler(feature, actor)
             if rv is not None:
                 return rv
