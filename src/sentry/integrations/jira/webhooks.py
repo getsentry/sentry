@@ -34,7 +34,7 @@ def handle_assignee_change(integration, data):
         return
     email = assignee.get("emailAddress")
     # pull email from API if we can use it
-    if not email and settings.JIRA_USE_EMAIL_SCOPE:
+    if email is None and settings.JIRA_USE_EMAIL_SCOPE:
         account_id = assignee.get("accountId")
         client = JiraApiClient(
             integration.metadata["base_url"],
@@ -44,7 +44,7 @@ def handle_assignee_change(integration, data):
         email = client.get_email(account_id)
 
     # TODO(steve) check display name
-    if not email:
+    if email is None:
         logger.info(
             "missing-assignee-email",
             extra={"issue_key": issue_key, "integration_id": integration.id},
