@@ -29,4 +29,11 @@ const withOrganization = <P extends InjectedOrganizationProps>(
     }
   };
 
+export function isLightweightOrganization(
+  organization: Organization | LightWeightOrganization
+) {
+  const castedOrg = organization as Organization;
+  return !(castedOrg.projects && castedOrg.teams);
+}
+
 export default withOrganization;

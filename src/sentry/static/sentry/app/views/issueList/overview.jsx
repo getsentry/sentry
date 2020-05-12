@@ -12,7 +12,7 @@ import qs from 'query-string';
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {Panel, PanelBody} from 'app/components/panels';
-import {analytics} from 'app/utils/analytics';
+import {analytics, metric} from 'app/utils/analytics';
 import {defined} from 'app/utils';
 import {
   deleteSavedSearch,
@@ -110,6 +110,29 @@ const IssueListOverview = createReactClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
+    // Fire off profiling/metrics first
+    if (prevState.issuesLoading && !this.state.issuesLoading) {
+      if (typeof this.props.finishProfile === 'function') {
+        this.props.finishProfile();
+      }
+
+      // First Meaningful Paint for IssueList page
+      if (prevState.queryCount === null) {
+        metric.measure({
+          name: 'app.page.perf.issue-list',
+          start: 'page-issue-list-start',
+          data: {
+            organization_slug: this.props.organization.slug,
+            group: this.props.organization.features.has('enterprise-perf')
+              ? 'enterprise-perf'
+              : 'control',
+            milestone: 'first-meaningful-paint',
+            // start_type is set on 'page-issue-list-start'
+          },
+        });
+      }
+    }
+
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       // User toggled realtime button
       if (this.state.realtimeActive) {
@@ -126,9 +149,6 @@ const IssueListOverview = createReactClass({
       this.fetchTags();
     }
 
-    const prevQuery = prevProps.location.query;
-    const newQuery = this.props.location.query;
-
     // Wait for saved searches to load before we attempt to fetch stream data
     if (this.props.savedSearchLoading) {
       return;
@@ -136,6 +156,9 @@ const IssueListOverview = createReactClass({
       this.fetchData();
       return;
     }
+
+    const prevQuery = prevProps.location.query;
+    const newQuery = this.props.location.query;
 
     // If any important url parameter changed or saved search changed
     // reload data.
@@ -157,14 +180,6 @@ const IssueListOverview = createReactClass({
       // Reload if we issues are loading or their loading state changed.
       // This can happen when transitionTo is called
       this.fetchData();
-    }
-
-    if (
-      prevState.issuesLoading &&
-      !this.state.issuesLoading &&
-      typeof this.props.finishProfile === 'function'
-    ) {
-      this.props.finishProfile();
     }
   },
 
