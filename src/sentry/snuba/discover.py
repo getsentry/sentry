@@ -186,8 +186,9 @@ def find_histogram_buckets(field, params, conditions):
     conditions = deepcopy(conditions) if conditions else []
     found = False
     for cond in conditions:
-        if (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
+        if len(cond) == 3 and (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
             found = True
+            break
     if not found:
         conditions.append(["event.type", "=", "transaction"])
     snuba_filter = eventstore.Filter(conditions=conditions)
