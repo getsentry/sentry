@@ -333,7 +333,7 @@ export function updateParamsWithoutHistory(
 
 /**
  * Creates a new query parameter object given new params and old params
- * Preserves the old query params, except for `cursor`
+ * Preserves the old query params, except for `cursor` (can be overriden with keepCursor option)
  *
  * @param obj New query params
  * @param oldQueryParams Old query params
@@ -344,7 +344,6 @@ function getNewQueryParams(
   oldQueryParams: UrlParams,
   {resetParams, keepCursor}: Options = {}
 ) {
-  // Reset cursor when changing parameters
   const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
