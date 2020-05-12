@@ -6,6 +6,7 @@ from sentry.utils.compat.mock import patch
 
 from sentry.tasks.relay import schedule_update_config_cache
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
+from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 
 
 @pytest.fixture
@@ -19,6 +20,20 @@ def redis_cache(monkeypatch):
     monkeypatch.setattr("sentry.relay.projectconfig_cache.set_many", cache.set_many)
     monkeypatch.setattr("sentry.relay.projectconfig_cache.delete_many", cache.delete_many)
     monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache.get)
+
+    monkeypatch.setattr(
+        "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE",
+        "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
+    )
+
+    debounce_cache = RedisProjectConfigDebounceCache()
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.mark_task_done", debounce_cache.mark_task_done
+    )
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.check_is_debounced",
+        debounce_cache.check_is_debounced,
+    )
 
     return cache
 
