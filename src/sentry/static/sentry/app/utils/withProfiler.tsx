@@ -27,14 +27,15 @@ export default function withProfiler<P extends InjectedProps>(
         description: `<${componentDisplayName}>`,
       },
       {
-        autoPopAfter: 2000, // After this timeout we'll pop this activity regardless
+        // After this timeout we'll pop this activity regardless
+        // Set to 30s because that's the length of our longest requests
+        autoPopAfter: 30000,
       }
     );
 
     // For whatever reason it's not guaranteed that `finishProfile` will be
     // called, that's why we need the previously described timeout to make
     // sure our transaction will be finished.
-
     finishProfile = () => {
       if (!this.activity) {
         return;
