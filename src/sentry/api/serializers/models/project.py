@@ -188,15 +188,14 @@ class ProjectSerializer(Serializer):
 
         features_by_project = defaultdict(list)
         for feature_name in features.all(feature_type=ProjectFeature).keys():
-            if feature_name.startswith(_PROJECT_SCOPE_PREFIX):
-                abbreviated_feature = feature_name[: len(_PROJECT_SCOPE_PREFIX)]
-                for (organization, projects) in projects_by_org.items():
-                    result = features.has_for_organization(
-                        feature_name, organization, projects, user
-                    )
-                    for (project, flag) in result.items():
-                        if flag:
-                            features_by_project[project].append(abbreviated_feature)
+            if not feature_name.startswith(_PROJECT_SCOPE_PREFIX):
+                continue
+            abbreviated_feature = feature_name[: len(_PROJECT_SCOPE_PREFIX)]
+            for (organization, projects) in projects_by_org.items():
+                result = features.has_for_organization(feature_name, organization, projects, user)
+                for (project, flag) in result.items():
+                    if flag:
+                        features_by_project[project].append(abbreviated_feature)
 
         for project in all_projects:
             if project.flags.has_releases:
