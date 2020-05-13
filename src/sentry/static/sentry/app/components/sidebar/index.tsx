@@ -443,6 +443,7 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
+                    isNew
                   />
                   <SidebarItem
                     {...sidebarItemProps}
