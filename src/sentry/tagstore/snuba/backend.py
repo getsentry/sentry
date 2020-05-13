@@ -725,15 +725,15 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_id, key, callbacks=(), offset=0
+        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
     ):
         filters = {
             "project_id": get_project_list(project_id),
             "tags_key": [key],
             "group_id": [group_id],
         }
-        if environment_id:
-            filters["environment"] = [environment_id]
+        if environment_ids:
+            filters["environment"] = environment_ids
         results = snuba.query(
             groupby=["tags_value"],
             filter_keys=filters,
@@ -759,7 +759,7 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -771,7 +771,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_id, key)
+        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_ids, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")

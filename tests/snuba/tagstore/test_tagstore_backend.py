@@ -532,7 +532,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_iter(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             )
         ) == [
             GroupTagValue(
@@ -558,7 +558,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_paginator(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
+                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
             ).get_result(10)
         ) == [
             GroupTagValue(
