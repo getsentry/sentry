@@ -19,7 +19,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {getUtcDateString} from 'app/utils/dates';
 import DropdownButton from 'app/components/dropdownButton';
 import ButtonBar from 'app/components/buttonBar';
-import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 enum IssuesType {
   NEW = 'new',
@@ -76,7 +76,7 @@ class Issues extends React.Component<Props, State> {
     const {version, orgId} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
-    const query = {query: []};
+    const query: QueryResults = {query: []};
 
     if (issuesType === IssuesType.NEW) {
       query['first-release'] = [version];
