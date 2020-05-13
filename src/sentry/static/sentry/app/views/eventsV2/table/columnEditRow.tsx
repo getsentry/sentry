@@ -335,12 +335,12 @@ class ColumnEditRow extends React.Component<Props> {
     const {className, takeFocus, gridColumns, showFunctionsOnly} = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
-    let selectFields = Object.values(fieldOptions);
-    if (showFunctionsOnly) {
-      selectFields = selectFields.filter(
-        selectField => selectField.value.kind === FieldValueKind.FUNCTION
-      );
-    }
+    let selectFields = showFunctionsOnly ?
+        selectFields = Object.values(fieldOptions).filter(
+          selectField => selectField.value.kind === FieldValueKind.FUNCTION
+        )
+      :
+        Object.values(fieldOptions);
 
     const selectProps: React.ComponentProps<SelectControl> = {
       name: 'field',
