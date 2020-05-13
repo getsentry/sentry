@@ -27,11 +27,10 @@ def build_migration_attachment():
     }
 
 
-
 @instrumented_task(
     name="sentry.integrations.slack.run_post_migration", queue="integrations",
 )
-@retry(on=()) # no retries on any errors
+@retry(on=())  # no retries on any errors
 def run_post_migration(integration_id, organization_id, user_id, channels):
     integration = Integration.objects.get(id=integration_id)
     organization = Organization.objects.get(id=organization_id)
@@ -46,7 +45,7 @@ def run_post_migration(integration_id, organization_id, user_id, channels):
         channel_name = channel["name"]
         channel_id = channel["id"]
         payload = {
-            "token": integration.metadata["access_token"],
+            "token": integration.metadata["old_access_token"],
             "channel": channel_id,
             "link_names": 1,
             "attachments": json.dumps([attachment]),
