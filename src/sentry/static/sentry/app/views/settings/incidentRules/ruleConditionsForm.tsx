@@ -111,7 +111,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
     environmentList.unshift([null, anyEnvironmentLabel]);
 
-    const fieldOptions = generateFieldOptions(this.props.organization);
+    const fieldOptions = generateFieldOptions(organization, null);
     const gridColumns =
       aggregate.kind === 'function' && aggregate.function[2] !== undefined ? 3 : 2;
     return (

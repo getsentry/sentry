@@ -21,10 +21,6 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
-        import sentry_sdk;
-        sentry_sdk.init("http://8ac75874a33e4f10afaeef699f918f1a@dev.getsentry.net:8000/4")
-        sentry_sdk.capture_message("testing a test message!")
-        division = 1/0
 
         return self.paginate(
             request,
