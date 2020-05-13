@@ -1,7 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 
 import {DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 import {
@@ -13,6 +12,11 @@ import {
 
 import {getStateFromQuery} from './utils';
 import GlobalSelectionHeader from './globalSelectionHeader';
+
+const getDateObjectFromQuery = query =>
+  Object.fromEntries(
+    Object.entries(query).filter(([key]) => DATE_TIME_KEYS.includes(key))
+  );
 
 type Props = {
   isDisabled: boolean;
@@ -87,7 +91,8 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       });
 
       const newEnvironments = newQuery.environment || [];
-      const newDateObject = pick(newQuery, DATE_TIME_KEYS);
+      const newDateObject = getDateObjectFromQuery(newQuery);
+      const oldDateObject = getDateObjectFromQuery(oldQuery);
 
       /**
        * Do not pass router to these actionCreators, as we do not want to update
@@ -102,7 +107,7 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
         updateEnvironments(newEnvironments);
       }
 
-      if (!isEqual(pick(oldQuery, DATE_TIME_KEYS), newDateObject)) {
+      if (!isEqual(oldDateObject, newDateObject)) {
         updateDateTime(newDateObject);
       }
     }
