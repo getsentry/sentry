@@ -664,12 +664,10 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 @freeze_time()
 class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
     def test(self):
-        closed_incident = create_incident(
+        closed_incident = self.create_incident(
             self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Closed",
-            "",
-            QueryAggregations.TOTAL,
+            title="Closed",
+            query="",
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
@@ -678,12 +676,10 @@ class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
             IncidentStatus.CLOSED,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
         )
-        open_incident = create_incident(
+        open_incident = self.create_incident(
             self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Open",
-            "",
-            QueryAggregations.TOTAL,
+            title="Open",
+            query="",
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )

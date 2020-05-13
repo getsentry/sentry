@@ -38,6 +38,7 @@ from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
+    aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
@@ -355,11 +356,11 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
         if project_ids:
             params["project_id"] = project_ids
 
-        snuba_filter = get_filter(incident.query, params)
+        snuba_filter = get_filter(incident.alert_rule.snuba_query.query, params)
         conditions = resolve_discover_aliases(snuba_filter)[0].conditions
         if incident.alert_rule:
             conditions = apply_dataset_conditions(
-                QueryDatasets(incident.alert_rule.dataset), conditions
+                QueryDatasets(incident.alert_rule.snuba_query.dataset), conditions
             )
         snuba_args = {
             "start": snuba_filter.start,
@@ -428,16 +429,18 @@ def bulk_get_incident_event_stats(incidents, query_params_list):
         SnubaQueryParams(
             aggregations=[
                 (
-                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][0],
-                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][1],
+                    query_aggregation_to_snuba[
+                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
+                    ][0],
+                    query_aggregation_to_snuba[
+                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
+                    ][1],
                     "count",
                 )
             ],
             orderby="time",
             groupby=["time"],
-            rollup=incident.alert_rule.snuba_query.time_window
-            if incident.alert_rule is not None
-            else 60,  # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
+            rollup=incident.alert_rule.snuba_query.time_window,
             limit=10000,
             **query_param
         )
@@ -816,10 +819,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     :return: The list of created subscriptions
     """
     subscriptions = bulk_create_snuba_subscriptions(
-        projects,
-        tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-        alert_rule.snuba_query,
-        QueryAggregations(alert_rule.aggregation),
+        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
