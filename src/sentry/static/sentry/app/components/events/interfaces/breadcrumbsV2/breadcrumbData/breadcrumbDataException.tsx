@@ -5,7 +5,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
-import {BreadcrumbTypeDefault} from '../../breadcrumbs/types';
+import {BreadcrumbTypeDefault} from '../types';
 import BreadcrumbDataSummary from './breadcrumbDataSummary';
 
 type Props = {

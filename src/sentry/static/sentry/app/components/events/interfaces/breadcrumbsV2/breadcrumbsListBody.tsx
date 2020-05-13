@@ -1,13 +1,17 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import BreadcrumbTime from '../breadcrumbs/breadcrumbTime';
-import BreadcrumbCollapsed from '../breadcrumbs/breadcrumbCollapsed';
-import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from '../breadcrumbs/types';
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
+
+import BreadcrumbTime from './breadcrumbTime';
+import BreadcrumbCollapsed from './breadcrumbCollapsed';
 import BreadcrumbData from './breadcrumbData/breadcrumbData';
 import BreadcrumbCategory from './breadcrumbCategory';
 import BreadcrumbIcon from './breadcrumbIcon';
 import BreadcrumbLevel from './breadcrumbLevel';
-import {BreadcrumbListItem} from './styles';
+import {GridCell} from './styles';
+import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
 
 type Breadcrumbs = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
 
@@ -26,20 +30,37 @@ const BreadcrumbsListBody = ({
     {collapsedQuantity > 0 && (
       <BreadcrumbCollapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
     )}
-    {breadcrumbs.map(({color, borderColor, icon, ...crumb}, idx) => {
-      const hasError =
-        crumb.type === BreadcrumbType.MESSAGE || crumb.type === BreadcrumbType.EXCEPTION;
+    {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
+      const hasError = crumb.type === BreadcrumbType.ERROR;
       return (
-        <BreadcrumbListItem key={idx} data-test-id="breadcrumb" hasError={hasError}>
-          <BreadcrumbIcon icon={icon} color={color} borderColor={borderColor} />
-          <BreadcrumbCategory category={crumb.category} />
-          <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
-          <BreadcrumbLevel level={crumb.level} />
-          <BreadcrumbTime timestamp={crumb.timestamp} />
-        </BreadcrumbListItem>
+        <React.Fragment key={idx}>
+          <GridCell hasError={hasError} withoutBorder={['right']} withBeforeContent>
+            <Tooltip title={crumb.description}>
+              <BreadcrumbIcon icon={icon} color={color} />
+            </Tooltip>
+          </GridCell>
+          <GridCellCategory hasError={hasError} withoutBorder={['left', 'right']}>
+            <BreadcrumbCategory category={crumb?.category} />
+          </GridCellCategory>
+          <GridCell hasError={hasError} withoutBorder={['left', 'right']}>
+            <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
+          </GridCell>
+          <GridCell hasError={hasError} withoutBorder={['left', 'right']}>
+            <BreadcrumbLevel level={crumb.level} />
+          </GridCell>
+          <GridCell hasError={hasError} withoutBorder={['left']}>
+            <BreadcrumbTime timestamp={crumb.timestamp} />
+          </GridCell>
+        </React.Fragment>
       );
     })}
   </React.Fragment>
 );
 
 export default BreadcrumbsListBody;
+
+const GridCellCategory = styled(GridCell)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-left: ${space(1)};
+  }
+`;

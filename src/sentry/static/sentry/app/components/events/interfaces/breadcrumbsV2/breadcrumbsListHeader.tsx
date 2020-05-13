@@ -4,33 +4,39 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {BreadcrumbListItem} from './styles';
+import {GridCell} from './styles';
 
 const BreadcrumbsListHeader = () => {
   return (
-    <BreadcrumbListHeaderWrapper>
-      <BreadcrumbListHeaderItem>{t('Type')}</BreadcrumbListHeaderItem>
-      <BreadcrumbListHeaderItem>{t('Category')}</BreadcrumbListHeaderItem>
-      <BreadcrumbListHeaderItem>{t('Description')}</BreadcrumbListHeaderItem>
-      <BreadcrumbListHeaderItem>{t('Level')}</BreadcrumbListHeaderItem>
-      <BreadcrumbListHeaderItem>{t('Datetime')}</BreadcrumbListHeaderItem>
-    </BreadcrumbListHeaderWrapper>
+    <React.Fragment>
+      <StyledGridCell>{t('Type')}</StyledGridCell>
+      <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
+      <StyledGridCell>{t('Description')}</StyledGridCell>
+      <StyledGridCell>{t('Level')}</StyledGridCell>
+      <StyledGridCell>{t('Time')}</StyledGridCell>
+    </React.Fragment>
   );
 };
 
 export default BreadcrumbsListHeader;
 
-const BreadcrumbListHeaderWrapper = styled(BreadcrumbListItem)`
-  padding: ${space(2)} ${space(2)} ${space(2)} ${space(3)};
+const StyledGridCell = styled(GridCell)`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.offWhite};
-`;
-
-const BreadcrumbListHeaderItem = styled('div')`
   color: ${p => p.theme.gray3};
-  font-size: ${p => p.theme.fontSizeSmall};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} ${space(2)};
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
+`;
+
+const StyledGridCellCategory = styled(StyledGridCell)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-left: ${space(1)};
+  }
 `;

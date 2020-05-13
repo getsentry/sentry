@@ -4,17 +4,17 @@ import SvgIcon from 'app/icons/svgIcon';
 
 type SvgIconProps = React.ComponentProps<typeof SvgIcon>;
 
-import {BreadCrumbIconWrapper} from './styles';
-import {BreadcrumbDetails} from '../breadcrumbs/types';
+import {IconWrapper} from './styles';
+import {BreadcrumbDetails} from './types';
 
 type Props = Omit<BreadcrumbDetails, 'description'> & Pick<SvgIconProps, 'size'>;
 
-const BreadcrumbIcon = ({icon, color, borderColor, size}: Props) => {
+const BreadcrumbIcon = ({icon, color, size}: Props) => {
   const Icon = icon as React.ComponentType<SvgIconProps>;
   return (
-    <BreadCrumbIconWrapper color={color} borderColor={borderColor}>
+    <IconWrapper color={color}>
       <Icon size={size} />
-    </BreadCrumbIconWrapper>
+    </IconWrapper>
   );
 };
 
