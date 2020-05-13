@@ -94,6 +94,7 @@ type InitializeUrlStateParams = {
   skipLoadLastUsed?: boolean;
   defaultSelection?: Partial<GlobalSelection>;
   forceProject?: MinimalProject | null;
+  showAbsolute?: boolean;
 };
 
 export function initializeUrlState({
@@ -106,11 +107,12 @@ export function initializeUrlState({
   shouldEnforceSingleProject,
   defaultSelection,
   forceProject,
+  showAbsolute = true,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
-  const parsed = getStateFromQuery(queryParams);
+  const parsed = getStateFromQuery(queryParams, {allowAbsoluteDatetime: showAbsolute});
 
   let globalSelection: Omit<GlobalSelection, 'datetime'> & {
     datetime: {
@@ -192,6 +194,7 @@ export function initializeUrlState({
   // To keep URLs clean, don't push default period if url params are empty
   const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
     allowEmptyPeriod: true,
+    allowAbsoluteDatetime: showAbsolute,
   });
 
   const newDatetime = {
