@@ -5,8 +5,7 @@ import logging
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Integration, User, Organization
-from sentry.utils import json
-from sentry.utils.email import MessageBuilder
+from sentry.utils import json, email
 from sentry.tasks.base import instrumented_task, retry
 
 from .client import SlackClient
@@ -32,6 +31,7 @@ def build_migration_attachment():
 )
 @retry(on=())  # no retries on any errors
 def run_post_migration(integration_id, organization_id, user_id, channels):
+
     integration = Integration.objects.get(id=integration_id)
     organization = Organization.objects.get(id=organization_id)
     user = User.objects.get(id=user_id)
@@ -51,7 +51,7 @@ def run_post_migration(integration_id, organization_id, user_id, channels):
             "attachments": json.dumps([attachment]),
         }
         try:
-            client.post("/chat.postMessage", data=payload, timeout=5)
+            client.post("/chat.postMessage", data=payload, timeout=5, json=True)
             good_channels.append(channel_name)
         except ApiError as e:
             logger.error(
@@ -66,7 +66,7 @@ def run_post_migration(integration_id, organization_id, user_id, channels):
             )
             problem_channels.append(channel_name)
 
-    message = MessageBuilder(
+    message = email.MessageBuilder(
         subject=u"Your Slack Sentry Integration has been upgraded",
         template="sentry/emails/slack-migration.txt",
         html_template="sentry/emails/slack-migration.html",
