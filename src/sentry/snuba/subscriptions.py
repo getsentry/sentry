@@ -83,10 +83,10 @@ def update_snuba_query(snuba_query, query, aggregation, time_window, resolution,
             resolution=int(resolution.total_seconds()),
             environment=environment,
         )
-        bulk_update_snuba_subscriptions(query_subscriptions, snuba_query, aggregation)
+        bulk_update_snuba_subscriptions(query_subscriptions, snuba_query)
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query, aggregation):
+def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     """
     Creates a subscription to a snuba query for each project.
 
@@ -94,20 +94,16 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query, ag
     :param subscription_type: Text identifier for the subscription type this is. Used
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the projects to.
-    :param aggregation: An aggregation to calculate over the time window. This will be
-    removed soon, once we're relying entirely on `snuba_query`.
     :return: A list of QuerySubscriptions
     """
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(
-            create_snuba_subscription(project, subscription_type, snuba_query, aggregation)
-        )
+        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query, aggregation):
+def create_snuba_subscription(project, subscription_type, snuba_query):
     """
     Creates a subscription to a snuba query.
 
@@ -115,8 +111,6 @@ def create_snuba_subscription(project, subscription_type, snuba_query, aggregati
     :param subscription_type: Text identifier for the subscription type this is. Used
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
-    :param aggregation: An aggregation to calculate over the time window. This will be
-    removed soon, once we're relying entirely on `snuba_query`.
     :return: The QuerySubscription representing the subscription
     """
     subscription = QuerySubscription.objects.create(
@@ -126,7 +120,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query, aggregati
         type=subscription_type,
         dataset=snuba_query.dataset,
         query=snuba_query.query,
-        aggregation=aggregation.value,
+        aggregation=aggregate_to_query_aggregation[snuba_query.aggregate].value,
         time_window=snuba_query.time_window,
         resolution=snuba_query.resolution,
     )
@@ -142,26 +136,22 @@ def create_snuba_subscription(project, subscription_type, snuba_query, aggregati
     return subscription
 
 
-def bulk_update_snuba_subscriptions(subscriptions, snuba_query, aggregation):
+def bulk_update_snuba_subscriptions(subscriptions, snuba_query):
     """
     Updates a list of query subscriptions.
 
     :param subscriptions: The subscriptions we're updating
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
-    :param aggregation: An aggregation to calculate over the time window. This will be
-    removed soon, once we're relying entirely on `snuba_query`.
     :return: A list of QuerySubscriptions
     """
     updated_subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
-        updated_subscriptions.append(
-            update_snuba_subscription(subscription, snuba_query, aggregation)
-        )
+        updated_subscriptions.append(update_snuba_subscription(subscription, snuba_query))
     return subscriptions
 
 
-def update_snuba_subscription(subscription, snuba_query, aggregation):
+def update_snuba_subscription(subscription, snuba_query):
     """
     Updates a subscription to a snuba query.
 
@@ -176,7 +166,7 @@ def update_snuba_subscription(subscription, snuba_query, aggregation):
         subscription.update(
             status=QuerySubscription.Status.UPDATING.value,
             query=snuba_query.query,
-            aggregation=aggregation.value,
+            aggregation=aggregate_to_query_aggregation[snuba_query.aggregate].value,
             time_window=snuba_query.time_window,
             resolution=snuba_query.resolution,
         )
