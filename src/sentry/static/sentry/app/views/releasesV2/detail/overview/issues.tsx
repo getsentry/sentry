@@ -71,6 +71,23 @@ class Issues extends React.Component<Props, State> {
     return discoverView.getResultsViewUrlTarget(orgId);
   }
 
+  getIssuesUrl() {
+    const {version, orgId} = this.props;
+    const {issuesType} = this.state;
+    const {queryParams} = this.getIssuesEndpoint();
+
+    return {
+      pathname: `/organizations/${orgId}/issues/`,
+      query: {
+        ...queryParams,
+        query:
+          issuesType === IssuesType.NEW
+            ? `first-release:${version}`
+            : `release:${version}`,
+      },
+    };
+  }
+
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
     const {version, orgId, location} = this.props;
     const {issuesType} = this.state;
@@ -144,7 +161,7 @@ class Issues extends React.Component<Props, State> {
 
   render() {
     const {issuesType} = this.state;
-    const {orgId, version} = this.props;
+    const {orgId} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: 'new', label: t('New Issues')},
@@ -183,14 +200,7 @@ class Issues extends React.Component<Props, State> {
               </OpenInButton>
             </Feature>
 
-            <OpenInButton
-              to={{
-                pathname: `/organizations/${orgId}/issues/`,
-                query: {...queryParams, query: `first-release:${version}`},
-              }}
-            >
-              {t('Open in Issues')}
-            </OpenInButton>
+            <OpenInButton to={this.getIssuesUrl()}>{t('Open in Issues')}</OpenInButton>
           </ButtonBar>
         </ControlsWrapper>
 
