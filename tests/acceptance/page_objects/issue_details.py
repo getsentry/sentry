@@ -8,7 +8,7 @@ class IssueDetailsPage(BasePage):
     def __init__(self, browser, client):
         super(IssueDetailsPage, self).__init__(browser)
         self.client = client
-        self.global_selection = GlobalSelectionPage(browser, client)
+        self.global_selection = GlobalSelectionPage(browser)
 
     def visit_issue(self, org, groupid):
         self.browser.get(u"/organizations/{}/issues/{}/".format(org, groupid))

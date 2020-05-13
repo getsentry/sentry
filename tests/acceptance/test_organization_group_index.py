@@ -29,6 +29,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         )
         self.login_as(self.user)
         self.page = IssueListPage(self.browser, self.client)
+        self.dismiss_assistant()
 
     def create_issues(self):
         self.store_event(

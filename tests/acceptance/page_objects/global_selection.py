@@ -4,10 +4,6 @@ from .base import BasePage
 
 
 class GlobalSelectionPage(BasePage):
-    def __init__(self, browser, client):
-        super(GlobalSelectionPage, self).__init__(browser)
-        self.client = client
-
     def get_selected_project_slug(self):
         return self.browser.element('[data-test-id="global-header-project-selector"]').text
 
