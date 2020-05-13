@@ -111,9 +111,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
                 timedelta(minutes=1),
                 None,
             )
-            sub = create_snuba_subscription(
-                self.project, registration_key, snuba_query, QueryAggregations.TOTAL
-            )
+            sub = create_snuba_subscription(self.project, registration_key, snuba_query)
         sub.refresh_from_db()
 
         data = self.valid_wrapper

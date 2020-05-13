@@ -94,9 +94,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
                 timedelta(minutes=1),
                 None,
             )
-            sub = create_snuba_subscription(
-                self.project, self.registration_key, snuba_query, QueryAggregations.TOTAL
-            )
+            sub = create_snuba_subscription(self.project, self.registration_key, snuba_query)
             sub.subscription_id = self.subscription_id
             sub.status = 0
             sub.save()

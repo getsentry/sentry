@@ -819,6 +819,10 @@ class Factories(object):
     ):
         if not title:
             title = petname.Generate(2, " ", letters=10).title()
+        if alert_rule is None:
+            alert_rule = Factories.create_alert_rule(
+                organization, projects, query=query, time_window=1
+            )
 
         incident = Incident.objects.create(
             organization=organization,

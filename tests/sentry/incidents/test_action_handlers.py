@@ -111,7 +111,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "aggregate": handler.query_aggregations_display[
                 QueryAggregations(action.alert_rule_trigger.alert_rule.aggregation)
             ],
-            "query": action.alert_rule_trigger.alert_rule.query,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
             "environment": "All",
