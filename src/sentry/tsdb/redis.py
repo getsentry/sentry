@@ -196,7 +196,7 @@ class RedisTSDB(BaseTSDB):
             # enforce utf-8 encoding
             if isinstance(key, six.text_type):
                 key = key.encode("utf-8")
-            return md5(repr(key)).hexdigest()
+            return md5(repr(key).encode("utf-8")).hexdigest()
         return key
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):

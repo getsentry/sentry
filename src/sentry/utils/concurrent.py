@@ -99,7 +99,7 @@ class TimedFuture(Future):
             # This method always overwrites the result, so we always overwrite
             # the timing, even if another timing was already recorded.
             self.__timing[1] = time()
-            return super(TimedFuture, self).set_exception_info(*args, **kwargs)
+            return super(TimedFuture, self).set_exception_info(args[0], **kwargs)
 
 
 class Executor(object):

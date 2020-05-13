@@ -38,6 +38,10 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
+        tmp_message = {}
+        for key, value in message.items():
+            tmp_message[key.decode('ascii') if isinstance(key, bytes) else key] = value.decode('ascii') if isinstance(value, bytes) else value
+        message = tmp_message
         return message
 
     def flush_batch(self, batch):

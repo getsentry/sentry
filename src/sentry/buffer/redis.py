@@ -280,7 +280,7 @@ class RedisBuffer(Buffer):
                 return
 
             model = import_string(values.pop("m"))
-            if values["f"].startswith("{"):
+            if values["f"].startswith(b"{"):
                 filters = self._load_values(json.loads(values.pop("f")))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
@@ -293,7 +293,7 @@ class RedisBuffer(Buffer):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
-                    if v.startswith("["):
+                    if v.startswith(b"["):
                         extra_values[k[2:]] = self._load_value(json.loads(v))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
