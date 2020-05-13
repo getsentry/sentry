@@ -15,13 +15,14 @@ import {
   Field,
   Column,
   AGGREGATIONS,
+  TRACING_FIELDS,
   FIELDS,
   explodeFieldString,
   getAggregateAlias,
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
-import {TableColumn, TableDataRow} from './table/types';
+import {TableColumn, TableDataRow, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
   | Query
@@ -376,3 +377,64 @@ export function getDiscoverLandingUrl(organization: OrganizationSummary): string
   }
   return `/organizations/${organization.slug}/discover/results/`;
 }
+
+export function generateFieldOptions(organization: OrganizationSummary, tagKeys: null | string[]) {
+    let fields = Object.keys(FIELDS);
+    let functions = Object.keys(AGGREGATIONS);
+
+    // Strip tracing features if the org doesn't have access.
+    if (!organization.features.includes('transaction-events')) {
+      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
+      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
+    }
+    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
+
+    // Index items by prefixed keys as custom tags
+    // can overlap both fields and function names.
+    // Having a mapping makes finding the value objects easier
+    // later as well.
+    functions.forEach(func => {
+      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
+      fieldOptions[`function:${func}`] = {
+        label: `${func}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: func,
+            parameters: AGGREGATIONS[func].parameters,
+          },
+        },
+      };
+    });
+
+    fields.forEach(field => {
+      fieldOptions[`field:${field}`] = {
+        label: field,
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: field,
+            dataType: FIELDS[field],
+          },
+        },
+      };
+    });
+
+    if (tagKeys !== null && tagKeys !== undefined) {
+      tagKeys.forEach(tag => {
+        const tagValue =
+          FIELDS.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+            ? `tags[${tag}]`
+            : tag;
+        fieldOptions[`tag:${tag}`] = {
+          label: tag,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tagValue, dataType: 'string'},
+          },
+        };
+      });
+    }
+
+    return fieldOptions;
+  }

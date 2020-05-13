@@ -19,6 +19,7 @@ import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/f
 import Field from 'app/views/settings/components/forms/field';
 import {ColumnEditRow} from 'app/views/eventsV2/table/columnEditRow';
 import {FieldValue, FieldValueKind} from 'app/views/eventsV2/table/types';
+import {generateFieldOptions} from 'app/views/eventsV2/utils.tsx';
 
 import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
@@ -60,53 +61,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     this.fetchData();
-  }
-
-  generateFieldOptions() {
-    const {organization} = this.props;
-
-    let fields = Object.keys(FIELDS);
-    let functions = Object.keys(AGGREGATIONS);
-
-    // Strip tracing features if the org doesn't have access.
-    if (!organization.features.includes('transaction-events')) {
-      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
-      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-    }
-    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
-
-    // Index items by prefixed keys as custom tags
-    // can overlap both fields and function names.
-    // Having a mapping makes finding the value objects easier
-    // later as well.
-    functions.forEach(func => {
-      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
-      fieldOptions[`function:${func}`] = {
-        label: `${func}(${ellipsis})`,
-        value: {
-          kind: FieldValueKind.FUNCTION,
-          meta: {
-            name: func,
-            parameters: AGGREGATIONS[func].parameters,
-          },
-        },
-      };
-    });
-
-    fields.forEach(field => {
-      fieldOptions[`field:${field}`] = {
-        label: field,
-        value: {
-          kind: FieldValueKind.FIELD,
-          meta: {
-            name: field,
-            dataType: FIELDS[field],
-          },
-        },
-      };
-    });
-
-    return fieldOptions;
   }
 
   async fetchData() {
@@ -158,7 +112,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
     environmentList.unshift([null, anyEnvironmentLabel]);
 
-    const fieldOptions = this.generateFieldOptions();
+    const fieldOptions = generateFieldOptions(this.props.organization);
     const gridColumns =
       aggregate.kind === 'function' && aggregate.function[2] !== undefined ? 3 : 2;
     return (

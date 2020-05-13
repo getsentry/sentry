@@ -279,9 +279,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       this.setState({[name]: value});
       if (name === 'aggregation') {
         if (value === 0) {
-          this.props.rule.aggregate = 'count()';
+          this.setState({aggregate: 'count()'})
         } else if (value === 1) {
-          this.props.rule.aggregate = 'count_unique(tags[sentry:user])';
+          this.setState({aggregate: 'count_unique(tags[sentry:user])'});
         }
       }
     }
@@ -292,10 +292,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleAggregateUpdate = (_index: number, column: Column) => {
-    const string_aggregate = generateFieldAsString(column);
-    this.setState({aggregate: string_aggregate});
-    // TODO: This should bind differently? Its used for when the rule saves
-    this.props.rule.aggregate = string_aggregate;
+    const aggregateString = generateFieldAsString(column);
+    this.setState({aggregate: aggregateString});
   };
 
   handleSubmit = async (
@@ -333,6 +331,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
         ...rule,
         ...model.getTransformedData(),
+        aggregate: this.state.aggregate,
         triggers: this.state.triggers.map(sanitizeTrigger),
       });
       addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
@@ -416,7 +415,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const queryAndAlwaysErrorEvents = !query.includes('event.type')
       ? `${query} ${this.getEventType()}`.trim()
       : query;
-    const aggregate_column = explodeFieldString(aggregate);
+    const aggregateColumn = explodeFieldString(aggregate);
 
     const chart = (
       <TriggersChart
@@ -481,7 +480,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               disabled={!hasAccess}
               onFilterUpdate={this.handleFilterUpdate}
               thresholdChart={chart}
-              aggregate={aggregate_column}
+              aggregate={aggregateColumn}
               onAggregateUpdate={this.handleAggregateUpdate}
             />
 
