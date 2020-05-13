@@ -101,7 +101,7 @@ class IssuesByTagProcessor(object):
         return tagstore.get_group_tag_value_iter(
             project_id=self.group.project_id,
             group_id=self.group.id,
-            environment_id=self.environment_id,
+            environment_ids=[self.environment_id],
             key=self.lookup_key,
             callbacks=self.callbacks,
             offset=offset,
