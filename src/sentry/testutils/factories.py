@@ -69,6 +69,7 @@ from sentry.models import (
     ExternalIssue,
     GroupLink,
     ReleaseFile,
+    Rule,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -297,6 +298,47 @@ class Factories(object):
     @staticmethod
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user=user)
+
+    @staticmethod
+    def create_project_rule(project, action_data=None, condition_data=None):
+        action_data = action_data or [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                "name": "Send a notification (for all legacy integrations)",
+            },
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "mail",
+                "name": "Send a notification via mail",
+            },
+        ]
+        condition_data = condition_data or [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "name": "An issue is first seen",
+            },
+            {
+                "id": "sentry.rules.conditions.every_event.EveryEventCondition",
+                "name": "An event is seen",
+            },
+        ]
+        return Rule.objects.create(
+            project=project,
+            data={"conditions": condition_data, "actions": action_data, "action_match": "all"},
+        )
+
+    @staticmethod
+    def create_slack_project_rule(project, integration_id, channel_id=None, channel_name=None):
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.SlackNotifyServiceAction",
+                "name": "Send a Slack notification",
+                "workspace": integration_id,
+                "channel_id": channel_id or "123453",
+                "channel": channel_name or "#general",
+            },
+        ]
+        return Factories.create_project_rule(project, action_data)
 
     @staticmethod
     def create_project_key(project):
