@@ -65,17 +65,10 @@ class IntegrationPipeline(Pipeline):
             self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
             self.integration.get_installation(self.organization.id).reinstall()
         if "integration_id" in data:
-            # this is hyperspecific to what Slack needs to do to updated the re-authenticated
-            # integration. We should have some sort of general re-auth method that can both
-            # update the integration and then update the installation instance as well if need be.
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, id=data["integration_id"]
             )
-            metadata = data.get("metadata", {})
-            metadata["old_access_token"] = self.integration.metadata["access_token"]
-
-            self.integration.update(metadata=metadata)
-
+            self.integration.reauthorize(data)
         elif "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]

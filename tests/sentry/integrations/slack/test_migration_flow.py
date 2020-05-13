@@ -21,20 +21,6 @@ class SlackMigrationTest(IntegrationTestCase):
 
     def setUp(self):
         super(SlackMigrationTest, self).setUp()
-        self.init_path_verification_results = "%s%s" % (
-            self.setup_path,
-            "?show_verification_results",
-        )
-        self.init_path_channels = "%s%s" % (self.setup_path, "?start_migration")
-
-    def assert_setup_flow(
-        self,
-        team_id="TXXXXXXX1",
-        authorizing_user_id="UXXXXXXX1",
-        expected_client_id="slack-client-id",
-        expected_client_secret="slack-client-secret",
-    ):
-
         self.team = self.create_team(
             organization=self.organization, name="Go Team", members=[self.user]
         )
@@ -55,6 +41,19 @@ class SlackMigrationTest(IntegrationTestCase):
             integration_id=six.text_type(self.integration.id),
             channel_id="XXXXX",
         )
+        self.init_path_verification_results = "%s%s" % (
+            self.setup_path,
+            "?show_verification_results",
+        )
+        self.init_path_channels = "%s%s" % (self.setup_path, "?start_migration")
+
+    def assert_setup_flow(
+        self,
+        team_id="TXXXXXXX1",
+        authorizing_user_id="UXXXXXXX1",
+        expected_client_id="slack-client-id",
+        expected_client_secret="slack-client-secret",
+    ):
         responses.reset()
 
         resp = self.client.get(
@@ -152,3 +151,10 @@ class SlackMigrationTest(IntegrationTestCase):
         idp = IdentityProvider.objects.get(type="slack", external_id="TXXXXXXX1")
         identity = Identity.objects.get(idp=idp, user=self.user, external_id="UXXXXXXX1")
         assert identity.status == IdentityStatus.VALID
+
+    def test_invalid_integration_id(self):
+        responses.reset()
+
+        resp = self.client.get(u"{}?{}".format(self.init_path, urlencode({"integration_id": -1})))
+        assert resp.status_code == 200
+        self.assertContains(resp, "Setup Error")

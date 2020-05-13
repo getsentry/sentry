@@ -199,7 +199,11 @@ class SlackReAuthIntro(PipelineView):
             pipeline.bind_state("integration_id", request.GET["integration_id"])
             pipeline.bind_state("user_id", request.user.id)
 
-            all_channels = _get_channels_from_rules(pipeline)
+            try:
+                all_channels = _get_channels_from_rules(pipeline)
+            except IntegrationError as error:
+                return pipeline.error(error)
+
             pipeline.bind_state("all_channels", all_channels)
 
             next_param = "?show_verification_results"
@@ -240,7 +244,11 @@ class SlackReAuthChannels(PipelineView):
             return pipeline.next_step()
 
         next_url_param = "?start_migration"
-        channels = _request_channel_info(pipeline)
+
+        try:
+            channels = _request_channel_info(pipeline)
+        except IntegrationError as error:
+            return pipeline.error(error)
 
         return render_to_response(
             template="sentry/integrations/slack-reauth-details.html",
@@ -259,10 +267,9 @@ def _request_channel_info(pipeline):
     integration_id = pipeline.fetch_state("integration_id")
 
     try:
-        integration = Integration.objects.get(id=integration_id, status=0, provider="slack",)
+        integration = Integration.objects.get(id=integration_id, provider="slack",)
     except Integration.DoesNotExist:
-        # probably raise an IntegrationError here
-        return
+        raise IntegrationError("Could not find Slack integration.")
 
     channel_responses = defaultdict(lambda: set())
     for channel in channels:
@@ -273,13 +280,12 @@ def _request_channel_info(pipeline):
         client = SlackClient()
         try:
             resp = client.post("/conversations.info", data=payload)
+            # TODO(meredith): subclass the ApiError and make a SlackApiError so we can
+            # reraise the other errors
         except ApiError as e:
             # adds the channel to our dict grouped by the error message which could
             # be any of the following found under the 'errors' section found in
             # https://api.slack.com/methods/conversations.list
-
-            # we would be catching other errors too that we don't care about
-            # but maybe that's fine to just add em in
             channel_responses[e].add(Channel(channel["name"], channel["id"]))
             continue
 
@@ -297,14 +303,13 @@ def _get_channels_from_rules(pipeline):
     try:
         integration = Integration.objects.get(id=integration_id, provider="slack",)
     except Integration.DoesNotExist:
-        # probably raise an IntegrationError here
-        return
+        raise IntegrationError("Could not find Slack integration.")
 
     rules = Rule.objects.filter(
         project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
     )
 
-    channels = []
+    channels = set()
     for rule in rules:
         # try and see if its used for slack
         for rule_action in rule.data["actions"]:
@@ -318,6 +323,6 @@ def _get_channels_from_rules(pipeline):
                 if channel_name[0] == "@":
                     continue
 
-                channels.append({"name": channel_name, "id": channel_id})
+                channels.add(Channel(channel_name, channel_id))
 
     return channels
