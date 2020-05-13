@@ -407,7 +407,9 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             stat: rv[stat],
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
-            stat + "_errored": rv[stat + "_errored"] - rv[stat + "_crashed"],
+            # Due to the nature of the probabilistic data structures this
+            # subtraction can become negative.
+            stat + "_errored": max(0, rv[stat + "_errored"] - rv[stat + "_crashed"]),
             "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
@@ -445,7 +447,9 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
                 "users": rv["users"],
                 "users_crashed": rv["users_crashed"],
                 "users_abnormal": rv["users_abnormal"],
-                "users_errored": rv["users_errored"] - rv["users_crashed"],
+                # Due to the nature of the probabilistic data structures this
+                # subtraction can become negative.
+                "users_errored": max(0, rv["users_errored"] - rv["users_crashed"]),
             }
 
     return stats, totals
