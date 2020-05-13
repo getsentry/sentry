@@ -284,8 +284,10 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     const {projects} = this.state;
 
     // Clear environments when switching projects
-    updateEnvironments([], this.getRouter(), this.getUpdateOptions());
-    updateProjects(projects || [], this.getRouter(), this.getUpdateOptions());
+    updateProjects(projects || [], this.getRouter(), {
+      ...this.getUpdateOptions(),
+      environments: [],
+    });
     this.setState({projects: null, environments: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
