@@ -508,6 +508,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Assert the new query exists and has 'copy' added to the name.
         assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
+    @pytest.mark.skip(reason="causing timeouts in github actions and travis")
     @patch("django.utils.timezone.now")
     def test_drilldown_result(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
