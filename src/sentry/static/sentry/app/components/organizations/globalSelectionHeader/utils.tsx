@@ -20,7 +20,7 @@ export function getStateFromQuery(
   query: Location['query'],
   {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
 ) {
-  const parsedParams = getParams(query, {allowEmptyPeriod});
+  const parsedParams = getParams(query, {allowEmptyPeriod, allowAbsoluteDatetime});
 
   const projectFromQuery = query[URL_PARAM.PROJECT];
   const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
