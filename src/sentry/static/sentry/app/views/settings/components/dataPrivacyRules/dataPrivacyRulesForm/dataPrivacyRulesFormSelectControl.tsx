@@ -15,11 +15,8 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
       return;
     }
 
-    if (this.selectRef.current?.select) {
-      const input = this.selectRef.current.select?.inputRef;
-      if (input) {
-        input.autocomplete = 'off';
-      }
+    if (this.selectRef.current?.select?.inputRef) {
+      this.selectRef.current.select.inputRef.autocomplete = 'off';
     }
   }
 
