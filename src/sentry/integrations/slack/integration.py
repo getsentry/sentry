@@ -189,11 +189,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             return
 
         channels = extra.get("channels")
-        run_args = {"integration_id": integration.id, "organization_id": organization.id, "user_id": extra.get("user_id"), "channels": channels}
+        run_args = {
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+            "user_id": extra.get("user_id"),
+            "channels": channels,
+        }
         if channels:
-            run_post_migration.apply_async(
-                kwargs=run_args
-            )
+            run_post_migration.apply_async(kwargs=run_args)
         else:
             # if we don't have channels, log it so we know we skipped this
             logger.info("slack.integration.skipped_post_migration", extra=run_args)
