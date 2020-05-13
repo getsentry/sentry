@@ -150,7 +150,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
           <Feature features={['performance-alerts']}>
             {({hasFeature}) =>
-              !hasFeature ? (
+              hasFeature ? (
                 <Field
                   label="Metric"
                   help={t('Choose an aggregate function and event property.')}
