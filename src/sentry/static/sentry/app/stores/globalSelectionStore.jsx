@@ -37,7 +37,6 @@ const GlobalSelectionStore = Reflux.createStore({
 
   /**
    * Initializes the global selection store data
-   * Use query params if they exist, otherwise check local storage
    */
   onInitializeUrlState(newSelection) {
     this._hasInitialState = true;
@@ -57,7 +56,7 @@ const GlobalSelectionStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  updateProjects(projects = []) {
+  updateProjects(projects = [], environments = null) {
     if (isEqual(this.selection.projects, projects)) {
       return;
     }
@@ -65,6 +64,7 @@ const GlobalSelectionStore = Reflux.createStore({
     this.selection = {
       ...this.selection,
       projects,
+      environments: environments === null ? this.selection.environments : environments,
     };
     this.trigger(this.get());
   },

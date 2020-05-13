@@ -215,11 +215,15 @@ export function initializeUrlState({
 
 /**
  * Updates store and global project selection URL param if `router` is supplied
+ *
+ * This accepts `environments` from `options` to also update environments simultaneously
+ * as environments are tied to a project, so if you change projects, you may need
+ * to clear environments.
  */
 export function updateProjects(
   projects: ProjectId[],
   router?: Router,
-  options?: Options
+  options?: Options & {environments?: EnvironmentId[]}
 ) {
   if (!isProjectsValid(projects)) {
     Sentry.withScope(scope => {
@@ -229,8 +233,8 @@ export function updateProjects(
     return;
   }
 
-  GlobalSelectionActions.updateProjects(projects);
-  updateParams({project: projects}, router, options);
+  GlobalSelectionActions.updateProjects(projects, options?.environments);
+  updateParams({project: projects, environment: options?.environments}, router, options);
 }
 
 function isProjectsValid(projects: ProjectId[]) {
