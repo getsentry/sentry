@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {SavedSearch, Organization} from 'app/types';
+import {SavedSearch, LightWeightOrganization} from 'app/types';
 import {IconSearch, IconClose} from 'app/icons';
 import {
   fetchRecentSearches,
@@ -109,7 +109,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
 
 type Props = {
   api: Client;
-  organization: Organization;
+  organization: LightWeightOrganization;
   dropdownClassName?: string;
   className?: string;
 
@@ -131,6 +131,10 @@ type Props = {
    * Input placeholder
    */
   placeholder?: string;
+  /**
+   * Allows additional content to be played before the search bar and icon
+   */
+  inlineLabel?: React.ReactNode;
   /**
    * Map of tags
    */
@@ -598,6 +602,9 @@ class SmartSearchBar extends React.Component<Props, State> {
         Sentry.captureException(err);
         return [];
       }
+      if (tag.key === 'release' && !values.includes('latest')) {
+        values.push('latest');
+      }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
       this.setState({noValueQuery});
@@ -1019,6 +1026,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       disabled,
       useFormWrapper,
       onSidebarToggle,
+      inlineLabel,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1061,6 +1069,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       <Container className={className} isOpen={this.state.dropdownVisible}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
+          {inlineLabel}
         </SearchLabel>
 
         {useFormWrapper ? (

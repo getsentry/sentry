@@ -426,7 +426,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               aggregation: rule.aggregation,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
-              environment: rule.environment || [],
+              // TODO(epurkhiser): Remove when the API response with a single env
+              environment:
+                (Array.isArray(rule.environment)
+                  ? rule.environment[0]
+                  : rule.environment) || null,
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}

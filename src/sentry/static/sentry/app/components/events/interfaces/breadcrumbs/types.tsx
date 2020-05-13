@@ -1,7 +1,9 @@
 import {Color} from 'app/utils/theme';
-import {IconProps} from 'app/types/iconProps';
+import SvgIcon from 'app/icons/svgIcon';
 
-export enum BreadcrumbLevel {
+export type IconProps = React.ComponentProps<typeof SvgIcon>;
+
+export enum BreadcrumbLevelType {
   FATAL = 'fatal',
   ERROR = 'error',
   WARNING = 'warning',
@@ -26,9 +28,9 @@ export enum BreadcrumbType {
 
 type BreadcrumbTypeBase = {
   timestamp?: string; //it's recommended
-  category?: string;
+  category?: string | null;
   message?: string;
-  level?: BreadcrumbLevel;
+  level?: BreadcrumbLevelType;
   event_id?: string;
 };
 

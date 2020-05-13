@@ -6,8 +6,8 @@ import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getInterval} from 'app/components/charts/utils';
-import LoadingPanel from 'app/views/events/loadingPanel';
-import Tooltip from 'app/components/tooltip';
+import LoadingPanel from 'app/components/charts/loadingPanel';
+import QuestionTooltip from 'app/components/questionTooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -17,7 +17,8 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
-import {HeaderContainer, HeaderTitle, StyledIconQuestion, ErrorPanel} from '../styles';
+import {PERFORMANCE_TERMS} from '../constants';
+import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
@@ -25,13 +26,12 @@ const YAXIS_OPTIONS = [
   {
     label: 'Apdex',
     value: 'apdex(300)',
-    tooltip:
-      'Apdex is a ratio of satisfactory response times to unsatisfactory response times.',
+    tooltip: PERFORMANCE_TERMS.apdex,
   },
   {
     label: 'Throughput',
     value: 'rpm()',
-    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
+    tooltip: PERFORMANCE_TERMS.rpm,
   },
 ];
 
@@ -102,12 +102,16 @@ class Container extends React.Component<Props> {
               <React.Fragment>
                 <HeaderContainer>
                   {YAXIS_OPTIONS.map(option => (
-                    <HeaderTitle key={option.label}>
-                      {option.label}
-                      <Tooltip position="top" title={option.tooltip}>
-                        <StyledIconQuestion size="sm" />
-                      </Tooltip>
-                    </HeaderTitle>
+                    <div key={option.label}>
+                      <HeaderTitle>
+                        {option.label}
+                        <QuestionTooltip
+                          position="top"
+                          size="sm"
+                          title={option.tooltip}
+                        />
+                      </HeaderTitle>
+                    </div>
                   ))}
                 </HeaderContainer>
                 {getDynamicText({

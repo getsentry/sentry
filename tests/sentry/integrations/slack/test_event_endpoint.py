@@ -4,7 +4,6 @@ import json
 
 import responses
 from six.moves.urllib.parse import parse_qsl
-from django.test.utils import override_settings
 
 from sentry import options
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
@@ -48,7 +47,6 @@ LINK_SHARED_EVENT = """{
 }"""
 
 
-@override_settings(SLACK_INTEGRATION_USE_WST=True)
 class BaseEventTest(APITestCase):
     def setUp(self):
         super(BaseEventTest, self).setUp()

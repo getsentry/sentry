@@ -77,6 +77,7 @@ class StatusItem extends React.Component<Props> {
                 'This alert has been auto-resolved because the rule that triggered it has been modified or deleted.'
               )}
             {isClosed &&
+              incident?.statusMethod !== IncidentStatusMethod.RULE_UPDATED &&
               tct('[user] resolved the alert', {
                 user: <StatusValue>{authorName}</StatusValue>,
               })}

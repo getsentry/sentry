@@ -6,16 +6,16 @@ import pick from 'lodash/pick';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import LoadingPanel from 'app/components/charts/loadingPanel';
+import QuestionTooltip from 'app/components/questionTooltip';
 import AsyncComponent from 'app/components/asyncComponent';
-import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
-import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitleLegend, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
@@ -161,14 +161,13 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       <React.Fragment>
         <HeaderTitleLegend>
           {t('Duration Percentiles')}
-          <Tooltip
+          <QuestionTooltip
             position="top"
+            size="sm"
             title={t(
               `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
             )}
-          >
-            <StyledIconQuestion />
-          </Tooltip>
+          />
         </HeaderTitleLegend>
         {this.renderComponent()}
       </React.Fragment>

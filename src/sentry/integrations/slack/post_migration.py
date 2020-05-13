@@ -4,7 +4,7 @@ import six
 import logging
 
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.models import Integration, User
+from sentry.models import Integration, User, Organization
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.tasks.base import instrumented_task, retry
@@ -27,21 +27,15 @@ def build_migration_attachment():
     }
 
 
-# purposely
+
 @instrumented_task(
     name="sentry.integrations.slack.run_post_migration", queue="integrations",
 )
-@retry(on=())
-def run_post_migration(integration_id, organization_id):
-    user_id = 1
-    user = User.objects.get(id=user_id)
-    channels = [
-        ["#discuss-design", "G013DDNPD4H"],
-        ["#sentry-alerts", "C011XGW4Y10"],
-        ["#ecosystem-alerts", "C011XGW4Y10"],
-        ["#custom-alerts", "C011XGW4Y10"],
-    ]
+@retry(on=()) # no retries on any errors
+def run_post_migration(integration_id, organization_id, user_id, channels):
     integration = Integration.objects.get(id=integration_id)
+    organization = Organization.objects.get(id=organization_id)
+    user = User.objects.get(id=user_id)
 
     client = SlackClient()
 
@@ -49,7 +43,8 @@ def run_post_migration(integration_id, organization_id):
     good_channels = []
     for channel in channels:
         attachment = build_migration_attachment()
-        [channel_name, channel_id] = channel
+        channel_name = channel["name"]
+        channel_id = channel["id"]
         payload = {
             "token": integration.metadata["access_token"],
             "channel": channel_id,
@@ -65,7 +60,9 @@ def run_post_migration(integration_id, organization_id):
                 extra={
                     "error": six.text_type(e),
                     "channel_id": channel_id,
+                    "channel_name": channel_name,
                     "integration_id": integration_id,
+                    "organization_id": organization_id,
                 },
             )
             problem_channels.append(channel_name)
@@ -80,6 +77,7 @@ def run_post_migration(integration_id, organization_id):
             "problem_channels": problem_channels,
             "doc_link": doc_link,
             "integration": integration,
+            "organization": organization,
         },
     )
     message.send([user.email])

@@ -12,6 +12,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
+import {decodeScalar} from 'app/utils/queryString';
 import OptionSelector from 'app/components/charts/optionSelector';
 
 import {ChartContainer} from '../styles';
@@ -23,6 +24,7 @@ enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
   LATENCY = 'latency',
+  APDEX_THROUGHPUT = 'apdexthroughput',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
@@ -49,11 +51,10 @@ class TransactionSummaryCharts extends React.Component<Props> {
 
   render() {
     const {totalValues, eventView, organization, location} = this.props;
-    const display = location.query.display
-      ? Array.isArray(location.query.display)
-        ? location.query.display[0]
-        : location.query.display
-      : DisplayModes.DURATION;
+    let display = decodeScalar(location.query.display) || DisplayModes.DURATION;
+    if (!Object.values(DisplayModes).includes(display as DisplayModes)) {
+      display = DisplayModes.DURATION;
+    }
 
     return (
       <Panel>

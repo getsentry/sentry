@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import six
 
+from collections import namedtuple, defaultdict
 from django.utils.translation import ugettext_lazy as _
-from django.conf import settings
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
@@ -13,13 +13,20 @@ from sentry.integrations import (
     FeatureDescription,
     IntegrationInstallation,
 )
-from sentry.pipeline import NestedPipelineView
+
+from sentry.models import Integration, Rule, RuleStatus
+from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 from .post_migration import run_post_migration
 from .client import SlackClient
-from .utils import logger, use_slack_v2
+from .utils import logger
+
+from sentry.web.helpers import render_to_response
+
+
+Channel = namedtuple("Channel", ["name", "id"])
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
@@ -51,7 +58,7 @@ setup_alert = {
 }
 
 reauthentication_alert = {
-    "alertText": "Slack must be re-authorized to avoid a disruption of Slack notifications",
+    "alertText": "Upgrade Slack to avoid any disruption to service. It'll be worth it, we promise.",
 }
 
 metadata = IntegrationMetadata(
@@ -80,21 +87,8 @@ class SlackIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
     integration_cls = SlackIntegration
 
-    # Scopes differ depending on if it's a workspace app
-    wst_oauth_scopes = frozenset(
-        [
-            "channels:read",
-            "groups:read",
-            "users:read",
-            "chat:write",
-            "links:read",
-            "links:write",
-            "team:read",
-        ]
-    )
-
     # some info here: https://api.slack.com/authentication/quickstart
-    bot_oauth_scopes = frozenset(
+    identity_oauth_scopes = frozenset(
         [
             "channels:read",
             "groups:read",
@@ -111,19 +105,10 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 600, "height": 900}
 
-    @property
-    def use_wst_app(self):
-        return settings.SLACK_INTEGRATION_USE_WST and not use_slack_v2(self.pipeline)
-
-    @property
-    def identity_oauth_scopes(self):
-        if self.use_wst_app:
-            return self.wst_oauth_scopes
-        return self.bot_oauth_scopes
-
     def get_pipeline_views(self):
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
+            "user_scopes": frozenset(["links:read"]),
             "redirect_url": absolute_uri("/extensions/slack/setup/"),
         }
 
@@ -134,7 +119,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             config=identity_pipeline_config,
         )
 
-        return [identity_pipeline_view]
+        return [SlackReAuthIntro(), SlackReAuthChannels(), identity_pipeline_view]
 
     def get_team_info(self, access_token):
         payload = {"token": access_token}
@@ -155,14 +140,9 @@ class SlackIntegrationProvider(IntegrationProvider):
         access_token = data["access_token"]
         # bot apps have a different response format
         # see: https://api.slack.com/authentication/quickstart#installing
-        if self.use_wst_app:
-            user_id_slack = data["authorizing_user_id"]
-            team_name = data["team_name"]
-            team_id = data["team_id"]
-        else:
-            user_id_slack = data["authed_user"]["id"]
-            team_name = data["team"]["name"]
-            team_id = data["team"]["id"]
+        user_id_slack = data["authed_user"]["id"]
+        team_name = data["team"]["name"]
+        team_id = data["team"]["id"]
 
         scopes = sorted(self.identity_oauth_scopes)
         team_data = self.get_team_info(access_token)
@@ -172,12 +152,10 @@ class SlackIntegrationProvider(IntegrationProvider):
             "scopes": scopes,
             "icon": team_data["icon"]["image_132"],
             "domain_name": team_data["domain"] + ".slack.com",
+            "installation_type": "born_as_bot",
         }
-        # only set installation type for bot apps
-        if not self.use_wst_app:
-            metadata["installation_type"] = "born_as_bot"
 
-        return {
+        integration = {
             "name": team_name,
             "external_id": team_id,
             "metadata": metadata,
@@ -189,7 +167,178 @@ class SlackIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def post_install(self, integration, organization):
-        run_post_migration.apply_async(
-            kwargs={"integration_id": integration.id, "organization_id": organization.id}
+        # if we have the integration_id then we need to set the
+        # information for the migration, the user_id and channels
+        # are using in post_install to send messages to slack
+        if state.get("integration_id"):
+            metadata["installation_type"] = "migrated_to_bot"
+
+            post_install_data = {
+                "user_id": state["user_id"],
+                "channels": state["private_channels"],
+            }
+
+            integration["integration_id"] = state.get("integration_id")
+            integration["post_install_data"] = post_install_data
+
+        return integration
+
+    def post_install(self, integration, organization, extra=None):
+        # normal installtions don't have extra, quit immediately
+        if extra is None:
+            return
+
+        channels = extra.get("channels")
+        run_args = {"integration_id": integration.id, "organization_id": organization.id, "user_id": extra.get("user_id"), "channels": channels}
+        if channels:
+            run_post_migration.apply_async(
+                kwargs=run_args
+            )
+        else:
+            # if we don't have channels, log it so we know we skipped this
+            logger.info("slack.integration.skipped_post_migration", extra=run_args)
+
+
+class SlackReAuthIntro(PipelineView):
+    """
+        This pipeline step handles rendering the migration
+        intro with context about the migration.
+
+        If the `integration_id` is not present in the request
+        then we can fast forward through the pipeline to move
+        on to installing the integration as normal.
+
+    """
+
+    def dispatch(self, request, pipeline):
+        if "integration_id" in request.GET:
+            pipeline.bind_state("integration_id", request.GET["integration_id"])
+            pipeline.bind_state("user_id", request.user.id)
+
+            try:
+                all_channels = _get_channels_from_rules(pipeline)
+            except IntegrationError as error:
+                return pipeline.error(error)
+
+            pipeline.bind_state("all_channels", all_channels)
+
+            next_param = "?show_verification_results"
+
+            return render_to_response(
+                template="sentry/integrations/slack-reauth-introduction.html",
+                context={
+                    "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
+                },
+                request=request,
+            )
+
+        if "show_verification_results" in request.GET:
+            return pipeline.next_step()
+
+        # if we dont have the integration_id we dont care about the
+        # migration path, skip straight to install
+        pipeline.state.step_index = 2
+        return pipeline.current_step()
+
+
+class SlackReAuthChannels(PipelineView):
+    """
+        This pipeline step handles making requests to Slack and
+        displaying the channels (if any) that are problematic:
+
+        1. private
+        2. removed
+        3. unauthorized
+
+        Any private channels in alert rules will also be binded
+        to the pipeline state to be used later.
+
+    """
+
+    def dispatch(self, request, pipeline):
+        if "start_migration" in request.GET:
+            return pipeline.next_step()
+
+        next_url_param = "?start_migration"
+
+        try:
+            channels = _request_channel_info(pipeline)
+        except IntegrationError as error:
+            return pipeline.error(error)
+
+        return render_to_response(
+            template="sentry/integrations/slack-reauth-details.html",
+            context={
+                "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_url_param),
+                "private": channels["private"],
+                "no_permission": channels["no_permission"],
+                "not_found": channels["channel_not_found"],
+            },
+            request=request,
         )
+
+
+def _request_channel_info(pipeline):
+    channels = pipeline.fetch_state("all_channels")
+    integration_id = pipeline.fetch_state("integration_id")
+
+    try:
+        integration = Integration.objects.get(id=integration_id, provider="slack",)
+    except Integration.DoesNotExist:
+        raise IntegrationError("Could not find Slack integration.")
+
+    channel_responses = defaultdict(lambda: set())
+    for channel in channels:
+        payload = {
+            "token": integration.metadata["access_token"],
+            "channel": channel["id"],
+        }
+        client = SlackClient()
+        try:
+            resp = client.post("/conversations.info", data=payload)
+            # TODO(meredith): subclass the ApiError and make a SlackApiError so we can
+            # reraise the other errors
+        except ApiError as e:
+            # adds the channel to our dict grouped by the error message which could
+            # be any of the following found under the 'errors' section found in
+            # https://api.slack.com/methods/conversations.list
+            channel_responses[e].add(Channel(channel["name"], channel["id"]))
+            continue
+
+        if resp["channel"]["is_private"]:
+            channel_responses["private"].add(Channel(channel["name"], channel["id"]))
+
+    pipeline.bind_state("private_channels", channel_responses["private"])
+    return channel_responses
+
+
+def _get_channels_from_rules(pipeline):
+    organization = pipeline.organization
+    integration_id = pipeline.fetch_state("integration_id")
+
+    try:
+        integration = Integration.objects.get(id=integration_id, provider="slack",)
+    except Integration.DoesNotExist:
+        raise IntegrationError("Could not find Slack integration.")
+
+    rules = Rule.objects.filter(
+        project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
+    )
+
+    channels = set()
+    for rule in rules:
+        # try and see if its used for slack
+        for rule_action in rule.data["actions"]:
+            rule_integration_id = rule_action.get("workspace")
+            if rule_integration_id and rule_integration_id == six.text_type(integration.id):
+
+                channel_id = rule_action["channel_id"]
+                channel_name = rule_action["channel"]
+
+                # don't care if its a user
+                if channel_name[0] == "@":
+                    continue
+
+                channels.add(Channel(channel_name, channel_id))
+
+    return channels

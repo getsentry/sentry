@@ -125,8 +125,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 params = self.get_filter_params(request, organization)
             except NoProjects:
                 return Response([])
-
-            params["organization_id"] = organization.id
+            params = self.quantize_date_params(request, params)
 
             has_global_views = features.has(
                 "organizations:global-views", organization, actor=request.user

@@ -126,7 +126,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  getTabDiplay(tab: Tab) {
+  getTabDisplay(tab: Tab) {
     //we want to show project configurations to make it more clear
     if (tab === 'configurations') {
       return 'project configurations';

@@ -101,6 +101,9 @@ def find_reference_event(reference_event):
     if reference_event.end:
         end = reference_event.end + timedelta(seconds=5)
 
+    # We use raw_query here because generating conditions from an eventstore
+    # event requires non-trivial translation from the flat list of fields into
+    # structured fields like message, stack, and tags.
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
@@ -183,8 +186,9 @@ def find_histogram_buckets(field, params, conditions):
     conditions = deepcopy(conditions) if conditions else []
     found = False
     for cond in conditions:
-        if (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
+        if len(cond) == 3 and (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
             found = True
+            break
     if not found:
         conditions.append(["event.type", "=", "transaction"])
     snuba_filter = eventstore.Filter(conditions=conditions)

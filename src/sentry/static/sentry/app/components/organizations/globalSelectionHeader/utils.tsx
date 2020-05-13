@@ -1,27 +1,33 @@
 import {Location} from 'history';
+import identity from 'lodash/identity';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
-import identity from 'lodash/identity';
 
+import {DATE_TIME, DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {URL_PARAM, DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 
 import {getParams} from './getParams';
 
+const DEFAULT_PARAMS = getParams({});
+
 // Parses URL query parameters for values relevant to global selection header
+type GetStateFromQueryOptions = {
+  allowEmptyPeriod?: boolean;
+  allowAbsoluteDatetime?: boolean;
+};
 export function getStateFromQuery(
   query: Location['query'],
-  {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
+  {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
 ) {
-  const parsedParams = getParams(query, {allowEmptyPeriod});
+  const parsedParams = getParams(query, {allowEmptyPeriod, allowAbsoluteDatetime});
 
   const projectFromQuery = query[URL_PARAM.PROJECT];
   const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
   const period = parsedParams.statsPeriod;
   const utc = parsedParams.utc;
 
-  const hasAbsolute = !!parsedParams.start && !!parsedParams.end;
+  const hasAbsolute = allowAbsoluteDatetime && !!parsedParams.start && !!parsedParams.end;
 
   let project: number[] | null | undefined;
   if (defined(projectFromQuery) && Array.isArray(projectFromQuery)) {
@@ -67,4 +73,16 @@ export function extractSelectionParameters(query) {
  */
 export function extractDatetimeSelectionParameters(query) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
+}
+export function getDefaultSelection() {
+  return {
+    projects: [],
+    environments: [],
+    datetime: {
+      [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
+      [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
+      [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
+      [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
+    },
+  };
 }

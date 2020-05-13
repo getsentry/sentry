@@ -1,19 +1,20 @@
-import React from 'react';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
+import React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 
+import {IconWarning} from 'app/icons';
+import {Panel} from 'app/components/panels';
 import {SentryTransactionEvent, Organization} from 'app/types';
+import {TableData} from 'app/views/eventsV2/table/types';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import {t, tn} from 'app/locale';
+import Alert from 'app/components/alert';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
-import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
-import EventView from 'app/utils/discover/eventView';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
-import AlertMessage from 'app/components/alertMessage';
-import {TableData} from 'app/views/eventsV2/table/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import {ParsedTraceType} from './types';
@@ -78,17 +79,11 @@ class SpansInterface extends React.Component<Props, State> {
     );
 
     return (
-      <AlertMessageContainer>
-        <AlertMessage
-          alert={{
-            id: 'transaction-alert',
-            message: <span>{label}</span>,
-            type: 'error',
-          }}
-          system={false}
-          hideCloseButton
-        />
-      </AlertMessageContainer>
+      <AlertContainer>
+        <Alert type="error" icon={<IconWarning size="md" />}>
+          {label}
+        </Alert>
+      </AlertContainer>
     );
   }
 
@@ -183,7 +178,7 @@ const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
 
-const AlertMessageContainer = styled('div')`
+const AlertContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 

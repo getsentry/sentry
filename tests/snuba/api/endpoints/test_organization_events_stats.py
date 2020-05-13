@@ -4,6 +4,7 @@ import mock
 import six
 import uuid
 
+from pytz import utc
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
@@ -520,6 +521,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
 
+    def test_latest_release_query_filter(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "release:latest",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200
+
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
@@ -591,6 +607,40 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     },
                 )
         assert response.status_code == 400
+
+    @mock.patch("sentry.utils.snuba.quantize_time")
+    def test_quantize_dates(self, mock_quantize):
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        with self.feature("organizations:discover-basic"):
+            # Don't quantize short time periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},
+            )
+            # Don't quantize absolute date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(days=20)),
+                    "end": iso_format(before_now(days=15)),
+                    "query": "",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+
+            assert len(mock_quantize.mock_calls) == 0
+
+            # Quantize long date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"statsPeriod": "90d", "query": "", "interval": "30m", "yAxis": "count()"},
+            )
+
+            assert len(mock_quantize.mock_calls) == 2
 
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):

@@ -834,7 +834,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
-    "organizations:releases-v2": False,
+    "organizations:releases-v2": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -947,6 +947,12 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 
 # Sample rate for Sentry transactions
 SENTRY_APM_SAMPLING = 0
+
+# Sample rate for symbolicate_event task transactions
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
+
+# Sample rate for the process_event task transactions
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 0.01
 
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
@@ -1062,6 +1068,12 @@ SENTRY_QUOTA_OPTIONS = {}
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
+
+# Which cache to use for debouncing cache updates to the projectconfig cache
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
+    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
+)
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
@@ -1345,6 +1357,7 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "--color",
             "--output-pathinfo",
             "--watch",
             u"--config={}".format(
@@ -1787,10 +1800,10 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
-# Enable this to use the legacy Slack Workspace Token apps. You will likely
-# never need to switch this unless you created a workspace app before slack
-# disabled them.
-SLACK_INTEGRATION_USE_WST = False
+# For Jira, only approved apps can use the access_email_addresses scope
+# This scope allows Sentry to use the email endpoint (https://developer.atlassian.com/cloud/jira/platform/rest/v3/#api-rest-api-3-user-email-get)
+# We use the email with Jira 2-way sync in order to match the user
+JIRA_USE_EMAIL_SCOPE = False
 
 """
 Fields are:

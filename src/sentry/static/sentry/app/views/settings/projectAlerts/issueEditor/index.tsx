@@ -71,7 +71,7 @@ const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 type ConditionOrAction = string;
 
 type RuleTaskResponse = {
-  status: 'pending' | 'failed' | 'succes';
+  status: 'pending' | 'failed' | 'success';
   rule?: IssueAlertRule;
   error?: string;
 };
@@ -176,7 +176,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   fetchStatus() {
-    // pollHander calls itself until it gets either a sucesss
+    // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
@@ -224,7 +224,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       });
 
       // if we get a 202 back it means that we have an async task
-      // running to lookup and verfity the channel id for Slack.
+      // running to lookup and verify the channel id for Slack.
       if (xhr && xhr.status === 202) {
         this.setState({detailedError: null, loading: true, uuid: resp.uuid});
         this.fetchStatus();
@@ -448,7 +448,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
               <PanelSubHeader>
                 {t(
-                  'Whenever %s of these conditions are met',
+                  'Whenever %s of these conditions are met for an issue',
                   <EmbeddedWrapper>
                     <EmbeddedSelectField
                       className={classNames({

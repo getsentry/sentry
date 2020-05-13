@@ -75,7 +75,6 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
-default_manager.add("organizations:slack-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
@@ -132,3 +131,4 @@ add = default_manager.add
 get = default_manager.get
 has = default_manager.has
 all = default_manager.all
+add_handler = default_manager.add_handler

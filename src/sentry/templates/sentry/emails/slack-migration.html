@@ -6,7 +6,7 @@
 
 {% block main %}
   <h3>Slack Upgrade</h3>
-  Your Sentry Slack Integration for workspace <strong>{{integration.name}}</strong> has been updated. For more information, <a href="{{ doc_link }}">check out the documentation.</a>
+  Your Sentry Slack Integration for workspace <strong>{{integration.name}}</strong> has been updated on behalf of organization <strong>{{organization.name}}</strong>. For more information, <a href="{{ doc_link }}">check out the documentation.</a>
   <br />
   <br />
   {% if good_channels %}

@@ -17,6 +17,7 @@ import ReleaseChart from './chart/';
 import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import OtherProjects from './otherProjects';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
@@ -73,7 +74,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project}) => {
+        {({release, project, releaseProjects}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
@@ -118,6 +119,7 @@ class ReleaseOverview extends AsyncView<Props> {
                     />
                   </Main>
                   <Sidebar>
+                    <ProjectReleaseDetails release={release} />
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown
                         version={version}
@@ -125,7 +127,12 @@ class ReleaseOverview extends AsyncView<Props> {
                         projectSlug={project.slug}
                       />
                     )}
-                    <ProjectReleaseDetails release={release} />
+                    {releaseProjects.length > 1 && (
+                      <OtherProjects
+                        projects={releaseProjects.filter(p => p.slug !== project.slug)}
+                        location={location}
+                      />
+                    )}
                     {hasHealthData && (
                       <TotalCrashFreeUsers
                         crashFreeTimeBreakdown={crashFreeTimeBreakdown}

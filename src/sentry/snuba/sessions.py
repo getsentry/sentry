@@ -88,6 +88,11 @@ def get_project_releases_by_stability(
     if stats_period is None:
         stats_period = "24h"
 
+    # Special rule that we support sorting by the last 24h only.
+    if scope.endswith("_24h"):
+        scope = scope[:-4]
+        stats_period = "24h"
+
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
     orderby = {
@@ -158,13 +163,17 @@ def get_release_adoption(project_releases, environments=None, now=None):
         now = datetime.now(pytz.utc)
     start = now - timedelta(days=1)
 
+    total_conditions = []
+    if environments is not None:
+        total_conditions.append(["environment", "IN", environments])
+
     total_users = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "users"],
-        groupby=["release", "project_id"],
+        selected_columns=["project_id", "users"],
+        groupby=["project_id"],
         start=start,
-        conditions=conditions,
+        conditions=total_conditions,
         filter_keys=filter_keys,
     )["data"]:
         total_users[x["project_id"]] = x["users"]
@@ -182,7 +191,7 @@ def get_release_adoption(project_releases, environments=None, now=None):
         if not total:
             adoption = None
         else:
-            adoption = x["users"] / total * 100
+            adoption = float(x["users"]) / total * 100
         rv[x["project_id"], x["release"]] = {
             "adoption": adoption,
             "users_24h": x["users"],
@@ -398,7 +407,9 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             stat: rv[stat],
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
-            stat + "_errored": rv[stat + "_errored"] - rv[stat + "_crashed"],
+            # Due to the nature of the probabilistic data structures this
+            # subtraction can become negative.
+            stat + "_errored": max(0, rv[stat + "_errored"] - rv[stat + "_crashed"]),
             "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
@@ -436,7 +447,9 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
                 "users": rv["users"],
                 "users_crashed": rv["users_crashed"],
                 "users_abnormal": rv["users_abnormal"],
-                "users_errored": rv["users_errored"] - rv["users_crashed"],
+                # Due to the nature of the probabilistic data structures this
+                # subtraction can become negative.
+                "users_errored": max(0, rv["users_errored"] - rv["users_crashed"]),
             }
 
     return stats, totals

@@ -20,6 +20,11 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1.5)};
+  align-items: center;
+
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;

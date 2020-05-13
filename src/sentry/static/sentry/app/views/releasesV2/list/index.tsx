@@ -3,13 +3,11 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import {forceCheck} from 'react-lazyload';
-import flatMap from 'lodash/flatMap';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import BetaTag from 'app/components/betaTag';
-import {Organization, Release, ProjectRelease} from 'app/types';
+import {Organization, Release} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
@@ -38,7 +36,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'];
+type State = {releases: Release[]} & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
@@ -55,6 +53,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   getEndpoints(): [string, string, {}][] {
     const {organization, location} = this.props;
+    const {statsPeriod, sort} = location.query;
 
     const query = {
       ...pick(location.query, [
@@ -66,10 +65,10 @@ class ReleasesList extends AsyncView<Props, State> {
         'healthStatsPeriod',
         'healthStat',
       ]),
-      summaryStatsPeriod: location.query.statsPeriod,
+      summaryStatsPeriod: statsPeriod,
       per_page: 50,
       health: 1,
-      flatten: 1,
+      flatten: !sort || sort === 'date' ? 0 : 1,
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
@@ -122,19 +121,6 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
-  transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    // native JS flatMap is not supported in our current nodejs 10.16.3 (tests)
-    return flatMap(releases, release =>
-      release.projects.map(project => {
-        return {
-          ...release,
-          healthData: project.healthData,
-          project,
-        };
-      })
-    );
-  }
-
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -149,6 +135,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, organization} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
+    const activeSort = this.getSort();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -158,7 +145,15 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (this.getSort() !== 'date') {
+    if (activeSort === 'users_24h') {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort !== 'date') {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
@@ -178,7 +173,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody() {
-    const {location} = this.props;
+    const {location, organization} = this.props;
     const {releases, reloading} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
@@ -189,15 +184,13 @@ class ReleasesList extends AsyncView<Props, State> {
       return this.renderEmptyMessage();
     }
 
-    const projectReleases = this.transformToProjectRelease(releases);
-
-    return projectReleases.map((release: ProjectRelease) => (
+    return releases.map(release => (
       <ReleaseCard
-        key={`${release.version}-${release.project.slug}`}
         release={release}
-        project={release.project}
+        orgSlug={organization.slug}
         location={location}
         reloading={reloading}
+        key={`${release.version}-${release.projects[0].slug}`}
       />
     ));
   }
@@ -206,21 +199,16 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization} = this.props;
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          showAbsolute={false}
-          timeRangeHint={t(
-            'Changing this date range will recalculate the release metrics.'
-          )}
-        />
-
+      <GlobalSelectionHeader
+        showAbsolute={false}
+        timeRangeHint={t(
+          'Changing this date range will recalculate the release metrics.'
+        )}
+      >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <PageHeading>
-                {t('Releases')} <BetaTag />
-              </PageHeading>
+              <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
                   selected={this.getSort()}
@@ -245,7 +233,7 @@ class ReleasesList extends AsyncView<Props, State> {
             )}
           </LightWeightNoProjectMessage>
         </PageContent>
-      </React.Fragment>
+      </GlobalSelectionHeader>
     );
   }
 }

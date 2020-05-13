@@ -7,7 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -381,7 +381,7 @@ class EventGroupingInfo extends AsyncComponent {
     );
     const actions = (
       <Toggle onClick={this.toggle}>
-        {isOpen ? t('Hide Details') : t('Show Details')} <BetaTag />
+        {isOpen ? t('Hide Details') : t('Show Details')} <FeatureBadge type="beta" />
       </Toggle>
     );
 

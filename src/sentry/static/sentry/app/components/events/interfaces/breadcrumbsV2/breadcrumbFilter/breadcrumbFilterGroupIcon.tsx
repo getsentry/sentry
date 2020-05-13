@@ -1,8 +1,7 @@
 import React from 'react';
 
-import {IconProps} from 'app/types/iconProps';
-
 import {BreadCrumbIconWrapper} from '../styles';
+import {IconProps} from '../../breadcrumbs/types';
 import {BreadcrumbDetails} from './types';
 
 const BreadcrumbFilterGroupIcon = ({

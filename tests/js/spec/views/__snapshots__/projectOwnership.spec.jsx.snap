@@ -77,6 +77,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             
 
             url:http://example.com/settings/* #product
+            
+
+            tags.sku_class:enterprise #enterprise
           </CodeBlock>
         </Block>
         <OwnerInput
