@@ -5,6 +5,8 @@ __all__ = ["FeatureManager"]
 from collections import defaultdict
 from django.conf import settings
 
+import sentry_sdk
+
 from .base import Feature
 from .exceptions import FeatureNotRegistered
 
@@ -32,16 +34,19 @@ class FeatureManager(object):
         """
         self._feature_registry[name] = cls
 
+    def _get_feature_class(self, name):
+        try:
+            return self._feature_registry[name]
+        except KeyError:
+            raise FeatureNotRegistered(name)
+
     def get(self, name, *args, **kwargs):
         """
         Lookup a registered feature handler given the feature name.
 
         >>> FeatureManager.get('my:feature', actor=request.user)
         """
-        try:
-            cls = self._feature_registry[name]
-        except KeyError:
-            raise FeatureNotRegistered(name)
+        cls = self._get_feature_class(name)
         return cls(name, *args, **kwargs)
 
     def add_handler(self, handler):
@@ -97,4 +102,60 @@ class FeatureManager(object):
             rv = handler(feature, actor)
             if rv is not None:
                 return rv
-        return None
+            return None
+
+    def has_for_organization(self, name, organization, objects, actor=None):
+        """
+        Determine in a batch if a feature is enabled.
+
+        This applies the same procedure as ``FeatureManager.has``, but with a
+        performance benefit where the objects being checked all belong to the
+        same organization. The objects are entities (e.g., projects) with the
+        common parent organization, as would be passed individually to ``has``.
+
+        Feature handlers that depend only on organization attributes, and not
+        on attributes of the individual objects being checked, will generally
+        perform faster if this method is used in preference to ``has``.
+
+        The return value is a dictionary with the objects as keys. Each value
+        is what would be returned if the key were passed to ``has``.
+
+        >>> FeatureManager.has_for_organization('projects:feature', organization, [project1, project2], actor=request.user)
+        """
+
+        result = dict()
+        remaining = set(objects)
+
+        handlers = self._handler_registry[name]
+        for handler in handlers:
+            if not remaining:
+                break
+
+            with sentry_sdk.start_span(op="feature.has_for_organization.handler") as span:
+                span.set_data("Feature Name", name)
+                span.set_data("Handler Type", type(handler).__name__)
+                span.set_data("Remaining Objects", len(remaining))
+
+                org_batch = OrganizationFeatureBatch(self, name, organization, remaining, actor)
+                handler_result = handler.has_for_organization(org_batch)
+                for (obj, flag) in handler_result.items():
+                    remaining.remove(obj)
+                    result[obj] = flag
+
+        for obj in remaining:
+            result[obj] = settings.SENTRY_FEATURES.get(name, False)
+
+        return result
+
+
+class OrganizationFeatureBatch(object):
+    def __init__(self, manager, name, organization, objects, actor):
+        self._manager = manager
+        self.feature_name = name
+        self.organization = organization
+        self.objects = objects
+        self.actor = actor
+
+    def get_feature_objects(self):
+        cls = self._manager._get_feature_class(self.feature_name)
+        return {obj: cls(self.feature_name, obj) for obj in self.objects}
