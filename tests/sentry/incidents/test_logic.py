@@ -247,6 +247,9 @@ class BaseIncidentsTest(SnubaTestCase):
             "fingerprint": [fingerprint],
             "timestamp": iso_format(timestamp),
             "type": "error",
+            # This is necessary because event type error should not exist without
+            # an exception being in the payload
+            "exception": [{"type": "Foo"}],
         }
         if user:
             data["user"] = user
