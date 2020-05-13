@@ -111,6 +111,33 @@ class Fixtures(object):
             project = self.project
         return Factories.create_project_key(project=project, *args, **kwargs)
 
+    def create_project_rule(
+        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_project_rule(
+            project=project,
+            action_match=action_match,
+            condition_match=condition_match,
+            *args,
+            **kwargs
+        )
+
+    def create_slack_project_rule(
+        self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
+    ):
+        if project is None:
+            project = self.project
+        return Factories.create_slack_project_rule(
+            project,
+            integration_id=integration_id,
+            channel_id=channel_id,
+            channel_name=channel_name,
+            *args,
+            **kwargs
+        )
+
     def create_release(self, project=None, user=None, *args, **kwargs):
         if project is None:
             project = self.project
