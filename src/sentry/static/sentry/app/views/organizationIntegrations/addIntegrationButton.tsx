@@ -11,6 +11,7 @@ type Props = {
   onAddIntegration: (data: Integration) => void;
   buttonText?: string;
   reinstall?: boolean;
+  integrationId?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
     view: 'integrations_directory_integration_detail';
@@ -26,6 +27,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
       onAddIntegration,
       organization,
       reinstall,
+      integrationId,
       analyticsParams,
       ...buttonProps
     } = this.props;
@@ -43,6 +45,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
           onInstall={onAddIntegration}
           organization={organization}
           analyticsParams={analyticsParams}
+          integrationId={integrationId}
         >
           {onClick => (
             <Button

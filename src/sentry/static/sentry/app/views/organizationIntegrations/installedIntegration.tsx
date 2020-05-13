@@ -14,6 +14,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {IconDelete, IconSettings, IconWarning} from 'app/icons';
+import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -153,14 +154,17 @@ export default class InstalledIntegration extends React.Component<Props> {
                     'You must be an organization owner, manager or admin to re-authenticate'
                   )}
                 >
-                  <Button
+                  <AddIntegrationButton
                     disabled={!hasAccess}
+                    provider={provider}
+                    // TODO: actually pass in an onInstall function
+                    onAddIntegration={() => {}}
+                    integrationId={integration.id}
                     priority="primary"
                     size="small"
+                    buttonText={t('Re-authenticate Now')}
                     icon={<IconWarning size="sm" />}
-                  >
-                    {t('Re-authenticate Now')}
-                  </Button>
+                  />
                 </Tooltip>
               )}
               <Tooltip
