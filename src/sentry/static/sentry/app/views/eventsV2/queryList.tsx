@@ -1,27 +1,28 @@
+import {browserHistory} from 'react-router';
 import React, {MouseEvent} from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
-import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Organization, SavedQuery} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
+import {IconEllipsis} from 'app/icons';
+import {Organization, SavedQuery} from 'app/types';
+import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {t} from 'app/locale';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DropdownMenu from 'app/components/dropdownMenu';
+import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
-import {IconEllipsis} from 'app/icons/iconEllipsis';
-import withApi from 'app/utils/withApi';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import EventView from 'app/utils/discover/eventView';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-import QueryCard from './querycard';
-import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import MiniGraph from './miniGraph';
+import QueryCard from './querycard';
 
 type Props = {
   api: Client;
@@ -34,6 +35,14 @@ type Props = {
 };
 
 class QueryList extends React.Component<Props> {
+  componentDidMount() {
+    /**
+     * We need to reset global selection here because the saved queries can define their own projects
+     * in the query. This can lead to mismatched queries for the project
+     */
+    resetGlobalSelection();
+  }
+
   handleDeleteQuery = (eventView: EventView) => (event: React.MouseEvent<Element>) => {
     event.preventDefault();
     event.stopPropagation();

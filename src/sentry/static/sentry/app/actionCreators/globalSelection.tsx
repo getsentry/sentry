@@ -38,6 +38,7 @@ type Options = {
    */
   resetParams?: string[];
   save?: boolean;
+  keepCursor?: boolean;
 };
 
 /**
@@ -94,6 +95,7 @@ type InitializeUrlStateParams = {
   skipLoadLastUsed?: boolean;
   defaultSelection?: Partial<GlobalSelection>;
   forceProject?: MinimalProject | null;
+  showAbsolute?: boolean;
 };
 
 export function initializeUrlState({
@@ -106,11 +108,12 @@ export function initializeUrlState({
   shouldEnforceSingleProject,
   defaultSelection,
   forceProject,
+  showAbsolute = true,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
-  const parsed = getStateFromQuery(queryParams);
+  const parsed = getStateFromQuery(queryParams, {allowAbsoluteDatetime: showAbsolute});
 
   let globalSelection: Omit<GlobalSelection, 'datetime'> & {
     datetime: {
@@ -192,6 +195,7 @@ export function initializeUrlState({
   // To keep URLs clean, don't push default period if url params are empty
   const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
     allowEmptyPeriod: true,
+    allowAbsoluteDatetime: showAbsolute,
   });
 
   const newDatetime = {
@@ -204,16 +208,22 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router);
+  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+    keepCursor: true,
+  });
 }
 
 /**
  * Updates store and global project selection URL param if `router` is supplied
+ *
+ * This accepts `environments` from `options` to also update environments simultaneously
+ * as environments are tied to a project, so if you change projects, you may need
+ * to clear environments.
  */
 export function updateProjects(
   projects: ProjectId[],
   router?: Router,
-  options?: Options
+  options?: Options & {environments?: EnvironmentId[]}
 ) {
   if (!isProjectsValid(projects)) {
     Sentry.withScope(scope => {
@@ -223,8 +233,8 @@ export function updateProjects(
     return;
   }
 
-  GlobalSelectionActions.updateProjects(projects);
-  updateParams({project: projects}, router, options);
+  GlobalSelectionActions.updateProjects(projects, options?.environments);
+  updateParams({project: projects, environment: options?.environments}, router, options);
 }
 
 function isProjectsValid(projects: ProjectId[]) {
@@ -330,7 +340,7 @@ export function updateParamsWithoutHistory(
 
 /**
  * Creates a new query parameter object given new params and old params
- * Preserves the old query params, except for `cursor`
+ * Preserves the old query params, except for `cursor` (can be overriden with keepCursor option)
  *
  * @param obj New query params
  * @param oldQueryParams Old query params
@@ -339,10 +349,9 @@ export function updateParamsWithoutHistory(
 function getNewQueryParams(
   obj: UrlParams,
   oldQueryParams: UrlParams,
-  {resetParams}: Options = {}
+  {resetParams, keepCursor}: Options = {}
 ) {
-  // Reset cursor when changing parameters
-  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
     : oldQuery;
@@ -362,13 +371,17 @@ function getNewQueryParams(
     newQuery.end = getUtcDateString(newQuery.end);
   }
 
+  if (keepCursor) {
+    newQuery.cursor = cursor;
+  }
+
   return newQuery;
 }
 
 function getParams(params: UrlParams): UrlParams {
   const {start, end, period, statsPeriod, ...otherParams} = params;
 
-  // `statsPeriod` takes precendence for now
+  // `statsPeriod` takes precedence for now
   const coercedPeriod = statsPeriod || period;
 
   // Filter null values

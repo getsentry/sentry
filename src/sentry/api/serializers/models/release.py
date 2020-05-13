@@ -256,6 +256,7 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
+            "new_groups",
             "release_id",
             "release__version",
             "project__slug",
@@ -286,6 +287,7 @@ class ReleaseSerializer(Serializer):
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
+                "new_groups": pr["new_groups"],
                 "platform": pr["project__platform"],
                 "platforms": platforms_by_project.get(pr["project__id"]) or [],
             }
@@ -334,6 +336,7 @@ class ReleaseSerializer(Serializer):
                         "patch": info["version_parsed"]["patch"],
                         "pre": info["version_parsed"]["pre"],
                         "buildCode": info["version_parsed"]["build_code"],
+                        "components": info["version_parsed"]["components"],
                     }
                 )
             return {
@@ -367,6 +370,7 @@ class ReleaseSerializer(Serializer):
                 "id": project["id"],
                 "slug": project["slug"],
                 "name": project["name"],
+                "newGroups": project["new_groups"],
                 "platform": project["platform"],
                 "platforms": project["platforms"],
             }

@@ -15,12 +15,12 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
-import {IconAdd} from 'app/icons/iconAdd';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {IconAdd} from 'app/icons';
 
 import KeyRow from './keyRow';
 
@@ -176,7 +176,7 @@ class ProjectKeys extends AsyncView<Props, State> {
                 onClick={this.handleCreateKey}
                 size="small"
                 priority="primary"
-                icon={<IconAdd size="xs" circle />}
+                icon={<IconAdd size="xs" isCircled />}
               >
                 {t('Generate New Key')}
               </Button>

@@ -38,6 +38,7 @@ from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
+    aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
@@ -276,9 +277,11 @@ def create_pending_incident_snapshot(incident):
     if PendingIncidentSnapshot.objects.filter(incident=incident).exists():
         PendingIncidentSnapshot.objects.filter(incident=incident).delete()
 
-    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
+    time_window = (
+        incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
+    )
     target_run_date = incident.current_end_date + min(
-        timedelta(minutes=time_window * 10), timedelta(days=10)
+        timedelta(seconds=time_window * 10), timedelta(days=10)
     )
     return PendingIncidentSnapshot.objects.create(
         incident=incident, target_run_date=target_run_date
@@ -353,11 +356,11 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
         if project_ids:
             params["project_id"] = project_ids
 
-        snuba_filter = get_filter(incident.query, params)
+        snuba_filter = get_filter(incident.alert_rule.snuba_query.query, params)
         conditions = resolve_discover_aliases(snuba_filter)[0].conditions
         if incident.alert_rule:
             conditions = apply_dataset_conditions(
-                QueryDatasets(incident.alert_rule.dataset), conditions
+                QueryDatasets(incident.alert_rule.snuba_query.dataset), conditions
             )
         snuba_args = {
             "start": snuba_filter.start,
@@ -373,14 +376,16 @@ def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_s
 
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
     # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
-    time_window = incident.alert_rule.time_window if incident.alert_rule is not None else 1
-    time_window_delta = timedelta(minutes=time_window)
+    time_window = (
+        incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
+    )
+    time_window_delta = timedelta(seconds=time_window)
     start = incident.date_started - time_window_delta if start is None else start
     end = incident.current_end_date + time_window_delta if end is None else end
     if windowed_stats:
         now = timezone.now()
-        end = start + timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
-        start = start - timedelta(minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        end = start + timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
+        start = start - timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
             end = now
 
@@ -390,11 +395,11 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
             # To resolve that, we ensure that the end is never greater than the date
             # an incident ended + the smaller of time_window*10 or 10 days.
             latest_end_date = incident.current_end_date + min(
-                timedelta(minutes=time_window * 10), timedelta(days=10)
+                timedelta(seconds=time_window * 10), timedelta(days=10)
             )
             end = min(end, latest_end_date)
 
-            start = end - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+            start = end - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
     return start, end
 
@@ -403,7 +408,7 @@ def calculate_incident_prewindow(start, end, incident=None):
     # Make the a bit earlier to show more relevant data from before the incident started:
     prewindow = (end - start) / 5
     if incident and incident.alert_rule is not None:
-        alert_rule_time_window = timedelta(minutes=incident.alert_rule.time_window)
+        alert_rule_time_window = timedelta(seconds=incident.alert_rule.snuba_query.time_window)
         prewindow = max(alert_rule_time_window, prewindow)
     return prewindow
 
@@ -424,17 +429,18 @@ def bulk_get_incident_event_stats(incidents, query_params_list):
         SnubaQueryParams(
             aggregations=[
                 (
-                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][0],
-                    query_aggregation_to_snuba[QueryAggregations(incident.aggregation)][1],
+                    query_aggregation_to_snuba[
+                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
+                    ][0],
+                    query_aggregation_to_snuba[
+                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
+                    ][1],
                     "count",
                 )
             ],
             orderby="time",
             groupby=["time"],
-            rollup=incident.alert_rule.time_window * 60
-            if incident.alert_rule is not None
-            else 1
-            * 60,  # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
+            rollup=incident.alert_rule.snuba_query.time_window,
             limit=10000,
             **query_param
         )
@@ -649,26 +655,6 @@ def snapshot_alert_rule(alert_rule):
     )
 
 
-def convert_alert_rule_to_snuba_query(alert_rule):
-    """
-    Temporary method to convert existing alert rules to have a snuba query
-    """
-    if alert_rule.snuba_query:
-        return
-
-    with transaction.atomic():
-        snuba_query = create_snuba_query(
-            QueryDatasets(alert_rule.dataset),
-            alert_rule.query,
-            QueryAggregations(alert_rule.aggregation),
-            timedelta(minutes=alert_rule.time_window),
-            timedelta(minutes=alert_rule.resolution),
-            alert_rule.environment,
-        )
-        alert_rule.update(snuba_query=snuba_query)
-        alert_rule.query_subscriptions.all().update(snuba_query=snuba_query)
-
-
 def update_alert_rule(
     alert_rule,
     projects=None,
@@ -707,7 +693,6 @@ def update_alert_rule(
         and AlertRule.objects.filter(organization=alert_rule.organization, name=name).exists()
     ):
         raise AlertRuleNameAlreadyUsedError()
-    convert_alert_rule_to_snuba_query(alert_rule)
 
     updated_fields = {}
     updated_query_fields = {}
@@ -834,10 +819,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     :return: The list of created subscriptions
     """
     subscriptions = bulk_create_snuba_subscriptions(
-        projects,
-        tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
-        alert_rule.snuba_query,
-        QueryAggregations(alert_rule.aggregation),
+        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)

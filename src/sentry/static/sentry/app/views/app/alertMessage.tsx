@@ -10,7 +10,10 @@ import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
 type AlertType = {
-  id: string;
+  /**
+   * A lot of alerts coming from getsentry do not have an `id`
+   */
+  id?: string;
   message: React.ReactNode;
   type: 'success' | 'error' | 'warning' | 'info';
   url?: string;
@@ -19,34 +22,33 @@ type AlertType = {
 type Props = {
   alert: AlertType;
   system: boolean;
-  hideCloseButton?: boolean;
 };
 
-const AlertMessage = ({alert, system, hideCloseButton}: Props) => {
+const AlertMessage = ({alert, system}: Props) => {
   const handleCloseAlert = () => {
     AlertActions.closeAlert(alert);
   };
 
   const {url, message, type} = alert;
   const icon =
-    type === 'success' ? <IconCheckmark size="md" circle /> : <IconWarning size="md" />;
-
-  const closeButton = hideCloseButton ? null : (
-    <StyledCloseButton
-      icon={<IconClose size="md" circle />}
-      aria-label={t('Close')}
-      onClick={handleCloseAlert}
-      size="zero"
-      borderless
-    />
-  );
+    type === 'success' ? (
+      <IconCheckmark size="md" isCircled />
+    ) : (
+      <IconWarning size="md" />
+    );
 
   return (
     <StyledAlert type={type} icon={icon} system={system}>
       <StyledMessage>
         {url ? <ExternalLink href={url}>{message}</ExternalLink> : message}
       </StyledMessage>
-      {closeButton}
+      <StyledCloseButton
+        icon={<IconClose size="md" isCircled />}
+        aria-label={t('Close')}
+        onClick={handleCloseAlert}
+        size="zero"
+        borderless
+      />
     </StyledAlert>
   );
 };

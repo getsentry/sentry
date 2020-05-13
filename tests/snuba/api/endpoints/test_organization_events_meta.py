@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+import mock
+
+from pytz import utc
+
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -111,6 +115,39 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400
+
+    @mock.patch("sentry.utils.snuba.quantize_time")
+    def test_quantize_dates(self, mock_quantize):
+        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        with self.feature("organizations:discover-basic"):
+            # Don't quantize short time periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"statsPeriod": "1h", "query": "", "field": ["id", "timestamp"]},
+            )
+            # Don't quantize absolute date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(before_now(days=20)),
+                    "end": iso_format(before_now(days=15)),
+                    "query": "",
+                    "field": ["id", "timestamp"],
+                },
+            )
+
+            assert len(mock_quantize.mock_calls) == 0
+
+            # Quantize long date periods
+            self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["id", "timestamp"], "statsPeriod": "90d", "query": ""},
+            )
+
+            assert len(mock_quantize.mock_calls) == 2
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):

@@ -62,6 +62,7 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
       shouldForceProject,
       hasCustomRouting,
       skipLoadLastUsed,
+      showAbsolute,
       ...props
     } = this.props;
     const enforceSingleProject = !organization.features.includes('global-views');
@@ -82,6 +83,7 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
             shouldForceProject={!!shouldForceProject}
             shouldEnforceSingleProject={!hasCustomRouting && enforceSingleProject}
             memberProjects={memberProjects}
+            showAbsolute={showAbsolute}
           />
         )}
         <GlobalSelectionHeader
@@ -96,6 +98,7 @@ class GlobalSelectionHeaderContainer extends React.Component<Props> {
           forceProject={forceProject}
           memberProjects={memberProjects}
           nonMemberProjects={nonMemberProjects}
+          showAbsolute={showAbsolute}
         />
       </React.Fragment>
     );

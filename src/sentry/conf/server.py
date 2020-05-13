@@ -834,7 +834,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
-    "organizations:releases-v2": False,
+    "organizations:releases-v2": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -951,6 +951,9 @@ SENTRY_APM_SAMPLING = 0
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
 
+# Sample rate for the process_event task transactions
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 0.01
+
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
 SENTRY_MONITOR_API_ROOT = None
@@ -1065,6 +1068,12 @@ SENTRY_QUOTA_OPTIONS = {}
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
+
+# Which cache to use for debouncing cache updates to the projectconfig cache
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
+    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
+)
+SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"

@@ -32,6 +32,10 @@ class BaseAlertRuleSerializerTest(object):
         if not skip_dates:
             assert result["dateModified"] == alert_rule.date_modified
             assert result["dateCreated"] == alert_rule.date_added
+        if alert_rule.snuba_query.environment:
+            assert result["environment"] == alert_rule.snuba_query.environment.name
+        else:
+            assert result["environment"] is None
 
     def create_issue_alert_rule(self, data):
         """data format
@@ -87,6 +91,11 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, other_alert_rule])
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
+
+    def test_environment(self):
+        alert_rule = self.create_alert_rule(environment=self.environment)
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

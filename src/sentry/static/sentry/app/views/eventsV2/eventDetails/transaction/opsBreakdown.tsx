@@ -8,12 +8,11 @@ import {
   RawSpanType,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -215,15 +214,14 @@ class OpsBreakdown extends React.Component<Props> {
       <StyledBreakdown>
         <BreakdownHeader>
           <SectionHeading>{t('Ops Breakdown')}</SectionHeading>
-          <Tooltip
+          <QuestionTooltip
             position="top"
+            size="sm"
             containerDisplayMode="block"
             title={t(
               'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
             )}
-          >
-            <StyledIconQuestion />
-          </Tooltip>
+          />
         </BreakdownHeader>
         {breakdown.map(currOp => {
           const {name, percentage, totalInterval} = currOp;
@@ -302,10 +300,6 @@ const Pct = styled('div')`
 const BreakdownHeader = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const StyledIconQuestion = styled(IconQuestion)`
-  color: ${p => p.theme.gray1};
 `;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {

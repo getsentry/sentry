@@ -72,7 +72,7 @@ export type Actor = {
 
 /**
  * Organization summaries are sent when you request a
- * list of all organiations
+ * list of all organizations
  */
 export type OrganizationSummary = {
   status: {
@@ -156,17 +156,6 @@ export type Project = {
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
-
-export type ProjectRelease = {
-  version: string;
-  dateCreated: string;
-  dateReleased: string | null;
-  commitCount: number;
-  authors: User[];
-  newGroups: number;
-  healthData: Health | null;
-  project: ReleaseProject;
-};
 
 export type Health = {
   totalUsers: number;
@@ -530,7 +519,11 @@ export type Config = {
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
-  messages: string[];
+
+  /**
+   * This comes from django (django.contrib.messages)
+   */
+  messages: {message: string; level: string}[];
   dsn: string;
   userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
@@ -726,6 +719,8 @@ export type SentryAppSchemaIssueLink = {
 export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
+  url: string;
+  params?: Array<string>;
 };
 
 export type SentryAppSchemaElement =
@@ -898,6 +893,7 @@ export type ReleaseProject = {
   id: number;
   platform: string;
   platforms: string[];
+  newGroups: number;
   healthData: Health;
 };
 
@@ -949,10 +945,10 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: SentryAppSchemaIssueLink;
+  schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: string;
+    slug: 'clickup' | 'clubhouse' | 'rookout';
     name: string;
   };
 };

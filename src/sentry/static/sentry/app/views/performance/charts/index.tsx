@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getInterval} from 'app/components/charts/utils';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -18,7 +18,7 @@ import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {PERFORMANCE_TERMS} from '../constants';
-import {HeaderContainer, HeaderTitle, StyledIconQuestion, ErrorPanel} from '../styles';
+import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
@@ -102,12 +102,16 @@ class Container extends React.Component<Props> {
               <React.Fragment>
                 <HeaderContainer>
                   {YAXIS_OPTIONS.map(option => (
-                    <HeaderTitle key={option.label}>
-                      {option.label}
-                      <Tooltip position="top" title={option.tooltip}>
-                        <StyledIconQuestion size="sm" />
-                      </Tooltip>
-                    </HeaderTitle>
+                    <div key={option.label}>
+                      <HeaderTitle>
+                        {option.label}
+                        <QuestionTooltip
+                          position="top"
+                          size="sm"
+                          title={option.tooltip}
+                        />
+                      </HeaderTitle>
+                    </div>
                   ))}
                 </HeaderContainer>
                 {getDynamicText({
