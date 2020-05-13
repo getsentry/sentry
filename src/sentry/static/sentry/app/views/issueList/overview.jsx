@@ -123,7 +123,7 @@ const IssueListOverview = createReactClass({
           start: 'page-issue-list-start',
           data: {
             organization_slug: this.props.organization.slug,
-            group: this.props.organization.features.has('enterprise-perf')
+            group: this.props.organization.features.includes('enterprise-perf')
               ? 'enterprise-perf'
               : 'control',
             milestone: 'first-meaningful-paint',
