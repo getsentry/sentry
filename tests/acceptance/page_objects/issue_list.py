@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
-from .issue_details import IssueDetailsPage
 
 
 class IssueListPage(BasePage):
@@ -25,7 +24,6 @@ class IssueListPage(BasePage):
     def navigate_to_issue(self, position):
         self.browser.click(u'[data-test-id="group"]:nth-child({}) a'.format(position))
         self.browser.wait_until(".group-detail")
-        self.issue_details = IssueDetailsPage(self.browser, self.client)
 
     def resolve_issues(self):
         self.browser.click('[aria-label="Resolve"]')
