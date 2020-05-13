@@ -1897,10 +1897,10 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
-"@sentry/release-parser@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.4.0.tgz#9b8e868d8ecee8313dc32bdef1478cd06ea7b7fd"
-  integrity sha512-wnXqyFZrOlnsnI8qcY6T2wlEih5zWXwPMcmh6/F9iyyhG/NmcK8zJ67aOZrkT1X7MYN6kssUm8Gfa3DR7aT0Zg==
+"@sentry/release-parser@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.5.0.tgz#68aeefdd49d43f3fa5bbeda3fba6bb44a46c6727"
+  integrity sha512-hObQE1cv6Jk5t1/TO2ihAWBLyiZRB5h5PfWSiMMOmzk2gdZ0KNGyLaK8Lrx0SVsLwxkoKKfqtrPxez9gS4YUfg==
 
 "@sentry/rrweb@^0.1.1":
   version "0.1.1"
