@@ -336,6 +336,7 @@ class ReleaseSerializer(Serializer):
                         "patch": info["version_parsed"]["patch"],
                         "pre": info["version_parsed"]["pre"],
                         "buildCode": info["version_parsed"]["build_code"],
+                        "components": info["version_parsed"]["components"],
                     }
                 )
             return {
