@@ -174,9 +174,10 @@ describe('EventsContainer', function() {
       await tick();
       wrapper.update();
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2],
         },
       });
@@ -204,9 +205,10 @@ describe('EventsContainer', function() {
 
       wrapper.find('MultipleProjectSelector StyledChevron').simulate('click');
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2, 3],
         },
       });

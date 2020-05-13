@@ -123,6 +123,34 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_until_loaded()
         assert u"project={}".format(self.project_3.id) in self.browser.current_url
 
+    def test_global_selection_header_navigates_with_browser_back_button(self):
+        """
+        Global Selection Header should:
+        1) load project from URL if it exists
+        2) enforce a single project if loading issues list with no project in URL
+           a) last selected project via local storage if it exists
+           b) otherwise need to just select first project
+        """
+        self.create_issues()
+        # Issues list with project 1 selected
+        self.issues_list.visit_issue_list(
+            self.org.slug, query="?project=" + six.text_type(self.project_1.id)
+        )
+        self.issues_list.visit_issue_list(self.org.slug)
+        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
+
+        # selects a different project
+        self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
+        self.issues_list.wait_until_loaded()
+        assert u"project={}".format(self.project_3.id) in self.browser.current_url
+        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
+
+        # simulate pressing the browser back button
+        self.browser.back()
+        self.issues_list.wait_until_loaded()
+        assert u"project={}".format(self.project_1.id) in self.browser.current_url
+        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
+
     def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
         """
         Global Selection Header should:

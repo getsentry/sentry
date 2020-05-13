@@ -1,8 +1,17 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 
-import {initializeUrlState} from 'app/actionCreators/globalSelection';
+import {DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
+import {
+  initializeUrlState,
+  updateProjects,
+  updateEnvironments,
+  updateDateTime,
+} from 'app/actionCreators/globalSelection';
 
+import {getStateFromQuery} from './utils';
 import GlobalSelectionHeader from './globalSelectionHeader';
 
 type Props = {
@@ -48,7 +57,6 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       skipLoadLastUsed,
     } = this.props;
 
-    //
     initializeUrlState({
       organization,
       queryParams: location.query,
@@ -60,6 +68,41 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       shouldForceProject,
       shouldEnforceSingleProject,
     });
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    /**
+     * This happens e.g. using browser's navigation button, in which case
+     * we need to update our store to reflect URL changes
+     */
+    if (prevProps.location.query !== this.props.location.query) {
+      const oldQuery = getStateFromQuery(prevProps.location.query, {
+        allowEmptyPeriod: true,
+      });
+      const newQuery = getStateFromQuery(this.props.location.query, {
+        allowEmptyPeriod: true,
+      });
+
+      const newEnvironments = newQuery.environment || [];
+      const newDateObject = pick(newQuery, DATE_TIME_KEYS);
+
+      /**
+       * Do not pass router to these actionCreators, as we do not want to update
+       * routes since these state changes are happening due to a change of routes
+       */
+      if (!isEqual(oldQuery.project, newQuery.project)) {
+        updateProjects(newQuery.project || [], null, {environments: newEnvironments});
+      }
+      if (!isEqual(oldQuery.environment, newQuery.project)) {
+        // Projects changing will also change environments, so only update environments
+        // by itself if projects is unchanged
+        updateEnvironments(newEnvironments);
+      }
+
+      if (!isEqual(pick(oldQuery, DATE_TIME_KEYS), newDateObject)) {
+        updateDateTime(newDateObject);
+      }
+    }
   }
 
   render() {
