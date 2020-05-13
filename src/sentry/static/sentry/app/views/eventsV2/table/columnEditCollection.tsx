@@ -14,9 +14,9 @@ import {SelectValue, OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
-
-import {FieldValue } from './types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils.tsx';
+
+import {FieldValue} from './types';
 
 type Props = {
   // Input columns
@@ -88,7 +88,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   dragGhostRef = React.createRef<HTMLDivElement>();
 
   syncFields() {
-    this.setState({fieldOptions: generateFieldOptions(this.props.organization, this.props.tagKeys)});
+    this.setState({
+      fieldOptions: generateFieldOptions(this.props.organization, this.props.tagKeys),
+    });
   }
 
   keyForColumn(column: Column, isGhost: boolean): string {
