@@ -38,6 +38,7 @@ type Options = {
    */
   resetParams?: string[];
   save?: boolean;
+  keepCursor?: boolean;
 };
 
 /**
@@ -94,6 +95,7 @@ type InitializeUrlStateParams = {
   skipLoadLastUsed?: boolean;
   defaultSelection?: Partial<GlobalSelection>;
   forceProject?: MinimalProject | null;
+  showAbsolute?: boolean;
 };
 
 export function initializeUrlState({
@@ -106,11 +108,12 @@ export function initializeUrlState({
   shouldEnforceSingleProject,
   defaultSelection,
   forceProject,
+  showAbsolute = true,
 }: InitializeUrlStateParams) {
   const orgSlug = organization.slug;
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
-  const parsed = getStateFromQuery(queryParams);
+  const parsed = getStateFromQuery(queryParams, {allowAbsoluteDatetime: showAbsolute});
 
   let globalSelection: Omit<GlobalSelection, 'datetime'> & {
     datetime: {
@@ -192,6 +195,7 @@ export function initializeUrlState({
   // To keep URLs clean, don't push default period if url params are empty
   const parsedWithNoDefaultPeriod = getStateFromQuery(queryParams, {
     allowEmptyPeriod: true,
+    allowAbsoluteDatetime: showAbsolute,
   });
 
   const newDatetime = {
@@ -204,7 +208,9 @@ export function initializeUrlState({
         : datetime.period,
     utc: !parsedWithNoDefaultPeriod.utc ? null : datetime.utc,
   };
-  updateParamsWithoutHistory({project, environment, ...newDatetime}, router);
+  updateParamsWithoutHistory({project, environment, ...newDatetime}, router, {
+    keepCursor: true,
+  });
 }
 
 /**
@@ -330,7 +336,7 @@ export function updateParamsWithoutHistory(
 
 /**
  * Creates a new query parameter object given new params and old params
- * Preserves the old query params, except for `cursor`
+ * Preserves the old query params, except for `cursor` (can be overriden with keepCursor option)
  *
  * @param obj New query params
  * @param oldQueryParams Old query params
@@ -339,10 +345,9 @@ export function updateParamsWithoutHistory(
 function getNewQueryParams(
   obj: UrlParams,
   oldQueryParams: UrlParams,
-  {resetParams}: Options = {}
+  {resetParams, keepCursor}: Options = {}
 ) {
-  // Reset cursor when changing parameters
-  const {cursor: _cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
   const oldQueryWithoutResetParams = !!resetParams?.length
     ? omit(oldQuery, resetParams)
     : oldQuery;
@@ -360,6 +365,10 @@ function getNewQueryParams(
 
   if (newQuery.end) {
     newQuery.end = getUtcDateString(newQuery.end);
+  }
+
+  if (keepCursor) {
+    newQuery.cursor = cursor;
   }
 
   return newQuery;

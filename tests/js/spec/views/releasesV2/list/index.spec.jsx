@@ -65,7 +65,7 @@ describe('ReleasesV2List', function() {
         .find('DailyUsersColumn')
         .at(1)
         .text()
-    ).toContain('n/a');
+    ).toContain('\u2014');
   });
 
   it('displays the right empty state', function() {
@@ -108,6 +108,15 @@ describe('ReleasesV2List', function() {
     expect(wrapper.find('EmptyMessage').text()).toEqual(
       'There are no releases with data in the last 7 days.'
     );
+
+    location = {query: {sort: 'users_24h', statsPeriod: '7d'}};
+    wrapper = mountWithTheme(
+      <ReleaseList {...props} location={location} />,
+      routerContext
+    );
+    expect(wrapper.find('EmptyMessage').text()).toEqual(
+      'There are no releases with active user data (users in the last 24 hours).'
+    );
   });
 
   it('searches for a release', function() {
@@ -141,7 +150,7 @@ describe('ReleasesV2List', function() {
     const sortOptions = sortDropdown.find('DropdownItem span');
     const sortByDateOption = sortOptions.at(0);
 
-    expect(sortOptions).toHaveLength(4);
+    expect(sortOptions).toHaveLength(5);
     expect(sortByDateOption.text()).toEqual('Date Created');
 
     sortByDateOption.simulate('click');

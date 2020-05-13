@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Button from 'app/components/button';
-import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegrationInDirectory';
+import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';

@@ -252,7 +252,7 @@ export class Client {
     }
 
     const id: string = uniqueId();
-    metric.mark(`api-request-start-${id}`);
+    metric.mark({name: `api-request-start-${id}`});
 
     let fullUrl: string;
     if (path.indexOf(this.baseUrl) === -1) {

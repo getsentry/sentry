@@ -7,7 +7,6 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import FeatureBadge from 'app/components/featureBadge';
 import {Organization, Release} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
@@ -136,6 +135,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {location, organization} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
+    const activeSort = this.getSort();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -145,7 +145,15 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (this.getSort() !== 'date') {
+    if (activeSort === 'users_24h') {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort !== 'date') {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
@@ -200,9 +208,7 @@ class ReleasesList extends AsyncView<Props, State> {
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <PageHeading>
-                {t('Releases')} <FeatureBadge type="beta" />
-              </PageHeading>
+              <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
                   selected={this.getSort()}
