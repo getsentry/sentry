@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 from copy import deepcopy
+from datetime import timedelta
 from uuid import uuid4
 
 import pytz
@@ -12,12 +13,13 @@ from django.test.utils import override_settings
 from exam import fixture
 from sentry.utils.compat.mock import call, Mock
 
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     register_subscriber,
     subscriber_registry,
 )
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
@@ -82,6 +84,24 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def registration_key(self):
         return "registered_keyboard_interrupt"
 
+    def create_subscription(self):
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                QueryDatasets.EVENTS,
+                "hello",
+                QueryAggregations.TOTAL,
+                timedelta(minutes=1),
+                timedelta(minutes=1),
+                None,
+            )
+            sub = create_snuba_subscription(
+                self.project, self.registration_key, snuba_query, QueryAggregations.TOTAL
+            )
+            sub.subscription_id = self.subscription_id
+            sub.status = 0
+            sub.save()
+        return sub
+
     def test_old(self):
         cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
 
@@ -96,16 +116,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         mock_callback = Mock()
         mock_callback.side_effect = KeyboardInterrupt()
         register_subscriber(self.registration_key)(mock_callback)
-        sub = QuerySubscription.objects.create(
-            project=self.project,
-            type=self.registration_key,
-            subscription_id=self.subscription_id,
-            dataset="something",
-            query="hello",
-            aggregation=0,
-            time_window=1,
-            resolution=1,
-        )
+        sub = self.create_subscription()
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
@@ -127,16 +138,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         mock_callback = Mock()
         mock_callback.side_effect = KeyboardInterrupt()
         register_subscriber(self.registration_key)(mock_callback)
-        sub = QuerySubscription.objects.create(
-            project=self.project,
-            type=self.registration_key,
-            subscription_id=self.subscription_id,
-            dataset="something",
-            query="hello",
-            aggregation=0,
-            time_window=1,
-            resolution=1,
-        )
+        sub = self.create_subscription()
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
 
@@ -165,16 +167,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         mock.side_effect = mock_callback
 
         register_subscriber(self.registration_key)(mock)
-        sub = QuerySubscription.objects.create(
-            project=self.project,
-            type=self.registration_key,
-            subscription_id=self.subscription_id,
-            dataset="something",
-            query="hello",
-            aggregation=0,
-            time_window=1,
-            resolution=1,
-        )
+        sub = self.create_subscription()
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
         consumer.run()
         valid_payload = self.valid_payload

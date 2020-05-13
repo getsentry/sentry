@@ -14,6 +14,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     INCIDENT_STATUS,
 )
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -95,6 +96,7 @@ class EmailActionHandler(ActionHandler):
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
+        snuba_query = alert_rule.snuba_query
         is_active = status == TriggerStatus.ACTIVE
         is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE.value
 
@@ -102,10 +104,7 @@ class EmailActionHandler(ActionHandler):
         # if resolve threshold and threshold type is *BELOW* then show '>'
         # we can simplify this to be the below statement
         show_greater_than_string = is_active == is_threshold_type_above
-        environments = list(alert_rule.environment.all())
-        environment_string = (
-            ", ".join(sorted([env.name for env in environments])) if len(environments) else "All"
-        )
+        environment_string = snuba_query.environment.name if snuba_query.environment else "All"
 
         return {
             "link": absolute_uri(
@@ -129,10 +128,12 @@ class EmailActionHandler(ActionHandler):
             ),
             "incident_name": self.incident.title,
             "environment": environment_string,
-            "time_window": format_duration(alert_rule.time_window),
+            "time_window": format_duration(snuba_query.time_window / 60),
             "triggered_at": trigger.date_added,
-            "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
-            "query": alert_rule.query,
+            "aggregate": self.query_aggregations_display[
+                aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate]
+            ],
+            "query": snuba_query.query,
             "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
             # if alert threshold and threshold type is above then show '>'
             # if resolve threshold and threshold type is *BELOW* then show '>'

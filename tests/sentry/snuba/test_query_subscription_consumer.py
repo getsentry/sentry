@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import json
 import unittest
 from copy import deepcopy
+from datetime import timedelta
 
 import mock
 import six
@@ -12,7 +13,7 @@ from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.utils.compat.mock import Mock
-from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
@@ -20,6 +21,7 @@ from sentry.snuba.query_subscription_consumer import (
     register_subscriber,
     subscriber_registry,
 )
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 
 
@@ -100,16 +102,20 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         registration_key = "registered_test"
         mock_callback = Mock()
         register_subscriber(registration_key)(mock_callback)
-        sub = QuerySubscription.objects.create(
-            project=self.project,
-            type=registration_key,
-            subscription_id="an_id",
-            dataset="something",
-            query="hello",
-            aggregation=0,
-            time_window=1,
-            resolution=1,
-        )
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                QueryDatasets.EVENTS,
+                "hello",
+                QueryAggregations.TOTAL,
+                timedelta(minutes=10),
+                timedelta(minutes=1),
+                None,
+            )
+            sub = create_snuba_subscription(
+                self.project, registration_key, snuba_query, QueryAggregations.TOTAL
+            )
+        sub.refresh_from_db()
+
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
         self.consumer.handle_message(self.build_mock_message(data))
