@@ -38,7 +38,7 @@ class ContextType(object):
         self.alias = alias
         ctx_data = {}
         for key, value in six.iteritems(trim(data)):
-            # we use simple checks here, rathern than ' in set()' to avoid
+            # we use simple checks here, rather than ' in set()' to avoid
             # issues with maps/lists
             if value is not None and value != "":
                 ctx_data[force_text(key)] = value

@@ -15,6 +15,7 @@ import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
+import SidebarCharts from './sidebarCharts';
 
 const TOP_SLOWEST_TRANSACTIONS = 5;
 
@@ -99,6 +100,7 @@ class SummaryContent extends React.Component<Props> {
               location={location}
               eventView={eventView}
             />
+            <SidebarCharts organization={organization} eventView={eventView} />
             <Tags
               totalValues={totalValues}
               eventView={eventView}

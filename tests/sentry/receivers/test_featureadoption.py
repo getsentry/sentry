@@ -6,7 +6,6 @@ from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
 from sentry.plugins.bases import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
-    metric_alert_rule_created,
     event_processed,
     first_event_received,
     project_created,
@@ -527,21 +526,14 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
 
         alert_rule_created.send(
-            user=self.owner, project=self.project, rule=rule, sender=type(self.project)
+            user=self.owner,
+            project=self.project,
+            rule=rule,
+            rule_type="issue",
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"
-        )
-        assert feature_complete
-
-    def test_metric_alert_rules(self):
-        alert_rule = self.create_alert_rule()
-
-        metric_alert_rule_created.send(
-            user=self.owner, project=self.project, rule=alert_rule, sender=type(self.project)
-        )
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="metric_alert_rules"
         )
         assert feature_complete
 

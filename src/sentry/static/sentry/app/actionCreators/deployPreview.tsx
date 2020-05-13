@@ -24,6 +24,7 @@ export function displayDeployPreviewAlert() {
   );
 
   AlertActions.addAlert({
+    id: 'deploy-preview',
     message: tct(
       'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
       {commitLink, branchLink}

@@ -83,7 +83,7 @@ class Broadcasts extends React.Component<Props, State> {
   };
 
   /**
-   * If tab/window loses visiblity (note: this is different than focus), stop
+   * If tab/window loses visibility (note: this is different than focus), stop
    * polling for broadcasts data, otherwise, if it gains visibility, start
    * polling again.
    */

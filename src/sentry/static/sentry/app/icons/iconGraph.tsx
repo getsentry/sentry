@@ -9,15 +9,17 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   type?: 'line' | 'circle' | 'bar';
 };
 
-const IconGraph = ({type = 'line', ...props}: Props) => {
-  switch (type) {
-    case 'circle':
-      return <IconGraphCircle {...props} />;
-    case 'bar':
-      return <IconGraphBar {...props} />;
-    default:
-      return <IconGraphLine {...props} />;
+const IconGraph = React.forwardRef<SVGSVGElement, Props>(
+  ({type = 'line', ...props}: Props, ref) => {
+    switch (type) {
+      case 'circle':
+        return <IconGraphCircle {...props} ref={ref} />;
+      case 'bar':
+        return <IconGraphBar {...props} ref={ref} />;
+      default:
+        return <IconGraphLine {...props} ref={ref} />;
+    }
   }
-};
+);
 
 export {IconGraph};

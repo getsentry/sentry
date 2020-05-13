@@ -79,6 +79,11 @@ class PaginateTest(APITestCase):
         response = self.view(self.request)
         assert response.status_code == 400
 
+    def test_per_page_out_of_bounds(self):
+        self.request.GET = {"per_page": "101"}
+        response = self.view(self.request)
+        assert response.status_code == 400
+
 
 class EndpointJSONBodyTest(APITestCase):
     def setUp(self):

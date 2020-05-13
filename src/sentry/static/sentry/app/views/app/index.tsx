@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
 import Cookies from 'js-cookie';
@@ -7,6 +8,8 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
 
+import {Client} from 'app/api';
+import {Config} from 'app/types';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
@@ -14,10 +17,10 @@ import {openCommandPalette} from 'app/actionCreators/modal';
 import {setTransactionName} from 'app/utils/apm';
 import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
-import Alerts from 'app/components/alerts';
 import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
+import GlobalStyles from 'app/styles/global';
 import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -27,7 +30,8 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
-import GlobalStyles from 'app/styles/global';
+
+import SystemAlerts from './systemAlerts';
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
 const ALLOWED_ANON_PAGES = [
@@ -46,27 +50,30 @@ function getAlertTypeForProblem(problem) {
   }
 }
 
-class App extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    routes: PropTypes.array,
-    config: PropTypes.object.isRequired,
-  };
+type Props = {
+  api: Client;
+  config: Config;
+} & RouteComponentProps<{}, {}>;
 
+type State = {
+  loading: boolean;
+  error: boolean;
+  needsUpgrade: boolean;
+  newsletterConsentPrompt: boolean;
+  user?: Config['user'];
+};
+
+class App extends React.Component<Props, State> {
   static childContextTypes = {
     location: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    const user = ConfigStore.get('user');
-    this.state = {
-      loading: false,
-      error: false,
-      needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
-      newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
-    };
-  }
+  state = {
+    loading: false,
+    error: false,
+    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
+    newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
+  };
 
   getChildContext() {
     return {
@@ -74,7 +81,7 @@ class App extends React.Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.props.api.request('/organizations/', {
       query: {
         member: '1',
@@ -147,7 +154,7 @@ class App extends React.Component {
       }
 
       // Otherwise, the user has become unauthenticated. Send them to auth
-      Cookies.set('session_expired', 1);
+      Cookies.set('session_expired', '1');
 
       if (EXPERIMENTAL_SPA) {
         browserHistory.replace('/auth/login/');
@@ -160,9 +167,7 @@ class App extends React.Component {
     if (user) {
       HookStore.get('analytics:init-user').map(cb => cb(user));
     }
-  }
 
-  componentDidMount() {
     fetchGuides();
   }
 
@@ -178,13 +183,15 @@ class App extends React.Component {
     OrganizationsStore.load([]);
   }
 
+  mainContainerRef = React.createRef<HTMLDivElement>();
+
   updateTracing() {
     const route = getRouteStringFromRoutes(this.props.routes);
     setTransactionName(route);
   }
 
   handleConfigStoreChange(config) {
-    const newState = {};
+    const newState = {} as State;
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
@@ -212,15 +219,10 @@ class App extends React.Component {
     });
 
   handleGlobalModalClose = () => {
-    if (!this.mainContainerRef) {
-      return;
+    if (typeof this.mainContainerRef.current?.focus === 'function') {
+      // Focus the main container to get hotkeys to keep working after modal closes
+      this.mainContainerRef.current.focus();
     }
-    if (typeof this.mainContainerRef.focus !== 'function') {
-      return;
-    }
-
-    // Focus the main container to get hotkeys to keep working after modal closes
-    this.mainContainerRef.focus();
   };
 
   renderBody() {
@@ -257,13 +259,9 @@ class App extends React.Component {
     return (
       <ThemeProvider theme={theme}>
         <GlobalStyles theme={theme} />
-        <div
-          className="main-container"
-          tabIndex="-1"
-          ref={ref => (this.mainContainerRef = ref)}
-        >
+        <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
           <GlobalModal onClose={this.handleGlobalModalClose} />
-          <Alerts className="messages-container" />
+          <SystemAlerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
         </div>

@@ -35,7 +35,7 @@ function appendTrailingSlash(nextState, replace) {
  *
  * The method for lazy loading a route leaf node is using the <LazyLoad> component + `componentPromise`.
  * The reason for this is because react-router handles the route tree better and if we use <LazyLoad> it will end
- * up having to re-render more components than necesssary.
+ * up having to re-render more components than necessary.
  */
 const lazyLoad = cb => m => cb(null, m.default);
 

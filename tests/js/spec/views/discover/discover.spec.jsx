@@ -133,7 +133,7 @@ describe('Discover', function() {
     });
   });
 
-  describe('componentWillRecieveProps()', function() {
+  describe('componentWillReceiveProps()', function() {
     it('handles navigating to saved query', function() {
       const wrapper = mountWithTheme(
         <Discover
