@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.snuba.subscriptions import (
+    aggregation_function_translations,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
     create_snuba_subscription,
@@ -215,14 +216,19 @@ class UpdateSnubaSubscriptionTest(TestCase):
             time_window=int(time_window.total_seconds()),
             resolution=int(resolution.total_seconds()),
             environment=self.environment,
+            aggregate=aggregation_function_translations[aggregation],
         )
         assert subscription_id is not None
         update_snuba_subscription(subscription, snuba_query, aggregation)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
+        assert subscription.snuba_query.query == query
         assert subscription.query == query
+        assert subscription.snuba_query.aggregate == aggregation_function_translations[aggregation]
         assert subscription.aggregation == aggregation.value
+        assert subscription.snuba_query.time_window == int(time_window.total_seconds())
         assert subscription.time_window == int(time_window.total_seconds())
+        assert subscription.snuba_query.resolution == int(resolution.total_seconds())
         assert subscription.resolution == int(resolution.total_seconds())
 
     def test_with_task(self):

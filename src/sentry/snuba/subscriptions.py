@@ -22,6 +22,9 @@ aggregation_function_translations = {
     QueryAggregations.TOTAL: "count()",
     QueryAggregations.UNIQUE_USERS: "count_unique(tags[sentry:user])",
 }
+aggregate_to_query_aggregation = {
+    val: key for key, val in aggregation_function_translations.items()
+}
 
 
 def translate_aggregation(aggregation):
