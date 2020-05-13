@@ -23,9 +23,16 @@ type Props = {
   orgSlug: string;
   location: Location;
   reloading: boolean;
+  showPlaceholders: boolean;
 };
 
-const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
+const ReleaseCard = ({
+  release,
+  orgSlug,
+  location,
+  reloading,
+  showPlaceholders,
+}: Props) => {
   const {version, commitCount, lastDeploy, authors, dateCreated} = release;
   return (
     <StyledPanel reloading={reloading ? 1 : 0}>
@@ -92,7 +99,12 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
         </StyledPanelItem>
       </PanelBody>
 
-      <ReleaseHealth release={release} orgSlug={orgSlug} location={location} />
+      <ReleaseHealth
+        release={release}
+        orgSlug={orgSlug}
+        location={location}
+        showPlaceholders={showPlaceholders}
+      />
     </StyledPanel>
   );
 };

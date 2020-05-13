@@ -16,10 +16,8 @@ import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -27,6 +25,8 @@ import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleasePromo from './releasePromo';
+import ReleaseCards from './releaseCards';
+import IntroBanner from './introBanner';
 import SwitchReleasesButton from '../utils/switchReleasesButton';
 
 type RouteParams = {
@@ -68,7 +68,7 @@ class ReleasesList extends AsyncView<Props, State> {
       ]),
       summaryStatsPeriod: statsPeriod,
       per_page: 50,
-      health: 1,
+      health: 0,
       flatten: !sort || sort === 'date' ? 0 : 1,
     };
 
@@ -185,15 +185,14 @@ class ReleasesList extends AsyncView<Props, State> {
       return this.renderEmptyMessage();
     }
 
-    return releases.map(release => (
-      <ReleaseCard
-        release={release}
+    return (
+      <ReleaseCards
+        releases={releases}
         orgSlug={organization.slug}
         location={location}
         reloading={reloading}
-        key={`${release.version}-${release.projects[0].slug}`}
       />
-    ));
+    );
   }
 
   renderBody() {

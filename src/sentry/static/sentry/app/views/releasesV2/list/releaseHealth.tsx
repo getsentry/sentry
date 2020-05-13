@@ -16,6 +16,7 @@ import Tooltip from 'app/components/tooltip';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
 import ClippedBox from 'app/components/clippedBox';
+import Placeholder from 'app/components/placeholder';
 
 import HealthStatsChart from './healthStatsChart';
 import {
@@ -32,9 +33,10 @@ type Props = {
   release: Release;
   orgSlug: string;
   location: Location;
+  showPlaceholders: boolean;
 };
 
-const ReleaseHealth = ({release, orgSlug, location}: Props) => {
+const ReleaseHealth = ({release, orgSlug, location, showPlaceholders}: Props) => {
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
   const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
 
@@ -47,7 +49,8 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
           <DailyUsersColumn>
-            {release.projects.some(p => p.healthData.hasHealthData) ? (
+            {/* TODO: health types */}
+            {release.projects.some(p => p.healthData?.hasHealthData) ? (
               <React.Fragment>
                 <HealthStatsSubject
                   location={location}
@@ -81,7 +84,7 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                 totalUsers24h,
                 totalSessions,
                 totalSessions24h,
-              } = healthData;
+              } = healthData || {};
 
               return (
                 <StyledPanelItem key={`${release.version}-${slug}-health`}>
@@ -100,7 +103,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </ProjectColumn>
 
                     <AdoptionColumn>
-                      {defined(adoption) ? (
+                      {showPlaceholders ? (
+                        <StyledPlaceholder height="25px" width="150px" />
+                      ) : defined(adoption) ? (
                         <AdoptionWrapper>
                           <Tooltip
                             title={
@@ -131,7 +136,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </AdoptionColumn>
 
                     <CrashFreeUsersColumn>
-                      {defined(crashFreeUsers) ? (
+                      {showPlaceholders ? (
+                        <StyledPlaceholder height="25px" width="60px" />
+                      ) : defined(crashFreeUsers) ? (
                         <React.Fragment>
                           <StyledProgressRing
                             progressColor={getCrashFreePercentColor}
@@ -147,7 +154,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </CrashFreeUsersColumn>
 
                     <CrashFreeSessionsColumn>
-                      {defined(crashFreeSessions) ? (
+                      {showPlaceholders ? (
+                        <StyledPlaceholder height="25px" width="60px" />
+                      ) : defined(crashFreeSessions) ? (
                         <React.Fragment>
                           <StyledProgressRing
                             progressColor={getCrashFreePercentColor}
@@ -163,7 +172,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </CrashFreeSessionsColumn>
 
                     <DailyUsersColumn>
-                      {hasHealthData ? (
+                      {showPlaceholders ? (
+                        <StyledPlaceholder height="25px" />
+                      ) : hasHealthData ? (
                         <ChartWrapper>
                           <HealthStatsChart
                             data={stats}
@@ -178,7 +189,9 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </DailyUsersColumn>
 
                     <CrashesColumn>
-                      {hasHealthData ? (
+                      {showPlaceholders ? (
+                        <StyledPlaceholder height="25px" width="30px" />
+                      ) : hasHealthData ? (
                         <Count value={sessionsCrashed} />
                       ) : (
                         <NotAvailable />
@@ -317,6 +330,13 @@ const ChartWrapper = styled('div')`
     background: #c6becf;
     fill: #c6becf;
   }
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  height: 20px;
+  display: inline-block;
+  position: relative;
+  top: ${space(0.25)};
 `;
 
 export default ReleaseHealth;
