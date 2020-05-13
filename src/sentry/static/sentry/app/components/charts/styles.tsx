@@ -42,9 +42,9 @@ export const InlineContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 
-  &:first-child {
-    margin-left: 0;
+  &:last-child {
+    margin-right: 0;
   }
 `;

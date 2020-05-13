@@ -18,6 +18,8 @@ import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {getUtcDateString} from 'app/utils/dates';
 import DropdownButton from 'app/components/dropdownButton';
+import ButtonBar from 'app/components/buttonBar';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 enum IssuesType {
   NEW = 'new',
@@ -68,6 +70,27 @@ class Issues extends React.Component<Props, State> {
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
     return discoverView.getResultsViewUrlTarget(orgId);
+  }
+
+  getIssuesUrl() {
+    const {version, orgId} = this.props;
+    const {issuesType} = this.state;
+    const {queryParams} = this.getIssuesEndpoint();
+    const query: QueryResults = {query: []};
+
+    if (issuesType === IssuesType.NEW) {
+      query['first-release'] = [version];
+    } else {
+      query.release = [version];
+    }
+
+    return {
+      pathname: `/organizations/${orgId}/issues/`,
+      query: {
+        ...queryParams,
+        query: stringifyQueryObject(query),
+      },
+    };
   }
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
@@ -175,11 +198,15 @@ class Issues extends React.Component<Props, State> {
             ))}
           </DropdownControl>
 
-          <Feature features={['discover-basic']}>
-            <DiscoverButton to={this.getDiscoverUrl()}>
-              {t('Open in Discover')}
-            </DiscoverButton>
-          </Feature>
+          <ButtonBar gap={1}>
+            <Feature features={['discover-basic']}>
+              <OpenInButton to={this.getDiscoverUrl()}>
+                {t('Open in Discover')}
+              </OpenInButton>
+            </Feature>
+
+            <OpenInButton to={this.getIssuesUrl()}>{t('Open in Issues')}</OpenInButton>
+          </ButtonBar>
         </ControlsWrapper>
 
         <TableWrapper>
@@ -198,17 +225,25 @@ class Issues extends React.Component<Props, State> {
   }
 }
 
+// used in media query
 const FilterButton = styled(DropdownButton)``;
-const DiscoverButton = styled(Button)``;
+const OpenInButton = styled(Button)``;
 
 const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    ${FilterButton}, ${DiscoverButton} {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    ${FilterButton}, ${OpenInButton} {
       font-size: ${p => p.theme.fontSizeSmall};
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    ${FilterButton} {
+      margin-bottom: ${space(1)};
     }
   }
 `;
