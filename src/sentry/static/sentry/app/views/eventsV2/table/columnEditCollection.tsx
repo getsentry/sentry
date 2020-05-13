@@ -16,6 +16,7 @@ import theme from 'app/utils/theme';
 import {Column, FIELDS, AGGREGATIONS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
 import {FieldValue, FieldValueKind} from './types';
+import { ColumnEditRow } from './columnEditRow';
 
 type Props = {
   // Input columns
