@@ -13,10 +13,9 @@ import {t} from 'app/locale';
 import {SelectValue, OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Column} from 'app/utils/discover/fields';
-import {generateFieldOptions} from 'app/views/eventsV2/utils.tsx';
+import {Column, FIELDS, AGGREGATIONS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
-import {FieldValue} from './types';
+import {FieldValue, FieldValueKind} from './types';
 
 type Props = {
   // Input columns
@@ -44,6 +43,67 @@ enum PlaceholderPosition {
   TOP,
   BOTTOM,
 }
+
+export function generateFieldOptions(organization: OrganizationSummary, tagKeys: null | string[]) {
+    let fields = Object.keys(FIELDS);
+    let functions = Object.keys(AGGREGATIONS);
+
+    // Strip tracing features if the org doesn't have access.
+    if (!organization.features.includes('transaction-events')) {
+      fields = fields.filter(item => !TRACING_FIELDS.includes(item));
+      functions = functions.filter(item => !TRACING_FIELDS.includes(item));
+    }
+    const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
+
+    // Index items by prefixed keys as custom tags
+    // can overlap both fields and function names.
+    // Having a mapping makes finding the value objects easier
+    // later as well.
+    functions.forEach(func => {
+      const ellipsis = AGGREGATIONS[func].parameters.length ? '\u2026' : '';
+      fieldOptions[`function:${func}`] = {
+        label: `${func}(${ellipsis})`,
+        value: {
+          kind: FieldValueKind.FUNCTION,
+          meta: {
+            name: func,
+            parameters: AGGREGATIONS[func].parameters,
+          },
+        },
+      };
+    });
+
+    fields.forEach(field => {
+      fieldOptions[`field:${field}`] = {
+        label: field,
+        value: {
+          kind: FieldValueKind.FIELD,
+          meta: {
+            name: field,
+            dataType: FIELDS[field],
+          },
+        },
+      };
+    });
+
+    if (tagKeys !== null && tagKeys !== undefined) {
+      tagKeys.forEach(tag => {
+        const tagValue =
+          FIELDS.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+            ? `tags[${tag}]`
+            : tag;
+        fieldOptions[`tag:${tag}`] = {
+          label: tag,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tagValue, dataType: 'string'},
+          },
+        };
+      });
+    }
+
+    return fieldOptions;
+  }
 
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {

@@ -18,8 +18,7 @@ import Tooltip from 'app/components/tooltip';
 import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import Field from 'app/views/settings/components/forms/field';
 import {ColumnEditRow} from 'app/views/eventsV2/table/columnEditRow';
-import {FieldValue, FieldValueKind} from 'app/views/eventsV2/table/types';
-import {generateFieldOptions} from 'app/views/eventsV2/utils.tsx';
+import {generateFieldOptions} from 'app/views/eventsV2/table/columnEditCollection';
 
 import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
@@ -151,7 +150,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
 
           <Feature features={['performance-alerts']}>
             {({hasFeature}) =>
-              hasFeature ? (
+              !hasFeature ? (
                 <Field
                   label="Metric"
                   help={t('Choose an aggregate function and event property.')}
