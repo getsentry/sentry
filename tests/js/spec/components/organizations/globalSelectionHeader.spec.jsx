@@ -315,6 +315,32 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
+  it('resets start&end if showAbsolute prop is false', async function() {
+    mountWithTheme(
+      <GlobalSelectionHeader organization={organization} showAbsolute={false} />,
+      changeQuery(routerContext, {
+        start: '2020-05-05T07:26:53.000',
+        end: '2020-05-05T09:19:12.000',
+      })
+    );
+
+    await tick();
+
+    expect(GlobalSelectionStore.get()).toEqual({
+      isReady: true,
+      selection: {
+        datetime: {
+          period: '14d',
+          utc: null,
+          start: null,
+          end: null,
+        },
+        environments: [],
+        projects: [],
+      },
+    });
+  });
+
   /**
    * I don't think this test is really applicable anymore
    */

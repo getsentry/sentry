@@ -23,6 +23,7 @@ type Props = {
     | 'shouldForceProject'
     | 'memberProjects'
     | 'organization'
+    | 'showAbsolute'
   >;
 
 /**
@@ -46,6 +47,7 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       shouldForceProject,
       shouldEnforceSingleProject,
       skipLoadLastUsed,
+      showAbsolute,
     } = this.props;
 
     //
@@ -59,6 +61,7 @@ class InitializeGlobalSelectionHeader extends React.Component<Props> {
       forceProject,
       shouldForceProject,
       shouldEnforceSingleProject,
+      showAbsolute,
     });
   }
 

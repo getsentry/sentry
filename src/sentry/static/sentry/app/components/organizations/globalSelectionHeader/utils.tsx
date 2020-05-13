@@ -12,18 +12,22 @@ import {getParams} from './getParams';
 const DEFAULT_PARAMS = getParams({});
 
 // Parses URL query parameters for values relevant to global selection header
+type GetStateFromQueryOptions = {
+  allowEmptyPeriod?: boolean;
+  allowAbsoluteDatetime?: boolean;
+};
 export function getStateFromQuery(
   query: Location['query'],
-  {allowEmptyPeriod = false}: {allowEmptyPeriod?: boolean} = {}
+  {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetStateFromQueryOptions = {}
 ) {
-  const parsedParams = getParams(query, {allowEmptyPeriod});
+  const parsedParams = getParams(query, {allowEmptyPeriod, allowAbsoluteDatetime});
 
   const projectFromQuery = query[URL_PARAM.PROJECT];
   const environmentFromQuery = query[URL_PARAM.ENVIRONMENT];
   const period = parsedParams.statsPeriod;
   const utc = parsedParams.utc;
 
-  const hasAbsolute = !!parsedParams.start && !!parsedParams.end;
+  const hasAbsolute = allowAbsoluteDatetime && !!parsedParams.start && !!parsedParams.end;
 
   let project: number[] | null | undefined;
   if (defined(projectFromQuery) && Array.isArray(projectFromQuery)) {
