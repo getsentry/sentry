@@ -14,7 +14,7 @@ type Props = {
   ) => React.ReactNode;
   provider: IntegrationProvider;
   onInstall: (data: Integration) => void;
-  reinstallId?: string;
+  integrationId?: string;
   account?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
@@ -28,7 +28,7 @@ export default class AddIntegration extends React.Component<Props> {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
     onInstall: PropTypes.func.isRequired,
-    reinstallId: PropTypes.string,
+    integrationId: PropTypes.string,
     account: PropTypes.string,
     organization: SentryTypes.Organization,
   };
@@ -86,8 +86,8 @@ export default class AddIntegration extends React.Component<Props> {
 
     const query: {[key: string]: string} = {...urlParams};
 
-    if (this.props.reinstallId) {
-      query.reinstall_id = this.props.reinstallId;
+    if (this.props.integrationId) {
+      query.integration_id = this.props.integrationId;
     }
 
     if (this.props.account) {
