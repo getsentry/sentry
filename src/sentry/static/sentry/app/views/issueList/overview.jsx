@@ -116,13 +116,13 @@ const IssueListOverview = createReactClass({
         this.props.finishProfile();
       }
 
-      // First Meaningful Paint for IssueList page
+      // First Meaningful Paint for /organizations/:orgId/issues/
       if (prevState.queryCount === null) {
         metric.measure({
           name: 'app.page.perf.issue-list',
           start: 'page-issue-list-start',
           data: {
-            organization_slug: this.props.organization.slug,
+            org_id: parseInt(this.props.organization.id, 10),
             group: this.props.organization.features.includes('enterprise-perf')
               ? 'enterprise-perf'
               : 'control',
