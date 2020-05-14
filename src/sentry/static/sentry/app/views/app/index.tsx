@@ -82,6 +82,8 @@ class App extends React.Component<Props, State> {
   }
 
   componentDidMount() {
+    this.updateTracing();
+
     this.props.api.request('/organizations/', {
       query: {
         member: '1',
