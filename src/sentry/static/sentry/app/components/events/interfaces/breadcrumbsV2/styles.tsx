@@ -29,6 +29,29 @@ const IconWrapper = styled('div', {
     `}
 `;
 
+const removeGridCellBorders = (withoutBorder?: Array<'left' | 'right'>) => {
+  if (!withoutBorder || withoutBorder.length === 0) {
+    return '';
+  }
+
+  if (withoutBorder.includes('left') && withoutBorder.includes('right')) {
+    return css`
+      border-left: 0;
+      border-right: 0;
+    `;
+  }
+
+  if (withoutBorder.includes('left')) {
+    return css`
+      border-left: 0;
+    `;
+  }
+
+  return css`
+    border-right: 0;
+  `;
+};
+
 const GridCell = styled('div')<{
   hasError?: boolean;
   withoutBorder?: Array<'left' | 'right'>;
@@ -60,7 +83,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border: 1px solid #fa4747;
     `}
-  ${p => (p.withoutBorder ? p.withoutBorder.map(border => css`border-${border}: 0`) : '')}
+  ${p => removeGridCellBorders(p.withoutBorder)};
   text-overflow: ellipsis;
   overflow: hidden;
   padding: ${space(1)};
