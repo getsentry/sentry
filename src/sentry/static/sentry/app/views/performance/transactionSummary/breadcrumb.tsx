@@ -7,7 +7,7 @@ import EventView from 'app/utils/discover/eventView';
 import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 
 import {getPerformanceLandingUrl} from '../utils';
-import {transactionSummaryRouteWithEventView} from './utils';
+import {transactionSummaryRouteWithQuery} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -37,7 +37,7 @@ class Breadcrumb extends React.Component<Props> {
       label: t('Performance'),
     });
 
-    const summaryTarget = transactionSummaryRouteWithEventView({
+    const summaryTarget = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: eventView.project.map(id => String(id)),
