@@ -23,7 +23,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
@@ -127,7 +127,7 @@ class SubscriptionProcessor(object):
                 "Subscription returned more than 1 row of data",
                 extra={
                     "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.dataset,
+                    "dataset": self.subscription.snuba_query.dataset,
                     "snuba_subscription_id": self.subscription.subscription_id,
                     "result": subscription_update,
                 },
@@ -185,8 +185,10 @@ class SubscriptionProcessor(object):
                     # TODO: Include more info in name?
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
-                    query=self.subscription.query,
-                    aggregation=QueryAggregations(self.alert_rule.aggregation),
+                    query=self.subscription.snuba_query.query,
+                    aggregation=aggregate_to_query_aggregation[
+                        self.alert_rule.snuba_query.aggregate
+                    ],
                     date_started=detected_at,
                     date_detected=detected_at,
                     projects=[self.subscription.project],

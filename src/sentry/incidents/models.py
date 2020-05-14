@@ -318,7 +318,7 @@ class AlertRuleManager(BaseManager):
         return self.filter(organization=organization)
 
     def fetch_for_project(self, project):
-        return self.filter(query_subscriptions__project=project)
+        return self.filter(snuba_query__subscriptions__project=project)
 
     @classmethod
     def __build_subscription_cache_key(self, subscription_id):
@@ -332,7 +332,7 @@ class AlertRuleManager(BaseManager):
         cache_key = self.__build_subscription_cache_key(subscription.id)
         alert_rule = cache.get(cache_key)
         if alert_rule is None:
-            alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            alert_rule = AlertRule.objects.get(snuba_query__subscriptions=subscription)
             cache.set(cache_key, alert_rule, 3600)
 
         return alert_rule
@@ -343,9 +343,9 @@ class AlertRuleManager(BaseManager):
 
     @classmethod
     def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
-        subscription_ids = AlertRuleQuerySubscription.objects.filter(
-            alert_rule=instance
-        ).values_list("query_subscription_id", flat=True)
+        subscription_ids = QuerySubscription.objects.filter(
+            snuba_query=instance.snuba_query
+        ).values_list("id", flat=True)
         if subscription_ids:
             cache.delete_many(
                 cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
@@ -355,8 +355,8 @@ class AlertRuleManager(BaseManager):
 class AlertRuleEnvironment(Model):
     __core__ = True
 
-    environment = FlexibleForeignKey("sentry.Environment")
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    environment = FlexibleForeignKey("sentry.Environment", db_constraint=False)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
@@ -367,8 +367,10 @@ class AlertRuleEnvironment(Model):
 class AlertRuleQuerySubscription(Model):
     __core__ = True
 
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", unique=True)
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    query_subscription = FlexibleForeignKey(
+        "sentry.QuerySubscription", db_constraint=False, unique=True
+    )
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
 
     class Meta:
         app_label = "sentry"

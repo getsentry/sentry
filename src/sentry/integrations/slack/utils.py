@@ -297,7 +297,7 @@ def build_incident_attachment(incident):
         # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
         # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
         start = incident_trigger.date_modified - timedelta(
-            minutes=alert_rule_trigger.alert_rule.time_window
+            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
         )
         end = incident_trigger.date_modified
     else:
@@ -321,11 +321,11 @@ def build_incident_attachment(incident):
         if alert_rule.aggregation == QueryAggregations.TOTAL.value
         else aggregates["unique_users"]
     )
-    time_window = alert_rule.time_window
+    time_window = alert_rule.snuba_query.time_window / 60
 
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
 
-    if alert_rule.query != "":
+    if alert_rule.snuba_query.query != "":
         text = text + "\nFilter: {}".format(alert_rule.query)
 
     ts = incident.date_started
@@ -446,6 +446,4 @@ def send_incident_alert_notification(action, incident):
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
-        logger.info(
-            "rule.fail.slack_post", extra={"error": six.text_type(e)},
-        )
+        logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})

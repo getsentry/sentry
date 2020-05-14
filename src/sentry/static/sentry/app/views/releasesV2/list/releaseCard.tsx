@@ -14,9 +14,13 @@ import {AvatarListWrapper} from 'app/components/avatar/avatarList';
 import TextOverflow from 'app/components/textOverflow';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Tag from 'app/views/settings/components/tag';
+import Link from 'app/components/links/link';
+import Feature from 'app/components/acl/feature';
+import Tooltip from 'app/components/tooltip';
 
 import ReleaseHealth from './releaseHealth';
 import NotAvailable from './notAvailable';
+import {getReleaseNewIssuesUrl} from '../utils';
 
 type Props = {
   release: Release;
@@ -27,6 +31,7 @@ type Props = {
 
 const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
   const {version, commitCount, lastDeploy, authors, dateCreated} = release;
+
   return (
     <StyledPanel reloading={reloading ? 1 : 0}>
       <PanelBody>
@@ -86,7 +91,19 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
             </CommitsColumn>
 
             <NewIssuesColumn>
-              <Count value={release.newGroups || 0} />
+              <Feature features={['global-views']}>
+                {({hasFeature}) =>
+                  hasFeature ? (
+                    <Tooltip title={t('Open in Issues')}>
+                      <Link to={getReleaseNewIssuesUrl(orgSlug, null, version)}>
+                        <Count value={release.newGroups || 0} />
+                      </Link>
+                    </Tooltip>
+                  ) : (
+                    <Count value={release.newGroups || 0} />
+                  )
+                }
+              </Feature>
             </NewIssuesColumn>
           </Layout>
         </StyledPanelItem>
