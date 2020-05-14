@@ -71,3 +71,5 @@ class SlackPostMigrationTest(TestCase):
             },
         }
         builder.assert_called_with(**expected_email_args)
+        integration = Integration.objects.get(id=self.integration.id)
+        assert "old_access_token" not in integration.metadata

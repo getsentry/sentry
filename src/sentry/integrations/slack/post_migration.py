@@ -62,6 +62,8 @@ def run_post_migration(integration_id, organization_id, user_id, channels):
                     "channel_name": channel_name,
                     "integration_id": integration_id,
                     "organization_id": organization_id,
+                    "integration_name": integration.name,
+                    "organization_slug": organization.slug,
                 },
             )
             problem_channels.append(channel_name)
@@ -80,3 +82,6 @@ def run_post_migration(integration_id, organization_id, user_id, channels):
         },
     )
     message.send([user.email])
+    # delete the old access token at the end
+    del integration.metadata["old_access_token"]
+    integration.save()
