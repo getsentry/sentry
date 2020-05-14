@@ -38,8 +38,5 @@ class BatchFeatureHandler(FeatureHandler):
         return self._check_for_batch(feature.name, organization, actor)
 
     def has_for_batch(self, batch):
-        if batch.feature_name not in self.features:
-            return None
-
         flag = self._check_for_batch(batch.feature_name, batch.organization, batch.actor)
         return {obj: flag for obj in batch.objects}

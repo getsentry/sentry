@@ -139,8 +139,9 @@ class FeatureManager(object):
                 batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                 handler_result = handler.has_for_batch(batch)
                 for (obj, flag) in handler_result.items():
-                    remaining.remove(obj)
-                    result[obj] = flag
+                    if flag is not None:
+                        remaining.remove(obj)
+                        result[obj] = flag
 
         default_flag = settings.SENTRY_FEATURES.get(name, False)
         for obj in remaining:
