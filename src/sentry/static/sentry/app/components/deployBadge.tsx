@@ -8,6 +8,7 @@ import Tag from 'app/views/settings/components/tag';
 import Link from 'app/components/links/link';
 import {IconOpen} from 'app/icons';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   deploy: Deploy;
@@ -20,8 +21,8 @@ const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
   const shouldLinkToIssues = !!orgSlug && !!version;
 
   const badge = (
-    <Badge shouldLinkToIssues={shouldLinkToIssues} className={className}>
-      {deploy.environment}
+    <Badge className={className}>
+      <Label>{deploy.environment}</Label>
       {shouldLinkToIssues && <Icon size="xs" />}
     </Badge>
   );
@@ -50,22 +51,23 @@ const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
   );
 };
 
-const Badge = styled(Tag)<{shouldLinkToIssues: boolean}>`
+const Badge = styled(Tag)`
   background-color: ${p => p.theme.gray4};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeSmall};
-  display: inline-block;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  position: relative;
-  padding-right: ${p => (p.shouldLinkToIssues ? '25px' : null)};
+  align-items: center;
+  height: 20px;
+`;
+
+const Label = styled('span')`
+  max-width: 100px;
+  line-height: 20px;
+  ${overflowEllipsis}
 `;
 
 const Icon = styled(IconOpen)`
-  position: absolute;
-  top: ${space(0.5)};
-  right: ${space(1)};
+  margin-left: ${space(0.5)};
+  flex-shrink: 0;
 `;
 
 export default DeployBadge;

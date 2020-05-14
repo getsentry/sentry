@@ -197,6 +197,7 @@ const VersionWrapper = styled('div')`
 `;
 
 const StyledDeployBadge = styled(DeployBadge)`
+  position: relative;
   bottom: ${space(0.25)};
   margin-right: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
