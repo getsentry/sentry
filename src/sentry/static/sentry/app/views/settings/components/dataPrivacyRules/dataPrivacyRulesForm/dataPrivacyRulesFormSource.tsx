@@ -359,7 +359,10 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
         />
         {showSuggestions && suggestions.length > 0 && (
           <div>
-            <SuggestionsWrapper ref={this.suggestionList} data-test-id="source-suggestions">
+            <SuggestionsWrapper
+              ref={this.suggestionList}
+              data-test-id="source-suggestions"
+            >
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <SuggestionItem
                   key={suggestion.value}
@@ -371,14 +374,15 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 
                   <SuggestionDescription>
                     {suggestion.description && (
-                      (<TextOverflow>{suggestion.description}</TextOverflow>)
+                      <TextOverflow>{suggestion.description}</TextOverflow>
                     )}
                   </SuggestionDescription>
 
                   {suggestion.examples && (
                     <SourceSuggestionExamples
                       examples={suggestion.examples}
-                      sourceName={suggestion.value} />
+                      sourceName={suggestion.value}
+                    />
                   )}
                 </SuggestionItem>
               ))}
@@ -392,7 +396,6 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 }
 
 export default DataPrivacyRulesFormSource;
-
 
 const Wrapper = styled('div')`
   position: relative;
