@@ -9,7 +9,6 @@ from django.conf import settings
 import sentry_sdk
 
 from sentry_sdk.client import get_options
-from sentry_sdk.envelope import Envelope, Item, PayloadRef
 from sentry_sdk.transport import make_transport, Transport
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -112,22 +111,36 @@ class MultiplexedTransport(Transport):
         self.relay_transport = relay_transport
 
     def capture_event(self, event):
-        envelope = Envelope()
-        if event.get("type") == "transaction":
-            envelope.add_item(Item(payload=PayloadRef(json=event), type="transaction"))
-        else:
-            envelope.add_event(event)
-        return self.capture_envelope(envelope)
-
-    def capture_envelope(self, envelope):
-        event = envelope.get_event()
-
-        if (
-            event is not None
-            and event.get("type") == "transaction"
-            and options.get("transaction-events.force-disable-internal-project")
+        if event.get("type") == "transaction" and options.get(
+            "transaction-events.force-disable-internal-project"
         ):
             return
+
+        # Upstream should get the event first because it is most isolated from
+        # the this sentry installation.
+        if self.upstream_transport:
+            metrics.incr("internal.captured.events.upstream")
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
+            self.upstream_transport.capture_event(event)
+
+        if self.relay_transport:
+            if is_current_event_safe():
+                metrics.incr("internal.captured.events.relay")
+                self.relay_transport.capture_event(event)
+            else:
+                metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
+
+    def capture_envelope(self, envelope):
+        for item in envelope:
+            if item.headers.get("type") == "transaction" and options.get(
+                "transaction-events.force-disable-internal-project"
+            ):
+                return
 
         # Upstream should get the event first because it is most isolated from
         # the this sentry installation.
