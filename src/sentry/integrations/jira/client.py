@@ -218,7 +218,6 @@ class JiraApiClient(ApiClient):
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
-    def get_email(self, name_or_account_id):
-        user_id_field = self.user_id_field()
-        user = self.get_cached(self.EMAIL_URL, params={user_id_field: name_or_account_id})
+    def get_email(self, account_id):
+        user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
