@@ -4,7 +4,7 @@ export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): s
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
-export function transactionSummaryRouteWithEventView({
+export function transactionSummaryRouteWithQuery({
   orgSlug,
   transaction,
   projectID,

@@ -16,7 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
-import {transactionSummaryRouteWithEventView} from 'app/views/performance/transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -109,7 +109,7 @@ const GroupEventToolbar = createReactClass({
       return null;
     }
 
-    const to = transactionSummaryRouteWithEventView({
+    const to = transactionSummaryRouteWithQuery({
       orgSlug: orgId,
       transaction: transactionName,
       projectID: event.projectID,
