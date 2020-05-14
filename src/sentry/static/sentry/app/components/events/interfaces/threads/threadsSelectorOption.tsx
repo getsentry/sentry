@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
@@ -20,7 +21,6 @@ type ThreadInfo = {
   filename?: string;
 };
 
-// TODO (i18n): added translations here
 const ThreadsSelectorOption = ({id, name, details, crashed, crashedInfo}: Props) => (
   <Wrapper>
     <DetailsWrapper>
@@ -38,7 +38,10 @@ const ThreadsSelectorOption = ({id, name, details, crashed, crashedInfo}: Props)
     </DetailsWrapper>
     {crashed &&
       (crashedInfo ? (
-        <Tooltip title={`(crashed with ${crashedInfo.values[0].type}`} position="top">
+        <Tooltip
+          title={`${t('errored with')} ${crashedInfo.values[0].type}`}
+          position="top"
+        >
           <StyledCrashIcon src="icon-warning-sm" />
         </Tooltip>
       ) : (
