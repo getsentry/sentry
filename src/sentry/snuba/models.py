@@ -28,8 +28,8 @@ class QueryDatasets(Enum):
 class QuerySubscriptionEnvironment(Model):
     __core__ = True
 
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
-    environment = FlexibleForeignKey("sentry.Environment")
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", db_constraint=False)
+    environment = FlexibleForeignKey("sentry.Environment", db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
