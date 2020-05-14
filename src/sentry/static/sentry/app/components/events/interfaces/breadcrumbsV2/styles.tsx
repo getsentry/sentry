@@ -60,7 +60,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border: 1px solid #fa4747;
     `}
-  ${p => p.withoutBorder && p.withoutBorder.map(border => css`border-${border}: 0`)}
+  ${p => (p.withoutBorder ? p.withoutBorder.map(border => css`border-${border}: 0`) : '')}
   text-overflow: ellipsis;
   overflow: hidden;
   padding: ${space(1)};
@@ -78,9 +78,9 @@ const Grid = styled('div')<{maxHeight: React.CSSProperties['maxHeight']}>`
   > *:nth-last-child(-n + 5) {
     margin: -1px;
   }
-  grid-template-columns: max-content 55px 1fr 60px 65px;
+  grid-template-columns: max-content 55px 1fr max-content max-content;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: max-content 110px 1fr 75px 80px;
+    grid-template-columns: max-content 110px 1fr max-content max-content;
   }
 `;
 
