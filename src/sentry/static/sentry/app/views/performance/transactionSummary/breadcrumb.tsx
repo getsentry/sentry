@@ -41,7 +41,6 @@ class Breadcrumb extends React.Component<Props> {
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: eventView.project.map(id => String(id)),
-      query: eventView.generateQueryStringObject(),
     });
 
     crumbs.push({

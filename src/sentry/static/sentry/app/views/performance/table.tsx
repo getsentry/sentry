@@ -1,5 +1,5 @@
 import React from 'react';
-import {Location, LocationDescriptorObject, Query} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
@@ -65,16 +65,13 @@ class Table extends React.Component<Props> {
       return cells;
     }
     const columnOrder = this.props.eventView.getColumns();
-    const query = this.props.eventView.generateQueryStringObject();
 
     tableData.data.forEach((row, index: number) => {
       // check again to appease tsc
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(
-        this.renderRow(row, index, columnOrder, tableData.meta, query)
-      );
+      cells = cells.concat(this.renderRow(row, index, columnOrder, tableData.meta));
     });
     return cells;
   }
@@ -83,8 +80,7 @@ class Table extends React.Component<Props> {
     row: TableDataRow,
     rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
-    tableMeta: MetaType,
-    query: Query
+    tableMeta: MetaType
   ) {
     const {organization, location, projects} = this.props;
 
@@ -102,11 +98,11 @@ class Table extends React.Component<Props> {
       if (isFirstCell) {
         // the first column of the row should link to the transaction summary view
         const projectID = getProjectID(row, projects);
+
         const target = transactionSummaryRouteWithEventView({
           orgSlug: organization.slug,
           transaction: String(row.transaction) || '',
           projectID,
-          query,
         });
 
         rendered = (

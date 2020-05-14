@@ -1,33 +1,27 @@
-import {Query} from 'history';
-
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
 export function transactionSummaryRouteWithEventView({
   orgSlug,
-  transaction,
   projectID,
-  query,
+  transaction,
 }: {
   orgSlug: string;
-  transaction: string;
   projectID: string | string[] | undefined;
-  query: Query;
+  transaction: string;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
   });
 
+  const query = {
+    project: projectID,
+    transaction,
+  };
+
   return {
     pathname,
-    query: {
-      transaction,
-      project: projectID,
-      environment: query.environment,
-      statsPeriod: query.statsPeriod,
-      start: query.start,
-      end: query.end,
-    },
+    query,
   };
 }
