@@ -16,8 +16,9 @@ import Tooltip from 'app/components/tooltip';
 import Tag from 'app/views/settings/components/tag';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
-import {formatVersion} from 'app/utils/formatters';
+import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Badge from 'app/components/badge';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
@@ -38,7 +39,15 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
-    {title: t('Commits'), to: `${releasePath}commits/`},
+    {
+      title: (
+        <React.Fragment>
+          {t('Commits')}{' '}
+          <NavTabsBadge text={formatAbbreviatedNumber(release.commitCount)} />
+        </React.Fragment>
+      ),
+      to: `${releasePath}commits/`,
+    },
     {title: t('Files Changed'), to: `${releasePath}files-changed/`},
     {title: t('Artifacts'), to: `${releasePath}artifacts/`},
   ];
@@ -200,6 +209,12 @@ const IconWrapper = styled('span')`
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
   grid-column: 1 / 2;
+`;
+
+const NavTabsBadge = styled(Badge)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 export default ReleaseHeader;
