@@ -54,6 +54,21 @@ export const logExperiment: Hooks['analytics:log-experiment'] = options =>
   HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 /**
+ * Helper function for `trackAnalyticsEvent` to generically track usage of deprecated features
+ *
+ * @param feature A name to identify the feature you are tracking
+ * @param orgId The organization id
+ * @param url [optional] The URL
+ */
+export const trackDeprecated = (feature: string, orgId: number, url: string = '') =>
+  trackAdhocEvent({
+    eventKey: 'deprecated.feature',
+    feature,
+    url,
+    org_id: orgId && Number(orgId),
+  });
+
+/**
  * Legacy analytics tracking.
  *
  * @deprecated Prefer `trackAnalyticsEvent` and `trackAdhocEvent`.
