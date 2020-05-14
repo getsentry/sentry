@@ -1,16 +1,16 @@
 import React, {CSSProperties} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
 import {components, SingleValueProps, OptionProps} from 'react-select';
-import cloneDeep from 'lodash/cloneDeep';
 
-import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
 import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
+import Badge from 'app/components/badge';
 import space from 'app/styles/space';
-import {Column, ColumnType, AggregateParameter} from 'app/utils/discover/fields';
+import {ColumnType, AggregateParameter, QueryFieldValue} from 'app/utils/discover/fields';
 
 import {FieldValueKind, FieldValue} from './types';
 
@@ -34,12 +34,15 @@ type ParameterDescription =
 
 type Props = {
   className?: string;
-  takeFocus: boolean;
-  parentIndex: number;
-  column: Column;
-  gridColumns: number;
+  takeFocus?: boolean;
+  fieldValue: QueryFieldValue;
   fieldOptions: FieldOptions;
-  onChange: (index: number, column: Column) => void;
+  /**
+   * The number of columns to render. Columns that do not have a parameter will
+   * render an empty parameter placeholder.
+   */
+  gridColumns: number;
+  onChange: (fieldValue: QueryFieldValue) => void;
 };
 
 // Type for completing generics in react-select
@@ -48,21 +51,21 @@ type OptionType = {
   value: FieldValue;
 };
 
-class ColumnEditRow extends React.Component<Props> {
+class QueryField extends React.Component<Props> {
   handleFieldChange = ({value}) => {
-    const current = this.props.column;
-    let column: Column = cloneDeep(this.props.column);
+    const current = this.props.fieldValue;
+    let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
 
     switch (value.kind) {
       case FieldValueKind.TAG:
       case FieldValueKind.FIELD:
-        column = {kind: 'field', field: value.meta.name};
+        fieldValue = {kind: 'field', field: value.meta.name};
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'field') {
-          column = {kind: 'function', function: [value.meta.name, '', undefined]};
+          fieldValue = {kind: 'function', function: [value.meta.name, '', undefined]};
         } else if (current.kind === 'function') {
-          column = {
+          fieldValue = {
             kind: 'function',
             function: [value.meta.name, current.function[1], current.function[2]],
           };
@@ -74,44 +77,44 @@ class ColumnEditRow extends React.Component<Props> {
 
     if (value.kind === FieldValueKind.FUNCTION) {
       value.meta.parameters.forEach((param: AggregateParameter, i: number) => {
-        if (column.kind !== 'function') {
+        if (fieldValue.kind !== 'function') {
           return;
         }
         if (param.kind === 'column') {
-          const field = this.getFieldOrTagValue(column.function[i + 1]);
+          const field = this.getFieldOrTagValue(fieldValue.function[i + 1]);
           if (field === null) {
-            column.function[i + 1] = param.defaultValue || '';
+            fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
             (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
             param.columnTypes.includes(field.meta.dataType)
           ) {
             // New function accepts current field.
-            column.function[i + 1] = field.meta.name;
+            fieldValue.function[i + 1] = field.meta.name;
           } else {
             // field does not fit within new function requirements, use the default.
-            column.function[i + 1] = param.defaultValue || '';
-            column.function[i + 2] = undefined;
+            fieldValue.function[i + 1] = param.defaultValue || '';
+            fieldValue.function[i + 2] = undefined;
           }
         }
         if (param.kind === 'value') {
-          column.function[i + 1] = param.defaultValue || '';
+          fieldValue.function[i + 1] = param.defaultValue || '';
         }
       });
 
-      if (column.kind === 'function') {
+      if (fieldValue.kind === 'function') {
         if (value.meta.parameters.length === 0) {
-          column.function = [column.function[0], '', undefined];
+          fieldValue.function = [fieldValue.function[0], '', undefined];
         } else if (value.meta.parameters.length === 1) {
-          column.function[2] = undefined;
+          fieldValue.function[2] = undefined;
         }
       }
     }
 
-    this.triggerChange(column);
+    this.triggerChange(fieldValue);
   };
 
   handleFieldParameterChange = ({value}) => {
-    const newColumn = cloneDeep(this.props.column);
+    const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value.meta.name;
     }
@@ -119,7 +122,7 @@ class ColumnEditRow extends React.Component<Props> {
   };
 
   handleScalarParameterChange = (value: string) => {
-    const newColumn = cloneDeep(this.props.column);
+    const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value;
     }
@@ -127,16 +130,15 @@ class ColumnEditRow extends React.Component<Props> {
   };
 
   handleRefinementChange = (value: string) => {
-    const newColumn = cloneDeep(this.props.column);
+    const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[2] = value;
     }
     this.triggerChange(newColumn);
   };
 
-  triggerChange(column: Column) {
-    const {parentIndex} = this.props;
-    this.props.onChange(parentIndex, column);
+  triggerChange(fieldValue: QueryFieldValue) {
+    this.props.onChange(fieldValue);
   }
 
   getFieldOrTagValue(name: string | undefined): FieldValue | null {
@@ -176,18 +178,18 @@ class ColumnEditRow extends React.Component<Props> {
   getFieldData() {
     let field: FieldValue | null = null;
 
-    const {column} = this.props;
+    const {fieldValue} = this.props;
     let {fieldOptions} = this.props;
 
-    if (column.kind === 'function') {
-      const funcName = `function:${column.function[0]}`;
+    if (fieldValue.kind === 'function') {
+      const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
         field = fieldOptions[funcName].value;
       }
     }
 
-    if (column.kind === 'field') {
-      field = this.getFieldOrTagValue(column.field);
+    if (fieldValue.kind === 'field') {
+      field = this.getFieldOrTagValue(fieldValue.field);
       fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
     }
 
@@ -197,12 +199,12 @@ class ColumnEditRow extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      column.kind === 'function'
+      fieldValue.kind === 'function'
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
           if (param.kind === 'column') {
-            const fieldParameter = this.getFieldOrTagValue(column.function[1]);
+            const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
@@ -220,7 +222,7 @@ class ColumnEditRow extends React.Component<Props> {
           return {
             kind: 'value',
             value:
-              (column.kind === 'function' && column.function[index + 1]) ||
+              (fieldValue.kind === 'function' && fieldValue.function[index + 1]) ||
               param.defaultValue ||
               '',
             dataType: param.dataType,
@@ -308,7 +310,7 @@ class ColumnEditRow extends React.Component<Props> {
             );
         }
       }
-      throw new Error(`Unknown parameter type encountered for ${this.props.column}`);
+      throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
     });
 
     // Add enough disabled inputs to fill the grid up.
@@ -402,7 +404,7 @@ type InputState = {value: string};
 
 /**
  * Because controlled inputs fire onChange on every key stroke,
- * we can't update the ColumnEditRow that often as it would re-render
+ * we can't update the QueryField that often as it would re-render
  * the input elements causing focus to be lost.
  *
  * Using a buffered input lets us throttle rendering and enforce data
@@ -484,4 +486,4 @@ const BlankSpace = styled('div')`
   }
 `;
 
-export {ColumnEditRow};
+export {QueryField};

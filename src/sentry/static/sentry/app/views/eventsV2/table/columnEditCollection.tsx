@@ -16,7 +16,7 @@ import theme from 'app/utils/theme';
 import {Column, AGGREGATIONS, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 
 import {FieldValue, FieldValueKind} from './types';
-import {ColumnEditRow} from './columnEditRow';
+import {QueryField} from './queryField';
 
 type Props = {
   // Input columns
@@ -346,12 +346,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
           ) : (
             <span />
           )}
-          <ColumnEditRow
+          <QueryField
             fieldOptions={fieldOptions}
             gridColumns={gridColumns}
-            column={col}
-            parentIndex={i}
-            onChange={this.handleUpdateColumn}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
             takeFocus={i === this.props.columns.length - 1}
           />
           {canDelete ? (
