@@ -37,7 +37,7 @@ function getSentryIntegrations() {
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
     }),
   ];
-  if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
+  if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff && window.__SENTRY__USER.email !== 'billy@sentry.io') {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
 
