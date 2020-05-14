@@ -1,8 +1,4 @@
-import {
-  BreadcrumbDetails,
-  BreadcrumbType,
-  BreadcrumbLevelType,
-} from '../../breadcrumbs/types';
+import {BreadcrumbDetails, BreadcrumbType, BreadcrumbLevelType} from '../types';
 
 export enum FilterGroupType {
   LEVEL = 'level',

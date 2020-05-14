@@ -5,6 +5,7 @@ import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs/b
 import BreadcrumbsInterfaceV2 from 'app/components/events/interfaces/breadcrumbsV2/breadcrumbs';
 
 type Props = React.ComponentProps<typeof BreadcrumbsInterfaceV2>;
+type BreadcrumbsInterfaceProps = React.ComponentProps<typeof BreadcrumbsInterface>;
 
 const EventEntriesBreadcrumbs = (props: Props) => (
   <Feature features={['breadcrumbs-v2']}>
@@ -12,7 +13,7 @@ const EventEntriesBreadcrumbs = (props: Props) => (
       hasFeature ? (
         <BreadcrumbsInterfaceV2 {...props} />
       ) : (
-        <BreadcrumbsInterface {...props} />
+        <BreadcrumbsInterface {...(props as BreadcrumbsInterfaceProps)} />
       )
     }
   </Feature>

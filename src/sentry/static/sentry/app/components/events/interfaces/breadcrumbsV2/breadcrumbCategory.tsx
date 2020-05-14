@@ -13,11 +13,9 @@ type Props = {
 const BreadcrumbCategory = ({category}: Props) => {
   const title = !defined(category) ? t('generic') : category;
   return (
-    <div>
-      <Tooltip title={title}>
-        <Category title={title}>{title}</Category>
-      </Tooltip>
-    </div>
+    <Tooltip title={title}>
+      <Category title={title}>{title}</Category>
+    </Tooltip>
   );
 };
 
@@ -27,5 +25,6 @@ const Category = styled('div')`
   color: ${p => p.theme.gray5};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 700;
+  line-height: 26px;
   ${overflowEllipsis};
 `;

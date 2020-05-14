@@ -4,69 +4,99 @@ import {
   IconLocation,
   IconUser,
   IconRefresh,
+  IconFix,
+  IconFire,
   IconTerminal,
+  IconStack,
+  IconMobile,
+  IconSwitch,
 } from 'app/icons';
 import {t} from 'app/locale';
 
-import {BreadcrumbType, BreadcrumbDetails} from '../breadcrumbs/types';
+import {BreadcrumbType, BreadcrumbDetails} from './types';
 
 function getBreadcrumbTypeDetails(breadcrumbType: BreadcrumbType): BreadcrumbDetails {
   switch (breadcrumbType) {
     case BreadcrumbType.USER:
-    case BreadcrumbType.UI: {
+    case BreadcrumbType.UI:
       return {
         color: 'purple',
         icon: IconUser,
         description: t('User Action'),
       };
-    }
-    case BreadcrumbType.NAVIGATION: {
+
+    case BreadcrumbType.NAVIGATION:
       return {
-        color: 'blue',
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#1C8952',
         icon: IconLocation,
         description: t('Navigation'),
       };
-    }
-    case BreadcrumbType.INFO: {
+
+    case BreadcrumbType.DEBUG:
       return {
-        color: 'blue',
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#3E2C73',
+        icon: IconFix,
+        description: t('Debug'),
+      };
+
+    case BreadcrumbType.INFO:
+      return {
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#3D74DB',
         icon: IconInfo,
         description: t('Info'),
       };
-    }
-    case BreadcrumbType.WARNING: {
+
+    case BreadcrumbType.ERROR:
       return {
-        color: 'yellowOrange',
-        borderColor: 'yellowOrangeDark',
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#FA4747',
+        icon: IconFire,
+        description: t('Error'),
+      };
+
+    case BreadcrumbType.HTTP:
+      return {
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#4DC771',
+        icon: IconSwitch,
+        description: t('HTTP request'),
+      };
+
+    case BreadcrumbType.WARNING:
+      return {
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#FF7738',
         icon: IconWarning,
         description: t('Warning'),
       };
-    }
-    case BreadcrumbType.DEBUG: {
+    case BreadcrumbType.QUERY:
       return {
-        icon: IconTerminal,
-        description: t('Debug'),
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#194591',
+        icon: IconStack,
+        description: t('Query'),
       };
-    }
-    case BreadcrumbType.EXCEPTION:
-    case BreadcrumbType.MESSAGE: {
+    case BreadcrumbType.SYSTEM:
       return {
-        color: 'red',
-        icon: IconWarning,
-        description: t('Error'),
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#FF99BC',
+        icon: IconMobile,
+        description: t('System'),
       };
-    }
-    case BreadcrumbType.HTTP: {
+    case BreadcrumbType.SESSION:
       return {
-        color: 'green',
+        // TODO(style): replace the color below, as soon as it is part of the theme
+        color: '#BA4A23',
         icon: IconRefresh,
-        description: t('HTTP request'),
+        description: t('Session'),
       };
-    }
     default:
       return {
-        icon: IconRefresh,
-        description: t('Others'),
+        icon: IconTerminal,
+        description: t('Default'),
       };
   }
 }

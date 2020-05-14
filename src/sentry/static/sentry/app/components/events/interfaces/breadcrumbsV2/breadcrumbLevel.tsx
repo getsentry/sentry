@@ -3,13 +3,13 @@ import React from 'react';
 import Tag from 'app/views/settings/components/tag';
 import {t} from 'app/locale';
 
-import {BreadcrumbLevelType} from '../breadcrumbs/types';
+import {BreadcrumbLevelType} from './types';
 
 type Props = {
   level?: BreadcrumbLevelType;
 };
 
-const BreadcrumbLevelTag = ({level}: Props) => {
+const BreadcrumbLevel = ({level}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
     case BreadcrumbLevelType.ERROR:
@@ -22,11 +22,5 @@ const BreadcrumbLevelTag = ({level}: Props) => {
       return <Tag>{level || t('undefined')}</Tag>;
   }
 };
-
-const BreadcrumbLevel = ({level}: Props) => (
-  <div>
-    <BreadcrumbLevelTag level={level} />
-  </div>
-);
 
 export default BreadcrumbLevel;
