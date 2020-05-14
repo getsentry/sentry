@@ -563,30 +563,24 @@ const IssueListActions = createReactClass({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          <ToolbarHeader>
-            <EventsOrUsersLabel className="align-right">
-              <React.Fragment>
-                {t('Events')}
-                <QuestionTooltip
-                  className="hidden-xs"
-                  title={t('Number of events since the issue was created')}
-                  size="xs"
-                />
-              </React.Fragment>
-            </EventsOrUsersLabel>
-          </ToolbarHeader>
-          <ToolbarHeader>
-            <EventsOrUsersLabel className="align-right">
-              <React.Fragment>
-                {t('Users')}
-                <QuestionTooltip
-                  className="hidden-xs"
-                  title={t('Unique users affected since the issue was created')}
-                  size="xs"
-                />
-              </React.Fragment>
-            </EventsOrUsersLabel>
-          </ToolbarHeader>
+          <EventsOrUsersLabel className="align-right">
+            <React.Fragment>
+              {t('Events')}
+              <StyledQuestionTooltip
+                title={t('Number of events since the issue was created')}
+                size="xs"
+              />
+            </React.Fragment>
+          </EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">
+            <React.Fragment>
+              {t('Users')}
+              <StyledQuestionTooltip
+                title={t('Unique users affected since the issue was created')}
+                size="xs"
+              />
+            </React.Fragment>
+          </EventsOrUsersLabel>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -707,14 +701,20 @@ const GraphToggle = styled('a')`
   }
 `;
 
-const EventsOrUsersLabel = styled('div')`
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   grid-auto-flow: column;
   grid-gap: ${space(0.5)};
   align-items: center;
 
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1.5)};
   @media (min-width: ${theme.breakpoints[0]}) {
     width: 60px;
   }
