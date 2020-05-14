@@ -144,10 +144,9 @@ class ContextData extends React.Component {
       } else if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
-        const valueToBeReturned =
-          withAnnotatedText
-            ? getValueWithAnnotatedText(valueInfo.repr, meta)
-            : valueInfo.repr;
+        const valueToBeReturned = withAnnotatedText
+          ? getValueWithAnnotatedText(valueInfo.repr, meta)
+          : valueInfo.repr;
 
         const out = [
           <span
