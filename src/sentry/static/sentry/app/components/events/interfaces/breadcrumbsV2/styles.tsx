@@ -33,8 +33,8 @@ const GridCell = styled('div')<{
   hasError?: boolean;
 }>`
   line-height: 26px;
-  border-top: 1px solid ${p => p.theme.borderDark};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: -1px;
   text-overflow: ellipsis;
   overflow: hidden;

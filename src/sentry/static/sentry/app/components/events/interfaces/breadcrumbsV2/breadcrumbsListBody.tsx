@@ -34,11 +34,11 @@ const BreadcrumbsListBody = ({
       const hasError = crumb.type === BreadcrumbType.ERROR;
       return (
         <React.Fragment key={idx}>
-          <StyledGridCellLeft hasError={hasError}>
+          <GridCellLeft hasError={hasError}>
             <Tooltip title={crumb.description}>
               <BreadcrumbIcon icon={icon} color={color} />
             </Tooltip>
-          </StyledGridCellLeft>
+          </GridCellLeft>
           <GridCellCategory hasError={hasError}>
             <BreadcrumbCategory category={crumb?.category} />
           </GridCellCategory>
@@ -48,9 +48,9 @@ const BreadcrumbsListBody = ({
           <GridCell hasError={hasError}>
             <BreadcrumbLevel level={crumb.level} />
           </GridCell>
-          <StyledGridCellRight hasError={hasError}>
+          <GridCellRight hasError={hasError}>
             <BreadcrumbTime timestamp={crumb.timestamp} />
-          </StyledGridCellRight>
+          </GridCellRight>
         </React.Fragment>
       );
     })}
@@ -63,12 +63,4 @@ const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
-`;
-
-const StyledGridCellLeft = styled(GridCellLeft)`
-  border-bottom-left-radius: ${space(0.5)};
-`;
-
-const StyledGridCellRight = styled(GridCellRight)`
-  border-bottom-right-radius: ${space(0.5)};
 `;
