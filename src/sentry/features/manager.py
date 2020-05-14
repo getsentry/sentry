@@ -102,7 +102,7 @@ class FeatureManager(object):
             rv = handler(feature, actor)
             if rv is not None:
                 return rv
-            return None
+        return None
 
     def has_for_batch(self, name, organization, objects, actor=None):
         """
