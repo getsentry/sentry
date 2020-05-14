@@ -1,8 +1,8 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import styled from '@emotion/styled';
-import space from 'app/styles/space';
 
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 
