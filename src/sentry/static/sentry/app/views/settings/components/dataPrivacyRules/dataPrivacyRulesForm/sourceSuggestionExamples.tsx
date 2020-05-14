@@ -34,7 +34,7 @@ class SourceSuggestionExamples extends React.Component<Props, State> {
     const {examples, sourceName} = this.props;
 
     return (
-      <span onClick={this.stopPropagation}>
+      <Wrapper onClick={this.stopPropagation}>
         <Button size="xsmall" onClick={this.toggleModal}>
           {t('examples')}
         </Button>
@@ -50,7 +50,7 @@ class SourceSuggestionExamples extends React.Component<Props, State> {
             </Modal.Body>
           </StyledModal>
         )}
-      </span>
+      </Wrapper>
     );
   }
 }
@@ -80,4 +80,8 @@ const StyledModal = styled(Modal)`
   .close {
     outline: none;
   }
+`;
+
+const Wrapper = styled('span')`
+  grid-columns: span 3;
 `;

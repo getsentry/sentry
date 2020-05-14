@@ -372,11 +372,11 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
                 >
                   <TextOverflow>{suggestion.value}</TextOverflow>
 
-                  <SuggestionDescription>
-                    {suggestion.description && (
+                  {suggestion.description && (
+                    <SuggestionDescription>
                       <TextOverflow>{suggestion.description}</TextOverflow>
-                    )}
-                  </SuggestionDescription>
+                    </SuggestionDescription>
+                  )}
 
                   {suggestion.examples && suggestion.examples.length > 0 && (
                     <SourceSuggestionExamples
