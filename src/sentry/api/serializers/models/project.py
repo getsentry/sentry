@@ -190,7 +190,7 @@ class ProjectSerializer(Serializer):
         for feature_name in features.all(feature_type=ProjectFeature).keys():
             if not feature_name.startswith(_PROJECT_SCOPE_PREFIX):
                 continue
-            abbreviated_feature = feature_name[: len(_PROJECT_SCOPE_PREFIX)]
+            abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
             for (organization, projects) in projects_by_org.items():
                 result = features.has_for_batch(feature_name, organization, projects, user)
                 for (project, flag) in result.items():
