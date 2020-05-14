@@ -93,7 +93,7 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
             <NewIssuesColumn>
               <Feature features={['global-views']}>
                 {({hasFeature}) =>
-                  hasFeature && release.newGroups > 0 ? (
+                  hasFeature ? (
                     <Tooltip title={t('Open in Issues')}>
                       <Link to={getReleaseNewIssuesUrl(orgSlug, null, version)}>
                         <Count value={release.newGroups || 0} />

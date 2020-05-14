@@ -188,21 +188,17 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </CrashesColumn>
 
                     <NewIssuesColumn>
-                      {newGroups > 0 ? (
-                        <Tooltip title={t('Open in Issues')}>
-                          <Link
-                            to={getReleaseNewIssuesUrl(
-                              orgSlug,
-                              project.id,
-                              release.version
-                            )}
-                          >
-                            <Count value={newGroups || 0} />
-                          </Link>
-                        </Tooltip>
-                      ) : (
-                        <Count value={newGroups || 0} />
-                      )}
+                      <Tooltip title={t('Open in Issues')}>
+                        <Link
+                          to={getReleaseNewIssuesUrl(
+                            orgSlug,
+                            project.id,
+                            release.version
+                          )}
+                        >
+                          <Count value={newGroups || 0} />
+                        </Link>
+                      </Tooltip>
                     </NewIssuesColumn>
                   </Layout>
                 </StyledPanelItem>
