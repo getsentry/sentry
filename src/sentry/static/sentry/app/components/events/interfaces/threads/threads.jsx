@@ -83,7 +83,7 @@ class Thread extends React.Component {
             <Pill name="id" value={data.id} />
             <Pill name="name" value={data.name} />
             <Pill name="was active" value={data.current} />
-            <Pill name="crashed" className={data.crashed ? 'false' : 'true'}>
+            <Pill name="errored" className={data.crashed ? 'false' : 'true'}>
               {data.crashed ? 'yes' : 'no'}
             </Pill>
           </Pills>
