@@ -39,9 +39,10 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         <FeatureBadge type="beta" />
       </RadioLabel>
       <p>
-        {t(
-          `Compute aggregates and set thresholds on any or all errors in your
-           project, regardless of the Sentry issue.`
+        {tct(
+          `Compute aggregates and set thresholds on all errors in your project,
+           regardless of the [note:Sentry Issue].`,
+          {note: <IssuesTooltip />}
         )}
       </p>
       {!selected && (
@@ -67,10 +68,7 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         {t('Issue Alert')}
       </RadioLabel>
       <p>
-        {tct(
-          `Get notified when [note:individual Sentry Issues] match your alerting criteria.`,
-          {note: <IssuesTooltip />}
-        )}
+        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
       </p>
       {!selected && (
         <BulletList>
