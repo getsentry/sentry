@@ -129,7 +129,7 @@ class GridEditable<
   }
 
   componentDidUpdate() {
-    // Redraw columns whenever new props are recieved
+    // Redraw columns whenever new props are received
     this.setGridTemplateColumns(this.props.columnOrder);
   }
 

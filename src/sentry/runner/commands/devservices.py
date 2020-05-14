@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import time
 import atexit
 import signal
 import os
@@ -91,7 +92,7 @@ def attach(project, fast, service):
     signal.signal(signal.SIGINT, exit_handler)
     signal.signal(signal.SIGTERM, exit_handler)
 
-    for line in container.logs(stream=True):
+    for line in container.logs(stream=True, since=int(time.time() - 20)):
         click.echo(line, nl=False)
 
 

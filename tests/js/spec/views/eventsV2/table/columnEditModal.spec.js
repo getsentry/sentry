@@ -114,7 +114,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
         fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('user-def');
       expect(fieldRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
-      expect(fieldRow.find('StyledInput[disabled]')).toHaveLength(1);
+      expect(fieldRow.find('BlankSpace')).toHaveLength(1);
     });
   });
 
@@ -166,12 +166,12 @@ describe('EventsV2 -> ColumnEditModal', function() {
       const countRow = wrapper.find('ColumnEditRow').first();
       // Has a select and 2 disabled inputs
       expect(countRow.find('SelectControl')).toHaveLength(1);
-      expect(countRow.find('StyledInput[disabled]')).toHaveLength(2);
+      expect(countRow.find('BlankSpace')).toHaveLength(2);
 
       const percentileRow = wrapper.find('ColumnEditRow').last();
       // two select fields, and one number input.
       expect(percentileRow.find('SelectControl')).toHaveLength(2);
-      expect(percentileRow.find('StyledInput[disabled]')).toHaveLength(0);
+      expect(percentileRow.find('BlankSpace')).toHaveLength(0);
       expect(percentileRow.find('StyledInput[inputMode="numeric"]')).toHaveLength(1);
     });
   });
@@ -205,8 +205,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('shows no options for parameterless functions', function() {
       selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
 
-      const parameter = wrapper.find('ColumnEditRow StyledInput[disabled]');
-      expect(parameter).toHaveLength(1);
+      expect(wrapper.find('ColumnEditRow BlankSpace')).toHaveLength(1);
     });
 
     it('shows additional inputs for multi-parameter functions', function() {

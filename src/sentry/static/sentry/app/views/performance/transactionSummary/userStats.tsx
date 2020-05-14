@@ -7,7 +7,6 @@ import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {assert} from 'app/types/utils';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 
 type Props = {
@@ -15,6 +14,10 @@ type Props = {
   eventView: EventView;
   organization: Organization;
 };
+
+type Results = {
+  [key: string]: React.ReactNode;
+} | null;
 
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
@@ -37,9 +40,25 @@ class UserStats extends React.Component<Props> {
     return eventView;
   }
 
+  renderContents(stats: Results) {
+    return (
+      <Container>
+        <div>
+          <StatTitle>{t('Apdex Score')}</StatTitle>
+          <StatNumber>{!stats ? '\u2014' : stats['apdex()']}</StatNumber>
+        </div>
+        <div>
+          <StatTitle>{t('User Misery')}</StatTitle>
+          <StatNumber>{!stats ? '\u2014' : stats['user_misery(300)']}</StatNumber>
+        </div>
+      </Container>
+    );
+  }
+
   render() {
     const {organization, location} = this.props;
     const eventView = this.generateUserStatsEventView(this.props.eventView);
+    const columnOrder = eventView.getColumns();
 
     return (
       <DiscoverQuery
@@ -52,41 +71,28 @@ class UserStats extends React.Component<Props> {
           const hasResults =
             tableData && tableData.data && tableData.meta && tableData.data.length > 0;
 
-          if (isLoading || !tableData || !hasResults || !eventView.isValid()) {
-            return null;
+          if (
+            isLoading ||
+            !tableData ||
+            !tableData.meta ||
+            !hasResults ||
+            !eventView.isValid()
+          ) {
+            return this.renderContents(null);
           }
-
-          const columnOrder = eventView.getColumns();
-
-          assert(tableData.meta);
           const tableMeta = tableData.meta;
           const row = tableData.data[0];
 
-          const stats: {[key: string]: React.ReactNode} = columnOrder.reduce(
-            (acc, column) => {
-              const field = String(column.key);
+          const stats: Results = columnOrder.reduce((acc, column) => {
+            const field = String(column.key);
 
-              const fieldRenderer = getFieldRenderer(field, tableMeta);
+            const fieldRenderer = getFieldRenderer(field, tableMeta);
 
-              acc[field] = fieldRenderer(row, {organization, location});
+            acc[field] = fieldRenderer(row, {organization, location});
 
-              return acc;
-            },
-            {}
-          );
-
-          return (
-            <Container>
-              <div>
-                <StatTitle>{t('Apdex Score')}</StatTitle>
-                <StatNumber>{stats['apdex()']}</StatNumber>
-              </div>
-              <div>
-                <StatTitle>{t('User Misery')}</StatTitle>
-                <StatNumber>{stats['user_misery(300)']}</StatNumber>
-              </div>
-            </Container>
-          );
+            return acc;
+          }, {});
+          return this.renderContents(stats);
         }}
       </DiscoverQuery>
     );

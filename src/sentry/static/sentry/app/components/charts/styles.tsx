@@ -1,8 +1,5 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import {IconQuestion} from 'app/icons';
 import space from 'app/styles/space';
 
 export const ChartControls = styled('div')`
@@ -23,6 +20,11 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1.5)};
+  align-items: center;
+
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
@@ -40,33 +42,9 @@ export const InlineContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 
-  &:first-child {
-    margin-left: 0;
+  &:last-child {
+    margin-right: 0;
   }
 `;
-
-const QuestionIconContainer = styled('span')`
-  margin-left: ${space(1)};
-  & svg {
-    color: ${p => p.theme.gray1};
-  }
-`;
-
-type QuestionProps = {
-  title: string;
-  size: string;
-} & Pick<React.ComponentProps<typeof Tooltip>, 'position'> &
-  Partial<Pick<React.ComponentProps<typeof Tooltip>, 'containerDisplayMode'>>;
-
-function QuestionTooltip({title, size, ...tooltipProps}: QuestionProps) {
-  return (
-    <QuestionIconContainer>
-      <Tooltip title={title} {...tooltipProps}>
-        <IconQuestion size={size} />
-      </Tooltip>
-    </QuestionIconContainer>
-  );
-}
-export {QuestionTooltip};

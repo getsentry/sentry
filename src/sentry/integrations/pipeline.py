@@ -51,6 +51,8 @@ class IntegrationPipeline(Pipeline):
             return self.error(six.text_type(e))
 
         response = self._finish_pipeline(data)
+        # TODO: pass in the post_install_data to be able to make the requests
+        # to Slack
         self.provider.post_install(self.integration, self.organization)
         self.clear_session()
         return response
@@ -62,7 +64,11 @@ class IntegrationPipeline(Pipeline):
             )
             self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
             self.integration.get_installation(self.organization.id).reinstall()
-
+        if "integration_id" in data:
+            self.integration = Integration.objects.get(
+                provider=self.provider.integration_key, id=data["integration_id"]
+            )
+            self.integration.reauthorize(data)
         elif "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]

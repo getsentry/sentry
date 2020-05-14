@@ -98,7 +98,10 @@ describe('GlobalSelection ActionCreators', function() {
   describe('updateProjects()', function() {
     it('updates', function() {
       updateProjects([1, 2]);
-      expect(GlobalSelectionActions.updateProjects).toHaveBeenCalledWith([1, 2]);
+      expect(GlobalSelectionActions.updateProjects).toHaveBeenCalledWith(
+        [1, 2],
+        undefined
+      );
     });
 
     it('does not update invalid projects', function() {

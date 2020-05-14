@@ -270,7 +270,7 @@ def fetch_release_file(filename, release, dist=None):
             # on the file system by `ReleaseFile.cache`, instead.
             cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
-    # in the cache as an unsucessful attempt
+    # in the cache as an unsuccessful attempt
     elif result == -1:
         result = None
 
@@ -295,7 +295,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     Attempts to fetch from the database first (assuming there's a release on the
     event), then the internet. Caches the result of each of those two attempts
-    sperately, whether or not those attempts are successful. Used for both
+    separately, whether or not those attempts are successful. Used for both
     source files and source maps.
     """
 

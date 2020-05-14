@@ -19,7 +19,7 @@ type AggregationState = {
   isOpen: boolean;
 };
 
-const initalState = {
+const initialState = {
   inputValue: '',
   isOpen: false,
 };
@@ -28,7 +28,7 @@ export default class AggregationRow extends React.Component<
   AggregationProps,
   AggregationState
 > {
-  state = initalState;
+  state = initialState;
 
   // This is the ref of the inner react-select component
   private select: any;

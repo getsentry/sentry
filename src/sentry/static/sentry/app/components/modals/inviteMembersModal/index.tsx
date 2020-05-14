@@ -10,6 +10,7 @@ import {uniqueId} from 'app/utils/guid';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {IconAdd, IconMail} from 'app/icons';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -17,7 +18,6 @@ import {Organization, Team} from 'app/types';
 import withLatestContext from 'app/utils/withLatestContext';
 import withTeams from 'app/utils/withTeams';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Tooltip from 'app/components/tooltip';
 
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 import InviteRowControl from './inviteRowControl';
@@ -311,16 +311,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
-            <Tooltip
+            <QuestionTooltip
               title={t(
                 `You do not have permission to directly invite members. Email
                  addresses entered here will be forwarded to organization
                  managers and owners; they will be prompted to approve the
                  invitation.`
               )}
-            >
-              <InlineSvg src="icon-circle-question" size="16px" />
-            </Tooltip>
+              size="sm"
+              position="bottom"
+            />
           )}
         </Heading>
         <Subtext>

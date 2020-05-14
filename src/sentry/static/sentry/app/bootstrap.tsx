@@ -46,7 +46,11 @@ function getSentryIntegrations() {
     // should fix.
     if (process.env.NODE_ENV === 'production') {
       // Only use this in prod as there seem to be issues with hot reload in dev
-      integrations.push(new SentryRRWeb() as any);
+      integrations.push(
+        new SentryRRWeb({
+          checkoutEveryNms: 60 * 1000, // 60 seconds
+        }) as any
+      );
     }
   }
   return integrations;
@@ -81,7 +85,7 @@ if (window.__SENTRY__VERSION) {
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-metric.mark('sentry-app-init');
+metric.mark({name: 'sentry-app-init'});
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -166,7 +170,7 @@ globals.SentryApp = {
   passwordStrength: {load: loadPasswordStrength},
   U2fSign: require('app/components/u2f/u2fsign').default,
   ConfigStore: require('app/stores/configStore').default,
-  Alerts: require('app/components/alerts').default,
+  SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
 };

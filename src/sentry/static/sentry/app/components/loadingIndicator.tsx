@@ -16,7 +16,7 @@ type Props = {
   size?: number;
   className?: string;
   style?: React.CSSProperties;
-  children?: React.ReactChildren;
+  children?: React.ReactNode;
   finishProfile: () => void;
 };
 

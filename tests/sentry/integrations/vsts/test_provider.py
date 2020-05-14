@@ -140,7 +140,7 @@ class TestAccountConfigView(TestCase):
     @responses.activate
     @patch("sentry.integrations.vsts.integration.get_user_info")
     @patch("sentry.integrations.vsts.integration.render_to_response")
-    def test_no_accounts_recieved(self, mock_render_to_response, mock_get_user_info):
+    def test_no_accounts_received(self, mock_render_to_response, mock_get_user_info):
         responses.reset()
         responses.add(
             responses.GET,
