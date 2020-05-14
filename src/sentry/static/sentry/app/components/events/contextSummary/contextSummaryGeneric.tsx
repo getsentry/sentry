@@ -27,16 +27,10 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
 
   const renderValue = (key: keyof Data) => {
     const meta = getMeta(data, key);
-    if (!meta) {
-      return data[key];
-    }
-
     return (
       <AnnotatedText
         value={data[key]}
-        chunks={meta.chunks}
-        remarks={meta.rem}
-        errors={meta.err}
+        meta={meta}
       />
     );
   };

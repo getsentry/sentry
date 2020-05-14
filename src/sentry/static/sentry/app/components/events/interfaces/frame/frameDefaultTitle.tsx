@@ -74,16 +74,10 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
     title.push(
       <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
         <code key="filename" className="filename">
-          {pathName.meta ? (
-            <AnnotatedText
-              value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
-              chunks={pathName.meta.chunks}
-              remarks={pathName.meta.rem}
-              errors={pathName.meta.err}
-            />
-          ) : (
-            <Truncate value={pathName.value} maxLength={100} leftTrim />
-          )}
+          <AnnotatedText
+            value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
+            meta={pathName.meta}
+          />
         </code>
       </Tooltip>
     );

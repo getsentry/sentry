@@ -62,16 +62,10 @@ const KeyValueList = ({
                     </ContextData>
                   ) : (
                     <pre className="val-string">
-                      {meta ? (
-                        <AnnotatedText
-                          value={dataValue}
-                          chunks={meta.chunks}
-                          remarks={meta.rem}
-                          errors={meta.err}
-                        />
-                      ) : (
-                        dataValue
-                      )}
+                      <AnnotatedText
+                        value={dataValue}
+                        meta={meta}
+                      />
                       {subjectIcon}
                     </pre>
                   )}

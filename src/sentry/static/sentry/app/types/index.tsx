@@ -1111,9 +1111,12 @@ export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 export type Meta = {
   chunks: Array<Chunks>;
   len: number;
-  rem: Array<Array<string | number>>;
-  err: Array<any>;
+  rem: Array<MetaRemark>;
+  err: Array<MetaError>;
 };
+
+export type MetaError = any;
+export type MetaRemark = Array<string | number>;
 
 export type Chunks = {
   text: string;

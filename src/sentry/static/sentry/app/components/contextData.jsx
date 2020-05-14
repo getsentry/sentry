@@ -130,14 +130,7 @@ class ContextData extends React.Component {
     const {preserveQuotes, meta, withAnnotatedText} = this.props;
 
     function getValueWithAnnotatedText(v, meta) {
-      return (
-        <AnnotatedText
-          value={v}
-          chunks={meta.chunks}
-          remarks={meta.rem}
-          errors={meta.err}
-        />
-      );
+      return <AnnotatedText value={v} meta={meta} />;
     }
 
     /*eslint no-shadow:0*/
@@ -152,7 +145,7 @@ class ContextData extends React.Component {
         const valueInfo = analyzeStringForRepr(value);
 
         const valueToBeReturned =
-          withAnnotatedText && meta
+          withAnnotatedText
             ? getValueWithAnnotatedText(valueInfo.repr, meta)
             : valueInfo.repr;
 

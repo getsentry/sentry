@@ -72,16 +72,10 @@ class FrameFunctionName extends React.Component<Props, State> {
       return valueOutput;
     }
 
-    if (!valueOutput.meta) {
-      return valueOutput.value;
-    }
-
     return (
       <AnnotatedText
         value={valueOutput.value}
-        chunks={valueOutput.meta.chunks}
-        remarks={valueOutput.meta.rem}
-        errors={valueOutput.meta.err}
+        meta={valueOutput.meta}
       />
     );
   }

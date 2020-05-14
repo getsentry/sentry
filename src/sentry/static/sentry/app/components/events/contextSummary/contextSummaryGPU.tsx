@@ -34,16 +34,11 @@ const ContextSummaryGPU = ({data}: Props) => {
 
   const renderName = () => {
     const meta = getMeta(data, 'name');
-    if (!meta) {
-      return data.name;
-    }
 
     return (
       <AnnotatedText
         value={data.name}
-        chunks={meta.chunks}
-        remarks={meta.rem}
-        errors={meta.err}
+        meta={meta}
       />
     );
   };
@@ -74,16 +69,10 @@ const ContextSummaryGPU = ({data}: Props) => {
       <h3>{renderName()}</h3>
       <ParagraphOverflow>
         <Subject>{versionElement.subject}</Subject>
-        {versionElement.meta ? (
-          <AnnotatedText
-            value={versionElement.value}
-            chunks={versionElement.meta.chunks}
-            remarks={versionElement.meta.rem}
-            errors={versionElement.meta.err}
-          />
-        ) : (
-          versionElement.value
-        )}
+        <AnnotatedText
+          value={versionElement.value}
+          meta={versionElement.meta}
+        />
       </ParagraphOverflow>
     </div>
   );
