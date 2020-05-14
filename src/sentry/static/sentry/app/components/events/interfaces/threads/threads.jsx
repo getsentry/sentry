@@ -49,7 +49,9 @@ class Thread extends React.Component {
         <li className="frame missing-frame">
           <div className="title">
             <span className="informal">
-              {this.props.data.crashed ? 'Thread Errored' : 'No or unknown stacktrace'}
+              {this.props.data.crashed
+                ? t('Thread Errored')
+                : t('No or unknown stacktrace')}
             </span>
           </div>
         </li>
@@ -80,11 +82,11 @@ class Thread extends React.Component {
       <div className="thread">
         {renderPills && (
           <Pills>
-            <Pill name="id" value={data.id} />
-            <Pill name="name" value={data.name} />
-            <Pill name="was active" value={data.current} />
-            <Pill name="errored" className={data.crashed ? 'false' : 'true'}>
-              {data.crashed ? 'yes' : 'no'}
+            <Pill name={t('id')} value={data.id} />
+            <Pill name={t('name')} value={data.name} />
+            <Pill name={t('was active')} value={data.current} />
+            <Pill name={t('errored')} className={data.crashed ? 'false' : 'true'}>
+              {data.crashed ? t('yes') : t('no')}
             </Pill>
           </Pills>
         )}
