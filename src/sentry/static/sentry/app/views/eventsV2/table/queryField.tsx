@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 // eslint-disable-next-line import/named
 import {components, SingleValueProps, OptionProps} from 'react-select';
 
+import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
@@ -459,14 +460,10 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 }
 
 // Set a min-width to allow shrinkage in grid.
-const StyledInput = styled('input')`
+const StyledInput = styled(Input)`
   /* Match the height of the select boxes */
   height: 37px;
   min-width: 50px;
-
-  &:not([disabled='true']):invalid {
-    border-color: ${p => p.theme.red};
-  }
 `;
 
 const BlankSpace = styled('div')`
