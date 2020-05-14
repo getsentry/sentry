@@ -87,7 +87,7 @@ const GroupEventToolbar = createReactClass({
   },
 
   renderRelatedTransactionButton() {
-    const {organization, event, orgId} = this.props;
+    const {organization, event, orgId, location} = this.props;
 
     const orgFeatures = new Set(organization.features);
 
@@ -113,6 +113,7 @@ const GroupEventToolbar = createReactClass({
       orgSlug: orgId,
       transaction: transactionName,
       projectID: event.projectID,
+      query: location.query,
     });
 
     return (
