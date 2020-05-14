@@ -16,7 +16,7 @@ const ReleaseNewEvents = props => {
         <Link
           to={{
             pathname: `/organizations/${orgId}/issues/`,
-            query: {query: 'first-release:' + release.version},
+            query: {query: `firstRelease:${release.version}`},
           }}
         >
           {t('View new issues seen in this release in the stream')}

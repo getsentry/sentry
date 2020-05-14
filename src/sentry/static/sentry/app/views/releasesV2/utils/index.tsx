@@ -113,7 +113,7 @@ export const getReleaseNewIssuesUrl = (
       project: projectId,
       query: stringifyQueryObject({
         query: [],
-        'first-release': [version],
+        firstRelease: [version],
       }),
     },
   };
