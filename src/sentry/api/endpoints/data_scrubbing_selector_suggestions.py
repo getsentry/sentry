@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -7,7 +8,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.utils.apidocs import scenario, attach_scenarios
 
-from sentry_relay import pii_selectors_from_event
+from sentry_relay import pii_selector_suggestions_from_event
 
 
 @scenario("GetSelectorSuggestionsForOrganization")
@@ -37,7 +38,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         project_ids = [project.id for project in projects]
 
-        selectors = set()
+        suggestions = {}
 
         if event_id:
             for event in eventstore.get_events(
@@ -45,7 +46,16 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
                     conditions=[["id", "=", event_id]], project_ids=project_ids
                 )
             ):
-                selectors.update(pii_selectors_from_event(dict(event.data)))
+                for selector in pii_selector_suggestions_from_event(dict(event.data)):
+                    examples_ = suggestions.setdefault(selector["path"], [])
+                    if selector["value"]:
+                        examples_.append(selector["value"])
 
-        suggestions = [{"type": "value", "value": selector} for selector in selectors]
-        return Response({"suggestions": suggestions})
+        return Response(
+            {
+                "suggestions": [
+                    {"type": "value", "value": value, "examples": examples}
+                    for value, examples in six.iteritems(suggestions)
+                ]
+            }
+        )
