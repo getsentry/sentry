@@ -142,8 +142,9 @@ class FeatureManager(object):
                     remaining.remove(obj)
                     result[obj] = flag
 
+        default_flag = settings.SENTRY_FEATURES.get(name, False)
         for obj in remaining:
-            result[obj] = settings.SENTRY_FEATURES.get(name, False)
+            result[obj] = default_flag
 
         return result
 
