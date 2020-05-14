@@ -59,7 +59,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
-  environment: Environment[] | null;
+  environment: string | string[] | null;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -80,7 +80,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregation: rule.aggregation,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
-      environment: null,
+      environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
       triggers: this.props.rule.triggers,
