@@ -24,7 +24,7 @@ class SourceSuggestionExamples extends React.Component<Props, State> {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  stopPropagation = (e) => {
+  stopPropagation = (e: React.MouseEvent<HTMLSpanElement>) => {
     // Necessary to stop propagation of click events from modal that we can't
     // catch otherwise.
     e.stopPropagation();
@@ -34,7 +34,7 @@ class SourceSuggestionExamples extends React.Component<Props, State> {
     const {isOpen} = this.state;
     const {examples, sourceName} = this.props;
 
-    if (examples.length == 0) {
+    if (examples.length === 0) {
       return (<span></span>);
     }
 

@@ -40,5 +40,5 @@ export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
   description?: string;
-  examples?: Array<any>;
+  examples?: Array<string>;
 };

@@ -358,7 +358,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <div>
+          <React.Fragment>
             <SuggestionsWrapper
               ref={this.suggestionList}
               data-test-id="source-suggestions"
@@ -388,7 +388,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
               ))}
             </SuggestionsWrapper>
             <SuggestionsOverlay onClick={this.handleClickOutside} />
-          </div>
+          </React.Fragment>
         )}
       </Wrapper>
     );
