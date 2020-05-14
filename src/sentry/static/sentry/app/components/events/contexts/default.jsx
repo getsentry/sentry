@@ -9,13 +9,12 @@ class DefaultContextType extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-
   render() {
     const knownData = Object.entries(this.props.data).map(([k, v]) => {
       return {
         key: k,
         subject: k,
-        value: v
+        value: v,
       };
     });
 
