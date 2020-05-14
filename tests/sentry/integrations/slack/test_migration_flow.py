@@ -14,6 +14,7 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 
 
 class SlackMigrationTest(IntegrationTestCase):
@@ -53,6 +54,7 @@ class SlackMigrationTest(IntegrationTestCase):
         authorizing_user_id="UXXXXXXX1",
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
+        check_channels=True,
     ):
         responses.reset()
 
@@ -115,19 +117,21 @@ class SlackMigrationTest(IntegrationTestCase):
             )
         )
 
-        mock_request = responses.calls[1].request
-        req_params = parse_qs(mock_request.body)
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["code"] == ["oauth-code"]
-        assert req_params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
-        assert req_params["client_id"] == [expected_client_id]
-        assert req_params["client_secret"] == [expected_client_secret]
+        if check_channels:
+            mock_request = responses.calls[1].request
+            req_params = parse_qs(mock_request.body)
+            assert req_params["grant_type"] == ["authorization_code"]
+            assert req_params["code"] == ["oauth-code"]
+            assert req_params["redirect_uri"] == ["http://testserver/extensions/slack/setup/"]
+            assert req_params["client_id"] == [expected_client_id]
+            assert req_params["client_secret"] == [expected_client_secret]
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
+    @patch("sentry.integrations.slack.post_migration.run_post_migration")
     @responses.activate
-    def test_migration_flow(self):
+    def test_migration_flow(self, run_post_migration):
         self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
@@ -151,6 +155,21 @@ class SlackMigrationTest(IntegrationTestCase):
         idp = IdentityProvider.objects.get(type="slack", external_id="TXXXXXXX1")
         identity = Identity.objects.get(idp=idp, user=self.user, external_id="UXXXXXXX1")
         assert identity.status == IdentityStatus.VALID
+        run_post_migration.apply_async.assert_called_with(
+            kwargs={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+                "channels": [{"name": "#general", "id": "XXXXX"}],
+            }
+        )
+
+    @patch("sentry.integrations.slack.post_migration.run_post_migration")
+    @responses.activate
+    def test_migration_flow_no_channels(self, run_post_migration):
+        self.rule.delete()
+        self.assert_setup_flow(check_channels=False)
+        assert len(run_post_migration.apply_async.mock_calls) == 0
 
     def test_invalid_integration_id(self):
         responses.reset()

@@ -18,8 +18,8 @@ from sentry.models import Integration, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.slack import post_migration
 
-from .post_migration import run_post_migration
 from .client import SlackClient
 from .utils import logger
 
@@ -196,7 +196,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "channels": channels,
         }
         if channels:
-            run_post_migration.apply_async(kwargs=run_args)
+            post_migration.run_post_migration.apply_async(kwargs=run_args)
         else:
             # if we don't have channels, log it so we know we skipped this
             logger.info("slack.integration.skipped_post_migration", extra=run_args)
