@@ -8,34 +8,27 @@ import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 
 import Time from './time';
-import CollapsedInfo from './collapsedInfo';
 import Data from './data/data';
 import Category from './category';
 import Icon from './icon';
 import Level from './level';
 import {Grid, GridCell, GridCellLeft} from './styles';
-import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
-
-type Breadcrumbs = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
+import {Breadcrumb, BreadcrumbsWithDetails, BreadcrumbType} from './types';
 
 type Props = {
-  breadcrumbs: Breadcrumbs;
-  collapsedQuantity: number;
-  onToggleCollapse: () => void;
+  breadcrumbs: BreadcrumbsWithDetails;
   event: Event;
   orgId: string | null;
+  onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   maxHeight?: React.CSSProperties['maxHeight'];
 };
 
 const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
-  {collapsedQuantity, onToggleCollapse, orgId, event, maxHeight, breadcrumbs},
+  {orgId, event, maxHeight, breadcrumbs, onScroll},
   ref
 ) {
   return (
-    <StyledGrid maxHeight={maxHeight} ref={ref}>
-      {collapsedQuantity > 0 && (
-        <CollapsedInfo onClick={onToggleCollapse} quantity={collapsedQuantity} />
-      )}
+    <StyledGrid maxHeight={maxHeight} ref={ref} onScroll={onScroll}>
       {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
         const hasError = crumb.type === BreadcrumbType.ERROR;
         const isLastItem = breadcrumbs.length - 1 === idx;
@@ -69,10 +62,9 @@ export default ListBody;
 
 ListBody.propTypes = {
   breadcrumbs: PropTypes.array.isRequired,
-  collapsedQuantity: PropTypes.number.isRequired,
-  onToggleCollapse: PropTypes.func.isRequired,
   event: SentryTypes.Event.isRequired,
   orgId: PropTypes.string.isRequired,
+  onScroll: PropTypes.func.isRequired,
   maxHeight: PropTypes.string,
 };
 
