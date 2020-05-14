@@ -12,11 +12,8 @@ const Header = styled('div')`
 
   background: #fff;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (max-width: ${props => props.theme.breakpoints[1]}) {
     margin-top: 54px;
-  }
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    margin-top: 0;
   }
 `;
 
