@@ -316,14 +316,7 @@ class ColumnEditRow extends React.Component<Props> {
     const requiredInputs = gridColumns - inputs.length - 1;
     if (requiredInputs > 0) {
       for (let i = 0; i < requiredInputs; i++) {
-        inputs.push(
-          <StyledInput
-            className="form-control"
-            key={`disabled:${i}`}
-            placeholder={t('N/A')}
-            disabled
-          />
-        );
+        inputs.push(<BlankSpace key={i} />);
       }
     }
 
@@ -465,12 +458,29 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled('input')`
-  min-width: 50px;
   /* Match the height of the select boxes */
   height: 37px;
+  min-width: 50px;
 
   &:not([disabled='true']):invalid {
     border-color: ${p => p.theme.red};
+  }
+`;
+
+const BlankSpace = styled('div')`
+  /* Match the height of the select boxes */
+  height: 37px;
+  min-width: 50px;
+  background: ${p => p.theme.offWhite};
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:after {
+    content: '${t('No parameter')}';
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.gray2};
   }
 `;
 

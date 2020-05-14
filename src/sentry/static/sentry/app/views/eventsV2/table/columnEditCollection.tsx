@@ -340,7 +340,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable color={theme.gray4} />}
+              icon={<IconGrabbable size="xs" color={theme.gray4} />}
               borderless
             />
           ) : (
@@ -423,10 +423,10 @@ const Ghost = styled('div')`
   background: ${p => p.theme.white};
   display: block;
   position: absolute;
-  padding: 4px;
-  border: 4px solid ${p => p.theme.borderLight};
-  border-radius: 4px;
-  width: 450px;
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.borderLight};
+  width: 600px;
   opacity: 0.8;
   cursor: grabbing;
 
@@ -440,10 +440,10 @@ const Ghost = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(1)} ${space(1)} ${space(1)};
+  margin: 0 ${space(4)} ${space(1)} ${space(4)};
   border: 2px dashed ${p => p.theme.borderLight};
-  width: 100%;
-  height: 38px;
+  border-radius: ${p => p.theme.borderRadius};
+  height: 40px;
 `;
 
 const Actions = styled('div')`
