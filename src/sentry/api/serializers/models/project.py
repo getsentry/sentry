@@ -158,7 +158,7 @@ class ProjectSerializer(Serializer):
             result = self.get_access_by_project(item_list, user)
 
         with measure_span("features"):
-            features_by_project = self._get_feature_lists(item_list, user)
+            features_by_project = self._get_features_for_projects(item_list, user)
             for project, serialized in result.items():
                 serialized["features"] = features_by_project[project]
 
@@ -179,7 +179,7 @@ class ProjectSerializer(Serializer):
         return result
 
     @staticmethod
-    def _get_feature_lists(all_projects, user):
+    def _get_features_for_projects(all_projects, user):
         # Arrange to call features.has_for_batch rather than features.has
         # for performance's sake
         projects_by_org = defaultdict(list)
