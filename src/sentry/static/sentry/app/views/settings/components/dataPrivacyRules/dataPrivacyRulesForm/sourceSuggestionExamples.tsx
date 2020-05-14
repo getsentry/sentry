@@ -1,6 +1,7 @@
 import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
 import styled from '@emotion/styled';
+import space from 'app/styles/space';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -83,5 +84,5 @@ const StyledModal = styled(Modal)`
 `;
 
 const Wrapper = styled('span')`
-  grid-column: 3 3;
+  grid-column: 3/3;
 `;
