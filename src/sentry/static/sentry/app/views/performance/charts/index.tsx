@@ -126,7 +126,7 @@ class Container extends React.Component<Props> {
                       environments={globalSelection.environment}
                     />
                   ),
-                  fixed: 'performance charts',
+                  fixed: 'apdex and throughput charts',
                 })}
               </React.Fragment>
             );
