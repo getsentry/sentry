@@ -22,9 +22,9 @@ const KNOWN_RULES = {
 };
 
 type Props = {
-  value: any,
-  meta?: Meta,
-}
+  value: any;
+  meta?: Meta;
+};
 
 function getTooltipText(remark, rule) {
   const remark_title = REMARKS[remark];
@@ -55,10 +55,7 @@ function renderChunks(chunks: Array<Chunks>): React.ReactElement {
   return <ChunksSpan>{spans}</ChunksSpan>;
 }
 
-function renderValue(
-  value: React.ReactElement,
-  meta?: Meta,
-): React.ReactElement {
+function renderValue(value: React.ReactElement, meta?: Meta): React.ReactElement {
   if (meta && meta.chunks.length > 1) {
     return renderChunks(meta.chunks);
   }
@@ -125,7 +122,6 @@ class AnnotatedText extends React.Component<Props, {}> {
     );
   }
 }
-
 
 const ChunksSpan = styled('span')`
   span {
