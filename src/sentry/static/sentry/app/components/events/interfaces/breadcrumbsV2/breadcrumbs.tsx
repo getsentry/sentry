@@ -45,7 +45,7 @@ type State = {
   filteredByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
   filterGroups: BreadcrumbFilterGroups;
-  breadCrumbListHeight: string;
+  breadCrumbListHeight: React.CSSProperties['maxHeight'];
 };
 
 type Props = {
@@ -384,7 +384,7 @@ const Content = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const BreadcrumbList = styled('ul')<{maxHeight: string}>`
+const BreadcrumbList = styled('ul')<{maxHeight: React.CSSProperties['maxHeight']}>`
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
