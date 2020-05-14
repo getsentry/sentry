@@ -73,7 +73,6 @@ from sentry.models import (
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
-from sentry.snuba.models import QueryAggregations
 from sentry.utils import loremipsum, json
 
 
@@ -336,7 +335,7 @@ class Factories(object):
                 "workspace": integration_id,
                 "channel_id": channel_id or "123453",
                 "channel": channel_name or "#general",
-            },
+            }
         ]
         return Factories.create_project_rule(project, action_data)
 
@@ -858,7 +857,7 @@ class Factories(object):
         projects,
         name=None,
         query="level:error",
-        aggregation=QueryAggregations.TOTAL,
+        aggregate="count()",
         time_window=10,
         threshold_period=1,
         include_all_projects=False,
@@ -874,7 +873,7 @@ class Factories(object):
             projects,
             name,
             query,
-            aggregation,
+            aggregate,
             time_window,
             threshold_period,
             environment=environment,

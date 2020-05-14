@@ -87,6 +87,7 @@ class TestAlertRuleSerializer(TestCase):
             "timeWindow": field_is_required,
             "query": field_is_required,
             "triggers": field_is_required,
+            "aggregation": field_is_required,
         }
 
     def test_environment_non_list(self):

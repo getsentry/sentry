@@ -12,7 +12,6 @@ from sentry.api.serializers.models.alert_rule import (
 from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
-from sentry.snuba.models import QueryAggregations
 from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.testutils import TestCase, APITestCase
 
@@ -77,13 +76,7 @@ class BaseAlertRuleSerializerTest(object):
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)

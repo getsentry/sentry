@@ -22,17 +22,7 @@ aggregate_to_query_aggregation = {
 }
 
 
-def translate_aggregation(aggregation):
-    """
-    Temporary function to translate `QueryAggregations` into the discover aggregation
-    function format
-    :param aggregation:
-    :return: A string representing the aggregate function
-    """
-    return aggregation_function_translations[aggregation]
-
-
-def create_snuba_query(dataset, query, aggregation, time_window, resolution, environment):
+def create_snuba_query(dataset, query, aggregate, time_window, resolution, environment):
     """
     Creates a SnubaQuery.
 
@@ -48,14 +38,14 @@ def create_snuba_query(dataset, query, aggregation, time_window, resolution, env
     return SnubaQuery.objects.create(
         dataset=dataset.value,
         query=query,
-        aggregate=translate_aggregation(aggregation),
+        aggregate=aggregate,
         time_window=int(time_window.total_seconds()),
         resolution=int(resolution.total_seconds()),
         environment=environment,
     )
 
 
-def update_snuba_query(snuba_query, query, aggregation, time_window, resolution, environment):
+def update_snuba_query(snuba_query, query, aggregate, time_window, resolution, environment):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
 
@@ -63,7 +53,7 @@ def update_snuba_query(snuba_query, query, aggregation, time_window, resolution,
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
-    :param aggregation: An aggregation to calculate over the time window
+    :param aggregate: An aggregate to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
     :param environment: An optional environment to filter by
@@ -73,7 +63,7 @@ def update_snuba_query(snuba_query, query, aggregation, time_window, resolution,
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
             query=query,
-            aggregate=translate_aggregation(aggregation),
+            aggregate=aggregate,
             time_window=int(time_window.total_seconds()),
             resolution=int(resolution.total_seconds()),
             environment=environment,
