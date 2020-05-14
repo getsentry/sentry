@@ -9,7 +9,8 @@ from django.conf import settings
 import sentry_sdk
 
 from sentry_sdk.client import get_options
-from sentry_sdk.transport import make_transport
+from sentry_sdk.envelope import Envelope
+from sentry_sdk.transport import make_transport, Transport
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
@@ -104,6 +105,47 @@ class SentryInternalFilter(logging.Filter):
         return is_current_event_safe()
 
 
+class MultiplexedTransport(Transport):
+    def __init__(self, upstream_transport=None, relay_transport=None):
+        Transport.__init__(self)
+        self.upstream_transport = upstream_transport
+        self.relay_transport = relay_transport
+
+    def capture_event(self, event):
+        envelope = Envelope()
+        envelope.add_event(event)
+        return self.capture_envelope(envelope)
+
+    def capture_envelope(self, envelope):
+        event = envelope.get_event()
+
+        if (
+            event is not None
+            and event.get("type") == "transaction"
+            and options.get("transaction-events.force-disable-internal-project")
+        ):
+            return
+
+        # Upstream should get the event first because it is most isolated from
+        # the this sentry installation.
+        if self.upstream_transport:
+            metrics.incr("internal.captured.events.upstream")
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
+            self.upstream_transport.capture_envelope(envelope)
+
+        if self.relay_transport:
+            if is_current_event_safe():
+                metrics.incr("internal.captured.events.relay")
+                self.relay_transport.capture_envelope(envelope)
+            else:
+                metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
+
+
 def configure_sdk():
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -131,33 +173,10 @@ def configure_sdk():
     else:
         relay_transport = None
 
-    def capture_event(event):
-        if event.get("type") == "transaction" and options.get(
-            "transaction-events.force-disable-internal-project"
-        ):
-            return
-
-        # Upstream should get the event first because it is most isolated from
-        # the this sentry installation.
-        if upstream_transport:
-            metrics.incr("internal.captured.events.upstream")
-            # TODO(mattrobenolt): Bring this back safely.
-            # from sentry import options
-            # install_id = options.get('sentry:install-id')
-            # if install_id:
-            #     event.setdefault('tags', {})['install-id'] = install_id
-            upstream_transport.capture_event(event)
-
-        if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
-            if is_current_event_safe():
-                metrics.incr("internal.captured.events.relay")
-                relay_transport.capture_event(event)
-            else:
-                metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
-                sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
-
     sentry_sdk.init(
-        transport=capture_event,
+        transport=MultiplexedTransport(
+            upstream_transport=upstream_transport, relay_transport=relay_transport,
+        ),
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
