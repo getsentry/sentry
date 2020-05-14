@@ -33,10 +33,6 @@ class SourceSuggestionExamples extends React.Component<Props, State> {
     const {isOpen} = this.state;
     const {examples, sourceName} = this.props;
 
-    if (examples.length === 0) {
-      return <span />;
-    }
-
     return (
       <span onClick={this.stopPropagation}>
         <Button size="xsmall" onClick={this.toggleModal}>

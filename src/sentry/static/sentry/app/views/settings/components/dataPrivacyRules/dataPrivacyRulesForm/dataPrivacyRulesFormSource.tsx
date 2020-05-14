@@ -378,7 +378,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
                     )}
                   </SuggestionDescription>
 
-                  {suggestion.examples && (
+                  {suggestion.examples && suggestion.examples.length > 0 && (
                     <SourceSuggestionExamples
                       examples={suggestion.examples}
                       sourceName={suggestion.value}
