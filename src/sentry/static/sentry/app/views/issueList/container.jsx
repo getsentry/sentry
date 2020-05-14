@@ -30,7 +30,7 @@ class IssueListContainer extends React.Component {
   startMetricCollection() {
     const startType = isLightweightOrganization(this.props.organization)
       ? 'cold-start'
-      : 'hot-start';
+      : 'warm-start';
     metric.mark({name: 'page-issue-list-start', data: {start_type: startType}});
   }
 
