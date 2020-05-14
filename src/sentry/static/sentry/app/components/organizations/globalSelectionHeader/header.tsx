@@ -15,6 +15,9 @@ const Header = styled('div')`
   @media (max-width: ${props => props.theme.breakpoints[1]}) {
     margin-top: 54px;
   }
+  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+    margin-top: 0;
+  }
 `;
 
 export default Header;
