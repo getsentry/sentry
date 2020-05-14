@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
+import isEqual from 'lodash/isEqual';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -44,6 +45,7 @@ type State = {
   filteredByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
   filterGroups: BreadcrumbFilterGroups;
+  breadCrumbListHeight: string;
 };
 
 type Props = {
@@ -63,11 +65,28 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     filteredByCustomSearch: [],
     filteredBreadcrumbs: [],
     filterGroups: [],
+    breadCrumbListHeight: 'none',
   };
 
   componentDidMount() {
     this.loadBreadcrumbs();
   }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (isEqual(prevState, this.state) && isEqual(prevProps, this.props)) {
+      return;
+    }
+    this.loadBreadCrumbListHeight();
+  }
+
+  listRef = React.createRef<HTMLUListElement>();
+
+  loadBreadCrumbListHeight = () => {
+    const offsetHeight = this.listRef?.current?.offsetHeight;
+    this.setState({
+      breadCrumbListHeight: offsetHeight ? `${offsetHeight}px` : 'none',
+    });
+  };
 
   loadBreadcrumbs = () => {
     const {data} = this.props;
@@ -298,7 +317,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
   render() {
     const {type} = this.props;
-    const {filterGroups, searchTerm} = this.state;
+    const {filterGroups, searchTerm, breadCrumbListHeight} = this.state;
 
     const {
       collapsedQuantity,
@@ -330,7 +349,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <BreadcrumbList>
+            <BreadcrumbList maxHeight={breadCrumbListHeight} ref={this.listRef}>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
                 onToggleCollapse={this.handleToggleCollapse}
@@ -365,10 +384,12 @@ const Content = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const BreadcrumbList = styled('ul')`
+const BreadcrumbList = styled('ul')<{maxHeight: string}>`
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
+  overflow-y: auto;
+  max-height: ${p => p.maxHeight};
 `;
 
 const Search = styled('div')`
