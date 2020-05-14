@@ -83,5 +83,5 @@ const StyledModal = styled(Modal)`
 `;
 
 const Wrapper = styled('span')`
-  grid-columns: span 3;
+  grid-column: 3 3;
 `;
