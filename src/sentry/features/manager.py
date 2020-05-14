@@ -104,7 +104,7 @@ class FeatureManager(object):
                 return rv
             return None
 
-    def has_for_organization(self, name, organization, objects, actor=None):
+    def has_for_batch(self, name, organization, objects, actor=None):
         """
         Determine in a batch if a feature is enabled.
 
@@ -120,7 +120,7 @@ class FeatureManager(object):
         The return value is a dictionary with the objects as keys. Each value
         is what would be returned if the key were passed to ``has``.
 
-        >>> FeatureManager.has_for_organization('projects:feature', organization, [project1, project2], actor=request.user)
+        >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
 
         result = dict()
@@ -131,13 +131,13 @@ class FeatureManager(object):
             if not remaining:
                 break
 
-            with sentry_sdk.start_span(op="feature.has_for_organization.handler") as span:
+            with sentry_sdk.start_span(op="feature.has_for_batch.handler") as span:
                 span.set_data("Feature Name", name)
                 span.set_data("Handler Type", type(handler).__name__)
                 span.set_data("Remaining Objects", len(remaining))
 
-                org_batch = OrganizationFeatureBatch(self, name, organization, remaining, actor)
-                handler_result = handler.has_for_organization(org_batch)
+                batch = FeatureCheckBatch(self, name, organization, remaining, actor)
+                handler_result = handler.has_for_batch(batch)
                 for (obj, flag) in handler_result.items():
                     remaining.remove(obj)
                     result[obj] = flag
@@ -149,7 +149,15 @@ class FeatureManager(object):
         return result
 
 
-class OrganizationFeatureBatch(object):
+class FeatureCheckBatch(object):
+    """
+    A batch of objects to be checked for a feature flag.
+
+    An instance of this class encapsulates a call to
+    ``FeatureManager.has_for_batch``. The objects (such as projects) have a
+    common parent organization.
+    """
+
     def __init__(self, manager, name, organization, objects, actor):
         self._manager = manager
         self.feature_name = name
@@ -158,5 +166,12 @@ class OrganizationFeatureBatch(object):
         self.actor = actor
 
     def get_feature_objects(self):
+        """
+        Iterate over individual Feature objects.
+
+        This is a fallback mode for applying a FeatureHandler that doesn't
+        support checking the entire batch at once.
+        """
+
         cls = self._manager._get_feature_class(self.feature_name)
         return {obj: cls(self.feature_name, obj) for obj in self.objects}
