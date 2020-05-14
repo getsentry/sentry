@@ -106,7 +106,9 @@ def delete_subscription_from_snuba(query_subscription_id):
         return
 
     if subscription.subscription_id is not None:
-        _delete_from_snuba(QueryDatasets(subscription.dataset), subscription.subscription_id)
+        _delete_from_snuba(
+            QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+        )
 
     subscription.delete()
 
@@ -125,7 +127,7 @@ def _create_in_snuba(subscription):
     )
     response = _snuba_pool.urlopen(
         "POST",
-        "/%s/subscriptions" % (subscription.dataset,),
+        "/%s/subscriptions" % (snuba_query.dataset,),
         body=json.dumps(
             {
                 "project_id": subscription.project_id,

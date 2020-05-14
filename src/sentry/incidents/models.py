@@ -352,31 +352,6 @@ class AlertRuleManager(BaseManager):
             )
 
 
-class AlertRuleEnvironment(Model):
-    __core__ = True
-
-    environment = FlexibleForeignKey("sentry.Environment", db_constraint=False)
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleenvironment"
-        unique_together = (("alert_rule", "environment"),)
-
-
-class AlertRuleQuerySubscription(Model):
-    __core__ = True
-
-    query_subscription = FlexibleForeignKey(
-        "sentry.QuerySubscription", db_constraint=False, unique=True
-    )
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertrulequerysubscription"
-
-
 class AlertRuleExcludedProjects(Model):
     __core__ = True
 
@@ -398,26 +373,14 @@ class AlertRule(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, unique=True)
-    query_subscriptions = models.ManyToManyField(
-        "sentry.QuerySubscription", related_name="alert_rules", through=AlertRuleQuerySubscription
-    )
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
-    dataset = models.TextField(null=True)
-    query = models.TextField(null=True)
-    environment = models.ManyToManyField(
-        "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
-    )
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
-    # TODO: Remove this default after we migrate
-    aggregation = models.IntegerField(default=QueryAggregations.TOTAL.value, null=True)
-    time_window = models.IntegerField(null=True)
-    resolution = models.IntegerField(null=True)
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)

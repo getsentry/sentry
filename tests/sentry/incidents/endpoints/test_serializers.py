@@ -14,12 +14,7 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_target_type,
 )
 from sentry.incidents.logic import create_alert_rule_trigger
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    AlertRuleEnvironment,
-)
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
@@ -102,12 +97,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-
-        # Make sure AlertRuleEnvironment entry was made:
-        alert_rule_env = AlertRuleEnvironment.objects.get(
-            environment=env_1.id, alert_rule=alert_rule
-        )
-        assert alert_rule_env
+        assert alert_rule.snuba_query.environment == env_1
 
     def test_time_window(self):
         self.run_fail_validation_test(

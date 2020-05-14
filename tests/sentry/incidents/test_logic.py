@@ -723,15 +723,10 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
-        assert alert_rule.dataset == QueryDatasets.EVENTS.value
         assert alert_rule.snuba_query.query == query
-        assert alert_rule.query == query
         assert alert_rule.snuba_query.aggregate == aggregation_function_translations[aggregation]
-        assert alert_rule.aggregation == aggregation.value
         assert alert_rule.snuba_query.time_window == time_window * 60
-        assert alert_rule.time_window == time_window
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-        assert alert_rule.resolution == DEFAULT_ALERT_RULE_RESOLUTION
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
@@ -843,23 +838,17 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for subscription in updated_subscriptions:
             assert subscription.snuba_query.query == query
-            assert subscription.query == query
             assert (
                 subscription.snuba_query.aggregate == aggregation_function_translations[aggregation]
             )
-            assert subscription.aggregation == aggregation.value
             assert subscription.snuba_query.time_window == int(
                 timedelta(minutes=time_window).total_seconds()
             )
-            assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
         assert self.alert_rule.snuba_query.query == query
-        assert self.alert_rule.query == query
         assert (
             self.alert_rule.snuba_query.aggregate == aggregation_function_translations[aggregation]
         )
-        assert self.alert_rule.aggregation == aggregation.value
         assert self.alert_rule.snuba_query.time_window == time_window * 60
-        assert self.alert_rule.time_window == time_window
         assert self.alert_rule.threshold_period == threshold_period
 
     def test_update_subscription(self):
@@ -872,7 +861,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
-        assert alert_rule.query == ""
+        assert alert_rule.snuba_query.query == ""
 
     def test_name_used(self):
         used_name = "uh oh"
@@ -923,7 +912,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for sub in updated_subscriptions:
-            assert sub.query == query_update
+            assert sub.snuba_query.query == query_update
 
     def test_update_to_include_all(self):
         orig_project = self.project
@@ -1015,14 +1004,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert rule_snapshot.snuba_query_id != updated_rule.snuba_query_id
             assert rule_snapshot.name == updated_rule.name
             assert rule_snapshot.snuba_query.query == "level:error"
-            assert rule_snapshot.query == "level:error"
             assert rule_snapshot.snuba_query.time_window == 600
-            assert rule_snapshot.time_window == 10
             assert (
                 rule_snapshot.snuba_query.aggregate
                 == aggregation_function_translations[QueryAggregations.TOTAL]
             )
-            assert rule_snapshot.aggregation == QueryAggregations.TOTAL.value
             assert rule_snapshot.threshold_period == 1
 
             for incident in (incident, incident_2):

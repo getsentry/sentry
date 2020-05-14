@@ -38,7 +38,7 @@ from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
     update_alert_rule_stats,
 )
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QuerySubscription
+from sentry.snuba.models import QueryAggregations, QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
@@ -117,11 +117,7 @@ class ProcessUpdateTest(TestCase):
         data = {}
 
         if subscription:
-            aggregation_type = query_aggregation_to_snuba[
-                QueryAggregations(subscription.aggregation)
-            ]
-            value = randint(0, 100) if value is None else value
-            data = {aggregation_type[2]: value}
+            data = {"some_col_name": randint(0, 100) if value is None else value}
         values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,

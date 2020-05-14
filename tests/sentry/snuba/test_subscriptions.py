@@ -65,11 +65,6 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.project == self.project
         assert subscription.type == type
         assert subscription.subscription_id is None
-        assert subscription.dataset == dataset.value
-        assert subscription.query == query
-        assert subscription.aggregation == aggregation.value
-        assert subscription.time_window == int(time_window.total_seconds())
-        assert subscription.resolution == int(resolution.total_seconds())
 
     def test_with_task(self):
         with self.tasks():
@@ -88,11 +83,6 @@ class CreateSnubaSubscriptionTest(TestCase):
             assert subscription.project == self.project
             assert subscription.type == type
             assert subscription.subscription_id is not None
-            assert subscription.dataset == dataset.value
-            assert subscription.query == query
-            assert subscription.aggregation == aggregation.value
-            assert subscription.time_window == int(time_window.total_seconds())
-            assert subscription.resolution == int(resolution.total_seconds())
 
     def test_translated_query(self):
         type = "something"
@@ -111,11 +101,6 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.project == self.project
         assert subscription.type == type
         assert subscription.subscription_id is not None
-        assert subscription.dataset == dataset.value
-        assert subscription.query == query
-        assert subscription.aggregation == aggregation.value
-        assert subscription.time_window == int(time_window.total_seconds())
-        assert subscription.resolution == int(resolution.total_seconds())
 
 
 class UpdateSnubaQueryTest(TestCase):
@@ -185,9 +170,7 @@ class UpdateSnubaQueryTest(TestCase):
         update_snuba_query(snuba_query, query, aggregation, time_window, resolution, new_env)
         sub.refresh_from_db()
         assert sub.snuba_query == snuba_query
-        assert sub.query == query
-        assert sub.time_window == int(time_window.total_seconds())
-        assert sub.resolution == int(resolution.total_seconds())
+        assert sub.status == QuerySubscription.Status.UPDATING.value
 
 
 class UpdateSnubaSubscriptionTest(TestCase):
@@ -221,13 +204,9 @@ class UpdateSnubaSubscriptionTest(TestCase):
         assert subscription.status == QuerySubscription.Status.UPDATING.value
         assert subscription.subscription_id == subscription_id
         assert subscription.snuba_query.query == query
-        assert subscription.query == query
         assert subscription.snuba_query.aggregate == aggregation_function_translations[aggregation]
-        assert subscription.aggregation == aggregation.value
         assert subscription.snuba_query.time_window == int(time_window.total_seconds())
-        assert subscription.time_window == int(time_window.total_seconds())
         assert subscription.snuba_query.resolution == int(resolution.total_seconds())
-        assert subscription.resolution == int(resolution.total_seconds())
 
     def test_with_task(self):
         with self.tasks():
@@ -260,10 +239,6 @@ class UpdateSnubaSubscriptionTest(TestCase):
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
             assert subscription.subscription_id is not None
             assert subscription.subscription_id != subscription_id
-            assert subscription.query == query
-            assert subscription.aggregation == aggregation.value
-            assert subscription.time_window == int(time_window.total_seconds())
-            assert subscription.resolution == int(resolution.total_seconds())
 
 
 class BulkDeleteSnubaSubscriptionTest(TestCase):

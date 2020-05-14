@@ -59,11 +59,6 @@ class BaseSnubaTaskTest(object):
             subscription_id=subscription_id,
             project=self.project,
             type="something",
-            dataset=dataset,
-            query=query,
-            aggregation=aggregate.value,
-            time_window=time_window,
-            resolution=resolution,
         )
 
     def test_no_subscription(self):

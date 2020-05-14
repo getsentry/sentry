@@ -4,12 +4,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.snuba.models import (
-    QueryAggregations,
-    QuerySubscription,
-    QuerySubscriptionEnvironment,
-    SnubaQuery,
-)
+from sentry.snuba.models import QueryAggregations, QuerySubscription, SnubaQuery
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -118,17 +113,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
-        dataset=snuba_query.dataset,
-        query=snuba_query.query,
-        aggregation=aggregate_to_query_aggregation[snuba_query.aggregate].value,
-        time_window=snuba_query.time_window,
-        resolution=snuba_query.resolution,
     )
-    if snuba_query.environment:
-        QuerySubscriptionEnvironment.objects.create(
-            query_subscription=subscription, environment=snuba_query.environment
-        )
-
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
@@ -163,20 +148,7 @@ def update_snuba_subscription(subscription, snuba_query):
     :return: The QuerySubscription representing the subscription
     """
     with transaction.atomic():
-        subscription.update(
-            status=QuerySubscription.Status.UPDATING.value,
-            query=snuba_query.query,
-            aggregation=aggregate_to_query_aggregation[snuba_query.aggregate].value,
-            time_window=snuba_query.time_window,
-            resolution=snuba_query.resolution,
-        )
-        QuerySubscriptionEnvironment.objects.filter(query_subscription=subscription).exclude(
-            environment=snuba_query.environment
-        ).delete()
-        if snuba_query.environment:
-            QuerySubscriptionEnvironment.objects.get_or_create(
-                query_subscription=subscription, environment=snuba_query.environment
-            )
+        subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(
             kwargs={"query_subscription_id": subscription.id}, countdown=5

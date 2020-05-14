@@ -14,7 +14,6 @@ from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
-    AlertRuleEnvironment,
     AlertRuleExcludedProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -35,7 +34,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QueryDatasets
+from sentry.snuba.models import query_aggregation_to_snuba, QueryDatasets
 from sentry.snuba.subscriptions import (
     aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
@@ -593,11 +592,6 @@ def create_alert_rule(
             organization=organization,
             snuba_query=snuba_query,
             name=name,
-            dataset=dataset.value,
-            query=query,
-            aggregation=aggregation.value,
-            time_window=time_window,
-            resolution=resolution,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
@@ -612,9 +606,6 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
-
-        if environment:
-            AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=environment)
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
@@ -699,12 +690,10 @@ def update_alert_rule(
         updated_fields["name"] = name
     if query is not None:
         validate_alert_rule_query(query)
-        updated_query_fields["query"] = updated_fields["query"] = query
+        updated_query_fields["query"] = query
     if aggregation is not None:
-        updated_fields["aggregation"] = aggregation.value
         updated_query_fields["aggregation"] = aggregation
     if time_window:
-        updated_fields["time_window"] = time_window
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
@@ -723,7 +712,7 @@ def update_alert_rule(
             # XXX: We use the alert rule aggregation here since currently we're
             # expecting the enum value to be passed.
             updated_query_fields.setdefault(
-                "aggregation", QueryAggregations(alert_rule.aggregation)
+                "aggregation", aggregate_to_query_aggregation[snuba_query.aggregate]
             )
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
@@ -797,17 +786,6 @@ def update_alert_rule(
 
         if deleted_subs:
             bulk_delete_snuba_subscriptions(deleted_subs)
-
-        if environment:
-            # Delete rows we don't have present in the updated data.
-            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
-                environment=environment
-            ).delete()
-            AlertRuleEnvironment.objects.get_or_create(
-                alert_rule=alert_rule, environment=environment
-            )
-        else:
-            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
     return alert_rule
 

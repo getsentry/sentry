@@ -274,6 +274,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     triggers = serializers.ListField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
+    time_window = serializers.IntegerField(
+        required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
+    )
+    threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
+    aggregation = serializers.IntegerField(required=False)
 
     class Meta:
         model = AlertRule
@@ -290,14 +296,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "triggers",
         ]
         extra_kwargs = {
-            "query": {"allow_blank": True, "required": True},
-            "threshold_period": {"default": 1, "min_value": 1, "max_value": 20},
-            "time_window": {
-                "min_value": 1,
-                "max_value": int(timedelta(days=1).total_seconds() / 60),
-                "required": True,
-            },
-            "aggregation": {"required": False},
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
         }

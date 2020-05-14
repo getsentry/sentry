@@ -13,6 +13,7 @@ from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.snuba.models import QueryAggregations
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.testutils import TestCase, APITestCase
 
 
@@ -24,7 +25,10 @@ class BaseAlertRuleSerializerTest(object):
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
-        assert result["aggregation"] == alert_rule.aggregation
+        assert (
+            result["aggregation"]
+            == aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate].value
+        )
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
