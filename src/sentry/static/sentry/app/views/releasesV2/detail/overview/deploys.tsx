@@ -23,7 +23,7 @@ const Deploys = ({version, orgSlug, deploys}: Props) => {
 
       {deploys.map(deploy => (
         <Row key={deploy.id}>
-          <DeployBadge deploy={deploy} orgSlug={orgSlug} version={version} />
+          <StyledDeployBadge deploy={deploy} orgSlug={orgSlug} version={version} />
           <TextOverflow>
             <TimeSince date={deploy.dateFinished} />
           </TextOverflow>
@@ -40,6 +40,10 @@ const Row = styled('div')`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray4};
+`;
+
+const StyledDeployBadge = styled(DeployBadge)`
+  margin-right: ${space(1)};
 `;
 
 export default Deploys;

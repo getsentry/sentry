@@ -158,7 +158,6 @@ const DeploysWrapper = styled('div')`
 `;
 
 const StyledDeployBadge = styled(DeployBadge)`
-  margin-right: 0;
   margin-left: ${space(1)};
   bottom: ${space(0.25)};
 `;

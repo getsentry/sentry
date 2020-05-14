@@ -59,7 +59,6 @@ const Badge = styled(Tag)<{shouldLinkToIssues: boolean}>`
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
-  margin-right: ${space(1)};
   padding-right: ${p => (p.shouldLinkToIssues ? '25px' : null)};
 `;
 
