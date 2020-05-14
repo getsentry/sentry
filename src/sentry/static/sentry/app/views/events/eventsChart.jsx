@@ -6,6 +6,7 @@ import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
+import BarChart from 'app/components/charts/barChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
@@ -22,7 +23,7 @@ import EventsRequest from './utils/eventsRequest';
 const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
 const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
-class EventsAreaChart extends React.Component {
+class Chart extends React.Component {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -33,6 +34,7 @@ class EventsAreaChart extends React.Component {
     previousTimeseriesData: PropTypes.object,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
+    showDaily: PropTypes.bool,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -62,6 +64,7 @@ class EventsAreaChart extends React.Component {
       showLegend,
       currentSeriesName,
       previousSeriesName,
+      showDaily,
       ...props
     } = this.props;
 
@@ -83,9 +86,10 @@ class EventsAreaChart extends React.Component {
     };
 
     const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
+    const Component = showDaily ? BarChart : AreaChart;
 
     return (
-      <AreaChart
+      <Component
         {...props}
         {...zoomRenderProps}
         legend={legend}
@@ -125,6 +129,7 @@ class EventsChart extends React.Component {
     previousSeriesName: PropTypes.string,
     topEvents: PropTypes.number,
     field: PropTypes.arrayOf(PropTypes.string),
+    showDaily: PropTypes.bool,
     orderby: PropTypes.string,
   };
 
@@ -146,6 +151,7 @@ class EventsChart extends React.Component {
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       field,
+      showDaily,
       topEvents,
       orderby,
       ...props
@@ -173,6 +179,9 @@ class EventsChart extends React.Component {
         return value;
       },
     };
+    const interval = showDaily
+      ? '1d'
+      : router?.location?.query?.interval || getInterval(this.props, true);
 
     let chartImplementation = ({
       zoomRenderProps,
@@ -196,7 +205,7 @@ class EventsChart extends React.Component {
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
-          <EventsAreaChart
+          <Chart
             {...zoomRenderProps}
             tooltip={tooltip}
             loading={loading}
@@ -209,6 +218,7 @@ class EventsChart extends React.Component {
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             stacked={typeof topEvents === 'number' && topEvents > 0}
+            showDaily={showDaily}
           />
         </TransitionChart>
       );
@@ -241,7 +251,7 @@ class EventsChart extends React.Component {
             environment={environments}
             start={start}
             end={end}
-            interval={router?.location?.query?.interval || getInterval(this.props, true)}
+            interval={interval}
             query={query}
             includePrevious={includePrevious}
             currentSeriesName={currentSeriesName}
@@ -284,4 +294,4 @@ const EventsChartContainer = withGlobalSelection(
 );
 
 export default EventsChartContainer;
-export {EventsChart, EventsAreaChart};
+export {EventsChart};

@@ -7,6 +7,7 @@ import six
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
 from sentry.models import Rule
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -30,6 +31,7 @@ class AlertRuleSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         env = obj.snuba_query.environment
+        aggregation = aggregate_to_query_aggregation.get(obj.snuba_query.aggregate).value
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
@@ -40,8 +42,8 @@ class AlertRuleSerializer(Serializer):
             "aggregate": obj.snuba_query.aggregate,
             # These fields are deprecated. Once we've moved over to using aggregate
             # entirely we can remove
-            "aggregation": obj.aggregation,
-            "aggregations": [obj.aggregation],
+            "aggregation": aggregation,
+            "aggregations": [aggregation] if aggregation else [],
             # TODO: Start having the frontend expect seconds
             "timeWindow": obj.snuba_query.time_window / 60,
             "environment": env.name if env else None,

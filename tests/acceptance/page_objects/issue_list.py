@@ -9,10 +9,9 @@ class IssueListPage(BasePage):
     def __init__(self, browser, client):
         super(IssueListPage, self).__init__(browser)
         self.client = client
-        self.global_selection = GlobalSelectionPage(browser, client)
+        self.global_selection = GlobalSelectionPage(browser)
 
     def visit_issue_list(self, org, query=""):
-        self.dismiss_assistant()
         self.browser.get(u"/organizations/{}/issues/{}".format(org, query))
         self.wait_until_loaded()
 

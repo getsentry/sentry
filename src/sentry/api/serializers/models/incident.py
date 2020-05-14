@@ -53,7 +53,7 @@ class IncidentSerializer(Serializer):
 class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user=user, **kwargs)
-        attach_foreignkey(item_list, Incident.alert_rule)
+        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(
@@ -108,9 +108,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
         query = incident.query
         if (
             incident.alert_rule
-            and QueryDatasets(incident.alert_rule.dataset) == QueryDatasets.EVENTS
+            and QueryDatasets(incident.alert_rule.snuba_query.dataset) == QueryDatasets.EVENTS
         ):
-            query = incident.alert_rule.query
+            query = incident.alert_rule.snuba_query.query
             condition = "event.type:error"
             query = "{} {}".format(condition, query) if query else condition
 
