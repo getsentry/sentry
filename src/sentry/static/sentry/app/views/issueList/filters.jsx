@@ -12,6 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import SavedSearchSelector from './savedSearchSelector';
+import OpenInReleases from './openInReleases';
 
 class IssueListFilters extends React.Component {
   static propTypes = {
@@ -88,38 +89,52 @@ class IssueListFilters extends React.Component {
           <QueryCount count={queryCount} max={queryMaxCount} />
         </PageHeading>
 
-        <SearchContainer isWide>
-          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
-
-          <SavedSearchSelector
-            key={query}
-            organization={organization}
-            savedSearchList={savedSearchList}
-            onSavedSearchSelect={this.handleSavedSearchSelect}
-            onSavedSearchDelete={onSavedSearchDelete}
+        <HeaderActions>
+          <OpenInReleases
             query={query}
+            orgSlug={organization.slug}
+            location={this.context.location}
           />
+          <SearchContainer isWide>
+            <IssueListSortOptions sort={sort} onSelect={onSortChange} />
 
-          <IssueListSearchBar
-            organization={organization}
-            query={query || ''}
-            onSearch={onSearch}
-            disabled={isSearchDisabled}
-            excludeEnvironment
-            supportedTags={tags}
-            tagValueLoader={tagValueLoader}
-            savedSearch={savedSearch}
-            onSidebarToggle={onSidebarToggle}
-          />
-        </SearchContainer>
+            <SavedSearchSelector
+              key={query}
+              organization={organization}
+              savedSearchList={savedSearchList}
+              onSavedSearchSelect={this.handleSavedSearchSelect}
+              onSavedSearchDelete={onSavedSearchDelete}
+              query={query}
+            />
+
+            <IssueListSearchBar
+              organization={organization}
+              query={query || ''}
+              onSearch={onSearch}
+              disabled={isSearchDisabled}
+              excludeEnvironment
+              supportedTags={tags}
+              tagValueLoader={tagValueLoader}
+              savedSearch={savedSearch}
+              onSidebarToggle={onSidebarToggle}
+            />
+          </SearchContainer>
+        </HeaderActions>
       </PageHeader>
     );
   }
 }
 
+const HeaderActions = styled('div')`
+  display: flex;
+  width: 85%;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
 const SearchContainer = styled('div')`
   display: flex;
-  width: ${p => (p.isWide ? '70%' : '58.3%')};
+  width: ${p => (p.isWide ? '80%' : '58.3%')};
 `;
 
 export default IssueListFilters;
