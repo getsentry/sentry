@@ -51,7 +51,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
     @fixture
     def subscription(self):
-        return self.rule.query_subscriptions.get()
+        return self.rule.snuba_query.subscriptions.get()
 
     @fixture
     def rule(self):

@@ -69,7 +69,7 @@ class FetchForOrganizationTest(TestCase):
 class IncidentGetForSubscriptionTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        subscription = alert_rule.query_subscriptions.get()
+        subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
         assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
@@ -82,7 +82,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 class IncidentClearSubscriptionCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
-        self.subscription = self.alert_rule.query_subscriptions.get()
+        self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
     def test_updated_subscription(self):
         AlertRule.objects.get_for_subscription(self.subscription)

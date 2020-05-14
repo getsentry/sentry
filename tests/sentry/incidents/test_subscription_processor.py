@@ -70,11 +70,11 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def sub(self):
-        return self.rule.query_subscriptions.filter(project=self.project).get()
+        return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
     @fixture
     def other_sub(self):
-        return self.rule.query_subscriptions.filter(project=self.other_project).get()
+        return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
     @fixture
     def rule(self):

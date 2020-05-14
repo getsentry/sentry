@@ -62,7 +62,7 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         result = super(DetailedAlertRuleSerializer, self).get_attrs(item_list, user, **kwargs)
         alert_rule_projects = AlertRule.objects.filter(
             id__in=[item.id for item in item_list]
-        ).values_list("id", "query_subscriptions__project__slug")
+        ).values_list("id", "snuba_query__subscriptions__project__slug")
         alert_rules = {item.id: item for item in item_list}
         for alert_rule_id, project_slug in alert_rule_projects:
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])

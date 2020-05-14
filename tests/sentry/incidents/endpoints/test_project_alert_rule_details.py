@@ -159,13 +159,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
-        existing_sub = self.alert_rule.query_subscriptions.first()
+        existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
         # If the aggregation changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
+        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_snapshot(self):
