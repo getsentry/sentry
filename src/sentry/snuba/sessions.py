@@ -382,7 +382,17 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     buckets = int((end - start).total_seconds() / rollup)
     stats = _make_stats(start, rollup, buckets, default=None)
 
-    totals = {stat: 0, stat + "_crashed": 0, stat + "_abnormal": 0, stat + "_errored": 0}
+    # Due to the nature of the probabilistic data structures some
+    # subtractions can become negative.  As such we're making sure a number
+    # never goes below zero to avoid confusion.
+
+    totals = {
+        stat: 0,
+        stat + "_healthy": 0,
+        stat + "_crashed": 0,
+        stat + "_abnormal": 0,
+        stat + "_errored": 0,
+    }
 
     for rv in raw_query(
         dataset=Dataset.Sessions,
@@ -405,11 +415,13 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
             stat: rv[stat],
+            stat + "_healthy": max(0, rv[stat] - rv[stat + "_errored"]),
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
-            # Due to the nature of the probabilistic data structures this
-            # subtraction can become negative.
-            stat + "_errored": max(0, rv[stat + "_errored"] - rv[stat + "_crashed"]),
+            stat
+            + "_errored": max(
+                0, rv[stat + "_errored"] - rv[stat + "_crashed"] - rv[stat + "_abnormal"]
+            ),
             "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
@@ -424,6 +436,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         if bucket[1] is None:
             stats[idx][1] = {
                 stat: 0,
+                stat + "_healthy": 0,
                 stat + "_crashed": 0,
                 stat + "_abnormal": 0,
                 stat + "_errored": 0,
@@ -445,11 +458,12 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             rv = rows[0]
             totals = {
                 "users": rv["users"],
+                "users_healthy": max(0, rv["users"] - rv["users_errored"]),
                 "users_crashed": rv["users_crashed"],
                 "users_abnormal": rv["users_abnormal"],
-                # Due to the nature of the probabilistic data structures this
-                # subtraction can become negative.
-                "users_errored": max(0, rv["users_errored"] - rv["users_crashed"]),
+                "users_errored": max(
+                    0, rv["users_errored"] - rv["users_crashed"] - rv["users_abnormal"]
+                ),
             }
 
     return stats, totals
