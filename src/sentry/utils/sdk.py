@@ -9,7 +9,7 @@ from django.conf import settings
 import sentry_sdk
 
 from sentry_sdk.client import get_options
-from sentry_sdk.envelope import Envelope
+from sentry_sdk.envelope import Envelope, Item, PayloadRef
 from sentry_sdk.transport import make_transport, Transport
 from sentry_sdk.utils import logger as sdk_logger
 
@@ -113,7 +113,10 @@ class MultiplexedTransport(Transport):
 
     def capture_event(self, event):
         envelope = Envelope()
-        envelope.add_event(event)
+        if event.get("type") == "transaction":
+            envelope.add_item(Item(payload=PayloadRef(json=event), type="transaction"))
+        else:
+            envelope.add_event(event)
         return self.capture_envelope(envelope)
 
     def capture_envelope(self, envelope):
