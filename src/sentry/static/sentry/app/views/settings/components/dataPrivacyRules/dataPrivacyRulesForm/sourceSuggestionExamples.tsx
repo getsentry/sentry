@@ -75,7 +75,7 @@ const StyledModal = styled(Modal)`
     max-height: 500px;
     overflow-y: auto;
     padding: ${space(3)} ${space(4)};
-    margin: -20px -30px;
+    margin: -${space(3)} -${space(4)};
   }
 
   .close {
