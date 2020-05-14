@@ -29,77 +29,58 @@ const IconWrapper = styled('div', {
     `}
 `;
 
-const removeGridCellBorders = (withoutBorder?: Array<'left' | 'right'>) => {
-  if (!withoutBorder || withoutBorder.length === 0) {
-    return '';
-  }
-
-  if (withoutBorder.includes('left') && withoutBorder.includes('right')) {
-    return css`
-      border-left: 0;
-      border-right: 0;
-    `;
-  }
-
-  if (withoutBorder.includes('left')) {
-    return css`
-      border-left: 0;
-    `;
-  }
-
-  return css`
-    border-right: 0;
-  `;
-};
-
 const GridCell = styled('div')<{
   hasError?: boolean;
-  withoutBorder?: Array<'left' | 'right'>;
-  withBeforeContent?: boolean;
 }>`
   line-height: 26px;
+  border-top: 1px solid ${p => p.theme.borderDark};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  ${p =>
-    p.withBeforeContent &&
-    css`
-      position: relative;
-      :before {
-        content: '';
-        display: block;
-        width: 1px;
-        top: 0;
-        bottom: 0;
-        left: 21px;
-        background: ${p.hasError ? '#fa4747' : p.theme.borderLight};
-        position: absolute;
-        @media (min-width: ${p.theme.breakpoints[0]}) {
-          left: 29px;
-        }
-      }
-    `}
-  ${p =>
-    p.hasError &&
-    css`
-      background: #fffcfb;
-      border: 1px solid #fa4747;
-    `}
-  ${p => removeGridCellBorders(p.withoutBorder)};
+  margin-bottom: -1px;
   text-overflow: ellipsis;
   overflow: hidden;
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
   }
+  ${p =>
+    p.hasError &&
+    css`
+      background: #fffcfb;
+      border-color: #fa4747;
+    `}
+`;
+
+const GridCellLeft = styled(GridCell)`
+  position: relative;
+  :before {
+    content: '';
+    display: block;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    left: 21px;
+    background: ${p => (p.hasError ? '#fa4747' : p.theme.borderLight)};
+    position: absolute;
+    @media (min-width: ${p => p.theme.breakpoints[0]}) {
+      left: 29px;
+    }
+  }
+  border-left: 1px solid ${p => (p.hasError ? '#fa4747' : p.theme.borderDark)};
+`;
+
+const GridCellRight = styled(GridCell)`
+  border-right: 1px solid ${p => (p.hasError ? '#fa4747' : p.theme.borderDark)};
 `;
 
 const Grid = styled('div')<{maxHeight: React.CSSProperties['maxHeight']}>`
   display: grid;
+  overflow-y: auto;
   max-height: ${p => p.maxHeight};
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
   }
   > *:nth-last-child(-n + 5) {
-    margin: -1px;
+    margin-bottom: 0;
   }
   grid-template-columns: max-content 55px 1fr max-content max-content;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -107,4 +88,4 @@ const Grid = styled('div')<{maxHeight: React.CSSProperties['maxHeight']}>`
   }
 `;
 
-export {Grid, GridCell, IconWrapper};
+export {Grid, GridCell, GridCellLeft, GridCellRight, IconWrapper};

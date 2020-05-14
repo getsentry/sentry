@@ -5,7 +5,7 @@ import {tct} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
 
-import {GridCell, IconWrapper} from './styles';
+import {GridCellLeft, IconWrapper} from './styles';
 
 type Props = {
   onClick: () => void;
@@ -13,22 +13,20 @@ type Props = {
 };
 
 const BreadcrumbCollapsed = ({quantity, onClick}: Props) => (
-  <StyledGridCell data-test-id="breadcrumb-collapsed" withBeforeContent onClick={onClick}>
+  <Wrapper data-test-id="breadcrumb-collapsed" onClick={onClick}>
     <IconWrapper>
       <IconEllipsis />
     </IconWrapper>
     {tct('Show [quantity] collapsed crumbs', {quantity})}
-  </StyledGridCell>
+  </Wrapper>
 );
 
 export default BreadcrumbCollapsed;
 
-const StyledGridCell = styled(GridCell)`
+const Wrapper = styled(GridCellLeft)`
+  border-right: 1px solid ${p => p.theme.borderDark};
   cursor: pointer;
   background: ${p => p.theme.whiteDark};
-  margin: 0 -1px;
-  border-left: 1px solid ${p => p.theme.borderLight};
-  border-right: 1px solid ${p => p.theme.borderLight};
   font-size: ${p => p.theme.fontSizeMedium};
   grid-column-start: 1;
   grid-column-end: -1;

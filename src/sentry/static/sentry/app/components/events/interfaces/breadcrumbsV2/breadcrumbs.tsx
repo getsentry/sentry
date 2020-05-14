@@ -379,7 +379,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 export default BreadcrumbsContainer;
 
 const Content = styled('div')`
-  border: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.borderDark};
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};

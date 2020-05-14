@@ -10,7 +10,7 @@ import BreadcrumbData from './breadcrumbData/breadcrumbData';
 import BreadcrumbCategory from './breadcrumbCategory';
 import BreadcrumbIcon from './breadcrumbIcon';
 import BreadcrumbLevel from './breadcrumbLevel';
-import {GridCell} from './styles';
+import {GridCell, GridCellLeft, GridCellRight} from './styles';
 import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
 
 type Breadcrumbs = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
@@ -34,23 +34,23 @@ const BreadcrumbsListBody = ({
       const hasError = crumb.type === BreadcrumbType.ERROR;
       return (
         <React.Fragment key={idx}>
-          <GridCell hasError={hasError} withoutBorder={['right']} withBeforeContent>
+          <StyledGridCellLeft hasError={hasError}>
             <Tooltip title={crumb.description}>
               <BreadcrumbIcon icon={icon} color={color} />
             </Tooltip>
-          </GridCell>
-          <GridCellCategory hasError={hasError} withoutBorder={['left', 'right']}>
+          </StyledGridCellLeft>
+          <GridCellCategory hasError={hasError}>
             <BreadcrumbCategory category={crumb?.category} />
           </GridCellCategory>
-          <GridCell hasError={hasError} withoutBorder={['left', 'right']}>
+          <GridCell hasError={hasError}>
             <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
           </GridCell>
-          <GridCell hasError={hasError} withoutBorder={['left', 'right']}>
+          <GridCell hasError={hasError}>
             <BreadcrumbLevel level={crumb.level} />
           </GridCell>
-          <GridCell hasError={hasError} withoutBorder={['left']}>
+          <StyledGridCellRight hasError={hasError}>
             <BreadcrumbTime timestamp={crumb.timestamp} />
-          </GridCell>
+          </StyledGridCellRight>
         </React.Fragment>
       );
     })}
@@ -63,4 +63,12 @@ const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
+`;
+
+const StyledGridCellLeft = styled(GridCellLeft)`
+  border-bottom-left-radius: ${space(0.5)};
+`;
+
+const StyledGridCellRight = styled(GridCellRight)`
+  border-bottom-right-radius: ${space(0.5)};
 `;

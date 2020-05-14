@@ -9,11 +9,11 @@ import {GridCell} from './styles';
 const BreadcrumbsListHeader = () => {
   return (
     <React.Fragment>
-      <StyledGridCell>{t('Type')}</StyledGridCell>
+      <StyledGridCellLeft>{t('Type')}</StyledGridCellLeft>
       <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
       <StyledGridCell>{t('Description')}</StyledGridCell>
       <StyledGridCell>{t('Level')}</StyledGridCell>
-      <StyledGridCell>{t('Time')}</StyledGridCell>
+      <StyledGridCellRight>{t('Time')}</StyledGridCellRight>
     </React.Fragment>
   );
 };
@@ -21,10 +21,9 @@ const BreadcrumbsListHeader = () => {
 export default BreadcrumbsListHeader;
 
 const StyledGridCell = styled(GridCell)`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-top: 0;
   background: ${p => p.theme.offWhite};
   color: ${p => p.theme.gray3};
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;
@@ -33,6 +32,16 @@ const StyledGridCell = styled(GridCell)`
     padding: ${space(2)} ${space(2)};
     font-size: ${p => p.theme.fontSizeSmall};
   }
+`;
+
+const StyledGridCellLeft = styled(StyledGridCell)`
+  border-radius: ${p => p.theme.borderRadius} 0 0 0;
+  border-left: 1px solid ${p => p.theme.borderDark};
+`;
+
+const StyledGridCellRight = styled(StyledGridCell)`
+  border-radius: 0 ${p => p.theme.borderRadius} 0 0;
+  border-right: 1px solid ${p => p.theme.borderDark};
 `;
 
 const StyledGridCellCategory = styled(StyledGridCell)`
