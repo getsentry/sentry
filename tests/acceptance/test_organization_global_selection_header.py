@@ -68,6 +68,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         )
 
     def test_global_selection_header_dropdown(self):
+        self.dismiss_assistant()
         self.project.update(first_event=timezone.now())
         self.issues_list.visit_issue_list(
             self.org.slug, query="?query=assigned%3Ame&project=" + six.text_type(self.project_1.id)
