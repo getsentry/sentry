@@ -42,7 +42,8 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
     {
       title: (
         <React.Fragment>
-          {t('Commits')} <Badge text={formatAbbreviatedNumber(release.commitCount)} />
+          {t('Commits')}{' '}
+          <NavTabsBadge text={formatAbbreviatedNumber(release.commitCount)} />
         </React.Fragment>
       ),
       to: `${releasePath}commits/`,
@@ -208,6 +209,12 @@ const IconWrapper = styled('span')`
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;
   grid-column: 1 / 2;
+`;
+
+const NavTabsBadge = styled(Badge)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 export default ReleaseHeader;
