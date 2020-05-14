@@ -101,6 +101,14 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     return super.renderError(...args);
   }
 
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
+  }
+
   renderBody() {
     const {organization, location, selection, releaseProjects} = this.props;
     const {release, deploys, reloading} = this.state;
@@ -173,6 +181,14 @@ class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseProje
     const projectId = this.props.location.query.project;
 
     return !projectId || typeof projectId !== 'string';
+  }
+
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
   }
 
   renderProjectsFooterMessage() {
