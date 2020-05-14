@@ -68,9 +68,15 @@ const StyledModal = styled(Modal)`
     @media (max-width: ${p => p.theme.breakpoints[0]}) {
       width: 100%;
     }
+  }
+
+  .modal-body {
     max-height: 500px;
     overflow-y: auto;
+    padding: 20px 30px;
+    margin: -20px -30px;
   }
+
   .close {
     outline: none;
   }
