@@ -16,8 +16,9 @@ import Tooltip from 'app/components/tooltip';
 import Tag from 'app/views/settings/components/tag';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
-import {formatVersion} from 'app/utils/formatters';
+import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Badge from 'app/components/badge';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
@@ -38,7 +39,14 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
-    {title: t('Commits'), to: `${releasePath}commits/`},
+    {
+      title: (
+        <React.Fragment>
+          {t('Commits')} <Badge text={formatAbbreviatedNumber(release.commitCount)} />
+        </React.Fragment>
+      ),
+      to: `${releasePath}commits/`,
+    },
     {title: t('Files Changed'), to: `${releasePath}files-changed/`},
     {title: t('Artifacts'), to: `${releasePath}artifacts/`},
   ];
