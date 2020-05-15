@@ -171,7 +171,7 @@ class IntegrationProvider(PipelineProvider):
     def get_logger(self):
         return logging.getLogger("sentry.integration.%s" % (self.key,))
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         pass
 
     def get_pipeline_views(self):

@@ -2,8 +2,8 @@ import {t} from 'app/locale';
 
 import {RuleType, MethodType} from './types';
 
-function getRuleTypeLabel(labelType: RuleType): string {
-  switch (labelType) {
+function getRuleTypeLabel(type: RuleType) {
+  switch (type) {
     case RuleType.ANYTHING:
       return t('Anything');
     case RuleType.IMEI:
@@ -35,18 +35,32 @@ function getRuleTypeLabel(labelType: RuleType): string {
   }
 }
 
-function getMethodTypeLabel(labelType: MethodType): string {
-  switch (labelType) {
+function getMethodTypeLabel(type: MethodType) {
+  switch (type) {
     case MethodType.MASK:
-      return t('Mask');
+      return {
+        label: t('Mask'),
+        description: t('Replace with ****'),
+      };
     case MethodType.HASH:
-      return t('Hash');
+      return {
+        label: t('Hash'),
+        description: t('Replace with DEADBEEF'),
+      };
     case MethodType.REMOVE:
-      return t('Remove');
+      return {
+        label: t('Remove'),
+        description: t('Replace with null'),
+      };
     case MethodType.REPLACE:
-      return t('Replace');
+      return {
+        label: t('Replace'),
+        description: t('Replace with [Filtered]'),
+      };
     default:
-      return '';
+      return {
+        label: '',
+      };
   }
 }
 

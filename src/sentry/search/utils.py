@@ -121,7 +121,7 @@ def parse_datetime_string(value):
     except ValueError:
         pass
 
-    raise InvalidQuery(u"{} is not a valid datetime query".format(value))
+    raise InvalidQuery(u"{} is not a valid ISO8601 date query".format(value))
 
 
 def parse_datetime_comparison(value):

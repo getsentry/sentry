@@ -32,13 +32,13 @@
 /docker             @getsentry/releases
 setup.py            @getsentry/releases
 setup.cfg           @getsentry/releases
-requirements*.txt   @joshuarli
+requirements*.txt   @getsentry/owners-python-build
+pyproject.toml      @getsentry/owners-python-build
 
-# Dev
-/config/                    @joshuarli
+# Dev (TODO: change to getsentry/owners-dev)
+/config/hooks/              @joshuarli
 /scripts/                   @joshuarli
 Makefile                    @joshuarli
 .envrc                      @joshuarli
 .pre-commit-config.yaml     @joshuarli
 .git-blame-ignore-revs      @joshuarli
-pyproject.toml              @joshuarli

@@ -1128,7 +1128,7 @@ class QueryTransformTest(TestCase):
                 ["avg", "duration", "avg_transaction_duration"],
                 ["max", "time", "max_time"],
             ],
-            having=[["max_time", ">", 1575158400000]],
+            having=[["max_time", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,

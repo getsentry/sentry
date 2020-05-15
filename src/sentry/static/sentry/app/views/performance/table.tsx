@@ -1,5 +1,5 @@
 import React from 'react';
-import {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptorObject, Query} from 'history';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
@@ -22,7 +22,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
-import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from './styles';
 
 export function getProjectID(
@@ -65,13 +65,16 @@ class Table extends React.Component<Props> {
       return cells;
     }
     const columnOrder = this.props.eventView.getColumns();
+    const query = this.props.eventView.generateQueryStringObject();
 
     tableData.data.forEach((row, index: number) => {
       // check again to appease tsc
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(this.renderRow(row, index, columnOrder, tableData.meta));
+      cells = cells.concat(
+        this.renderRow(row, index, columnOrder, tableData.meta, query)
+      );
     });
     return cells;
   }
@@ -80,7 +83,8 @@ class Table extends React.Component<Props> {
     row: TableDataRow,
     rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
-    tableMeta: MetaType
+    tableMeta: MetaType,
+    query: Query
   ) {
     const {organization, location, projects} = this.props;
 
@@ -98,11 +102,11 @@ class Table extends React.Component<Props> {
       if (isFirstCell) {
         // the first column of the row should link to the transaction summary view
         const projectID = getProjectID(row, projects);
-
-        const target = transactionSummaryRouteWithEventView({
+        const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: String(row.transaction) || '',
           projectID,
+          query,
         });
 
         rendered = (
