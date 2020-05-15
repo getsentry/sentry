@@ -32,10 +32,9 @@
 /docker             @getsentry/releases
 setup.py            @getsentry/releases
 setup.cfg           @getsentry/releases
-requirements*.txt   @joshuarli
 
 # Dev
-/config/                    @joshuarli
+/config/hooks               @joshuarli
 /scripts/                   @joshuarli
 Makefile                    @joshuarli
 .envrc                      @joshuarli
