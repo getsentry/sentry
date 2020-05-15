@@ -44,12 +44,7 @@ const ContextSummaryDevice = ({data}: Props) => {
     return (
       <DeviceName value={data.model}>
         {deviceName => {
-          return (
-            <AnnotatedText
-              value={deviceName}
-              meta={meta}
-            />
-          );
+          return <AnnotatedText value={deviceName} meta={meta} />;
         }}
       </DeviceName>
     );
@@ -86,10 +81,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       {subTitle && (
         <ParagraphOverflow>
           <Subject>{subTitle.subject}</Subject>
-          <AnnotatedText
-            value={subTitle.value}
-            meta={subTitle.meta}
-          />
+          <AnnotatedText value={subTitle.value} meta={subTitle.meta} />
         </ParagraphOverflow>
       )}
     </div>
