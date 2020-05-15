@@ -1,46 +1,57 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 
+import {EventGroupingConfig} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
-class GroupingConfigSelect extends AsyncComponent {
-  static propTypes = {
-    eventConfigId: PropTypes.string,
-    configId: PropTypes.string,
-  };
+import {GroupingConfigItem} from '.';
 
-  getEndpoints() {
-    return [['data', '/grouping-configs/']];
+type Props = AsyncComponent['props'] & {
+  eventConfigId: string;
+  configId: string;
+  onSelect: () => void;
+};
+
+type State = AsyncComponent['state'] & {
+  configs: EventGroupingConfig[];
+};
+
+class GroupingConfigSelect extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    return [['configs', '/grouping-configs/']];
   }
 
   renderBody() {
-    const {configId, eventConfigId, ...props} = this.props;
-    props.value = configId;
+    const {configId, eventConfigId, onSelect} = this.props;
+    const {configs} = this.state;
 
-    function renderIdLabel(id) {
-      return <GroupingConfigItem active={eventConfigId === id}>{id}</GroupingConfigItem>;
-    }
+    const options = configs
+      .filter(config => !config.hidden || config.id === eventConfigId)
+      .map(({id}) => ({
+        value: id,
+        label: (
+          <GroupingConfigItem active={id === eventConfigId}>{id}</GroupingConfigItem>
+        ),
+      }));
 
+    // TODO(grouping): should we use other select component?
     return (
       <DropdownAutoComplete
-        {...props}
+        value={configId}
+        onSelect={onSelect}
         alignMenu="left"
         selectedItem={configId}
-        items={this.state.data
-          .filter(item => !item.hidden || item.id === eventConfigId)
-          .map(item => ({
-            value: item.id,
-            label: renderIdLabel(item.id),
-          }))}
+        items={options}
       >
         {({isOpen}) => (
-          <Tooltip title="Click here to experiment with other grouping configs">
+          <Tooltip title={t('Click here to experiment with other grouping configs')}>
             <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
-              {renderIdLabel(configId)}
+              <GroupingConfigItem active={eventConfigId === configId}>
+                {configId}
+              </GroupingConfigItem>
             </DropdownButton>
           </Tooltip>
         )}
@@ -48,12 +59,5 @@ class GroupingConfigSelect extends AsyncComponent {
     );
   }
 }
-
-export const GroupingConfigItem = styled(
-  ({hidden: _hidden, active: _active, ...props}) => <code {...props} />
-)`
-  ${p => (p.hidden ? 'opacity: 0.5;' : '')}
-  ${p => (p.active ? 'font-weight: bold;' : '')}
-`;
 
 export default GroupingConfigSelect;

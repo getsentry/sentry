@@ -1209,8 +1209,8 @@ type EventGroupingComponentValue = {
   name: string | null;
   values: EventGroupingComponentValue[] | string[];
 };
-type EventGroupingConfig = {
-  base: null;
+export type EventGroupingConfig = {
+  base: string | null;
   changelog: string;
   delegates: string[];
   hidden: boolean;
