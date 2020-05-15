@@ -1,6 +1,11 @@
 import React from 'react';
+import styled from '@emotion/styled';
+// eslint import checks can't find types in the flow code.
+// eslint-disable-next-line import/named
+import {components, OptionProps} from 'react-select';
 
 import SelectControl from 'app/components/forms/selectControl';
+import space from 'app/styles/space';
 
 type SelectControlProps = React.ComponentProps<typeof SelectControl>;
 
@@ -35,6 +40,23 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
           }),
         }}
         ref={this.selectRef}
+        components={{
+          Option: ({
+            data: {label, description, ...data},
+            ...props
+          }: OptionProps<{
+            label: React.ReactNode;
+            value: string;
+            description?: string;
+          }>) => (
+            <components.Option data={{label, ...data}} {...props}>
+              <Wrapper>
+                <div>{label}</div>
+                {description && <Description>{`(${description})`}</Description>}
+              </Wrapper>
+            </components.Option>
+          ),
+        }}
         openOnFocus
         required
       />
@@ -43,3 +65,13 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
 }
 
 export default DataPrivacyRulesPanelFormSelectControl;
+
+const Wrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-gap: ${space(1)};
+`;
+
+const Description = styled('div')`
+  color: ${p => p.theme.gray2};
+`;

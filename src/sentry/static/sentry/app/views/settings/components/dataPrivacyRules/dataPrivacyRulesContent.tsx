@@ -83,7 +83,7 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
             return (
               <ListItem key={id}>
                 <TextOverflow>
-                  {`[${methodLabel}] [${typelabel}] ${t('from')} [${source}]`}
+                  {`[${methodLabel.label}] [${typelabel.label}] ${t('from')} [${source}]`}
                 </TextOverflow>
                 <Button
                   size="small"
