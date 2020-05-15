@@ -9,7 +9,7 @@ class DefaultContextType extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-  render() {
+  getKnownData() {
     const knownData = Object.entries(this.props.data)
       .filter(([k]) => k !== 'type' && k !== 'title')
       .map(([k, v]) => {
@@ -19,8 +19,10 @@ class DefaultContextType extends React.Component {
           value: v,
         };
       });
+  }
 
-    return <ContextBlock knownData={knownData} alias={this.props.alias} />;
+  render() {
+    return <ContextBlock knownData={this.getKnownData()} alias={this.props.alias} />;
   }
 }
 
