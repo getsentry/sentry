@@ -1,6 +1,7 @@
 import Reflux from 'reflux';
 import reduce from 'lodash/reduce';
 
+import {Tag} from 'app/types';
 import TagActions from 'app/actions/tagActions';
 
 // This list is only used on issues. Events/discover
@@ -49,11 +50,23 @@ const BUILTIN_TAGS = [
   return acc;
 }, {});
 
-const TagStore = Reflux.createStore({
-  listenables: TagActions,
+type TagCollection = {[key: string]: Tag};
+
+type TagStoreInterface = {
+  state: TagCollection;
+  getBuiltInTags: () => TagCollection;
+  getIssueAttributes: () => TagCollection;
+  getAllTags: () => TagCollection;
+  reset: () => void;
+  onLoadTagsSuccess: (data: Tag[]) => void;
+};
+
+const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
+  state: {},
 
   init() {
-    this.reset();
+    this.state = {};
+    this.listenTo(TagActions.loadTagsSuccess, this.onLoadTagsSuccess);
   },
 
   getBuiltInTags() {
@@ -80,7 +93,7 @@ const TagStore = Reflux.createStore({
       has: {
         key: 'has',
         name: 'Has Tag',
-        values: Object.keys(this.tags),
+        values: Object.keys(this.state),
         predefined: true,
       },
       assigned: {
@@ -131,17 +144,17 @@ const TagStore = Reflux.createStore({
   },
 
   reset() {
-    this.tags = {};
-    this.trigger(this.tags);
+    this.state = {};
+    this.trigger(this.state);
   },
 
   getAllTags() {
-    return this.tags;
+    return this.state;
   },
 
   onLoadTagsSuccess(data) {
     Object.assign(
-      this.tags,
+      this.state,
       reduce(
         data,
         (obj, tag) => {
@@ -158,8 +171,10 @@ const TagStore = Reflux.createStore({
         {}
       )
     );
-    this.trigger(this.tags);
+    this.trigger(this.state);
   },
-});
+};
 
-export default TagStore;
+type TagStore = Reflux.Store & TagStoreInterface;
+
+export default Reflux.createStore(tagStoreConfig) as TagStore;
