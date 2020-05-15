@@ -56,7 +56,7 @@ function renderChunks(chunks: Array<Chunks>): React.ReactElement {
 }
 
 function renderValue(value: React.ReactElement, meta?: Meta): React.ReactElement {
-  if (meta?.chunks?.length > 1) {
+  if (meta?.chunks?.length && meta.chunks.length > 1) {
     return renderChunks(meta.chunks);
   }
 
