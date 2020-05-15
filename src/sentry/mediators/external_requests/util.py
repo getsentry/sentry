@@ -53,45 +53,28 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     slug = sentry_app.slug_for_metrics
-    error_id = None
-    project_id = None
 
     try:
         resp = safe_urlopen(url=url, **kwargs)
-        error_id = resp.headers.get("Sentry-Hook-Error")
-        project_id = resp.headers.get("Sentry-Hook-Project")
+        track_response_code(resp.status_code, slug, event)
+        buffer.add_request(
+            response_code=resp.status_code,
+            org_id=org_id,
+            event=event,
+            url=url,
+            error_id=resp.headers.get("Sentry-Hook-Error"),
+            project_id=resp.headers.get("Sentry-Hook-Project"),
+        )
         resp.raise_for_status()
+        return resp
 
-    except Timeout as e:
+    except Timeout:
         track_response_code("timeout", slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    except HTTPError as e:
-        status_code = e.response.status_code
-        track_response_code(status_code, slug, event)
-        # Use the response code from the error
-        buffer.add_request(
-            response_code=status_code,
-            org_id=org_id,
-            event=event,
-            url=url,
-            error_id=error_id,
-            project_id=project_id,
-        )
+    except HTTPError:
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
-
-    track_response_code(resp.status_code, slug, event)
-    buffer.add_request(
-        response_code=resp.status_code,
-        org_id=org_id,
-        event=event,
-        url=url,
-        error_id=error_id,
-        project_id=project_id,
-    )
-
-    return resp
