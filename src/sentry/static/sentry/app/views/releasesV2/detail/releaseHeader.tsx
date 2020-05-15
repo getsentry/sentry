@@ -4,20 +4,19 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import Link from 'app/components/links/link';
 import ListLink from 'app/components/links/listLink';
 import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
-import {Release, Deploy, ReleaseProject} from 'app/types';
+import {Release, ReleaseProject} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/views/settings/components/tag';
 import Count from 'app/components/count';
 import TimeSince from 'app/components/timeSince';
 import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import DeployBadge from 'app/components/deployBadge';
 import Badge from 'app/components/badge';
 
 import ReleaseStat from './releaseStat';
@@ -27,12 +26,11 @@ type Props = {
   location: Location;
   orgId: string;
   release: Release;
-  deploys: Deploy[];
   project: ReleaseProject;
 };
 
-const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
-  const {version, newGroups, url} = release;
+const ReleaseHeader = ({location, orgId, release, project}: Props) => {
+  const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {hasHealthData, sessionsCrashed} = project.healthData;
 
   const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
@@ -67,27 +65,14 @@ const ReleaseHeader = ({location, orgId, release, deploys, project}: Props) => {
         />
 
         <StatsWrapper>
-          {deploys.length > 0 && (
-            <ReleaseStat label={t('Deploys')}>
-              <DeploysWrapper>
-                {deploys.map(deploy => (
-                  <Tooltip
-                    title={<TimeSince date={deploy.dateFinished} />}
-                    key={deploy.id}
-                  >
-                    <Link
-                      title={t('View in stream')}
-                      to={`/organizations/${orgId}/issues/?query=release:${encodeURIComponent(
-                        version
-                      )}&environment=${encodeURIComponent(deploy.environment)}`}
-                    >
-                      <StyledBadge>{deploy.environment}</StyledBadge>
-                    </Link>
-                  </Tooltip>
-                ))}
-              </DeploysWrapper>
-            </ReleaseStat>
-          )}
+          <ReleaseStat
+            label={lastDeploy?.dateFinished ? t('Last Deploy') : t('Date Created')}
+          >
+            <DeploysWrapper>
+              <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
+              {lastDeploy?.dateFinished && <StyledDeployBadge deploy={lastDeploy} />}
+            </DeploysWrapper>
+          </ReleaseStat>
           {hasHealthData && (
             <ReleaseStat label={t('Crashes')}>
               <Count value={sessionsCrashed} />
@@ -169,18 +154,12 @@ const StatsWrapper = styled('div')`
 `;
 
 const DeploysWrapper = styled('div')`
-  display: flex;
-  margin-top: ${space(0.5)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    flex-wrap: wrap;
-  }
+  white-space: nowrap;
 `;
 
-const StyledBadge = styled(Tag)`
-  background-color: ${p => p.theme.gray4};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.white};
-  margin-left: ${space(0.5)};
+const StyledDeployBadge = styled(DeployBadge)`
+  margin-left: ${space(1)};
+  bottom: ${space(0.25)};
 `;
 
 const ReleaseName = styled('div')`
