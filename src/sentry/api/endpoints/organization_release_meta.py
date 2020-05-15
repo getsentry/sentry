@@ -84,6 +84,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": release.version,
                 "versionInfo": expose_version_info(release.version_info),
                 "projects": projects,
+                "newGroups": release.new_groups,
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
                 "commitFilesChanged": commit_files_changed,
