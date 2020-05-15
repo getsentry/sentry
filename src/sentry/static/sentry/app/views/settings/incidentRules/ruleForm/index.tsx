@@ -59,6 +59,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
+  environment: string | string[] | null;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -79,6 +80,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregation: rule.aggregation,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
+      environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
       triggers: this.props.rule.triggers,
@@ -272,7 +274,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (['timeWindow', 'aggregation'].includes(name)) {
+    if (['timeWindow', 'environment', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
     }
   };
@@ -394,7 +396,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
-    const {query, aggregation, timeWindow, triggers} = this.state;
+    const {query, aggregation, timeWindow, triggers, environment} = this.state;
 
     const queryAndAlwaysErrorEvents = !query.includes('event.type')
       ? `${query} ${this.getEventType()}`.trim()
@@ -409,6 +411,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         query={queryAndAlwaysErrorEvents}
         aggregation={aggregation}
         timeWindow={timeWindow}
+        environment={environment}
       />
     );
 
@@ -426,11 +429,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               aggregation: rule.aggregation,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
-              // TODO(epurkhiser): Remove when the API response with a single env
-              environment:
-                (Array.isArray(rule.environment)
-                  ? rule.environment[0]
-                  : rule.environment) || null,
+              environment: rule.environment || null,
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}
