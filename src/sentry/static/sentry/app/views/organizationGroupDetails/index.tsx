@@ -37,7 +37,7 @@ class OrganizationGroupDetails extends React.Component<Props> {
     const startType = isLightweightOrganization(this.props.organization)
       ? 'cold-start'
       : 'warm-start';
-    metric.mark({name: 'page-issue-details-start', data: {start_type: startType}});
+    metric.mark({name: 'page-issue-detail-start', data: {start_type: startType}});
   }
 
   render() {

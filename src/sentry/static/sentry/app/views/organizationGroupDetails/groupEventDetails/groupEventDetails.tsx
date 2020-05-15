@@ -99,10 +99,10 @@ class GroupEventDetails extends React.Component<Props, State> {
     // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
     if (prevState.loading && !this.state.loading && prevState.event === null) {
       metric.measure({
-        name: 'app.page.perf.issue-details',
-        start: 'page-issue-details-start',
+        name: 'app.page.perf.issue-detail',
+        start: 'page-issue-detail-start',
         data: {
-          // start_type is set on 'page-issue-details-start'
+          // start_type is set on 'page-issue-detail-start'
           org_id: parseInt(this.props.organization.id, 10),
           group: this.props.organization.features.includes('enterprise-perf')
             ? 'enterprise-perf'
