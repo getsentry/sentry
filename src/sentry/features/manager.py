@@ -132,9 +132,10 @@ class FeatureManager(object):
                 break
 
             with sentry_sdk.start_span(op="feature.has_for_batch.handler") as span:
+                batch_size = len(remaining)
+                span.set_data("Batch Size", batch_size)
                 span.set_data("Feature Name", name)
                 span.set_data("Handler Type", type(handler).__name__)
-                span.set_data("Remaining Objects", len(remaining))
 
                 batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                 handler_result = handler.has_for_batch(batch)
@@ -142,6 +143,7 @@ class FeatureManager(object):
                     if flag is not None:
                         remaining.remove(obj)
                         result[obj] = flag
+                span.set_data("Flags Found", batch_size - len(remaining))
 
         default_flag = settings.SENTRY_FEATURES.get(name, False)
         for obj in remaining:
