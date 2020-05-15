@@ -1,19 +1,15 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
-import FeatureBadge from 'app/components/featureBadge';
 import EventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, Event, EventGroupInfo} from 'app/types';
 
 import GroupVariant from './groupingVariant';
 import GroupingConfigSelect from './groupingConfigSelect';
-import {Client} from 'app/api';
-import {Organization, Event} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
   api: Client;
@@ -50,16 +46,14 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   }
 
   toggle = () => {
-    if (this.state.isOpen) {
-      this.setState({
-        isOpen: false,
-        configOverride: null,
-      });
-    } else {
-      this.setState({
-        isOpen: true,
-      });
-    }
+    this.setState(state => ({
+      isOpen: !state.isOpen,
+      configOverride: state.isOpen ? null : state.configOverride,
+    }));
+  };
+
+  handleConfigSelect = selection => {
+    this.setState({configOverride: selection.value}, () => this.reloadData());
   };
 
   renderGroupInfoSummary() {
@@ -69,55 +63,47 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const variants = [];
-    for (const key of Object.keys(groupInfo)) {
-      const variant = groupInfo[key];
-      if (variant.hash !== null) {
-        variants.push(variant.description);
-      }
-    }
-    variants.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    const groupedBy = Object.values(groupInfo)
+      .filter(variant => variant.hash !== null)
+      .map(variant => variant.description)
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .join(', ');
 
+    return <small>{`(${t('grouped by')} ${groupedBy || t('nothing')})`}</small>;
+  }
+
+  renderGroupConfigSelect() {
+    const {configOverride} = this.state;
+    const {event} = this.props;
+
+    const configId = configOverride ?? event.groupingConfig.id;
+
+    // TODO(grouping): style
     return (
-      <SubHeading>{`(${t('grouped by')} ${variants.join(', ') ||
-        t('nothing')})`}</SubHeading>
+      <div style={{float: 'right'}}>
+        <GroupingConfigSelect
+          eventConfigId={event.groupingConfig.id}
+          configId={configId}
+          onSelect={this.handleConfigSelect}
+        />
+      </div>
     );
   }
 
   renderGroupInfo() {
-    const variants = Object.values(this.state.groupInfo);
-    variants.sort((a, b) => {
-      if (a.hash && !b.hash) {
-        return -1;
-      }
-      return a.description.toLowerCase().localeCompare(b.description.toLowerCase());
-    });
+    const {groupInfo} = this.state;
+    const {showSelector} = this.props;
 
-    const eventConfigId = this.props.event.groupingConfig.id;
-    let configId = this.state.configOverride || null;
-    if (configId === null) {
-      configId = eventConfigId;
-    }
+    const variants = Object.values(groupInfo).sort((a, b) =>
+      a.hash && !b.hash
+        ? -1
+        : a.description.toLowerCase().localeCompare(b.description.toLowerCase())
+    );
 
     return (
       <GroupVariantList>
-        <div style={{float: 'right'}}>
-          {this.props.showSelector && (
-            <GroupingConfigSelect
-              name="groupingConfig"
-              eventConfigId={eventConfigId}
-              configId={configId}
-              onSelect={selection => {
-                this.setState(
-                  {
-                    configOverride: selection.value,
-                  },
-                  () => this.reloadData()
-                );
-              }}
-            />
-          )}
-        </div>
+        {showSelector && this.renderGroupConfigSelect()}
+
         {variants.map(variant => (
           <GroupVariant variant={variant} key={variant.key} />
         ))}
@@ -126,47 +112,47 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const isOpen = this.state.isOpen;
+    const {isOpen} = this.state;
+
     const title = (
       <React.Fragment>
         {t('Event Grouping Information')}
         {!isOpen && this.renderGroupInfoSummary()}
       </React.Fragment>
     );
+
     const actions = (
       <Toggle onClick={this.toggle}>
-        {isOpen ? t('Hide Details') : t('Show Details')} <FeatureBadge type="beta" />
+        {isOpen ? t('Hide Details') : t('Show Details')}
       </Toggle>
     );
 
+    // TODO(grouping): className
     return (
       <EventDataSection
-        event={this.props.event}
         type="grouping-info"
         className="grouping-info"
         title={title}
         actions={actions}
       >
-        <div style={{display: isOpen ? 'block' : 'none'}}>
-          {this.state.groupInfo !== null && isOpen && this.renderGroupInfo()}
-        </div>
+        {isOpen && this.renderGroupInfo()}
       </EventDataSection>
     );
   }
 }
 
-export const GroupingConfigItem = styled(
-  ({hidden: _hidden, active: _active, ...props}) => <code {...props} />
-)`
-  ${p => (p.hidden ? 'opacity: 0.5;' : '')}
-  ${p => (p.active ? 'font-weight: bold;' : '')}
+export const GroupingConfigItem = styled(({hidden: _h, active: _a, ...props}) => (
+  <code {...props} />
+))`
+  opacity: ${p => (p.hidden ? 0.5 : null)};
+  font-weight: ${p => (p.active ? 'bold' : null)};
 `;
 
 const GroupVariantList = styled('ul')`
   padding: 0;
   margin: 0;
   list-style: none;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 18px;
 `;
 
@@ -174,14 +160,6 @@ const Toggle = styled('a')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: 700;
   color: ${p => p.theme.foreground};
-`;
-
-const SubHeading = styled('small')`
-  text-transform: none;
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.foreground};
-  margin-left: ${space(1)};
 `;
 
 export default withOrganization(EventGroupingInfo);

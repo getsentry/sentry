@@ -277,6 +277,11 @@ type SentryEventBase = {
 
   oldestEventID: string | null;
   latestEventID: string | null;
+
+  groupingConfig: {
+    id: string;
+    enhancements: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -1197,15 +1202,14 @@ export type PlatformIntegration = {
   name: string;
 };
 
-type GroupingComponentValue = {
+type EventGroupingComponentValue = {
   contributes: boolean;
   hint: string | null;
   id: string;
   name: string | null;
-  values: GroupingComponentValue[] | string[];
+  values: EventGroupingComponentValue[] | string[];
 };
-
-type GroupingConfig = {
+type EventGroupingConfig = {
   base: null;
   changelog: string;
   delegates: string[];
@@ -1215,18 +1219,17 @@ type GroupingConfig = {
   risk: number;
   strategies: string[];
 };
-
-// custom-fingerprint, app, default, system
-
-export type EventGroupInfo = {
-  'custom-fingerprint': {
+type EventGroupInfoKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+export type EventGroupInfo = Record<
+  EventGroupInfoKey,
+  {
     description: string;
-    hash: string;
+    hash: string | null;
     hasMismatch: boolean;
-    key: string; //
+    key: EventGroupInfoKey;
     type: 'custom-fingerprint' | 'component';
     values?: string[];
-    component?: GroupingComponentValue;
-    config?: GroupingConfig;
-  };
-};
+    component?: EventGroupingComponentValue;
+    config?: EventGroupingConfig;
+  }
+>;
