@@ -101,7 +101,7 @@ const IntegrationRow = (props: Props) => {
           <Alert type="warning" icon={<IconWarning size="sm" />}>
             <span>{alertText}</span>
             <ResolveNowButton
-              href={`${baseUrl}?tab=configurations`}
+              href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
               size="xsmall"
               onClick={() =>
                 trackIntegrationEvent(
