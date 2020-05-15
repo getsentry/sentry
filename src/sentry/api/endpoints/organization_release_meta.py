@@ -15,6 +15,7 @@ from sentry.models import (
     ReleaseProject,
     ProjectPlatform,
 )
+
 from sentry.api.serializers.models.release import expose_version_info
 
 
@@ -41,11 +42,16 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        commit_files_changed = CommitFileChange.objects.filter(
-            commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
-                "commit_id", flat=True
+        commit_files_changed = (
+            CommitFileChange.objects.filter(
+                commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
+                    "commit_id", flat=True
+                )
             )
-        ).values("filename").distinct().count()
+            .values("filename")
+            .distinct()
+            .count()
+        )
 
         project_releases = ReleaseProject.objects.filter(release=release).values(
             "new_groups",
