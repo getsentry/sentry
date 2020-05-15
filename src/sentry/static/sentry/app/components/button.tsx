@@ -38,6 +38,7 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
+  labelClassName?: string;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
@@ -134,6 +135,7 @@ class Button extends React.Component<ButtonProps, {}> {
       priority,
       disabled,
       tooltipProps,
+      labelClassName,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -166,6 +168,7 @@ class Button extends React.Component<ButtonProps, {}> {
           size={size}
           priority={priority}
           borderless={borderless}
+          className={labelClassName}
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
