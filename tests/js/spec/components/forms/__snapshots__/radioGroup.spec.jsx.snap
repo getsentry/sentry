@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`RadioGroup can select a different item 1`] = `
-<div
+<Container
   aria-labelledby="test"
   name="radio"
   role="radiogroup"
@@ -54,11 +54,11 @@ exports[`RadioGroup can select a different item 1`] = `
       Choice Three
     </RadioLineText>
   </RadioLineItem>
-</div>
+</Container>
 `;
 
 exports[`RadioGroup renders 1`] = `
-<div
+<Container
   aria-labelledby="test"
   name="radio"
   role="radiogroup"
@@ -111,7 +111,7 @@ exports[`RadioGroup renders 1`] = `
       Choice Three
     </RadioLineText>
   </RadioLineItem>
-</div>
+</Container>
 `;
 
 exports[`RadioGroup renders disabled 1`] = `
@@ -130,50 +130,57 @@ exports[`RadioGroup renders disabled 1`] = `
   onChange={[MockFunction]}
   value="choice_one"
 >
-  <div
+  <Container
     aria-labelledby="test"
     name="radio"
     role="radiogroup"
   >
-    <RadioLineItem
-      aria-checked={true}
-      disabled={true}
-      index={0}
-      key="0"
-      role="radio"
+    <div
+      aria-labelledby="test"
+      className="css-9cc0pc-Container e1r42lk41"
+      name="radio"
+      role="radiogroup"
     >
-      <label
+      <RadioLineItem
         aria-checked={true}
-        className="css-nmaqu8-RadioLineItem e1r42lk40"
+        disabled={true}
+        index={0}
+        key="0"
         role="radio"
       >
-        <Radio
-          aria-label="choice_one"
-          checked={true}
-          disabled={true}
-          onChange={[Function]}
-          type="radio"
+        <label
+          aria-checked={true}
+          className="css-1o4rg7a-RadioLineItem e1r42lk40"
+          role="radio"
         >
-          <input
+          <Radio
             aria-label="choice_one"
             checked={true}
-            className="css-3pmlh6-Radio e1d7o7s40"
             disabled={true}
             onChange={[Function]}
             type="radio"
-          />
-        </Radio>
-        <RadioLineText
-          disabled={true}
-        >
-          <div
-            className="css-m8i2g4-RadioLineText e1r42lk41"
           >
-            Choice One
-          </div>
-        </RadioLineText>
-      </label>
-    </RadioLineItem>
-  </div>
+            <input
+              aria-label="choice_one"
+              checked={true}
+              className="css-3pmlh6-Radio e1d7o7s40"
+              disabled={true}
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText
+            disabled={true}
+          >
+            <div
+              className="css-m8i2g4-RadioLineText e1r42lk42"
+            >
+              Choice One
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+    </div>
+  </Container>
 </RadioGroup>
 `;
