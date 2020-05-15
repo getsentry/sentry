@@ -68,9 +68,7 @@ class FeatureManagerTest(TestCase):
         test_user = self.create_user()
         test_org = self.create_organization()
 
-        projects = [self.create_project() for i in range(5)]
-        for p in projects:
-            p.organization = test_org
+        projects = [self.create_project(organization=test_org) for i in range(5)]
 
         def create_handler(flags, result):
             class OrganizationTestHandler(features.BatchFeatureHandler):
