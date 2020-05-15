@@ -303,6 +303,15 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
+
+    except Timeout:
+        track_response_code("timeout", slug, event)
+        # Response code of 0 represents timeout
+        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        # Re-raise the exception because some of these tasks might retry on the exception
+        raise
+
+    finally:
         track_response_code(resp.status_code, slug, event)
         buffer.add_request(
             response_code=resp.status_code,
@@ -314,10 +323,3 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         )
         resp.raise_for_status()
         return resp
-
-    except Timeout:
-        track_response_code("timeout", slug, event)
-        # Response code of 0 represents timeout
-        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
-        # Re-raise the exception because some of these tasks might retry on the exception
-        raise
