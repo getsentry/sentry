@@ -9,14 +9,17 @@ class DefaultContextType extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
+
   render() {
-    const knownData = Object.entries(this.props.data).map(([k, v]) => {
-      return {
-        key: k,
-        subject: k,
-        value: v,
-      };
-    });
+    const knownData = Object.entries(this.props.data)
+      .filter(([k, v]) => k != 'type' && k != 'title')
+      .map(([k, v]) => {
+        return {
+          key: k,
+          subject: k,
+          value: v
+        };
+      });
 
     return <ContextBlock knownData={knownData} alias={this.props.alias} />;
   }
