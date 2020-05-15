@@ -129,7 +129,6 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     this.props.onInstall(data);
-    console.log('didReceiveMessage');
     trackIntegrationEvent(
       {
         eventKey: integrationId
