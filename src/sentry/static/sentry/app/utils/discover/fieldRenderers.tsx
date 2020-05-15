@@ -3,7 +3,7 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -296,11 +296,13 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       const palette = new Array(10).fill(theme.purpleDarkest);
       const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
       const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-      const title = t(
-        '%s out of %s unique users waited more than %sms',
-        userMisery,
-        uniqueUsers,
-        4 * miseryLimit
+      const title = tct(
+        '[effectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+        {
+          effectedUsers: userMisery,
+          totalUsers: uniqueUsers,
+          duration: 4 * miseryLimit,
+        }
       );
       return (
         <NumberContainer>
