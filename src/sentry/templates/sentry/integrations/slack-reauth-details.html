@@ -63,28 +63,12 @@
 
     </div>
 
-    <div>
-        {% if no_permission %}
-            <strong>Missing or Unauthorized Channels</strong>
-            <p class="section-info">
-                {% trans "These channels were found to be missing or unauthorized by the current Slack integration. If they are private channels, you'll have make sure to add the Sentry bot to the channels after migration. Otherwise you may want update your alert rules to use a different channel." %}
-            </p>
-        {% endif %}
-        {% for channel in no_permission %}
-            <li class="channel-name">{{channel.name}} </li>
-        {% endfor %}
-        {% for channel in not_found %}
-            <li class="channel-name">{{channel.name}} </li>
-        {% endfor %}
-    </div>
 
     <div>
-        {% if not private and not no_permission and not not_found %}
+        {% if not private %}
         <h6><strong>Next Steps</strong></h6>
             <p class="section-info"> You are good to go! Click "Next" to start the re-authentication flow!</p>
         {% endif %}
-
-
     </div>
 
     <div class="form-actions clearfix">
