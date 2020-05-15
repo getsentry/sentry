@@ -68,9 +68,7 @@ const config = ConfigStore.getConfig();
 const tracesSampleRate = config ? config.apmSampling : 0;
 
 const hasReplays =
-  window.__SENTRY__USER &&
-  window.__SENTRY__USER.isStaff &&
-  !!process.env.DISABLE_RR_WEB;
+  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
