@@ -56,10 +56,7 @@ class frameRegistersValue extends React.Component<Props, State> {
     return (
       <InlinePre data-test-id="frame-registers-value">
         <FixedWidth>
-          <AnnotatedText
-            value={formattedValue}
-            meta={meta}
-          />
+          <AnnotatedText value={formattedValue} meta={meta} />
         </FixedWidth>
         <Tooltip title={this.tooltipTitle()}>
           <Toggle className="icon-filter" onClick={this.toggleView} />
