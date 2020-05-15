@@ -84,7 +84,7 @@ function getMethodTypeLabel(type: MethodType) {
     case MethodType.HASH:
       return {
         label: t('Hash'),
-        description: t('(Replace with DEADBEEF)'),
+        description: t('Replace with DEADBEEF'),
       };
     case MethodType.REMOVE:
       return {
