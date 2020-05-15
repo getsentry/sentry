@@ -851,9 +851,6 @@ SENTRY_FEATURES = {
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
-    # Enable functionality meant for large organizations.
-    "organizations:enterprise-orgs": False,
-    "organizations:enterprise-orgs-outliers": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,

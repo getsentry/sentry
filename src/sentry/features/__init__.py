@@ -59,8 +59,6 @@ default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQA
-default_manager.add("organizations:enterprise-orgs", OrganizationFeature)  # NOQA
-default_manager.add("organizations:enterprise-orgs-outliers", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
