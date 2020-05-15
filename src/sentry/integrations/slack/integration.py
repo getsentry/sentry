@@ -199,6 +199,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "missing_channels": missing_channels,
         }
         if private_channels or missing_channels:
+            logger.info("slack.integration.run_post_migration", extra=run_args)
             post_migration.run_post_migration.apply_async(kwargs=run_args)
         else:
             # if we don't have channels, log it so we know we skipped this
