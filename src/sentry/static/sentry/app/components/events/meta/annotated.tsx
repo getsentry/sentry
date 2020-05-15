@@ -24,12 +24,7 @@ const Annotated = <Values extends {}>({
   return (
     <MetaData object={object} prop={objectKey} required={required}>
       {(value, meta) => {
-        const toBeReturned = (
-          <AnnotatedText
-            value={value}
-            meta={meta}
-          />
-        );
+        const toBeReturned = <AnnotatedText value={value} meta={meta} />;
         return isFunction(children) ? children(toBeReturned) : toBeReturned;
       }}
     </MetaData>
