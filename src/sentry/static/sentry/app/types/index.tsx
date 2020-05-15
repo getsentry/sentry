@@ -1196,3 +1196,37 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
 };
+
+type GroupingComponentValue = {
+  contributes: boolean;
+  hint: string | null;
+  id: string;
+  name: string | null;
+  values: GroupingComponentValue[] | string[];
+};
+
+type GroupingConfig = {
+  base: null;
+  changelog: string;
+  delegates: string[];
+  hidden: boolean;
+  id: string;
+  latest: boolean;
+  risk: number;
+  strategies: string[];
+};
+
+// custom-fingerprint, app, default, system
+
+export type EventGroupInfo = {
+  'custom-fingerprint': {
+    description: string;
+    hash: string;
+    hasMismatch: boolean;
+    key: string; //
+    type: 'custom-fingerprint' | 'component';
+    values?: string[];
+    component?: GroupingComponentValue;
+    config?: GroupingConfig;
+  };
+};

@@ -12,31 +12,40 @@ import withOrganization from 'app/utils/withOrganization';
 
 import GroupVariant from './groupingVariant';
 import GroupingConfigSelect from './groupingConfigSelect';
+import {Client} from 'app/api';
+import {Organization, Event} from 'app/types';
 
-class EventGroupingInfo extends AsyncComponent {
-  static propTypes = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string.isRequired,
-    event: SentryTypes.Event.isRequired,
-    showSelector: PropTypes.bool,
-  };
+type Props = AsyncComponent['props'] & {
+  api: Client;
+  organization: Organization;
+  projectId: string;
+  event: Event;
+  showSelector: boolean;
+};
 
-  getEndpoints() {
+type State = AsyncComponent['state'] & {
+  isOpen: boolean;
+  configOverride: string | null;
+  groupInfo: EventGroupInfo;
+};
+
+class EventGroupingInfo extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, event, projectId} = this.props;
 
     let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
-    if (this.state && this.state.configOverride) {
+    if (this.state?.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }
+
     return [['groupInfo', path]];
   }
 
-  getInitialState() {
+  getDefaultState() {
     return {
+      ...super.getDefaultState(),
       isOpen: false,
       configOverride: null,
-      ...super.getInitialState(),
     };
   }
 
@@ -54,20 +63,25 @@ class EventGroupingInfo extends AsyncComponent {
   };
 
   renderGroupInfoSummary() {
-    if (this.state.groupInfo === null) {
+    const {groupInfo} = this.state;
+
+    if (groupInfo === null) {
       return null;
     }
 
     const variants = [];
-    for (const key of Object.keys(this.state.groupInfo)) {
-      const variant = this.state.groupInfo[key];
+    for (const key of Object.keys(groupInfo)) {
+      const variant = groupInfo[key];
       if (variant.hash !== null) {
         variants.push(variant.description);
       }
     }
     variants.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
-    return <SubHeading>{`(grouped by ${variants.join(', ') || 'nothing'})`}</SubHeading>;
+    return (
+      <SubHeading>{`(${t('grouped by')} ${variants.join(', ') ||
+        t('nothing')})`}</SubHeading>
+    );
   }
 
   renderGroupInfo() {
