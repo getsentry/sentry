@@ -38,7 +38,7 @@ describe('Annotated', () => {
       );
       expect(mock.mock.calls[0][0].props).toEqual(
         expect.objectContaining({
-          value: "foo",
+          value: 'foo',
         })
       );
     });
@@ -137,14 +137,14 @@ describe('Annotated', () => {
           meta: {
             chunks: [],
             rem: [],
-            ...meta
-          }
+            ...meta,
+          },
         })
       );
     });
 
     it('annotates remarks and chunks', () => {
-      const meta = {rem: [{type: 't'}], chunks: [{text: 'foo'}]}
+      const meta = {rem: [{type: 't'}], chunks: [{text: 'foo'}]};
       const obj = createEvent('foo', meta);
 
       mount(
@@ -159,7 +159,7 @@ describe('Annotated', () => {
           meta: {
             err: [],
             ...meta,
-          }
+          },
         })
       );
     });
@@ -178,9 +178,10 @@ describe('Annotated', () => {
         expect.objectContaining({
           value: null,
           meta: {
-            rem: [], chunks: [],
+            rem: [],
+            chunks: [],
             ...meta,
-          }
+          },
         })
       );
     });
