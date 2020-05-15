@@ -237,6 +237,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
         lineStyle: {
           opacity: 0,
+          width: 0.4,
         },
       },
       abnormal: {
@@ -249,6 +250,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
         lineStyle: {
           opacity: 0,
+          width: 0.4,
         },
       },
       errored: {
@@ -261,6 +263,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
         lineStyle: {
           opacity: 0,
+          width: 0.4,
         },
       },
       healthy: {
@@ -273,6 +276,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
         lineStyle: {
           opacity: 0,
+          width: 0.4,
         },
       },
     };
