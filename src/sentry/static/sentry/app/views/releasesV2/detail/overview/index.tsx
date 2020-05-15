@@ -75,7 +75,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseProjects}) => {
+        {({release, project, deploys, releaseMeta}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
@@ -128,9 +128,11 @@ class ReleaseOverview extends AsyncView<Props> {
                         projectSlug={project.slug}
                       />
                     )}
-                    {releaseProjects.length > 1 && (
+                    {releaseMeta.projects.length > 1 && (
                       <OtherProjects
-                        projects={releaseProjects.filter(p => p.slug !== project.slug)}
+                        projects={releaseMeta.projects.filter(
+                          p => p.slug !== project.slug
+                        )}
                         location={location}
                       />
                     )}

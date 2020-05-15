@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import ListLink from 'app/components/links/listLink';
 import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
-import {Release, ReleaseProject} from 'app/types';
+import {Release, ReleaseProject, ReleaseMeta} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
@@ -27,10 +27,12 @@ type Props = {
   orgId: string;
   release: Release;
   project: ReleaseProject;
+  releaseMeta: ReleaseMeta;
 };
 
-const ReleaseHeader = ({location, orgId, release, project}: Props) => {
+const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
+  const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
   const {hasHealthData, sessionsCrashed} = project.healthData;
 
   const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
@@ -40,14 +42,29 @@ const ReleaseHeader = ({location, orgId, release, project}: Props) => {
     {
       title: (
         <React.Fragment>
-          {t('Commits')}{' '}
-          <NavTabsBadge text={formatAbbreviatedNumber(release.commitCount)} />
+          {t('Commits')} <NavTabsBadge text={formatAbbreviatedNumber(commitCount)} />
         </React.Fragment>
       ),
       to: `${releasePath}commits/`,
     },
-    {title: t('Files Changed'), to: `${releasePath}files-changed/`},
-    {title: t('Artifacts'), to: `${releasePath}artifacts/`},
+    {
+      title: (
+        <React.Fragment>
+          {t('Files Changed')}
+          <NavTabsBadge text={formatAbbreviatedNumber(commitFilesChanged)} />
+        </React.Fragment>
+      ),
+      to: `${releasePath}files-changed/`,
+    },
+    {
+      title: (
+        <React.Fragment>
+          {t('Artifacts')}
+          <NavTabsBadge text={formatAbbreviatedNumber(releaseFileCount)} />
+        </React.Fragment>
+      ),
+      to: `${releasePath}artifacts/`,
+    },
   ];
 
   return (

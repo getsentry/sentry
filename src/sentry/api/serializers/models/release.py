@@ -24,6 +24,29 @@ from sentry.models import (
 from sentry.utils.compat import zip
 
 
+def expose_version_info(info):
+    if info is None:
+        return None
+    version = {"raw": info["version_raw"]}
+    if info["version_parsed"]:
+        version.update(
+            {
+                "major": info["version_parsed"]["major"],
+                "minor": info["version_parsed"]["minor"],
+                "patch": info["version_parsed"]["patch"],
+                "pre": info["version_parsed"]["pre"],
+                "buildCode": info["version_parsed"]["build_code"],
+                "components": info["version_parsed"]["components"],
+            }
+        )
+    return {
+        "package": info["package"],
+        "version": version,
+        "description": info["description"],
+        "buildHash": info["build_hash"],
+    }
+
+
 def get_users_for_authors(organization_id, authors, user=None):
     """
     Returns a dictionary of author_id => user, if a Sentry
@@ -324,28 +347,6 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
-        def expose_version_info(info):
-            if info is None:
-                return None
-            version = {"raw": info["version_raw"]}
-            if info["version_parsed"]:
-                version.update(
-                    {
-                        "major": info["version_parsed"]["major"],
-                        "minor": info["version_parsed"]["minor"],
-                        "patch": info["version_parsed"]["patch"],
-                        "pre": info["version_parsed"]["pre"],
-                        "buildCode": info["version_parsed"]["build_code"],
-                        "components": info["version_parsed"]["components"],
-                    }
-                )
-            return {
-                "package": info["package"],
-                "version": version,
-                "description": info["description"],
-                "buildHash": info["build_hash"],
-            }
-
         def expose_health_data(data):
             if not data:
                 return None

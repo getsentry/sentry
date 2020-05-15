@@ -143,6 +143,7 @@ from .endpoints.organization_recent_searches import OrganizationRecentSearchesEn
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
+from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
@@ -966,6 +967,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$",
                     OrganizationReleaseDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/meta/$",
+                    OrganizationReleaseMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-release-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/assemble/$",
