@@ -17,12 +17,12 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
-    QueryAggregations,
     TriggerStatus,
     INCIDENT_STATUS,
 )
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -109,7 +109,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             ),
             "incident_name": incident.title,
             "aggregate": handler.query_aggregations_display[
-                QueryAggregations(action.alert_rule_trigger.alert_rule.aggregation)
+                aggregate_to_query_aggregation[
+                    action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+                ]
             ],
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,

@@ -27,7 +27,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations
+from sentry.snuba.models import QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 
 from sentry.testutils import TestCase
@@ -111,14 +111,12 @@ class HandleSnubaQueryUpdateTest(TestCase):
             callback(*args, **kwargs)
             raise KeyboardInterrupt()
 
-        value_name = query_aggregation_to_snuba[QueryAggregations(self.subscription.aggregation)][2]
-
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = exception_callback
         message = {
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {"data": [{value_name: self.trigger.alert_threshold + 1}]},
+                "values": {"data": [{"some_col": self.trigger.alert_threshold + 1}]},
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }

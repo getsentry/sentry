@@ -22,7 +22,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
-import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from './styles';
 
 export function getProjectID(
@@ -102,7 +102,7 @@ class Table extends React.Component<Props> {
       if (isFirstCell) {
         // the first column of the row should link to the transaction summary view
         const projectID = getProjectID(row, projects);
-        const target = transactionSummaryRouteWithEventView({
+        const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: String(row.transaction) || '',
           projectID,

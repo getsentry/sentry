@@ -13,6 +13,7 @@ from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.snuba.models import QueryAggregations
+from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -314,11 +315,12 @@ def build_incident_attachment(incident):
         status = "Critical"
         color = LEVEL_TO_COLOR["fatal"]
 
-    agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
+    query_aggregation = aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate]
+    agg_text = QUERY_AGGREGATION_DISPLAY[query_aggregation.value]
 
     agg_value = (
         aggregates["count"]
-        if alert_rule.aggregation == QueryAggregations.TOTAL.value
+        if query_aggregation == QueryAggregations.TOTAL
         else aggregates["unique_users"]
     )
     time_window = alert_rule.snuba_query.time_window / 60
@@ -326,7 +328,7 @@ def build_incident_attachment(incident):
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
 
     if alert_rule.snuba_query.query != "":
-        text = text + "\nFilter: {}".format(alert_rule.query)
+        text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
 
     ts = incident.date_started
 

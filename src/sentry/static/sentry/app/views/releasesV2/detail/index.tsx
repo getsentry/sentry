@@ -26,6 +26,7 @@ import PickProjectToContinue from './pickProjectToContinue';
 type ReleaseContext = {
   release: Release;
   project: ReleaseProject;
+  deploys: Deploy[];
   releaseProjects: ReleaseProject[];
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
@@ -101,6 +102,14 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     return super.renderError(...args);
   }
 
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
+  }
+
   renderBody() {
     const {organization, location, selection, releaseProjects} = this.props;
     const {release, deploys, reloading} = this.state;
@@ -121,12 +130,11 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys || []}
             project={project}
           />
 
           <ContentBox>
-            <ReleaseContext.Provider value={{release, project, releaseProjects}}>
+            <ReleaseContext.Provider value={{release, project, deploys, releaseProjects}}>
               {this.props.children}
             </ReleaseContext.Provider>
           </ContentBox>
@@ -173,6 +181,14 @@ class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseProje
     const projectId = this.props.location.query.project;
 
     return !projectId || typeof projectId !== 'string';
+  }
+
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
   }
 
   renderProjectsFooterMessage() {
