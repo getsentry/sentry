@@ -82,14 +82,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
     def test_subscription_not_registered(self):
         sub = QuerySubscription.objects.create(
-            project=self.project,
-            type="unregistered",
-            subscription_id="an_id",
-            dataset="something",
-            query="hello",
-            aggregation=0,
-            time_window=1,
-            resolution=1,
+            project=self.project, type="unregistered", subscription_id="an_id"
         )
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id

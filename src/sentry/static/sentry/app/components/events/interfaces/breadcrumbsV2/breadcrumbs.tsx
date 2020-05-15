@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
+import isEqual from 'lodash/isEqual';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -19,7 +20,7 @@ import {
   BreadcrumbDetails,
   BreadcrumbType,
   BreadcrumbLevelType,
-} from '../breadcrumbs/types';
+} from './types';
 import BreadcrumbFilter from './breadcrumbFilter/breadcrumbFilter';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbTypeDetails from './getBreadcrumbTypeDetails';
@@ -28,6 +29,7 @@ import BreadcrumbsListHeader from './breadcrumbsListHeader';
 import BreadcrumbsListBody from './breadcrumbsListBody';
 import BreadcrumbLevel from './breadcrumbLevel';
 import BreadcrumbIcon from './breadcrumbIcon';
+import {Grid} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -44,6 +46,7 @@ type State = {
   filteredByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
   filterGroups: BreadcrumbFilterGroups;
+  breadCrumbListHeight: React.CSSProperties['maxHeight'];
 };
 
 type Props = {
@@ -63,11 +66,28 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     filteredByCustomSearch: [],
     filteredBreadcrumbs: [],
     filterGroups: [],
+    breadCrumbListHeight: 'none',
   };
 
   componentDidMount() {
     this.loadBreadcrumbs();
   }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (isEqual(prevState, this.state) && isEqual(prevProps, this.props)) {
+      return;
+    }
+    this.loadBreadCrumbListHeight();
+  }
+
+  listRef = React.createRef<HTMLDivElement>();
+
+  loadBreadCrumbListHeight = () => {
+    const offsetHeight = this.listRef?.current?.offsetHeight;
+    this.setState({
+      breadCrumbListHeight: offsetHeight ? `${offsetHeight}px` : 'none',
+    });
+  };
 
   loadBreadcrumbs = () => {
     const {data} = this.props;
@@ -156,7 +176,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     if (exception) {
       const {type, value, module: mdl} = exception.data.values[0];
       return {
-        type: BreadcrumbType.EXCEPTION,
+        type: BreadcrumbType.ERROR,
         level: BreadcrumbLevelType.ERROR,
         category: this.moduleToCategory(mdl) || 'exception',
         data: {
@@ -170,7 +190,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     const levelTag = (event.tags || []).find(tag => tag.key === 'level');
 
     return {
-      type: BreadcrumbType.MESSAGE,
+      type: BreadcrumbType.ERROR,
       level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
@@ -298,7 +318,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
   render() {
     const {type} = this.props;
-    const {filterGroups, searchTerm} = this.state;
+    const {filterGroups, searchTerm, breadCrumbListHeight} = this.state;
 
     const {
       collapsedQuantity,
@@ -330,14 +350,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <BreadcrumbList>
+            <Grid maxHeight={breadCrumbListHeight} ref={this.listRef}>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
               />
-            </BreadcrumbList>
+            </Grid>
           ) : (
             <EmptyMessage
               icon={<IconWarning size="xl" />}
@@ -359,16 +379,10 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 export default BreadcrumbsContainer;
 
 const Content = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.borderDark};
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};
-`;
-
-const BreadcrumbList = styled('ul')`
-  padding-left: 0;
-  list-style: none;
-  margin-bottom: 0;
 `;
 
 const Search = styled('div')`

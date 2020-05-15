@@ -7,9 +7,9 @@ from django.http import StreamingHttpResponse
 
 from sentry import eventstore, features, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.serializers.models.organization import ATTACHMENTS_ROLE_DEFAULT
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models import EventAttachment, OrganizationMember
 
 

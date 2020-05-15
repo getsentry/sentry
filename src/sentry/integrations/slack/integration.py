@@ -18,6 +18,7 @@ from sentry.models import Integration, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.slack import post_migration
 
 from .client import SlackClient
 from .utils import logger
@@ -57,7 +58,7 @@ setup_alert = {
 }
 
 reauthentication_alert = {
-    "alertText": "Slack must be re-authorized to avoid a disruption of Slack notifications",
+    "alertText": "Upgrade Slack to avoid any disruption to service. It'll be worth it, we promise.",
 }
 
 metadata = IntegrationMetadata(
@@ -174,13 +175,34 @@ class SlackIntegrationProvider(IntegrationProvider):
 
             post_install_data = {
                 "user_id": state["user_id"],
-                "channels": state["private_channels"],
+                "private_channels": state["private_channels"],
+                "missing_channels": state["missing_channels"],
             }
 
             integration["integration_id"] = state.get("integration_id")
             integration["post_install_data"] = post_install_data
 
         return integration
+
+    def post_install(self, integration, organization, extra=None):
+        # normal installtions don't have extra, quit immediately
+        if extra is None:
+            return
+
+        private_channels = extra.get("private_channels")
+        missing_channels = extra.get("missing_channels")
+        run_args = {
+            "integration_id": integration.id,
+            "organization_id": organization.id,
+            "user_id": extra.get("user_id"),
+            "private_channels": private_channels,
+            "missing_channels": missing_channels,
+        }
+        if private_channels or missing_channels:
+            post_migration.run_post_migration.apply_async(kwargs=run_args)
+        else:
+            # if we don't have channels, log it so we know we skipped this
+            logger.info("slack.integration.skipped_post_migration", extra=run_args)
 
 
 class SlackReAuthIntro(PipelineView):
@@ -283,16 +305,24 @@ def _request_channel_info(pipeline):
             # TODO(meredith): subclass the ApiError and make a SlackApiError so we can
             # reraise the other errors
         except ApiError as e:
-            # adds the channel to our dict grouped by the error message which could
-            # be any of the following found under the 'errors' section found in
-            # https://api.slack.com/methods/conversations.list
-            channel_responses[e].add(Channel(channel["name"], channel["id"]))
+            logger.info(
+                "slack.request_channel_info.response-error",
+                extra={
+                    "error": six.text_type(e),
+                    "channel": channel["id"],
+                    "integration_id": integration.id,
+                },
+            )
+            # regardless of the type of error, we are going to group the channels together
+            # when showing this to the user to make things a bit simpler
+            channel_responses["not_found"].add(Channel(channel["name"], channel["id"]))
             continue
 
         if resp["channel"]["is_private"]:
             channel_responses["private"].add(Channel(channel["name"], channel["id"]))
 
     pipeline.bind_state("private_channels", channel_responses["private"])
+    pipeline.bind_state("missing_channels", channel_responses["not_found"])
     return channel_responses
 
 

@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
@@ -39,34 +39,35 @@ class BreadcrumbDataSummary extends React.Component<Props, State> {
 
     return Object.keys(kvData)
       .filter(key => defined(kvData[key]) && !!kvData[key])
-      .map(key => (
-        <BreadcrumbDataSummaryData key={key}>
-          <BreadcrumbDataSummaryDataLabel>{`${key}: `}</BreadcrumbDataSummaryDataLabel>
-          <StyledPre>
-            {getBreadcrumbCustomRendererValue({
-              value:
-                typeof kvData[key] === 'object'
-                  ? JSON.stringify(kvData[key])
-                  : kvData[key],
-              meta: getMeta(kvData, key),
-            })}
-          </StyledPre>
-        </BreadcrumbDataSummaryData>
-      ));
+      .map(key => {
+        const value =
+          typeof kvData[key] === 'object' ? JSON.stringify(kvData[key]) : kvData[key];
+        return (
+          <BreadcrumbDataSummaryData key={key}>
+            <StyledPre>
+              <BreadcrumbDataSummaryDataLabel>{`${key}: `}</BreadcrumbDataSummaryDataLabel>
+              {getBreadcrumbCustomRendererValue({
+                value,
+                meta: getMeta(kvData, key),
+              })}
+            </StyledPre>
+          </BreadcrumbDataSummaryData>
+        );
+      });
   };
 
   // TODO(Priscila): implement Summary lifecycles
   render() {
     const {children} = this.props;
     return (
-      <div>
+      <React.Fragment>
         <div onClick={this.onToggle} ref={this.summaryNode}>
           <StyledPre>
-            <code>{children}</code>
+            <StyledCode>{children}</StyledCode>
           </StyledPre>
         </div>
         {this.renderData()}
-      </div>
+      </React.Fragment>
     );
   }
 }
@@ -81,11 +82,20 @@ const StyledPre = styled('pre')`
   word-break: break-all;
   margin: 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  display: inline;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    ${overflowEllipsis};
+  }
+`;
+
+const StyledCode = styled('code')`
+  white-space: nowrap;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    white-space: pre-wrap;
+  }
+  line-height: 26px;
 `;
 
 const BreadcrumbDataSummaryData = styled('div')`
-  margin: ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

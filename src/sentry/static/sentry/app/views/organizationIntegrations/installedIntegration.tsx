@@ -151,7 +151,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 <Tooltip
                   disabled={hasAccess}
                   title={t(
-                    'You must be an organization owner, manager or admin to re-authenticate'
+                    'You must be an organization owner, manager or admin to upgrade'
                   )}
                 >
                   <AddIntegrationButton
@@ -162,7 +162,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     integrationId={integration.id}
                     priority="primary"
                     size="small"
-                    buttonText={t('Re-authenticate Now')}
+                    buttonText={t('Upgrade Now')}
                     organization={organization}
                     icon={<IconWarning size="sm" />}
                   />
