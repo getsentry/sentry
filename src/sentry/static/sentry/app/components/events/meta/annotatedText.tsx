@@ -115,11 +115,17 @@ function renderErrors(errors: Array<MetaError>) {
 class AnnotatedText extends React.Component<Props, {}> {
   render() {
     const {value, meta, ...props} = this.props;
-    return (
-      <span {...props}>
-        {renderValue(value, meta)} {meta && meta.err && renderErrors(meta.err)}
-      </span>
-    );
+    let component = renderValue(value, meta);
+    if(meta?.err) {
+      component = (
+        <span {...props}>
+          {component}
+          {renderErrors(meta.err)}
+        </span>
+      );
+    }
+
+    return component;
   }
 }
 
