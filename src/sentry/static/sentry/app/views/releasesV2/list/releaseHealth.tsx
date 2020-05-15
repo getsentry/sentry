@@ -1,8 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import partition from 'lodash/partition';
+import flatten from 'lodash/flatten';
 
-import {Release, GlobalSelection, ReleaseProject} from 'app/types';
+import {Release, GlobalSelection} from 'app/types';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -43,17 +45,12 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
 
   // sort health rows inside release card alphabetically by project name,
   // but put the ones with project selected in global header to top
-  const selectedProjects: ReleaseProject[] = [];
-  const otherProjects: ReleaseProject[] = [];
-  release.projects
-    .sort((a, b) => a.slug.localeCompare(b.slug))
-    .forEach(p => {
-      if (selection.projects.includes(p.id)) {
-        selectedProjects.push(p);
-      } else {
-        otherProjects.push(p);
-      }
-    });
+  const sortedProjects = flatten(
+    partition(
+      release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
+      p => selection.projects.includes(p.id)
+    )
+  );
 
   return (
     <React.Fragment>
@@ -83,7 +80,7 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
 
       <PanelBody>
         <ClippedBox clipHeight={200}>
-          {[...selectedProjects, ...otherProjects].map(project => {
+          {sortedProjects.map(project => {
             const {id, slug, healthData, newGroups} = project;
             const {
               hasHealthData,
