@@ -194,6 +194,7 @@ class Sidebar extends React.Component<Props, State> {
       'releases',
       'user-feedback',
       'discover',
+      'discover/results', // Team plans do not have query landing page
       'performance',
       'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
