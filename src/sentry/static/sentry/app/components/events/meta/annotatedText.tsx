@@ -78,7 +78,7 @@ function renderValue(value: React.ReactElement, meta?: Meta): React.ReactElement
 }
 
 function getErrorMessage(error: MetaError) {
-  const errorMessage: any[] = [];
+  const errorMessage: string[] = [];
   if (error[0]) {
     errorMessage.push(error[0]);
   }

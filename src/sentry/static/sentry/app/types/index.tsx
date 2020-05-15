@@ -1115,7 +1115,7 @@ export type Meta = {
   err: Array<MetaError>;
 };
 
-export type MetaError = any;
+export type MetaError = [string, {}];
 export type MetaRemark = Array<string | number>;
 
 export type Chunks = {
