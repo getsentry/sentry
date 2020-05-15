@@ -43,7 +43,7 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
-export type Column =
+export type QueryFieldValue =
   | {
       kind: 'field';
       field: string;
@@ -52,6 +52,9 @@ export type Column =
       kind: 'function';
       function: [Aggregation, string, AggregationRefinement];
     };
+
+// Column is just an alias of a Query value
+export type Column = QueryFieldValue;
 
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {

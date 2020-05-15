@@ -71,7 +71,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
     it('renders fields and basic controls', function() {
       // Should have fields equal to the columns.
-      expect(wrapper.find('ColumnEditRow')).toHaveLength(columns.length);
+      expect(wrapper.find('QueryField')).toHaveLength(columns.length);
 
       expect(wrapper.find('button[aria-label="Apply"]')).toHaveLength(1);
       expect(wrapper.find('button[aria-label="Add a Column"]')).toHaveLength(1);
@@ -101,7 +101,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     );
 
     it('renders unknown fields in field and field parameter controls', function() {
-      const funcRow = wrapper.find('ColumnEditRow').first();
+      const funcRow = wrapper.find('QueryField').first();
       expect(
         funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
       ).toBe('count_unique(\u2026)');
@@ -109,7 +109,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
         'user-defined'
       );
 
-      const fieldRow = wrapper.find('ColumnEditRow').last();
+      const fieldRow = wrapper.find('QueryField').last();
       expect(
         fieldRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('user-def');
@@ -132,7 +132,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     );
 
     it('selects tag expressions that overlap fields', function() {
-      const funcRow = wrapper.find('ColumnEditRow').first();
+      const funcRow = wrapper.find('QueryField').first();
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('project');
@@ -140,7 +140,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
 
     it('selects tag expressions that overlap functions', function() {
-      const funcRow = wrapper.find('ColumnEditRow').last();
+      const funcRow = wrapper.find('QueryField').last();
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
       ).toBe('count');
@@ -163,12 +163,12 @@ describe('EventsV2 -> ColumnEditModal', function() {
     );
 
     it('renders three columns when needed', function() {
-      const countRow = wrapper.find('ColumnEditRow').first();
+      const countRow = wrapper.find('QueryField').first();
       // Has a select and 2 disabled inputs
       expect(countRow.find('SelectControl')).toHaveLength(1);
       expect(countRow.find('BlankSpace')).toHaveLength(2);
 
-      const percentileRow = wrapper.find('ColumnEditRow').last();
+      const percentileRow = wrapper.find('QueryField').last();
       // two select fields, and one number input.
       expect(percentileRow.find('SelectControl')).toHaveLength(2);
       expect(percentileRow.find('BlankSpace')).toHaveLength(0);
@@ -195,7 +195,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
 
       openMenu(wrapper, {name: 'parameter', at: 0, control: true});
       const options = wrapper
-        .find('ColumnEditRow SelectControl[name="parameter"] Option')
+        .find('QueryField SelectControl[name="parameter"] Option')
         .map(option => option.props().label);
 
       expect(options).not.toContain('title');
@@ -205,18 +205,18 @@ describe('EventsV2 -> ColumnEditModal', function() {
     it('shows no options for parameterless functions', function() {
       selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
 
-      expect(wrapper.find('ColumnEditRow BlankSpace')).toHaveLength(1);
+      expect(wrapper.find('QueryField BlankSpace')).toHaveLength(1);
     });
 
     it('shows additional inputs for multi-parameter functions', function() {
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
-      const field = wrapper.find('ColumnEditRow SelectControl[name="parameter"]');
+      const field = wrapper.find('QueryField SelectControl[name="parameter"]');
       expect(field.find('SingleValue').text()).toBe('transaction.duration');
 
       // Input should show and have default value.
-      const refinement = wrapper.find('ColumnEditRow input[inputMode="numeric"]');
+      const refinement = wrapper.find('QueryField input[inputMode="numeric"]');
       expect(refinement.props().value).toBe('0.5');
     });
 
@@ -224,7 +224,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
-      const field = wrapper.find('ColumnEditRow input[name="refinement"]');
+      const field = wrapper.find('QueryField input[name="refinement"]');
       expect(field.props().value).toBe('300');
 
       // Trigger a blur and make sure the column is not wrong.
@@ -272,13 +272,13 @@ describe('EventsV2 -> ColumnEditModal', function() {
       initialData
     );
     it('allows rows to be removed, but not the last one', function() {
-      expect(wrapper.find('ColumnEditRow')).toHaveLength(2);
+      expect(wrapper.find('QueryField')).toHaveLength(2);
       wrapper
         .find('RowContainer button[aria-label="Remove column"]')
         .first()
         .simulate('click');
 
-      expect(wrapper.find('ColumnEditRow')).toHaveLength(1);
+      expect(wrapper.find('QueryField')).toHaveLength(1);
 
       // Last row cannot be removed or dragged.
       expect(
