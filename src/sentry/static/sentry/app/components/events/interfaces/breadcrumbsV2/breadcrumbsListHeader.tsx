@@ -6,23 +6,22 @@ import space from 'app/styles/space';
 
 import {GridCell} from './styles';
 
-const BreadcrumbsListHeader = () => {
-  return (
-    <React.Fragment>
-      <StyledGridCellLeft>{t('Type')}</StyledGridCellLeft>
-      <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
-      <StyledGridCell>{t('Description')}</StyledGridCell>
-      <StyledGridCell>{t('Level')}</StyledGridCell>
-      <StyledGridCellRight>{t('Time')}</StyledGridCellRight>
-    </React.Fragment>
-  );
-};
+const BreadcrumbsListHeader = () => (
+  <React.Fragment>
+    <StyledGridCell>{t('Type')}</StyledGridCell>
+    <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
+    <StyledGridCell>{t('Description')}</StyledGridCell>
+    <StyledGridCell>{t('Level')}</StyledGridCell>
+    <StyledGridCell>{t('Time')}</StyledGridCell>
+  </React.Fragment>
+);
 
 export default BreadcrumbsListHeader;
 
 const StyledGridCell = styled(GridCell)`
-  border-top: 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  margin-top: 1px;
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  position: relative;
   background: ${p => p.theme.offWhite};
   color: ${p => p.theme.gray3};
   font-weight: 600;
@@ -34,16 +33,6 @@ const StyledGridCell = styled(GridCell)`
     padding: ${space(2)} ${space(2)};
     font-size: ${p => p.theme.fontSizeSmall};
   }
-`;
-
-const StyledGridCellLeft = styled(StyledGridCell)`
-  border-radius: ${p => p.theme.borderRadius} 0 0 0;
-  border-left: 1px solid ${p => p.theme.borderDark};
-`;
-
-const StyledGridCellRight = styled(StyledGridCell)`
-  border-radius: 0 ${p => p.theme.borderRadius} 0 0;
-  border-right: 1px solid ${p => p.theme.borderDark};
 `;
 
 const StyledGridCellCategory = styled(StyledGridCell)`
