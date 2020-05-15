@@ -634,7 +634,12 @@ exports[`SharedGroupDetails renders 1`] = `
                                             <ErrorBoundary
                                               mini={true}
                                             >
-                                              Blocked script
+                                              <AnnotatedText
+                                                meta={null}
+                                                value="Blocked script"
+                                              >
+                                                Blocked script
+                                              </AnnotatedText>
                                             </ErrorBoundary>
                                           </MetaData>
                                         </Annotated>
