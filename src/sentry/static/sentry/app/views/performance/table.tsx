@@ -20,7 +20,7 @@ import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
-import {transactionSummaryRouteWithEventView} from './transactionSummary/utils';
+import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
 export function getProjectID(
   eventData: EventData,
@@ -62,7 +62,7 @@ class Table extends React.Component<Props, State> {
   };
 
   renderBodyCell = (tableMeta: TableData['meta']) => {
-    const {organization, projects, location} = this.props;
+    const {eventView, organization, projects, location} = this.props;
 
     return (
       column: TableColumn<keyof TableDataRow>,
@@ -78,10 +78,12 @@ class Table extends React.Component<Props, State> {
       if (field === 'transaction') {
         const projectID = getProjectID(dataRow, projects);
 
-        const target = transactionSummaryRouteWithEventView({
+        const query = eventView.generateQueryStringObject();
+        const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: String(dataRow.transaction) || '',
           projectID,
+          query,
         });
 
         rendered = (

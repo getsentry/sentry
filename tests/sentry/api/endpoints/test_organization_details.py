@@ -198,6 +198,7 @@ class OrganizationUpdateTest(APITestCase):
             "dataScrubber": True,
             "dataScrubberDefaults": True,
             "sensitiveFields": [u"password"],
+            "eventsMemberAdmin": False,
             "safeFields": [u"email"],
             "storeCrashReports": 10,
             "scrubIPAddresses": True,
@@ -234,6 +235,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:store_crash_reports") == 10
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
+        assert options.get("sentry:events_member_admin") is False
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
@@ -254,6 +256,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
         assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
+        assert u"to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)

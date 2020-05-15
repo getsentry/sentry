@@ -15,24 +15,24 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 
 const FINE_TUNE_FOOTERS = {
-  Alerts: {
-    text: 'Fine tune alerts by project',
+  [t('Alerts')]: {
+    text: t('Fine tune alerts by project'),
     path: 'alerts/',
   },
-  'Workflow Notifications': {
-    text: 'Fine tune workflow notifications by project',
+  [t('Workflow Notifications')]: {
+    text: t('Fine tune workflow notifications by project'),
     path: 'workflow/',
   },
-  'Email Routing': {
-    text: 'Fine tune email routing by project',
+  [t('Email Routing')]: {
+    text: t('Fine tune email routing by project'),
     path: 'email/',
   },
-  'Weekly Reports': {
-    text: 'Fine tune weekly reports by organization',
+  [t('Weekly Reports')]: {
+    text: t('Fine tune weekly reports by organization'),
     path: 'reports/',
   },
-  'Deploy Notifications': {
-    text: 'Fine tune deploy notifications by organization',
+  [t('Deploy Notifications')]: {
+    text: t('Fine tune deploy notifications by organization'),
     path: 'deploy/',
   },
 };
