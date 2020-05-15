@@ -53,9 +53,13 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     slug = sentry_app.slug_for_metrics
+    error_id = None
+    project_id = None
 
     try:
         resp = safe_urlopen(url=url, **kwargs)
+        error_id = (resp.headers.get("Sentry-Hook-Error"),)
+        project_id = (resp.headers.get("Sentry-Hook-Project"),)
         resp.raise_for_status()
 
     except Timeout as e:
@@ -69,7 +73,14 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
         status_code = e.response.status_code
         track_response_code(status_code, slug, event)
         # Use the response code from the error
-        buffer.add_request(response_code=status_code, org_id=org_id, event=event, url=url)
+        buffer.add_request(
+            response_code=status_code,
+            org_id=org_id,
+            event=event,
+            url=url,
+            error_id=error_id,
+            project_id=project_id,
+        )
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -79,8 +90,8 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
         org_id=org_id,
         event=event,
         url=url,
-        error_id=resp.headers.get("Sentry-Hook-Error"),
-        project_id=resp.headers.get("Sentry-Hook-Project"),
+        error_id=error_id,
+        project_id=project_id,
     )
 
     return resp

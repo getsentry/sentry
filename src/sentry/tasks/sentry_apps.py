@@ -298,11 +298,15 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
     org_id = app_platform_event.install.organization_id
     event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
     slug = sentry_app.slug_for_metrics
+    error_id = None
+    project_id = None
 
     try:
         resp = safe_urlopen(
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
+        error_id = resp.headers.get("Sentry-Hook-Error")
+        project_id = resp.headers.get("Sentry-Hook-Project")
         resp.raise_for_status()
 
     except Timeout as e:
@@ -316,7 +320,14 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         status_code = e.response.status_code
         track_response_code(status_code, slug, event)
         # Use the response code from the error
-        buffer.add_request(response_code=status_code, org_id=org_id, event=event, url=url)
+        buffer.add_request(
+            response_code=status_code,
+            org_id=org_id,
+            event=event,
+            url=url,
+            error_id=error_id,
+            project_id=project_id,
+        )
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -327,8 +338,8 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         org_id=org_id,
         event=event,
         url=url,
-        error_id=resp.headers.get("Sentry-Hook-Error"),
-        project_id=resp.headers.get("Sentry-Hook-Project"),
+        error_id=error_id,
+        project_id=project_id,
     )
 
     return resp
