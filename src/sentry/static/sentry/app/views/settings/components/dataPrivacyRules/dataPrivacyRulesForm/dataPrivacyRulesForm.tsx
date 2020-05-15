@@ -72,7 +72,7 @@ const DataPrivacyRulesForm = ({
           placeholder={t('Select type')}
           name="type"
           options={sortBy(Object.values(RuleType)).map(value => ({
-            ...getRuleTypeLabel(value),
+            label: getRuleTypeLabel(value),
             value,
           }))}
           value={type}

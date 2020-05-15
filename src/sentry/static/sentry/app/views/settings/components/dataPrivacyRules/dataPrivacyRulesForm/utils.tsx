@@ -5,72 +5,33 @@ import {RuleType, MethodType} from './types';
 function getRuleTypeLabel(labelType: RuleType) {
   switch (labelType) {
     case RuleType.ANYTHING:
-      return {
-        label: t('Anything'),
-      };
+      return t('Anything');
     case RuleType.IMEI:
-      return {
-        label: t('IMEI numbers'),
-      };
+      return t('IMEI numbers');
     case RuleType.MAC:
-      return {
-        label: t('MAC addresses'),
-        description: t('xx:xx:xx:xx:xx:xx'),
-      };
+      return t('MAC addresses');
     case RuleType.EMAIL:
-      return {
-        label: t('Email addresses'),
-        description: t('user@example.com'),
-      };
+      return t('Email addresses');
     case RuleType.PEMKEY:
-      return {
-        label: t('PEM keys'),
-        description: t('BAsME0RvY3Vtl...'),
-      };
+      return t('PEM keys');
     case RuleType.URLAUTH:
-      return {
-        label: t('Auth in URLs'),
-        description: t('/v1/users/1?access_token=*'),
-      };
+      return t('Auth in URLs');
     case RuleType.USSSN:
-      return {
-        label: t('US social security numbers'),
-        description: t('xxx-xx-xxxx'),
-      };
+      return t('US social security numbers');
     case RuleType.USER_PATH:
-      return {
-        label: t('Usernames in filepaths'),
-        description: t('/Users/username/*'),
-      };
+      return t('Usernames in filepaths');
     case RuleType.UUID:
-      return {
-        label: t('UUIDs'),
-        description: t('xxxxxxxx-xxxx-Mxxx...'),
-      };
+      return t('UUIDs');
     case RuleType.CREDITCARD:
-      return {
-        label: t('Credit card numbers'),
-        description: 'xxxx xxxx xxxx xxxx',
-      };
+      return t('Credit card numbers');
     case RuleType.PASSWORD:
-      return {
-        label: t('Password fields'),
-        description: t('xxxxxxxx'),
-      };
+      return t('Password fields');
     case RuleType.IP:
-      return {
-        label: t('IP addresses'),
-        description: t('127.0.0.1'),
-      };
+      return t('IP addresses');
     case RuleType.PATTERN:
-      return {
-        label: t('Regex matches'),
-        description: t('[a-zA-Z0-9]+'),
-      };
+      return t('Regex matches');
     default:
-      return {
-        label: '',
-      };
+      return '';
   }
 }
 
