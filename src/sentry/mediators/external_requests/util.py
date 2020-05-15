@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from jsonschema import Draft4Validator
-from requests.exceptions import RequestException
+from requests.exceptions import Timeout, HTTPError
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
@@ -56,10 +56,20 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     try:
         resp = safe_urlopen(url=url, **kwargs)
-    except RequestException:
+        resp.raise_for_status()
+
+    except Timeout as e:
         track_response_code("timeout", slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        # Re-raise the exception because some of these tasks might retry on the exception
+        raise
+
+    except HTTPError as e:
+        status_code = e.response.status_code
+        track_response_code(status_code, slug, event)
+        # Use the response code from the error
+        buffer.add_request(response_code=status_code, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
