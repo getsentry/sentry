@@ -81,14 +81,14 @@ const GlobalSelectionStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  updateEnvironments(environments = []) {
+  updateEnvironments(environments) {
     if (isEqual(this.selection.environments, environments)) {
       return;
     }
 
     this.selection = {
       ...this.selection,
-      environments,
+      environments: environments ?? [],
     };
     this.trigger(this.get());
   },
