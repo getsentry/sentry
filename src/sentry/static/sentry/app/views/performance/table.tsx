@@ -211,12 +211,8 @@ class Table extends React.Component<Props, State> {
               columnSortBy={columnSortBy}
               grid={{
                 onResizeColumn: this.handleResizeColumn,
-                renderHeadCell: this.renderHeadCell(
-                  tableData?.meta
-                ) as any,
-                renderBodyCell: this.renderBodyCell(
-                  tableData?.meta
-                ) as any,
+                renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
+                renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
               }}
               location={location}
             />
