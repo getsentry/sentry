@@ -2,8 +2,8 @@ import {t} from 'app/locale';
 
 import {RuleType, MethodType} from './types';
 
-function getRuleTypeLabel(labelType: RuleType) {
-  switch (labelType) {
+function getRuleTypeLabel(type: RuleType) {
+  switch (type) {
     case RuleType.ANYTHING:
       return t('Anything');
     case RuleType.IMEI:
