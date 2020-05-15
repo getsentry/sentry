@@ -39,7 +39,7 @@ const Row = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray3};
 `;
 
 const StyledDeployBadge = styled(DeployBadge)`

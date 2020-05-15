@@ -235,6 +235,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           color: CHART_PALETTE[3][0],
           opacity: 1,
         },
+        lineStyle: {
+          opacity: 0,
+        },
       },
       abnormal: {
         seriesName: t('Abnormal'),
@@ -243,6 +246,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         areaStyle: {
           color: CHART_PALETTE[3][1],
           opacity: 1,
+        },
+        lineStyle: {
+          opacity: 0,
         },
       },
       errored: {
@@ -253,6 +259,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           color: CHART_PALETTE[3][2],
           opacity: 1,
         },
+        lineStyle: {
+          opacity: 0,
+        },
       },
       healthy: {
         seriesName: t('Healthy'),
@@ -261,6 +270,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         areaStyle: {
           color: CHART_PALETTE[3][3],
           opacity: 1,
+        },
+        lineStyle: {
+          opacity: 0,
         },
       },
     };
@@ -352,6 +364,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     const chartData: Series = {
       seriesName: t('Session Duration'),
       data: [],
+      lineStyle: {
+        opacity: 0,
+      },
     };
 
     const sessionDurationAverage = Math.round(
