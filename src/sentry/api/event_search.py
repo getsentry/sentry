@@ -100,7 +100,7 @@ boolean_term         = (paren_term / search_term) space? (boolean_operator space
 paren_term           = spaces open_paren space? (paren_term / boolean_term)+ space? closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
+                       / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
                        spaces
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
@@ -120,8 +120,9 @@ specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter        = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter   = aggregate_key sep operator? (date_format / alt_date_format / rel_date_format)
+aggregate_filter          = aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_date_filter     = aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -419,7 +420,6 @@ class SearchVisitor(NodeVisitor):
         search_value = search_value[0]
         operator = operator[0] if not isinstance(operator, Node) else "="
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
-
         if is_date_aggregate:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -428,6 +428,28 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
+            return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+    def visit_aggregate_rel_date_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        is_date_aggregate = any(key in search_key.name for key in self.date_keys)
+        if is_date_aggregate:
+            try:
+                from_val, to_val = parse_datetime_range(search_value.text)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(six.text_type(exc))
+
+            if from_val is not None:
+                operator = ">="
+                search_value = from_val[0]
+            else:
+                operator = "<="
+                search_value = to_val[0]
+
+            return AggregateFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value.text if operator != "=" else search_value
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_time_filter(self, node, children):
@@ -656,9 +678,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     value = aggregate_filter.value.value
 
     value = (
-        int(to_timestamp(value)) * 1000
-        if isinstance(value, datetime) and name != "timestamp"
-        else value
+        int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
     )
 
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":

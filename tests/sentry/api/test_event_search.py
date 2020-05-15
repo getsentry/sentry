@@ -648,6 +648,27 @@ class ParseSearchQueryTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
             parse_search_query("avg(stack.colno):>500s")
 
+    def test_aggregate_rel_time_filter(self):
+        now = timezone.now()
+        with freeze_time(now):
+            assert parse_search_query("last_seen():+7d") == [
+                SearchFilter(
+                    key=SearchKey(name="last_seen()"),
+                    operator="<=",
+                    value=SearchValue(raw_value=now - timedelta(days=7)),
+                )
+            ]
+            assert parse_search_query("last_seen():-2w") == [
+                SearchFilter(
+                    key=SearchKey(name="last_seen()"),
+                    operator=">=",
+                    value=SearchValue(raw_value=now - timedelta(days=14)),
+                )
+            ]
+            assert parse_search_query("random:-2w") == [
+                SearchFilter(key=SearchKey(name="random"), operator="=", value=SearchValue("-2w"))
+            ]
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -1294,7 +1315,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
-        assert result.having == [["last_seen", "=", 1585769692000]]
+        assert result.having == [["last_seen", "=", 1585769692]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
