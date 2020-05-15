@@ -45,17 +45,20 @@ class SlackPostMigrationTest(TestCase):
             content_type="application/json",
         )
 
-        self.data["channels"] = [
+        self.data["private_channels"] = [
             {"name": "#good_channel", "id": "good_channel_id"},
             {"name": "#bad_channel", "id": "bad_channel_id"},
+        ]
+
+        self.data["missing_channels"] = [
+            {"name": "#missing_channel", "id": "missing_channel_id"},
         ]
 
         with self.tasks():
             run_post_migration(**self.data)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
-        assert payload["token"] == "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert request.headers["Authorization"] == "Bearer xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
         expected_email_args = {
             "subject": u"Your Slack Sentry Integration has been upgraded",
@@ -63,8 +66,9 @@ class SlackPostMigrationTest(TestCase):
             "template": "sentry/emails/slack-migration.txt",
             "html_template": "sentry/emails/slack-migration.html",
             "context": {
-                "good_channels": ["#good_channel"],
-                "problem_channels": ["#bad_channel"],
+                "good_channels": [{"name": "#good_channel", "id": "good_channel_id"}],
+                "failing_channels": [{"name": "#bad_channel", "id": "bad_channel_id"}],
+                "missing_channels": [{"name": "#missing_channel", "id": "missing_channel_id"}],
                 "doc_link": "https://docs.sentry.io/workflow/integrations/global-integrations/#slack",
                 "integration": self.integration,
                 "organization": self.org,

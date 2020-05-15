@@ -175,7 +175,8 @@ class SlackIntegrationProvider(IntegrationProvider):
 
             post_install_data = {
                 "user_id": state["user_id"],
-                "channels": state["private_channels"],
+                "private_channels": state["private_channels"],
+                "missing_channels": state["missing_channels"],
             }
 
             integration["integration_id"] = state.get("integration_id")
@@ -188,14 +189,16 @@ class SlackIntegrationProvider(IntegrationProvider):
         if extra is None:
             return
 
-        channels = extra.get("channels")
+        private_channels = extra.get("private_channels")
+        missing_channels = extra.get("missing_channels")
         run_args = {
             "integration_id": integration.id,
             "organization_id": organization.id,
             "user_id": extra.get("user_id"),
-            "channels": channels,
+            "private_channels": private_channels,
+            "missing_channels": missing_channels,
         }
-        if channels:
+        if private_channels or missing_channels:
             post_migration.run_post_migration.apply_async(kwargs=run_args)
         else:
             # if we don't have channels, log it so we know we skipped this
@@ -302,16 +305,25 @@ def _request_channel_info(pipeline):
             # TODO(meredith): subclass the ApiError and make a SlackApiError so we can
             # reraise the other errors
         except ApiError as e:
+            logger.info(
+                "slack.request_channel_info.response-error",
+                extra={
+                    "error": six.text_type(e),
+                    "channel": channel["id"],
+                    "integration_id": integration.id,
+                },
+            )
             # adds the channel to our dict grouped by the error message which could
             # be any of the following found under the 'errors' section found in
             # https://api.slack.com/methods/conversations.list
-            channel_responses[e].add(Channel(channel["name"], channel["id"]))
+            channel_responses["not_found"].add(Channel(channel["name"], channel["id"]))
             continue
 
         if resp["channel"]["is_private"]:
             channel_responses["private"].add(Channel(channel["name"], channel["id"]))
 
     pipeline.bind_state("private_channels", channel_responses["private"])
+    pipeline.bind_state("missing_channels", channel_responses["not_found"])
     return channel_responses
 
 

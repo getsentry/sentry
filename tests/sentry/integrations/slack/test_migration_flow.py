@@ -160,7 +160,8 @@ class SlackMigrationTest(IntegrationTestCase):
                 "integration_id": integration.id,
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
-                "channels": [{"name": "#general", "id": "XXXXX"}],
+                "private_channels": [{"name": "#general", "id": "XXXXX"}],
+                "missing_channels": [],
             }
         )
 
