@@ -142,7 +142,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(

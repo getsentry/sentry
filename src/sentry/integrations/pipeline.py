@@ -51,9 +51,11 @@ class IntegrationPipeline(Pipeline):
             return self.error(six.text_type(e))
 
         response = self._finish_pipeline(data)
-        # TODO: pass in the post_install_data to be able to make the requests
+
+        extra = data.get("post_install_data")
+
         # to Slack
-        self.provider.post_install(self.integration, self.organization)
+        self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
         return response
 

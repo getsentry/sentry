@@ -297,7 +297,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket_server", "integrations:bitbucket_server"],

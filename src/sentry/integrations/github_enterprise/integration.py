@@ -287,7 +287,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             lambda: self._make_identity_pipeline_view(),
         ]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         pass
 
     def get_installation_info(self, installation_data, access_token, installation_id):

@@ -1,0 +1,45 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block main %}
+  <h3>Slack Upgrade</h3>
+  Your Sentry Slack Integration for workspace <strong>{{integration.name}}</strong> has been updated on behalf of organization <strong>{{organization.name}}</strong>. For more information, <a href="{{ doc_link }}">check out the documentation.</a>
+  <br />
+  <br />
+  {% if good_channels %}
+    <div>
+        <strong>Working Private Channels</strong>
+        <p>Sentry was able to send messages to the following private channels with instructions on how to add Sentry to the channel:</p>
+        {% for channel in good_channels %}
+            <li class="channel-name">{{channel.name}} </li>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if failing_channels %}
+        <br />
+        <strong>Failing Private Channels</strong>
+        <p>Sentry was unable to send messages to the following private channels:</p>
+        {% for channel in failing_channels %}
+            <li class="channel-name">{{channel.name}} </li>
+        {% endfor %}
+        </div>
+    {% endif %}
+    {% if missing_channels %}
+        <br />
+        <div>
+            <strong>Missing or Unauthorized Channels</strong>
+            <p class="section-info">
+                {% trans "These channels were found to be missing or unauthorized by the current Slack integration. If they are private channels, you'll have make sure to add the Sentry bot to the channels after migration. Otherwise you may want update your alert rules to use a different channel." %}
+            </p>
+            {% for channel in missing_channels %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+{% endblock %}
+
+{% block footer %}{% endblock %}
