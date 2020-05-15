@@ -21,7 +21,6 @@ from sentry.incidents.models import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
-    IncidentGroup,
     IncidentProject,
     IncidentSnapshot,
     PendingIncidentSnapshot,
@@ -60,23 +59,14 @@ def create_incident(
     organization,
     type_,
     title,
-    query,
-    aggregation,
     date_started,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
     detection_uuid=None,
     projects=None,
-    groups=None,
     user=None,
     alert_rule=None,
 ):
-    if groups:
-        group_projects = [g.project for g in groups]
-        if projects is None:
-            projects = []
-        projects = list(set(projects + group_projects))
-
     if date_detected is None:
         date_detected = date_started
 
@@ -87,8 +77,6 @@ def create_incident(
             status=IncidentStatus.OPEN.value,
             type=type_.value,
             title=title,
-            query=query,
-            aggregation=aggregation.value,
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
@@ -103,11 +91,6 @@ def create_incident(
                 post_save.send(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
-
-        if groups:
-            IncidentGroup.objects.bulk_create(
-                [IncidentGroup(incident=incident, group=group) for group in groups]
-            )
 
         create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
@@ -320,11 +303,6 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
         incident, start, end, windowed_stats=windowed_stats
     )
 
-    group_ids = list(
-        IncidentGroup.objects.filter(incident=incident).values_list("group_id", flat=True)
-    )
-    if group_ids:
-        params["group_ids"] = group_ids
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
     )
