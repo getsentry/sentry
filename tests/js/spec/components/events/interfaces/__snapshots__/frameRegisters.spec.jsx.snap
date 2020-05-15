@@ -17,7 +17,9 @@ Array [
             meta={null}
             value="0x00007fff9300bf70"
           >
-            0x00007fff9300bf70
+            <span>
+              0x00007fff9300bf70
+            </span>
           </AnnotatedText>
         </span>
       </FixedWidth>
@@ -76,7 +78,9 @@ Array [
           meta={null}
           value="0x00007fff9300bf70"
         >
-          0x00007fff9300bf70
+          <span>
+            0x00007fff9300bf70
+          </span>
         </AnnotatedText>
       </span>
     </FixedWidth>
@@ -137,7 +141,9 @@ Array [
             meta={null}
             value="0x0000000000000000"
           >
-            0x0000000000000000
+            <span>
+              0x0000000000000000
+            </span>
           </AnnotatedText>
         </span>
       </FixedWidth>
@@ -196,7 +202,9 @@ Array [
           meta={null}
           value="0x0000000000000000"
         >
-          0x0000000000000000
+          <span>
+            0x0000000000000000
+          </span>
         </AnnotatedText>
       </span>
     </FixedWidth>
@@ -257,7 +265,9 @@ Array [
             meta={null}
             value="0x0000000000000000"
           >
-            0x0000000000000000
+            <span>
+              0x0000000000000000
+            </span>
           </AnnotatedText>
         </span>
       </FixedWidth>
@@ -316,7 +326,9 @@ Array [
           meta={null}
           value="0x0000000000000000"
         >
-          0x0000000000000000
+          <span>
+            0x0000000000000000
+          </span>
         </AnnotatedText>
       </span>
     </FixedWidth>
@@ -382,7 +394,9 @@ Array [
             meta={null}
             value="0x00007fff9300bf70"
           >
-            0x00007fff9300bf70
+            <span>
+              0x00007fff9300bf70
+            </span>
           </AnnotatedText>
         </span>
       </FixedWidth>
@@ -441,7 +455,9 @@ Array [
           meta={null}
           value="0x00007fff9300bf70"
         >
-          0x00007fff9300bf70
+          <span>
+            0x00007fff9300bf70
+          </span>
         </AnnotatedText>
       </span>
     </FixedWidth>
@@ -502,7 +518,9 @@ Array [
             meta={null}
             value="0x0000000000000000"
           >
-            0x0000000000000000
+            <span>
+              0x0000000000000000
+            </span>
           </AnnotatedText>
         </span>
       </FixedWidth>
@@ -561,7 +579,9 @@ Array [
           meta={null}
           value="0x0000000000000000"
         >
-          0x0000000000000000
+          <span>
+            0x0000000000000000
+          </span>
         </AnnotatedText>
       </span>
     </FixedWidth>

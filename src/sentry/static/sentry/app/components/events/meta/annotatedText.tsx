@@ -61,7 +61,7 @@ function renderValue(value: React.ReactElement, meta?: Meta): React.ReactElement
   }
 
   let element: React.ReactElement = value;
-  if (value) {
+  if (value && meta) {
     element = <Redaction>{value}</Redaction>;
   } else if (meta?.err?.length) {
     element = <Placeholder>invalid</Placeholder>;

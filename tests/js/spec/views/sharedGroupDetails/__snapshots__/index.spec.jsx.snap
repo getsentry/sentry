@@ -638,7 +638,9 @@ exports[`SharedGroupDetails renders 1`] = `
                                                 meta={null}
                                                 value="Blocked script"
                                               >
-                                                Blocked script
+                                                <span>
+                                                  Blocked script
+                                                </span>
                                               </AnnotatedText>
                                             </ErrorBoundary>
                                           </MetaData>
