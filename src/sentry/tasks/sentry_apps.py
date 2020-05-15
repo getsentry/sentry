@@ -4,7 +4,7 @@ import logging
 
 from celery.task import current
 from django.core.urlresolvers import reverse
-from requests.exceptions import RequestException, Timeout, HTTPError
+from requests.exceptions import RequestException, Timeout
 
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
@@ -319,9 +319,5 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         track_response_code("timeout", slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
-        # Re-raise the exception because some of these tasks might retry on the exception
-        raise
-
-    except HTTPError:
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
