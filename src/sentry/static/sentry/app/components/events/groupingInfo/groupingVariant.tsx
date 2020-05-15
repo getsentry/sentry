@@ -1,24 +1,25 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import {EventGroupVariant, EventGroupVariantType, EventGroupComponent} from 'app/types';
 
 import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
 
-class GroupVariant extends React.Component {
-  static propTypes = {
-    variant: PropTypes.object,
-  };
+type Props = {
+  variant: EventGroupVariant;
+};
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      showNonContributing: false,
-    };
-  }
+type State = {
+  showNonContributing: boolean;
+};
+
+class GroupVariant extends React.Component<Props, State> {
+  state = {
+    showNonContributing: false,
+  };
 
   toggleNonContributing = () => {
     this.setState({
@@ -26,43 +27,62 @@ class GroupVariant extends React.Component {
     });
   };
 
-  renderVariantDetails() {
+  getVariantData() {
     const {variant} = this.props;
-    const data = [['Type', variant.type]];
-    let component = null;
+    const data = [[t('Type'), variant.type]];
+    let component: EventGroupComponent | undefined;
 
     if (variant.hash !== null) {
-      data.push(['Hash', variant.hash]);
+      data.push([t('Hash'), variant.hash]);
     }
+
     if (variant.hashMismatch) {
       data.push([
-        'Hash mismatch',
-        'hashing algorithm produced a hash that does not match the event',
+        t('Hash mismatch'),
+        t('hashing algorithm produced a hash that does not match the event'),
       ]);
     }
 
     switch (variant.type) {
-      case 'component':
+      case EventGroupVariantType.COMPONENT:
         component = variant.component;
-        data.push(['Grouping Config', variant.config.id]);
+        if (variant.config?.id) {
+          data.push([t('Grouping Config'), variant.config.id]);
+        }
         break;
-      case 'custom-fingerprint':
-        data.push(['Fingerprint values', variant.values]);
+      case EventGroupVariantType.CUSTOM_FINGERPRINT:
+        if (variant.values) {
+          data.push([t('Fingerprint values'), variant.values]);
+        }
         break;
-      case 'salted-component':
-        data.push(['Fingerprint values', variant.values]);
-        data.push(['Grouping Config', variant.config.id]);
+      case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
+        if (variant.values) {
+          data.push(['Fingerprint values', variant.values]);
+        }
+        if (variant.config?.id) {
+          data.push(['Grouping Config', variant.config.id]);
+        }
         break;
       default:
         break;
     }
 
+    return [data, component];
+  }
+
+  render() {
+    const {variant} = this.props;
+    const [data, component] = this.getVariantData();
+
     return (
-      <div>
+      <GroupVariantListItem isContributing={variant.hash !== null}>
+        <GroupVariantTitle>{`${t('by')} ${variant.description}`}</GroupVariantTitle>
+
         <KeyValueList data={data} isContextData />
         {component && (
           <GroupingComponentBox>
+            {/* TODO(grouping): use button bar */}
             {hasNonContributingComponent(component) && (
               <a className="pull-right" onClick={this.toggleNonContributing}>
                 {this.state.showNonContributing
@@ -76,26 +96,14 @@ class GroupVariant extends React.Component {
             />
           </GroupingComponentBox>
         )}
-      </div>
-    );
-  }
-
-  render() {
-    const {variant} = this.props;
-    return (
-      <GroupVariantListItem contributes={variant.hash !== null}>
-        <GroupVariantTitle>{`by ${variant.description}`}</GroupVariantTitle>
-        {this.renderVariantDetails()}
       </GroupVariantListItem>
     );
   }
 }
 
-const GroupVariantListItem = styled(({contributes: _contributes, ...props}) => (
-  <li {...props} />
-))`
+const GroupVariantListItem = styled('li')<{isContributing: boolean}>`
   padding: 15px 0 20px 0;
-  ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
+  color: ${p => (p.isContributing ? null : p.theme.gray6)};
 
   & + li {
     margin-top: 15px;
@@ -106,7 +114,7 @@ const GroupVariantTitle = styled('h5')`
   margin: 0 0 10px 0;
   color: inherit !important;
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const GroupingComponentBox = styled('div')`

@@ -1202,12 +1202,12 @@ export type PlatformIntegration = {
   name: string;
 };
 
-type EventGroupingComponentValue = {
+export type EventGroupComponent = {
   contributes: boolean;
   hint: string | null;
   id: string;
   name: string | null;
-  values: EventGroupingComponentValue[] | string[];
+  values: EventGroupComponent[] | string[];
 };
 export type EventGroupingConfig = {
   base: string | null;
@@ -1219,17 +1219,24 @@ export type EventGroupingConfig = {
   risk: number;
   strategies: string[];
 };
-type EventGroupInfoKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
-export type EventGroupInfo = Record<
-  EventGroupInfoKey,
-  {
-    description: string;
-    hash: string | null;
-    hasMismatch: boolean;
-    key: EventGroupInfoKey;
-    type: 'custom-fingerprint' | 'component';
-    values?: string[];
-    component?: EventGroupingComponentValue;
-    config?: EventGroupingConfig;
-  }
->;
+
+type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+
+export enum EventGroupVariantType {
+  CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
+}
+
+export type EventGroupVariant = {
+  description: string;
+  hash: string | null;
+  hashMismatch: boolean;
+  key: EventGroupVariantKey;
+  type: EventGroupVariantType;
+  values?: string;
+  component?: EventGroupComponent;
+  config?: EventGroupingConfig;
+};
+
+export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
