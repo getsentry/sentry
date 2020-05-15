@@ -116,7 +116,7 @@ class AnnotatedText extends React.Component<Props, {}> {
   render() {
     const {value, meta, ...props} = this.props;
     let component = renderValue(value, meta);
-    if(meta?.err) {
+    if (meta?.err) {
       component = (
         <span {...props}>
           {component}
