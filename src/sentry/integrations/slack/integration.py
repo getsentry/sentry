@@ -313,9 +313,8 @@ def _request_channel_info(pipeline):
                     "integration_id": integration.id,
                 },
             )
-            # adds the channel to our dict grouped by the error message which could
-            # be any of the following found under the 'errors' section found in
-            # https://api.slack.com/methods/conversations.list
+            # regardless of the type of error, we are going to group the channels together
+            # when showing this to the user to make things a bit simpler
             channel_responses["not_found"].add(Channel(channel["name"], channel["id"]))
             continue
 
