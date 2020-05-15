@@ -17,8 +17,8 @@ import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import Tooltip from 'app/components/tooltip';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 
-import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type DefaultProps = {
