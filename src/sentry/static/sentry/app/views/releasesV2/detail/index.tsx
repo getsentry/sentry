@@ -69,15 +69,15 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      deploys: [],
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, location, params} = this.props;
+  getEndpoints() {
+    const {organization, location, params, releaseMeta} = this.props;
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
-      // TODO(releasesV2): summaryStatsPeriod + healthStatsPeriod?
       health: 1,
     };
 
@@ -85,10 +85,15 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
       params.release
     )}/`;
 
-    return [
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['release', basePath, {query}],
-      ['deploys', `${basePath}deploys/`],
     ];
+
+    if (releaseMeta.deployCount > 0) {
+      endpoints.push(['deploys', `${basePath}deploys/`]);
+    }
+
+    return endpoints;
   }
 
   renderError(...args) {
