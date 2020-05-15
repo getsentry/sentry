@@ -4,15 +4,21 @@ import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 import Radio from 'app/components/radio';
+import space from 'app/styles/space';
 
 type RadioGroupProps<C extends string> = {
-  value: string | number | null;
-
-  // An array of [id, name, description]
-  choices: [C, React.ReactNode, React.ReactNode?][];
-  disabled?: boolean;
   label: string;
+  disabled?: boolean;
+  /**
+   * An array of [id, name, description]
+   */
+  choices: [C, React.ReactNode, React.ReactNode?][];
+  value: string | number | null;
   onChange: (id: C, e: React.FormEvent) => void;
+  /**
+   * Switch the radio items to flow left to right, instead of vertically.
+   */
+  orientInline?: boolean;
 };
 
 type Props<C extends string> = RadioGroupProps<C> &
@@ -24,9 +30,15 @@ const RadioGroup = <C extends string>({
   choices,
   label,
   onChange,
+  orientInline,
   ...props
 }: Props<C>) => (
-  <div {...props} role="radiogroup" aria-labelledby={label}>
+  <Container
+    orientInline={orientInline}
+    {...props}
+    role="radiogroup"
+    aria-labelledby={label}
+  >
     {(choices || []).map(([id, name, description], index) => (
       <RadioLineItem
         key={index}
@@ -51,7 +63,7 @@ const RadioGroup = <C extends string>({
         )}
       </RadioLineItem>
     ))}
-  </div>
+  </Container>
 );
 
 RadioGroup.propTypes = {
@@ -74,9 +86,17 @@ const RadioLineItem = styled('label', {shouldForwardProp})<{
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  margin-top: ${p => (p.index > 0 ? '0.5em' : '0')};
   outline: none;
   font-weight: normal;
+  margin: 0;
+`;
+
+const Container = styled('div')<{orientInline?: boolean}>`
+  display: grid;
+  grid-gap: ${p => space(p.orientInline ? 3 : 1)};
+  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
+  grid-auto-rows: max-content;
+  grid-auto-columns: max-content;
 `;
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
