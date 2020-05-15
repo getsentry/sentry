@@ -118,7 +118,7 @@ class AnnotatedText extends React.Component<Props, {}> {
     return (
       <span {...props}>
         {renderValue(value, meta)}
-        {meta && meta.err && renderErrors(meta.err)}
+        {meta?.err && renderErrors(meta.err)}
       </span>
     );
   }
