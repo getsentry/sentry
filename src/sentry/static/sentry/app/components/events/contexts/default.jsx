@@ -9,7 +9,6 @@ class DefaultContextType extends React.Component {
     data: PropTypes.object.isRequired,
   };
 
-
   render() {
     const knownData = Object.entries(this.props.data)
       .filter(([k, v]) => k != 'type' && k != 'title')
@@ -17,7 +16,7 @@ class DefaultContextType extends React.Component {
         return {
           key: k,
           subject: k,
-          value: v
+          value: v,
         };
       });
 
