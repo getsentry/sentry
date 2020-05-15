@@ -44,7 +44,6 @@ function getSentryIntegrations(hasReplays: boolean = false) {
     // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
     // incompatible. It's a newer plugin, so this can be expected, but we
     // should fix.
-    // Only use this in prod as there seem to be issues with hot reload in dev
     integrations.push(
       new SentryRRWeb({
         checkoutEveryNms: 60 * 1000, // 60 seconds
@@ -71,7 +70,7 @@ const tracesSampleRate = config ? config.apmSampling : 0;
 const hasReplays =
   window.__SENTRY__USER &&
   window.__SENTRY__USER.isStaff &&
-  process.env.NODE_ENV === 'production';
+  !!process.env.DISABLE_RR_WEB;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
