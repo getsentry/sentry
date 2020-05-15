@@ -56,7 +56,7 @@ const RichHttpContentClippedBoxBodySection = ({
         return (
           <pre data-test-id="rich-http-content-body-section-pre">
             <AnnotatedText
-              value={JSON.stringify(value, null, 2)}
+              value={value && JSON.stringify(value, null, 2)}
               meta={meta}
               data-test-id="rich-http-content-body-context-data"
             />
