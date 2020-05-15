@@ -141,6 +141,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   }
 }
 
+// TODO(grouping): convert to camelcase
 export const GroupingConfigItem = styled(({hidden: _h, active: _a, ...props}) => (
   <code {...props} />
 ))`
