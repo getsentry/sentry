@@ -237,7 +237,7 @@ class Pipeline(object):
             "integrations.pipeline_step",
             user_id=self.request.user.id,
             organization_id=self.organization.id,
-            provider=self.provider.key,
+            integration=self.provider.key,
             step_index=self.state.step_index,
             pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
         )

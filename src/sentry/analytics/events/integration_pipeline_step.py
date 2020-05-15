@@ -9,7 +9,7 @@ class IntegrationPipelineStep(analytics.Event):
     attributes = (
         analytics.Attribute("user_id"),
         analytics.Attribute("organization_id"),
-        analytics.Attribute("provider"),
+        analytics.Attribute("integration"),
         analytics.Attribute("step_index"),
         analytics.Attribute("pipeline_type"),
     )
