@@ -7,7 +7,7 @@ import Count from 'app/components/count';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
-import {Release} from 'app/types';
+import {Release, GlobalSelection} from 'app/types';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
@@ -26,10 +26,11 @@ type Props = {
   release: Release;
   orgSlug: string;
   location: Location;
+  selection: GlobalSelection;
   reloading: boolean;
 };
 
-const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
+const ReleaseCard = ({release, orgSlug, location, selection, reloading}: Props) => {
   const {version, commitCount, lastDeploy, authors, dateCreated} = release;
 
   return (
@@ -107,7 +108,12 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
         </StyledPanelItem>
       </PanelBody>
 
-      <ReleaseHealth release={release} orgSlug={orgSlug} location={location} />
+      <ReleaseHealth
+        release={release}
+        orgSlug={orgSlug}
+        location={location}
+        selection={selection}
+      />
     </StyledPanel>
   );
 };
