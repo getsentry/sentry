@@ -39,9 +39,17 @@ describe('SentryAppDetailedView', function() {
   describe('Published Sentry App', function() {
     let createRequest;
     let deleteRequest;
+    let sentryAppInteractionRequest;
 
     beforeEach(() => {
       Client.clearMockResponses();
+
+      sentryAppInteractionRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/clickup/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -106,6 +114,18 @@ describe('SentryAppDetailedView', function() {
       );
     });
 
+    it('records interaction request', () => {
+      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+        `/sentry-apps/clickup/interaction/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            tsdbField: 'sentry_app_viewed',
+          },
+        })
+      );
+    });
+
     it('shows the Integration name and install status', async function() {
       expect(wrapper.find('Name').props().children).toEqual('ClickUp');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
@@ -147,6 +167,13 @@ describe('SentryAppDetailedView', function() {
   describe('Internal Sentry App', function() {
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/my-headband-washer-289499/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -217,6 +244,13 @@ describe('SentryAppDetailedView', function() {
 
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/la-croix-monitor/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
@@ -305,6 +339,13 @@ describe('SentryAppDetailedView', function() {
     let createRequest;
     beforeEach(() => {
       Client.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/go-to-google/interaction/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {},
+      });
 
       mockResponse([
         [
