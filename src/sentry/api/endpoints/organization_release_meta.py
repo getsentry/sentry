@@ -45,7 +45,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
                 "commit_id", flat=True
             )
-        ).count()
+        ).values("filename").distinct().count()
 
         project_releases = ReleaseProject.objects.filter(release=release).values(
             "new_groups",
