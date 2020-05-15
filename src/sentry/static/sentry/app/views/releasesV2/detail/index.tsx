@@ -26,6 +26,7 @@ import PickProjectToContinue from './pickProjectToContinue';
 type ReleaseContext = {
   release: Release;
   project: ReleaseProject;
+  deploys: Deploy[];
   releaseProjects: ReleaseProject[];
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
@@ -121,12 +122,11 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys || []}
             project={project}
           />
 
           <ContentBox>
-            <ReleaseContext.Provider value={{release, project, releaseProjects}}>
+            <ReleaseContext.Provider value={{release, project, deploys, releaseProjects}}>
               {this.props.children}
             </ReleaseContext.Provider>
           </ContentBox>

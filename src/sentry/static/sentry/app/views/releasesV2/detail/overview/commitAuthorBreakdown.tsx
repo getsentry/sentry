@@ -158,7 +158,7 @@ const StyledUserAvatar = styled(UserAvatar)`
 
 const AuthorName = styled('div')`
   font-weight: 600;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray4};
   padding-right: ${space(0.5)};
   ${overflowEllipsis};
 `;

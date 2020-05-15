@@ -13,7 +13,7 @@ import {t, tn} from 'app/locale';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
 import TextOverflow from 'app/components/textOverflow';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import Tag from 'app/views/settings/components/tag';
+import DeployBadge from 'app/components/deployBadge';
 import Link from 'app/components/links/link';
 import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
@@ -73,9 +73,7 @@ const ReleaseCard = ({release, orgSlug, location, reloading}: Props) => {
 
             <CreatedColumn>
               <TextOverflow>
-                {lastDeploy?.dateFinished && (
-                  <DeployEnv>{lastDeploy.environment}</DeployEnv>
-                )}
+                {lastDeploy?.dateFinished && <StyledDeployBadge deploy={lastDeploy} />}
                 <TimeSince date={lastDeploy?.dateFinished || dateCreated} />
               </TextOverflow>
             </CreatedColumn>
@@ -198,17 +196,10 @@ const VersionWrapper = styled('div')`
   display: inline-block;
 `;
 
-const DeployEnv = styled(Tag)`
-  background-color: ${p => p.theme.gray4};
-  color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-right: ${space(1)};
+const StyledDeployBadge = styled(DeployBadge)`
   position: relative;
   bottom: ${space(0.25)};
-  display: inline-block;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-right: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
