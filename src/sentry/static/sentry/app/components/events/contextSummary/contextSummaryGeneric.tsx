@@ -27,12 +27,7 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
 
   const renderValue = (key: keyof Data) => {
     const meta = getMeta(data, key);
-    return (
-      <AnnotatedText
-        value={data[key]}
-        meta={meta}
-      />
-    );
+    return <AnnotatedText value={data[key]} meta={meta} />;
   };
 
   const className = generateClassName(data.name);
