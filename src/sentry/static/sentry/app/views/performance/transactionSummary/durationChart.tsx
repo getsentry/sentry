@@ -20,6 +20,7 @@ import withApi from 'app/utils/withApi';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import {HeaderTitleLegend} from '../styles';
 
@@ -157,21 +158,26 @@ class DurationChart extends React.Component<Props> {
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>
                         <TransparentLoadingMask visible={reloading} />
-                        <AreaChart
-                          {...zoomRenderProps}
-                          legend={legend}
-                          series={[...series, ...releaseSeries]}
-                          seriesOptions={{
-                            showSymbol: false,
-                          }}
-                          tooltip={tooltip}
-                          grid={{
-                            left: '10px',
-                            right: '10px',
-                            top: '40px',
-                            bottom: '0px',
-                          }}
-                        />
+                        {getDynamicText({
+                          value: (
+                            <AreaChart
+                              {...zoomRenderProps}
+                              legend={legend}
+                              series={[...series, ...releaseSeries]}
+                              seriesOptions={{
+                                showSymbol: false,
+                              }}
+                              tooltip={tooltip}
+                              grid={{
+                                left: '10px',
+                                right: '10px',
+                                top: '40px',
+                                bottom: '0px',
+                              }}
+                            />
+                          ),
+                          fixed: 'Duration Chart',
+                        })}
                       </TransitionChart>
                     )}
                   </ReleaseSeries>

@@ -117,8 +117,8 @@ const SidebarItem = ({
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
-                {showIsNew && <FeatureBadge type="new" />}
-                {isBeta && <FeatureBadge type="beta" />}
+                {showIsNew && <FeatureBadge type="new" noTooltip />}
+                {isBeta && <FeatureBadge type="beta" noTooltip />}
               </LabelHook>
             </SidebarItemLabel>
           )}

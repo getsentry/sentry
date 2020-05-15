@@ -16,12 +16,14 @@ import Tooltip from 'app/components/tooltip';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
 import ClippedBox from 'app/components/clippedBox';
+import Link from 'app/components/links/link';
 
 import HealthStatsChart from './healthStatsChart';
 import {
   displayCrashFreePercent,
   convertAdoptionToProgress,
   getCrashFreePercentColor,
+  getReleaseNewIssuesUrl,
 } from '../utils';
 import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
@@ -186,7 +188,17 @@ const ReleaseHealth = ({release, orgSlug, location}: Props) => {
                     </CrashesColumn>
 
                     <NewIssuesColumn>
-                      <Count value={newGroups || 0} />
+                      <Tooltip title={t('Open in Issues')}>
+                        <Link
+                          to={getReleaseNewIssuesUrl(
+                            orgSlug,
+                            project.id,
+                            release.version
+                          )}
+                        >
+                          <Count value={newGroups || 0} />
+                        </Link>
+                      </Tooltip>
                     </NewIssuesColumn>
                   </Layout>
                 </StyledPanelItem>

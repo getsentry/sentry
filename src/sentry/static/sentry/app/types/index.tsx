@@ -98,6 +98,7 @@ export type OrganizationSummary = {
 export type LightWeightOrganization = OrganizationSummary & {
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -885,7 +886,17 @@ export type Release = {
   owner?: any; // TODO(ts)
   newGroups: number;
   projects: ReleaseProject[];
+  versionInfo: VersionInfo;
 } & BaseRelease;
+
+export type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
 
 export type ReleaseProject = {
   slug: string;
@@ -897,13 +908,21 @@ export type ReleaseProject = {
   healthData: Health;
 };
 
-export type BaseRelease = {
-  dateReleased: string;
-  url: string;
-  dateCreated: string;
+export type ReleaseMeta = {
+  commitCount: number;
+  commitFilesChanged: number;
+  deployCount: number;
+  releaseFileCount: number;
   version: string;
-  shortVersion: string;
-  ref: string;
+  projects: ReleaseProject[];
+  versionInfo: VersionInfo;
+};
+
+export type VersionInfo = {
+  buildHash: string | null;
+  description: string;
+  package: string | null;
+  version: {raw: string};
 };
 
 export type Deploy = {

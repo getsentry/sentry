@@ -158,7 +158,7 @@ const StyledUserAvatar = styled(UserAvatar)`
 
 const AuthorName = styled('div')`
   font-weight: 600;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray4};
   padding-right: ${space(0.5)};
   ${overflowEllipsis};
 `;
@@ -177,7 +177,7 @@ const Commits = styled('div')`
 const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray3};
 `;
 
 const StyledButton = styled(Button)`

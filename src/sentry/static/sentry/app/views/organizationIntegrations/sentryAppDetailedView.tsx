@@ -19,6 +19,7 @@ import {openModal} from 'app/actionCreators/modal';
 import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
 import Confirm from 'app/components/confirm';
 import {IconSubtract} from 'app/icons';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
@@ -65,6 +66,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     }
 
     super.onLoadAllEndpointsSuccess();
+    recordInteraction(integrationSlug, 'sentry_app_viewed');
   }
 
   get integrationType() {

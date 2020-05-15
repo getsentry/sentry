@@ -70,7 +70,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
     IncidentType,
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import aggregation_function_translations
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
@@ -718,34 +718,29 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window,
             threshold_period,
         )
-        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.status == AlertRuleStatus.PENDING.value
-        assert alert_rule.query_subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
-        assert alert_rule.dataset == QueryDatasets.EVENTS.value
         assert alert_rule.snuba_query.query == query
-        assert alert_rule.query == query
         assert alert_rule.snuba_query.aggregate == aggregation_function_translations[aggregation]
-        assert alert_rule.aggregation == aggregation.value
         assert alert_rule.snuba_query.time_window == time_window * 60
-        assert alert_rule.time_window == time_window
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-        assert alert_rule.resolution == DEFAULT_ALERT_RULE_RESOLUTION
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
         include_all_projects = True
         self.project
         alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
-        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.include_all_projects == include_all_projects
 
         new_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(
             projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
         )
-        assert alert_rule.query_subscriptions.get().project == new_project
+        assert alert_rule.snuba_query.subscriptions.get().project == new_project
         assert alert_rule.include_all_projects == include_all_projects
 
     def test_invalid_query(self):
@@ -839,38 +834,34 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
-        updated_subscriptions = self.alert_rule.query_subscriptions.all()
+        updated_subscriptions = self.alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for subscription in updated_subscriptions:
             assert subscription.snuba_query.query == query
-            assert subscription.query == query
             assert (
                 subscription.snuba_query.aggregate == aggregation_function_translations[aggregation]
             )
-            assert subscription.aggregation == aggregation.value
             assert subscription.snuba_query.time_window == int(
                 timedelta(minutes=time_window).total_seconds()
             )
-            assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
         assert self.alert_rule.snuba_query.query == query
-        assert self.alert_rule.query == query
         assert (
             self.alert_rule.snuba_query.aggregate == aggregation_function_translations[aggregation]
         )
-        assert self.alert_rule.aggregation == aggregation.value
         assert self.alert_rule.snuba_query.time_window == time_window * 60
-        assert self.alert_rule.time_window == time_window
         assert self.alert_rule.threshold_period == threshold_period
 
     def test_update_subscription(self):
-        old_subscription_id = self.alert_rule.query_subscriptions.get().subscription_id
+        old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
         with self.tasks():
             update_alert_rule(self.alert_rule, query="some new query")
-        assert old_subscription_id != self.alert_rule.query_subscriptions.get().subscription_id
+        assert (
+            old_subscription_id != self.alert_rule.snuba_query.subscriptions.get().subscription_id
+        )
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
-        assert alert_rule.query == ""
+        assert alert_rule.snuba_query.query == ""
 
     def test_name_used(self):
         used_name = "uh oh"
@@ -901,7 +892,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             1,
         )
         update_alert_rule(alert_rule, [self.project])
-        assert self.alert_rule.query_subscriptions.get().project == self.project
+        assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
 
     def test_new_updated_deleted_projects(self):
         alert_rule = create_alert_rule(
@@ -918,71 +909,54 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         updated_projects = [self.project, new_project]
         with self.tasks():
             update_alert_rule(alert_rule, updated_projects, query=query_update)
-        updated_subscriptions = alert_rule.query_subscriptions.all()
+        updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for sub in updated_subscriptions:
-            assert sub.query == query_update
+            assert sub.snuba_query.query == query_update
 
     def test_update_to_include_all(self):
         orig_project = self.project
         alert_rule = self.create_alert_rule(projects=[orig_project])
         new_project = self.create_project(fire_project_created=True)
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(alert_rule, include_all_projects=True)
-        assert set(
-            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
-        ) == set([new_project, orig_project])
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
+            [new_project, orig_project]
+        )
 
     def test_update_to_include_all_with_exclude(self):
         orig_project = self.project
         alert_rule = self.create_alert_rule(projects=[orig_project])
         new_project = self.create_project(fire_project_created=True)
         excluded_project = self.create_project()
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(
             alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
         )
-        assert set(
-            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
-        ) == set([orig_project, new_project])
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
+            [orig_project, new_project]
+        )
 
     def test_update_include_all_exclude_list(self):
         new_project = self.create_project(fire_project_created=True)
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
         with self.tasks():
             update_alert_rule(alert_rule, excluded_projects=[self.project])
-        assert [
-            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
-        ] == [new_project]
+        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
         update_alert_rule(alert_rule, excluded_projects=[])
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
 
     def test_update_from_include_all(self):
         new_project = self.create_project(fire_project_created=True)
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
         with self.tasks():
             update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
-        assert [
-            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
-        ] == [new_project]
+        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
     def test_with_attached_incident(self):
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
@@ -1030,14 +1004,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert rule_snapshot.snuba_query_id != updated_rule.snuba_query_id
             assert rule_snapshot.name == updated_rule.name
             assert rule_snapshot.snuba_query.query == "level:error"
-            assert rule_snapshot.query == "level:error"
             assert rule_snapshot.snuba_query.time_window == 600
-            assert rule_snapshot.time_window == 10
             assert (
                 rule_snapshot.snuba_query.aggregate
                 == aggregation_function_translations[QueryAggregations.TOTAL]
             )
-            assert rule_snapshot.aggregation == QueryAggregations.TOTAL.value
             assert rule_snapshot.threshold_period == 1
 
             for incident in (incident, incident_2):

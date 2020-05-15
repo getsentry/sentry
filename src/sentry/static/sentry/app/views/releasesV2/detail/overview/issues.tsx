@@ -79,7 +79,7 @@ class Issues extends React.Component<Props, State> {
     const query: QueryResults = {query: []};
 
     if (issuesType === IssuesType.NEW) {
-      query['first-release'] = [version];
+      query.firstRelease = [version];
     } else {
       query.release = [version];
     }

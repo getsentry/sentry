@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import copy
-import json
 import six
 import pytest
 import pytz
@@ -152,14 +151,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
         self.dismiss_assistant()
-
-    def dismiss_assistant(self):
-        res = self.client.put(
-            "/api/0/assistant/?v2",
-            content_type="application/json",
-            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
