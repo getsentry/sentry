@@ -58,8 +58,8 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     try:
         resp = safe_urlopen(url=url, **kwargs)
-        error_id = (resp.headers.get("Sentry-Hook-Error"),)
-        project_id = (resp.headers.get("Sentry-Hook-Project"),)
+        error_id = resp.headers.get("Sentry-Hook-Error")
+        project_id = resp.headers.get("Sentry-Hook-Project")
         resp.raise_for_status()
 
     except Timeout as e:
