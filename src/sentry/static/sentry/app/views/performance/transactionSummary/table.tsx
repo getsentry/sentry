@@ -52,7 +52,7 @@ class SummaryContentTable extends React.Component<Props> {
   renderHeader() {
     const {eventView, tableData} = this.props;
 
-    const tableMeta = tableData && tableData.meta ? tableData.meta : undefined;
+    const tableMeta = tableData?.meta
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
 

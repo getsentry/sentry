@@ -212,10 +212,10 @@ class Table extends React.Component<Props, State> {
               grid={{
                 onResizeColumn: this.handleResizeColumn,
                 renderHeadCell: this.renderHeadCell(
-                  tableData ? tableData.meta : undefined
+                  tableData?.meta
                 ) as any,
                 renderBodyCell: this.renderBodyCell(
-                  tableData ? tableData.meta : undefined
+                  tableData?.meta
                 ) as any,
               }}
               location={location}

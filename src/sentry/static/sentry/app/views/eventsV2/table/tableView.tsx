@@ -109,7 +109,7 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-    const tableMeta = tableData && tableData.meta ? tableData.meta : undefined;
+    const tableMeta = tableData?.meta;
 
     return (
       <HeaderCell column={column} tableMeta={tableMeta}>
