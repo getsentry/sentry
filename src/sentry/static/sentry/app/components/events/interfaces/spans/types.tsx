@@ -38,6 +38,14 @@ export type OrphanSpanType = {
   type: 'orphan';
 } & RawSpanType;
 
+type NaturalSpans = RawSpanType | OrphanSpanType;
+
+export type GroupedByOpNameSpanType = {
+  type: 'grouped';
+  op: string;
+  spans: Array<NaturalSpans>;
+};
+
 export type SpanType = RawSpanType | OrphanSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
