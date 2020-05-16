@@ -8,7 +8,7 @@ import {TableData} from 'app/views/eventsV2/table/types';
 
 import {
   ProcessedSpanType,
-  RawSpanType,
+  SpanType,
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
@@ -107,7 +107,7 @@ class SpanTree extends React.Component<PropType> {
     return <SpanRowMessage>{messages}</SpanRowMessage>;
   }
 
-  isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
+  isSpanFilteredOut(span: Readonly<SpanType>): boolean {
     const {filterSpans} = this.props;
 
     if (!filterSpans) {
@@ -145,7 +145,7 @@ class SpanTree extends React.Component<PropType> {
     const {orgId, eventView, event, spansWithErrors, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
-    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+    const spanChildren: Array<SpanType> = childSpans?.[getSpanID(span)] ?? [];
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -305,7 +305,7 @@ class SpanTree extends React.Component<PropType> {
   renderRootSpan = (): RenderedSpanTree => {
     const {dragProps, trace} = this.props;
 
-    const rootSpan: RawSpanType = generateRootSpan(trace);
+    const rootSpan: SpanType = generateRootSpan(trace);
 
     const generateBounds = boundsGenerator({
       traceStartTimestamp: trace.traceStartTimestamp,
