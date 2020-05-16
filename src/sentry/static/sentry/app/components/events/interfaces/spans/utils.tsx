@@ -18,6 +18,7 @@ import {
   TraceContextType,
   TreeDepthType,
   OrphanTreeDepth,
+  GroupedByOpNameSpanType,
 } from './types';
 
 type Rect = {
@@ -578,4 +579,50 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   }
 
   return treeDepth;
+}
+
+type NewSpanType = SpanType | GroupedByOpNameSpanType;
+
+function getSpanOperationName(span: NewSpanType): string | undefined {
+  return span.op;
+}
+
+export function groupByOperationNames(parsedTrace: ParsedTraceType): ParsedTraceType {
+  const renderedSpanTree: Array<NewSpanType> = [];
+
+  const unvisitedSpans: Array<NewSpanType> = [generateRootSpan(parsedTrace)];
+
+  while (unvisitedSpans.length > 0) {
+    const currentSpan = unvisitedSpans.pop();
+
+    if (!currentSpan) {
+      break;
+    }
+
+    const spanChildren: Array<NewSpanType> =
+      parsedTrace.childSpans?.[getSpanID(currentSpan)] ?? [];
+
+    const children = [...spanChildren];
+    // children would be visited from right to left in unvisitedSpans
+    children.reverse();
+    unvisitedSpans.push(...children);
+
+    if (renderedSpanTree.length === 0) {
+      renderedSpanTree.push(currentSpan);
+
+      continue;
+    }
+
+    const lastRenderedSpan = renderedSpanTree[renderedSpanTree.length - 1];
+
+    if (getSpanOperationName(lastRenderedSpan) === getSpanOperationName(currentSpan)) {
+      // TODO: group span
+
+      continue;
+    }
+
+    renderedSpanTree.push(currentSpan);
+  }
+
+  return parsedTrace;
 }
