@@ -430,7 +430,7 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         # as the data becomes available.
         if stat == "sessions":
             for k in totals:
-                totals[k] += rv[k]
+                totals[k] += stats[bucket][1][k]
 
     for idx, bucket in enumerate(stats):
         if bucket[1] is None:
