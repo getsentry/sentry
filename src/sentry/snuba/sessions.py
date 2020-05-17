@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime
+from sentry.utils.snuba import raw_query, parse_snuba_datetime, QueryOutsideRetentionError
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.snuba.dataset import Dataset
 
@@ -355,13 +355,17 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
         timedelta(days=14),
         timedelta(days=30),
     ):
-        item_start = start + offset
-        if item_start > now:
-            if last is None or (item_start - last).days > 1:
-                rv.append(_query_stats(now))
-            break
-        rv.append(_query_stats(item_start))
-        last = item_start
+        try:
+            item_start = start + offset
+            if item_start > now:
+                if last is None or (item_start - last).days > 1:
+                    rv.append(_query_stats(now))
+                break
+            rv.append(_query_stats(item_start))
+            last = item_start
+        except QueryOutsideRetentionError:
+            # cannot query for these
+            pass
 
     return rv
 
