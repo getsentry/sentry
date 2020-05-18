@@ -323,6 +323,7 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     start_timestamp: trace.traceStartTimestamp,
     timestamp: trace.traceEndTimestamp,
     op: trace.op,
+    description: trace.description,
     data: {},
   };
 
@@ -421,6 +422,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
   const traceID = (traceContext && traceContext.trace_id) || '';
   const rootSpanID = (traceContext && traceContext.span_id) || '';
   const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
+  const description = traceContext && traceContext.description;
   const parentSpanID = traceContext && traceContext.parent_span_id;
 
   if (!spanEntry || spans.length <= 0) {
@@ -434,6 +436,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
       parentSpanID,
       numOfSpans: 0,
       spans: [],
+      description,
     };
   }
 
@@ -459,6 +462,7 @@ export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTrace
     parentSpanID,
     numOfSpans: spans.length,
     spans,
+    description,
   };
 
   const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
