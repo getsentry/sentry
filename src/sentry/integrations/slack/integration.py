@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+from datetime import datetime
 from collections import namedtuple, defaultdict
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -16,6 +18,7 @@ from sentry.integrations import (
 
 from sentry.models import Integration, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.slack import post_migration
@@ -172,11 +175,13 @@ class SlackIntegrationProvider(IntegrationProvider):
         # are using in post_install to send messages to slack
         if state.get("integration_id"):
             metadata["installation_type"] = "migrated_to_bot"
+            metadata["migrated_at"] = six.text_type(datetime.utcnow()).split(".")[0]
 
             post_install_data = {
                 "user_id": state["user_id"],
                 "private_channels": state["private_channels"],
                 "missing_channels": state["missing_channels"],
+                "extra_orgs": state["extra_orgs"],
             }
 
             integration["integration_id"] = state.get("integration_id")
@@ -231,12 +236,11 @@ class SlackReAuthIntro(PipelineView):
 
             # We check if there are any other orgs tied to the integration to let the
             # user know those organizations will be affected by the migration
-            extra_orgs = {}
-            for org in integration.organizations.all():
-                if org != pipeline.organization:
-                    extra_orgs[org.id] = org.slug
+            extra_orgs = map(
+                lambda x: x.slug, integration.organizations.filter(~Q(id=pipeline.organization.id))
+            )
 
-            pipeline.bind_state("extra_org_ids", extra_orgs.keys())
+            pipeline.bind_state("extra_orgs", extra_orgs)
 
             try:
                 all_channels = _get_channels_from_rules(pipeline.organization, integration)
