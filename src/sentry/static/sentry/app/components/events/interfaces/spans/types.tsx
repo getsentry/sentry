@@ -47,6 +47,7 @@ export type ParsedTraceType = {
   traceEndTimestamp: number;
   numOfSpans: number;
   spans: SpanType[];
+  description?: string;
 };
 
 export enum TickAlignment {
@@ -61,6 +62,7 @@ export type TraceContextType = {
   span_id?: string;
   trace_id?: string;
   parent_span_id?: string;
+  description?: string;
 };
 
 type SpanTreeDepth = number;
