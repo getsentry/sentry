@@ -7,6 +7,7 @@ import six
 import pytest
 import copy
 
+from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from exam import fixture
 from sentry.utils.compat.mock import Mock
@@ -862,6 +863,41 @@ class JiraIntegrationTest(APITestCase):
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1
+
+    @override_settings(JIRA_USE_EMAIL_SCOPE=True)
+    @responses.activate
+    def test_sync_assignee_outbound_use_email_api(self):
+        self.user = self.create_user(email="bob@example.com")
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        assign_issue_url = "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/user/assignable/search",
+            json=[{"accountId": "deadbeef123", "displayName": "Dead Beef", "emailAddress": ""}],
+            match_querystring=False,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/3/user/email",
+            json={"accountId": "deadbeef123", "email": "bob@example.com"},
+            match_querystring=False,
+        )
+        responses.add(responses.PUT, assign_issue_url, json={}, match_querystring=False)
+
+        installation.sync_assignee_outbound(external_issue, self.user)
+
+        # extra call to get email address
+        assert len(responses.calls) == 3
+
+        assign_issue_response = responses.calls[2][1]
+        assert assign_issue_url in assign_issue_response.url
+        assert assign_issue_response.status_code == 200
+        assert assign_issue_response.request.body == '{"accountId": "deadbeef123"}'
 
     def test_update_organization_config(self):
         org = self.organization

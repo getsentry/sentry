@@ -9,6 +9,7 @@ from sentry.web.frontend.base import BaseView
 from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
+from sentry import analytics
 
 
 class PipelineProvider(object):
@@ -227,11 +228,20 @@ class Pipeline(object):
         context = {"error": message}
         return render_to_response("sentry/pipeline-error.html", context, self.request)
 
-    def next_step(self):
+    def next_step(self, step_size=1):
         """
         Render the next step.
         """
-        self.state.step_index += 1
+        self.state.step_index += step_size
+        if self.organization:
+            analytics.record(
+                "integrations.pipeline_step",
+                user_id=self.request.user.id,
+                organization_id=self.organization.id,
+                integration=self.provider.key,
+                step_index=self.state.step_index,
+                pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
+            )
         return self.current_step()
 
     def finish_pipeline(self):
