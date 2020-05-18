@@ -22,6 +22,7 @@ from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.decorators import classproperty
 from sentry.web.helpers import render_to_response
 from .client import JiraServer, JiraServerSetupClient, JiraServerClient
 
@@ -219,6 +220,11 @@ class JiraServerIntegration(JiraIntegration):
     """
 
     default_identity = None
+
+    @classproperty
+    def use_email_scope(cls):
+        # jira server doesn't need the email scope since it's not restricted by GDPR
+        return False
 
     def get_client(self):
         if self.default_identity is None:

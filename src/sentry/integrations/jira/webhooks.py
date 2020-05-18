@@ -16,7 +16,7 @@ from .client import JiraApiClient, JiraCloud
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
 
-def handle_assignee_change(integration, data):
+def handle_assignee_change(integration, data, use_email_scope=False):
     assignee_changed = any(
         item for item in data["changelog"]["items"] if item["field"] == "assignee"
     )
@@ -34,7 +34,7 @@ def handle_assignee_change(integration, data):
         return
     email = assignee.get("emailAddress")
     # pull email from API if we can use it
-    if email is None and settings.JIRA_USE_EMAIL_SCOPE:
+    if email is None and use_email_scope:
         account_id = assignee.get("accountId")
         client = JiraApiClient(
             integration.metadata["base_url"],
@@ -105,7 +105,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
             logger.info("missing-changelog", extra={"integration_id": integration.id})
             return self.respond()
 
-        handle_assignee_change(integration, data)
+        handle_assignee_change(integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)
         handle_status_change(integration, data)
 
         return self.respond()
