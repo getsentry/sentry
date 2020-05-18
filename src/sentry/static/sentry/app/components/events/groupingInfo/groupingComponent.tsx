@@ -31,7 +31,7 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
       );
     } else {
       rv = (
-        <GroupingValue type={component.name || component.id}>
+        <GroupingValue valueType={component.name || component.id}>
           {typeof value === 'string' || typeof value === 'number'
             ? value
             : JSON.stringify(value, null, 2)}
@@ -71,7 +71,7 @@ const GroupingComponentListItem = styled('li')`
   margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 `;
 
-const GroupingValue = styled('code')<{type: string}>`
+const GroupingValue = styled('code')<{valueType: string}>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -79,8 +79,8 @@ const GroupingValue = styled('code')<{type: string}>`
   background: rgba(112, 163, 214, 0.1);
   color: #4e3fb4;
 
-  ${({type}) =>
-    (type === 'function' || type === 'symbol') &&
+  ${({valueType}) =>
+    (valueType === 'function' || valueType === 'symbol') &&
     `
     font-weight: bold;
     color: #2c58a8;

@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {EventGroupingConfig} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -58,16 +59,20 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
       >
         {({isOpen}) => (
           <Tooltip title={t('Click here to experiment with other grouping configs')}>
-            <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
+            <StyledDropdownButton isOpen={isOpen} size="small">
               <GroupingConfigItem isActive={eventConfigId === configId}>
                 {configId}
               </GroupingConfigItem>
-            </DropdownButton>
+            </StyledDropdownButton>
           </Tooltip>
         )}
       </DropdownAutoComplete>
     );
   }
 }
+
+const StyledDropdownButton = styled(DropdownButton)`
+  font-weight: inherit;
+`;
 
 export default GroupingConfigSelect;

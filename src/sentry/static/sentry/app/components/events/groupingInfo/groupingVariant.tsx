@@ -102,14 +102,14 @@ class GroupVariant extends React.Component<Props, State> {
       <Tooltip
         title={isContributing ? t('Contributing variant') : t('Non-contributing variant')}
       >
-        <GroupVariantTitle>
+        <VariantTitle>
           <ContributionIcon isContributing={isContributing} />
           {t('By')}{' '}
           {variant.description
             .split(' ')
             .map(i => capitalize(i))
             .join(' ')}
-        </GroupVariantTitle>
+        </VariantTitle>
       </Tooltip>
     );
   }
@@ -133,24 +133,20 @@ class GroupVariant extends React.Component<Props, State> {
     const [data, component] = this.getVariantData();
 
     return (
-      <GroupVariantListItem>
+      <VariantWrapper>
         <Header>
           {this.renderTitle()}
           {hasNonContributingComponent(component) && this.renderContributionToggle()}
         </Header>
 
         <KeyValueList data={data} isContextData isSorted={false} />
-      </GroupVariantListItem>
+      </VariantWrapper>
     );
   }
 }
 
-const GroupVariantListItem = styled('li')`
+const VariantWrapper = styled('div')`
   margin-bottom: ${space(4)};
-  & + li {
-    padding-top: ${space(4)};
-    border-top: 1px solid ${p => p.theme.borderLight};
-  }
 `;
 
 const Header = styled('div')`
@@ -160,9 +156,11 @@ const Header = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const GroupVariantTitle = styled('h5')`
+const VariantTitle = styled('h5')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
+  display: flex;
+  align-items: center;
 `;
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
@@ -173,7 +171,6 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
   )
 )`
   margin-right: ${space(1)};
-  transform: translateY(3px);
 `;
 
 const GroupingTree = styled('div')`

@@ -103,15 +103,20 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     );
 
     return (
-      <GroupVariantList>
+      <React.Fragment>
         {showSelector && this.renderGroupConfigSelect()}
 
         {loading ? (
           <LoadingIndicator />
         ) : (
-          variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)
+          variants.map((variant, index) => (
+            <React.Fragment key={variant.key}>
+              <GroupVariant variant={variant} />
+              {index < variants.length - 1 && <VariantDivider />}
+            </React.Fragment>
+          ))
         )}
-      </GroupVariantList>
+      </React.Fragment>
     );
   }
 
@@ -143,23 +148,6 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   }
 }
 
-export const GroupingConfigItem = styled('span')<{
-  isHidden?: boolean;
-  isActive?: boolean;
-}>`
-  font-family: ${p => p.theme.text.familyMono};
-  opacity: ${p => (p.isHidden ? 0.5 : null)};
-  font-weight: ${p => (p.isActive ? 'bold' : null)};
-`;
-
-const GroupVariantList = styled('ul')`
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 18px;
-`;
-
 const ToggleButton = styled(Button)`
   font-weight: 700;
   color: ${p => p.theme.gray3};
@@ -172,6 +160,19 @@ const ToggleButton = styled(Button)`
 const GroupConfigWrapper = styled('div')`
   margin-bottom: ${space(1.5)};
   margin-top: -${space(1)};
+`;
+
+export const GroupingConfigItem = styled('span')<{
+  isHidden?: boolean;
+  isActive?: boolean;
+}>`
+  font-family: ${p => p.theme.text.familyMono};
+  opacity: ${p => (p.isHidden ? 0.5 : null)};
+  font-weight: ${p => (p.isActive ? 'bold' : null)};
+`;
+
+const VariantDivider = styled('hr')`
+  padding-top: ${space(1)};
 `;
 
 export default withOrganization(EventGroupingInfo);
