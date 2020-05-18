@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
 from collections import namedtuple, defaultdict
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -175,7 +175,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         # are using in post_install to send messages to slack
         if state.get("integration_id"):
             metadata["installation_type"] = "migrated_to_bot"
-            metadata["migrated_at"] = six.text_type(datetime.utcnow()).split(".")[0]
+            metadata["migrated_at"] = timezone.now()
 
             post_install_data = {
                 "user_id": state["user_id"],
