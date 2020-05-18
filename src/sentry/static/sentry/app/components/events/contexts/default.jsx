@@ -12,13 +12,11 @@ class DefaultContextType extends React.Component {
   getKnownData() {
     return Object.entries(this.props.data)
       .filter(([k]) => k !== 'type' && k !== 'title')
-      .map(([k, v]) => {
-        return {
-          key: k,
-          subject: k,
-          value: v,
-        };
-      });
+      .map(([k, v]) => ({
+        key: k,
+        subject: k,
+        value: v,
+      }));
   }
 
   render() {
