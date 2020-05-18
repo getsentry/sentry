@@ -7,12 +7,13 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import {Organization, Release} from 'app/types';
+import {Organization, Release, GlobalSelection} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import IntroBanner from 'app/views/releasesV2/list/introBanner';
@@ -34,6 +35,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
+  selection: GlobalSelection;
 };
 
 type State = {releases: Release[]} & AsyncView['state'];
@@ -173,7 +175,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody() {
-    const {location, organization} = this.props;
+    const {location, selection, organization} = this.props;
     const {releases, reloading} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
@@ -189,6 +191,7 @@ class ReleasesList extends AsyncView<Props, State> {
         release={release}
         orgSlug={organization.slug}
         location={location}
+        selection={selection}
         reloading={reloading}
         key={`${release.version}-${release.projects[0].slug}`}
       />
@@ -258,5 +261,5 @@ const SortAndFilterWrapper = styled('div')`
   }
 `;
 
-export default withOrganization(ReleasesList);
+export default withOrganization(withGlobalSelection(ReleasesList));
 export {ReleasesList};
