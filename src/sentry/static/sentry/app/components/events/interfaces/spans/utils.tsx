@@ -374,6 +374,16 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
+export function isGroupedSpan(span: ProcessedSpanType): span is GroupedByOpNameSpanType {
+  if ('type' in span) {
+    if (span.type === 'grouped') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
   if (isGapSpan(span)) {
     return defaultSpanID;
