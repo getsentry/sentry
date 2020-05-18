@@ -1,4 +1,4 @@
-import {ECharts} from 'echarts';
+import {ECharts, EChartOption} from 'echarts';
 
 export type SeriesDataUnit = {
   value: number;
@@ -16,6 +16,7 @@ export type Series = {
     color: string;
     opacity: number;
   };
+  lineStyle?: EChartOption.LineStyle;
 };
 
 export type ReactEchartsRef = {
