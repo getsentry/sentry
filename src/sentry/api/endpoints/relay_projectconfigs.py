@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+import random
 import logging
 import six
 from rest_framework.response import Response
+
+from django.conf import settings
 
 from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
@@ -20,13 +23,17 @@ logger = logging.getLogger(__name__)
 PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 
+def _sample_apm():
+    return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
+
+
 class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 
     def post(self, request):
         with Hub.current.start_span(
-            Span(op="http.server", transaction="RelayProjectConfigsEndpoint", sampled=True)
+            Span(op="http.server", transaction="RelayProjectConfigsEndpoint", sampled=_sample_apm())
         ):
             return self._post(request)
 

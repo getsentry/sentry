@@ -945,14 +945,25 @@ SENTRY_FRONTEND_REQUESTS_DSN = None
 # Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None
 
-# Sample rate for Sentry transactions
+# ----
+# APM config
+# ----
+
+# sample rate for transactions initiated from the frontend
 SENTRY_APM_SAMPLING = 0
 
 # Sample rate for symbolicate_event task transactions
-SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0.1
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
 
 # Sample rate for the process_event task transactions
-SENTRY_PROCESS_EVENT_APM_SAMPLING = 0.01
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
+
+# sample rate for the relay projectconfig endpoint
+SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# ----
+# end APM config
+# ----
 
 # DSN to use for Sentry monitors
 SENTRY_MONITOR_DSN = None
