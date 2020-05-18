@@ -2,6 +2,7 @@ import React from 'react';
 import isObject from 'lodash/isObject';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import {EventGroupComponent} from 'app/types';
 
 import {shouldInlineComponentValue} from './utils';
@@ -31,7 +32,9 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
     } else {
       rv = (
         <GroupingValue type={component.name || component.id}>
-          {JSON.stringify(value, null, 2)}
+          {typeof value === 'string' || typeof value === 'number'
+            ? value
+            : JSON.stringify(value, null, 2)}
         </GroupingValue>
       );
     }
@@ -65,15 +68,15 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
 
 const GroupingComponentListItem = styled('li')`
   padding: 0;
-  margin: 2px 0 1px 13px;
+  margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
 `;
 
 const GroupingValue = styled('code')<{type: string}>`
   display: inline-block;
-  margin: 1px 4px 1px 0;
-  font-size: 12px;
-  padding: 1px 2px;
-  background: rgba(112, 163, 214, 0.05);
+  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: 0 ${space(0.25)};
+  background: rgba(112, 163, 214, 0.1);
   color: #4e3fb4;
 
   ${({type}) =>
