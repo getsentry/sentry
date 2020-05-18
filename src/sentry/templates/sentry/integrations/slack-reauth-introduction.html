@@ -26,6 +26,17 @@
     .section-info {
         font-size: 80%;
     }
+    .extra-org {
+        display: block;
+        margin-left: 10px;
+    }
+    .extra-org::before {
+        content: " • ";
+    }
+    .multi-org-alert {
+        display: flex;
+        flex-direction: column;
+    }
     .loader, .loader:after {
         border-radius: 50%;
         width: 10em;
@@ -110,6 +121,23 @@
             of slack channels in your alert rules this could take a hot minute...
          {% endblocktrans %}
      </p>
+
+    {% if extra_orgs %}
+    <p class="alert alert-block flex">
+        <i class="icon icon-exclamation"></i>
+        <span class="multi-org-alert">
+            <span>
+                {% blocktrans %}
+                    Your Slack workspace, <strong>{{workspace}}</strong>, is installed on additional organizations:
+                {% endblocktrans %}
+            </span>
+            {% for org in extra_orgs %}
+                <span class="extra-org">{{org}}</span>
+            {% endfor %}
+                {% trans "Once you've upgraded your integration, all other organizations with the same workspace will be upgraded as well." %}
+        </span>
+    </p>
+    {% endif %}
 
     <div id="loader"></div>
     <div class="form-actions clearfix">

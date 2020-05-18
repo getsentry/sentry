@@ -218,12 +218,28 @@ class SlackReAuthIntro(PipelineView):
     """
 
     def dispatch(self, request, pipeline):
-        if "integration_id" in request.GET:
-            pipeline.bind_state("integration_id", request.GET["integration_id"])
+        integration_id = request.GET.get("integration_id")
+
+        if integration_id:
+            pipeline.bind_state("integration_id", integration_id)
             pipeline.bind_state("user_id", request.user.id)
 
             try:
-                all_channels = _get_channels_from_rules(pipeline)
+                integration = Integration.objects.get(id=integration_id, provider="slack",)
+            except Integration.DoesNotExist:
+                return pipeline.error(IntegrationError("Could not find Slack integration."))
+
+            # We check if there are any other orgs tied to the integration to let the
+            # user know those organizations will be affected by the migration
+            extra_orgs = {}
+            for org in integration.organizations.all():
+                if org != pipeline.organization:
+                    extra_orgs[org.id] = org.slug
+
+            pipeline.bind_state("extra_org_ids", extra_orgs.keys())
+
+            try:
+                all_channels = _get_channels_from_rules(pipeline.organization, integration)
             except IntegrationError as error:
                 return pipeline.error(error)
 
@@ -235,6 +251,8 @@ class SlackReAuthIntro(PipelineView):
                 template="sentry/integrations/slack-reauth-introduction.html",
                 context={
                     "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
+                    "workspace": integration.name,
+                    "extra_orgs": extra_orgs.values(),
                 },
                 request=request,
             )
@@ -326,15 +344,7 @@ def _request_channel_info(pipeline):
     return channel_responses
 
 
-def _get_channels_from_rules(pipeline):
-    organization = pipeline.organization
-    integration_id = pipeline.fetch_state("integration_id")
-
-    try:
-        integration = Integration.objects.get(id=integration_id, provider="slack",)
-    except Integration.DoesNotExist:
-        raise IntegrationError("Could not find Slack integration.")
-
+def _get_channels_from_rules(organization, integration):
     rules = Rule.objects.filter(
         project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
     )
