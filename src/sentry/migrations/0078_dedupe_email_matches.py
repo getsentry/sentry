@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 from collections import defaultdict
-import sentry.db.models.fields.citext
 
 
 def dedeupe_emails(email_model):
@@ -77,7 +76,7 @@ class Migration(migrations.Migration):
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
 
     dependencies = [
@@ -86,9 +85,4 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(forwards, migrations.RunPython.noop),
-        migrations.AlterField(
-            model_name='useremail',
-            name='email',
-            field=sentry.db.models.fields.citext.CIEmailField(max_length=75, verbose_name='email address'),
-        ),
     ]
