@@ -31,9 +31,10 @@ const IconWrapper = styled('div', {
 
 const GridCell = styled('div')<{
   hasError?: boolean;
+  isLastItem?: boolean;
 }>`
+  position: relative;
   line-height: 26px;
-  border-top: 1px solid ${p => p.theme.borderLight};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: -1px;
   text-overflow: ellipsis;
@@ -46,7 +47,10 @@ const GridCell = styled('div')<{
     p.hasError &&
     css`
       background: #fffcfb;
-      border-color: #fa4747;
+      border-top: 1px solid #fa4747;
+      border-bottom: 1px solid #fa4747;
+      z-index: 1;
+      ${p.isLastItem && 'margin-bottom: 0'};
     `}
 `;
 
@@ -65,22 +69,14 @@ const GridCellLeft = styled(GridCell)`
       left: 29px;
     }
   }
-  border-left: 1px solid ${p => (p.hasError ? '#fa4747' : p.theme.borderDark)};
 `;
 
-const GridCellRight = styled(GridCell)`
-  border-right: 1px solid ${p => (p.hasError ? '#fa4747' : p.theme.borderDark)};
-`;
-
-const Grid = styled('div')<{maxHeight: React.CSSProperties['maxHeight']}>`
+const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
   display: grid;
   overflow-y: auto;
-  max-height: ${p => p.maxHeight};
+  ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
-  }
-  > *:nth-last-child(-n + 5) {
-    margin-bottom: 0;
   }
   grid-template-columns: max-content 55px 1fr max-content max-content;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -88,4 +84,4 @@ const Grid = styled('div')<{maxHeight: React.CSSProperties['maxHeight']}>`
   }
 `;
 
-export {Grid, GridCell, GridCellLeft, GridCellRight, IconWrapper};
+export {Grid, GridCell, GridCellLeft, IconWrapper};
