@@ -51,19 +51,12 @@ class frameRegistersValue extends React.Component<Props, State> {
 
   render() {
     const formattedValue = this.formatValue();
+    const {meta} = this.props;
+
     return (
       <InlinePre data-test-id="frame-registers-value">
         <FixedWidth>
-          {this.props.meta ? (
-            <AnnotatedText
-              vakue={formattedValue}
-              chunks={this.props.meta.chunks}
-              remarks={this.props.meta.rem}
-              errors={this.props.meta.err}
-            />
-          ) : (
-            formattedValue
-          )}
+          <AnnotatedText value={formattedValue} meta={meta} />
         </FixedWidth>
         <Tooltip title={this.tooltipTitle()}>
           <Toggle className="icon-filter" onClick={this.toggleView} />

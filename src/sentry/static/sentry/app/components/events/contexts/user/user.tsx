@@ -3,7 +3,7 @@ import React from 'react';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import {AvatarUser as UserType} from 'app/types';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
-import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {defined} from 'app/utils';

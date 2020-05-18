@@ -50,16 +50,7 @@ const ContextSummaryUser = ({data}: Props) => {
     return (
       <ParagraphOverflow>
         <Subject>{userDetails.subject}</Subject>
-        {userDetails.meta ? (
-          <AnnotatedText
-            value={userDetails.value}
-            chunks={userDetails.meta.chunks}
-            remarks={userDetails.meta.rem}
-            errors={userDetails.meta.err}
-          />
-        ) : (
-          userDetails.value
-        )}
+        <AnnotatedText value={userDetails.value} meta={userDetails.meta} />
       </ParagraphOverflow>
     );
   };
@@ -113,16 +104,7 @@ const ContextSummaryUser = ({data}: Props) => {
             gravatar={false}
           />
           <h3 data-test-id="user-title">
-            {userTitle.meta ? (
-              <AnnotatedText
-                value={userTitle.value}
-                chunks={userTitle.meta.chunks}
-                remarks={userTitle.meta.rem}
-                errors={userTitle.meta.err}
-              />
-            ) : (
-              userTitle.value
-            )}
+            <AnnotatedText value={userTitle.value} meta={userTitle.meta} />
           </h3>
         </React.Fragment>
       ) : (

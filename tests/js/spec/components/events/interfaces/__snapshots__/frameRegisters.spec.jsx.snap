@@ -13,7 +13,14 @@ Array [
         <span
           className="css-5okdek-FixedWidth e1e1y5ql1"
         >
-          0x00007fff9300bf70
+          <AnnotatedText
+            meta={null}
+            value="0x00007fff9300bf70"
+          >
+            <span>
+              0x00007fff9300bf70
+            </span>
+          </AnnotatedText>
         </span>
       </FixedWidth>
       <Tooltip
@@ -67,7 +74,14 @@ Array [
       <span
         className="css-5okdek-FixedWidth e1e1y5ql1"
       >
-        0x00007fff9300bf70
+        <AnnotatedText
+          meta={null}
+          value="0x00007fff9300bf70"
+        >
+          <span>
+            0x00007fff9300bf70
+          </span>
+        </AnnotatedText>
       </span>
     </FixedWidth>
     <Tooltip
@@ -123,7 +137,14 @@ Array [
         <span
           className="css-5okdek-FixedWidth e1e1y5ql1"
         >
-          0x0000000000000000
+          <AnnotatedText
+            meta={null}
+            value="0x0000000000000000"
+          >
+            <span>
+              0x0000000000000000
+            </span>
+          </AnnotatedText>
         </span>
       </FixedWidth>
       <Tooltip
@@ -177,7 +198,14 @@ Array [
       <span
         className="css-5okdek-FixedWidth e1e1y5ql1"
       >
-        0x0000000000000000
+        <AnnotatedText
+          meta={null}
+          value="0x0000000000000000"
+        >
+          <span>
+            0x0000000000000000
+          </span>
+        </AnnotatedText>
       </span>
     </FixedWidth>
     <Tooltip
@@ -233,7 +261,14 @@ Array [
         <span
           className="css-5okdek-FixedWidth e1e1y5ql1"
         >
-          0x0000000000000000
+          <AnnotatedText
+            meta={null}
+            value="0x0000000000000000"
+          >
+            <span>
+              0x0000000000000000
+            </span>
+          </AnnotatedText>
         </span>
       </FixedWidth>
       <Tooltip
@@ -287,7 +322,14 @@ Array [
       <span
         className="css-5okdek-FixedWidth e1e1y5ql1"
       >
-        0x0000000000000000
+        <AnnotatedText
+          meta={null}
+          value="0x0000000000000000"
+        >
+          <span>
+            0x0000000000000000
+          </span>
+        </AnnotatedText>
       </span>
     </FixedWidth>
     <Tooltip
@@ -348,7 +390,14 @@ Array [
         <span
           className="css-5okdek-FixedWidth e1e1y5ql1"
         >
-          0x00007fff9300bf70
+          <AnnotatedText
+            meta={null}
+            value="0x00007fff9300bf70"
+          >
+            <span>
+              0x00007fff9300bf70
+            </span>
+          </AnnotatedText>
         </span>
       </FixedWidth>
       <Tooltip
@@ -402,7 +451,14 @@ Array [
       <span
         className="css-5okdek-FixedWidth e1e1y5ql1"
       >
-        0x00007fff9300bf70
+        <AnnotatedText
+          meta={null}
+          value="0x00007fff9300bf70"
+        >
+          <span>
+            0x00007fff9300bf70
+          </span>
+        </AnnotatedText>
       </span>
     </FixedWidth>
     <Tooltip
@@ -458,7 +514,14 @@ Array [
         <span
           className="css-5okdek-FixedWidth e1e1y5ql1"
         >
-          0x0000000000000000
+          <AnnotatedText
+            meta={null}
+            value="0x0000000000000000"
+          >
+            <span>
+              0x0000000000000000
+            </span>
+          </AnnotatedText>
         </span>
       </FixedWidth>
       <Tooltip
@@ -512,7 +575,14 @@ Array [
       <span
         className="css-5okdek-FixedWidth e1e1y5ql1"
       >
-        0x0000000000000000
+        <AnnotatedText
+          meta={null}
+          value="0x0000000000000000"
+        >
+          <span>
+            0x0000000000000000
+          </span>
+        </AnnotatedText>
       </span>
     </FixedWidth>
     <Tooltip

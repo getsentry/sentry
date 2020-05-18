@@ -11,7 +11,6 @@ type Props<Values> = {
   children: (value: string | null | React.ReactNode) => React.ReactNode | string;
 };
 
-type ReturnedMetaValue = string | number | boolean | null;
 /**
  * Returns the value of `object[prop]` and returns an annotated component if
  * there is meta data
@@ -22,29 +21,10 @@ const Annotated = <Values extends {}>({
   objectKey,
   required = false,
 }: Props<Values>) => {
-  const getToBeReturnedMetaValue = (
-    metaValue: ReturnedMetaValue
-  ): React.ReactNode | ReturnedMetaValue => {
-    if (typeof metaValue === 'number' || typeof metaValue === 'boolean') {
-      return metaValue;
-    }
-
-    return metaValue || null;
-  };
   return (
     <MetaData object={object} prop={objectKey} required={required}>
       {(value, meta) => {
-        let toBeReturned = getToBeReturnedMetaValue(value);
-        if (meta) {
-          toBeReturned = (
-            <AnnotatedText
-              value={value}
-              chunks={meta.chunks}
-              remarks={meta.rem}
-              errors={meta.err}
-            />
-          );
-        }
+        const toBeReturned = <AnnotatedText value={value} meta={meta} />;
         return isFunction(children) ? children(toBeReturned) : toBeReturned;
       }}
     </MetaData>

@@ -1,6 +1,5 @@
 import Registry from 'app/plugins/registry';
 import BasePlugin from 'app/plugins/basePlugin';
-import BaseContext from 'app/plugins/baseContext';
 import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
 
 import SessionStackPlugin from './sessionstack';
@@ -22,7 +21,6 @@ registry.add('jira', Jira);
 export {BasePlugin, registry, DefaultIssuePlugin};
 
 export default {
-  BaseContext,
   BasePlugin,
   DefaultIssuePlugin,
 

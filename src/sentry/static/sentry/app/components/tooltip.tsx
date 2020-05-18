@@ -15,7 +15,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  children: React.ReactElement;
+  children: React.ReactNode;
   disabled?: boolean;
   title: React.ReactNode;
   popperStyle?: React.CSSProperties;
@@ -141,7 +141,7 @@ class Tooltip extends React.Component<Props, State> {
     }
   };
 
-  renderTrigger(children: React.ReactElement, ref: React.Ref<HTMLElement>) {
+  renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -155,7 +155,7 @@ class Tooltip extends React.Component<Props, State> {
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
 
-    if (typeof children.type === 'string') {
+    if (React.isValidElement(children) && typeof children.type === 'string') {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,

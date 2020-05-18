@@ -9,18 +9,7 @@ type Props = {
 };
 
 function getBreadcrumbCustomRendererValue({value, meta}: Props) {
-  if (!meta) {
-    return value;
-  }
-
-  return (
-    <AnnotatedText
-      value={value}
-      chunks={meta.chunks}
-      remarks={meta.rem}
-      errors={meta.err}
-    />
-  );
+  return <AnnotatedText value={value} meta={meta} />;
 }
 
 export default getBreadcrumbCustomRendererValue;

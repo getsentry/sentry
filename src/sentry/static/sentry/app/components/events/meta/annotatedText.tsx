@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
+import {Chunks, Meta, MetaError} from 'app/types';
 
 const REMARKS = {
   a: 'Annotated',
@@ -21,6 +21,11 @@ const KNOWN_RULES = {
   '!config': 'SDK configuration',
 };
 
+type Props = {
+  value: React.ReactNode;
+  meta?: Meta;
+};
+
 function getTooltipText(remark, rule) {
   const remark_title = REMARKS[remark];
   const rule_title = KNOWN_RULES[rule] || t('PII rule "%s"', rule);
@@ -31,7 +36,7 @@ function getTooltipText(remark, rule) {
   }
 }
 
-function renderChunk(chunk) {
+function renderChunk(chunk: Chunks): React.ReactElement {
   if (chunk.type === 'redaction') {
     const title = getTooltipText(chunk.remark, chunk.rule_id);
     return (
@@ -44,36 +49,36 @@ function renderChunk(chunk) {
   return <span>{chunk.text}</span>;
 }
 
-function renderChunks(chunks) {
+function renderChunks(chunks: Array<Chunks>): React.ReactElement {
   const spans = chunks.map((chunk, key) => React.cloneElement(renderChunk(chunk), {key}));
 
-  return <Chunks>{spans}</Chunks>;
+  return <ChunksSpan>{spans}</ChunksSpan>;
 }
 
-function renderValue(value, chunks, errors, remarks) {
-  if (chunks.length > 1) {
-    return renderChunks(chunks);
+function renderValue(value: React.ReactNode, meta?: Meta): React.ReactNode {
+  if (meta?.chunks?.length && meta.chunks.length > 1) {
+    return renderChunks(meta.chunks);
   }
 
-  let element = null;
-  if (value) {
+  let element = value;
+  if (value && meta) {
     element = <Redaction>{value}</Redaction>;
-  } else if (errors && errors.length) {
+  } else if (meta?.err?.length) {
     element = <Placeholder>invalid</Placeholder>;
-  } else if (remarks && remarks.length) {
+  } else if (meta?.rem?.length) {
     element = <Placeholder>redacted</Placeholder>;
   }
 
-  if (remarks && remarks.length) {
-    const title = getTooltipText(remarks[0][1], remarks[0][0]);
+  if (meta?.rem?.length) {
+    const title = getTooltipText(meta.rem[0][1], meta.rem[0][0]);
     element = <Tooltip title={title}>{element}</Tooltip>;
   }
 
   return element;
 }
 
-function getErrorMessage(error) {
-  const errorMessage = [];
+function getErrorMessage(error: MetaError) {
+  const errorMessage: string[] = [];
   if (error[0]) {
     errorMessage.push(error[0]);
   }
@@ -84,7 +89,7 @@ function getErrorMessage(error) {
   return errorMessage.join(': ');
 }
 
-function renderErrors(errors) {
+function renderErrors(errors: Array<MetaError>) {
   if (!errors.length) {
     return null;
   }
@@ -107,26 +112,19 @@ function renderErrors(errors) {
   );
 }
 
-const AnnotatedText = ({value, chunks, errors, remarks, ...props}) => (
-  <span {...props}>
-    {renderValue(value, chunks, errors, remarks)} {renderErrors(errors)}
-  </span>
-);
+class AnnotatedText extends React.Component<Props, {}> {
+  render() {
+    const {value, meta, ...props} = this.props;
+    return (
+      <span {...props}>
+        {renderValue(value, meta)}
+        {meta?.err && renderErrors(meta.err)}
+      </span>
+    );
+  }
+}
 
-AnnotatedText.propTypes = {
-  value: PropTypes.node,
-  chunks: PropTypes.array,
-  errors: PropTypes.array,
-  remarks: PropTypes.array,
-};
-
-AnnotatedText.defaultProps = {
-  chunks: [],
-  errors: [],
-  remarks: [],
-};
-
-const Chunks = styled('span')`
+const ChunksSpan = styled('span')`
   span {
     display: inline;
   }
