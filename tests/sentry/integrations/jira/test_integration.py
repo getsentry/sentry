@@ -877,7 +877,7 @@ class JiraIntegrationTest(APITestCase):
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/user/assignable/search",
-            json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
+            json=[{"accountId": "deadbeef123", "displayName": "Dead Beef", "emailAddress": ""}],
             match_querystring=False,
         )
 
