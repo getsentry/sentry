@@ -228,11 +228,11 @@ class Pipeline(object):
         context = {"error": message}
         return render_to_response("sentry/pipeline-error.html", context, self.request)
 
-    def next_step(self):
+    def next_step(self, step_size=1):
         """
         Render the next step.
         """
-        self.state.step_index += 1
+        self.state.step_index += step_size
         analytics.record(
             "integrations.pipeline_step",
             user_id=self.request.user.id,

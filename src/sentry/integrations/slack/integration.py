@@ -244,8 +244,7 @@ class SlackReAuthIntro(PipelineView):
 
         # if we dont have the integration_id we dont care about the
         # migration path, skip straight to install
-        pipeline.state.step_index = 2
-        return pipeline.current_step()
+        return pipeline.next_step(step_size=2)
 
 
 class SlackReAuthChannels(PipelineView):
