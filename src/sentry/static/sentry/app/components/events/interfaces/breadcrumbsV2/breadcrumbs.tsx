@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
-import isEqual from 'lodash/isEqual';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -29,7 +28,6 @@ import BreadcrumbsListHeader from './breadcrumbsListHeader';
 import BreadcrumbsListBody from './breadcrumbsListBody';
 import BreadcrumbLevel from './breadcrumbLevel';
 import BreadcrumbIcon from './breadcrumbIcon';
-import {Grid} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -46,7 +44,6 @@ type State = {
   filteredByCustomSearch: Array<BreadcrumbWithDetails>;
   filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
   filterGroups: BreadcrumbFilterGroups;
-  breadCrumbListHeight: React.CSSProperties['maxHeight'];
 };
 
 type Props = {
@@ -66,28 +63,11 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     filteredByCustomSearch: [],
     filteredBreadcrumbs: [],
     filterGroups: [],
-    breadCrumbListHeight: 'none',
   };
 
   componentDidMount() {
     this.loadBreadcrumbs();
   }
-
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (isEqual(prevState, this.state) && isEqual(prevProps, this.props)) {
-      return;
-    }
-    this.loadBreadCrumbListHeight();
-  }
-
-  listRef = React.createRef<HTMLDivElement>();
-
-  loadBreadCrumbListHeight = () => {
-    const offsetHeight = this.listRef?.current?.offsetHeight;
-    this.setState({
-      breadCrumbListHeight: offsetHeight ? `${offsetHeight}px` : 'none',
-    });
-  };
 
   loadBreadcrumbs = () => {
     const {data} = this.props;
@@ -318,7 +298,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
   render() {
     const {type} = this.props;
-    const {filterGroups, searchTerm, breadCrumbListHeight} = this.state;
+    const {filterGroups, searchTerm} = this.state;
 
     const {
       collapsedQuantity,
@@ -350,14 +330,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <Grid maxHeight={breadCrumbListHeight} ref={this.listRef}>
+            <React.Fragment>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
               />
-            </Grid>
+            </React.Fragment>
           ) : (
             <EmptyMessage
               icon={<IconWarning size="xl" />}
@@ -379,8 +359,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 export default BreadcrumbsContainer;
 
 const Content = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderDark};
-  border-radius: 3px;
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};
 `;

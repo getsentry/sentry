@@ -24,7 +24,6 @@ const BreadcrumbCollapsed = ({quantity, onClick}: Props) => (
 export default BreadcrumbCollapsed;
 
 const Wrapper = styled(GridCellLeft)`
-  border-right: 1px solid ${p => p.theme.borderDark};
   cursor: pointer;
   background: ${p => p.theme.whiteDark};
   font-size: ${p => p.theme.fontSizeMedium};
