@@ -64,9 +64,9 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   background-color: ${p => p.theme.white};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin: 0 -${space(3)};
   padding: ${space(0.25)} ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLightest};
+  text-indent: initial;
   overflow: auto;
   white-space: nowrap;
 `;
@@ -82,5 +82,4 @@ const OpenInLink = styled(Link)`
 const OpenInName = styled('strong')`
   color: ${p => p.theme.gray3};
   font-weight: 700;
-  text-indent: initial;
 `;
