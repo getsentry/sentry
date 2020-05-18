@@ -25,7 +25,7 @@ from sentry.stacktraces.processing import process_stacktraces, should_process_fo
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import set_current_project
-from sentry.models import ProjectOption, Activity, Project
+from sentry.models import ProjectOption, Activity, Project, Organization
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -408,6 +408,11 @@ def _do_process_event(
 
     with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
+
+    with metrics.timer("tasks.store.process_event.organization.get_from_cache"):
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id
+        )
 
     has_changed = bool(data_has_changed)
 
