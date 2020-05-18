@@ -22,7 +22,7 @@ const KNOWN_RULES = {
 };
 
 type Props = {
-  value: any;
+  value: React.ReactNode;
   meta?: Meta;
 };
 
@@ -55,12 +55,12 @@ function renderChunks(chunks: Array<Chunks>): React.ReactElement {
   return <ChunksSpan>{spans}</ChunksSpan>;
 }
 
-function renderValue(value: React.ReactElement, meta?: Meta): React.ReactElement {
+function renderValue(value: React.ReactNode, meta?: Meta): React.ReactNode {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return renderChunks(meta.chunks);
   }
 
-  let element: React.ReactElement = value;
+  let element = value;
   if (value && meta) {
     element = <Redaction>{value}</Redaction>;
   } else if (meta?.err?.length) {
