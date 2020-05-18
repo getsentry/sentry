@@ -82,11 +82,12 @@ class GroupVariant extends React.Component<Props, State> {
     if (component) {
       data.push([
         t('Grouping'),
-        <GroupingComponent
-          key={component.id}
-          component={component}
-          showNonContributing={this.state.showNonContributing}
-        />,
+        <GroupingTree key={component.id}>
+          <GroupingComponent
+            component={component}
+            showNonContributing={this.state.showNonContributing}
+          />
+        </GroupingTree>,
       ]);
     }
 
@@ -173,6 +174,10 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
 )`
   margin-right: ${space(1)};
   transform: translateY(3px);
+`;
+
+const GroupingTree = styled('div')`
+  color: #2f2936;
 `;
 
 export default GroupVariant;
