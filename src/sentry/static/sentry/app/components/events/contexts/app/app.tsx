@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import getAppKnownData from './getAppKnownData';
 import {AppData, AppKnownDataType} from './types';

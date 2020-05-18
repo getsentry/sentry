@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {defined} from 'app/utils';
-import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import getEventExtraDataKnownData from './getEventExtraDataKnownData';
 
