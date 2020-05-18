@@ -199,6 +199,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             "missing_channels": missing_channels,
         }
         if private_channels or missing_channels:
+            logger.info("slack.integration.run_post_migration", extra=run_args)
             post_migration.run_post_migration.apply_async(kwargs=run_args)
         else:
             # if we don't have channels, log it so we know we skipped this
@@ -243,8 +244,7 @@ class SlackReAuthIntro(PipelineView):
 
         # if we dont have the integration_id we dont care about the
         # migration path, skip straight to install
-        pipeline.state.step_index = 2
-        return pipeline.current_step()
+        return pipeline.next_step(step_size=2)
 
 
 class SlackReAuthChannels(PipelineView):

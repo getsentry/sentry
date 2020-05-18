@@ -21,6 +21,8 @@ import HookStore from 'app/stores/hookStore';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 
+const FEATURES_TO_INCLUDE_IN_ANALYTICS = ['slack-migration'];
+
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
   window.sessionStorage.setItem(INTEGRATIONS_ANALYTICS_SESSION_KEY, sessionId);
@@ -48,7 +50,10 @@ export type SingleIntegrationEvent = {
     | 'integrations.config_saved'
     | 'integrations.integration_tab_clicked'
     | 'integrations.plugin_add_to_project_clicked'
-    | 'integrations.upgrade_plan_modal_opened';
+    | 'integrations.upgrade_plan_modal_opened'
+    | 'integrations.resolve_now_clicked'
+    | 'integrations.reauth_start'
+    | 'integrations.reauth_complete';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -62,20 +67,18 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Integration Tab Clicked'
     | 'Integrations: Config Saved'
     | 'Integrations: Plugin Add to Project Clicked'
-    | 'Integrations: Upgrade Plan Modal Opened';
+    | 'Integrations: Upgrade Plan Modal Opened'
+    | 'Integrations: Resolve Now Clicked'
+    | 'Integrations: Reauth Start'
+    | 'Integrations: Reauth Complete';
   integration: string; //the slug
+  integration_type: 'plugin' | 'first_party' | 'sentry_app' | 'document_integration';
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
   plan?: string;
-} & (SentryAppEvent | NonSentryAppEvent);
-
-type SentryAppEvent = {
-  integration_type: 'sentry_app';
   //include the status since people might do weird things testing unpublished integrations
-  integration_status: SentryAppStatus;
-};
-type NonSentryAppEvent = {
-  integration_type: 'plugin' | 'first_party';
+  integration_status?: SentryAppStatus;
+  referrer?: string; //where did the user come from
 };
 
 type MultipleIntegrationsEvent = {
@@ -135,10 +138,21 @@ export const trackIntegrationEvent = (
     sessionId = startAnalyticsSession();
   }
 
+  let features = {};
+  if (org) {
+    features = Object.fromEntries(
+      FEATURES_TO_INCLUDE_IN_ANALYTICS.map(f => [
+        `feature-${f}`,
+        org.features.includes(f),
+      ])
+    );
+  }
+
   const params = {
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
+    ...features,
     ...analyticsParams,
   };
 
@@ -276,3 +290,18 @@ export function isSlackWorkspaceApp(integration: Integration) {
 export function getReauthAlertText(provider: IntegrationProvider) {
   return provider.metadata.aspects?.reauthentication_alert?.alertText;
 }
+
+export const convertIntegrationTypeToSnakeCase = (
+  type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
+) => {
+  switch (type) {
+    case 'firstParty':
+      return 'first_party';
+    case 'sentryApp':
+      return 'sentry_app';
+    case 'documentIntegration':
+      return 'document_integration';
+    default:
+      return type;
+  }
+};
