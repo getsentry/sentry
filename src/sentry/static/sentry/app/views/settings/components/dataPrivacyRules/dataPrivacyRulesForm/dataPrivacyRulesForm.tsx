@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 
 import {RuleType, MethodType} from './types';
-import DataPrivacyRulesFormSource from './dataPrivacyRulesFormSource';
+import Source from './source';
 import DataPrivacyRulesFormField from './dataPrivacyRulesFormField';
 import DataPrivacyRulesFormSelectControl from './dataPrivacyRulesFormSelectControl';
 import DataPrivacyRulesFormEventId from './dataPrivacyRulesFormEventId';
@@ -22,7 +22,7 @@ type Rule = {
 };
 
 type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
-type SourceProps = React.ComponentProps<typeof DataPrivacyRulesFormSource>;
+type SourceProps = React.ComponentProps<typeof Source>;
 type Errors = {
   customRegularExpression?: string;
   source?: string;
@@ -107,7 +107,7 @@ const DataPrivacyRulesForm = ({
         'Where to look. In the simplest case this can be an attribute name.'
       )}
     >
-      <DataPrivacyRulesFormSource
+      <Source
         onChange={(value: string) => {
           onChange('source', value);
         }}

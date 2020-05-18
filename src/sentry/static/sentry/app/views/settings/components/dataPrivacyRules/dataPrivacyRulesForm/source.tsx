@@ -28,14 +28,16 @@ type State = {
   fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   activeSuggestion: number;
   showSuggestions: boolean;
+  hideCaret: boolean;
 };
 
-class DataPrivacyRulesFormSource extends React.Component<Props, State> {
+class Source extends React.Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
     activeSuggestion: 0,
     showSuggestions: false,
+    hideCaret: false,
   };
 
   componentDidMount() {
@@ -52,6 +54,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 
   selectorField = React.createRef<HTMLDivElement>();
   suggestionList = React.createRef<HTMLUListElement>();
+  inputField = React.createRef<HTMLInputElement>();
 
   getAllSuggestions() {
     return [
@@ -285,6 +288,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
         fieldValues,
         activeSuggestion: 0,
         showSuggestions: false,
+        hideCaret: false,
       },
       () => {
         this.handleChangeParentValue();
@@ -293,12 +297,19 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
   };
 
   scrollToSuggestion = () => {
-    const {activeSuggestion} = this.state;
+    const {activeSuggestion, hideCaret} = this.state;
+
     this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
     });
+
+    if (!hideCaret) {
+      this.setState({
+        hideCaret: true,
+      });
+    }
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -341,11 +352,12 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 
   render() {
     const {error, disabled, value, onBlur} = this.props;
-    const {showSuggestions, suggestions, activeSuggestion} = this.state;
+    const {showSuggestions, suggestions, activeSuggestion, hideCaret} = this.state;
 
     return (
-      <Wrapper ref={this.selectorField}>
+      <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledTextField
+          forwardRef={this.inputField}
           name="from"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
@@ -395,11 +407,12 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesFormSource;
+export default Source;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
   width: 100%;
+  ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
 const StyledTextField = styled(TextField)`

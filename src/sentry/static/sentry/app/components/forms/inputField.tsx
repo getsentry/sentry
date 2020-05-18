@@ -11,6 +11,7 @@ type InputFieldProps = FormField['props'] & {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  forwardRef?: React.RefObject<HTMLInputElement>;
 };
 
 class InputField<
@@ -40,6 +41,7 @@ class InputField<
         onFocus={this.props.onFocus}
         onKeyPress={this.props.onKeyPress}
         onKeyDown={this.props.onKeyDown}
+        ref={this.props?.forwardRef}
       />
     );
   }
