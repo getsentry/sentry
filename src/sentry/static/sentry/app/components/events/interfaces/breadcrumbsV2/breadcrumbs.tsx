@@ -362,8 +362,6 @@ const Content = styled('div')`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  border: 1px solid ${p => p.theme.borderDark};
-  border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(3)};
 `;
 
