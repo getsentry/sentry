@@ -32,9 +32,10 @@ const IconWrapper = styled('div', {
 const GridCell = styled('div')<{
   hasError?: boolean;
 }>`
+  position: relative;
   line-height: 26px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin-top: -1px;
+  margin-bottom: -1px;
   text-overflow: ellipsis;
   overflow: hidden;
   padding: ${space(1)};
@@ -47,7 +48,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;
-      margin: -1px -1px 0;
+      z-index: 1;
     `}
 `;
 
@@ -74,6 +75,9 @@ const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
   ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
+  }
+  > *:nth-last-child(-n + 5) {
+    margin-bottom: 0;
   }
   grid-template-columns: max-content 55px 1fr max-content max-content;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
