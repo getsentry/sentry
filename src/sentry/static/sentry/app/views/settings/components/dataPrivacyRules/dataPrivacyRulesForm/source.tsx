@@ -54,7 +54,6 @@ class Source extends React.Component<Props, State> {
 
   selectorField = React.createRef<HTMLDivElement>();
   suggestionList = React.createRef<HTMLUListElement>();
-  inputField = React.createRef<HTMLInputElement>();
 
   getAllSuggestions() {
     return [
@@ -357,7 +356,6 @@ class Source extends React.Component<Props, State> {
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledTextField
-          forwardRef={this.inputField}
           name="from"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
