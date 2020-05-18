@@ -233,14 +233,15 @@ class Pipeline(object):
         Render the next step.
         """
         self.state.step_index += step_size
-        analytics.record(
-            "integrations.pipeline_step",
-            user_id=self.request.user.id,
-            organization_id=self.organization.id,
-            integration=self.provider.key,
-            step_index=self.state.step_index,
-            pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
-        )
+        if self.organization:
+            analytics.record(
+                "integrations.pipeline_step",
+                user_id=self.request.user.id,
+                organization_id=self.organization.id,
+                integration=self.provider.key,
+                step_index=self.state.step_index,
+                pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
+            )
         return self.current_step()
 
     def finish_pipeline(self):
