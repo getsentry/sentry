@@ -10,6 +10,7 @@ import Button from 'app/components/button';
 import theme from 'app/utils/theme';
 import {IconCheckmark, IconClose} from 'app/icons';
 import space from 'app/styles/space';
+import Tooltip from 'app/components/tooltip';
 
 import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
@@ -21,6 +22,8 @@ type Props = {
 type State = {
   showNonContributing: boolean;
 };
+
+type VariantData = [string, React.ReactNode][];
 
 class GroupVariant extends React.Component<Props, State> {
   state = {
@@ -35,9 +38,9 @@ class GroupVariant extends React.Component<Props, State> {
     this.setState({showNonContributing: false});
   };
 
-  getVariantData() {
+  getVariantData(): [VariantData, EventGroupComponent | undefined] {
     const {variant} = this.props;
-    const data = [[t('Type'), variant.type]];
+    const data: VariantData = [[t('Type'), variant.type]];
     let component: EventGroupComponent | undefined;
 
     if (variant.hash !== null) {
@@ -66,10 +69,10 @@ class GroupVariant extends React.Component<Props, State> {
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
         if (variant.values) {
-          data.push(['Fingerprint values', variant.values]);
+          data.push([t('Fingerprint values'), variant.values]);
         }
         if (variant.config?.id) {
-          data.push(['Grouping Config', variant.config.id]);
+          data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
       default:
@@ -80,6 +83,7 @@ class GroupVariant extends React.Component<Props, State> {
       data.push([
         t('Grouping'),
         <GroupingComponent
+          key={component.id}
           component={component}
           showNonContributing={this.state.showNonContributing}
         />,
@@ -94,20 +98,26 @@ class GroupVariant extends React.Component<Props, State> {
     const isContributing = variant.hash !== null;
 
     return (
-      <GroupVariantTitle>
-        <ContributionIcon isContributing={isContributing} />
-        {t('By')}{' '}
-        {variant.description
-          .split(' ')
-          .map(i => capitalize(i))
-          .join(' ')}
-      </GroupVariantTitle>
+      <Tooltip
+        title={isContributing ? t('Contributing variant') : t('Non-contributing variant')}
+      >
+        <GroupVariantTitle>
+          <ContributionIcon isContributing={isContributing} />
+          {t('By')}{' '}
+          {variant.description
+            .split(' ')
+            .map(i => capitalize(i))
+            .join(' ')}
+        </GroupVariantTitle>
+      </Tooltip>
     );
   }
 
-  renderContributingToggle() {
+  renderContributionToggle() {
+    const {showNonContributing} = this.state;
+
     return (
-      <ButtonBar merged active={this.state.showNonContributing ? 'all' : 'relevant'}>
+      <ButtonBar merged active={showNonContributing ? 'all' : 'relevant'}>
         <Button barId="relevant" size="xsmall" onClick={this.handleHideNonContributing}>
           {t('Contributing values')}
         </Button>
@@ -125,7 +135,7 @@ class GroupVariant extends React.Component<Props, State> {
       <GroupVariantListItem>
         <Header>
           {this.renderTitle()}
-          {hasNonContributingComponent(component) && this.renderContributingToggle()}
+          {hasNonContributingComponent(component) && this.renderContributionToggle()}
         </Header>
 
         <KeyValueList data={data} isContextData isSorted={false} />

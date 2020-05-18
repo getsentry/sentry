@@ -4,12 +4,16 @@ import styled from '@emotion/styled';
 
 import {EventGroupComponent} from 'app/types';
 
+import {shouldInlineComponentValue} from './utils';
+
 type Props = {
   component: EventGroupComponent;
   showNonContributing: boolean;
 };
 
 const GroupingComponent = ({component, showNonContributing}: Props) => {
+  const shouldInlineValue = shouldInlineComponentValue(component);
+
   const children = (component.values as EventGroupComponent[]).map((value, idx) => {
     let rv;
     if (isObject(value)) {
@@ -25,7 +29,11 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
         <GroupingComponent component={value} showNonContributing={showNonContributing} />
       );
     } else {
-      rv = <GroupingValue>{JSON.stringify(value, null, 2)}</GroupingValue>;
+      rv = (
+        <GroupingValue type={component.name || component.id}>
+          {JSON.stringify(value, null, 2)}
+        </GroupingValue>
+      );
     }
 
     return <GroupingComponentListItem key={idx}>{rv}</GroupingComponentListItem>;
@@ -37,15 +45,22 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
         {component.name || component.id}
         {component.hint && <small>{` (${component.hint})`}</small>}
       </span>
-      <GroupingComponentList>{children}</GroupingComponentList>
+
+      <GroupingComponentList isInline={shouldInlineValue}>
+        {children}
+      </GroupingComponentList>
     </GroupingComponentWrapper>
   );
 };
 
-const GroupingComponentList = styled('ul')`
+const GroupingComponentList = styled('ul')<{isInline: boolean}>`
   padding: 0;
   margin: 0;
   list-style: none;
+  &,
+  & > li {
+    display: ${p => (p.isInline ? 'inline' : 'block')};
+  }
 `;
 
 const GroupingComponentListItem = styled('li')`
@@ -53,16 +68,27 @@ const GroupingComponentListItem = styled('li')`
   margin: 2px 0 1px 13px;
 `;
 
-const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.gray6)};
-`;
-
-const GroupingValue = styled('code')`
+const GroupingValue = styled('code')<{type: string}>`
   display: inline-block;
   margin: 1px 4px 1px 0;
   font-size: 12px;
   padding: 1px 2px;
   color: inherit;
+  background: rgba(112, 163, 214, 0.1);
+  color: #4e3fb4;
+  ${({type}) =>
+    (type === 'function' || type === 'symbol') &&
+    `
+    font-weight: bold;
+    color: #2c58a8;
+  `}
+`;
+
+const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
+  color: ${p => (p.isContributing ? '#2f2936' : p.theme.gray6)};
+  ${GroupingValue} {
+    background: ${p => (p.isContributing ? null : 'rgba(236, 236, 236, 0.4)')};
+  }
 `;
 
 export default GroupingComponent;

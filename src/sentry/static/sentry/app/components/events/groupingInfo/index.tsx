@@ -7,6 +7,9 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization, Event, EventGroupInfo} from 'app/types';
+import space from 'app/styles/space';
+import Button from 'app/components/button';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import GroupVariant from './groupingVariant';
 import GroupingConfigSelect from './groupingConfigSelect';
@@ -78,20 +81,19 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
     const configId = configOverride ?? event.groupingConfig.id;
 
-    // TODO(grouping): style
     return (
-      <div style={{float: 'right'}}>
+      <GroupConfigWrapper>
         <GroupingConfigSelect
           eventConfigId={event.groupingConfig.id}
           configId={configId}
           onSelect={this.handleConfigSelect}
         />
-      </div>
+      </GroupConfigWrapper>
     );
   }
 
   renderGroupInfo() {
-    const {groupInfo} = this.state;
+    const {groupInfo, loading} = this.state;
     const {showSelector} = this.props;
 
     const variants = Object.values(groupInfo).sort((a, b) =>
@@ -102,13 +104,19 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
     return (
       <GroupVariantList>
-        {/* {showSelector && this.renderGroupConfigSelect()} */}
+        {showSelector && this.renderGroupConfigSelect()}
 
-        {variants.map(variant => (
-          <GroupVariant variant={variant} key={variant.key} />
-        ))}
+        {loading ? (
+          <LoadingIndicator />
+        ) : (
+          variants.map(variant => <GroupVariant variant={variant} key={variant.key} />)
+        )}
       </GroupVariantList>
     );
+  }
+
+  renderLoading() {
+    return this.renderBody();
   }
 
   renderBody() {
@@ -122,31 +130,26 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     );
 
     const actions = (
-      <Toggle onClick={this.toggle}>
+      <ToggleButton onClick={this.toggle} priority="link">
         {isOpen ? t('Hide Details') : t('Show Details')}
-      </Toggle>
+      </ToggleButton>
     );
 
-    // TODO(grouping): className
     return (
-      <EventDataSection
-        type="grouping-info"
-        className="grouping-info"
-        title={title}
-        actions={actions}
-      >
+      <EventDataSection type="grouping-info" title={title} actions={actions}>
         {isOpen && this.renderGroupInfo()}
       </EventDataSection>
     );
   }
 }
 
-// TODO(grouping): convert to camelcase
-export const GroupingConfigItem = styled(({hidden: _h, active: _a, ...props}) => (
-  <code {...props} />
-))`
-  opacity: ${p => (p.hidden ? 0.5 : null)};
-  font-weight: ${p => (p.active ? 'bold' : null)};
+export const GroupingConfigItem = styled('span')<{
+  isHidden?: boolean;
+  isActive?: boolean;
+}>`
+  font-family: ${p => p.theme.text.familyMono};
+  opacity: ${p => (p.isHidden ? 0.5 : null)};
+  font-weight: ${p => (p.isActive ? 'bold' : null)};
 `;
 
 const GroupVariantList = styled('ul')`
@@ -157,10 +160,18 @@ const GroupVariantList = styled('ul')`
   line-height: 18px;
 `;
 
-const Toggle = styled('a')`
-  font-size: ${p => p.theme.fontSizeMedium};
+const ToggleButton = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray3};
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+const GroupConfigWrapper = styled('div')`
+  margin-bottom: ${space(1.5)};
+  margin-top: -${space(1)};
 `;
 
 export default withOrganization(EventGroupingInfo);

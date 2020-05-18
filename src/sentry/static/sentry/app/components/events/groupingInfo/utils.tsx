@@ -2,8 +2,8 @@ import isObject from 'lodash/isObject';
 
 import {EventGroupComponent} from 'app/types';
 
-export function hasNonContributingComponent(component: EventGroupComponent) {
-  if (!component.contributes) {
+export function hasNonContributingComponent(component: EventGroupComponent | undefined) {
+  if (!component?.contributes) {
     return true;
   }
   for (const value of component.values) {
@@ -12,4 +12,8 @@ export function hasNonContributingComponent(component: EventGroupComponent) {
     }
   }
   return false;
+}
+
+export function shouldInlineComponentValue(component: EventGroupComponent) {
+  return component.values.every(value => !isObject(value));
 }

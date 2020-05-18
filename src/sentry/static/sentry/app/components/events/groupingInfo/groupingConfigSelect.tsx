@@ -12,7 +12,7 @@ import {GroupingConfigItem} from '.';
 type Props = AsyncComponent['props'] & {
   eventConfigId: string;
   configId: string;
-  onSelect: () => void;
+  onSelect: (selection: any) => void;
 };
 
 type State = AsyncComponent['state'] & {
@@ -20,8 +20,19 @@ type State = AsyncComponent['state'] & {
 };
 
 class GroupingConfigSelect extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      configs: [],
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['configs', '/grouping-configs/']];
+  }
+
+  renderLoading() {
+    return this.renderBody();
   }
 
   renderBody() {
@@ -33,11 +44,10 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
       .map(({id}) => ({
         value: id,
         label: (
-          <GroupingConfigItem active={id === eventConfigId}>{id}</GroupingConfigItem>
+          <GroupingConfigItem isActive={id === eventConfigId}>{id}</GroupingConfigItem>
         ),
       }));
 
-    // TODO(grouping): should we use other select component?
     return (
       <DropdownAutoComplete
         value={configId}
@@ -49,7 +59,7 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
         {({isOpen}) => (
           <Tooltip title={t('Click here to experiment with other grouping configs')}>
             <DropdownButton isOpen={isOpen} size="small" style={{fontWeight: 'inherit'}}>
-              <GroupingConfigItem active={eventConfigId === configId}>
+              <GroupingConfigItem isActive={eventConfigId === configId}>
                 {configId}
               </GroupingConfigItem>
             </DropdownButton>
