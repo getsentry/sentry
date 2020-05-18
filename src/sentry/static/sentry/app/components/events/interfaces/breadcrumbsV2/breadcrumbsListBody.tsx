@@ -52,23 +52,24 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
         )}
         {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
           const hasError = crumb.type === BreadcrumbType.ERROR;
+          const isLastItem = breadcrumbs.length - 1 === idx;
           return (
             <React.Fragment key={idx}>
-              <GridCellLeft hasError={hasError}>
+              <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
                 <Tooltip title={crumb.description}>
                   <BreadcrumbIcon icon={icon} color={color} />
                 </Tooltip>
               </GridCellLeft>
-              <GridCellCategory hasError={hasError}>
+              <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
                 <BreadcrumbCategory category={crumb?.category} />
               </GridCellCategory>
-              <GridCell hasError={hasError}>
+              <GridCell hasError={hasError} isLastItem={isLastItem}>
                 <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
               </GridCell>
-              <GridCell hasError={hasError}>
+              <GridCell hasError={hasError} isLastItem={isLastItem}>
                 <BreadcrumbLevel level={crumb.level} />
               </GridCell>
-              <GridCell hasError={hasError}>
+              <GridCell hasError={hasError} isLastItem={isLastItem}>
                 <BreadcrumbTime timestamp={crumb.timestamp} />
               </GridCell>
             </React.Fragment>
