@@ -83,7 +83,7 @@ const GroupingValue = styled('code')<{type: string}>`
     (type === 'function' || type === 'symbol') &&
     `
     font-weight: bold;
-    color: '#2c58a8';
+    color: #2c58a8;
   `}
 `;
 
