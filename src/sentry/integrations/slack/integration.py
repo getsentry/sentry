@@ -256,7 +256,7 @@ class SlackReAuthIntro(PipelineView):
                 context={
                     "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
                     "workspace": integration.name,
-                    "extra_orgs": extra_orgs.values(),
+                    "extra_orgs": extra_orgs,
                 },
                 request=request,
             )
