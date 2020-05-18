@@ -10,7 +10,7 @@ import BreadcrumbData from './breadcrumbData/breadcrumbData';
 import BreadcrumbCategory from './breadcrumbCategory';
 import BreadcrumbIcon from './breadcrumbIcon';
 import BreadcrumbLevel from './breadcrumbLevel';
-import {GridCell, GridCellLeft, GridCellRight} from './styles';
+import {Grid, GridCell, GridCellLeft} from './styles';
 import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
 
 type Breadcrumbs = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
@@ -21,41 +21,63 @@ type Props = {
   onToggleCollapse: () => void;
 };
 
-const BreadcrumbsListBody = ({
-  breadcrumbs,
-  collapsedQuantity,
-  onToggleCollapse,
-}: Props) => (
-  <React.Fragment>
-    {collapsedQuantity > 0 && (
-      <BreadcrumbCollapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
-    )}
-    {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
-      const hasError = crumb.type === BreadcrumbType.ERROR;
-      return (
-        <React.Fragment key={idx}>
-          <GridCellLeft hasError={hasError}>
-            <Tooltip title={crumb.description}>
-              <BreadcrumbIcon icon={icon} color={color} />
-            </Tooltip>
-          </GridCellLeft>
-          <GridCellCategory hasError={hasError}>
-            <BreadcrumbCategory category={crumb?.category} />
-          </GridCellCategory>
-          <GridCell hasError={hasError}>
-            <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
-          </GridCell>
-          <GridCell hasError={hasError}>
-            <BreadcrumbLevel level={crumb.level} />
-          </GridCell>
-          <GridCellRight hasError={hasError}>
-            <BreadcrumbTime timestamp={crumb.timestamp} />
-          </GridCellRight>
-        </React.Fragment>
-      );
-    })}
-  </React.Fragment>
-);
+type State = {
+  breadCrumbListHeight?: React.CSSProperties['maxHeight'];
+};
+
+class BreadcrumbsListBody extends React.Component<Props, State> {
+  state: State = {};
+
+  componentDidMount() {
+    this.loadBreadCrumbListHeight();
+  }
+
+  listRef = React.createRef<HTMLDivElement>();
+
+  loadBreadCrumbListHeight = () => {
+    const offsetHeight = this.listRef?.current?.offsetHeight;
+    this.setState({
+      breadCrumbListHeight: offsetHeight ? `${offsetHeight}px` : 'none',
+    });
+  };
+
+  render() {
+    const {collapsedQuantity, onToggleCollapse, breadcrumbs} = this.props;
+    const {breadCrumbListHeight} = this.state;
+
+    return (
+      <Grid maxHeight={breadCrumbListHeight} ref={this.listRef}>
+        {collapsedQuantity > 0 && (
+          <BreadcrumbCollapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
+        )}
+        {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
+          const hasError = crumb.type === BreadcrumbType.ERROR;
+          return (
+            <React.Fragment key={idx}>
+              <GridCellLeft hasError={hasError}>
+                <Tooltip title={crumb.description}>
+                  <BreadcrumbIcon icon={icon} color={color} />
+                </Tooltip>
+              </GridCellLeft>
+              <GridCellCategory hasError={hasError}>
+                <BreadcrumbCategory category={crumb?.category} />
+              </GridCellCategory>
+              <GridCell hasError={hasError}>
+                <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
+              </GridCell>
+              <GridCell hasError={hasError}>
+                <BreadcrumbLevel level={crumb.level} />
+              </GridCell>
+              <GridCell hasError={hasError}>
+                <BreadcrumbTime timestamp={crumb.timestamp} />
+              </GridCell>
+            </React.Fragment>
+          );
+        })}
+      </Grid>
+    );
+  }
+}
 
 export default BreadcrumbsListBody;
 

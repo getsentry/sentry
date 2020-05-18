@@ -28,7 +28,6 @@ import BreadcrumbsListHeader from './breadcrumbsListHeader';
 import BreadcrumbsListBody from './breadcrumbsListBody';
 import BreadcrumbLevel from './breadcrumbLevel';
 import BreadcrumbIcon from './breadcrumbIcon';
-import {Grid} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -331,14 +330,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <Grid>
+            <React.Fragment>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
               />
-            </Grid>
+            </React.Fragment>
           ) : (
             <EmptyMessage
               icon={<IconWarning size="xl" />}
@@ -360,6 +359,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 export default BreadcrumbsContainer;
 
 const Content = styled('div')`
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};

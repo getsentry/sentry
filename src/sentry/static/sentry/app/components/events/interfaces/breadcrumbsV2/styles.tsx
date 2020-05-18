@@ -47,7 +47,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;
-      margin: -1px;
+      margin: -1px -1px 0;
     `}
 `;
 
@@ -66,23 +66,12 @@ const GridCellLeft = styled(GridCell)`
       left: 29px;
     }
   }
-  ${p =>
-    p.hasError &&
-    css`
-      border-left: 1px solid #fa4747;
-    `}
 `;
 
-const GridCellRight = styled(GridCell)`
-  ${p =>
-    p.hasError &&
-    css`
-      border-right: 1px solid #fa4747;
-    `}
-`;
-
-const Grid = styled('div')`
+const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
   display: grid;
+  overflow-y: auto;
+  ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
   }
@@ -92,4 +81,4 @@ const Grid = styled('div')`
   }
 `;
 
-export {Grid, GridCell, GridCellLeft, GridCellRight, IconWrapper};
+export {Grid, GridCell, GridCellLeft, IconWrapper};
