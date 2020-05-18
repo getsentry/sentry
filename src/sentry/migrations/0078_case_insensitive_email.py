@@ -44,13 +44,11 @@ def dedeupe_emails(email_model):
         primary_emails = filter(lambda x: x.email == x.user.email, email_list)
         verified_emails = filter(lambda x: x.is_verified, email_list)
 
-        email_to_keep = None
+        email_to_keep = email_list[0]
         if primary_emails:
             email_to_keep = primary_emails[0]
         elif verified_emails:
             email_to_keep = verified_emails[0]
-        else:
-            email_to_keep = email_list[0]
 
         emails_to_delete = filter(lambda x: x != email_to_keep, email_list)
         for email in emails_to_delete:
