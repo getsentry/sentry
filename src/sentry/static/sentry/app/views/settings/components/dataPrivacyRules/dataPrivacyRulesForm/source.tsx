@@ -234,6 +234,7 @@ class Source extends React.Component<Props, State> {
   handleClickOutside = () => {
     this.setState({
       showSuggestions: false,
+      hideCaret: false,
     });
   };
 
@@ -421,6 +422,9 @@ const StyledTextField = styled(TextField)`
   }
 
   z-index: 1002;
+  :focus {
+    outline: none;
+  }
 `;
 
 const SuggestionsWrapper = styled('ul')`
