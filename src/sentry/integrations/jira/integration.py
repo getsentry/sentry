@@ -4,7 +4,6 @@ import logging
 import six
 from operator import attrgetter
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -25,7 +24,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
-from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
 
@@ -102,10 +100,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
-
-    @classproperty
-    def use_email_scope(cls):
-        return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self):
         configuration = [
@@ -722,20 +716,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if assign:
             for ue in user.emails.filter(is_verified=True):
                 try:
-                    possible_users = client.search_users_for_issue(external_issue.key, ue.email)
+                    res = client.search_users_for_issue(external_issue.key, ue.email)
                 except (ApiUnauthorized, ApiError):
                     continue
-                for possible_user in possible_users:
-                    email = possible_user.get("emailAddress")
-                    # pull email from API if we can use it
-                    if email is None and self.use_email_scope:
-                        account_id = possible_user.get("accountId")
-                        email = client.get_email(account_id)
-                    # match on lowercase email
-                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
-                    if email and email.lower() == ue.email.lower():
-                        jira_user = possible_user
-                        break
+                try:
+                    jira_user = [
+                        r
+                        for r in res
+                        if r.get("emailAddress") and r["emailAddress"].lower() == ue.email.lower()
+                    ][0]
+                except IndexError:
+                    pass
+                else:
+                    break
+
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
