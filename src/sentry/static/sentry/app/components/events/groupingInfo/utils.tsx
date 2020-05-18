@@ -1,6 +1,8 @@
 import isObject from 'lodash/isObject';
 
-export function hasNonContributingComponent(component) {
+import {EventGroupComponent} from 'app/types';
+
+export function hasNonContributingComponent(component: EventGroupComponent) {
   if (!component.contributes) {
     return true;
   }

@@ -102,7 +102,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
     return (
       <GroupVariantList>
-        {showSelector && this.renderGroupConfigSelect()}
+        {/* {showSelector && this.renderGroupConfigSelect()} */}
 
         {variants.map(variant => (
           <GroupVariant variant={variant} key={variant.key} />

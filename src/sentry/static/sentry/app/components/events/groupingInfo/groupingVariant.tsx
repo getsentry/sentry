@@ -1,9 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {EventGroupVariant, EventGroupVariantType, EventGroupComponent} from 'app/types';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
+import theme from 'app/utils/theme';
+import {IconCheckmark, IconClose} from 'app/icons';
+import space from 'app/styles/space';
 
 import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
@@ -21,10 +27,12 @@ class GroupVariant extends React.Component<Props, State> {
     showNonContributing: false,
   };
 
-  toggleNonContributing = () => {
-    this.setState({
-      showNonContributing: !this.state.showNonContributing,
-    });
+  handleShowNonContributing = () => {
+    this.setState({showNonContributing: true});
+  };
+
+  handleHideNonContributing = () => {
+    this.setState({showNonContributing: false});
   };
 
   getVariantData() {
@@ -68,58 +76,93 @@ class GroupVariant extends React.Component<Props, State> {
         break;
     }
 
+    if (component) {
+      data.push([
+        t('Grouping'),
+        <GroupingComponent
+          component={component}
+          showNonContributing={this.state.showNonContributing}
+        />,
+      ]);
+    }
+
     return [data, component];
   }
 
-  render() {
+  renderTitle() {
     const {variant} = this.props;
+    const isContributing = variant.hash !== null;
+
+    return (
+      <GroupVariantTitle>
+        <ContributionIcon isContributing={isContributing} />
+        {t('By')}{' '}
+        {variant.description
+          .split(' ')
+          .map(i => capitalize(i))
+          .join(' ')}
+      </GroupVariantTitle>
+    );
+  }
+
+  renderContributingToggle() {
+    return (
+      <ButtonBar merged active={this.state.showNonContributing ? 'all' : 'relevant'}>
+        <Button barId="relevant" size="xsmall" onClick={this.handleHideNonContributing}>
+          {t('Contributing values')}
+        </Button>
+        <Button barId="all" size="xsmall" onClick={this.handleShowNonContributing}>
+          {t('All values')}
+        </Button>
+      </ButtonBar>
+    );
+  }
+
+  render() {
     const [data, component] = this.getVariantData();
 
     return (
-      <GroupVariantListItem isContributing={variant.hash !== null}>
-        <GroupVariantTitle>{`${t('by')} ${variant.description}`}</GroupVariantTitle>
+      <GroupVariantListItem>
+        <Header>
+          {this.renderTitle()}
+          {hasNonContributingComponent(component) && this.renderContributingToggle()}
+        </Header>
 
-        <KeyValueList data={data} isContextData />
-        {component && (
-          <GroupingComponentBox>
-            {/* TODO(grouping): use button bar */}
-            {hasNonContributingComponent(component) && (
-              <a className="pull-right" onClick={this.toggleNonContributing}>
-                {this.state.showNonContributing
-                  ? t('hide non contributing values')
-                  : t('show non contributing values')}
-              </a>
-            )}
-            <GroupingComponent
-              component={component}
-              showNonContributing={this.state.showNonContributing}
-            />
-          </GroupingComponentBox>
-        )}
+        <KeyValueList data={data} isContextData isSorted={false} />
       </GroupVariantListItem>
     );
   }
 }
 
-const GroupVariantListItem = styled('li')<{isContributing: boolean}>`
-  padding: 15px 0 20px 0;
-  color: ${p => (p.isContributing ? null : p.theme.gray6)};
-
+const GroupVariantListItem = styled('li')`
+  margin-bottom: ${space(4)};
   & + li {
-    margin-top: 15px;
+    padding-top: ${space(4)};
+    border-top: 1px solid ${p => p.theme.borderLight};
   }
 `;
 
-const GroupVariantTitle = styled('h5')`
-  margin: 0 0 10px 0;
-  color: inherit !important;
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeMedium};
+const Header = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
 
-const GroupingComponentBox = styled('div')`
-  padding: 10px 0 0 0;
-  margin-top: -10px;
+const GroupVariantTitle = styled('h5')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+`;
+
+const ContributionIcon = styled(({isContributing, ...p}) =>
+  isContributing ? (
+    <IconCheckmark size="sm" isCircled color={theme.green} {...p} />
+  ) : (
+    <IconClose size="sm" isCircled color={theme.red} {...p} />
+  )
+)`
+  margin-right: ${space(1)};
+  transform: translateY(3px);
 `;
 
 export default GroupVariant;
