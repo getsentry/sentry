@@ -164,7 +164,7 @@ class JiraWebhooksTest(APITestCase):
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
             data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
-            data["issue"]["fields"]["assignee"].pop("emailAddress")
+            data["issue"]["fields"]["assignee"]["emailAddress"] = ""
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             assert mock_sync_group_assignee_inbound.called
@@ -183,7 +183,7 @@ class JiraWebhooksTest(APITestCase):
             "sentry.integrations.jira.webhooks.get_integration_from_jwt", return_value=integration
         ):
             data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
-            data["issue"]["fields"]["assignee"].pop("emailAddress")
+            data["issue"]["fields"]["assignee"]["emailAddress"] = ""
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             assert not mock_sync_group_assignee_inbound.called

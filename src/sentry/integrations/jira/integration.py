@@ -728,7 +728,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 for possible_user in possible_users:
                     email = possible_user.get("emailAddress")
                     # pull email from API if we can use it
-                    if email is None and self.use_email_scope:
+                    if not email and self.use_email_scope:
                         account_id = possible_user.get("accountId")
                         email = client.get_email(account_id)
                     # match on lowercase email
