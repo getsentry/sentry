@@ -163,6 +163,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     priority="primary"
                     size="small"
                     buttonText={t('Upgrade Now')}
+                    organization={organization}
                     icon={<IconWarning size="sm" />}
                   />
                 </Tooltip>
