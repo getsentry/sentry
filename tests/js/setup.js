@@ -119,6 +119,16 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
+jest.mock('@sentry/apm', () => {
+  return {
+    Integrations: {
+      Tracing: {
+        pushActivity: jest.fn(),
+      },
+    },
+  };
+});
+
 jest.mock('popper.js', () => {
   const PopperJS = jest.requireActual('popper.js');
 
