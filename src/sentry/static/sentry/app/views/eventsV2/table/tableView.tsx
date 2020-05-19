@@ -6,6 +6,7 @@ import {Location, LocationDescriptorObject} from 'history';
 import {Organization, OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import SortLink from 'app/components/gridEditable/sortLink';
 import Feature from 'app/components/acl/feature';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -16,6 +17,7 @@ import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import EventView, {
+  isFieldSortable,
   MetaType,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
@@ -25,7 +27,6 @@ import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/disco
 import space from 'app/styles/space';
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
-import SortLink from '../sortLink';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
@@ -128,13 +129,15 @@ class TableView extends React.Component<TableViewProps> {
               query: queryStringObject,
             };
           }
+          const currentSort = eventView.sortForField(field, tableMeta);
+          const canSort = isFieldSortable(field, tableMeta);
 
           return (
             <SortLink
               align={align}
-              field={field}
-              eventView={eventView}
-              tableDataMeta={tableMeta}
+              title={column.name}
+              direction={currentSort ? currentSort.kind : undefined}
+              canSort={canSort}
               generateSortLink={generateSortLink}
             />
           );
