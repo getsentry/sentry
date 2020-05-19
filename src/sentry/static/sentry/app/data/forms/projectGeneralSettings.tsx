@@ -146,7 +146,7 @@ export const fields: {[key: string]: Field} = {
     choices: ({groupingConfigs}) =>
       groupingConfigs.map(({id, hidden}) => [
         id.toString(),
-        <GroupingConfigItem key={id} hidden={hidden}>
+        <GroupingConfigItem key={id} isHidden={hidden}>
           {id}
         </GroupingConfigItem>,
       ]),
@@ -177,7 +177,10 @@ export const fields: {[key: string]: Field} = {
       );
     },
     choices: ({groupingEnhancementBases}) =>
-      groupingEnhancementBases.map(({id}) => [id.toString(), <code key={id}>{id}</code>]),
+      groupingEnhancementBases.map(({id}) => [
+        id.toString(),
+        <GroupingConfigItem key={id}>{id}</GroupingConfigItem>,
+      ]),
     help: t('The built-in base version of grouping enhancements.'),
     visible: ({features}) => features.has('set-grouping-config'),
   },
