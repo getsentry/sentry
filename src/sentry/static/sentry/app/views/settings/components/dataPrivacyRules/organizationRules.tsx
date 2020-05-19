@@ -67,8 +67,8 @@ class OrganizationRules extends React.Component<Props, State> {
                 ? t('Expand Organization Rules')
                 : t('Collapse Organization Rules')
             }
-            icon={<IconChevron size="8px" direction={isCollapsed ? 'down' : 'up'} />}
-            size="xxsmall"
+            icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
+            size="xsmall"
           />
         </Header>
         <Content>
@@ -97,7 +97,6 @@ const Header = styled('div')`
 `;
 
 const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
-  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray1};
   background: ${p => p.theme.offWhite};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};

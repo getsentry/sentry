@@ -9,7 +9,6 @@ import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -20,7 +19,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
-  size?: 'zero' | 'xxsmall' | 'xsmall' | 'small';
+  size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -48,7 +47,7 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 class Button extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'xxsmall', 'xsmall', 'small']),
+    size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -214,8 +213,6 @@ type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
-    case 'xxsmall':
-      return theme.fontSizeExtraSmall;
     case 'xsmall':
     case 'small':
       return theme.fontSizeSmall;
@@ -337,8 +334,6 @@ const getLabelPadding = ({
   switch (size) {
     case 'zero':
       return '0';
-    case 'xxsmall':
-      return `${space(0.25)} ${space(0.5)}`;
     case 'xsmall':
       return '5px 8px';
     case 'small':
