@@ -12,12 +12,15 @@ from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 from six.moves.urllib.parse import urljoin
 
+import sentry_sdk
+
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.cache import default_cache
 from sentry.utils import json, metrics
 from sentry.net.http import Session
 from sentry.tasks.store import RetrySymbolication
+from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
@@ -253,6 +256,12 @@ def get_sources_for_project(project):
     """
 
     sources = []
+
+    if not getattr(project, "_organization_cache", False):
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
