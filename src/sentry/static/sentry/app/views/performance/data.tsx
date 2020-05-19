@@ -26,6 +26,17 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
   ],
   version: 2,
 };
+export const COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'throughput',
+  'p50',
+  'p95',
+  'error rate',
+  'apdex(300)',
+  'users',
+  'user misery',
+];
 
 export function generatePerformanceQuery(location: Location): Readonly<NewQuery> {
   const extra: {[key: string]: string} = {};
