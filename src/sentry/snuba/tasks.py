@@ -113,17 +113,23 @@ def delete_subscription_from_snuba(query_subscription_id):
     subscription.delete()
 
 
+def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+    snuba_filter = get_filter(query, params=params)
+    snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
+    snuba_filter = resolve_discover_aliases(snuba_filter)[0]
+    if environment:
+        snuba_filter.conditions.append(["environment", "=", environment.name])
+    snuba_filter.conditions = apply_dataset_conditions(dataset, snuba_filter.conditions)
+    return snuba_filter
+
+
 def _create_in_snuba(subscription):
     snuba_query = subscription.snuba_query
-    snuba_filter = get_filter(snuba_query.query)
-    snuba_filter.update_with(
-        resolve_field_list([snuba_query.aggregate], snuba_filter, auto_fields=False)
-    )
-    snuba_filter = resolve_discover_aliases(snuba_filter)[0]
-    if snuba_query.environment:
-        snuba_filter.conditions.append(["environment", "=", snuba_query.environment.name])
-    conditions = apply_dataset_conditions(
-        QueryDatasets(snuba_query.dataset), snuba_filter.conditions
+    snuba_filter = build_snuba_filter(
+        QueryDatasets(snuba_query.dataset),
+        snuba_query.query,
+        snuba_query.aggregate,
+        snuba_query.environment,
     )
     response = _snuba_pool.urlopen(
         "POST",
@@ -132,7 +138,7 @@ def _create_in_snuba(subscription):
             {
                 "project_id": subscription.project_id,
                 "dataset": snuba_query.dataset,
-                "conditions": conditions,
+                "conditions": snuba_filter.conditions,
                 "aggregations": snuba_filter.aggregations,
                 "time_window": snuba_query.time_window,
                 "resolution": snuba_query.resolution,

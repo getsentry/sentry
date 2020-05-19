@@ -32,8 +32,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import Integration, Project
-from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import query_aggregation_to_snuba, QueryDatasets
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
@@ -41,7 +40,7 @@ from sentry.snuba.subscriptions import (
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.snuba.tasks import apply_dataset_conditions
+from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -333,18 +332,22 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
     if project_ids:
         params["project_id"] = project_ids
 
-    snuba_filter = get_filter(incident.alert_rule.snuba_query.query, params)
-    conditions = resolve_discover_aliases(snuba_filter)[0].conditions
-    if incident.alert_rule:
-        conditions = apply_dataset_conditions(
-            QueryDatasets(incident.alert_rule.snuba_query.dataset), conditions
-        )
+    snuba_query = incident.alert_rule.snuba_query
+    snuba_filter = build_snuba_filter(
+        QueryDatasets(snuba_query.dataset),
+        snuba_query.query,
+        snuba_query.aggregate,
+        snuba_query.environment,
+        params=params,
+    )
+
     return {
         "start": snuba_filter.start,
         "end": snuba_filter.end,
-        "conditions": conditions,
+        "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
         "having": [],
+        "aggregations": snuba_filter.aggregations,
     }
 
 
@@ -395,18 +398,9 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     query_params = build_incident_query_params(
         incident, start=start, end=end, windowed_stats=windowed_stats
     )
+    aggregations = query_params.pop("aggregations")[0]
     snuba_params = SnubaQueryParams(
-        aggregations=[
-            (
-                query_aggregation_to_snuba[
-                    aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
-                ][0],
-                query_aggregation_to_snuba[
-                    aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
-                ][1],
-                "count",
-            )
-        ],
+        aggregations=[(aggregations[0], aggregations[1], "count")],
         orderby="time",
         groupby=["time"],
         rollup=incident.alert_rule.snuba_query.time_window,
@@ -425,6 +419,9 @@ def get_incident_aggregates(incident, start=None, end=None, windowed_stats=False
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
+    # We don't care about the specific aggregations here, we just want total event and
+    # unique user counts
+    query_params.pop("aggregations", None)
     snuba_params_list = [
         SnubaQueryParams(
             aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
