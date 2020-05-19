@@ -791,6 +791,7 @@ class SnubaTestCase(BaseTestCase):
             requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
         )
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/sessions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
@@ -799,6 +800,14 @@ class SnubaTestCase(BaseTestCase):
             if stored_group is not None:
                 self.store_group(stored_group)
             return stored_event
+
+    def store_session(self, session):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps([session])
+            ).status_code
+            == 200
+        )
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]
