@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.incidents.logic import bulk_get_incident_stats
+from sentry.incidents.logic import get_incident_stats
 
 
 class OrganizationIncidentStatsEndpoint(IncidentEndpoint):
@@ -16,7 +16,7 @@ class OrganizationIncidentStatsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
-        stats = bulk_get_incident_stats([incident], windowed_stats=True)[0]
+        stats = get_incident_stats(incident, windowed_stats=True)
         event_stats_serializer = SnubaTSResultSerializer(organization, None, request.user)
         results = {
             "eventStats": event_stats_serializer.serialize(stats["event_stats"]),
