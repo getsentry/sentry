@@ -12,7 +12,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
-import {createMemoryHistory} from 'history';
 import * as Sentry from '@sentry/browser';
 import {ExtraErrorData} from '@sentry/integrations';
 import {Integrations} from '@sentry/apm';
@@ -27,8 +26,7 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
-import routes from 'app/routes';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {normalizeTransactionName} from 'app/utils/apm';
 
 function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
@@ -77,61 +75,13 @@ const tracesSampleRate = config ? config.apmSampling : 0;
 const hasReplays =
   window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
 
-const appRoutes = Router.createRoutes(routes());
-const createLocation = createMemoryHistory().createLocation;
-
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
   _experiments: {useEnvelope: true},
   async beforeSend(event) {
-    if (event.type === 'transaction') {
-      // For JavaScript transactions, translate the transaction name if it exists and doesn't start with /
-      // using the app's react-router routes. If the transaction name doesn't exist, use the window.location.pathname
-      // as the fallback.
-
-      let prevTransactionName = event.transaction;
-
-      if (typeof prevTransactionName === 'string') {
-        if (prevTransactionName.startsWith('/')) {
-          return event;
-        }
-      } else {
-        prevTransactionName = window.location.pathname;
-      }
-
-      const transactionName: string | undefined = await new Promise(function(resolve) {
-        Router.match(
-          {
-            routes: appRoutes,
-            location: createLocation(prevTransactionName),
-          },
-          (error, _redirectLocation, renderProps) => {
-            if (error) {
-              return resolve(undefined);
-            }
-
-            const routePath = getRouteStringFromRoutes(renderProps.routes ?? []);
-            return resolve(routePath);
-          }
-        );
-      });
-
-      if (typeof transactionName === 'string' && transactionName.length) {
-        event.transaction = transactionName;
-
-        if (event.tags) {
-          event.tags['ui.route'] = transactionName;
-        } else {
-          event.tags = {
-            'ui.route': transactionName,
-          };
-        }
-      }
-    }
-
-    return event;
+    return normalizeTransactionName(event);
   },
 });
 
