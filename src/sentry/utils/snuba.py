@@ -757,7 +757,23 @@ def resolve_condition(cond, column_resolver):
     raise ValueError("Unexpected condition format %s" % cond)
 
 
-def aliased_query(
+def aliased_query(**kwargs):
+    """
+    Wrapper around raw_query that selects the dataset based on the
+    selected_columns, conditions and groupby parameters.
+    Useful for taking arbitrary end user queries and running
+    them on one of the snuba datasets.
+
+    This function will also resolve column aliases to match the selected dataset
+
+    This method should be used sparingly. Instead prefer to use sentry.eventstore
+    sentry.tagstore, or sentry.snuba.discover instead when reading data.
+    """
+    with sentry_sdk.start_span(op="sentry.snuba.aliased_query"):
+        return _aliased_query_impl(**kwargs)
+
+
+def _aliased_query_impl(
     start=None,
     end=None,
     groupby=None,
@@ -772,17 +788,6 @@ def aliased_query(
     condition_resolver=None,
     **kwargs
 ):
-    """
-    Wrapper around raw_query that selects the dataset based on the
-    selected_columns, conditions and groupby parameters.
-    Useful for taking arbitrary end user queries and running
-    them on one of the snuba datasets.
-
-    This function will also resolve column aliases to match the selected dataset
-
-    This method should be used sparingly. Instead prefer to use sentry.eventstore
-    sentry.tagstore, or sentry.snuba.discover instead when reading data.
-    """
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
