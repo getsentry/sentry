@@ -27,7 +27,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.models import QueryAggregations
 from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
 
 from sentry.testutils import TestCase
@@ -61,7 +60,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 [self.project],
                 "some rule",
                 query="",
-                aggregation=QueryAggregations.TOTAL,
+                aggregate="count()",
                 time_window=1,
                 threshold_period=1,
             )

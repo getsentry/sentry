@@ -13,7 +13,7 @@ from django.test.utils import override_settings
 from exam import fixture
 from sentry.utils.compat.mock import call, Mock
 
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     register_subscriber,
@@ -89,7 +89,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "hello",
-                QueryAggregations.TOTAL,
+                "count()",
                 timedelta(minutes=1),
                 timedelta(minutes=1),
                 None,

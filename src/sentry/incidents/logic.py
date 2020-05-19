@@ -34,7 +34,6 @@ from sentry.incidents.models import (
 from sentry.models import Integration, Project
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
-    aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
@@ -493,7 +492,7 @@ def create_alert_rule(
     projects,
     name,
     query,
-    aggregation,
+    aggregate,
     time_window,
     threshold_period,
     environment=None,
@@ -509,7 +508,7 @@ def create_alert_rule(
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
     :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregation: A QueryAggregation to fetch for this alert rule
+    :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
     :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
@@ -530,7 +529,7 @@ def create_alert_rule(
         snuba_query = create_snuba_query(
             dataset,
             query,
-            aggregation,
+            aggregate,
             timedelta(minutes=time_window),
             timedelta(minutes=resolution),
             environment,
@@ -597,7 +596,7 @@ def update_alert_rule(
     projects=None,
     name=None,
     query=None,
-    aggregation=None,
+    aggregate=None,
     time_window=None,
     environment=None,
     threshold_period=None,
@@ -613,7 +612,7 @@ def update_alert_rule(
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
     :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
+    :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
@@ -638,8 +637,8 @@ def update_alert_rule(
     if query is not None:
         validate_alert_rule_query(query)
         updated_query_fields["query"] = query
-    if aggregation is not None:
-        updated_query_fields["aggregation"] = aggregation
+    if aggregate is not None:
+        updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
     if threshold_period:
@@ -658,9 +657,7 @@ def update_alert_rule(
             updated_query_fields.setdefault("query", snuba_query.query)
             # XXX: We use the alert rule aggregation here since currently we're
             # expecting the enum value to be passed.
-            updated_query_fields.setdefault(
-                "aggregation", aggregate_to_query_aggregation[snuba_query.aggregate]
-            )
+            updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
@@ -674,7 +671,7 @@ def update_alert_rule(
         existing_subs = []
         if (
             query is not None
-            or aggregation is not None
+            or aggregate is not None
             or time_window is not None
             or projects is not None
             or include_all_projects is not None

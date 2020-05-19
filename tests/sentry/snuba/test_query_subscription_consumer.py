@@ -13,7 +13,7 @@ from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.utils.compat.mock import Mock
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
@@ -99,7 +99,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "hello",
-                QueryAggregations.TOTAL,
+                "count()",
                 timedelta(minutes=10),
                 timedelta(minutes=1),
                 None,
