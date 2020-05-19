@@ -67,7 +67,8 @@ setup-git: ensure-venv setup-git-config
 	@# won't complain about a newer six being present.
 	@# So, this six pin here needs to be synced with requirements-base.txt.
 	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
-	pre-commit install --install-hooks
+	# This 3.x.x version needs to be synced with the version in .python-version.
+	PYENV_VERSION=3.6.7 pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:
