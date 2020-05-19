@@ -115,7 +115,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
         savedRules: convertedRules,
       });
     } catch {
-      addErrorMessage(t('Unable to load the rules'));
+      addErrorMessage(t('Unable to load project rules'));
     }
   }
 
