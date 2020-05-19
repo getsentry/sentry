@@ -58,11 +58,10 @@ const StyledScoreBar = styled(ScoreBar)`
   display: flex;
 
   ${p =>
-    p.vertical &&
-    `
-    flex-direction: column-reverse;
-    justify-content: flex-end;
-  `};
+    p.vertical
+      ? `flex-direction: column-reverse;
+    justify-content: flex-end;`
+      : 'min-width: 80px;'};
 `;
 
 const Bar = styled('div')`
