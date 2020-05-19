@@ -35,10 +35,6 @@ function getSentryIntegrations(hasReplays: boolean = false) {
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
-      debug: {
-        spanDebugTimingInfo: true,
-        writeAsBreadcrumbs: true,
-      },
     }),
   ];
   if (hasReplays) {
@@ -78,7 +74,6 @@ Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
-  _experiments: {useEnvelope: true},
 });
 
 if (window.__SENTRY__USER) {
