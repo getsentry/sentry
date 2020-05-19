@@ -165,7 +165,7 @@ class SuggestedOwners extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, project, group} = this.props;
+    const {organization, project, group, event} = this.props;
     const owners = this.getOwnerList();
 
     return (
@@ -178,10 +178,12 @@ class SuggestedOwners extends React.Component<Props, State> {
             issueId={group.id}
             project={project}
             organization={organization}
+            eventId={event.id}
           />
         </Access>
       </React.Fragment>
     );
   }
 }
+
 export default withApi(withOrganization(SuggestedOwners));

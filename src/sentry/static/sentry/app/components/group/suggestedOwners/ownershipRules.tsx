@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
 
 import {IconQuestion} from 'app/icons';
-import {openCreateOwnershipRule} from 'app/actionCreators/modal';
+import {
+  openCreateOwnershipRule,
+  openCreateDataPrivacyRule,
+} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Hovercard from 'app/components/hovercard';
 import space from 'app/styles/space';
 import {Project, Organization} from 'app/types';
@@ -17,17 +19,22 @@ type Props = {
   project: Project;
   organization: Organization;
   issueId: string;
+  eventId: string;
 };
 
-const OwnershipRules = ({project, organization, issueId}: Props) => {
+const OwnershipRules = ({project, organization, issueId, eventId}: Props) => {
   const handleOpenCreateOwnershipRule = () => {
     openCreateOwnershipRule({project, organization, issueId});
+  };
+
+  const handleOpenCreateDataPrivacyRule = () => {
+    openCreateDataPrivacyRule({project, organization, eventId});
   };
 
   return (
     <Wrapper>
       <Header>
-        <Heading>{t('Ownership Rules')}</Heading>
+        <Heading>{t('Additional Rules')}</Heading>
         <ClassNames>
           {({css}) => (
             <Hovercard
@@ -56,11 +63,14 @@ const OwnershipRules = ({project, organization, issueId}: Props) => {
           )}
         </ClassNames>
       </Header>
-      <GuideAnchor target="owners" position="bottom" offset={space(3)}>
-        <Button onClick={handleOpenCreateOwnershipRule} size="small">
+      <Content>
+        <Button onClick={handleOpenCreateOwnershipRule} priority="link" align="left">
           {t('Create Ownership Rule')}
         </Button>
-      </GuideAnchor>
+        <Button onClick={handleOpenCreateDataPrivacyRule} priority="link" align="left">
+          {t('Create Data Privacy Rule')}
+        </Button>
+      </Content>
     </Wrapper>
   );
 };
@@ -70,4 +80,10 @@ export {OwnershipRules};
 const HelpfulBody = styled('div')`
   padding: ${space(1)};
   text-align: center;
+`;
+
+const Content = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-content: flex-start;
 `;

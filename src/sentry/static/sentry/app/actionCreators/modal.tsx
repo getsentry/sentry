@@ -82,7 +82,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type CreateOwnershipRuleModalOptions = {
+type CreateOwnershipRuleOptions = {
   /**
    * The organization to create a rules for
    */
@@ -94,13 +94,45 @@ type CreateOwnershipRuleModalOptions = {
   issueId: string;
 };
 
-export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {
+export async function openCreateOwnershipRule(options: CreateOwnershipRuleOptions) {
   const mod = await import(
     /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
   );
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+type CreateDataPrivacyRuleOptions = {
+  /**
+   * The organization to create a rules for
+   */
+  organization: Organization;
+  /**
+   * The project to create a rule for
+   */
+  project: Project;
+  /**
+   * The event Id (Used for better suggestions)
+   */
+  eventId: string;
+};
+
+export async function openCreateDataPrivacyRule(options: CreateDataPrivacyRuleOptions) {
+  const {CreateDataPrivacyRule: Modal, modalCss} = await import(
+    /* webpackChunkName: "CreateDataPrivacyRule" */ 'app/components/modals/createDataPrivacyRule'
+  );
+  openModal(
+    deps => (
+      <Modal
+        organization={options.organization}
+        project={options.project}
+        eventId={options.eventId}
+        onClose={deps.closeModal}
+      />
+    ),
+    {modalCss}
+  );
 }
 
 export async function openCommandPalette(options: ModalOptions = {}) {
