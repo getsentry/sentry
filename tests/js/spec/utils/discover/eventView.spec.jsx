@@ -1840,7 +1840,7 @@ describe('EventView.getQuery()', function() {
   });
 });
 
-describe('EventView.isFieldSorted()', function() {
+describe('EventView.sortForField()', function() {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1853,18 +1853,15 @@ describe('EventView.isFieldSorted()', function() {
     statsPeriod: '14d',
     environment: ['staging'],
   };
-
+  const eventView = new EventView(state);
   const meta = {count: 'integer'};
 
   it('returns the sort when selected field is sorted', function() {
-    const eventView = new EventView(state);
-    expect(eventView).toMatchObject(state);
-
     const field = {
       field: 'count()',
     };
 
-    const actual = eventView.isFieldSorted(field, meta);
+    const actual = eventView.sortForField(field, meta);
 
     expect(actual).toEqual({
       field: 'count',
@@ -1873,14 +1870,19 @@ describe('EventView.isFieldSorted()', function() {
   });
 
   it('returns undefined when selected field is not sorted', function() {
-    const eventView = new EventView(state);
-    expect(eventView).toMatchObject(state);
-
     const field = {
       field: 'project.id',
     };
 
-    expect(eventView.isFieldSorted(field, meta)).toBe(void 0);
+    expect(eventView.sortForField(field, meta)).toBeUndefined();
+  });
+
+  it('returns undefined when no meta is provided', function() {
+    const field = {
+      field: 'project.id',
+    };
+
+    expect(eventView.sortForField(field, undefined)).toBeUndefined();
   });
 });
 

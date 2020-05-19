@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
+import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
@@ -8,10 +9,10 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView, {EventData} from 'app/utils/discover/eventView';
-import SortLink from 'app/views/eventsV2/sortLink';
+import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
+import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
@@ -21,6 +22,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
   eventData: EventData,
@@ -100,11 +102,12 @@ class Table extends React.Component<Props, State> {
   renderHeadCell = (tableMeta: TableData['meta']) => {
     const {eventView, location} = this.props;
 
-    return (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
+    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode => {
       return (
         <HeaderCell column={column} tableMeta={tableMeta}>
           {({align}) => {
             const field = {field: column.name, width: column.width};
+
             function generateSortLink(): LocationDescriptorObject | undefined {
               if (!tableMeta) {
                 return undefined;
@@ -112,19 +115,22 @@ class Table extends React.Component<Props, State> {
 
               const nextEventView = eventView.sortOnField(field, tableMeta);
               const queryStringObject = nextEventView.generateQueryStringObject();
+              const omitKeys = ['widths', 'query', 'name', 'field'];
 
               return {
                 ...location,
-                query: queryStringObject,
+                query: omit(queryStringObject, omitKeys),
               };
             }
+            const currentSort = eventView.sortForField(field, tableMeta);
+            const canSort = isFieldSortable(field, tableMeta);
 
             return (
               <SortLink
                 align={align}
-                field={field}
-                eventView={eventView}
-                tableDataMeta={tableMeta}
+                title={COLUMN_TITLES[index] || field.field}
+                direction={currentSort ? currentSort.kind : undefined}
+                canSort={canSort}
                 generateSortLink={generateSortLink}
               />
             );

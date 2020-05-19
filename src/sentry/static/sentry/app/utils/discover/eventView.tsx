@@ -913,10 +913,11 @@ class EventView {
     };
   }
 
-  isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {
-    const needle = this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
-
-    return needle;
+  sortForField(field: Field, tableMeta: MetaType | undefined): Sort | undefined {
+    if (!tableMeta) {
+      return undefined;
+    }
+    return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
   sortOnField(field: Field, tableMeta: MetaType): EventView {
