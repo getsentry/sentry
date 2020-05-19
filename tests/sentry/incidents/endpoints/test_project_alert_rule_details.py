@@ -5,8 +5,6 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
-from sentry.snuba.models import QueryAggregations
-from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.testutils import APITestCase
 
 
@@ -77,13 +75,7 @@ class AlertRuleDetailsBase(object):
     @fixture
     def alert_rule(self):
         return create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
     def test_invalid_rule_id(self):
@@ -148,13 +140,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
-        test_params.update(
-            {
-                "aggregation": aggregate_to_query_aggregation[
-                    self.alert_rule.snuba_query.aggregate
-                ].value
-            }
-        )
+        test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]

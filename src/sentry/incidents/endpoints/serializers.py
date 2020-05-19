@@ -34,6 +34,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.models import QueryAggregations
+from sentry.snuba.subscriptions import aggregation_function_translations
 from sentry.utils.compat import zip
 
 
@@ -279,7 +280,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
-    aggregation = serializers.IntegerField(required=False)
+    aggregation = serializers.IntegerField(required=True)
 
     class Meta:
         model = AlertRule
@@ -314,6 +315,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
+        data["aggregate"] = aggregation_function_translations[data.pop("aggregation")]
+
         triggers = data.get("triggers", [])
         if not triggers:
             raise serializers.ValidationError("Must include at least one trigger")
