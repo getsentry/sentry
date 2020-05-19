@@ -37,7 +37,7 @@ def dedeupe_emails(email_model):
 
         # this should never happen based off the query but rather be safe than sorry
         if len(email_list) < 2:
-            print("Unexpected solo email")
+            print("Unexpected solo email: %s" % email_list[0])
             continue
 
         primary_emails = filter(lambda x: x.email == x.user.email, email_list)
