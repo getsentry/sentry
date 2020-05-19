@@ -109,6 +109,8 @@ class MonitorDetailsEndpoint(MonitorEndpoint):
 
         generic_delete.apply_async(
             kwargs={
+                "app_label": Monitor._meta.app_label,
+                "model_name": Monitor._meta.model_name,
                 "object_id": monitor.id,
                 "transaction_id": transaction_id,
                 "actor_id": request.user.id,
