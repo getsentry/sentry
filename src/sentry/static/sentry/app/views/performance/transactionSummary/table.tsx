@@ -52,12 +52,12 @@ class SummaryContentTable extends React.Component<Props> {
   renderHeader() {
     const {eventView, tableData} = this.props;
 
-    const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
+    const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
 
     return columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableData={tableData} key={index}>
+      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
         {({align}) => {
           const field = {field: column.name, width: column.width};
 
@@ -67,7 +67,7 @@ class SummaryContentTable extends React.Component<Props> {
                 align={align}
                 field={field}
                 eventView={eventView}
-                tableDataMeta={tableDataMeta}
+                tableDataMeta={tableMeta}
                 generateSortLink={generateSortLink}
               />
             </GridHeadCell>
