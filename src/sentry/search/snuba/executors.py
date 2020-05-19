@@ -235,6 +235,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "freq": "times_seen",
         "new": "first_seen",
         "priority": "priority",
+        "user": "user_count",
     }
 
     aggregation_defs = {
@@ -245,6 +246,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
+        "user_count": ["uniq", "tags[sentry:user]"],
     }
 
     @property
