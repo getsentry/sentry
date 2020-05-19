@@ -74,6 +74,7 @@ Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  _experiments: {useEnvelope: true},
 });
 
 if (window.__SENTRY__USER) {
