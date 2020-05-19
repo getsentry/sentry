@@ -297,9 +297,9 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
       const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
       const title = tct(
-        '[effectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+        '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
         {
-          effectedUsers: userMisery,
+          affectedUsers: userMisery,
           totalUsers: uniqueUsers,
           duration: 4 * miseryLimit,
         }
