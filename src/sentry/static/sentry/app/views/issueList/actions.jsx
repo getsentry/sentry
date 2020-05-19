@@ -24,6 +24,7 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -563,10 +564,18 @@ const IssueListActions = createReactClass({
             </GraphHeader>
           </GraphHeaderWrapper>
           <EventsOrUsersLabel className="align-right">
-            <ToolbarHeader>{t('Events')}</ToolbarHeader>
+            {t('Events')}
+            <StyledQuestionTooltip
+              title={t('Number of events since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <EventsOrUsersLabel className="align-right">
-            <ToolbarHeader>{t('Users')}</ToolbarHeader>
+            {t('Users')}
+            <StyledQuestionTooltip
+              title={t('Unique users affected since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
@@ -688,18 +697,31 @@ const GraphToggle = styled('a')`
   }
 `;
 
-const EventsOrUsersLabel = styled('div')`
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const EventsOrUsersLabel = styled(ToolbarHeader)`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(0.5)};
+  align-items: center;
+
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1.5)};
   @media (min-width: ${theme.breakpoints[0]}) {
-    width: 40px;
+    width: 60px;
   }
   @media (min-width: ${theme.breakpoints[1]}) {
     width: 60px;
   }
   @media (min-width: ${theme.breakpoints[2]}) {
     width: 80px;
+    margin-left: ${space(2)};
+    margin-right: ${space(2)};
   }
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
 `;
 
 const AssigneesLabel = styled('div')`
