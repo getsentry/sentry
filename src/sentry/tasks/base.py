@@ -78,3 +78,21 @@ def retry(func=None, on=(Exception,), exclude=()):
         return wrapped
 
     return inner
+
+
+def track_group_async_operation(function):
+    def wrapper(*args, **kwargs):
+        try:
+            response = function(*args, **kwargs)
+        except Exception:
+            metrics.incr("group.update.async_task", sample_rate=1.0, tags={"status": 500})
+            # Continue raising the error now that we've incr the metric
+            raise
+        metrics.incr(
+            "group.update.async_task",
+            sample_rate=1.0,
+            tags={"status": 200 if response is True else 500},
+        )
+        return response
+
+    return wrapper

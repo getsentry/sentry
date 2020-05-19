@@ -32,6 +32,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.signals import issue_deleted
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.compat import zip
@@ -298,7 +299,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     )
                 }
             )
-
         return Response(data)
 
     @attach_scenarios([update_aggregate_scenario])
@@ -343,6 +343,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 request=request,
             )
         except client.ApiError as e:
+            metrics.incr(
+                "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
+            )
             return Response(e.body, status=e.status_code)
 
         # if action was discard, there isn't a group to serialize anymore
@@ -364,7 +367,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 environment_func=self._get_environment_func(request, group.project.organization_id)
             ),
         )
-
+        metrics.incr(
+            "group.update.http_response", sample_rate=1.0, tags={"status": response.status_code}
+        )
         return Response(serialized, status=response.status_code)
 
     @attach_scenarios([delete_aggregate_scenario])

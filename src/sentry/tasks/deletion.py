@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 # in prod we run with infinite retries to recover from errors
 # in debug/development, we assume these tasks generally shouldn't fail
@@ -209,6 +209,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     max_retries=MAX_RETRIES,
 )
 @retry(exclude=(DeleteAborted,))
+@track_group_async_operation
 def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
     from sentry import deletions, eventstream
     from sentry.models import Group
@@ -235,6 +236,8 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
         # all groups have been deleted
         if eventstream_state:
             eventstream.end_delete_groups(eventstream_state)
+
+    return True
 
 
 @instrumented_task(

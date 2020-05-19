@@ -23,7 +23,7 @@ from sentry.models import (
 
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models.apitoken import generate_token
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 
 logger = logging.getLogger("sentry.tasks.integrations")
 
@@ -192,6 +192,7 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     max_retries=5,
 )
 @retry(exclude=(Integration.DoesNotExist))
+@track_group_async_operation
 def sync_status_outbound(group_id, external_issue_id, **kwargs):
     try:
         group = Group.objects.filter(
@@ -221,6 +222,7 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             id=integration.id,
             organization_id=external_issue.organization_id,
         )
+    return True
 
 
 @instrumented_task(
@@ -230,7 +232,9 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     max_retries=5,
 )
 @retry()
+@track_group_async_operation
 def kick_off_status_syncs(project_id, group_id, **kwargs):
+
     # doing this in a task since this has to go in the event manager
     # and didn't want to introduce additional queries there
     external_issue_ids = GroupLink.objects.filter(
@@ -241,6 +245,7 @@ def kick_off_status_syncs(project_id, group_id, **kwargs):
         sync_status_outbound.apply_async(
             kwargs={"group_id": group_id, "external_issue_id": external_issue_id}
         )
+    return True
 
 
 @instrumented_task(

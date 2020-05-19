@@ -8,7 +8,7 @@ from django.db.models import F
 from sentry import eventstream
 from sentry.app import tsdb
 from sentry.similarity import features
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, track_group_async_operation
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -23,6 +23,7 @@ EXTRA_MERGE_MODELS = []
     default_retry_delay=60 * 5,
     max_retries=None,
 )
+@track_group_async_operation
 def merge_groups(
     from_object_ids=None,
     to_object_id=None,
@@ -157,7 +158,6 @@ def merge_groups(
             with transaction.atomic():
                 GroupRedirect.create_for_group(group, new_group)
                 group.delete()
-
             delete_logger.info(
                 "object.delete.executed",
                 extra={
@@ -191,11 +191,10 @@ def merge_groups(
             recursed=True,
             eventstream_state=eventstream_state,
         )
-        return
-
-    # All `from_object_ids` have been merged!
-    if eventstream_state:
+    elif eventstream_state:
+        # All `from_object_ids` have been merged!
         eventstream.end_merge(eventstream_state)
+    return True
 
 
 def _get_event_environment(event, project, cache):
