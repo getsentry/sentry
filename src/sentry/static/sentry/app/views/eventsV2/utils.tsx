@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, Organization, OrganizationSummary} from 'app/types';
+import {Event, Organization, OrganizationSummary, SelectValue} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -14,14 +14,17 @@ import EventView from 'app/utils/discover/eventView';
 import {
   Field,
   Column,
+  ColumnType,
   AGGREGATIONS,
   FIELDS,
   explodeFieldString,
   getAggregateAlias,
+  TRACING_FIELDS,
+  Aggregation,
 } from 'app/utils/discover/fields';
 
 import {ALL_VIEWS, TRANSACTION_VIEWS} from './data';
-import {TableColumn, TableDataRow} from './table/types';
+import {TableColumn, TableDataRow, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
   | Query
@@ -159,7 +162,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 }
 
 // A map between aggregate function names and its un-aggregated form
-const TRANSFORM_AGGREGATES: {[field: string]: string} = {
+const TRANSFORM_AGGREGATES = {
   p99: 'transaction.duration',
   p95: 'transaction.duration',
   p75: 'transaction.duration',
@@ -169,7 +172,7 @@ const TRANSFORM_AGGREGATES: {[field: string]: string} = {
   impact: '',
   user_misery: '',
   error_rate: '',
-};
+} as const;
 
 /**
  * Convert an aggregated query into one that does not have aggregates.
@@ -375,4 +378,76 @@ export function getDiscoverLandingUrl(organization: OrganizationSummary): string
     return `/organizations/${organization.slug}/discover/queries/`;
   }
   return `/organizations/${organization.slug}/discover/results/`;
+}
+
+type FieldGeneratorOpts = {
+  organization: OrganizationSummary;
+  tagKeys?: string[] | null;
+  aggregations?: Record<string, Aggregation>;
+  fields?: Record<string, ColumnType>;
+};
+
+export function generateFieldOptions({
+  organization,
+  tagKeys,
+  aggregations = AGGREGATIONS,
+  fields = FIELDS,
+}: FieldGeneratorOpts) {
+  let fielKeys = Object.keys(fields);
+  let functions = Object.keys(aggregations);
+
+  // Strip tracing features if the org doesn't have access.
+  if (!organization.features.includes('transaction-events')) {
+    fielKeys = fielKeys.filter(item => !TRACING_FIELDS.includes(item));
+    functions = functions.filter(item => !TRACING_FIELDS.includes(item));
+  }
+  const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
+
+  // Index items by prefixed keys as custom tags can overlap both fields and
+  // function names. Having a mapping makes finding the value objects easier
+  // later as well.
+  functions.forEach(func => {
+    const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
+    fieldOptions[`function:${func}`] = {
+      label: `${func}(${ellipsis})`,
+      value: {
+        kind: FieldValueKind.FUNCTION,
+        meta: {
+          name: func,
+          parameters: [...aggregations[func].parameters],
+        },
+      },
+    };
+  });
+
+  fielKeys.forEach(field => {
+    fieldOptions[`field:${field}`] = {
+      label: field,
+      value: {
+        kind: FieldValueKind.FIELD,
+        meta: {
+          name: field,
+          dataType: fields[field],
+        },
+      },
+    };
+  });
+
+  if (tagKeys !== undefined && tagKeys !== null) {
+    tagKeys.forEach(tag => {
+      const tagValue =
+        fields.hasOwnProperty(tag) || AGGREGATIONS.hasOwnProperty(tag)
+          ? `tags[${tag}]`
+          : tag;
+      fieldOptions[`tag:${tag}`] = {
+        label: tag,
+        value: {
+          kind: FieldValueKind.TAG,
+          meta: {name: tagValue, dataType: 'string'},
+        },
+      };
+    });
+  }
+
+  return fieldOptions;
 }
