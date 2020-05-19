@@ -1,6 +1,6 @@
 import React from 'react';
 
-import DataPrivacyRulesFormSource from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/dataPrivacyRulesFormSource';
+import Source from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/source';
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
@@ -12,9 +12,9 @@ function renderComponent({
   value = '$string',
   onChange = jest.fn(),
   ...props
-}: Partial<DataPrivacyRulesFormSource['props']>) {
+}: Partial<Source['props']>) {
   return mountWithTheme(
-    <DataPrivacyRulesFormSource
+    <Source
       suggestions={defaultSuggestions}
       onChange={onChange}
       value={value}
@@ -23,7 +23,7 @@ function renderComponent({
   );
 }
 
-describe('DataPrivacyRulesFormSource', () => {
+describe('Source', () => {
   it('default render', () => {
     const wrapper = renderComponent({});
     expect(wrapper.find('input').prop('value')).toBe('$string');
