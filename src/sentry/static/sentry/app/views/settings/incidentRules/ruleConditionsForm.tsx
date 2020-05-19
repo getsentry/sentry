@@ -10,13 +10,14 @@ import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
+import RadioField from 'app/views/settings/components/forms/radioField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
 
-import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
-import getMetricDisplayName from './utils/getMetricDisplayName';
+import {TimeWindow, IncidentRule, Dataset} from './types';
+import MetricField from './metricField';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
 
@@ -44,6 +45,11 @@ type Props = {
 type State = {
   environments: Environment[] | null;
 };
+
+const datasetEventTypeFilter = {
+  [Dataset.ERRORS]: 'event.type:error',
+  [Dataset.TRANSACTIONS]: 'event.type:transaction',
+} as const;
 
 class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
@@ -101,16 +107,30 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
+          <RadioField
+            name="dataset"
+            label="Data source"
+            orientInline
+            required
+            choices={[
+              [Dataset.ERRORS, t('Errors')],
+              [Dataset.TRANSACTIONS, t('Transactions')],
+            ]}
+          />
           {this.props.thresholdChart}
           <FormField name="query" inline={false}>
-            {({onChange, onBlur, onKeyDown, initialData}) => (
+            {({onChange, onBlur, onKeyDown, initialData, model}) => (
               <SearchBar
                 defaultQuery={initialData?.query ?? ''}
                 inlineLabel={
                   <Tooltip
-                    title={t('Metric alerts are filtered to error events automatically')}
+                    title={t(
+                      'Metric alerts are automatically filtered to your data source'
+                    )}
                   >
-                    <SearchEventTypeNote>event.type:error</SearchEventTypeNote>
+                    <SearchEventTypeNote>
+                      {datasetEventTypeFilter[model.getValue('dataset')]}
+                    </SearchEventTypeNote>
                   </Tooltip>
                 }
                 help={t('Choose which metric to trigger on')}
@@ -130,22 +150,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               />
             )}
           </FormField>
-          <SelectField
-            name="aggregation"
-            label={t('Metric')}
-            help={t('Choose which metric to trigger on')}
-            choices={[
-              [
-                AlertRuleAggregations.UNIQUE_USERS,
-                getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
-              ],
-              [
-                AlertRuleAggregations.TOTAL,
-                getMetricDisplayName(AlertRuleAggregations.TOTAL),
-              ],
-            ]}
+          <MetricField
+            name="aggregate"
+            label="Metric"
+            organization={organization}
             required
-            isDisabled={disabled}
           />
           <SelectField
             name="timeWindow"

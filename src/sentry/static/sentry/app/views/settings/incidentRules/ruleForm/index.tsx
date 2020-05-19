@@ -3,12 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
 import {Organization, Project} from 'app/types';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'app/actionCreators/indicator';
+import FormModel from 'app/views/settings/components/forms/model';
 import {createDefaultTrigger} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
@@ -24,16 +19,20 @@ import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 import recreateRoute from 'app/utils/recreateRoute';
 import withProject from 'app/utils/withProject';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 
 import {
-  AlertRuleAggregations,
   AlertRuleThresholdType,
   IncidentRule,
   MetricActionTemplate,
   Trigger,
 } from '../types';
 import {addOrUpdateRule} from '../actions';
-import FormModel from '../../components/forms/model';
 import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
@@ -57,7 +56,7 @@ type State = {
   // Rule conditions form inputs
   // Needed for TriggersChart
   query: string;
-  aggregation: AlertRuleAggregations;
+  aggregate: string;
   timeWindow: number;
   environment: string | string[] | null;
 } & AsyncComponent['state'];
@@ -77,7 +76,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
 
-      aggregation: rule.aggregation,
+      aggregate: rule.aggregate,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
@@ -274,12 +273,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (['timeWindow', 'environment', 'aggregation'].includes(name)) {
+    if (['timeWindow', 'environment', 'aggregate'].includes(name)) {
       this.setState({[name]: value});
     }
   };
 
-  handleFilterUpdate = query => {
+  handleFilterUpdate = (query: string) => {
     this.setState({query});
   };
 
@@ -396,7 +395,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
-    const {query, aggregation, timeWindow, triggers, environment} = this.state;
+    const {query, timeWindow, triggers, aggregate, environment} = this.state;
 
     const queryAndAlwaysErrorEvents = !query.includes('event.type')
       ? `${query} ${this.getEventType()}`.trim()
@@ -409,7 +408,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         projects={this.state.projects}
         triggers={triggers}
         query={queryAndAlwaysErrorEvents}
-        aggregation={aggregation}
+        aggregate={aggregate}
         timeWindow={timeWindow}
         environment={environment}
       />
@@ -426,7 +425,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitDisabled={!hasAccess}
             initialData={{
               name: rule.name || '',
-              aggregation: rule.aggregation,
+              dataset: rule.dataset,
+              aggregate: rule.aggregate,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
               environment: rule.environment || null,
