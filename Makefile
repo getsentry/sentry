@@ -46,6 +46,9 @@ apply-migrations: ensure-venv
 
 reset-db: drop-db create-db apply-migrations
 
+setup-pyenv:
+	cat .python-version | xargs -n1 pyenv install --skip-existing
+
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
