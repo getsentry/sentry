@@ -16,7 +16,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
 import SubscribeButton from 'app/components/subscribeButton';
-import SuggestedOwners from 'app/components/group/suggestedOwners';
+import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
 
 const SUBSCRIPTION_REASONS = {
