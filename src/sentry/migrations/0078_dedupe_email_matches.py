@@ -6,10 +6,10 @@ from django.db import migrations
 from collections import defaultdict
 
 
-def dedeupe_emails(email_model):
+def dedupe_emails(UserEmail):
     # this query finds useremail matches that are case insensitive matches
     # note we get a result for each item in the pair (intentional)
-    query = email_model.objects.raw(
+    query = UserEmail.objects.raw(
         """
         SELECT dupe_ue.*
         FROM sentry_useremail ue
@@ -56,7 +56,7 @@ def dedeupe_emails(email_model):
 
 def forwards(apps, schema_editor):
     UserEmail = apps.get_model("sentry", "UserEmail")
-    dedeupe_emails(UserEmail)
+    dedupe_emails(UserEmail)
 
 
 
