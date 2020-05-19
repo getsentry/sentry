@@ -21,10 +21,7 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
-    bulk_build_incident_query_params,
-    bulk_get_incident_aggregates,
-    bulk_get_incident_event_stats,
-    bulk_get_incident_stats,
+    get_incident_stats,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -75,7 +72,6 @@ from sentry.snuba.subscriptions import aggregation_function_translations
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip
 from sentry.utils.samples import load_data
 
 
@@ -363,48 +359,6 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         self.run_test(incident, [2, 1])
 
 
-@freeze_time()
-class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(
-        self, incidents, expected_results_list, start=None, end=None, windowed_stats=False
-    ):
-        query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, windowed_stats=windowed_stats
-        )
-        results = bulk_get_incident_event_stats(incidents, query_params_list)
-        for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            self.validate_result(incident, result, expected_results, start, end, windowed_stats)
-
-    def test_project(self):
-        other_project = self.create_project(fire_project_created=True)
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[other_project],
-            groups=[],
-        )
-        incidents = [self.project_incident, other_incident]
-        self.run_test(incidents, [[2, 1], []])
-        self.run_test(incidents, [[1], []], start=self.now - timedelta(minutes=1))
-        self.run_test(
-            incidents, [[2, 1], []], start=self.now - timedelta(minutes=1), windowed_stats=True
-        )
-        self.run_test(incidents, [[2, 1], []], windowed_stats=True)
-        self.run_test(incidents, [[2], []], end=self.now - timedelta(minutes=1, seconds=59))
-
-    def test_groups(self):
-        other_group = self.create_group()
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[other_group],
-        )
-
-        self.run_test([self.group_incident, other_incident], [[1, 1], []])
-        self.run_test([self.group_incident, other_incident], [[1, 1], []], windowed_stats=True)
-
-
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
     @property
     def project_incident(self):
@@ -437,38 +391,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
 
     def test_groups(self):
         assert get_incident_aggregates(self.group_incident) == {"count": 4, "unique_users": 2}
-
-
-class BulkGetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
-    def test_projects(self):
-        other_project = self.create_project(fire_project_created=True)
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[other_project],
-            groups=[],
-        )
-        params = bulk_build_incident_query_params([self.project_incident, other_incident])
-
-        assert bulk_get_incident_aggregates(params) == [
-            {"count": 4, "unique_users": 2},
-            {"count": 0, "unique_users": 0},
-        ]
-
-    def test_groups(self):
-        other_group = self.create_group()
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[other_group],
-        )
-
-        params = bulk_build_incident_query_params([self.group_incident, other_incident])
-        assert bulk_get_incident_aggregates(params) == [
-            {"count": 4, "unique_users": 2},
-            {"count": 0, "unique_users": 0},
-        ]
 
 
 @freeze_time()
@@ -662,8 +584,31 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
 
 @freeze_time()
-class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
-    def test(self):
+class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
+    def run_test(self, incident):
+        incident_stats = get_incident_stats(incident, windowed_stats=True)
+        event_stats = get_incident_event_stats(incident, windowed_stats=True)
+        assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
+        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert event_stats.start == expected_start
+        assert event_stats.end == expected_end
+        assert incident_stats["event_stats"].rollup == event_stats.rollup
+
+        aggregates = get_incident_aggregates(incident)
+        assert incident_stats["total_events"] == aggregates["count"]
+        assert incident_stats["unique_users"] == aggregates["unique_users"]
+
+    def test_open(self):
+        open_incident = self.create_incident(
+            self.organization,
+            title="Open",
+            query="",
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        self.run_test(open_incident)
+
+    def test_closed(self):
         closed_incident = self.create_incident(
             self.organization,
             title="Closed",
@@ -676,30 +621,7 @@ class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
             IncidentStatus.CLOSED,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
         )
-        open_incident = self.create_incident(
-            self.organization,
-            title="Open",
-            query="",
-            groups=[self.group],
-            date_started=timezone.now() - timedelta(days=30),
-        )
-        incidents = [closed_incident, open_incident]
-
-        for incident, incident_stats in zip(
-            incidents, bulk_get_incident_stats(incidents, windowed_stats=True)
-        ):
-            event_stats = get_incident_event_stats(incident, windowed_stats=True)
-            assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            expected_start, expected_end = calculate_incident_time_range(
-                incident, windowed_stats=True
-            )
-            assert event_stats.start == expected_start
-            assert event_stats.end == expected_end
-            assert incident_stats["event_stats"].rollup == event_stats.rollup
-
-            aggregates = get_incident_aggregates(incident)
-            assert incident_stats["total_events"] == aggregates["count"]
-            assert incident_stats["unique_users"] == aggregates["unique_users"]
+        self.run_test(closed_incident)
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
