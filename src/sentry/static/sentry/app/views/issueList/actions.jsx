@@ -564,22 +564,18 @@ const IssueListActions = createReactClass({
             </GraphHeader>
           </GraphHeaderWrapper>
           <EventsOrUsersLabel className="align-right">
-            <React.Fragment>
-              {t('Events')}
-              <StyledQuestionTooltip
-                title={t('Number of events since the issue was created')}
-                size="xs"
-              />
-            </React.Fragment>
+            {t('Events')}
+            <StyledQuestionTooltip
+              title={t('Number of events since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <EventsOrUsersLabel className="align-right">
-            <React.Fragment>
-              {t('Users')}
-              <StyledQuestionTooltip
-                title={t('Unique users affected since the issue was created')}
-                size="xs"
-              />
-            </React.Fragment>
+            {t('Users')}
+            <StyledQuestionTooltip
+              title={t('Unique users affected since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
