@@ -1,7 +1,7 @@
 import XAxis from 'app/components/charts/components/xAxis';
 
 jest.mock('moment', () => {
-  const moment = require.requireActual('moment-timezone');
+  const moment = jest.requireActual('moment-timezone');
   moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
   return moment;
 });
