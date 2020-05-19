@@ -234,6 +234,7 @@ def get_release_health_data_overview(
             "sessions",
             "sessions_errored",
             "sessions_crashed",
+            "sessions_abnormal",
             "users_crashed",
         ],
         groupby=["release", "project_id"],
@@ -253,7 +254,9 @@ def get_release_health_data_overview(
             "total_users": x["users"],
             "total_sessions": x["sessions"],
             "sessions_crashed": x["sessions_crashed"],
-            "sessions_errored": x["sessions_errored"],
+            "sessions_errored": max(
+                0, x["sessions_errored"] - x["sessions_crashed"] - x["sessions_abnormal"]
+            ),
             "has_health_data": True,
         }
         if health_stats_period:
