@@ -138,14 +138,14 @@ class SlackMigrationTest(IntegrationTestCase):
 
         assert integration.external_id == "TXXXXXXX1"
         assert integration.name == "Example"
-        assert integration.metadata == {
-            "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "old_access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-            "scopes": sorted(self.provider.identity_oauth_scopes),
-            "icon": "http://example.com/ws_icon.jpg",
-            "domain_name": "test-slack-workspace.slack.com",
-            "installation_type": "migrated_to_bot",
-        }
+        md = integration.metadata
+        assert md["access_token"] == "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert md["old_access_token"] == "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        assert md["scopes"] == sorted(self.provider.identity_oauth_scopes)
+        assert md["icon"] == "http://example.com/ws_icon.jpg"
+        assert md["domain_name"] == "test-slack-workspace.slack.com"
+        assert md["installation_type"] == "migrated_to_bot"
+        assert md["migrated_at"]
 
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
@@ -164,6 +164,17 @@ class SlackMigrationTest(IntegrationTestCase):
                 "missing_channels": [],
             }
         )
+
+    def test_multiple_orgs_same_workspace(self):
+        new_org = self.create_organization(owner=self.create_user())
+        OrganizationIntegration.objects.create(organization=new_org, integration=self.integration)
+
+        resp = self.client.get(
+            u"{}?{}".format(self.init_path, urlencode({"integration_id": self.integration.id}))
+        )
+        assert resp.status_code == 200
+        self.assertContains(resp, self.integration.name)
+        self.assertContains(resp, new_org.slug)
 
     @patch("sentry.integrations.slack.post_migration.run_post_migration")
     @responses.activate
