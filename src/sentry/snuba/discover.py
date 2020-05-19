@@ -494,6 +494,8 @@ OLD_FUNCTIONS_TO_NEW = {
     "latest_event": "latest_event()",
     "apdex": "apdex(300)",
     "impact": "impact(300)",
+    "rpm": "epm()",
+    "rps": "eps()",
 }
 
 
