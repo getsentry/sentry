@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css, ClassNames} from '@emotion/core';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -59,30 +58,23 @@ class OrganizationRules extends React.Component<Props, State> {
       );
     }
     return (
-      <ClassNames>
-        {({css: classNamesCss}) => (
-          <Wrapper isCollapsed={isCollapsed} contentHeight={contentHeight}>
-            <Header onClick={this.handleToggleCollapsed}>
-              <div>{t('Organization Rules')}</div>
-              <Button
-                label={
-                  isCollapsed
-                    ? t('Expand Organization Rules')
-                    : t('Collapse Organization Rules')
-                }
-                icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
-                size="xsmall"
-                labelClassName={classNamesCss`
-                  padding: ${space(0.25)} ${space(0.5)};
-                `}
-              />
-            </Header>
-            <Content>
-              <RulesList rules={rules} ref={this.rulesListRef} />
-            </Content>
-          </Wrapper>
-        )}
-      </ClassNames>
+      <Wrapper isCollapsed={isCollapsed} contentHeight={contentHeight}>
+        <Header onClick={this.handleToggleCollapsed}>
+          <div>{t('Organization Rules')}</div>
+          <Button
+            label={
+              isCollapsed
+                ? t('Expand Organization Rules')
+                : t('Collapse Organization Rules')
+            }
+            icon={<IconChevron size="8px" direction={isCollapsed ? 'down' : 'up'} />}
+            size="xxsmall"
+          />
+        </Header>
+        <Content>
+          <RulesList rules={rules} ref={this.rulesListRef} />
+        </Content>
+      </Wrapper>
     );
   }
 }
@@ -113,7 +105,7 @@ const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
   ${p =>
     !p.isCollapsed &&
     p.contentHeight &&
-    css`
+    `
       ${Content} {
         height: ${p.contentHeight};
       }

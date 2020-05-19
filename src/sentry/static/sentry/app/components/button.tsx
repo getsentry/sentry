@@ -9,6 +9,7 @@ import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -19,7 +20,7 @@ type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
   priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
-  size?: 'zero' | 'xsmall' | 'small';
+  size?: 'zero' | 'xxsmall' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
   busy?: boolean;
@@ -38,7 +39,6 @@ type Props = {
 
   // This is only used with `<ButtonBar>`
   barId?: string;
-  labelClassName?: string;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
@@ -48,7 +48,7 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 class Button extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
-    size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
+    size: PropTypes.oneOf(['zero', 'xxsmall', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
     /**
@@ -135,7 +135,6 @@ class Button extends React.Component<ButtonProps, {}> {
       priority,
       disabled,
       tooltipProps,
-      labelClassName,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -168,7 +167,6 @@ class Button extends React.Component<ButtonProps, {}> {
           size={size}
           priority={priority}
           borderless={borderless}
-          className={labelClassName}
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
@@ -216,6 +214,8 @@ type StyledButtonProps = ButtonProps & {theme: Theme};
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
+    case 'xxsmall':
+      return theme.fontSizeExtraSmall;
     case 'xsmall':
     case 'small':
       return theme.fontSizeSmall;
@@ -337,6 +337,8 @@ const getLabelPadding = ({
   switch (size) {
     case 'zero':
       return '0';
+    case 'xxsmall':
+      return `${space(0.25)} ${space(0.5)}`;
     case 'xsmall':
       return '5px 8px';
     case 'small':
