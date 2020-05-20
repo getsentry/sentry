@@ -22,6 +22,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
+import Onboarding from './onboarding';
 
 export function getProjectID(
   eventData: EventData,
@@ -181,7 +182,7 @@ class Table extends React.Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, keyTransactions} = this.props;
+    const {eventView, organization, location, keyTransactions, projects} = this.props;
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
@@ -193,37 +194,50 @@ class Table extends React.Component<Props, State> {
       });
 
     const columnSortBy = eventView.getSorts();
+    const filterString = this.getTransactionSearchQuery();
+    const noFirstEvent =
+      projects.filter(
+        p =>
+          eventView.project.includes(parseInt(p.id, 10)) &&
+          p.firstTransactionEvent === false
+      ).length === eventView.project.length;
 
     return (
-      <DiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        keyTransactions={keyTransactions}
-      >
-        {({pageLinks, isLoading, tableData}) => (
-          <div>
-            <StyledSearchBar
-              query={this.getTransactionSearchQuery()}
-              placeholder={t('Filter Transactions')}
-              onSearch={this.handleTransactionSearchQuery}
-            />
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={columnOrder}
-              columnSortBy={columnSortBy}
-              grid={{
-                onResizeColumn: this.handleResizeColumn,
-                renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
-              }}
-              location={location}
-            />
-            <Pagination pageLinks={pageLinks} />
-          </div>
+      <div>
+        <StyledSearchBar
+          query={filterString}
+          placeholder={t('Filter Transactions')}
+          onSearch={this.handleTransactionSearchQuery}
+        />
+        {noFirstEvent ? (
+          <Onboarding />
+        ) : (
+          <DiscoverQuery
+            eventView={eventView}
+            orgSlug={organization.slug}
+            location={location}
+            keyTransactions={keyTransactions}
+          >
+            {({pageLinks, isLoading, tableData}) => (
+              <React.Fragment>
+                <GridEditable
+                  isLoading={isLoading}
+                  data={tableData ? tableData.data : []}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    onResizeColumn: this.handleResizeColumn,
+                    renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
+                    renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
+                  }}
+                  location={location}
+                />
+                <Pagination pageLinks={pageLinks} />
+              </React.Fragment>
+            )}
+          </DiscoverQuery>
         )}
-      </DiscoverQuery>
+      </div>
     );
   }
 }

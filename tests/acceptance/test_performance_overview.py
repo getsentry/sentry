@@ -48,13 +48,13 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_empty_state(self, mock_now):
+    def test_onboarding(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance overview - empty")
+            self.browser.snapshot("performance overview - onboarding")
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
