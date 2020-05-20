@@ -24,7 +24,7 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  onReinstallIntegration: (integration: Integration) => void;
+  onReAuthIntegration: (integration: Integration) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
@@ -49,11 +49,8 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  reinstallIntegration = () => {
-    const activeIntegration = Object.assign({}, this.props.integration, {
-      status: 'active',
-    });
-    this.props.onReinstallIntegration(activeIntegration);
+  reAuthIntegration = (integration: Integration) => {
+    this.props.onReAuthIntegration(integration);
   };
 
   handleUninstallClick = () => {
@@ -157,8 +154,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                   <AddIntegrationButton
                     disabled={!hasAccess}
                     provider={provider}
-                    // TODO: actually pass in an onInstall function
-                    onAddIntegration={() => {}}
+                    onAddIntegration={this.reAuthIntegration}
                     integrationId={integration.id}
                     priority="primary"
                     size="small"
