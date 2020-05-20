@@ -25,7 +25,7 @@ type Props = DefaultProps & {
   /**
    * String or element for the button contents.
    */
-  label?: string | React.ReactNode | null;
+  label?: React.ReactNode;
   /**
    * A closure that returns a styled button. Function will get {isOpen, getActorProps}
    * as arguments. Use this if you need to style/replace the dropdown button.
