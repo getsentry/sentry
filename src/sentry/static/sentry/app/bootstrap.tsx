@@ -26,6 +26,7 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
+import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
 function getSentryIntegrations(hasReplays: boolean = false) {
@@ -75,13 +76,15 @@ const tracesSampleRate = config ? config.apmSampling : 0;
 const hasReplays =
   window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
 
+const appRoutes = Router.createRoutes(routes());
+
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
   _experiments: {useEnvelope: true},
   async beforeSend(event) {
-    return normalizeTransactionName(event);
+    return normalizeTransactionName(appRoutes, event);
   },
 });
 

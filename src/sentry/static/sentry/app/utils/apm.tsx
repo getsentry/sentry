@@ -1,11 +1,9 @@
 import * as Sentry from '@sentry/browser';
-import {createMemoryHistory} from 'history';
 import * as Router from 'react-router';
+import {createMemoryHistory} from 'history';
 
-import routes from 'app/routes';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-const appRoutes = Router.createRoutes(routes());
 const createLocation = createMemoryHistory().createLocation;
 
 /**
@@ -19,6 +17,7 @@ export function setTransactionName(name: string) {
 }
 
 export async function normalizeTransactionName(
+  appRoutes: Router.PlainRoute[],
   event: Sentry.Event
 ): Promise<Sentry.Event> {
   if (event.type === 'transaction') {
