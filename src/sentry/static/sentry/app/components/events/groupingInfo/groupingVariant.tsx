@@ -11,12 +11,14 @@ import theme from 'app/utils/theme';
 import {IconCheckmark, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
 
 type Props = {
   variant: EventGroupVariant;
+  showGroupingConfig: boolean;
 };
 
 type State = {
@@ -39,12 +41,22 @@ class GroupVariant extends React.Component<Props, State> {
   };
 
   getVariantData(): [VariantData, EventGroupComponent | undefined] {
-    const {variant} = this.props;
-    const data: VariantData = [[t('Type'), variant.type]];
+    const {variant, showGroupingConfig} = this.props;
+    const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
     if (variant.hash !== null) {
-      data.push([t('Hash'), variant.hash]);
+      data.push([
+        t('Hash'),
+        <TextWithQuestionTooltip key="hash">
+          {variant.hash}
+          <QuestionTooltip
+            size="xs"
+            position="top"
+            title={t('Events with the same hash are grouped together')}
+          />
+        </TextWithQuestionTooltip>,
+      ]);
     }
 
     if (variant.hashMismatch) {
@@ -57,21 +69,58 @@ class GroupVariant extends React.Component<Props, State> {
     switch (variant.type) {
       case EventGroupVariantType.COMPONENT:
         component = variant.component;
-        if (variant.config?.id) {
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t(
+                'Uses a complex grouping algorithm taking event data into account'
+              )}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
+        if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t('Overrides the default grouping by a custom fingerprinting rule')}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
         if (variant.values) {
           data.push([t('Fingerprint values'), variant.values]);
         }
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t(
+                'Uses a complex grouping algorithm taking event data and a fingerprint into account'
+              )}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
         if (variant.values) {
           data.push([t('Fingerprint values'), variant.values]);
         }
-        if (variant.config?.id) {
+        if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
@@ -106,9 +155,9 @@ class GroupVariant extends React.Component<Props, State> {
           <ContributionIcon isContributing={isContributing} />
           {t('By')}{' '}
           {variant.description
-            .split(' ')
+            ?.split(' ')
             .map(i => capitalize(i))
-            .join(' ')}
+            .join(' ') ?? t('Nothing')}
         </VariantTitle>
       </Tooltip>
     );
@@ -175,6 +224,13 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
 
 const GroupingTree = styled('div')`
   color: #2f2936;
+`;
+
+const TextWithQuestionTooltip = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: max-content min-content;
+  grid-gap: ${space(0.5)};
 `;
 
 export default GroupVariant;

@@ -2,7 +2,7 @@ import React from 'react';
 
 import {EventGroupComponent} from 'app/types';
 
-import GroupingComponent, {GroupingComponentListItem} from './groupingComponent';
+import GroupingComponent from './groupingComponent';
 import {groupingComponentFilter} from './utils';
 import GroupingComponentFrames from './groupingComponentFrames';
 
@@ -47,12 +47,11 @@ const GroupingComponentStacktrace = ({component, showNonContributing}: Props) =>
         <GroupingComponentFrames
           key={index}
           items={group.data.map((v, idx) => (
-            <GroupingComponentListItem key={idx}>
-              <GroupingComponent
-                component={v}
-                showNonContributing={showNonContributing}
-              />
-            </GroupingComponentListItem>
+            <GroupingComponent
+              key={idx}
+              component={v}
+              showNonContributing={showNonContributing}
+            />
           ))}
         />
       ))}

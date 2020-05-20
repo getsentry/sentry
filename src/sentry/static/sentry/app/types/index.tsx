@@ -1251,7 +1251,7 @@ export enum EventGroupVariantType {
 }
 
 export type EventGroupVariant = {
-  description: string;
+  description: string | null;
   hash: string | null;
   hashMismatch: boolean;
   key: EventGroupVariantKey;
