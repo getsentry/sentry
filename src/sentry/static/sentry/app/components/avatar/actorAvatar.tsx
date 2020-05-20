@@ -9,14 +9,17 @@ import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import {Actor} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  hasTooltip: boolean;
+};
+
+type Props = DefaultProps & {
   actor: Actor;
   size?: number;
   default?: string;
   title?: string;
   gravatar?: boolean;
   className?: string;
-  hasTooltip?: boolean;
   onClick?: () => void;
 };
 
@@ -27,19 +30,24 @@ class ActorAvatar extends React.Component<Props> {
     default: PropTypes.string,
     title: PropTypes.string,
     gravatar: PropTypes.bool,
+    hasTooltip: PropTypes.bool,
+  };
+
+  static defaultProps: DefaultProps = {
+    hasTooltip: true,
   };
 
   render() {
-    const {actor, hasTooltip = true, ...props} = this.props;
+    const {actor, ...props} = this.props;
 
     if (actor.type === 'user') {
       const user = actor.id ? MemberListStore.getById(actor.id) : actor;
-      return <UserAvatar user={user} hasTooltip={hasTooltip} {...props} />;
+      return <UserAvatar user={user} {...props} />;
     }
 
     if (actor.type === 'team') {
       const team = TeamStore.getById(actor.id);
-      return <TeamAvatar team={team} hasTooltip={hasTooltip} {...props} />;
+      return <TeamAvatar team={team} {...props} />;
     }
 
     Sentry.withScope(scope => {
