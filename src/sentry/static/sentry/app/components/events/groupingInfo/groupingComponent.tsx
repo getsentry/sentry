@@ -25,7 +25,7 @@ const GroupingComponent = ({component, showNonContributing}: Props) => {
     <GroupingComponentWrapper isContributing={component.contributes}>
       <span>
         {component.name || component.id}
-        {component.hint && <small>{` (${component.hint})`}</small>}
+        {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
       </span>
 
       <GroupingComponentList isInline={shouldInlineValue}>
@@ -75,6 +75,10 @@ const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   ${GroupingValue}, button {
     opacity: ${p => (p.isContributing ? 1 : 0.6)};
   }
+`;
+
+const GroupingHint = styled('small')`
+  font-size: 0.8em;
 `;
 
 export default GroupingComponent;
