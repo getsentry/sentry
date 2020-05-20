@@ -23,7 +23,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
@@ -185,10 +184,6 @@ class SubscriptionProcessor(object):
                     # TODO: Include more info in name?
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
-                    query=self.subscription.snuba_query.query,
-                    aggregation=aggregate_to_query_aggregation[
-                        self.alert_rule.snuba_query.aggregate
-                    ],
                     date_started=detected_at,
                     date_detected=detected_at,
                     projects=[self.subscription.project],
