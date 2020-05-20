@@ -21,7 +21,7 @@ describe('HttpRenderer', function() {
 
       const summaryLine = httpRendererWrapper.prop('summary');
 
-      const summaryLineWrapper = shallow(summaryLine);
+      const summaryLineWrapper = shallow(summaryLine).render();
       expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
       expect(
         summaryLineWrapper

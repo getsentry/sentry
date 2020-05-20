@@ -6,6 +6,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
+import {metric} from 'app/utils/analytics';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 import EventEntries from 'app/components/events/eventEntries';
@@ -93,6 +94,28 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     if (eventHasChanged || environmentsHaveChanged) {
       this.fetchData();
+    }
+
+    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
+    if (prevState.loading && !this.state.loading && prevState.event === null) {
+      metric.measure({
+        name: 'app.page.perf.issue-details',
+        start: 'page-issue-details-start',
+        data: {
+          // start_type is set on 'page-issue-details-start'
+          org_id: parseInt(this.props.organization.id, 10),
+          group: this.props.organization.features.includes('enterprise-perf')
+            ? 'enterprise-perf'
+            : 'control',
+          milestone: 'first-meaningful-paint',
+          is_enterprise: this.props.organization.features
+            .includes('enterprise-orgs')
+            .toString(),
+          is_outlier: this.props.organization.features
+            .includes('enterprise-orgs-outliers')
+            .toString(),
+        },
+      });
     }
   }
 

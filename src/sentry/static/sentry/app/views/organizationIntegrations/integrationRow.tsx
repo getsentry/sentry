@@ -11,6 +11,10 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
+import {
+  trackIntegrationEvent,
+  convertIntegrationTypeToSnakeCase,
+} from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';
 
@@ -96,7 +100,21 @@ const IntegrationRow = (props: Props) => {
         <AlertContainer>
           <Alert type="warning" icon={<IconWarning size="sm" />}>
             <span>{alertText}</span>
-            <ResolveNowButton href={`${baseUrl}?tab=configurations`} size="xsmall">
+            <ResolveNowButton
+              href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}
+              size="xsmall"
+              onClick={() =>
+                trackIntegrationEvent(
+                  {
+                    eventKey: 'integrations.resolve_now_clicked',
+                    eventName: 'Integrations: Resolve Now Clicked',
+                    integration_type: convertIntegrationTypeToSnakeCase(type),
+                    integration: slug,
+                  },
+                  organization
+                )
+              }
+            >
               {t('Resolve Now')}
             </ResolveNowButton>
           </Alert>

@@ -27,7 +27,7 @@ import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 
-function getSentryIntegrations() {
+function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -35,23 +35,24 @@ function getSentryIntegrations() {
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      debug: {
+        spanDebugTimingInfo: true,
+        writeAsBreadcrumbs: true,
+      },
     }),
   ];
-  if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
+  if (hasReplays) {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
 
     // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
     // incompatible. It's a newer plugin, so this can be expected, but we
     // should fix.
-    if (process.env.NODE_ENV === 'production') {
-      // Only use this in prod as there seem to be issues with hot reload in dev
-      integrations.push(
-        new SentryRRWeb({
-          checkoutEveryNms: 60 * 1000, // 60 seconds
-        }) as any
-      );
-    }
+    integrations.push(
+      new SentryRRWeb({
+        checkoutEveryNms: 60 * 1000, // 60 seconds
+      }) as any
+    );
   }
   return integrations;
 }
@@ -70,10 +71,14 @@ const config = ConfigStore.getConfig();
 
 const tracesSampleRate = config ? config.apmSampling : 0;
 
+const hasReplays =
+  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
+
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
-  integrations: getSentryIntegrations(),
+  integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  _experiments: {useEnvelope: true},
 });
 
 if (window.__SENTRY__USER) {
@@ -81,6 +86,9 @@ if (window.__SENTRY__USER) {
 }
 if (window.__SENTRY__VERSION) {
   Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+}
+if (hasReplays) {
+  Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 }
 
 // Used for operational metrics to determine that the application js

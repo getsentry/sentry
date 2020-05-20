@@ -38,7 +38,7 @@ from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
     update_alert_rule_stats,
 )
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations, QuerySubscription
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
@@ -70,11 +70,11 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def sub(self):
-        return self.rule.query_subscriptions.filter(project=self.project).get()
+        return self.rule.snuba_query.subscriptions.filter(project=self.project).get()
 
     @fixture
     def other_sub(self):
-        return self.rule.query_subscriptions.filter(project=self.other_project).get()
+        return self.rule.snuba_query.subscriptions.filter(project=self.other_project).get()
 
     @fixture
     def rule(self):
@@ -83,7 +83,7 @@ class ProcessUpdateTest(TestCase):
             [self.project, self.other_project],
             "some rule",
             query="",
-            aggregation=QueryAggregations.TOTAL,
+            aggregate="count()",
             time_window=1,
             threshold_period=1,
         )
@@ -117,11 +117,7 @@ class ProcessUpdateTest(TestCase):
         data = {}
 
         if subscription:
-            aggregation_type = query_aggregation_to_snuba[
-                QueryAggregations(subscription.aggregation)
-            ]
-            value = randint(0, 100) if value is None else value
-            data = {aggregation_type[2]: value}
+            data = {"some_col_name": randint(0, 100) if value is None else value}
         values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,

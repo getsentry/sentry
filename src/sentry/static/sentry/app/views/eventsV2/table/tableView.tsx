@@ -6,21 +6,27 @@ import {Location, LocationDescriptorObject} from 'history';
 import {Organization, OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {IconEvent, IconStack} from 'app/icons';
+import SortLink from 'app/components/gridEditable/sortLink';
+import Feature from 'app/components/acl/feature';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
+import {IconDownload, IconEdit, IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import EventView, {
+  isFieldSortable,
   MetaType,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import space from 'app/styles/space';
 
 import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
-import SortLink from '../sortLink';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
@@ -104,19 +110,18 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
+    const tableMeta = tableData?.meta;
 
     return (
-      <HeaderCell column={column} tableData={tableData}>
+      <HeaderCell column={column} tableMeta={tableMeta}>
         {({align}) => {
-          const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
-
           const field = {field: column.name, width: column.width};
           function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableDataMeta) {
+            if (!tableMeta) {
               return undefined;
             }
 
-            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const nextEventView = eventView.sortOnField(field, tableMeta);
             const queryStringObject = nextEventView.generateQueryStringObject();
 
             return {
@@ -124,13 +129,15 @@ class TableView extends React.Component<TableViewProps> {
               query: queryStringObject,
             };
           }
+          const currentSort = eventView.sortForField(field, tableMeta);
+          const canSort = isFieldSortable(field, tableMeta);
 
           return (
             <SortLink
               align={align}
-              field={field}
-              eventView={eventView}
-              tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+              title={column.name}
+              direction={currentSort ? currentSort.kind : undefined}
+              canSort={canSort}
               generateSortLink={generateSortLink}
             />
           );
@@ -212,29 +219,122 @@ class TableView extends React.Component<TableViewProps> {
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
   };
 
+  renderHeaderButtons = () => {
+    const noEditMessage = t('Requires discover query feature.');
+    const editFeatures = ['organizations:discover-query'];
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noEditMessage}
+            featureName={noEditMessage}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+    return (
+      <Feature
+        hookName="feature-disabled:grid-editable-actions"
+        renderDisabled={renderDisabled}
+        features={editFeatures}
+      >
+        {({hasFeature}) => (
+          <React.Fragment>
+            {this.renderDownloadButton(hasFeature)}
+            {this.renderEditButton(hasFeature)}
+          </React.Fragment>
+        )}
+      </Feature>
+    );
+  };
+
+  renderDownloadButton(canEdit: boolean) {
+    const {tableData} = this.props;
+    if (!tableData || (tableData.data && tableData.data.length < 50)) {
+      return this.renderBrowserExportButton(canEdit);
+    } else {
+      return (
+        <Feature
+          features={['organizations:data-export']}
+          renderDisabled={() => this.renderBrowserExportButton(canEdit)}
+        >
+          {this.renderAsyncExportButton(canEdit)}
+        </Feature>
+      );
+    }
+  }
+
+  handleDownloadAsCsv = () => {
+    const {organization, title, eventView, tableData} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.download_csv',
+      eventName: 'Discoverv2: Download CSV',
+      organization_id: parseInt(organization.id, 10),
+    });
+    downloadAsCsv(tableData, eventView.getColumns(), title);
+  };
+
+  renderBrowserExportButton(canEdit: boolean) {
+    const disabled = this.props.isLoading || canEdit === false;
+    const onClick = disabled ? undefined : this.handleDownloadAsCsv;
+
+    return (
+      <HeaderButton
+        disabled={disabled}
+        onClick={onClick}
+        data-test-id="grid-download-csv"
+      >
+        <IconDownload size="xs" />
+        {t('Export Page')}
+      </HeaderButton>
+    );
+  }
+
+  renderAsyncExportButton(canEdit: boolean) {
+    const {isLoading, location} = this.props;
+    const disabled = isLoading || canEdit === false;
+    return (
+      <HeaderDownloadButton
+        payload={{
+          queryType: ExportQueryType.Discover,
+          queryInfo: location.query,
+        }}
+        disabled={disabled}
+      >
+        <IconDownload size="xs" />
+        {t('Export All')}
+      </HeaderDownloadButton>
+    );
+  }
+
+  renderEditButton(canEdit: boolean) {
+    const onClick = canEdit ? this.handleEditColumns : undefined;
+    return (
+      <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-edit-enable">
+        <IconEdit size="xs" />
+        {t('Edit Columns')}
+      </HeaderButton>
+    );
+  }
+
   render() {
-    const {
-      isLoading,
-      error,
-      location,
-      tableData,
-      eventView,
-      title,
-      organization,
-    } = this.props;
+    const {isLoading, error, location, tableData, eventView} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
     return (
       <GridEditable
-        editFeatures={['organizations:discover-query']}
-        noEditMessage={t('Requires discover query feature.')}
         isLoading={isLoading}
         error={error}
         data={tableData ? tableData.data : []}
         columnOrder={columnOrder}
         columnSortBy={columnSortBy}
+        title={t('Results')}
         grid={{
           renderHeadCell: this._renderGridHeaderCell as any,
           renderBodyCell: this._renderGridBodyCell as any,
@@ -242,18 +342,8 @@ class TableView extends React.Component<TableViewProps> {
           renderPrependColumns: this._renderPrependColumns as any,
           prependColumnWidths: ['40px'],
         }}
+        headerButtons={this.renderHeaderButtons}
         location={location}
-        actions={{
-          editColumns: this.handleEditColumns,
-          downloadAsCsv: () => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.results.download_csv',
-              eventName: 'Discoverv2: Download CSV',
-              organization_id: parseInt(organization.id, 10),
-            });
-            downloadAsCsv(tableData, columnOrder, title);
-          },
-        }}
       />
     );
   }
@@ -331,6 +421,55 @@ const IconLink = styled(Link)`
   position: relative;
   display: inline-block;
   top: 3px;
+`;
+
+const HeaderButton = styled('button')<{disabled?: boolean}>`
+  display: flex;
+  align-items: center;
+
+  background: none;
+  border: none;
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  padding: 0;
+  margin: 0;
+  outline: 0;
+
+  > svg {
+    margin-right: ${space(0.5)};
+  }
+
+  &:hover,
+  &:active {
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+  }
+`;
+
+const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
+  background: none;
+  border: none;
+  font-weight: normal;
+  box-shadow: none;
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+
+  padding: 0;
+  margin: 0;
+  outline: 0;
+
+  svg {
+    margin-right: ${space(0.5)};
+  }
+  > span {
+    padding: 0;
+  }
+
+  &:hover,
+  &:active {
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+    box-shadow: none;
+  }
 `;
 
 export default TableView;

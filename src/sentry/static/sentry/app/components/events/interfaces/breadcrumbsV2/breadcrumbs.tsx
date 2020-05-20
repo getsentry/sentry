@@ -19,7 +19,7 @@ import {
   BreadcrumbDetails,
   BreadcrumbType,
   BreadcrumbLevelType,
-} from '../breadcrumbs/types';
+} from './types';
 import BreadcrumbFilter from './breadcrumbFilter/breadcrumbFilter';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbTypeDetails from './getBreadcrumbTypeDetails';
@@ -156,7 +156,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     if (exception) {
       const {type, value, module: mdl} = exception.data.values[0];
       return {
-        type: BreadcrumbType.EXCEPTION,
+        type: BreadcrumbType.ERROR,
         level: BreadcrumbLevelType.ERROR,
         category: this.moduleToCategory(mdl) || 'exception',
         data: {
@@ -170,7 +170,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     const levelTag = (event.tags || []).find(tag => tag.key === 'level');
 
     return {
-      type: BreadcrumbType.MESSAGE,
+      type: BreadcrumbType.ERROR,
       level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
@@ -330,14 +330,14 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       >
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
-            <BreadcrumbList>
+            <React.Fragment>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
               />
-            </BreadcrumbList>
+            </React.Fragment>
           ) : (
             <EmptyMessage
               icon={<IconWarning size="xl" />}
@@ -359,16 +359,10 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 export default BreadcrumbsContainer;
 
 const Content = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
-  border-radius: 3px;
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: ${space(3)};
-`;
-
-const BreadcrumbList = styled('ul')`
-  padding-left: 0;
-  list-style: none;
-  margin-bottom: 0;
 `;
 
 const Search = styled('div')`

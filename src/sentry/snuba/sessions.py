@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytz
 from datetime import datetime, timedelta
 
-from sentry.utils.snuba import raw_query, parse_snuba_datetime
+from sentry.utils.snuba import raw_query, parse_snuba_datetime, QueryOutsideRetentionError
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.snuba.dataset import Dataset
 
@@ -234,6 +234,7 @@ def get_release_health_data_overview(
             "sessions",
             "sessions_errored",
             "sessions_crashed",
+            "sessions_abnormal",
             "users_crashed",
         ],
         groupby=["release", "project_id"],
@@ -253,7 +254,9 @@ def get_release_health_data_overview(
             "total_users": x["users"],
             "total_sessions": x["sessions"],
             "sessions_crashed": x["sessions_crashed"],
-            "sessions_errored": x["sessions_errored"],
+            "sessions_errored": max(
+                0, x["sessions_errored"] - x["sessions_crashed"] - x["sessions_abnormal"]
+            ),
             "has_health_data": True,
         }
         if health_stats_period:
@@ -355,13 +358,17 @@ def get_crash_free_breakdown(project_id, release, start, environments=None):
         timedelta(days=14),
         timedelta(days=30),
     ):
-        item_start = start + offset
-        if item_start > now:
-            if last is None or (item_start - last).days > 1:
-                rv.append(_query_stats(now))
-            break
-        rv.append(_query_stats(item_start))
-        last = item_start
+        try:
+            item_start = start + offset
+            if item_start > now:
+                if last is None or (item_start - last).days > 1:
+                    rv.append(_query_stats(now))
+                break
+            rv.append(_query_stats(item_start))
+            last = item_start
+        except QueryOutsideRetentionError:
+            # cannot query for these
+            pass
 
     return rv
 
@@ -382,7 +389,17 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
     buckets = int((end - start).total_seconds() / rollup)
     stats = _make_stats(start, rollup, buckets, default=None)
 
-    totals = {stat: 0, stat + "_crashed": 0, stat + "_abnormal": 0, stat + "_errored": 0}
+    # Due to the nature of the probabilistic data structures some
+    # subtractions can become negative.  As such we're making sure a number
+    # never goes below zero to avoid confusion.
+
+    totals = {
+        stat: 0,
+        stat + "_healthy": 0,
+        stat + "_crashed": 0,
+        stat + "_abnormal": 0,
+        stat + "_errored": 0,
+    }
 
     for rv in raw_query(
         dataset=Dataset.Sessions,
@@ -405,11 +422,13 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         bucket = int((ts - start).total_seconds() / rollup)
         stats[bucket][1] = {
             stat: rv[stat],
+            stat + "_healthy": max(0, rv[stat] - rv[stat + "_errored"]),
             stat + "_crashed": rv[stat + "_crashed"],
             stat + "_abnormal": rv[stat + "_abnormal"],
-            # Due to the nature of the probabilistic data structures this
-            # subtraction can become negative.
-            stat + "_errored": max(0, rv[stat + "_errored"] - rv[stat + "_crashed"]),
+            stat
+            + "_errored": max(
+                0, rv[stat + "_errored"] - rv[stat + "_crashed"] - rv[stat + "_abnormal"]
+            ),
             "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
             "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
@@ -418,12 +437,13 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
         # as the data becomes available.
         if stat == "sessions":
             for k in totals:
-                totals[k] += rv[k]
+                totals[k] += stats[bucket][1][k]
 
     for idx, bucket in enumerate(stats):
         if bucket[1] is None:
             stats[idx][1] = {
                 stat: 0,
+                stat + "_healthy": 0,
                 stat + "_crashed": 0,
                 stat + "_abnormal": 0,
                 stat + "_errored": 0,
@@ -445,11 +465,12 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             rv = rows[0]
             totals = {
                 "users": rv["users"],
+                "users_healthy": max(0, rv["users"] - rv["users_errored"]),
                 "users_crashed": rv["users_crashed"],
                 "users_abnormal": rv["users_abnormal"],
-                # Due to the nature of the probabilistic data structures this
-                # subtraction can become negative.
-                "users_errored": max(0, rv["users_errored"] - rv["users_crashed"]),
+                "users_errored": max(
+                    0, rv["users_errored"] - rv["users_crashed"] - rv["users_abnormal"]
+                ),
             }
 
     return stats, totals

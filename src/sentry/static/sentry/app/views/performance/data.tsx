@@ -21,11 +21,22 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
     'p95()',
     'error_rate()',
     'apdex(300)',
-    'user_misery(300)',
     'count_unique(user)',
+    'user_misery(300)',
   ],
   version: 2,
 };
+export const COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'throughput',
+  'p50',
+  'p95',
+  'error rate',
+  'apdex(300)',
+  'users',
+  'user misery',
+];
 
 export function generatePerformanceQuery(location: Location): Readonly<NewQuery> {
   const extra: {[key: string]: string} = {};

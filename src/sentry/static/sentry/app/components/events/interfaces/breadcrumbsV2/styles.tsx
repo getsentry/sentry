@@ -4,63 +4,84 @@ import {css} from '@emotion/core';
 import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
-// TODO(style): the color #fffcfb and  #e7c0bc are not yet in theme and no similar theme's color was found.
-const BreadcrumbListItem = styled('li')<{hasError?: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
-  position: relative;
-  padding: ${space(1)} ${space(2)} ${space(1)} ${space(3)};
-  display: grid;
-  grid-template-columns: 50px 100px 1fr 80px 80px;
-  grid-gap: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  :before {
-    content: '';
-    display: block;
-    width: 2px;
-    top: 0;
-    bottom: 0;
-    left: 32px;
-    background: ${p => p.theme.borderLight};
-    position: absolute;
-  }
-  :first-child:before {
-    content: none;
-  }
-  :last-child:before {
-    bottom: calc(100% - ${space(1)});
-  }
-  :last-child {
-    ${p =>
-      p.hasError
-        ? css`
-            background: #fffcfb;
-            border: 1px solid #e7c0bc;
-            margin: -1px;
-          `
-        : css`
-            border-bottom: 0;
-          `}
-  }
-`;
-
-const BreadCrumbIconWrapper = styled('div')<{
-  color?: Color;
-  borderColor?: Color;
+const IconWrapper = styled('div', {
+  shouldForwardProp: prop => prop !== 'color',
+})<{
+  color?: Color | React.CSSProperties['color'];
   size?: number;
 }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: ${p => (p.size ? `${p.size}px` : '26px')};
-  height: ${p => (p.size ? `${p.size}px` : '26px')};
+  width: 26px;
+  height: 26px;
   background: ${p => p.theme.white};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   border-radius: 32px;
   z-index: 1;
   position: relative;
-  color: ${p => (p.color ? p.theme[p.color] : 'inherit')};
-  border-color: ${p => (p.borderColor ? p.theme[p.borderColor] : 'currentColor')};
-  border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray2)};
+  border: 1px solid ${p => p.theme.gray2};
+  ${p =>
+    p.color &&
+    css`
+      color: ${p.theme[p.color] || p.color};
+      border-color: ${p.theme[p.color] || p.color};
+    `}
 `;
 
-export {BreadcrumbListItem, BreadCrumbIconWrapper};
+const GridCell = styled('div')<{
+  hasError?: boolean;
+  isLastItem?: boolean;
+}>`
+  position: relative;
+  line-height: 26px;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  margin-bottom: -1px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  padding: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(1)} ${space(2)};
+  }
+  ${p =>
+    p.hasError &&
+    css`
+      background: #fffcfb;
+      border-top: 1px solid #fa4747;
+      border-bottom: 1px solid #fa4747;
+      z-index: 1;
+      ${p.isLastItem && 'margin-bottom: 0'};
+    `}
+`;
+
+const GridCellLeft = styled(GridCell)`
+  position: relative;
+  :before {
+    content: '';
+    display: block;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    left: 21px;
+    background: ${p => (p.hasError ? '#fa4747' : p.theme.borderLight)};
+    position: absolute;
+    @media (min-width: ${p => p.theme.breakpoints[0]}) {
+      left: 29px;
+    }
+  }
+`;
+
+const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
+  display: grid;
+  overflow-y: auto;
+  ${p => p.maxHeight && `max-height: ${p.maxHeight}`};
+  > *:nth-last-child(5):before {
+    bottom: calc(100% - ${space(1)});
+  }
+  grid-template-columns: max-content 55px 1fr max-content max-content;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: max-content 110px 1fr max-content max-content;
+  }
+`;
+
+export {Grid, GridCell, GridCellLeft, IconWrapper};

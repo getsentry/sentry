@@ -6,6 +6,7 @@ import OrganizationStore from 'app/stores/organizationStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import ProgressRing from 'app/components/progressRing';
+import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
@@ -99,4 +100,21 @@ export const getCrashFreePercentColor: ProgressRingColorFn = ({percent, theme}) 
   }
 
   return theme.green;
+};
+
+export const getReleaseNewIssuesUrl = (
+  orgSlug: string,
+  projectId: string | number | null,
+  version: string
+) => {
+  return {
+    pathname: `/organizations/${orgSlug}/issues/`,
+    query: {
+      project: projectId,
+      query: stringifyQueryObject({
+        query: [],
+        firstRelease: [version],
+      }),
+    },
+  };
 };

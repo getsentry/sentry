@@ -28,7 +28,7 @@ def apply_dataset_conditions(dataset, conditions):
     default_retry_delay=5,
     max_retries=5,
 )
-def create_subscription_in_snuba(query_subscription_id):
+def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
     Task to create a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. We store the snuba subscription id locally on success.
@@ -57,7 +57,7 @@ def create_subscription_in_snuba(query_subscription_id):
     default_retry_delay=5,
     max_retries=5,
 )
-def update_subscription_in_snuba(query_subscription_id):
+def update_subscription_in_snuba(query_subscription_id, **kwargs):
     """
     Task to update a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. Updating in Snuba means deleting the existing subscription, then creating a
@@ -90,7 +90,7 @@ def update_subscription_in_snuba(query_subscription_id):
     default_retry_delay=5,
     max_retries=5,
 )
-def delete_subscription_from_snuba(query_subscription_id):
+def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """
     Task to delete a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. Deletes the local subscription once we've successfully removed from Snuba.
@@ -106,31 +106,39 @@ def delete_subscription_from_snuba(query_subscription_id):
         return
 
     if subscription.subscription_id is not None:
-        _delete_from_snuba(QueryDatasets(subscription.dataset), subscription.subscription_id)
+        _delete_from_snuba(
+            QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+        )
 
     subscription.delete()
 
 
+def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+    snuba_filter = get_filter(query, params=params)
+    snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
+    snuba_filter = resolve_discover_aliases(snuba_filter)[0]
+    if environment:
+        snuba_filter.conditions.append(["environment", "=", environment.name])
+    snuba_filter.conditions = apply_dataset_conditions(dataset, snuba_filter.conditions)
+    return snuba_filter
+
+
 def _create_in_snuba(subscription):
     snuba_query = subscription.snuba_query
-    snuba_filter = get_filter(snuba_query.query)
-    snuba_filter.update_with(
-        resolve_field_list([snuba_query.aggregate], snuba_filter, auto_fields=False)
-    )
-    snuba_filter = resolve_discover_aliases(snuba_filter)[0]
-    if snuba_query.environment:
-        snuba_filter.conditions.append(["environment", "=", snuba_query.environment.name])
-    conditions = apply_dataset_conditions(
-        QueryDatasets(snuba_query.dataset), snuba_filter.conditions
+    snuba_filter = build_snuba_filter(
+        QueryDatasets(snuba_query.dataset),
+        snuba_query.query,
+        snuba_query.aggregate,
+        snuba_query.environment,
     )
     response = _snuba_pool.urlopen(
         "POST",
-        "/%s/subscriptions" % (subscription.dataset,),
+        "/%s/subscriptions" % (snuba_query.dataset,),
         body=json.dumps(
             {
                 "project_id": subscription.project_id,
                 "dataset": snuba_query.dataset,
-                "conditions": conditions,
+                "conditions": snuba_filter.conditions,
                 "aggregations": snuba_filter.aggregations,
                 "time_window": snuba_query.time_window,
                 "resolution": snuba_query.resolution,

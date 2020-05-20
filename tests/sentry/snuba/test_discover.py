@@ -1128,7 +1128,7 @@ class QueryTransformTest(TestCase):
                 ["avg", "duration", "avg_transaction_duration"],
                 ["max", "time", "max_time"],
             ],
-            having=[["max_time", ">", 1575158400000]],
+            having=[["max_time", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1249,7 +1249,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["histogram(transaction.duration, 10)", "count()"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "environment": self.environment.name},
             auto_fields=True,
             use_aggregate_conditions=False,
         )
@@ -1276,7 +1276,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["histogram_transaction_duration_10_1000_0"],
-            conditions=[],
+            conditions=[[["environment", "=", self.environment.name]]],
             end=None,
             start=None,
             orderby=None,

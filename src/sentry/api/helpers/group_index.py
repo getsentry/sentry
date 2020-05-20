@@ -276,6 +276,12 @@ class GroupValidator(serializers.Serializer):
 
         return value
 
+    def validate_discard(self, value):
+        access = self.context.get("access")
+        if value and (not access or not access.has_scope("event:admin")):
+            raise serializers.ValidationError("You do not have permission to discard events")
+        return value
+
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
@@ -430,7 +436,9 @@ def track_update_groups(function):
             raise
 
         serializer = GroupValidator(
-            data=request.data, partial=True, context={"project": projects[0]}
+            data=request.data,
+            partial=True,
+            context={"project": projects[0], "access": getattr(request, "access", None)},
         )
         results = dict(serializer.validated_data) if serializer.is_valid() else {}
         tags = {key: True for key in results.keys()}
@@ -460,7 +468,11 @@ def update_groups(request, projects, organization_id, search_fn):
     # to support multiple projects, but this is pretty complicated
     # because of the assignee validation. Punting on this for now.
     for project in projects:
-        serializer = GroupValidator(data=request.data, partial=True, context={"project": project})
+        serializer = GroupValidator(
+            data=request.data,
+            partial=True,
+            context={"project": project, "access": getattr(request, "access", None)},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -493,6 +505,7 @@ def update_groups(request, projects, organization_id, search_fn):
 
     discard = result.get("discard")
     if discard:
+
         return handle_discard(request, list(queryset), projects, acting_user)
 
     statusDetails = result.pop("statusDetails", result)

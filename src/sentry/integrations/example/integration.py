@@ -160,7 +160,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_config(self):
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         Migrator.run(integration=integration, organization=organization)
 
     def build_integration(self, state):

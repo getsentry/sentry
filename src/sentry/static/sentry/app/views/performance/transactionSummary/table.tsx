@@ -11,8 +11,8 @@ import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import SortLink from 'app/views/eventsV2/sortLink';
-import EventView, {MetaType} from 'app/utils/discover/eventView';
+import EventView, {isFieldSortable, MetaType} from 'app/utils/discover/eventView';
+import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
@@ -52,22 +52,24 @@ class SummaryContentTable extends React.Component<Props> {
   renderHeader() {
     const {eventView, tableData} = this.props;
 
-    const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
+    const tableMeta = tableData?.meta;
     const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
 
     return columnOrder.map((column, index) => (
-      <HeaderCell column={column} tableData={tableData} key={index}>
+      <HeaderCell column={column} tableMeta={tableMeta} key={index}>
         {({align}) => {
           const field = {field: column.name, width: column.width};
+          const currentSort = eventView.sortForField(field, tableMeta);
+          const canSort = isFieldSortable(field, tableMeta);
 
           return (
             <GridHeadCell>
               <SortLink
                 align={align}
-                field={field}
-                eventView={eventView}
-                tableDataMeta={tableDataMeta}
+                title={column.name}
+                direction={currentSort ? currentSort.kind : undefined}
+                canSort={canSort}
                 generateSortLink={generateSortLink}
               />
             </GridHeadCell>

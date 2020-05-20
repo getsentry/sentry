@@ -96,8 +96,10 @@ export type OrganizationSummary = {
  * Lightweight in this case means it does not contain `projects` or `teams`
  */
 export type LightWeightOrganization = OrganizationSummary & {
+  relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -276,6 +278,11 @@ type SentryEventBase = {
 
   oldestEventID: string | null;
   latestEventID: string | null;
+
+  groupingConfig: {
+    id: string;
+    enhancements: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -885,7 +892,17 @@ export type Release = {
   owner?: any; // TODO(ts)
   newGroups: number;
   projects: ReleaseProject[];
+  versionInfo: VersionInfo;
 } & BaseRelease;
+
+export type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
 
 export type ReleaseProject = {
   slug: string;
@@ -897,13 +914,21 @@ export type ReleaseProject = {
   healthData: Health;
 };
 
-export type BaseRelease = {
-  dateReleased: string;
-  url: string;
-  dateCreated: string;
+export type ReleaseMeta = {
+  commitCount: number;
+  commitFilesChanged: number;
+  deployCount: number;
+  releaseFileCount: number;
   version: string;
-  shortVersion: string;
-  ref: string;
+  projects: ReleaseProject[];
+  versionInfo: VersionInfo;
+};
+
+export type VersionInfo = {
+  buildHash: string | null;
+  description: string;
+  package: string | null;
+  version: {raw: string};
 };
 
 export type Deploy = {
@@ -1110,9 +1135,12 @@ export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 export type Meta = {
   chunks: Array<Chunks>;
   len: number;
-  rem: Array<Array<string | number>>;
-  err: Array<any>;
+  rem: Array<MetaRemark>;
+  err: Array<MetaError>;
 };
+
+export type MetaError = [string, any];
+export type MetaRemark = Array<string | number>;
 
 export type Chunks = {
   text: string;
@@ -1195,3 +1223,42 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
 };
+
+export type EventGroupComponent = {
+  contributes: boolean;
+  hint: string | null;
+  id: string;
+  name: string | null;
+  values: EventGroupComponent[] | string[];
+};
+export type EventGroupingConfig = {
+  base: string | null;
+  changelog: string;
+  delegates: string[];
+  hidden: boolean;
+  id: string;
+  latest: boolean;
+  risk: number;
+  strategies: string[];
+};
+
+type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+
+export enum EventGroupVariantType {
+  CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
+}
+
+export type EventGroupVariant = {
+  description: string;
+  hash: string | null;
+  hashMismatch: boolean;
+  key: EventGroupVariantKey;
+  type: EventGroupVariantType;
+  values?: string;
+  component?: EventGroupComponent;
+  config?: EventGroupingConfig;
+};
+
+export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;

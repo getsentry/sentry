@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
 
 import {DeviceData, DeviceKnownDataType} from './types';
 import getDeviceKnownData from './getDeviceKnownData';

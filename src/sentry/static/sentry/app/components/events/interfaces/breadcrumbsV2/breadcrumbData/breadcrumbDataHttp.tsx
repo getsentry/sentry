@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
-import {BreadcrumbTypeHTTP} from '../../breadcrumbs/types';
+import {BreadcrumbTypeHTTP} from '../types';
 import BreadcrumbDataSummary from './breadcrumbDataSummary';
 
 type Props = {

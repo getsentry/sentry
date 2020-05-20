@@ -28,13 +28,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_incidents_list(self):
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
         incident = create_incident(

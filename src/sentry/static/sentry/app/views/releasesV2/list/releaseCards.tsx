@@ -4,7 +4,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import AsyncView from 'app/views/asyncView';
-import {Release} from 'app/types';
+import {Release, GlobalSelection} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 
 import ReleaseCard from './releaseCard';
@@ -14,6 +14,7 @@ type Props = {
   orgSlug: string;
   location: Location;
   reloading: boolean;
+  selection: GlobalSelection;
 };
 
 type State = {
@@ -75,7 +76,7 @@ class ReleaseCards extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {releasesToRender, loading} = this.state;
-    const {orgSlug, location, reloading} = this.props;
+    const {orgSlug, location, reloading, selection} = this.props;
     return (
       <React.Fragment>
         {releasesToRender.map(release => (
@@ -86,6 +87,7 @@ class ReleaseCards extends AsyncComponent<Props, State> {
             reloading={reloading}
             key={`${release.version}-${release.projects[0].slug}`}
             showPlaceholders={loading}
+            selection={selection}
           />
         ))}
       </React.Fragment>

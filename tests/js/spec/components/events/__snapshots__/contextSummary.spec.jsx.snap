@@ -284,13 +284,19 @@ exports[`GpuSummary render() renders name and vendor 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mali-T880
+    <AnnotatedText
+      meta={null}
+      value="Mali-T880"
+    />
   </h3>
   <ParagraphOverflow>
     <Subject>
       Vendor:
     </Subject>
-    ARM
+    <AnnotatedText
+      meta={null}
+      value="ARM"
+    />
   </ParagraphOverflow>
 </div>
 `;
@@ -303,13 +309,18 @@ exports[`GpuSummary render() renders unknown when no vendor 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Apple A8 GPU
+    <AnnotatedText
+      meta={null}
+      value="Apple A8 GPU"
+    />
   </h3>
   <ParagraphOverflow>
     <Subject>
       Vendor:
     </Subject>
-    Unknown
+    <AnnotatedText
+      value="Unknown"
+    />
   </ParagraphOverflow>
 </div>
 `;
@@ -322,13 +333,19 @@ exports[`OsSummary render() renders the kernel version when no version 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
   <ParagraphOverflow>
     <Subject>
       Kernel:
     </Subject>
-    17.5.0
+    <AnnotatedText
+      meta={null}
+      value="17.5.0"
+    />
   </ParagraphOverflow>
 </div>
 `;
@@ -341,13 +358,19 @@ exports[`OsSummary render() renders the version string 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
   <ParagraphOverflow>
     <Subject>
       Version:
     </Subject>
-    10.13.4
+    <AnnotatedText
+      meta={null}
+      value="10.13.4"
+    />
   </ParagraphOverflow>
 </div>
 `;
@@ -360,13 +383,18 @@ exports[`OsSummary render() renders unknown when no version 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
   <ParagraphOverflow>
     <Subject>
       Version:
     </Subject>
-    Unknown
+    <AnnotatedText
+      value="Unknown"
+    />
   </ParagraphOverflow>
 </div>
 `;

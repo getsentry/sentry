@@ -3,16 +3,19 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Count from 'app/components/count';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import UserBadge from 'app/components/idBadge/userBadge';
-import getDynamicText from 'app/utils/getDynamicText';
 import Duration from 'app/components/duration';
-import {formatFloat, formatPercentage} from 'app/utils/formatters';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import ScoreBar from 'app/components/scoreBar';
+import Tooltip from 'app/components/tooltip';
+import UserBadge from 'app/components/idBadge/userBadge';
 import Version from 'app/components/version';
+import getDynamicText from 'app/utils/getDynamicText';
+import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
+import theme from 'app/utils/theme';
 
 import {
   Container,
@@ -258,6 +261,60 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
 };
 
+type SpecialFunctions = {
+  user_misery: SpecialField;
+};
+
+/**
+ * "Special functions" are functions whose values either do not map 1:1 to a single column,
+ * or they require custom UI formatting that can't be handled by the datatype formatters.
+ */
+const SPECIAL_FUNCTIONS: SpecialFunctions = {
+  user_misery: {
+    sortField: null,
+    renderFunc: data => {
+      const uniqueUsers = data.count_unique_user;
+      let userMiseryField: string = '';
+      for (const field in data) {
+        if (field.startsWith('user_misery')) {
+          userMiseryField = field;
+        }
+      }
+      if (!userMiseryField) {
+        return <NumberContainer>{emptyValue}</NumberContainer>;
+      }
+
+      const userMisery = data[userMiseryField];
+      if (!uniqueUsers && uniqueUsers !== 0) {
+        return (
+          <NumberContainer>
+            {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
+          </NumberContainer>
+        );
+      }
+
+      const palette = new Array(10).fill(theme.purpleDarkest);
+      const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
+      const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+      const title = tct(
+        '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+        {
+          affectedUsers: userMisery,
+          totalUsers: uniqueUsers,
+          duration: 4 * miseryLimit,
+        }
+      );
+      return (
+        <NumberContainer>
+          <Tooltip title={title} disabled={false}>
+            <ScoreBar size={20} score={score} palette={palette} />
+          </Tooltip>
+        </NumberContainer>
+      );
+    },
+  },
+};
+
 /**
  * Get the sort field name for a given field if it is special or fallback
  * to the generic type formatter.
@@ -300,6 +357,12 @@ export function getFieldRenderer(
   }
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
+
+  for (const alias in SPECIAL_FUNCTIONS) {
+    if (fieldName.startsWith(alias)) {
+      return SPECIAL_FUNCTIONS[alias].renderFunc;
+    }
+  }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

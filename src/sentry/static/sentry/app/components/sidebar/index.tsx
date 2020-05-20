@@ -38,7 +38,6 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
-import {wantsLegacyReleases} from 'app/views/releasesV2/utils';
 
 import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
@@ -195,6 +194,7 @@ class Sidebar extends React.Component<Props, State> {
       'releases',
       'user-feedback',
       'discover',
+      'discover/results', // Team plans do not have query landing page
       'performance',
       'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
@@ -300,20 +300,6 @@ class Sidebar extends React.Component<Props, State> {
     }
 
     return sidebarState;
-  }
-
-  /**
-   * Determine which version of releases to show
-   */
-  shouldShowNewReleases() {
-    const {organization} = this.props;
-
-    // Bail as we can't do any more checks.
-    if (!organization || !organization.features) {
-      return false;
-    }
-
-    return organization.features.includes('releases-v2') && !wantsLegacyReleases();
   }
 
   render() {
@@ -458,7 +444,7 @@ class Sidebar extends React.Component<Props, State> {
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
-                    isBeta={this.shouldShowNewReleases()}
+                    isNew
                   />
                   <SidebarItem
                     {...sidebarItemProps}

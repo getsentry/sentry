@@ -7,13 +7,13 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import FeatureBadge from 'app/components/featureBadge';
-import {Organization, Release} from 'app/types';
+import {Organization, Release, GlobalSelection} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import PageHeading from 'app/components/pageHeading';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -35,6 +35,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
+  selection: GlobalSelection;
 };
 
 type State = {releases: Release[]} & AsyncView['state'];
@@ -174,7 +175,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody() {
-    const {location, organization} = this.props;
+    const {location, selection, organization} = this.props;
     const {releases, reloading} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
@@ -190,6 +191,7 @@ class ReleasesList extends AsyncView<Props, State> {
         releases={releases}
         orgSlug={organization.slug}
         location={location}
+        selection={selection}
         reloading={reloading}
       />
     );
@@ -208,9 +210,7 @@ class ReleasesList extends AsyncView<Props, State> {
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <PageHeading>
-                {t('Releases')} <FeatureBadge type="beta" />
-              </PageHeading>
+              <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
                 <ReleaseListSortOptions
                   selected={this.getSort()}
@@ -260,5 +260,5 @@ const SortAndFilterWrapper = styled('div')`
   }
 `;
 
-export default withOrganization(ReleasesList);
+export default withOrganization(withGlobalSelection(ReleasesList));
 export {ReleasesList};

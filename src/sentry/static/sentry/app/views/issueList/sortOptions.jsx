@@ -50,6 +50,8 @@ class IssueListSortOptions extends React.PureComponent {
         return t('Priority');
       case 'freq':
         return t('Frequency');
+      case 'user':
+        return t('Users');
       case 'date':
       default:
         return t('Last Seen');
@@ -71,6 +73,7 @@ class IssueListSortOptions extends React.PureComponent {
           {this.getMenuItem('date')}
           {this.getMenuItem('new')}
           {this.getMenuItem('freq')}
+          {this.getMenuItem('user')}
         </DropdownControl>
       </Container>
     );

@@ -40,4 +40,13 @@ export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
   description?: string;
+  examples?: Array<string>;
+};
+
+export type Rule = {
+  id: number;
+  type: RuleType;
+  method: MethodType;
+  source: string;
+  customRegularExpression?: string;
 };

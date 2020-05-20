@@ -11,7 +11,8 @@ import {
   unaryOperatorSuggestions,
   binaryOperatorSuggestions,
 } from './dataPrivacyRulesFormSourceSuggestions';
-import {SourceSuggestion, SourceSuggestionType} from './types';
+import SourceSuggestionExamples from './sourceSuggestionExamples';
+import {SourceSuggestion, SourceSuggestionType} from '../types';
 
 type Props = {
   value: string;
@@ -27,19 +28,17 @@ type State = {
   fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
   activeSuggestion: number;
   showSuggestions: boolean;
+  hideCaret: boolean;
 };
 
-class DataPrivacyRulesFormSource extends React.Component<Props, State> {
+class Source extends React.Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
     activeSuggestion: 0,
     showSuggestions: false,
+    hideCaret: false,
   };
-
-  componentWillMount() {
-    document.addEventListener('mousedown', this.handleClickOutside, false);
-  }
 
   componentDidMount() {
     this.loadFieldValues(this.props.value);
@@ -51,10 +50,6 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
       this.loadFieldValues(this.props.value);
       this.hideSuggestions();
     }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('mousedown', this.handleClickOutside, false);
   }
 
   selectorField = React.createRef<HTMLDivElement>();
@@ -236,17 +231,10 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
     this.props.onChange(newValue);
   };
 
-  handleClickOutside = (event: MouseEvent) => {
-    if (
-      event.target instanceof HTMLElement &&
-      this.selectorField.current &&
-      this.selectorField.current.contains(event.target)
-    ) {
-      return;
-    }
-
+  handleClickOutside = () => {
     this.setState({
       showSuggestions: false,
+      hideCaret: false,
     });
   };
 
@@ -300,6 +288,7 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
         fieldValues,
         activeSuggestion: 0,
         showSuggestions: false,
+        hideCaret: false,
       },
       () => {
         this.handleChangeParentValue();
@@ -308,12 +297,19 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
   };
 
   scrollToSuggestion = () => {
-    const {activeSuggestion} = this.state;
+    const {activeSuggestion, hideCaret} = this.state;
+
     this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
     });
+
+    if (!hideCaret) {
+      this.setState({
+        hideCaret: true,
+      });
+    }
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -356,10 +352,10 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
 
   render() {
     const {error, disabled, value, onBlur} = this.props;
-    const {showSuggestions, suggestions, activeSuggestion} = this.state;
+    const {showSuggestions, suggestions, activeSuggestion, hideCaret} = this.state;
 
     return (
-      <Wrapper ref={this.selectorField}>
+      <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledTextField
           name="from"
           placeholder={t('Enter a custom attribute, variable or header name')}
@@ -373,34 +369,49 @@ class DataPrivacyRulesFormSource extends React.Component<Props, State> {
           disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
-          <SuggestionsWrapper ref={this.suggestionList} data-test-id="source-suggestions">
-            {suggestions.slice(0, 50).map((suggestion, index) => (
-              <SuggestionItem
-                key={suggestion.value}
-                onClick={this.handleClickSuggestionItem(suggestion)}
-                active={index === activeSuggestion}
-                tabIndex={-1}
-              >
-                <TextOverflow>{suggestion.value}</TextOverflow>
-                {suggestion?.description && (
-                  <SuggestionDescription>
-                    (<TextOverflow>{suggestion.description}</TextOverflow>)
-                  </SuggestionDescription>
-                )}
-              </SuggestionItem>
-            ))}
-          </SuggestionsWrapper>
+          <React.Fragment>
+            <SuggestionsWrapper
+              ref={this.suggestionList}
+              data-test-id="source-suggestions"
+            >
+              {suggestions.slice(0, 50).map((suggestion, index) => (
+                <SuggestionItem
+                  key={suggestion.value}
+                  onClick={this.handleClickSuggestionItem(suggestion)}
+                  active={index === activeSuggestion}
+                  tabIndex={-1}
+                >
+                  <TextOverflow>{suggestion.value}</TextOverflow>
+
+                  {suggestion.description && (
+                    <SuggestionDescription>
+                      (<TextOverflow>{suggestion.description}</TextOverflow>)
+                    </SuggestionDescription>
+                  )}
+
+                  {suggestion.examples && suggestion.examples.length > 0 && (
+                    <SourceSuggestionExamples
+                      examples={suggestion.examples}
+                      sourceName={suggestion.value}
+                    />
+                  )}
+                </SuggestionItem>
+              ))}
+            </SuggestionsWrapper>
+            <SuggestionsOverlay onClick={this.handleClickOutside} />
+          </React.Fragment>
         )}
       </Wrapper>
     );
   }
 }
 
-export default DataPrivacyRulesFormSource;
+export default Source;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;
   width: 100%;
+  ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
 const StyledTextField = styled(TextField)`
@@ -408,6 +419,11 @@ const StyledTextField = styled(TextField)`
   height: 40px;
   input {
     height: 40px;
+  }
+
+  z-index: 1002;
+  :focus {
+    outline: none;
   }
 `;
 
@@ -423,7 +439,7 @@ const SuggestionsWrapper = styled('ul')`
   background: ${p => p.theme.white};
   top: 35px;
   right: 0;
-  z-index: 1001;
+  z-index: 1002;
   overflow: hidden;
   max-height: 200px;
   overflow-y: auto;
@@ -431,7 +447,7 @@ const SuggestionsWrapper = styled('ul')`
 
 const SuggestionItem = styled('li')<{active: boolean}>`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr max-content;
   grid-gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   padding: ${space(1)} ${space(2)};
@@ -447,4 +463,13 @@ const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
   color: ${p => p.theme.gray2};
+`;
+
+const SuggestionsOverlay = styled('div')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
 `;

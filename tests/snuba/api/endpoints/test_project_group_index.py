@@ -5,6 +5,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 import six
+from django.conf import settings
 from django.utils import timezone
 from exam import fixture
 from sentry.utils.compat.mock import patch, Mock
@@ -1283,6 +1284,23 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
+
+    @patch(
+        "sentry.models.OrganizationMember.get_scopes",
+        return_value=frozenset(s for s in settings.SENTRY_SCOPES if s != "event:admin"),
+    )
+    def test_discard_requires_events_admin(self, mock_get_scopes):
+        group1 = self.create_group(checksum="a" * 32, is_public=True)
+        user = self.user
+
+        self.login_as(user=user)
+
+        url = u"{url}?id={group1.id}".format(url=self.path, group1=group1)
+        with self.tasks(), self.feature("projects:discard-groups"):
+            response = self.client.put(url, data={"discard": True})
+
+        assert response.status_code == 400
+        assert Group.objects.filter(id=group1.id).exists()
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

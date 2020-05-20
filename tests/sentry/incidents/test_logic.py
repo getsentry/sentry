@@ -21,10 +21,7 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
-    bulk_build_incident_query_params,
-    bulk_get_incident_aggregates,
-    bulk_get_incident_event_stats,
-    bulk_get_incident_stats,
+    get_incident_stats,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -70,11 +67,10 @@ from sentry.incidents.models import (
     IncidentSubscription,
     IncidentType,
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip
 from sentry.utils.samples import load_data
 
 
@@ -90,13 +86,7 @@ class CreateIncidentTest(TestCase):
         other_project = self.create_project(fire_project_created=True)
         other_group = self.create_group(project=other_project)
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
         self.record_event.reset_mock()
@@ -285,22 +275,22 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 
     def validate_result(self, incident, result, expected_results, start, end, windowed_stats):
         # Duration of 300s, but no alert rule
-        time_window = incident.alert_rule.time_window if incident.alert_rule else 1
-        assert result.rollup == time_window * 60
+        time_window = incident.alert_rule.snuba_query.time_window if incident.alert_rule else 60
+        assert result.rollup == time_window
         expected_start = start if start else incident.date_started - timedelta(minutes=1)
         expected_end = end if end else incident.current_end_date + timedelta(minutes=1)
 
         if windowed_stats:
             now = timezone.now()
             expected_end = expected_start + timedelta(
-                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+                seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
             )
             expected_start = expected_start - timedelta(
-                minutes=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
+                seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2)
             )
             if expected_end > now:
                 expected_end = now
-                expected_start = now - timedelta(minutes=time_window * WINDOWED_STATS_DATA_POINTS)
+                expected_start = now - timedelta(seconds=time_window * WINDOWED_STATS_DATA_POINTS)
 
         assert result.start == expected_start
         assert result.end == expected_end
@@ -362,48 +352,6 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         self.run_test(incident, [2, 1])
 
 
-@freeze_time()
-class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
-    def run_test(
-        self, incidents, expected_results_list, start=None, end=None, windowed_stats=False
-    ):
-        query_params_list = bulk_build_incident_query_params(
-            incidents, start=start, end=end, windowed_stats=windowed_stats
-        )
-        results = bulk_get_incident_event_stats(incidents, query_params_list)
-        for incident, result, expected_results in zip(incidents, results, expected_results_list):
-            self.validate_result(incident, result, expected_results, start, end, windowed_stats)
-
-    def test_project(self):
-        other_project = self.create_project(fire_project_created=True)
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[other_project],
-            groups=[],
-        )
-        incidents = [self.project_incident, other_incident]
-        self.run_test(incidents, [[2, 1], []])
-        self.run_test(incidents, [[1], []], start=self.now - timedelta(minutes=1))
-        self.run_test(
-            incidents, [[2, 1], []], start=self.now - timedelta(minutes=1), windowed_stats=True
-        )
-        self.run_test(incidents, [[2, 1], []], windowed_stats=True)
-        self.run_test(incidents, [[2], []], end=self.now - timedelta(minutes=1, seconds=59))
-
-    def test_groups(self):
-        other_group = self.create_group()
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[other_group],
-        )
-
-        self.run_test([self.group_incident, other_incident], [[1, 1], []])
-        self.run_test([self.group_incident, other_incident], [[1, 1], []], windowed_stats=True)
-
-
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
     @property
     def project_incident(self):
@@ -436,38 +384,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
 
     def test_groups(self):
         assert get_incident_aggregates(self.group_incident) == {"count": 4, "unique_users": 2}
-
-
-class BulkGetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
-    def test_projects(self):
-        other_project = self.create_project(fire_project_created=True)
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[other_project],
-            groups=[],
-        )
-        params = bulk_build_incident_query_params([self.project_incident, other_incident])
-
-        assert bulk_get_incident_aggregates(params) == [
-            {"count": 4, "unique_users": 2},
-            {"count": 0, "unique_users": 0},
-        ]
-
-    def test_groups(self):
-        other_group = self.create_group()
-        other_incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="",
-            projects=[],
-            groups=[other_group],
-        )
-
-        params = bulk_build_incident_query_params([self.group_incident, other_incident])
-        assert bulk_get_incident_aggregates(params) == [
-            {"count": 4, "unique_users": 2},
-            {"count": 0, "unique_users": 0},
-        ]
 
 
 @freeze_time()
@@ -638,13 +554,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
         time_window = 1500  # more than 24 hours, so gets capped at 10 days
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            time_window,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", time_window, 1
         )
 
         incident = self.create_incident(self.organization)
@@ -654,21 +564,42 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         start, end = calculate_incident_time_range(incident, windowed_stats=True)
         assert end == incident.current_end_date + timedelta(days=10)
 
-        alert_rule.update(time_window=10)
+        alert_rule.snuba_query.update(time_window=600)
 
         start, end = calculate_incident_time_range(incident, windowed_stats=True)
         assert end == incident.current_end_date + timedelta(minutes=100)
 
 
 @freeze_time()
-class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
-    def test(self):
-        closed_incident = create_incident(
+class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
+    def run_test(self, incident):
+        incident_stats = get_incident_stats(incident, windowed_stats=True)
+        event_stats = get_incident_event_stats(incident, windowed_stats=True)
+        assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
+        expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
+        assert event_stats.start == expected_start
+        assert event_stats.end == expected_end
+        assert incident_stats["event_stats"].rollup == event_stats.rollup
+
+        aggregates = get_incident_aggregates(incident)
+        assert incident_stats["total_events"] == aggregates["count"]
+        assert incident_stats["unique_users"] == aggregates["unique_users"]
+
+    def test_open(self):
+        open_incident = self.create_incident(
             self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Closed",
-            "",
-            QueryAggregations.TOTAL,
+            title="Open",
+            query="",
+            groups=[self.group],
+            date_started=timezone.now() - timedelta(days=30),
+        )
+        self.run_test(open_incident)
+
+    def test_closed(self):
+        closed_incident = self.create_incident(
+            self.organization,
+            title="Closed",
+            query="",
             groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
@@ -677,106 +608,65 @@ class BulkGetIncidentStatsTest(TestCase, BaseIncidentsTest):
             IncidentStatus.CLOSED,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
         )
-        open_incident = create_incident(
-            self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Open",
-            "",
-            QueryAggregations.TOTAL,
-            groups=[self.group],
-            date_started=timezone.now() - timedelta(days=30),
-        )
-        incidents = [closed_incident, open_incident]
-
-        for incident, incident_stats in zip(
-            incidents, bulk_get_incident_stats(incidents, windowed_stats=True)
-        ):
-            event_stats = get_incident_event_stats(incident, windowed_stats=True)
-            assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            expected_start, expected_end = calculate_incident_time_range(
-                incident, windowed_stats=True
-            )
-            assert event_stats.start == expected_start
-            assert event_stats.end == expected_end
-            assert incident_stats["event_stats"].rollup == event_stats.rollup
-
-            aggregates = get_incident_aggregates(incident)
-            assert incident_stats["total_events"] == aggregates["count"]
-            assert incident_stats["unique_users"] == aggregates["unique_users"]
+        self.run_test(closed_incident)
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
         name = "hello"
         query = "level:error"
-        aggregation = QueryAggregations.TOTAL
+        aggregate = "count(*)"
         time_window = 10
         threshold_period = 1
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            name,
-            query,
-            aggregation,
-            time_window,
-            threshold_period,
+            self.organization, [self.project], name, query, aggregate, time_window, threshold_period
         )
-        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.status == AlertRuleStatus.PENDING.value
-        assert alert_rule.query_subscriptions.all().count() == 1
-        assert alert_rule.dataset == QueryDatasets.EVENTS.value
-        assert alert_rule.query == query
-        assert alert_rule.aggregation == aggregation.value
-        assert alert_rule.time_window == time_window
-        assert alert_rule.resolution == DEFAULT_ALERT_RULE_RESOLUTION
+        assert alert_rule.snuba_query.subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
+        assert alert_rule.snuba_query.query == query
+        assert alert_rule.snuba_query.aggregate == aggregate
+        assert alert_rule.snuba_query.time_window == time_window * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
         include_all_projects = True
         self.project
         alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
-        assert alert_rule.query_subscriptions.get().project == self.project
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.include_all_projects == include_all_projects
 
         new_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(
             projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
         )
-        assert alert_rule.query_subscriptions.get().project == new_project
+        assert alert_rule.snuba_query.subscriptions.get().project == new_project
         assert alert_rule.include_all_projects == include_all_projects
 
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
-            create_alert_rule(
-                self.organization, [self.project], "hi", "has:", QueryAggregations.TOTAL, 1, 1
-            )
+            create_alert_rule(self.organization, [self.project], "hi", "has:", "count()", 1, 1)
 
     def test_existing_name(self):
         name = "uh oh"
-        create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
-        )
+        create_alert_rule(self.organization, [self.project], name, "level:error", "count()", 1, 1)
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
             create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                "level:error",
-                QueryAggregations.TOTAL,
-                1,
-                1,
+                self.organization, [self.project], name, "level:error", "count()", 1, 1
             )
 
     def test_existing_name_allowed_when_archived(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+            self.organization, [self.project], name, "level:error", "count()", 1, 1
         )
         alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+            self.organization, [self.project], name, "level:error", "count()", 1, 1
         )
 
         assert alert_rule_1.name == alert_rule_2.name
@@ -790,12 +680,12 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+            self.organization, [self.project], name, "level:error", "count()", 1, 1
         )
         alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", QueryAggregations.TOTAL, 1, 1
+            self.organization, [self.project], name, "level:error", "count()", 1, 1
         )
         alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
 
@@ -808,19 +698,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
         return create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
     def test(self):
         name = "uh oh"
         query = "level:warning"
-        aggregation = QueryAggregations.UNIQUE_USERS
+        aggregate = "count_unique(tags[sentry:user])"
         time_window = 50
         threshold_period = 2
 
@@ -831,43 +715,41 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             projects=updated_projects,
             name=name,
             query=query,
-            aggregation=aggregation,
+            aggregate=aggregate,
             time_window=time_window,
             threshold_period=threshold_period,
         )
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
-        updated_subscriptions = self.alert_rule.query_subscriptions.all()
+        updated_subscriptions = self.alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for subscription in updated_subscriptions:
-            assert subscription.query == query
-            assert subscription.aggregation == aggregation.value
-            assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
-        assert self.alert_rule.query == query
-        assert self.alert_rule.aggregation == aggregation.value
-        assert self.alert_rule.time_window == time_window
+            assert subscription.snuba_query.query == query
+            assert subscription.snuba_query.aggregate == aggregate
+            assert subscription.snuba_query.time_window == int(
+                timedelta(minutes=time_window).total_seconds()
+            )
+        assert self.alert_rule.snuba_query.query == query
+        assert self.alert_rule.snuba_query.aggregate == aggregate
+        assert self.alert_rule.snuba_query.time_window == time_window * 60
         assert self.alert_rule.threshold_period == threshold_period
 
     def test_update_subscription(self):
-        old_subscription_id = self.alert_rule.query_subscriptions.get().subscription_id
+        old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
         with self.tasks():
             update_alert_rule(self.alert_rule, query="some new query")
-        assert old_subscription_id != self.alert_rule.query_subscriptions.get().subscription_id
+        assert (
+            old_subscription_id != self.alert_rule.snuba_query.subscriptions.get().subscription_id
+        )
 
     def test_empty_query(self):
         alert_rule = update_alert_rule(self.alert_rule, query="")
-        assert alert_rule.query == ""
+        assert alert_rule.snuba_query.query == ""
 
     def test_name_used(self):
         used_name = "uh oh"
         create_alert_rule(
-            self.organization,
-            [self.project],
-            used_name,
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], used_name, "level:error", "count()", 10, 1
         )
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
             update_alert_rule(self.alert_rule, name=used_name)
@@ -882,12 +764,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             [self.project, self.create_project(fire_project_created=True)],
             "something",
             "level:error",
-            QueryAggregations.TOTAL,
+            "count()",
             10,
             1,
         )
         update_alert_rule(alert_rule, [self.project])
-        assert self.alert_rule.query_subscriptions.get().project == self.project
+        assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
 
     def test_new_updated_deleted_projects(self):
         alert_rule = create_alert_rule(
@@ -895,7 +777,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             [self.project, self.create_project(fire_project_created=True)],
             "something",
             "level:error",
-            QueryAggregations.TOTAL,
+            "count()",
             10,
             1,
         )
@@ -904,71 +786,54 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         updated_projects = [self.project, new_project]
         with self.tasks():
             update_alert_rule(alert_rule, updated_projects, query=query_update)
-        updated_subscriptions = alert_rule.query_subscriptions.all()
+        updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for sub in updated_subscriptions:
-            assert sub.query == query_update
+            assert sub.snuba_query.query == query_update
 
     def test_update_to_include_all(self):
         orig_project = self.project
         alert_rule = self.create_alert_rule(projects=[orig_project])
         new_project = self.create_project(fire_project_created=True)
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(alert_rule, include_all_projects=True)
-        assert set(
-            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
-        ) == set([new_project, orig_project])
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
+            [new_project, orig_project]
+        )
 
     def test_update_to_include_all_with_exclude(self):
         orig_project = self.project
         alert_rule = self.create_alert_rule(projects=[orig_project])
         new_project = self.create_project(fire_project_created=True)
         excluded_project = self.create_project()
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(
             alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
         )
-        assert set(
-            [sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)]
-        ) == set([orig_project, new_project])
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
+            [orig_project, new_project]
+        )
 
     def test_update_include_all_exclude_list(self):
         new_project = self.create_project(fire_project_created=True)
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
         with self.tasks():
             update_alert_rule(alert_rule, excluded_projects=[self.project])
-        assert [
-            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
-        ] == [new_project]
+        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
         update_alert_rule(alert_rule, excluded_projects=[])
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
 
     def test_update_from_include_all(self):
         new_project = self.create_project(fire_project_created=True)
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert (
-            set([sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)])
-            == projects
-        )
+        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
         with self.tasks():
             update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
-        assert [
-            sub.project for sub in QuerySubscription.objects.filter(alert_rules=alert_rule)
-        ] == [new_project]
+        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
     def test_with_attached_incident(self):
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
@@ -997,7 +862,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
                 self.alert_rule,
                 projects=updated_projects,
                 query="level:warning",
-                aggregation=QueryAggregations.UNIQUE_USERS,
+                aggregate="count_unique(tags[sentry:user])",
                 time_window=50,
                 threshold_period=2,
             )
@@ -1013,10 +878,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
             # Rule snapshot should have properties of the rule before it was updated.
             assert rule_snapshot.id != updated_rule.id
+            assert rule_snapshot.snuba_query_id != updated_rule.snuba_query_id
             assert rule_snapshot.name == updated_rule.name
-            assert rule_snapshot.query == "level:error"
-            assert rule_snapshot.time_window == 10
-            assert rule_snapshot.aggregation == QueryAggregations.TOTAL.value
+            assert rule_snapshot.snuba_query.query == "level:error"
+            assert rule_snapshot.snuba_query.time_window == 600
+            assert rule_snapshot.snuba_query.aggregate == "count()"
             assert rule_snapshot.threshold_period == 1
 
             for incident in (incident, incident_2):
@@ -1056,13 +922,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
         return create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
     def test(self):
