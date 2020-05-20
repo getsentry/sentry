@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import SplitDiff from 'app/components/splitDiff';
 
 describe('SplitDiff', function() {

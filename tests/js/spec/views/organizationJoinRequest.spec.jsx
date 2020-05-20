@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAdhocEvent} from 'app/utils/analytics';
 import OrganizationJoinRequest from 'app/views/organizationJoinRequest';

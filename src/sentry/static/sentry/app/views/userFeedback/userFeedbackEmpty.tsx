@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/browser';
 
+import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
+
 import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';
@@ -10,7 +12,6 @@ import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 

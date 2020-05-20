@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
 } from 'app/views/settings/projectPlugins/details';

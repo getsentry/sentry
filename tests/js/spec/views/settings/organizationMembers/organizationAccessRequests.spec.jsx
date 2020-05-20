@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationAccessRequests from 'app/views/settings/organizationMembers/organizationAccessRequests';
 
 describe('OrganizationAccessRequests', function() {

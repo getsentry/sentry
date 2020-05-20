@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueListSavedSearchSelector from 'app/views/issueList/savedSearchSelector';
 
 describe('IssueListSavedSearchSelector', function() {

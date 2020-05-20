@@ -2,6 +2,7 @@ import React from 'react';
 import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
 describe('EventOrGroupExtraDetails', function() {

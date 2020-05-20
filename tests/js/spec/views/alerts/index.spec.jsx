@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IncidentsContainer from 'app/views/alerts';
 
 describe('IncidentsContainer', function() {

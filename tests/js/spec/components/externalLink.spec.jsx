@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import ExternalLink from 'app/components/links/externalLink';
 
 describe('ExternalLink', function() {

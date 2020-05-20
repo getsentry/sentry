@@ -1,11 +1,12 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
+
 import ContextPickerModal from 'app/components/contextPickerModal';
 import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import {selectByValue} from 'sentry-test/select-new';
 
 jest.mock('jquery');
 

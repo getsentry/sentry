@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AccountClose from 'app/views/settings/account/accountClose';
 
 describe('AccountClose', function() {

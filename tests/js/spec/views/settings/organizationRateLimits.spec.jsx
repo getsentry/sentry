@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import OrganizationRateLimits from 'app/views/settings/organizationRateLimits/organizationRateLimits';
 

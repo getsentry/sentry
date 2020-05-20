@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import ConfigStore from 'app/stores/configStore';
 import RegisterForm from 'app/views/auth/registerForm';
 

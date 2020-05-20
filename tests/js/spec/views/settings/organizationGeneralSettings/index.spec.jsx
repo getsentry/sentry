@@ -3,6 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 
 jest.mock('jquery');

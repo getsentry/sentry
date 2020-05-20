@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {

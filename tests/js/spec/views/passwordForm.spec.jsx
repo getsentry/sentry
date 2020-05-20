@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import PasswordForm from 'app/views/settings/account/passwordForm';
 

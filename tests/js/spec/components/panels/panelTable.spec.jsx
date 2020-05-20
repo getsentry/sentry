@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import PanelTable from 'app/components/panels/panelTable';
 
 describe('PanelTable', function() {

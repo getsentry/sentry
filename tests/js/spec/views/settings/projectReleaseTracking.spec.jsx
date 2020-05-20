@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectReleaseTrackingContainer, {
   ProjectReleaseTracking,
 } from 'app/views/settings/project/projectReleaseTracking';

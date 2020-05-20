@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
+
 import Tooltip from 'app/components/tooltip';
 
 describe('Tooltip', function() {

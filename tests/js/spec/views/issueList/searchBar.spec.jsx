@@ -2,6 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueListSearchBar from 'app/views/issueList/searchBar';
 import TagStore from 'app/stores/tagStore';
 

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 
 const start = new Date('2017-10-14T02:38:00.000Z');

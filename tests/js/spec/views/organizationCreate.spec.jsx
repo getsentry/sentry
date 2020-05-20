@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import ConfigStore from 'app/stores/configStore';
 import OrganizationCreate from 'app/views/organizationCreate';
 

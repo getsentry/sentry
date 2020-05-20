@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openSudo} from 'app/actionCreators/modal';
 import * as OrganizationActionCreator from 'app/actionCreators/organization';
 import ConfigStore from 'app/stores/configStore';

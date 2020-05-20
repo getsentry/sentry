@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {Form, SelectAsyncField} from 'app/components/forms';
 
 describe('SelectAsyncField', function() {

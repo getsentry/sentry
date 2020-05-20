@@ -1,8 +1,9 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';
 import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 

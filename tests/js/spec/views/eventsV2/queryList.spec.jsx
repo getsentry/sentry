@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {

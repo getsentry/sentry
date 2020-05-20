@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import OrganizationMemberRow from 'app/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function() {

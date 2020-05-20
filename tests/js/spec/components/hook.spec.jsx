@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import Hook from 'app/components/hook';
 import HookStore from 'app/stores/hookStore';
 

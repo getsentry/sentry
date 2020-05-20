@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import {MultiSelectField} from 'app/components/forms';
 
 describe('MultiSelectField', function() {

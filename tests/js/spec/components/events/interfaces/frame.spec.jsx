@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import Frame from 'app/components/events/interfaces/frame/frame';
 
 describe('Frame', function() {

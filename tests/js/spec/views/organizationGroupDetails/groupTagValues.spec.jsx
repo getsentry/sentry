@@ -2,6 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import GroupTagValues from 'app/views/organizationGroupDetails/groupTagValues';
 import DetailedError from 'app/components/errors/detailedError';
 

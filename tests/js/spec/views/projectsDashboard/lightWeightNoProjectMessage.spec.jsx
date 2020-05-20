@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import ProjectsStore from 'app/stores/projectsStore';
 

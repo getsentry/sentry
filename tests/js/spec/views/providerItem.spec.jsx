@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {descopeFeatureName} from 'app/utils';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {descopeFeatureName} from 'app/utils';
 import ProviderItem from 'app/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function() {

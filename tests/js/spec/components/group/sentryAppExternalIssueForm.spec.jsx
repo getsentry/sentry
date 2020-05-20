@@ -1,10 +1,11 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+
 import {Client} from 'app/api';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
-import {selectByValue} from 'sentry-test/select';
 
 const optionLabelSelector = label => `[aria-label="${label}"]`;
 

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import Breadcrumbs from 'app/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {

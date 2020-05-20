@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import PlatformList from 'app/components/platformList';
 
 describe('PlatformList', function() {

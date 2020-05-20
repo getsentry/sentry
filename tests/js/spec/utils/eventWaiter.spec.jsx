@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import EventWaiter from 'app/utils/eventWaiter';
 
 jest.useFakeTimers();

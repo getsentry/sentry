@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {logout} from 'app/actionCreators/account';
 import AcceptOrganizationInvite from 'app/views/acceptOrganizationInvite';
 

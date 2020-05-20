@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectUserFeedback from 'app/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function() {
