@@ -3,6 +3,7 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
+
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 

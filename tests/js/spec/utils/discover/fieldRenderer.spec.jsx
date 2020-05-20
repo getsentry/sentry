@@ -1,6 +1,7 @@
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 describe('getFieldRenderer', function() {
   let location, context, project, organization, data;

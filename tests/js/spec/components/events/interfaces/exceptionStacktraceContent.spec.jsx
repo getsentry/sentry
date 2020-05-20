@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import ExceptionStacktraceContent from 'app/components/events/interfaces/exceptionStacktraceContent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
