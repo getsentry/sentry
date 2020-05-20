@@ -49,7 +49,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  reAuthIntegration = (integration: Integration) => {
+  handleReAuthIntegration = (integration: Integration) => {
     this.props.onReAuthIntegration(integration);
   };
 
@@ -154,7 +154,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                   <AddIntegrationButton
                     disabled={!hasAccess}
                     provider={provider}
-                    onAddIntegration={this.reAuthIntegration}
+                    onAddIntegration={this.handleReAuthIntegration}
                     integrationId={integration.id}
                     priority="primary"
                     size="small"
