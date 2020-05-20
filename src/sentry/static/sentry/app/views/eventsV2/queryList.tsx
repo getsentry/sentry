@@ -12,6 +12,7 @@ import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DropdownMenu from 'app/components/dropdownMenu';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
@@ -90,6 +91,14 @@ class QueryList extends React.Component<Props> {
       cards = cards.concat(this.renderPrebuiltQueries());
     }
     cards = cards.concat(this.renderSavedQueries());
+
+    if (cards.filter(x => x).length === 0) {
+      return (
+        <StyledEmptyStateWarning>
+          <p>{t('No saved queries match that filter')}</p>
+        </StyledEmptyStateWarning>
+      );
+    }
 
     return cards;
   }
@@ -297,6 +306,9 @@ const MoreOptions = styled('span')`
 
 const DropdownTarget = styled('div')`
   display: flex;
+`;
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  grid-column: 1 / 4;
 `;
 
 export default withApi(QueryList);

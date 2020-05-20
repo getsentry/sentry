@@ -52,6 +52,24 @@ describe('EventsV2 > QueryList', function() {
     queryChangeMock = jest.fn();
   });
 
+  it('renders an empty list', function() {
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={organization}
+        savedQueries={[]}
+        savedQuerySearchQuery="no matches"
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('QueryCard');
+    // No queries
+    expect(content).toHaveLength(0);
+    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+  });
+
   it('renders pre-built queries and saved ones', function() {
     const wrapper = mountWithTheme(
       <QueryList
