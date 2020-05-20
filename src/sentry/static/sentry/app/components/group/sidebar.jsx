@@ -234,7 +234,9 @@ class GroupSidebar extends React.Component {
 
     return (
       <div className="group-stats">
-        <SuggestedOwners project={project} group={group} event={this.props.event} />
+        {this.props.event && (
+          <SuggestedOwners project={project} group={group} event={this.props.event} />
+        )}
         <GroupReleaseStats
           group={this.props.group}
           project={project}

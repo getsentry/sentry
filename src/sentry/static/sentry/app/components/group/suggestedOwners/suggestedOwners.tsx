@@ -59,10 +59,6 @@ class SuggestedOwners extends React.Component<Props, State> {
   }
 
   async fetchData(event: Event) {
-    if (!event) {
-      return;
-    }
-
     // No committers if you don't have any releases
     if (!!this.props.group.firstRelease) {
       this.fetchCommitters(event.id);
@@ -74,39 +70,37 @@ class SuggestedOwners extends React.Component<Props, State> {
   fetchCommitters = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
     // TODO: move this into a store since `EventCause` makes this exact request as well
-    await api
-      .requestPromise(
+    try {
+      const data = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/events/${eventId}/committers/`
-      )
-      .then(data => {
-        this.setState({
-          committers: data.committers,
-        });
-      })
-      .catch(() => {
-        this.setState({
-          committers: [],
-        });
+      );
+      this.setState({
+        committers: data.committers,
       });
+    } catch {
+      this.setState({
+        committers: [],
+      });
+    }
   };
 
   fetchOwners = async (eventId: Event['id']) => {
     const {api, project, organization} = this.props;
-    await api
-      .requestPromise(
+
+    try {
+      const data = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/events/${eventId}/owners/`
-      )
-      .then(data => {
-        this.setState({
-          owners: data.owners,
-          rules: data.rules,
-        });
-      })
-      .catch(() => {
-        this.setState({
-          committers: [],
-        });
+      );
+
+      this.setState({
+        owners: data.owners,
+        rules: data.rules,
       });
+    } catch {
+      this.setState({
+        committers: [],
+      });
+    }
   };
 
   /**
