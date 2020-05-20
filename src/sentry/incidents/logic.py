@@ -389,25 +389,28 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     return SnubaTSResult(results[0], snuba_params.start, snuba_params.end, snuba_params.rollup)
 
 
-def get_incident_aggregates(incident, start=None, end=None, windowed_stats=False):
+def get_incident_aggregates(
+    incident, start=None, end=None, windowed_stats=False, use_alert_aggregate=False
+):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
+    If `use_alert_aggregate` is True, calculates just the aggregate that the alert is
+    for, and returns as the `count` key.
+    If False, returns two values:
     - count: Total count of events
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    # We don't care about the specific aggregations here, we just want total event and
-    # unique user counts
-    query_params.pop("aggregations", None)
-    snuba_params_list = [
-        SnubaQueryParams(
-            aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
-            limit=10000,
-            **query_params
-        )
-    ]
+    if not use_alert_aggregate:
+        query_params["aggregations"] = [
+            ("count()", "", "count"),
+            ("uniq", "tags[sentry:user]", "unique_users"),
+        ]
+    else:
+        query_params["aggregations"][0][2] = "count"
+    snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
     results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
-    return [result["data"][0] for result in results][0]
+    return results[0]["data"][0]
 
 
 def get_incident_stats(incident, windowed_stats=False):

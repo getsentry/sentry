@@ -12,8 +12,6 @@ from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
-from sentry.snuba.models import QueryAggregations
-from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -49,7 +47,10 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
-QUERY_AGGREGATION_DISPLAY = ["events", "users affected"]
+QUERY_AGGREGATION_DISPLAY = {
+    "count()": "events",
+    "count_unique(tags[sentry:user])": "users affected",
+}
 
 
 def format_actor_option(actor):
@@ -303,7 +304,6 @@ def build_incident_attachment(incident):
         end = incident_trigger.date_modified
     else:
         start, end = None, None
-    aggregates = get_incident_aggregates(incident, start, end)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
@@ -315,14 +315,10 @@ def build_incident_attachment(incident):
         status = "Critical"
         color = LEVEL_TO_COLOR["fatal"]
 
-    query_aggregation = aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate]
-    agg_text = QUERY_AGGREGATION_DISPLAY[query_aggregation.value]
-
-    agg_value = (
-        aggregates["count"]
-        if query_aggregation == QueryAggregations.TOTAL
-        else aggregates["unique_users"]
+    agg_text = QUERY_AGGREGATION_DISPLAY.get(
+        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
     )
+    agg_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)["count"]
     time_window = alert_rule.snuba_query.time_window / 60
 
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
