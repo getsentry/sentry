@@ -72,6 +72,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
       value: '',
     },
     orgRules: [],
+    isProjectLevel: this.props.endpoint.includes('projects'),
   };
 
   componentDidMount() {
@@ -93,9 +94,10 @@ class DataPrivacyRules extends React.Component<Props, State> {
   api = new Client();
 
   loadOrganizationRules = () => {
+    const {isProjectLevel} = this.state;
     const {organization} = this.props;
 
-    if (this.isProjectLevel()) {
+    if (isProjectLevel) {
       try {
         const convertedRules = this.convertRelayPiiConfig(organization.relayPiiConfig);
         this.setState({
@@ -118,8 +120,6 @@ class DataPrivacyRules extends React.Component<Props, State> {
       addErrorMessage(t('Unable to load project rules'));
     }
   }
-
-  isProjectLevel = () => this.props.endpoint.includes('projects');
 
   // Remap PII config format to something that is more usable in React. Ideally
   // we would stop doing this at some point and make some updates to how we
@@ -395,7 +395,14 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, sourceSuggestions, showAddRuleModal, eventId, orgRules} = this.state;
+    const {
+      rules,
+      sourceSuggestions,
+      showAddRuleModal,
+      eventId,
+      orgRules,
+      isProjectLevel,
+    } = this.state;
 
     return (
       <React.Fragment>
@@ -415,7 +422,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
             })}
           </PanelAlert>
           <PanelBody>
-            {this.isProjectLevel() && <OrganizationRules rules={orgRules} />}
+            {isProjectLevel && <OrganizationRules rules={orgRules} />}
             <DataPrivacyRulesPanelContent
               rules={rules}
               onDeleteRule={this.handleDeleteRule}
