@@ -11,7 +11,6 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import subscribe_to_incident
-from sentry.incidents.models import IncidentGroup
 from sentry.testutils import TestCase
 
 
@@ -29,8 +28,6 @@ class IncidentSerializerTest(TestCase):
         assert result["statusMethod"] == incident.status_method
         assert result["type"] == incident.type
         assert result["title"] == incident.title
-        assert result["query"] == incident.query
-        assert result["aggregation"] == incident.aggregation
         assert result["dateStarted"] == incident.date_started
         assert result["dateDetected"] == incident.date_detected
         assert result["dateCreated"] == incident.date_added
@@ -46,15 +43,6 @@ class DetailedIncidentSerializerTest(TestCase):
         subscribe_to_incident(incident, self.user)
         result = serialize(incident, serializer=serializer, user=self.user)
         assert result["isSubscribed"]
-
-    def test_groups(self):
-        incident = self.create_incident()
-        serializer = DetailedIncidentSerializer()
-        result = serialize(incident, serializer=serializer)
-        assert result["groups"] == []
-        IncidentGroup.objects.create(incident=incident, group=self.group)
-        result = serialize(incident, serializer=serializer)
-        assert result["groups"] == [six.text_type(self.group.id)]
 
     def test_alert_rule(self):
         incident = self.create_incident()

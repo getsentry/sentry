@@ -281,8 +281,13 @@ class IncidentCreationTest(TestCase):
     def test_simple(self):
         title = "hello"
         query = "goodbye"
+        alert_rule = self.create_alert_rule()
         incident = Incident.objects.create(
-            self.organization, title=title, query=query, type=IncidentType.ALERT_TRIGGERED.value
+            self.organization,
+            title=title,
+            query=query,
+            type=IncidentType.ALERT_TRIGGERED.value,
+            alert_rule=alert_rule,
         )
         assert incident.identifier == 1
         assert incident.title == title
@@ -290,13 +295,18 @@ class IncidentCreationTest(TestCase):
 
         # Check identifier correctly increments
         incident = Incident.objects.create(
-            self.organization, title=title, query=query, type=IncidentType.ALERT_TRIGGERED.value
+            self.organization,
+            title=title,
+            query=query,
+            type=IncidentType.ALERT_TRIGGERED.value,
+            alert_rule=alert_rule,
         )
         assert incident.identifier == 2
 
     def test_identifier_conflict(self):
         create_method = BaseManager.create
         call_count = [0]
+        alert_rule = self.create_alert_rule()
 
         def mock_base_create(*args, **kwargs):
             if not call_count[0]:
@@ -311,6 +321,7 @@ class IncidentCreationTest(TestCase):
                         title="Conflicting Incident",
                         query="Uh oh",
                         type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=alert_rule,
                     )
                 assert incident.identifier == kwargs["identifier"]
                 try:
@@ -328,6 +339,7 @@ class IncidentCreationTest(TestCase):
         with patch.object(BaseManager, "create", new=mock_base_create):
             incident = Incident.objects.create(
                 self.organization,
+                alert_rule=alert_rule,
                 status=IncidentStatus.OPEN.value,
                 title="hi",
                 query="bye",

@@ -5,13 +5,7 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.incidents.models import (
-    Incident,
-    IncidentGroup,
-    IncidentProject,
-    IncidentSeen,
-    IncidentSubscription,
-)
+from sentry.incidents.models import Incident, IncidentProject, IncidentSeen, IncidentSubscription
 from sentry.snuba.models import QueryDatasets
 from sentry.utils.db import attach_foreignkey
 
@@ -41,8 +35,6 @@ class IncidentSerializer(Serializer):
             "statusMethod": obj.status_method,
             "type": obj.type,
             "title": obj.title,
-            "query": obj.query,
-            "aggregation": obj.aggregation,
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
@@ -62,15 +54,8 @@ class DetailedIncidentSerializer(IncidentSerializer):
                 )
             )
 
-        incident_groups = defaultdict(list)
-        for incident_id, group_id in IncidentGroup.objects.filter(
-            incident__in=item_list
-        ).values_list("incident_id", "group_id"):
-            incident_groups[incident_id].append(six.text_type(group_id))
-
         for item in item_list:
             results[item]["is_subscribed"] = item.id in subscribed_incidents
-            results[item]["groups"] = incident_groups.get(item.id, [])
         return results
 
     def _get_incident_seen_list(self, incident, user):
@@ -97,7 +82,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context["isSubscribed"] = attrs["is_subscribed"]
         context["seenBy"] = seen_list["seen_by"]
         context["hasSeen"] = seen_list["has_seen"]
-        context["groups"] = attrs["groups"]
         context["alertRule"] = serialize(obj.alert_rule, user)
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)

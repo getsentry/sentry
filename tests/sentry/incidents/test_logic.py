@@ -59,7 +59,6 @@ from sentry.incidents.models import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
-    IncidentGroup,
     IncidentProject,
     PendingIncidentSnapshot,
     IncidentStatus,
@@ -67,7 +66,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
     IncidentType,
 )
-from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.models import QueryDatasets
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -80,11 +79,7 @@ class CreateIncidentTest(TestCase):
     def test_simple(self):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
-        query = "goodbye"
-        aggregation = QueryAggregations.UNIQUE_USERS
         date_started = timezone.now()
-        other_project = self.create_project(fire_project_created=True)
-        other_group = self.create_group(project=other_project)
         alert_rule = create_alert_rule(
             self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
@@ -94,34 +89,20 @@ class CreateIncidentTest(TestCase):
             self.organization,
             type_=incident_type,
             title=title,
-            query=query,
-            aggregation=aggregation,
             date_started=date_started,
             projects=[self.project],
-            groups=[self.group, other_group],
             alert_rule=alert_rule,
         )
         assert incident.identifier == 1
         assert incident.status == IncidentStatus.OPEN.value
         assert incident.type == incident_type.value
         assert incident.title == title
-        assert incident.query == query
-        assert incident.aggregation == aggregation.value
         assert incident.date_started == date_started
         assert incident.date_detected == date_started
         assert incident.alert_rule == alert_rule
-        assert (
-            IncidentGroup.objects.filter(
-                incident=incident, group__in=[self.group, other_group]
-            ).count()
-            == 2
-        )
-        assert (
-            IncidentProject.objects.filter(
-                incident=incident, project__in=[self.project, other_project]
-            ).count()
-            == 2
-        )
+        assert IncidentProject.objects.filter(
+            incident=incident, project__in=[self.project]
+        ).exists()
         assert (
             IncidentActivity.objects.filter(
                 incident=incident, type=IncidentActivityType.DETECTED.value
@@ -186,14 +167,8 @@ class UpdateIncidentStatus(TestCase):
         }
 
     def test_closed(self):
-        incident = create_incident(
-            self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Test",
-            "",
-            QueryAggregations.TOTAL,
-            timezone.now(),
-            projects=[self.project],
+        incident = self.create_incident(
+            self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
         )
         with self.assertChanges(
             lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
@@ -204,14 +179,8 @@ class UpdateIncidentStatus(TestCase):
 
     def test_pending_snapshot_management(self):
         # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
-        incident = create_incident(
-            self.organization,
-            IncidentType.ALERT_TRIGGERED,
-            "Test",
-            "",
-            QueryAggregations.TOTAL,
-            timezone.now(),
-            projects=[self.project],
+        incident = self.create_incident(
+            self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
         )
         assert PendingIncidentSnapshot.objects.all().count() == 0
         update_incident_status(incident, IncidentStatus.CLOSED)
@@ -328,10 +297,6 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
             windowed_stats=True,
         )
 
-    def test_groups(self):
-        self.run_test(self.group_incident, [1, 1])
-        self.run_test(self.group_incident, [1, 1], windowed_stats=True)
-
     def test_with_transactions(self):
         incident = self.project_incident
         alert_rule = self.create_alert_rule(
@@ -364,26 +329,10 @@ class BaseIncidentAggregatesTest(BaseIncidentsTest):
         self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
         return incident
 
-    @property
-    def group_incident(self):
-        fp = "group"
-        group = self.create_event(self.now - timedelta(minutes=1), fingerprint=fp).group
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 123}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 123}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 123}, fingerprint="other")
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 124}, fingerprint=fp)
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 124}, fingerprint="other")
-        return self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[], groups=[group]
-        )
-
 
 class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4, "unique_users": 2}
-
-    def test_groups(self):
-        assert get_incident_aggregates(self.group_incident) == {"count": 4, "unique_users": 2}
 
 
 @freeze_time()
@@ -590,7 +539,6 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
             self.organization,
             title="Open",
             query="",
-            groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
         self.run_test(open_incident)
@@ -600,7 +548,6 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
             self.organization,
             title="Closed",
             query="",
-            groups=[self.group],
             date_started=timezone.now() - timedelta(days=30),
         )
         update_incident_status(

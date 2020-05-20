@@ -670,9 +670,7 @@ def main(num_events=1, extra_events=False):
                     org,
                     type_=IncidentType.DETECTED,
                     title="My Incident",
-                    query="",
                     date_started=datetime.utcnow().replace(tzinfo=utc),
-                    aggregation=QueryAggregations.TOTAL,
                     alert_rule=alert_rule,
                     projects=[project],
                 )
