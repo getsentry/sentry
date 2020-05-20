@@ -7,14 +7,15 @@ import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ExternalLink from 'app/components/links/externalLink';
-import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
+import {Organization, Project} from 'app/types';
 
 import {defaultSuggestions as sourceDefaultSuggestions} from './dataPrivacyRulesForm/dataPrivacyRulesFormSourceSuggestions';
 import DataPrivacyRulesModal from './dataPrivacyRulesModal';
 import DataPrivacyRulesPanelContent from './dataPrivacyRulesContent';
-import {RuleType, MethodType, EventIdStatus} from './dataPrivacyRulesForm/types';
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
+import OrganizationRules from './organizationRules';
+import {Rule, RuleType, MethodType, EventIdStatus} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
@@ -23,7 +24,6 @@ type DataPrivacyRulesPanelFormProps = React.ComponentProps<
   typeof DataPrivacyRulesPanelForm
 >;
 type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
-type Rule = NonNullable<ModalProps['rule']>;
 type SourceSuggestions = ModalProps['sourceSuggestions'];
 type Errors = DataPrivacyRulesPanelFormProps['errors'];
 
@@ -42,10 +42,13 @@ type PiiConfigRule = {
 type Applications = {[key: string]: Array<string>};
 
 type Props = {
-  disabled?: boolean;
   endpoint: string;
+  organization: Organization;
+  onSubmitSuccess: (resp: Organization | Project) => void;
+  projectId?: Project['id'];
   relayPiiConfig?: string;
   additionalContext?: React.ReactNode;
+  disabled?: boolean;
 };
 
 type State = {
@@ -54,15 +57,12 @@ type State = {
   relayPiiConfig?: string;
   sourceSuggestions: SourceSuggestions;
   eventId: ModalProps['eventId'];
+  orgRules: Array<Rule>;
   showAddRuleModal?: boolean;
+  isProjectLevel?: boolean;
 };
 
 class DataPrivacyRules extends React.Component<Props, State> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   state: State = {
     rules: [],
     savedRules: [],
@@ -71,11 +71,14 @@ class DataPrivacyRules extends React.Component<Props, State> {
     eventId: {
       value: '',
     },
+    orgRules: [],
+    isProjectLevel: this.props.endpoint.includes('projects'),
   };
 
   componentDidMount() {
     this.loadRules();
     this.loadSourceSuggestions();
+    this.loadOrganizationRules();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -90,55 +93,85 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
   api = new Client();
 
+  loadOrganizationRules = () => {
+    const {isProjectLevel} = this.state;
+    const {organization} = this.props;
+
+    if (isProjectLevel) {
+      try {
+        const convertedRules = this.convertRelayPiiConfig(organization.relayPiiConfig);
+        this.setState({
+          orgRules: convertedRules,
+        });
+      } catch {
+        addErrorMessage(t('Unable to load organization rules'));
+      }
+    }
+  };
+
   loadRules() {
     try {
-      const relayPiiConfig = this.state.relayPiiConfig;
-      const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
-      const rules: PiiConfigRule = piiConfig.rules || {};
-      const applications: Applications = piiConfig.applications || {};
-      const convertedRules: Array<Rule> = [];
-
-      for (const application in applications) {
-        for (const rule of applications[application]) {
-          if (!rules[rule]) {
-            if (rule[0] === '@') {
-              const [type, method] = rule.slice(1).split(':');
-              convertedRules.push({
-                id: convertedRules.length,
-                type: type as RuleType,
-                method: method as MethodType,
-                source: application,
-              });
-            }
-            continue;
-          }
-
-          const resolvedRule = rules[rule];
-          if (resolvedRule.type === RuleType.PATTERN && resolvedRule.pattern) {
-            const method = resolvedRule?.redaction?.method;
-
-            convertedRules.push({
-              id: convertedRules.length,
-              type: RuleType.PATTERN,
-              method: method as MethodType,
-              source: application,
-              customRegularExpression: resolvedRule.pattern,
-            });
-          }
-        }
-      }
-
+      const convertedRules = this.convertRelayPiiConfig(this.state.relayPiiConfig);
       this.setState({
         rules: convertedRules,
         savedRules: convertedRules,
       });
     } catch {
-      addErrorMessage(t('Unable to load the rules'));
+      addErrorMessage(t('Unable to load project rules'));
     }
   }
 
+  // Remap PII config format to something that is more usable in React. Ideally
+  // we would stop doing this at some point and make some updates to how we
+  // store this configuration on the server.
+  //
+  // For the time being the PII config format is documented at
+  // https://getsentry.github.io/relay/pii-config/
+  convertRelayPiiConfig = (relayPiiConfig?: string) => {
+    const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
+    const rules: PiiConfigRule = piiConfig.rules || {};
+    const applications: Applications = piiConfig.applications || {};
+    const convertedRules: Array<Rule> = [];
+
+    for (const application in applications) {
+      for (const rule of applications[application]) {
+        if (!rules[rule]) {
+          // Convert a "built-in" rule like "@anything:remove" to an object {
+          //   type: "anything",
+          //   method: "remove"
+          // }
+          if (rule[0] === '@') {
+            const [type, method] = rule.slice(1).split(':');
+            convertedRules.push({
+              id: convertedRules.length,
+              type: type as RuleType,
+              method: method as MethodType,
+              source: application,
+            });
+          }
+          continue;
+        }
+
+        const resolvedRule = rules[rule];
+        if (resolvedRule.type === RuleType.PATTERN && resolvedRule.pattern) {
+          const method = resolvedRule?.redaction?.method;
+
+          convertedRules.push({
+            id: convertedRules.length,
+            type: RuleType.PATTERN,
+            method: method as MethodType,
+            source: application,
+            customRegularExpression: resolvedRule.pattern,
+          });
+        }
+      }
+    }
+
+    return convertedRules;
+  };
+
   loadSourceSuggestions = async () => {
-    const {organization, project} = this.context;
+    const {organization, projectId} = this.props;
     const {eventId} = this.state;
 
     if (!eventId.value) {
@@ -162,12 +195,12 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
     try {
       const query: {projectId?: string; eventId: string} = {eventId: eventId.value};
-      if (project?.id) {
-        query.projectId = project.id;
+      if (projectId) {
+        query.projectId = projectId;
       }
       const rawSuggestions = await this.api.requestPromise(
         `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
-        {method: 'GET', query}
+        {query}
       );
       const sourceSuggestions: SourceSuggestions = rawSuggestions.suggestions;
 
@@ -200,7 +233,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
   };
 
   handleSubmit = async (rules: Array<Rule>) => {
-    const {endpoint} = this.props;
+    const {endpoint, onSubmitSuccess} = this.props;
 
     const errors: Errors = {};
 
@@ -245,7 +278,8 @@ class DataPrivacyRules extends React.Component<Props, State> {
         method: 'PUT',
         data: {relayPiiConfig},
       })
-      .then(() => {
+      .then(result => {
+        onSubmitSuccess(result);
         this.setState({
           relayPiiConfig,
         });
@@ -361,7 +395,14 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
   render() {
     const {additionalContext, disabled} = this.props;
-    const {rules, sourceSuggestions, showAddRuleModal, eventId} = this.state;
+    const {
+      rules,
+      sourceSuggestions,
+      showAddRuleModal,
+      eventId,
+      orgRules,
+      isProjectLevel,
+    } = this.state;
 
     return (
       <React.Fragment>
@@ -381,9 +422,9 @@ class DataPrivacyRules extends React.Component<Props, State> {
             })}
           </PanelAlert>
           <PanelBody>
+            {isProjectLevel && <OrganizationRules rules={orgRules} />}
             <DataPrivacyRulesPanelContent
               rules={rules}
-              disabled={disabled}
               onDeleteRule={this.handleDeleteRule}
               onUpdateRule={this.handleUpdateRule}
               onUpdateEventId={this.handleUpdateEventId}

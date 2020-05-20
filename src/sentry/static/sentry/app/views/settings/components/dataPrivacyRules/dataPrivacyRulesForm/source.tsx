@@ -12,7 +12,7 @@ import {
   binaryOperatorSuggestions,
 } from './dataPrivacyRulesFormSourceSuggestions';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
-import {SourceSuggestion, SourceSuggestionType} from './types';
+import {SourceSuggestion, SourceSuggestionType} from '../types';
 
 type Props = {
   value: string;

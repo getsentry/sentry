@@ -26,7 +26,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     ];
   }
 
-  handleSave = (data: Organization) => {
+  handleUpdateOrganization = (data: Organization) => {
     // This will update OrganizationStore (as well as OrganizationsStore
     // which is slightly incorrect because it has summaries vs a detailed org)
     updateOrganization(data);
@@ -52,7 +52,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           initialData={initialData}
           additionalFieldProps={{hasSsoEnabled: !!authProvider}}
           onSubmitSuccess={(_resp, model) => {
-            this.handleSave(model.initialData as Organization);
+            this.handleUpdateOrganization(model.initialData as Organization);
           }}
           onSubmitError={() => addErrorMessage('Unable to save change')}
           saveOnBlur
@@ -69,6 +69,10 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('org:write')}
+          organization={organization}
+          onSubmitSuccess={resp => {
+            this.handleUpdateOrganization(resp as Organization);
+          }}
         />
       </React.Fragment>
     );

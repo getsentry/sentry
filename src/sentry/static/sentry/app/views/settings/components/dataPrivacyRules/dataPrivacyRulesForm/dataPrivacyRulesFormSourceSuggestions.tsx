@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
 
-import {SourceSuggestion, SourceSuggestionType} from './types';
+import {SourceSuggestion, SourceSuggestionType} from '../types';
 
 const binaryOperatorSuggestions: Array<SourceSuggestion> = [
   {
