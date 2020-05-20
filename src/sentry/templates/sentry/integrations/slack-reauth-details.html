@@ -25,11 +25,14 @@
         margin: 0px 5px;
     }
     .section-info {
-        font-size: 90%;
         margin-top: 5px;
     }
     .private :last-child {
         margin-top: 20px;
+    }
+    .footer-text {
+        display: inline-block;
+        font-size: 90%;
     }
   </style>
 
@@ -38,15 +41,15 @@
 
 
 {% block main %}
-    <h3>Authorize New Sentry Slack App</h3>
-    <div class="private">
-        {% if private %}
-            <strong>We've found some private channels being used in your alert rules:</strong>
+    <h3>Time For An Upgrade</h3>
+    {% if private %}
+        <div class="private">
+            <strong>Well, look who has private channels with alert rules.</strong>
             <p class="section-info">
                 {% blocktrans %}
-                    What does this mean? Am I doomed? No, you're not doomed. All this means is that once you're done
-                    authorizing the new Slack app, you'll need to add the Sentry bot to each of these channels to
-                    ensure that the bot has access to alert you about your Sentry errors!
+                So what does this mean for you and the future of your channels? Not much.
+                You'll just need to add the Sentry bot to each channel after you authorize the new Slack app.
+                Otherwise, you might miss out on some important error alerts.
                 {% endblocktrans %}
             </p>
             {% for channel in private %}
@@ -54,26 +57,40 @@
             {% endfor %}
             <p class="section-info">
                 {% blocktrans %}
-                    What if I forget what channels are used the moment I leave this screen? Don't worry, after the
-                    authentication step, we'll send your private channels one last message from the legacy app, reminding
-                    you to add the new Sentry bot.
+                We can't even remember the name of that show everyone's been recommending, so we couldn't possibly
+                expect you to remember these channel names. We'll send you another reminder in your private Slack channels.
                 {% endblocktrans %}
             </p>
-        {% endif %}
+        </div>
 
-    </div>
+        <strong>Next Steps</strong>
+        <p class="section-info">
+            {% blocktrans %}
+            Click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
+            {% endblocktrans %}
+        </p>
+    {% endif %}
 
 
     <div>
         {% if not private %}
-        <h6><strong>Next Steps</strong></h6>
-            <p class="section-info"> You are good to go! Click "Next" to start the re-authentication flow!</p>
+            <h5>Next Steps</h5>
+            <p>
+                {% blocktrans %}
+                See, that wasn't so bad. Just click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
+                {% endblocktrans %}
+            </p>
         {% endif %}
     </div>
 
     <div class="form-actions clearfix">
-        <div class="pull-right">
-            <a class="btn btn-primary" href="{{ next_url }}">{% trans "Start Authorization" %}</a>
+        <div>
+            <div class="footer-text">Have questions? Emails us at
+                <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+            </div>
+            <div class="pull-right">
+                <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Upgrade" %}</a>
+            </div>
         </div>
     </div>
 {% endblock %}

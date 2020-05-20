@@ -37,6 +37,10 @@
         display: flex;
         flex-direction: column;
     }
+    .footer-text {
+        display: inline-block;
+        font-size: 90%;
+    }
     .loader, .loader:after {
         border-radius: 50%;
         width: 10em;
@@ -86,41 +90,38 @@
         document.getElementById("loader").setAttribute("class", "loader");
     };
 </script>
-    <h3>Authorize New Sentry Slack App</h3>
+    <h3>{% trans "Time For An Upgrade" %}</h3>
 
-    <h5>Moving Off Slack's Legacy Workspace Apps</h5>
-    <strong>Was it worth it? When we work(space)d it.</strong>
-    <strong>We put our code down, flip it and reverse it.</strong>
+    <h5>{% trans "Farewell to Slack's legacy workspace apps." %}</h5>
     <p>
-        {% blocktrans %}
-            Slack has deprecated their workspace apps which our integration
-            was previously built on. But not to worry, Sentry has built a new Slack app,
-            and a path for you to upgrade to this new app! In order to continue using
-            the Slack integration and your existing configuration, you will need to
-            authorize the new app in upcoming steps.
-        {% endblocktrans %}
+        {% trans "The time has come, Slack's deprecated its workspace apps. And with it, goes our legacy Slack integration." %}
     </p>
-    <p>{% trans "If you want more details about the move, please visit our docs" %}</p>
-
-    <h5>Existing Alert Rule Configurations</h5>
-    <strong>We (may) interrupt your regularly scheduled programming...</strong>
+    <p>
+        {% trans "But don't worry, we built you a whole new Sentry-Slack integration. Just authorize the app, and then you can get back to doing whatever it is you came here to do." %}
+    </p>
     <p>
         {% blocktrans %}
-            If you aren't using any private channels in your alert rules, authorizing
-            the new Slack app will be all you need to do. However, if you <strong>do</strong>
-            have any private channels in your rule configurations, you'll have one extra
-            step after authorizing the new Slack app.
+        Want to know more about the move? We wrote you some <a href="https://docs.sentry.io/workflow/integrations/global-integrations/#upgrading-slack">docs</a>.
         {% endblocktrans %}
     </p>
 
+    <h5>{% trans "Your existing alert rules may need some love." %}</h5>
+    <p>
+        {% trans "If you don't have private channels in your alert rules, just authorize our new Slack app and then you can get on with your life." %}
+    </p>
     <p>
         {% blocktrans %}
-            But how do I know what channels are being used? Good question! This next step will
-            audit your alert rules to see if there are any private channels that require
-            attention after authenticating. Please note that if you have a high number
-            of slack channels in your alert rules this could take a hot minute...
-         {% endblocktrans %}
-     </p>
+        If you <strong>do</strong> have private channels being used in your alert rules, bear with us. You've got an extra step to go.
+        {% endblocktrans %}
+    </p>
+    <p>
+        {% blocktrans %}
+        How do you know which channels are used in alert rules? We'll tell you. Our next step audits your configuration to identify
+        which channels need some post-authentication love. Bear in mind that if you've got a lot of Slack channels with alert rules,
+        this might take a hot minute.
+        {% endblocktrans %}
+    </p>
+
 
     {% if extra_orgs %}
     <p class="alert alert-block flex">
@@ -141,8 +142,13 @@
 
     <div id="loader"></div>
     <div class="form-actions clearfix">
-        <div class="pull-right">
-            <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Continue" %}</a>
+        <div>
+            <div class="footer-text">Have questions? Emails us at
+                <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+            </div>
+            <div class="pull-right">
+                <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Continue" %}</a>
+            </div>
         </div>
     </div>
 {% endblock %}
